@@ -303,7 +303,7 @@ function ToolButton({ active, icon: Icon, label, onClick }: { active: boolean; i
         "relative flex w-14 flex-col items-center gap-1 rounded-xl border-l-2 py-3 transition-all",
         active
           ? "border-pink-400 bg-gradient-to-b from-pink-500/25 to-pink-500/5 text-pink-300 shadow-[0_0_24px_rgba(236,72,153,0.3)]"
-          : "border-transparent text-zinc-500 hover:bg-white/5 hover:text-zinc-300",
+          : "border-transparent text-zinc-400 hover:bg-white/5 hover:text-zinc-200",
       )}
       title={label}
     >
@@ -339,7 +339,7 @@ function CountSelector({ label, value, onChange }: { label: string; value: numbe
   const { t, lang } = useImageTranslation();
   return (
     <section className="space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">{t(label)}</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">{t(label)}</p>
       <div className="grid grid-cols-4 gap-2">
         {[1, 2, 3, 4].map((n) => (
           <button key={n} onClick={() => onChange(n)} className={cn("rounded-lg border py-2 text-sm", value === n ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-400")}>{n}</button>
@@ -414,10 +414,10 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
         </div>
         <div className="min-w-0 flex-1 text-left">
           <p className="truncate text-xs font-semibold text-white">{selected.label}</p>
-          <p className="truncate text-[10px] text-zinc-500">{selected.sublabel || selected.id}</p>
+          <p className="truncate text-[10px] text-zinc-400">{selected.sublabel || selected.id}</p>
         </div>
         {selected.badge ? <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">{selected.badge}</span> : null}
-        <ChevronDown className={cn("h-4 w-4 text-zinc-500 transition", open && "rotate-180")} />
+        <ChevronDown className={cn("h-4 w-4 text-zinc-400 transition", open && "rotate-180")} />
       </button>
 
       <AnimatePresence>
@@ -433,14 +433,14 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
             >
               <div className="border-b border-white/10 p-2">
                 <div className="flex items-center gap-2 rounded-lg bg-white/5 px-2 py-1.5 ring-1 ring-white/10">
-                  <Search className="h-3.5 w-3.5 text-zinc-500" />
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Search model")} className="w-full bg-transparent text-xs text-white placeholder:text-zinc-500 focus:outline-none" />
+                  <Search className="h-3.5 w-3.5 text-zinc-400" />
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Search model")} className="w-full bg-transparent text-xs text-white placeholder:text-zinc-400 focus:outline-none" />
                 </div>
               </div>
               <div className="max-h-[320px] overflow-y-auto">
                 {grouped.map(([group, models], gi) => (
                   <div key={group} className={cn(gi > 0 && "border-t border-white/10")}>
-                    <p className="px-3 pt-2 text-[9px] font-bold uppercase tracking-[0.15em] text-zinc-500">{t(group)}</p>
+                    <p className="px-3 pt-2 text-[9px] font-bold uppercase tracking-[0.15em] text-zinc-400">{t(group)}</p>
                     {models.map((model) => (
                       <button key={model.id} onClick={() => { onSelect(model); setOpen(false); }} className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.07]", selected.id === model.id && "bg-white/10")}>
                         <div className="min-w-0 flex-1">
@@ -448,7 +448,7 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
                             <p className="truncate text-xs font-semibold text-zinc-100">{model.label}</p>
                             {model.badge ? <span className="shrink-0 rounded-full bg-lime-300 px-1.5 py-0.5 text-[8px] font-black uppercase text-black">{model.badge}</span> : null}
                           </div>
-                          <p className="truncate text-[10px] text-zinc-500">{model.sublabel || model.id}</p>
+                          <p className="truncate text-[10px] text-zinc-400">{model.sublabel || model.id}</p>
                         </div>
                         {selected.id === model.id ? <Check className="h-3.5 w-3.5 text-pink-400" /> : null}
                       </button>
@@ -502,7 +502,7 @@ function UploadBox({ label, file, onFile, required = false, accept = "image/*" }
 
   return (
     <div className="space-y-1.5">
-      {label ? <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">{t(label)}{required ? " *" : ""}</p> : null}
+      {label ? <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">{t(label)}{required ? " *" : ""}</p> : null}
       <div
         role="button"
         tabIndex={0}
@@ -524,7 +524,7 @@ function UploadBox({ label, file, onFile, required = false, accept = "image/*" }
             <img src={preview} alt="upload" className="h-full w-full object-cover" />
           )
         ) : (
-          <div className="flex flex-col items-center gap-1 text-zinc-500">
+          <div className="flex flex-col items-center gap-1 text-zinc-400">
             <UploadCloud className="h-5 w-5" />
             <span className="text-xs">{dragActive ? "Drop here" : acceptVideo ? "Upload or drag media" : "Upload or drag image"}</span>
           </div>
@@ -1998,6 +1998,7 @@ export default function ImageWorkspacePage() {
         <SettingsAccordion label="Character Reference" summary={selectedCharacter?.name || "None"} defaultOpen={Boolean(selectedCharacter)}>
           <div className="space-y-3">
             <select
+              aria-label={t("Character reference selection")}
               value={selectedCharacterId}
               onChange={(e) => setSelectedCharacterId(e.target.value)}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500"
@@ -2020,7 +2021,7 @@ export default function ImageWorkspacePage() {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-zinc-100">{selectedCharacter.name}</p>
-                    <p className="mt-1 line-clamp-2 text-xs text-zinc-500">{selectedCharacter.description || "Identity reference set"}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{selectedCharacter.description || "Identity reference set"}</p>
                     <p className="mt-1 text-[11px] text-fuchsia-200">{selectedCharacter.referenceUrls.length} reference image(s)</p>
                   </div>
                 </div>
@@ -2063,6 +2064,7 @@ export default function ImageWorkspacePage() {
         {qualityOptions.length ? (
           <SettingsAccordion label={qualityOptions.some((q) => /k$/i.test(q)) ? "Resolution" : "Quality"} summary={quality || qualityOptions[0]} defaultOpen>
             <select
+              aria-label={t("Image quality or resolution")}
               value={quality || qualityOptions[0]}
               onChange={(e) => setQuality(e.target.value)}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500"
@@ -2083,19 +2085,19 @@ export default function ImageWorkspacePage() {
     if (activeTool === "relight") {
       return <>
         <UploadBox label="Upload image to relight" file={relightFile} onFile={setRelightFile} required />
-        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">Lighting Preset</p><div className="grid grid-cols-3 gap-2">{LIGHTING_PRESETS.map((preset) => <button key={preset.id} onClick={() => setRelightPreset(preset.id)} className={cn("rounded-xl border px-2 py-2 text-left text-[11px]", relightPreset === preset.id ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-400")}>{preset.name}</button>)}</div></section>
+        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">Lighting Preset</p><div className="grid grid-cols-3 gap-2">{LIGHTING_PRESETS.map((preset) => <button key={preset.id} onClick={() => setRelightPreset(preset.id)} className={cn("rounded-xl border px-2 py-2 text-left text-[11px]", relightPreset === preset.id ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-400")}>{preset.name}</button>)}</div></section>
         <SliderField label="Brightness" value={relightBrightness} onChange={setRelightBrightness} />
         <SliderField label="Contrast" value={relightContrast} onChange={setRelightContrast} />
         <SliderField label="Temperature" value={relightTemperature} onChange={setRelightTemperature} />
         <SliderField label="Shadow Intensity" value={relightShadow} onChange={setRelightShadow} />
-        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">Light Direction</p><div className="grid grid-cols-3 gap-1.5 text-xs">{["nw", "n", "ne", "w", "center", "e", "sw", "s", "se"].map((d) => <button key={d} onClick={() => setRelightDirection(d)} className={cn("rounded-md border py-1.5", relightDirection === d ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-500")}>{d}</button>)}</div></section>
+        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">Light Direction</p><div className="grid grid-cols-3 gap-1.5 text-xs">{["nw", "n", "ne", "w", "center", "e", "sw", "s", "se"].map((d) => <button key={d} onClick={() => setRelightDirection(d)} className={cn("rounded-md border py-1.5", relightDirection === d ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-400")}>{d}</button>)}</div></section>
         <CountSelector label="Number of Variations" value={relightVariations} onChange={setRelightVariations} />
       </>;
     }
 
     if (activeTool === "inpaint") {
       return <>
-        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">Edit Model</p><select value={inpaintModelId} onChange={(e) => setInpaintModelId(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100">{EDIT_MODELS.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}</select></section>
+        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">Edit Model</p><select aria-label={t("Edit model selection")} value={inpaintModelId} onChange={(e) => setInpaintModelId(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100">{EDIT_MODELS.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}</select></section>
         <CountSelector label="Number of Variations" value={inpaintVariations} onChange={setInpaintVariations} />
         <SliderField label="Brush Size" value={brushSize} onChange={setBrushSize} min={5} max={100} />
       </>;
@@ -2106,8 +2108,9 @@ export default function ImageWorkspacePage() {
       const maxSlots = currentEnhanceModel?.maxRefImages ?? 1;
       return <>
         <section className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">Enhancement Model</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">Enhancement Model</p>
           <select
+            aria-label={t("Enhancement model selection")}
             value={enhanceModelId}
             onChange={(e) => { setEnhanceModelId(e.target.value); setEnhanceFiles([]); }}
             className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500"
@@ -2119,7 +2122,7 @@ export default function ImageWorkspacePage() {
         </section>
 
         <section className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">
             Input Images
             <span className="ml-2 font-normal normal-case text-zinc-600">{enhanceFiles.length}/{maxSlots} added</span>
           </p>
@@ -2176,12 +2179,12 @@ export default function ImageWorkspacePage() {
     if (activeTool === "upscale") {
       return <>
         <UploadBox label="Upload image" file={upscaleFile} onFile={setUpscaleFile} required accept="image/*" />
-        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">Scale Factor</p><div className="grid grid-cols-2 gap-2">{[2, 4].map((n) => <button key={n} onClick={() => setUpscaleScale(n)} className={cn("rounded-xl border py-2 text-sm font-semibold", upscaleScale === n ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-400")}>{n}x</button>)}</div></section>
+        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">Scale Factor</p><div className="grid grid-cols-2 gap-2">{[2, 4].map((n) => <button key={n} onClick={() => setUpscaleScale(n)} className={cn("rounded-xl border py-2 text-sm font-semibold", upscaleScale === n ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-400")}>{n}x</button>)}</div></section>
         <ToggleField label="Denoise" checked={upDenoise} onChange={setUpDenoise} />
         <ToggleField label="Sharpen" checked={upSharpen} onChange={setUpSharpen} />
         <ToggleField label="Face Enhancement" checked={upFace} onChange={setUpFace} />
         <ToggleField label="Color Enhancement" checked={upColor} onChange={setUpColor} />
-        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">Output Format</p><div className="grid grid-cols-3 gap-2">{(["png", "webp", "jpg"] as const).map((f) => <button key={f} onClick={() => setUpFormat(f)} className={cn("rounded-lg border py-2 text-sm uppercase", upFormat === f ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-400")}>{f}</button>)}</div>{(upFormat === "jpg" || upFormat === "webp") ? <SliderField label="Quality" value={upQuality} onChange={setUpQuality} min={80} max={100} /> : null}</section>
+        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">Output Format</p><div className="grid grid-cols-3 gap-2">{(["png", "webp", "jpg"] as const).map((f) => <button key={f} onClick={() => setUpFormat(f)} className={cn("rounded-lg border py-2 text-sm uppercase", upFormat === f ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-400")}>{f}</button>)}</div>{(upFormat === "jpg" || upFormat === "webp") ? <SliderField label="Quality" value={upQuality} onChange={setUpQuality} min={80} max={100} /> : null}</section>
       </>;
     }
 
@@ -2191,7 +2194,7 @@ export default function ImageWorkspacePage() {
       <SliderField label="Face Blend" value={faceBlend} onChange={setFaceBlend} min={0} max={100} />
       <ToggleField label="Keep target expression" checked={faceExpression} onChange={setFaceExpression} />
       <ToggleField label="Match skin tones" checked={faceSkin} onChange={setFaceSkin} />
-      <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">Target Face Index</p><div className="grid grid-cols-4 gap-2">{[0,1,2,3].map((i) => <button key={i} onClick={() => setFaceIndex(i)} className={cn("rounded-lg border py-2 text-sm", faceIndex === i ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-400")}>{i+1}</button>)}</div></section>
+      <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">Target Face Index</p><div className="grid grid-cols-4 gap-2">{[0,1,2,3].map((i) => <button key={i} onClick={() => setFaceIndex(i)} className={cn("rounded-lg border py-2 text-sm", faceIndex === i ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-400")}>{i+1}</button>)}</div></section>
     </>;
   };
 

@@ -56,7 +56,7 @@ export function ReferenceActionTiles({
 
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
         {isAr ? "المراجع والمظهر الفني" : "REFERENCES & STYLING"}
       </label>
 

@@ -844,7 +844,7 @@ export function ReferenceStudioModal({
         <div className="w-full md:w-64 bg-[#0c0f18] border-b md:border-b-0 md:border-r border-slate-800/80 p-4 flex flex-col justify-between flex-shrink-0">
           <div className="space-y-4">
             <div className="flex items-center justify-between px-2">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
                 {isAr ? "استوديو المراجع" : "Reference Studio"}
               </span>
               <button
@@ -891,7 +891,7 @@ export function ReferenceStudioModal({
             </div>
 
             <div className="pt-2 pb-1 px-2 border-t border-slate-800/80">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
                 {isAr ? "جميع المراجع" : "All references"}
               </span>
             </div>
@@ -933,7 +933,7 @@ export function ReferenceStudioModal({
                   <Sparkles className="w-4 h-4 text-indigo-400" />
                   <span>Style</span>
                 </div>
-                <Pin className="w-3.5 h-3.5 text-slate-500 hover:text-indigo-400" />
+                <Pin className="w-3.5 h-3.5 text-slate-400 hover:text-indigo-400" />
               </button>
 
               <button
@@ -952,7 +952,7 @@ export function ReferenceStudioModal({
                   <User className="w-4 h-4 text-emerald-400" />
                   <span>Character</span>
                 </div>
-                <Pin className="w-3.5 h-3.5 text-slate-500 hover:text-emerald-400" />
+                <Pin className="w-3.5 h-3.5 text-slate-400 hover:text-emerald-400" />
               </button>
 
               <button
@@ -1080,7 +1080,7 @@ export function ReferenceStudioModal({
             </div>
           </div>
 
-          <div className="hidden md:block pt-4 border-t border-slate-800/80 text-[10px] text-slate-500 text-center">
+          <div className="hidden md:block pt-4 border-t border-slate-800/80 text-[10px] text-slate-400 text-center">
             Saad Studio AI • Reference Engine
           </div>
         </div>
@@ -1090,7 +1090,7 @@ export function ReferenceStudioModal({
           {/* Top Search & Filter Bar */}
           <div className="p-4 border-b border-slate-800/80 bg-[#0b0e17] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
+              <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
               <input
                 type="text"
                 placeholder={isAr ? "بحث في المراجع..." : "Search references..."}
@@ -1264,7 +1264,7 @@ export function ReferenceStudioModal({
                   );
                 })}
                 {isLoadingUserChars && userCharacters.length === 0 && (
-                  <div className="aspect-[4/3] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-500">
+                  <div className="aspect-[4/3] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-400">
                     <Loader2 className="w-5 h-5 animate-spin" />
                   </div>
                 )}
@@ -1392,7 +1392,7 @@ export function ReferenceStudioModal({
                   );
                 })}
                 {isLoadingUserElems && userElements.length === 0 && (
-                  <div className="aspect-[4/3] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-500">
+                  <div className="aspect-[4/3] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-400">
                     <Loader2 className="w-5 h-5 animate-spin" />
                   </div>
                 )}
@@ -1520,7 +1520,7 @@ export function ReferenceStudioModal({
                   );
                 })}
                 {isLoadingUserLocs && userLocations.length === 0 && (
-                  <div className="aspect-[4/3] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-500">
+                  <div className="aspect-[4/3] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-400">
                     <Loader2 className="w-5 h-5 animate-spin" />
                   </div>
                 )}
@@ -1757,7 +1757,7 @@ export function ReferenceStudioModal({
                       {/* Month Label matching Magnific UI screenshot */}
                       <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
                         <span>{group.monthLabel}</span>
-                        <span className="text-[10px] text-slate-500 font-medium">
+                        <span className="text-[10px] text-slate-400 font-medium">
                           {group.items.length} {isAr ? "وسائط" : "media"}
                         </span>
                       </div>
@@ -1912,7 +1912,7 @@ export function ReferenceStudioModal({
                   );
                 })}
                 {isLoadingUserPals && userPalettes.length === 0 && (
-                  <div className="aspect-[16/9] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-500">
+                  <div className="aspect-[16/9] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-400">
                     <Loader2 className="w-5 h-5 animate-spin" />
                   </div>
                 )}
@@ -1953,7 +1953,7 @@ export function ReferenceStudioModal({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     {isAr ? "الاسم" : "Name"}
                   </label>
                   <input
@@ -1969,7 +1969,7 @@ export function ReferenceStudioModal({
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       {isAr ? "الألوان" : "Colors"} ({newPalColors.length}/8)
                     </label>
                     <button
@@ -2022,7 +2022,7 @@ export function ReferenceStudioModal({
                           type="button"
                           onClick={() => setNewPalColors(newPalColors.filter((_, i) => i !== idx))}
                           disabled={isSavingPal || newPalColors.length <= 2}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-30 disabled:hover:bg-transparent"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-30 disabled:hover:bg-transparent"
                           title={isAr ? "حذف" : "Remove"}
                         >
                           <X className="w-3.5 h-3.5" />
@@ -2095,7 +2095,7 @@ export function ReferenceStudioModal({
                 />
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     {isAr ? "الاسم" : "Name"}
                   </label>
                   <input
@@ -2110,7 +2110,7 @@ export function ReferenceStudioModal({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     {isAr ? "الصور المرجعية" : "Reference photos"}
                   </label>
                   <div
@@ -2128,7 +2128,7 @@ export function ReferenceStudioModal({
                     <span className="text-xs font-bold text-slate-200 block mb-0.5">
                       {isAr ? "اسحب صور هنا" : "Drop photos here"}
                     </span>
-                    <span className="text-[10px] text-slate-500 block">
+                    <span className="text-[10px] text-slate-400 block">
                       PNG, JPG, WEBP · {isAr ? "حتى 8 صور · 8MB/صورة" : "up to 8 · 8MB each"}
                     </span>
                   </div>
@@ -2237,7 +2237,7 @@ export function ReferenceStudioModal({
                 />
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     {isAr ? "الاسم" : "Name"}
                   </label>
                   <input
@@ -2252,7 +2252,7 @@ export function ReferenceStudioModal({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     {isAr ? "الصور المرجعية" : "Reference photos"}
                   </label>
                   <div
@@ -2270,7 +2270,7 @@ export function ReferenceStudioModal({
                     <span className="text-xs font-bold text-slate-200 block mb-0.5">
                       {isAr ? "اسحب صور هنا" : "Drop photos here"}
                     </span>
-                    <span className="text-[10px] text-slate-500 block">
+                    <span className="text-[10px] text-slate-400 block">
                       PNG, JPG, WEBP · {isAr ? "حتى 8 صور · 8MB/صورة" : "up to 8 · 8MB each"}
                     </span>
                   </div>
@@ -2379,7 +2379,7 @@ export function ReferenceStudioModal({
                 />
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     {isAr ? "الاسم" : "Name"}
                   </label>
                   <input
@@ -2394,7 +2394,7 @@ export function ReferenceStudioModal({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     {isAr ? "الصور المرجعية" : "Reference photos"}
                   </label>
                   <div
@@ -2412,7 +2412,7 @@ export function ReferenceStudioModal({
                     <span className="text-xs font-bold text-slate-200 block mb-0.5">
                       {isAr ? "اسحب صور هنا" : "Drop photos here"}
                     </span>
-                    <span className="text-[10px] text-slate-500 block">
+                    <span className="text-[10px] text-slate-400 block">
                       PNG, JPG, WEBP · {isAr ? "حتى 8 صور · 8MB/صورة" : "up to 8 · 8MB each"}
                     </span>
                   </div>
@@ -2497,7 +2497,7 @@ export function ReferenceStudioModal({
           ) : (
             <>
               <div className="space-y-4">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
                   {isAr ? "رفع الوسائط المخصصة" : "Drop or upload media"}
                 </span>
                 <p className="text-xs text-slate-400 leading-relaxed">
@@ -2551,7 +2551,7 @@ export function ReferenceStudioModal({
                   <span className="text-xs font-bold text-slate-200 block mb-1">
                     {isAr ? "اسحب الملف هنا" : "Drop media here"}
                   </span>
-                  <span className="text-[10px] text-slate-500 block">
+                  <span className="text-[10px] text-slate-400 block">
                     PNG, JPG, MP4, WEBP (Max 50MB)
                   </span>
                 </div>

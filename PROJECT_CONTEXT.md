@@ -1,5 +1,24 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Overhaul Contrast Ratios and Form Inputs Accessibility on Image Route (2026-08-01)
+
+- Status:
+  Lighthouse accessibility reports flagged multiple issues on `/image`: low-contrast sidebar navigation labels and control titles (`Background and foreground colors do not have a sufficient contrast ratio`), and unlabelled drop-down form controls (`Select elements do not have associated label elements`).
+- Changes made:
+  - Addressed sidebar button labels and titles contrast by updating all unpinned/inactive navigation label classes from `text-zinc-500` to `text-zinc-400` in `app/(dash)/(routes)/image/page.tsx`.
+  - Updated all form headers and metadata labels (Lighting presets, scale factors, character descriptions, and model dropdown sublabels) from `text-zinc-500` to `text-zinc-400`.
+  - Aligned stylesheet labels in whitelisted modals by updating uppercase title sections from `text-slate-500` to `text-slate-400` in `components/ReferenceActionTiles.tsx` and `components/ReferenceStudioModal.tsx`.
+  - Added explicit translated `aria-label` attributes to all form `<select>` elements (character choice, image quality, inpaint model, and enhancement model dropdowns) to resolve the missing labels audit.
+- Affected files:
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `components/ReferenceActionTiles.tsx`
+  - `components/ReferenceStudioModal.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - TypeScript compilation check (`npx tsc --noEmit`) succeeded with 0 errors.
+- Decisions:
+  - Using `aria-label` attribute on React select elements is the most robust and standard method to resolve accessibility issues for screen readers without adding redundant UI elements.
+
 #### Latest task: Fix LCP Load Delay and Preconnect to Storage Hosts for Gallery Route (2026-08-01)
 
 - Status:
