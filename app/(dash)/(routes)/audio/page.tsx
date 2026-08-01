@@ -145,11 +145,12 @@ function MiniWaveform({ waveform, progress = 0, height = 28 }: { waveform: numbe
   );
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ checked, onChange, name }: { checked: boolean; onChange: (v: boolean) => void; name?: string }) {
   return (
     <button
       role="switch"
       aria-checked={checked}
+      aria-label={name}
       onClick={() => onChange(!checked)}
       className={cn(
         "relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2",
@@ -166,10 +167,12 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
-function AppSelect({ value, onChange, options, t }: { value: string; onChange: (v: string) => void; options: string[]; t?: (k: string) => string }) {
+function AppSelect({ value, onChange, options, t, id, name }: { value: string; onChange: (v: string) => void; options: string[]; t?: (k: string) => string; id?: string; name?: string }) {
   return (
     <div className="relative">
       <select
+        id={id}
+        aria-label={name}
         value={value}
         onChange={e => onChange(e.target.value)}
         className="w-full appearance-none rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2.5 pr-8 text-sm font-medium text-zinc-100 focus:outline-none cursor-pointer"
@@ -181,7 +184,7 @@ function AppSelect({ value, onChange, options, t }: { value: string; onChange: (
   );
 }
 
-function RangeSlider({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
+function RangeSlider({ value, onChange, min, max, name, id }: { value: number; onChange: (v: number) => void; min: number; max: number; name?: string; id?: string }) {
   const pct = ((value - min) / (max - min)) * 100;
   return (
     <div className="relative h-5 flex items-center">
@@ -195,10 +198,12 @@ function RangeSlider({ value, onChange, min, max }: { value: number; onChange: (
           style={{ left: `calc(${pct}% - 8px)` }}
         />
         <input
+          id={id}
           type="range"
           min={min}
           max={max}
           value={value}
+          aria-label={name}
           onChange={e => onChange(Number(e.target.value))}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
@@ -876,6 +881,7 @@ export default function AudioPage() {
                                   }
                                 }}
                                 className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                aria-label={t("Delete track")}
                                 title={t("Delete")}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -920,6 +926,7 @@ export default function AudioPage() {
                                   ? "bg-cyan-600 hover:bg-cyan-500"
                                   : "bg-[#0d1b2e] border border-[#1e2d3d] text-slate-300 hover:text-white"
                               )}
+                              aria-label={isCurrent && isPlaying ? t("Pause track") : t("Play track")}
                             >
                               {isCurrent && isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 fill-current ml-0.5" />}
                             </button>
@@ -941,6 +948,7 @@ export default function AudioPage() {
                                 handleDownloadTrack(targetTrack);
                               }}
                               className="h-8 w-8 rounded-xl bg-[#0d1b2e] border border-[#1e2d3d] text-slate-300 hover:text-white flex items-center justify-center transition-all shadow-md"
+                              aria-label={t("Download track")}
                               title={t("Download")}
                             >
                               <Download className="h-3.5 w-3.5" />
@@ -1196,6 +1204,7 @@ export default function AudioPage() {
                               <button
                                 onClick={e => { e.stopPropagation(); setImages(prev => prev.filter((_, j) => j !== i)); }}
                                 className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-zinc-850 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                                aria-label={t("Remove image")}
                               >
                                 <X className="h-3 w-3" />
                               </button>
@@ -1343,6 +1352,7 @@ export default function AudioPage() {
                                   "h-9 w-9 rounded-xl flex items-center justify-center transition-colors hover:bg-zinc-800",
                                   currentTrack.liked ? "text-red-500" : "text-zinc-400"
                                 )}
+                                aria-label={currentTrack.liked ? t("Unlike track") : t("Like track")}
                               >
                                 <Heart className={cn("h-4 w-4", currentTrack.liked ? "fill-current" : "")} />
                               </button>
@@ -1352,10 +1362,14 @@ export default function AudioPage() {
                                   "h-9 w-9 rounded-xl flex items-center justify-center transition-colors",
                                   showLyricsPanel ? "bg-cyan-950/20 text-cyan-400" : "text-zinc-400 hover:bg-zinc-800"
                                 )}
+                                aria-label={t("Toggle lyrics panel")}
                               >
                                 <List className="h-4 w-4" />
                               </button>
-                              <button className="h-9 w-9 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-zinc-800 transition-colors">
+                              <button
+                                className="h-9 w-9 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-zinc-800 transition-colors"
+                                aria-label={t("More options")}
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                               </button>
                             </div>
@@ -1418,6 +1432,7 @@ export default function AudioPage() {
                               <button
                                 onClick={() => setIsMuted(p => !p)}
                                 className="h-8 w-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-250 hover:bg-zinc-800 transition-colors flex-shrink-0"
+                                aria-label={isMuted ? t("Unmute volume") : t("Mute volume")}
                               >
                                 {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                               </button>
@@ -1426,6 +1441,7 @@ export default function AudioPage() {
                                 onChange={v => { setVolume(v); setIsMuted(false); }}
                                 min={0}
                                 max={100}
+                                name={t("Volume")}
                               />
                             </div>
 
@@ -1437,6 +1453,7 @@ export default function AudioPage() {
                                   if (audioRef.current) audioRef.current.currentTime = 0;
                                 }}
                                 className="h-9 w-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                                aria-label={t("Restart track")}
                               >
                                 <RotateCcw className="h-4 w-4" />
                               </button>
@@ -1444,6 +1461,7 @@ export default function AudioPage() {
                                 onClick={() => setIsPlaying(p => !p)}
                                 className="h-12 w-12 rounded-full text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
                                 style={{ background: "linear-gradient(135deg, #0369a1, #0891b2)" }}
+                                aria-label={isPlaying ? t("Pause track") : t("Play track")}
                               >
                                 {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 translate-x-0.5" />}
                               </button>
@@ -1454,6 +1472,7 @@ export default function AudioPage() {
                                   if (audioRef.current) audioRef.current.currentTime = end;
                                 }}
                                 className="h-9 w-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                                aria-label={t("Skip to end")}
                               >
                                 <ChevronRight className="h-4 w-4" />
                               </button>
@@ -1464,12 +1483,14 @@ export default function AudioPage() {
                               <button
                                 onClick={() => copyText(currentTrack.prompt, "player-prompt")}
                                 className="h-9 w-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                                aria-label={t("Copy prompt")}
                                 title={t("Copy prompt")}
                               >
                                 {copied === "player-prompt" ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                               </button>
                               <button
                                 className="h-9 w-9 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-zinc-800 transition-colors"
+                                aria-label={t("Share")}
                                 title={t("Share")}
                               >
                                 <Share2 className="h-4 w-4" />
@@ -1563,32 +1584,32 @@ export default function AudioPage() {
 
                       {/* Genre */}
                       <div>
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-2">{t("Genre")}</label>
-                        <AppSelect value={genre} onChange={setGenre} options={GENRES} t={t} />
+                        <label htmlFor="genre-select" className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-2">{t("Genre")}</label>
+                        <AppSelect id="genre-select" name={t("Genre")} value={genre} onChange={setGenre} options={GENRES} t={t} />
                       </div>
 
                       {/* Mood */}
                       <div>
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-2">{t("Mood")}</label>
-                        <AppSelect value={mood} onChange={setMood} options={MOODS} t={t} />
+                        <label htmlFor="mood-select" className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-2">{t("Mood")}</label>
+                        <AppSelect id="mood-select" name={t("Mood")} value={mood} onChange={setMood} options={MOODS} t={t} />
                       </div>
 
                       {/* BPM */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t("BPM")}</label>
+                          <label htmlFor="bpm-slider" className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t("BPM")}</label>
                           <span className="text-sm font-bold text-zinc-100 tabular-nums">{bpm}</span>
                         </div>
-                        <RangeSlider value={bpm} onChange={setBpm} min={60} max={200} />
+                        <RangeSlider id="bpm-slider" name={t("BPM")} value={bpm} onChange={setBpm} min={60} max={200} />
                       </div>
 
                       {/* Duration */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t("Duration")}</label>
+                          <label htmlFor="duration-slider" className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t("Duration")}</label>
                           <span className="text-sm font-bold text-zinc-100 tabular-nums">{formatTime(dur)}</span>
                         </div>
-                        <RangeSlider value={dur} onChange={setDur} min={30} max={300} />
+                        <RangeSlider id="duration-slider" name={t("Duration")} value={dur} onChange={setDur} min={30} max={300} />
                       </div>
 
                       {/* Toggles */}
@@ -1601,7 +1622,7 @@ export default function AudioPage() {
                               <p className="text-sm font-semibold text-zinc-100">{t.label}</p>
                               <p className="text-[11px] text-zinc-400">{t.desc}</p>
                             </div>
-                            <Toggle checked={t.value} onChange={t.onChange} />
+                            <Toggle checked={t.value} onChange={t.onChange} name={t.label} />
                           </div>
                         ))}
                       </div>
@@ -1663,6 +1684,7 @@ export default function AudioPage() {
                                   "h-7 w-7 rounded-lg flex items-center justify-center transition-colors",
                                   track.liked ? "text-red-500" : "text-zinc-400 opacity-0 group-hover:opacity-100 hover:text-red-400"
                                 )}
+                                aria-label={track.liked ? t("Unlike track") : t("Like track")}
                               >
                                 <Heart className={cn("h-3.5 w-3.5", track.liked ? "fill-current" : "")} />
                               </button>
@@ -1670,6 +1692,7 @@ export default function AudioPage() {
                                 <button
                                   onClick={e => { e.stopPropagation(); handleDownloadTrack(track); }}
                                   className="h-7 w-7 rounded-lg flex items-center justify-center text-zinc-400 opacity-0 group-hover:opacity-100 hover:text-zinc-100 transition-all"
+                                  aria-label={t("Download track")}
                                 >
                                   <Download className="h-3.5 w-3.5" />
                                 </button>
