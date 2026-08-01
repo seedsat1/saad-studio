@@ -1,5 +1,24 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Optimize Image Delivery, Accessible Names, Contrast, and Form Labels on Edit Route (2026-08-02)
+
+- Status:
+  Completed. Lighthouse performance and accessibility audits on `/edit` route highlighted issues with large mock image delivery (~20MB total of raw 2MB+ duplicate assets), missing button names when labels hide on mobile, unassociated range and text inputs, low-contrast text on dark backgrounds, and sequential heading outline skips.
+- Changes made:
+  - Whitelisted and imported Next.js's `<NextImage>` as `NextImage` inside `app/(dash)/(routes)/edit/page.tsx` to handle dynamic on-demand WebP formatting and layout-shift resizing.
+  - Replaced native `<img>` elements with optimized `<NextImage>` tags inside the preset gallery list, active source wrapper, face reference uploader, and interactive shoe before/after sliders.
+  - Connected label/input relationships by using React 18's `useId` hook in the `PremiumSlider` helper, and linked the **Seed** input directly to a proper `<label>` selector. Added `aria-label` labels to color picker selectors.
+  - Injected `aria-label` identifiers inside `ToolbarBtn` and the Left/Right preset list arrow buttons, ensuring screen reader accessibility when text elements are hidden on mobile viewports.
+  - Boosted grey label, sidebar footer, and secondary description colors from low-contrast `text-zinc-500` / `text-zinc-600` levels to WCAG AA-compliant `text-zinc-400`.
+  - Changed the sidebar title wrapper from `<h1>` to `<h2>` to prevent sequential heading outline hops.
+- Affected files:
+  - `app/(dash)/(routes)/edit/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - TypeScript compilation check (`npx tsc --noEmit`) completed with 0 errors.
+- Decisions:
+  - Importing next/image under an alias like `NextImage` successfully sidesteps syntax namespace collisions with the browser's global `new Image()` API constructor on client-rendered canvas panels.
+
 #### Latest task: Enable bfcache (Back/Forward Cache) for HTML Pages via Middleware Headers (2026-08-01)
 
 - Status:

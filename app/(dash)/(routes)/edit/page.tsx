@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useId } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import NextImage from "next/image";
 import {
   Wand2,
   Lightbulb,
@@ -221,11 +222,12 @@ function ToolbarBtn({
       onClick={onClick}
       disabled={disabled}
       title={`${label} (${shortcut})`}
+      aria-label={label}
       className={cn(
         "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-150 text-xs font-semibold select-none disabled:opacity-30 disabled:pointer-events-none",
         active
           ? "bg-white/10 text-white border border-white/10"
-          : "text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05] border border-transparent"
+          : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] border border-transparent"
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />
@@ -252,13 +254,14 @@ function PremiumSlider({
   displayValue: string;
   onChange: (v: number) => void;
 }) {
+  const generatedId = useId();
   const pct = ((value - min) / (max - min)) * 100;
   return (
     <div className="space-y-2.5">
       <div className="flex justify-between items-center">
-        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+        <label htmlFor={generatedId} className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block cursor-pointer">
           {label}
-        </span>
+        </label>
         <span className="text-[11px] font-black text-cyan-400 tabular-nums font-mono">
           {displayValue}
         </span>
@@ -278,11 +281,13 @@ function PremiumSlider({
         />
         {/* Range input (invisible) */}
         <input
+          id={generatedId}
           type="range"
           min={min}
           max={max}
           step={step}
           value={value}
+          aria-label={label}
           onChange={(e) => onChange(Number(e.target.value))}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
@@ -1378,10 +1383,10 @@ export default function EditPage() {
       {/* ─── Left Sidebar ─── */}
       <aside className="w-[280px] shrink-0 bg-[#05070f] border-r border-white/[0.05] flex flex-col p-5 space-y-6 select-none z-30">
         <div>
-          <h1 className="text-sm font-black tracking-wider uppercase flex items-center gap-1">
+          <h2 className="text-sm font-black tracking-wider uppercase flex items-center gap-1">
             <span className="text-white">{t("EDIT")}</span>
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{t("AI")}</span>
-          </h1>
+          </h2>
         </div>
 
         <div className="flex-1 space-y-2 overflow-y-auto scrollbar-none">
@@ -1412,7 +1417,7 @@ export default function EditPage() {
                   </div>
                   <span>{t(tool.label)}</span>
                 </div>
-                {isActive && <span className="text-zinc-500 font-normal ml-2">&gt;</span>}
+                {isActive && <span className="text-zinc-400 font-normal ml-2">&gt;</span>}
               </button>
             );
           })}
@@ -1540,7 +1545,7 @@ export default function EditPage() {
                         <p className="text-sm font-extrabold text-zinc-200">
                           Drag & drop or <span className="text-cyan-400 group-hover:underline">browse</span>
                         </p>
-                        <p className="text-xs text-zinc-500 mt-1.5">Supports high-res Images & Videos up to 25MB</p>
+                        <p className="text-xs text-zinc-400 mt-1.5">Supports high-res Images & Videos up to 25MB</p>
                       </div>
                     </label>
                   </div>
@@ -1729,7 +1734,7 @@ export default function EditPage() {
                             >
                               <Sparkles className="h-6 w-6 animate-pulse" style={{ color: currentTool.hex }} />
                               <span className="text-sm font-bold text-slate-100">Applying AI Generation</span>
-                              <span className="text-[10px] text-zinc-500 font-mono tracking-wider uppercase">
+                              <span className="text-[10px] text-zinc-400 font-mono tracking-wider uppercase">
                                 {t(selectedModel.label)} · {t(currentTool.label)}
                               </span>
                               <div className="flex gap-1 mt-1">
@@ -1768,7 +1773,7 @@ export default function EditPage() {
               {mediaUrl && (
                 <div className="w-full flex items-center justify-center py-5 bg-transparent shrink-0">
                   <div className="flex items-center gap-4 bg-[#05070f]/90 backdrop-blur-md border border-white/[0.05] rounded-3xl p-3 px-4 shadow-2xl relative">
-                    <button type="button" className="text-zinc-600 hover:text-zinc-400 transition-colors cursor-pointer">
+                    <button type="button" aria-label={t("Previous items")} className="text-zinc-400 hover:text-white transition-colors cursor-pointer">
                       <ArrowLeft className="h-4 w-4" />
                     </button>
 
@@ -1813,7 +1818,13 @@ export default function EditPage() {
                             {item.type === "video" ? (
                               <video src={resolveEditMediaUrl(item.url)} className="h-full w-full object-cover pointer-events-none" />
                             ) : (
-                              <img src={resolveEditMediaUrl(item.url)} alt="Preset" className="h-full w-full object-cover pointer-events-none" />
+                              <NextImage
+                                src={resolveEditMediaUrl(item.url)}
+                                alt="Preset"
+                                width={80}
+                                height={56}
+                                className="h-full w-full object-cover pointer-events-none"
+                              />
                             )}
                           </button>
                         );
@@ -1822,7 +1833,7 @@ export default function EditPage() {
 
                     <div className="h-6 w-px bg-white/5" />
 
-                    <button type="button" className="text-zinc-600 hover:text-zinc-400 transition-colors cursor-pointer">
+                    <button type="button" aria-label={t("Next items")} className="text-zinc-400 hover:text-white transition-colors cursor-pointer">
                       <ArrowRight className="h-4 w-4" />
                     </button>
                   </div>
@@ -1855,7 +1866,7 @@ export default function EditPage() {
                       {activeTool === "upscale" ? t("Upscale & Enhance") : t(currentTool.label)}
                     </p>
                     {activeTool !== "upscale" && (
-                      <p className="text-[10px] text-zinc-500 mt-0.5">Parameters & controls</p>
+                      <p className="text-[10px] text-zinc-400 mt-0.5">Parameters & controls</p>
                     )}
                   </div>
                 </div>
@@ -1863,7 +1874,7 @@ export default function EditPage() {
                   type="button"
                   onClick={handleResetTool}
                   className={cn(
-                    "text-[10px] font-bold text-zinc-500 hover:text-zinc-300 transition-colors tracking-wider flex items-center gap-1.5 cursor-pointer",
+                    "text-[10px] font-bold text-zinc-400 hover:text-zinc-300 transition-colors tracking-wider flex items-center gap-1.5 cursor-pointer",
                     activeTool !== "upscale" && "uppercase"
                   )}
                 >
@@ -1907,10 +1918,13 @@ export default function EditPage() {
                           playsInline
                         />
                       ) : (
-                        <img
+                        <NextImage
                           src={resolveEditMediaUrl(mediaUrl)}
                           alt="Source"
+                          fill
                           className="w-full h-full object-cover"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          priority
                         />
                       )}
                       <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity z-10">
@@ -1975,7 +1989,7 @@ export default function EditPage() {
                             <div className="text-zinc-200 font-bold text-xs truncate">
                               {selectedModel.label}
                             </div>
-                            <div className="text-[10px] text-zinc-500 truncate mt-0.5">
+                            <div className="text-[10px] text-zinc-400 truncate mt-0.5">
                               {selectedModel.sublabel}
                             </div>
                           </div>
@@ -2012,7 +2026,7 @@ export default function EditPage() {
                                 >
                                   <div className="min-w-0">
                                     <div className="text-xs font-bold">{model.label}</div>
-                                    <div className="text-[9px] text-zinc-500 mt-0.5">{model.sublabel}</div>
+                                    <div className="text-[9px] text-zinc-400 mt-0.5">{model.sublabel}</div>
                                   </div>
                                   {model.badge && (
                                     <span className="bg-white/5 border border-white/10 text-[8px] font-black text-zinc-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
@@ -2122,13 +2136,15 @@ export default function EditPage() {
                               onChange={setCfg}
                             />
                             <div className="space-y-1.5">
-                              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                              <label htmlFor="seed-input-field" className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block cursor-pointer">
                                 Seed
-                              </span>
+                              </label>
                               <div className="flex gap-2">
                                 <input
+                                  id="seed-input-field"
                                   type="text"
                                   value={seed}
+                                  aria-label="Seed"
                                   onChange={(e) => setSeed(e.target.value)}
                                   className="flex-1 bg-white/[0.02] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 font-mono focus:outline-none"
                                 />
@@ -2201,6 +2217,7 @@ export default function EditPage() {
                           onChange={(e) => setLightColor(e.target.value)}
                           className="h-7 w-7 rounded-md cursor-pointer bg-transparent border-0"
                           title={t("Custom color")}
+                          aria-label={t("Custom color")}
                         />
                       </div>
                     </div>
@@ -2239,11 +2256,11 @@ export default function EditPage() {
                               "rounded-xl border p-3 text-left transition-all text-xs flex flex-col gap-1 cursor-pointer",
                               bgFormat === fmt.id
                                 ? "border-rose-500 bg-rose-950/20 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.18)]"
-                                : "border-white/5 bg-zinc-950/60 text-zinc-500 hover:bg-white/[0.02] hover:text-zinc-300"
+                                : "border-white/5 bg-zinc-950/60 text-zinc-400 hover:bg-white/[0.02] hover:text-zinc-300"
                             )}
                           >
                             <span className="font-black text-xs">{fmt.label}</span>
-                            <span className="text-[9px] text-zinc-500 font-medium">{fmt.sub}</span>
+                            <span className="text-[9px] text-zinc-400 font-medium">{fmt.sub}</span>
                           </button>
                         ))}
                       </div>
@@ -2269,7 +2286,7 @@ export default function EditPage() {
                         <button
                           type="button"
                           onClick={() => setShoeSliderPosition(50)}
-                          className="text-[9px] font-bold text-zinc-500 hover:text-zinc-300 transition-colors uppercase tracking-wider cursor-pointer"
+                          className="text-[9px] font-bold text-zinc-400 hover:text-zinc-300 transition-colors uppercase tracking-wider cursor-pointer"
                         >
                           Reset Demo
                         </button>
@@ -2279,7 +2296,7 @@ export default function EditPage() {
                         <div className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">
                           Background Remove
                         </div>
-                        <p className="text-[10px] text-zinc-500 leading-relaxed font-semibold">
+                        <p className="text-[10px] text-zinc-400 leading-relaxed font-semibold">
                           Isolate subjects and strip backgrounds instantly. Ideal for high-quality product and portrait renders.
                         </p>
 
@@ -2297,10 +2314,12 @@ export default function EditPage() {
                         >
                           {/* Background (Solid White/Dark) representing original */}
                           <div className="absolute inset-0 bg-[#080b11] flex items-center justify-center pointer-events-none">
-                            <img
+                            <NextImage
                               src="/explore/red_sneaker.png"
                               alt="Shoe Original"
-                              className="max-h-[85%] max-w-[85%] object-contain"
+                              fill
+                              className="max-h-[85%] max-w-[85%] object-contain m-auto"
+                              sizes="(max-width: 768px) 100vw, 400px"
                             />
                           </div>
 
@@ -2319,10 +2338,12 @@ export default function EditPage() {
                             }}
                           >
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <img
+                              <NextImage
                                 src="/explore/red_sneaker.png"
                                 alt="Shoe Removed"
-                                className="max-h-[85%] max-w-[85%] object-contain"
+                                fill
+                                className="max-h-[85%] max-w-[85%] object-contain m-auto"
+                                sizes="(max-width: 768px) 100vw, 400px"
                               />
                             </div>
                           </div>
@@ -2403,7 +2424,7 @@ export default function EditPage() {
                               "rounded-xl border p-2 flex flex-col items-center justify-center gap-1.5 transition-all text-xs font-semibold select-none",
                               outpaintDirection === dir.id
                                 ? "border-emerald-500 bg-emerald-500/10 text-white"
-                                : "border-white/10 bg-white/[0.02] text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"
+                                : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
                             )}
                           >
                             <dir.icon className="h-4 w-4 shrink-0" />
@@ -2560,6 +2581,7 @@ export default function EditPage() {
                           value={drawColor}
                           onChange={(e) => setDrawColor(e.target.value)}
                           className="h-7 w-7 bg-transparent border-0 cursor-pointer"
+                          aria-label={t("Custom sketching color")}
                         />
                       </div>
                     </div>
@@ -2714,7 +2736,7 @@ export default function EditPage() {
                                 "h-10 w-12 rounded-xl text-xs font-bold transition-all duration-300 border flex items-center justify-center cursor-pointer",
                                 isActive
                                   ? "bg-zinc-950 text-cyan-400 border-cyan-500/50 shadow-[0_0_12px_rgba(34,211,238,0.25)] font-black"
-                                  : "bg-zinc-900/40 text-zinc-500 border-white/5 hover:border-white/10 hover:text-zinc-300"
+                                  : "bg-zinc-900/40 text-zinc-400 border-white/5 hover:border-white/10 hover:text-zinc-300"
                               )}
                             >
                               x{fac}
@@ -2745,7 +2767,7 @@ export default function EditPage() {
                                 "py-2 px-1 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer",
                                 isActive
                                   ? "bg-white/[0.08] text-white font-extrabold border border-white/10 shadow-inner"
-                                  : "text-zinc-500 hover:text-zinc-300"
+                                  : "text-zinc-400 hover:text-zinc-300"
                               )}
                             >
                               {res.label}
@@ -2826,9 +2848,11 @@ export default function EditPage() {
                         </div>
                       ) : faceImageUrl ? (
                         <div className="relative group rounded-xl overflow-hidden border border-white/10 aspect-square w-32 mx-auto bg-zinc-950">
-                          <img
+                          <NextImage
                             src={resolveEditMediaUrl(faceImageUrl)}
                             alt="Reference Face"
+                            width={128}
+                            height={128}
                             className="w-full h-full object-cover"
                           />
                           <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity z-10">
@@ -2993,7 +3017,7 @@ export default function EditPage() {
               </div>
 
               {/* Status Bar */}
-              <div className="px-5 py-3.5 border-t border-white/5 bg-[#03050c] flex items-center justify-between text-[10px] text-zinc-500 font-bold shrink-0">
+              <div className="px-5 py-3.5 border-t border-white/5 bg-[#03050c] flex items-center justify-between text-[10px] text-zinc-400 font-bold shrink-0">
                 <div className="flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   <span>Auto-Saved</span>
