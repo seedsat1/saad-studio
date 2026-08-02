@@ -10038,3 +10038,36 @@
   - `npm.cmd run build` passed with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
 - Decision:
   - Opening Asset Inspector is now explicit through the `Open` menu item, not an accidental row click.
+
+#### Latest task: Show original MP4 in /video direct rows (2026-08-03)
+
+- Status:
+  Completed. The `/video` history row player now renders the original MP4 directly without applying a poster image or cropped cover framing.
+- Changes made:
+  - Removed the `<video poster=...>` binding from the direct `/video` history player.
+  - Changed the direct player framing from `object-cover` to `object-contain` with a black background so vertical/square videos are not cropped.
+  - Replaced the side-panel poster status chip with `Original MP4` to match what subscribers are actually viewing.
+  - Removed the unused poster status label helper from the page.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `git diff --check -- app/(dash)/(routes)/video/page.tsx` passed.
+- Decision:
+  - Poster generation remains a storage/performance optimization, but direct subscriber playback on `/video` must show the canonical MP4 source and preserve its aspect ratio.
+
+#### Latest task: Push original MP4 /video display fix (2026-08-03)
+
+- Status:
+  Ready for git publication. The local fix that forces `/video` history rows to show the original MP4 directly is being staged, committed, and pushed after successful TypeScript and production build verification.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed before staging.
+  - `npm.cmd run build` passed before staging with existing non-blocking project warnings.
+- Decision:
+  - Publish the direct MP4 display correction immediately so production no longer shows a poster/cropped preview in the subscriber video row.

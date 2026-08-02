@@ -2664,3 +2664,10 @@
 - Do not attach a general `onClick` inspector opener to the entire video history row when the preview contains its own playback controls and hover actions.
 - Asset Inspector opening should be explicit through the `Open` action only.
 - Native video controls should avoid extra browser overflow/download options where possible; the product-level Download action remains the canonical download path.
+
+## Video Original MP4 Direct Display (2026-08-03)
+
+- `/video` history/list rows that use the native player should display the canonical MP4 directly from `videoUrl`/`mediaUrl`; do not pass `posterUrl` into the `<video>` element for this direct playback surface.
+- The direct player must preserve the original video aspect ratio with contain-style framing. Do not use cover-style cropping for the original MP4 player.
+- `posterUrl` remains an optimization for lightweight thumbnails and other surfaces, but it must not replace or visually mask the original subscriber playback row.
+- UI labels in the direct playback row should make clear that the displayed media is the original MP4, not a poster preview.

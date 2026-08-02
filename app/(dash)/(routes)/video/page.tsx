@@ -279,21 +279,18 @@ function VideoHistoryPreview({
   onReusePrompt?: (item: MediaItem) => void;
   onDelete?: (id: string) => void;
 }) {
-  const [posterFailed, setPosterFailed] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const color = item.modelColor ?? "#06b6d4";
-  const usePoster = Boolean(item.poster && !posterFailed);
   const playable = hasPlayableVideo(item) && !videoFailed;
 
   const revealFirstFrame = useCallback(() => {
-    if (usePoster) return;
     const video = videoRef.current;
     if (!video || video.readyState < 1 || video.currentTime > 0.05) return;
     try {
       video.currentTime = 0.05;
     } catch {}
-  }, [usePoster]);
+  }, []);
 
   return (
     <div
@@ -311,7 +308,6 @@ function VideoHistoryPreview({
         <video
           ref={videoRef}
           src={item.src}
-          poster={usePoster ? item.poster : undefined}
           controls
           controlsList="nodownload noplaybackrate noremoteplayback"
           disablePictureInPicture
@@ -319,8 +315,8 @@ function VideoHistoryPreview({
           preload={index < 2 ? "auto" : "metadata"}
           onLoadedMetadata={revealFirstFrame}
           onLoadedData={revealFirstFrame}
-          onError={() => { setPosterFailed(true); setVideoFailed(true); }}
-          className="absolute inset-0 z-10 h-full w-full object-cover"
+          onError={() => setVideoFailed(true)}
+          className="absolute inset-0 z-10 h-full w-full bg-black object-contain"
         />
       ) : (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-6 text-center">
@@ -425,7 +421,7 @@ function VideoHistoryList({
                 <div className="mt-5 flex flex-wrap gap-2">
                   <span className="rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-bold text-slate-300 ring-1 ring-white/5">{item.ratio}</span>
                   {item.duration ? <span className="rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-bold text-slate-300 ring-1 ring-white/5">{item.duration}</span> : null}
-                  <span className="rounded-lg px-2.5 py-1.5 text-[11px] font-bold ring-1" style={{ color, background: hexA(color, 0.12), borderColor: hexA(color, 0.25) }}>{posterStatusLabel(item.posterStatus)}</span>
+                  <span className="rounded-lg px-2.5 py-1.5 text-[11px] font-bold ring-1" style={{ color, background: hexA(color, 0.12), borderColor: hexA(color, 0.25) }}>Original MP4</span>
                 </div>
                 {item.providerRequestId ? (
                   <div className="mt-3 w-fit rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-bold text-slate-400 ring-1 ring-white/5">
