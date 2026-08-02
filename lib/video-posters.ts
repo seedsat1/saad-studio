@@ -5,7 +5,7 @@ import path from "path";
 import prismadb from "@/lib/prismadb";
 import { defaultProvider, normalizeMediaUrl } from "@/lib/storage";
 
-type PosterStatus = "pending" | "processing" | "ready" | "failed";
+type PosterStatus = "pending" | "processing" | "ready" | "failed" | "ready_video_frame";
 
 type PosterResult = {
   id: string;
@@ -17,7 +17,8 @@ type PosterResult = {
 
 const POSTER_WIDTH = 480;
 const POSTER_CACHE_CONTROL = "public, max-age=31536000, immutable";
-const POSTER_RETRY_STATUSES: PosterStatus[] = ["pending", "failed"];
+const VIDEO_FRAME_POSTER_STATUS: PosterStatus = "ready_video_frame";
+const POSTER_RETRY_STATUSES: PosterStatus[] = ["pending", "failed", "ready"];
 
 function isVideoAssetType(assetType: string | null | undefined): boolean {
   return String(assetType || "").toLowerCase().includes("video");
@@ -30,9 +31,15 @@ function isRenderableVideoUrl(url: string | null | undefined): url is string {
 }
 
 function resolveVideoUrl(mediaUrl: string | null | undefined, outputUrl: string | null | undefined): string | null {
-  const candidate = outputUrl || mediaUrl || null;
-  if (!candidate) return null;
-  return normalizeMediaUrl(candidate) || candidate;
+  const media = String(mediaUrl || "").trim();
+  const output = String(outputUrl || "").trim();
+  const normalizedMedia = normalizeMediaUrl(media) || "";
+  const normalizedOutput = normalizeMediaUrl(output) || "";
+  if (isRenderableVideoUrl(normalizedMedia)) return normalizedMedia;
+  if (isRenderableVideoUrl(normalizedOutput)) return normalizedOutput;
+  if (isRenderableVideoUrl(media)) return media;
+  if (isRenderableVideoUrl(output)) return output;
+  return null;
 }
 
 function absoluteUrlForFfmpeg(url: string): string {
@@ -87,9 +94,10 @@ async function runFfmpeg(args: string[], timeoutMs = 60_000): Promise<void> {
 
 async function extractPoster(inputUrl: string, outputPath: string): Promise<void> {
   const attempts = [
-    ["-ss", "0.75", "-i", inputUrl],
     ["-ss", "0", "-i", inputUrl],
-    ["-i", inputUrl, "-ss", "0.75"],
+    ["-ss", "0.25", "-i", inputUrl],
+    ["-ss", "0.75", "-i", inputUrl],
+    ["-i", inputUrl, "-ss", "0"],
   ];
 
   let lastError: unknown;
@@ -144,13 +152,17 @@ export async function ensureVideoPosterForGeneration(generationId: string): Prom
 
   if (!generation) return { id: generationId, status: "skipped", reason: "not_found" };
   if (!isVideoAssetType(generation.assetType)) return { id: generation.id, status: "skipped", reason: "not_video" };
-  if (generation.posterUrl) return { id: generation.id, status: "skipped", posterUrl: generation.posterUrl, reason: "poster_exists" };
+  if (generation.posterUrl && generation.posterStatus === VIDEO_FRAME_POSTER_STATUS) {
+    return { id: generation.id, status: "skipped", posterUrl: generation.posterUrl, reason: "video_frame_poster_exists" };
+  }
 
   const claim = await (prismadb.generation as any).updateMany({
     where: {
       id: generation.id,
-      posterUrl: null,
-      posterStatus: { in: POSTER_RETRY_STATUSES },
+      OR: [
+        { posterUrl: null, posterStatus: { in: POSTER_RETRY_STATUSES } },
+        { posterUrl: { not: null }, posterStatus: { not: VIDEO_FRAME_POSTER_STATUS } },
+      ],
     },
     data: {
       posterStatus: "processing",
@@ -162,56 +174,42 @@ export async function ensureVideoPosterForGeneration(generationId: string): Prom
     return { id: generation.id, status: "skipped", reason: generation.posterStatus || "already_claimed" };
   }
 
+  const videoUrl = absoluteUrlForFfmpeg(resolveVideoUrl(generation.mediaUrl, generation.outputUrl) || "");
+  if (!isRenderableVideoUrl(videoUrl)) {
+    const posterError = "No completed video URL is available for poster generation.";
+    await (prismadb.generation as any).update({
+      where: { id: generation.id },
+      data: { posterStatus: "failed", posterError },
+    }).catch(() => {});
+    return { id: generation.id, status: "failed", error: posterError };
+  }
+
   const posterPath = videoPosterStoragePath(generation.userId, generation.id);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "saad-video-poster-"));
+  const outputPath = path.join(tempDir, `${generation.id}.webp`);
 
   try {
-    const existingPoster = await defaultProvider.exists({ bucket: "videos", path: posterPath }).catch(() => false);
-    if (existingPoster) {
-      const posterUrl = defaultProvider.getPublicUrl("videos", posterPath);
-      await (prismadb.generation as any).update({
-        where: { id: generation.id },
-        data: {
-          posterUrl,
-          posterStatus: "ready",
-          posterGeneratedAt: new Date(),
-          posterError: null,
-        },
-      });
-      return { id: generation.id, status: "ready", posterUrl };
-    }
+    await extractPoster(videoUrl, outputPath);
+    const posterBuffer = await fs.readFile(outputPath);
+    const posterUrl = await defaultProvider.upload({
+      bucket: "videos",
+      path: posterPath,
+      body: posterBuffer,
+      contentType: "image/webp",
+      cacheControl: POSTER_CACHE_CONTROL,
+    });
 
-    const videoUrl = absoluteUrlForFfmpeg(resolveVideoUrl(generation.mediaUrl, generation.outputUrl) || "");
-    if (!isRenderableVideoUrl(videoUrl)) {
-      throw new Error("No completed video URL is available for poster generation.");
-    }
+    await (prismadb.generation as any).update({
+      where: { id: generation.id },
+      data: {
+        posterUrl,
+        posterStatus: VIDEO_FRAME_POSTER_STATUS,
+        posterGeneratedAt: new Date(),
+        posterError: null,
+      },
+    });
 
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "saad-video-poster-"));
-    const outputPath = path.join(tempDir, `${generation.id}.webp`);
-    try {
-      await extractPoster(videoUrl, outputPath);
-      const posterBuffer = await fs.readFile(outputPath);
-      const posterUrl = await defaultProvider.upload({
-        bucket: "videos",
-        path: posterPath,
-        body: posterBuffer,
-        contentType: "image/webp",
-        cacheControl: POSTER_CACHE_CONTROL,
-      });
-
-      await (prismadb.generation as any).update({
-        where: { id: generation.id },
-        data: {
-          posterUrl,
-          posterStatus: "ready",
-          posterGeneratedAt: new Date(),
-          posterError: null,
-        },
-      });
-
-      return { id: generation.id, status: "ready", posterUrl };
-    } finally {
-      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    }
+    return { id: generation.id, status: "ready", posterUrl };
   } catch (error) {
     const posterError = compactError(error);
     await (prismadb.generation as any).update({
@@ -222,9 +220,10 @@ export async function ensureVideoPosterForGeneration(generationId: string): Prom
       },
     }).catch(() => {});
     return { id: generation.id, status: "failed", error: posterError };
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
 }
-
 
 export function scheduleVideoPosterGeneration(generationId: string, context = "video-poster"): void {
   if (!generationId) return;
@@ -238,8 +237,8 @@ export function scheduleVideoPosterGeneration(generationId: string, context = "v
   if (typeof setImmediate === "function") setImmediate(run);
   else setTimeout(run, 0);
 }
-export async function processVideoPosterBatch(params: {
 
+export async function processVideoPosterBatch(params: {
   limit?: number;
   userId?: string;
   retryFailed?: boolean;
@@ -247,11 +246,17 @@ export async function processVideoPosterBatch(params: {
   const limit = Math.min(50, Math.max(1, Math.floor(params.limit ?? 10)));
   const statuses: PosterStatus[] = params.retryFailed === false ? ["pending"] : POSTER_RETRY_STATUSES;
   const where: any = {
-    posterUrl: null,
-    posterStatus: { in: statuses },
     OR: [
-      { mediaUrl: { not: null } },
-      { outputUrl: { not: null } },
+      { posterUrl: null, posterStatus: { in: statuses } },
+      { posterUrl: { not: null }, posterStatus: { not: VIDEO_FRAME_POSTER_STATUS } },
+    ],
+    AND: [
+      {
+        OR: [
+          { mediaUrl: { not: null } },
+          { outputUrl: { not: null } },
+        ],
+      },
     ],
     assetType: { contains: "video", mode: "insensitive" },
   };

@@ -2,7 +2,6 @@ import { spawn } from "child_process";
 import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
-import sharp from "sharp";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
@@ -13,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 const POSTER_WIDTH = 480;
 const POSTER_CACHE_CONTROL = "public, max-age=31536000, immutable";
+const VIDEO_FRAME_POSTER_STATUS = "ready_video_frame";
 
 function isVideoAssetType(assetType: string | null | undefined): boolean {
   return String(assetType || "").toLowerCase().includes("video");
@@ -54,63 +54,6 @@ function getFfmpegPath(): string | null {
   return null;
 }
 
-function isImageLikeString(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed) return false;
-  if (/^data:image\//i.test(trimmed)) return true;
-  if (!/^https?:\/\//i.test(trimmed) && !trimmed.startsWith("/")) return false;
-  return /\.(png|jpe?g|webp|avif)(\?|#|$)/i.test(trimmed) || /\/image\//i.test(trimmed) || /\/images\//i.test(trimmed) || /thumbnail/i.test(trimmed);
-}
-
-function findSourceImage(payload: unknown, depth = 0): string | null {
-  if (!payload || depth > 5) return null;
-  if (typeof payload === "string") return isImageLikeString(payload) ? payload : null;
-  if (Array.isArray(payload)) {
-    for (const item of payload) {
-      const found = findSourceImage(item, depth + 1);
-      if (found) return found;
-    }
-    return null;
-  }
-  if (typeof payload !== "object") return null;
-
-  const record = payload as Record<string, unknown>;
-  const priorityKeys = [
-    "first_frame_url", "firstFrameUrl", "startImageUrl", "start_image_url",
-    "image", "image_url", "imageUrl", "input_image", "inputImage",
-    "sourceImage", "source_image", "publicImageUrl", "referenceImageUrl",
-  ];
-  for (const key of priorityKeys) {
-    const found = findSourceImage(record[key], depth + 1);
-    if (found) return found;
-  }
-  for (const [key, value] of Object.entries(record)) {
-    if (/video|audio|prompt|model|duration|ratio|quality|task/i.test(key)) continue;
-    const found = findSourceImage(value, depth + 1);
-    if (found) return found;
-  }
-  return null;
-}
-
-async function imageCandidateToBuffer(candidate: string, baseUrl: string): Promise<Buffer> {
-  if (/^data:image\//i.test(candidate)) {
-    const comma = candidate.indexOf(",");
-    if (comma < 0) throw new Error("Invalid data image URL.");
-    return Buffer.from(candidate.slice(comma + 1), "base64");
-  }
-  const response = await fetch(absoluteUrl(candidate, baseUrl), { signal: AbortSignal.timeout(45_000) });
-  if (!response.ok) throw new Error(`Failed to fetch source image: ${response.status}`);
-  return Buffer.from(await response.arrayBuffer());
-}
-
-async function createWebpFromImage(source: Buffer): Promise<Buffer> {
-  return sharp(source, { animated: false })
-    .rotate()
-    .resize({ width: POSTER_WIDTH, fit: "inside", withoutEnlargement: true })
-    .webp({ quality: 78, effort: 4 })
-    .toBuffer();
-}
-
 async function runFfmpeg(args: string[], timeoutMs = 60_000): Promise<void> {
   const ffmpegPath = getFfmpegPath();
   if (!ffmpegPath) throw new Error("FFmpeg binary is not available.");
@@ -135,9 +78,10 @@ async function runFfmpeg(args: string[], timeoutMs = 60_000): Promise<void> {
 
 async function extractWebpFromVideo(videoUrl: string, outputPath: string): Promise<void> {
   const attempts = [
-    ["-ss", "0.75", "-i", videoUrl],
     ["-ss", "0", "-i", videoUrl],
-    ["-i", videoUrl, "-ss", "0.75"],
+    ["-ss", "0.25", "-i", videoUrl],
+    ["-ss", "0.75", "-i", videoUrl],
+    ["-i", videoUrl, "-ss", "0"],
   ];
 
   let lastError: unknown;
@@ -181,7 +125,7 @@ async function persistPoster(userId: string, generationId: string, buffer: Buffe
       where: { id: generationId },
       data: {
         posterUrl,
-        posterStatus: "ready",
+        posterStatus: VIDEO_FRAME_POSTER_STATUS,
         posterGeneratedAt: new Date(),
         posterError: null,
       },
@@ -216,7 +160,7 @@ export async function GET(req: NextRequest) {
       outputUrl: true,
       assetType: true,
       posterUrl: true,
-      generationRequestSnapshot: { select: { requestPayload: true } },
+      posterStatus: true,
     },
   });
 
@@ -224,31 +168,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Video asset not found." }, { status: 404 });
   }
 
-  if (typeof row.posterUrl === "string" && row.posterUrl.trim()) {
+  if (
+    typeof row.posterUrl === "string" &&
+    row.posterUrl.trim() &&
+    row.posterStatus === VIDEO_FRAME_POSTER_STATUS
+  ) {
     return NextResponse.redirect(normalizeMediaUrl(row.posterUrl) || row.posterUrl, { status: 307 });
   }
 
   const posterPath = videoPosterStoragePath(row.userId, row.id);
   const storedPosterUrl = defaultProvider.getPublicUrl("videos", posterPath);
-  if (await defaultProvider.exists({ bucket: "videos", path: posterPath }).catch(() => false)) {
-    await (prismadb.generation as any).update({
-      where: { id: row.id },
-      data: { posterUrl: storedPosterUrl, posterStatus: "ready", posterGeneratedAt: new Date(), posterError: null },
-    }).catch(() => {});
-    return NextResponse.redirect(storedPosterUrl, { status: 307 });
-  }
-
-  const payload = row.generationRequestSnapshot?.requestPayload;
-  const sourceImage = findSourceImage(payload);
-  if (sourceImage) {
-    try {
-      const source = await imageCandidateToBuffer(sourceImage, req.nextUrl.origin);
-      const poster = await createWebpFromImage(source);
-      const posterUrl = await persistPoster(row.userId, row.id, poster);
-      if (posterUrl) return NextResponse.redirect(posterUrl, { status: 307 });
-      return webpResponse(poster);
-    } catch (error) {
-      console.error("[api/assets/video-poster] source image poster failed", error instanceof Error ? error.message : error);
+  if (row.posterStatus === VIDEO_FRAME_POSTER_STATUS) {
+    const storedPosterExists = await defaultProvider.exists({ bucket: "videos", path: posterPath }).catch(() => false);
+    if (storedPosterExists) {
+      await (prismadb.generation as any).update({
+        where: { id: row.id },
+        data: { posterUrl: storedPosterUrl, posterGeneratedAt: new Date(), posterError: null },
+      }).catch(() => {});
+      return NextResponse.redirect(storedPosterUrl, { status: 307 });
     }
   }
 

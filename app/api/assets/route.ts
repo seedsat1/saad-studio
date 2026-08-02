@@ -282,8 +282,8 @@ export async function GET(req: NextRequest) {
         const mediaUrl = row.resolvedUrl;
         const isTextMarker = mediaUrl.startsWith("text:");
         const dimensions = type === "image" ? galleryImageDimensions(row.resolution, row.aspectRatio) : {};
-        const readyPosterUrl = type === "video" && typeof row.posterUrl === "string" && row.posterUrl ? (normalizeMediaUrl(row.posterUrl) || row.posterUrl) : undefined;
-        const videoPoster = readyPosterUrl || videoPosterUrl(row.id, type);
+        const posterIsVideoFrame = type === "video" && row.posterStatus === "ready_video_frame";
+        const videoPoster = videoPosterUrl(row.id, type);
         return {
           id: row.id,
           type,
@@ -291,7 +291,7 @@ export async function GET(req: NextRequest) {
           originalUrl: isTextMarker ? undefined : mediaUrl,
           thumbnailUrl: isTextMarker ? undefined : galleryThumbnailUrl(row.id, type),
           posterUrl: videoPoster,
-          posterStatus: type === "video" ? (readyPosterUrl ? (row.posterStatus ?? "ready") : (row.posterStatus ?? "pending")) : undefined,
+          posterStatus: type === "video" ? (posterIsVideoFrame ? "ready_video_frame" : (row.posterStatus ?? "pending")) : undefined,
           posterGeneratedAt: row.posterGeneratedAt ? row.posterGeneratedAt.toISOString() : undefined,
           posterError: type === "video" ? (row.posterError ?? undefined) : undefined,
           textContent: isTextMarker ? row.prompt : undefined,

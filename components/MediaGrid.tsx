@@ -77,6 +77,7 @@ function posterStateText(status?: MediaItem["posterStatus"]): string {
   if (status === "failed") return "Poster retry queued";
   if (status === "processing") return "Poster processing";
   if (status === "source") return "Source frame";
+  if (status === "ready_video_frame") return "Video frame";
   return "Poster pending";
 }
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
