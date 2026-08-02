@@ -2596,3 +2596,10 @@
 - Nodes should show side input/output connector buttons so the user understands where media or prompts enter and where output branches continue.
 - The left Canvas toolbar should expose adding these tool nodes directly.
 - When a video tool node is generated, update that same video node with the output instead of creating another nested video node.
+
+## Image Thumbnail Optimizer Bypass (2026-08-02)
+
+- Card thumbnails that are served through the authenticated dynamic endpoint `/api/assets/thumbnail?id=...` must not be passed through Next Image Optimizer.
+- In `/image`, keep `next/image` for layout behavior, but set `unoptimized` when the computed thumbnail URL starts with `/api/assets/thumbnail`.
+- This prevents production requests like `/_next/image?url=%2Fapi%2Fassets%2Fthumbnail...` from returning 400 while preserving the original Backblaze image URL for the lightbox and downloads.
+- `/gallery` uses a native `<img>` for cards, so the thumbnail endpoint is requested directly there.

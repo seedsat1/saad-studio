@@ -9868,3 +9868,23 @@
   - Local `/influencers/nsfw` returned `200`; local `/talent-studio/nsfw` returned `307` redirect.
 - Errors/remaining:
   - `.next-dev.codex.log` and `.next-dev.codex.err.log` changed from local dev logging and should not be included in the commit.
+
+## Latest task: Fix /image thumbnail optimizer 400 (2026-08-02)
+
+- Status:
+  Fixed the production `/image` card thumbnail 400 errors caused by routing the authenticated dynamic thumbnail endpoint through Next Image Optimizer.
+- Behavior:
+  - `/image` still renders generated image cards with `next/image` sizing, priority, lazy loading, and thumbnail URLs.
+  - When the card source is `/api/assets/thumbnail?...`, the image is now marked `unoptimized` so the browser requests the thumbnail API directly instead of `/_next/image?url=...`.
+  - Original image URLs remain unchanged and are still used for inspection/lightbox/download paths.
+  - `/gallery` already uses native `<img>` for thumbnail cards and did not need this optimizer bypass.
+- Affected files/paths:
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `git diff --check` passed with only the existing global git ignore permission warning.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `npm.cmd run build` passed; existing unrelated Browserslist/Tailwind ambiguity/dynamic-server warnings remain.
+- Errors/remaining:
+  - The initial manual edit attempt briefly decoded the file with the wrong PowerShell encoding; the file was restored to HEAD and the final diff is limited to the intended `unoptimized` condition.

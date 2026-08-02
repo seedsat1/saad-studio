@@ -896,7 +896,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
                   fill
                   sizes="(max-width: 640px) 50vw, 240px"
                   className="block h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
-                  unoptimized={false}
+                  unoptimized={resultThumbnailUrl(item).startsWith("/api/assets/thumbnail")}
                   priority={index === 0}
                   loading={index === 0 ? "eager" : "lazy"}
                   fetchPriority={index === 0 ? "high" : "auto"}
