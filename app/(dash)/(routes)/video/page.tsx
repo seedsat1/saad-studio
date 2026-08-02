@@ -9,7 +9,7 @@ import {
   Video, Clapperboard, Layers,
   PenTool, Zap, Music2, Users,
   X, AlertCircle, Loader2, Upload, CheckCircle2, Settings,
-  Play, Download, Trash2, Heart, Copy, MoreHorizontal,
+  Play, Download, Trash2, Copy, MoreHorizontal,
   type LucideIcon, Languages,
 } from "lucide-react";
 
@@ -97,20 +97,21 @@ function posterStatusLabel(status?: MediaItem["posterStatus"]) {
   return "Preview";
 }
 
-function VideoHoverTools({ item }: { item: MediaItem }) {
-  const [liked, setLiked] = useState(false);
+function hasPlayableVideo(item: MediaItem) {
+  return Boolean(item.src && !item.src.startsWith("gradient:"));
+}
 
+function buildVideoToolHref(path: string, item: MediaItem, sourceParam: "videoUrl" | "imageUrl" = "videoUrl") {
+  const params = new URLSearchParams();
+  if (hasPlayableVideo(item)) params.set(sourceParam, item.src);
+  if (item.prompt?.trim()) params.set("prompt", item.prompt.trim());
+  params.set("source", "video-history");
+  return `${path}${path.includes("?") ? "&" : "?"}${params.toString()}`;
+}
+
+function VideoHoverTools({ item, onInspect }: { item: MediaItem; onInspect?: (item: MediaItem) => void }) {
   return (
     <div className="absolute right-4 top-1/2 z-40 flex -translate-y-1/2 flex-col gap-2 rounded-full bg-black/35 p-1.5 opacity-0 shadow-2xl ring-1 ring-white/10 backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100">
-      <button
-        type="button"
-        onClick={(event) => { event.stopPropagation(); setLiked((value) => !value); }}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-white/15"
-        aria-label="Favorite video"
-        title="Favorite"
-      >
-        <Heart size={16} fill={liked ? "white" : "none"} />
-      </button>
       <button
         type="button"
         onClick={(event) => { event.stopPropagation(); void copyTextToClipboard(item.prompt || "Generated video"); }}
@@ -129,27 +130,39 @@ function VideoHoverTools({ item }: { item: MediaItem }) {
       >
         <Download size={16} />
       </button>
-      <button
-        type="button"
-        onClick={(event) => event.stopPropagation()}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-white/15"
-        aria-label="More actions"
-        title="More"
-      >
-        <MoreHorizontal size={17} />
-      </button>
+      {onInspect ? (
+        <button
+          type="button"
+          onClick={(event) => { event.stopPropagation(); onInspect(item); }}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-white/15"
+          aria-label="Open details"
+          title="Details"
+        >
+          <MoreHorizontal size={17} />
+        </button>
+      ) : null}
     </div>
   );
 }
-
-function VideoHistoryPreview({ item, index }: { item: MediaItem; index: number }) {
+function VideoHistoryPreview({
+  item,
+  index,
+  onInspect,
+}: {
+  item: MediaItem;
+  index: number;
+  onInspect?: (item: MediaItem) => void;
+}) {
   const [posterFailed, setPosterFailed] = useState(false);
-  const [videoReady, setVideoReady] = useState(false);
   const color = item.modelColor ?? "#06b6d4";
   const usePoster = Boolean(item.poster && !posterFailed);
+  const playable = hasPlayableVideo(item);
 
   return (
-    <div className="relative isolate flex h-full min-h-[320px] items-center justify-center overflow-hidden rounded-[14px] bg-[#202225]">
+    <div
+      className="relative isolate flex h-full min-h-[320px] items-center justify-center overflow-hidden rounded-[14px] bg-[#202225]"
+      onClick={(event) => event.stopPropagation()}
+    >
       <div
         className="absolute inset-0 opacity-70"
         style={{
@@ -157,41 +170,18 @@ function VideoHistoryPreview({ item, index }: { item: MediaItem; index: number }
         }}
       />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[length:32px_32px]" />
-      {usePoster ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={item.poster}
-          alt=""
-          aria-hidden="true"
-          draggable={false}
-          loading={index === 0 ? "eager" : "lazy"}
-          decoding="async"
-          fetchPriority={index === 0 ? "high" : "auto"}
+      {playable ? (
+        <video
+          src={item.src}
+          poster={usePoster ? item.poster : undefined}
+          controls
+          playsInline
+          preload={index === 0 ? "metadata" : "none"}
           onError={() => setPosterFailed(true)}
           className="absolute inset-0 z-10 h-full w-full object-cover"
         />
-      ) : item.src && !item.src.startsWith("gradient:") ? (
-        <video
-          src={item.src}
-          muted
-          playsInline
-          preload="metadata"
-          controls={false}
-          onLoadedData={() => setVideoReady(true)}
-          onLoadedMetadata={(event) => {
-            const video = event.currentTarget;
-            try {
-              if (video.currentTime < 0.05) video.currentTime = 0.05;
-            } catch {
-              // Some remote media sources disallow seeking before enough metadata is buffered.
-            }
-          }}
-          className="absolute inset-0 z-10 h-full w-full object-cover"
-          style={{ opacity: videoReady ? 1 : 0.01 }}
-        />
-      ) : null}
-      {!usePoster && !videoReady ? (
-        <div className="absolute inset-0 z-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
+      ) : (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-6 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 ring-1 ring-white/10">
             <Play size={22} fill="white" className="ml-1 text-white" />
           </div>
@@ -199,25 +189,19 @@ function VideoHistoryPreview({ item, index }: { item: MediaItem; index: number }
             {item.prompt || "Generated video"}
           </p>
         </div>
-      ) : null}
-      <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/10">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 opacity-90 ring-1 ring-white/15 backdrop-blur">
-          <Play size={19} fill="white" className="ml-1 text-white" />
-        </div>
-      </div>
+      )}
       {item.duration ? (
-        <span className="absolute bottom-4 right-4 z-30 rounded-md bg-black/70 px-2 py-1 text-[11px] font-bold text-white ring-1 ring-white/10">
+        <span className="pointer-events-none absolute bottom-4 right-4 z-30 rounded-md bg-black/70 px-2 py-1 text-[11px] font-bold text-white ring-1 ring-white/10">
           {item.duration}
         </span>
       ) : null}
-      <span className="absolute left-4 top-4 z-30 rounded-md bg-black/65 px-2 py-1 text-[11px] font-bold text-slate-200 ring-1 ring-white/10">
+      <span className="pointer-events-none absolute left-4 top-4 z-30 rounded-md bg-black/65 px-2 py-1 text-[11px] font-bold text-slate-200 ring-1 ring-white/10">
         {item.ratio}
       </span>
-      <VideoHoverTools item={item} />
+      <VideoHoverTools item={item} onInspect={onInspect} />
     </div>
   );
 }
-
 function VideoHistoryList({
   items,
   skeletonModels,
@@ -273,7 +257,7 @@ function VideoHistoryList({
               onClick={() => onInspect(item)}
             >
               <div className="video-history-preview">
-                <VideoHistoryPreview item={item} index={index} />
+                <VideoHistoryPreview item={item} index={index} onInspect={onInspect} />
               </div>
               <aside className="video-history-side flex min-h-full flex-col rounded-[14px] border border-white/5 bg-[#111315] p-4">
                 <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs font-bold text-slate-100">
@@ -306,7 +290,7 @@ function VideoHistoryList({
                 <div className="mt-5 space-y-2">
                   <button
                     type="button"
-                    onClick={(event) => { event.stopPropagation(); onInspect(item); }}
+                    onClick={(event) => { event.stopPropagation(); window.location.href = buildVideoToolHref("/video?tool=lipsync", item, "imageUrl"); }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-white shadow-[0_12px_26px_rgba(249,115,22,0.22)] transition-transform hover:-translate-y-0.5"
                     style={{ background: "linear-gradient(135deg, #f97316, #f59e0b)" }}
                   >
@@ -318,7 +302,7 @@ function VideoHistoryList({
                   </button>
                   <button
                     type="button"
-                    onClick={(event) => { event.stopPropagation(); onInspect(item); }}
+                    onClick={(event) => { event.stopPropagation(); window.location.href = buildVideoToolHref("/video-extend", item, "videoUrl"); }}
                     className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-slate-100 transition-colors hover:bg-white/[0.08]"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.07]"><Clapperboard size={17} /></span>
@@ -329,13 +313,13 @@ function VideoHistoryList({
                   </button>
                   <button
                     type="button"
-                    onClick={(event) => { event.stopPropagation(); onInspect(item); }}
+                    onClick={(event) => { event.stopPropagation(); window.location.href = buildVideoToolHref("/studio-edit", item, "videoUrl"); }}
                     className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-slate-100 transition-colors hover:bg-white/[0.08]"
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.07]"><Music2 size={17} /></span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.07]"><PenTool size={17} /></span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-extrabold leading-5">Add Voiceover</span>
-                      <span className="block text-[11px] font-semibold text-slate-400">AI narration layer</span>
+                      <span className="block text-sm font-extrabold leading-5">Captions / Translate</span>
+                      <span className="block text-[11px] font-semibold text-slate-400">Studio Edit workflow</span>
                     </span>
                   </button>
                   <button

@@ -196,6 +196,16 @@ export default function StudioEditPage() {
   const targetUrl = videoUrl.trim() || uploadedFileUrl;
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const linkedVideoUrl = params.get("videoUrl") || params.get("sourceUrl");
+    if (!linkedVideoUrl || !/^https?:\/\//i.test(linkedVideoUrl)) return;
+    setVideoUrl(linkedVideoUrl);
+    setUploadedFileUrl("");
+    const fallbackName = linkedVideoUrl.split("/").pop()?.split("?")[0] || "linked-video.mp4";
+    setUploadedFileName(fallbackName);
+  }, []);
+
+  useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) {
       setJobs([]);

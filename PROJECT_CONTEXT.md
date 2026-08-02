@@ -9958,3 +9958,11 @@
 - Behavior: The history list no longer uses a centered max-width. It now spans the available center panel width, uses tighter row gaps, a narrower details column, and reduced center-panel horizontal padding so the results sit close to the left engines panel and right settings panel.
 - Verification: npx.cmd tsc --noEmit --pretty false passed. npm.cmd run build passed with existing non-blocking Next/Tailwind warnings.
 - Decision: Kept a very small 8px center padding to avoid edge collision while removing the visible wasted space marked in the screenshot.
+## 2026-08-02 22:55:31 +03:00 - Video history direct playback and real actions
+- Status: Completed direct playback correction for /video history rows.
+- Affected files: app/(dash)/(routes)/video/page.tsx, app/(dash)/(routes)/studio-edit/page.tsx, PROJECT_CONTEXT.md, docs/saad-studio-premiere-reference-ar.md.
+- Behavior: /video history rows now render the original video URL in a native controlled video player inside the result row, using posterUrl when available and preload metadata only for the first visible item / none for the rest. Users can play directly from the row and use browser/native controls plus the explicit Download action.
+- Actions: Removed the fake local Favorite action from hover tools. Hover tools now expose real Copy Prompt, Download, and Details actions only. Side commands now route to real workflows: Lipsync/Dubbing opens /video with tool=lipsync and the source URL, Extend Video opens /video-extend with videoUrl, and Captions/Translate opens /studio-edit with videoUrl.
+- Studio Edit: /studio-edit now accepts videoUrl/sourceUrl query parameters and pre-fills the video link field so the command from /video is not decorative.
+- Verification: npx.cmd tsc --noEmit --pretty false passed. npm.cmd run build passed with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
+- Decision: Superseded the strict poster-only card rule because the user explicitly prefers direct subscriber playback/download over a non-interactive preview. Fake-looking tools must either route to real workflows or be removed/renamed.

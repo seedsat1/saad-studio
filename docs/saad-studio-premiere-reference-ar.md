@@ -2629,3 +2629,9 @@
 ## Video Page Center Width Update (2026-08-02)
 - /video history rows should not be centered inside a max-width container when the page already has fixed left and right sidebars.
 - The history list spans the available center panel width with minimal padding, so large empty bands do not appear between the engines panel, result rows, and settings panel.
+## Video Page Direct Playback and Action Honesty (2026-08-02)
+- Supersedes the earlier strict poster-only history display rule for /video: result rows may render the original MP4 in a native controlled video element so subscribers can play and download directly from the result row.
+- posterUrl remains useful as the video poster image, but it is no longer the only visible media surface inside the /video history row.
+- The first visible video row may preload metadata; later rows should use preload=none to limit unnecessary network work while preserving direct play on demand.
+- Quick actions must be honest: Copy Prompt and Download execute directly, Details opens Asset Inspector, Lipsync/Dubbing routes to the real /video lipsync flow, Extend Video routes to /video-extend with videoUrl, and captions/translation routes to /studio-edit with videoUrl.
+- Do not show decorative workflow actions that do not trigger a real route or implemented backend flow. Rename or remove any unavailable action instead of presenting it as functional.
