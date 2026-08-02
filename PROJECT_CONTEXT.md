@@ -9940,3 +9940,9 @@
 - السلوك الجديد: /api/assets يرجع للبطاقة /api/assets/video-poster?id=... عند غياب posterUrl جاهز. هذا المسار يعيد poster المخزن إن وجد، أو يصنع WebP 480px من source/start image في payload، أو يستخرج فريم WebP من MP4 عبر FFmpeg، ثم يحاول حفظه في Backblaze وتحديث posterUrl دون تغيير الفيديو الأصلي.
 - الحماية: المتصفح لا يحمّل MP4 داخل grid؛ التحويل يحدث في السيرفر عند طلب صورة البطاقة فقط، ويفشل إلى placeholder إذا لم يمكن توليد poster.
 - التحقق: npx.cmd tsc --noEmit --pretty false نجح، git diff --check نجح، npm.cmd run build نجح مع تحذيرات Next/Tailwind غير مانعة وموجودة سابقاً.
+## 2026-08-02 22:00:23 +03:00 - Video history list display
+- Status: Replaced the /video result grid with a Higgsfield-style history/list layout.
+- Affected files: app/(dash)/(routes)/video/page.tsx.
+- Behavior: Each video result now renders as a wide row with a large preview surface and a compact details panel. If posterUrl is ready it is used first; if the poster fails or is missing, the row falls back to a muted metadata-only video preview to reveal the first frame without autoplay. Opening the row still uses Asset Inspector and the original video URL.
+- Verification: npx.cmd tsc --noEmit --pretty false passed. npm.cmd run build passed with existing non-blocking Next/Tailwind warnings.
+- Decision: Changed the presentation because the poster-only card grid did not produce acceptable visual results for existing videos whose poster generation was not ready.

@@ -9,13 +9,14 @@ import {
   Video, Clapperboard, Layers,
   PenTool, Zap, Music2, Users,
   X, AlertCircle, Loader2, Upload, CheckCircle2, Settings,
+  Play, Download, Trash2,
   type LucideIcon, Languages,
 } from "lucide-react";
 
 import { useLanguage } from "@/lib/use-language";
 import { useAuth } from "@clerk/nextjs";
 
-import MediaGrid, { MediaItem } from "@/components/MediaGrid";
+import type { MediaItem } from "@/components/MediaGrid";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import {
   WaveSpeedVideoModel,
@@ -57,6 +58,216 @@ function hexA(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+function downloadVideoItem(item: MediaItem) {
+  if (!item.src || item.src.startsWith("gradient:")) return;
+  const a = document.createElement("a");
+  const filename = `saad-video-${item.id}.mp4`;
+  a.href = `/api/download?url=${encodeURIComponent(item.src)}&filename=${encodeURIComponent(filename)}`;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function posterStatusLabel(status?: MediaItem["posterStatus"]) {
+  if (status === "ready_video_frame") return "Video frame";
+  if (status === "ready") return "Poster ready";
+  if (status === "processing") return "Poster processing";
+  if (status === "failed") return "Metadata preview";
+  return "Preview";
+}
+
+function VideoHistoryPreview({ item, index }: { item: MediaItem; index: number }) {
+  const [posterFailed, setPosterFailed] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const color = item.modelColor ?? "#06b6d4";
+  const usePoster = Boolean(item.poster && !posterFailed);
+
+  return (
+    <div className="relative flex h-full min-h-[320px] items-center justify-center overflow-hidden rounded-[14px] bg-[#202225]">
+      <div
+        className="absolute inset-0 opacity-70"
+        style={{
+          background: `radial-gradient(circle at 50% 20%, ${hexA(color, 0.18)}, transparent 36%), linear-gradient(135deg, rgba(255,255,255,0.025), transparent)`,
+        }}
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[length:32px_32px]" />
+      {usePoster ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.poster}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          loading={index === 0 ? "eager" : "lazy"}
+          decoding="async"
+          fetchPriority={index === 0 ? "high" : "auto"}
+          onError={() => setPosterFailed(true)}
+          className="relative z-10 h-full max-h-[560px] w-full object-contain"
+        />
+      ) : item.src && !item.src.startsWith("gradient:") ? (
+        <video
+          src={item.src}
+          muted
+          playsInline
+          preload="metadata"
+          controls={false}
+          onLoadedData={() => setVideoReady(true)}
+          onLoadedMetadata={(event) => {
+            const video = event.currentTarget;
+            try {
+              if (video.currentTime < 0.05) video.currentTime = 0.05;
+            } catch {
+              // Some remote media sources disallow seeking before enough metadata is buffered.
+            }
+          }}
+          className="relative z-10 h-full max-h-[560px] w-full object-contain"
+          style={{ opacity: videoReady ? 1 : 0.01 }}
+        />
+      ) : null}
+      {!usePoster && !videoReady ? (
+        <div className="absolute inset-0 z-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 ring-1 ring-white/10">
+            <Play size={22} fill="white" className="ml-1 text-white" />
+          </div>
+          <p className="max-w-md text-sm font-semibold leading-6 text-slate-200 line-clamp-3">
+            {item.prompt || "Generated video"}
+          </p>
+        </div>
+      ) : null}
+      <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/10">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 opacity-90 ring-1 ring-white/15 backdrop-blur">
+          <Play size={19} fill="white" className="ml-1 text-white" />
+        </div>
+      </div>
+      {item.duration ? (
+        <span className="absolute bottom-4 right-4 z-30 rounded-md bg-black/70 px-2 py-1 text-[11px] font-bold text-white ring-1 ring-white/10">
+          {item.duration}
+        </span>
+      ) : null}
+      <span className="absolute left-4 top-4 z-30 rounded-md bg-black/65 px-2 py-1 text-[11px] font-bold text-slate-200 ring-1 ring-white/10">
+        {item.ratio}
+      </span>
+    </div>
+  );
+}
+
+function VideoHistoryList({
+  items,
+  skeletonModels,
+  hasMore,
+  loadingMore,
+  onLoadMore,
+  onInspect,
+  onDelete,
+}: {
+  items: MediaItem[];
+  skeletonModels?: Array<{ name: string; ratio?: string }>;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
+  onInspect: (item: MediaItem) => void;
+  onDelete?: (id: string) => void;
+}) {
+  return (
+    <>
+      <style>{`
+        .video-history-list { max-width: 1540px; margin: 0 auto; padding: 16px 10px 28px; display: flex; flex-direction: column; gap: 22px; }
+        .video-history-card { display: grid; grid-template-columns: minmax(0, 1fr) 258px; gap: 14px; min-height: 380px; border-radius: 16px; }
+        .video-history-preview { min-height: clamp(330px, 43vw, 560px); }
+        @media (max-width: 1180px) { .video-history-card { grid-template-columns: 1fr; } .video-history-side { min-height: auto; } }
+        @media (max-width: 720px) { .video-history-list { padding: 12px 0 24px; gap: 14px; } .video-history-preview { min-height: 260px; } }
+      `}</style>
+      <div className="video-history-list">
+        {(skeletonModels ?? []).map((item, index) => (
+          <div key={`pending-${index}`} className="video-history-card overflow-hidden border border-white/5 bg-[#111315] p-2">
+            <div className="video-history-preview relative overflow-hidden rounded-[14px] bg-[#202225]">
+              <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 size={28} className="animate-spin text-slate-400" />
+              </div>
+            </div>
+            <div className="video-history-side rounded-[14px] border border-white/5 bg-[#111315] p-4">
+              <div className="h-5 w-36 rounded bg-white/10" />
+              <div className="mt-8 h-3 w-full rounded bg-white/10" />
+              <div className="mt-3 h-3 w-2/3 rounded bg-white/10" />
+              <div className="mt-8 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs text-slate-400">{item.name}</div>
+            </div>
+          </div>
+        ))}
+        {items.map((item, index) => {
+          const color = item.modelColor ?? "#06b6d4";
+          return (
+            <motion.article
+              key={item.id}
+              layout
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="video-history-card group cursor-pointer overflow-hidden border border-white/5 bg-[#111315] p-2 shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-colors hover:border-white/10"
+              onClick={() => onInspect(item)}
+            >
+              <div className="video-history-preview">
+                <VideoHistoryPreview item={item} index={index} />
+              </div>
+              <aside className="video-history-side flex min-h-full flex-col rounded-[14px] border border-white/5 bg-[#111315] p-4">
+                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs font-bold text-slate-100">
+                  <span className="h-2 w-2 rounded-full" style={{ background: color, boxShadow: `0 0 10px ${hexA(color, 0.8)}` }} />
+                  {item.model}
+                </div>
+                <div className="mt-8 min-h-[130px] text-sm font-semibold leading-6 text-slate-300 line-clamp-6">
+                  {item.prompt || "Generated video"}
+                </div>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <span className="rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-bold text-slate-300 ring-1 ring-white/5">{item.ratio}</span>
+                  {item.duration ? <span className="rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-bold text-slate-300 ring-1 ring-white/5">{item.duration}</span> : null}
+                  <span className="rounded-lg px-2.5 py-1.5 text-[11px] font-bold ring-1" style={{ color, background: hexA(color, 0.12), borderColor: hexA(color, 0.25) }}>{posterStatusLabel(item.posterStatus)}</span>
+                </div>
+                {item.providerRequestId ? (
+                  <div className="mt-3 w-fit rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-bold text-slate-400 ring-1 ring-white/5">
+                    {item.providerRequestId}
+                  </div>
+                ) : null}
+                <div className="mt-auto flex gap-2 pt-6">
+                  <button
+                    type="button"
+                    onClick={(event) => { event.stopPropagation(); downloadVideoItem(item); }}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-300 transition-colors hover:bg-white/[0.08]"
+                    aria-label="Download video"
+                  >
+                    <Download size={15} />
+                  </button>
+                  {onDelete ? (
+                    <button
+                      type="button"
+                      onClick={(event) => { event.stopPropagation(); onDelete(item.id); }}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-500 transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
+                      aria-label="Delete video"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  ) : null}
+                </div>
+              </aside>
+            </motion.article>
+          );
+        })}
+        {hasMore ? (
+          <div className="flex justify-center pb-4">
+            <button
+              type="button"
+              onClick={onLoadMore}
+              disabled={loadingMore}
+              className="rounded-xl border border-white/10 bg-white/[0.05] px-5 py-2.5 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/[0.08] disabled:cursor-wait disabled:opacity-60"
+            >
+              {loadingMore ? "Loading..." : "Load more"}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </>
+  );
+}
 function useVideoTranslation() {
   const { lang } = useLanguage();
   const dict: Record<string, Record<string, string>> = {
@@ -2634,7 +2845,7 @@ function VideoPageInner() {
               </div>
             </div>
           ) : (
-            <MediaGrid
+            <VideoHistoryList
               items={results}
               skeletonModels={Array.from(pendingTasks.values()).map(t => ({ name: t.model.name, ratio: t.ratio }))}
               hasMore={videoResultsHasMore}
@@ -2649,7 +2860,7 @@ function VideoPageInner() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ id }),
                   });
-                } catch { /* rollback not needed — next refresh will re-fetch */ }
+                } catch { /* rollback not needed - next refresh will re-fetch */ }
               }}
             />
           )}

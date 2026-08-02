@@ -2617,3 +2617,7 @@
 - عند غياب posterUrl في سجلات الفيديو، ترجع قائمة /api/assets رابطاً داخلياً /api/assets/video-poster?id=... بدلاً من تمرير base64 أو ترك البطاقة بلا صورة.
 - مسار video-poster موثق كـ fallback مصادق: يعيد poster المخزن، أو يولد WebP 480px من صورة البداية داخل requestPayload، أو يستخرج فريم من MP4 عبر FFmpeg، ويحاول حفظ النتيجة كـ posterUrl مستقل.
 - يظل MP4 الأصلي خارج بطاقات /video ولا يحمّله المتصفح داخل الشبكة؛ الفيديو الأصلي يفتح فقط في Asset Inspector/المعاينة.
+## Video Page History/List Display (2026-08-02)
+- /video results use a wide history/list presentation rather than the small card grid.
+- The preview priority is: posterUrl when available, then a muted metadata-only video element to reveal the first frame when poster generation is missing or failed.
+- The original MP4 URL remains unchanged and is still opened in Asset Inspector for full playback/details. The list preview is a display fallback for existing videos whose poster backfill is not ready.
