@@ -182,12 +182,37 @@ function Lightbox({ item, onClose }: { item: MediaItem; onClose: () => void }) {
 
 
 
+function VideoPosterFallback({ item, color }: { item: MediaItem; color: string }) {
+  return (
+    <div className={cn("absolute inset-0 bg-gradient-to-br", item.gradient ?? "from-slate-800 to-slate-900")}>
+      <div style={{ position: "absolute", inset: 0, backgroundImage: `linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)`, backgroundSize: "28px 28px" }} />
+      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(circle at 22% 18%, ${hexA(color, 0.34)}, transparent 32%), linear-gradient(to top, rgba(0,0,0,0.72), transparent 55%)` }} />
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <span style={{ maxWidth: "70%", color: "#e2e8f0", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.model}</span>
+          <span style={{ color: color, fontSize: 9, fontWeight: 700, background: hexA(color, 0.14), border: `1px solid ${hexA(color, 0.3)}`, padding: "2px 7px", borderRadius: 999 }}>{posterStateText(item.posterStatus)}</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1 }}>
+          <div style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(0,0,0,0.58)", backdropFilter: "blur(6px)", border: `1px solid ${hexA(color, 0.32)}`, boxShadow: `0 0 28px ${hexA(color, 0.18)}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Play size={17} fill="white" color="white" style={{ marginLeft: 2 }} />
+          </div>
+        </div>
+        <div style={{ minHeight: 34 }}>
+          <p style={{ margin: 0, color: "rgba(255,255,255,0.76)", fontSize: 12, fontWeight: 650, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+            {item.prompt || "Generated video"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 function MediaCard({ item, index, onOpen, onDelete }: {
   item: MediaItem; index: number; onOpen: () => void; onDelete?: (id: string) => void;
 }) {
   const [liked, setLiked] = useState(false);
   const [hov, setHov] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
+  const [posterLoaded, setPosterLoaded] = useState(false);
   const [posterRetry, setPosterRetry] = useState(0);
   const isPlaceholder = !item.src || item.src.startsWith("gradient:");
   const color = item.modelColor ?? "#06b6d4";
@@ -205,10 +230,12 @@ function MediaCard({ item, index, onOpen, onDelete }: {
 
   useEffect(() => {
     setPosterFailed(false);
+    setPosterLoaded(false);
     setPosterRetry(0);
   }, [item.poster]);
 
   const handlePosterError = () => {
+    setPosterLoaded(false);
     if (item.poster?.startsWith("/api/") && posterRetry < 6) {
       const delay = Math.min(1000 * Math.pow(1.7, posterRetry), 8000);
       window.setTimeout(() => setPosterRetry((value) => value + 1), delay);
@@ -287,38 +314,25 @@ function MediaCard({ item, index, onOpen, onDelete }: {
           }} />
         ) : (
           item.poster && !posterFailed ? (
-          <img
-            src={posterSrc}
-            alt={item.prompt || "Generated video poster"}
-            sizes="(max-width: 480px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 33vw, 240px"
-            className="object-cover transition-transform duration-500"
-            loading={index === 0 ? "eager" : "lazy"}
-            decoding="async"
-            fetchPriority={index === 0 ? "high" : "auto"}
-            onError={handlePosterError}
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", transform: hov ? "scale(1.04)" : "scale(1)" }}
-          />
+          <>
+            {!posterLoaded && <VideoPosterFallback item={item} color={color} />}
+            <img
+              src={posterSrc}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              sizes="(max-width: 480px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 33vw, 240px"
+              className="object-cover transition-transform duration-500"
+              loading={index === 0 ? "eager" : "lazy"}
+              decoding="async"
+              fetchPriority={index === 0 ? "high" : "auto"}
+              onLoad={() => setPosterLoaded(true)}
+              onError={handlePosterError}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: posterLoaded ? 1 : 0, transform: hov ? "scale(1.04)" : "scale(1)" }}
+            />
+          </>
         ) : (
-          <div className={cn("absolute inset-0 bg-gradient-to-br", item.gradient ?? "from-slate-800 to-slate-900")}>
-            <div style={{ position: "absolute", inset: 0, backgroundImage: `linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)`, backgroundSize: "28px 28px" }} />
-            <div style={{ position: "absolute", inset: 0, background: `radial-gradient(circle at 22% 18%, ${hexA(color, 0.34)}, transparent 32%), linear-gradient(to top, rgba(0,0,0,0.72), transparent 55%)` }} />
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span style={{ maxWidth: "70%", color: "#e2e8f0", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.model}</span>
-                <span style={{ color: color, fontSize: 9, fontWeight: 700, background: hexA(color, 0.14), border: `1px solid ${hexA(color, 0.3)}`, padding: "2px 7px", borderRadius: 999 }}>{posterStateText(item.posterStatus)}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1 }}>
-                <div style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(0,0,0,0.58)", backdropFilter: "blur(6px)", border: `1px solid ${hexA(color, 0.32)}`, boxShadow: `0 0 28px ${hexA(color, 0.18)}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Play size={17} fill="white" color="white" style={{ marginLeft: 2 }} />
-                </div>
-              </div>
-              <div style={{ minHeight: 34 }}>
-                <p style={{ margin: 0, color: "rgba(255,255,255,0.76)", fontSize: 12, fontWeight: 650, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                  {item.prompt || "Generated video"}
-                </p>
-              </div>
-            </div>
-          </div>
+          <VideoPosterFallback item={item} color={color} />
         )
         )}
 
