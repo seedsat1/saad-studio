@@ -25,6 +25,7 @@ export interface MediaItem {
   duration?: string;       // "4.2s"
   prompt?: string;
   providerRequestId?: string;
+  isFavorite?: boolean;
   gradient?: string;       // Tailwind gradient classes for placeholder bg
   createdAt?: Date;
 }

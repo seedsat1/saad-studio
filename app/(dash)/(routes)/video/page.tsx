@@ -9,7 +9,7 @@ import {
   Video, Clapperboard, Layers,
   PenTool, Zap, Music2, Users,
   X, AlertCircle, Loader2, Upload, CheckCircle2, Settings,
-  Play, Download, Trash2, Copy, MoreHorizontal,
+  Play, Download, Trash2, Heart, Copy, MoreHorizontal,
   type LucideIcon, Languages,
 } from "lucide-react";
 
@@ -109,9 +109,38 @@ function buildVideoToolHref(path: string, item: MediaItem, sourceParam: "videoUr
   return `${path}${path.includes("?") ? "&" : "?"}${params.toString()}`;
 }
 
-function VideoHoverTools({ item, onInspect }: { item: MediaItem; onInspect?: (item: MediaItem) => void }) {
+function VideoHoverTools({
+  item,
+  onInspect,
+  onToggleFavorite,
+}: {
+  item: MediaItem;
+  onInspect?: (item: MediaItem) => void;
+  onToggleFavorite?: (item: MediaItem) => Promise<void> | void;
+}) {
+  const [savingFavorite, setSavingFavorite] = useState(false);
+
   return (
     <div className="absolute right-4 top-1/2 z-40 flex -translate-y-1/2 flex-col gap-2 rounded-full bg-black/35 p-1.5 opacity-0 shadow-2xl ring-1 ring-white/10 backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100">
+      <button
+        type="button"
+        disabled={savingFavorite || !onToggleFavorite}
+        onClick={async (event) => {
+          event.stopPropagation();
+          if (!onToggleFavorite) return;
+          setSavingFavorite(true);
+          try {
+            await onToggleFavorite(item);
+          } finally {
+            setSavingFavorite(false);
+          }
+        }}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-white/15 disabled:cursor-wait disabled:opacity-70"
+        aria-label={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+        title={item.isFavorite ? "Remove favorite" : "Favorite"}
+      >
+        <Heart size={16} fill={item.isFavorite ? "white" : "none"} />
+      </button>
       <button
         type="button"
         onClick={(event) => { event.stopPropagation(); void copyTextToClipboard(item.prompt || "Generated video"); }}
@@ -148,10 +177,12 @@ function VideoHistoryPreview({
   item,
   index,
   onInspect,
+  onToggleFavorite,
 }: {
   item: MediaItem;
   index: number;
   onInspect?: (item: MediaItem) => void;
+  onToggleFavorite?: (item: MediaItem) => Promise<void> | void;
 }) {
   const [posterFailed, setPosterFailed] = useState(false);
   const color = item.modelColor ?? "#06b6d4";
@@ -198,7 +229,7 @@ function VideoHistoryPreview({
       <span className="pointer-events-none absolute left-4 top-4 z-30 rounded-md bg-black/65 px-2 py-1 text-[11px] font-bold text-slate-200 ring-1 ring-white/10">
         {item.ratio}
       </span>
-      <VideoHoverTools item={item} onInspect={onInspect} />
+      <VideoHoverTools item={item} onInspect={onInspect} onToggleFavorite={onToggleFavorite} />
     </div>
   );
 }
@@ -209,6 +240,7 @@ function VideoHistoryList({
   loadingMore,
   onLoadMore,
   onInspect,
+  onToggleFavorite,
   onDelete,
 }: {
   items: MediaItem[];
@@ -217,6 +249,7 @@ function VideoHistoryList({
   loadingMore?: boolean;
   onLoadMore?: () => void;
   onInspect: (item: MediaItem) => void;
+  onToggleFavorite?: (item: MediaItem) => Promise<void> | void;
   onDelete?: (id: string) => void;
 }) {
   return (
@@ -257,7 +290,7 @@ function VideoHistoryList({
               onClick={() => onInspect(item)}
             >
               <div className="video-history-preview">
-                <VideoHistoryPreview item={item} index={index} onInspect={onInspect} />
+                <VideoHistoryPreview item={item} index={index} onInspect={onInspect} onToggleFavorite={onToggleFavorite} />
               </div>
               <aside className="video-history-side flex min-h-full flex-col rounded-[14px] border border-white/5 bg-[#111315] p-4">
                 <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs font-bold text-slate-100">
@@ -1540,9 +1573,34 @@ function VideoPageInner() {
       prompt: asset.prompt || "",
       providerRequestId: asset.providerRequestId,
       gradient: model ? (FAMILY_GRADIENTS[model.family] ?? "from-slate-900 via-slate-800 to-slate-900") : "from-slate-900 via-slate-800 to-slate-900",
+      isFavorite: Boolean(asset.isFavorite),
       createdAt: asset.createdAt ? new Date(asset.createdAt) : new Date(),
     };
   }, [allModels]);
+
+  const toggleVideoFavorite = useCallback(async (item: MediaItem) => {
+    const nextFavorite = !item.isFavorite;
+    setResults((prev) => prev.map((candidate) => (
+      candidate.id === item.id ? { ...candidate, isFavorite: nextFavorite } : candidate
+    )));
+
+    try {
+      const res = await fetch("/api/assets/favorite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, isFavorite: nextFavorite }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.ok !== true) {
+        throw new Error(typeof data?.error === "string" ? data.error : "Favorite update failed.");
+      }
+    } catch (error) {
+      setResults((prev) => prev.map((candidate) => (
+        candidate.id === item.id ? { ...candidate, isFavorite: !nextFavorite } : candidate
+      )));
+      console.error("[video] favorite update failed", error);
+    }
+  }, []);
 
   const mediaItemToInspectorAsset = useCallback((item: MediaItem): Asset => ({
     id: item.id,

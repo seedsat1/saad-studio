@@ -249,6 +249,7 @@ export async function GET(req: NextRequest) {
           modelUsed: true,
           assetType: true,
           cost: true,
+          isFavorite: true,
           createdAt: true,
           providerRequestId: true,
           resolution: true,
@@ -308,6 +309,7 @@ export async function GET(req: NextRequest) {
           }),
           createdAt: row.createdAt.toISOString(),
           cost: row.cost,
+          isFavorite: Boolean(row.isFavorite),
           providerRequestId: row.providerRequestId ?? undefined,
         };
       });
@@ -421,6 +423,7 @@ export async function POST(req: NextRequest) {
       }),
       createdAt: record.createdAt.toISOString(),
       cost: 0,
+      isFavorite: false,
     };
 
     return NextResponse.json({ asset: returnedAsset, ok: true }, { status: 200 });

@@ -79,6 +79,7 @@ model Generation {
   modelUsed        String
   cost             Float    @default(0)
   isFlagged        Boolean  @default(false)
+  isFavorite       Boolean  @default(false)
   createdAt        DateTime @default(now())
 
   // Provider tracking fields
@@ -100,6 +101,7 @@ model Generation {
 
   @@index([userId])
   @@index([createdAt])
+  @@index([isFavorite])
   @@index([posterStatus])
   providerUsageRecords ProviderUsageRecord[]
   generationRequestSnapshot GenerationRequestSnapshot?

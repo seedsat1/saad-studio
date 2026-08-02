@@ -9966,3 +9966,9 @@
 - Studio Edit: /studio-edit now accepts videoUrl/sourceUrl query parameters and pre-fills the video link field so the command from /video is not decorative.
 - Verification: npx.cmd tsc --noEmit --pretty false passed. npm.cmd run build passed with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
 - Decision: Superseded the strict poster-only card rule because the user explicitly prefers direct subscriber playback/download over a non-interactive preview. Fake-looking tools must either route to real workflows or be removed/renamed.
+## 2026-08-02 23:25:49 +03:00 - Video hover favorite made real
+- Status: Completed. The /video hover heart action is now a real persisted favorite toggle instead of decorative/local state.
+- Affected files: prisma/schema.prisma, prisma/migrations/manual/2026-08-02-generation-favorites.sql, app/api/assets/favorite/route.ts, app/api/assets/route.ts, components/MediaGrid.tsx, app/(dash)/(routes)/video/page.tsx, PROJECT_CONTEXT.md, docs/saad-studio-premiere-reference-ar.md.
+- Behavior: Generation now has isFavorite with a default false value. /api/assets returns isFavorite for each asset, and /api/assets/favorite validates Clerk ownership before updating the current user's Generation row. /video restores the hover heart icon and toggles it optimistically while persisting to the API; failures revert the local state.
+- Verification: npx.cmd prisma generate passed. npx.cmd tsc --noEmit --pretty false passed. npx.cmd prisma db execute --file prisma/migrations/manual/2026-08-02-generation-favorites.sql --schema prisma/schema.prisma succeeded. npm.cmd run build passed with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
+- Decision: Kept the same hover tool visual requested by the user, but every visible action now maps to a real effect: favorite persists, copy copies, download downloads, and more/details opens the inspector.

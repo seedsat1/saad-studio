@@ -2635,3 +2635,8 @@
 - The first visible video row may preload metadata; later rows should use preload=none to limit unnecessary network work while preserving direct play on demand.
 - Quick actions must be honest: Copy Prompt and Download execute directly, Details opens Asset Inspector, Lipsync/Dubbing routes to the real /video lipsync flow, Extend Video routes to /video-extend with videoUrl, and captions/translation routes to /studio-edit with videoUrl.
 - Do not show decorative workflow actions that do not trigger a real route or implemented backend flow. Rename or remove any unavailable action instead of presenting it as functional.
+## Video Hover Tool Reality Contract (2026-08-02)
+- /video hover tools may show heart, copy, download, and details, but each icon must execute a real action.
+- Heart uses Generation.isFavorite and POST /api/assets/favorite with Clerk ownership validation; it must not be local-only visual state.
+- /api/assets returns isFavorite so history rows hydrate the real saved favorite state.
+- Copy Prompt, Download, and Details remain direct actions. Do not add hover icons without a backed API route, persisted state, or concrete navigation target.
