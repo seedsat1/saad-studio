@@ -9,7 +9,7 @@ import {
   Video, Clapperboard, Layers,
   PenTool, Zap, Music2, Users,
   X, AlertCircle, Loader2, Upload, CheckCircle2, Settings,
-  Play, Download, Trash2,
+  Play, Download, Trash2, Heart, Copy, MoreHorizontal,
   type LucideIcon, Languages,
 } from "lucide-react";
 
@@ -70,12 +70,76 @@ function downloadVideoItem(item: MediaItem) {
   a.remove();
 }
 
+async function copyTextToClipboard(text?: string | null) {
+  const value = text?.trim();
+  if (!value) return;
+
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    const input = document.createElement("textarea");
+    input.value = value;
+    input.setAttribute("readonly", "true");
+    input.style.position = "fixed";
+    input.style.left = "-9999px";
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    input.remove();
+  }
+}
+
 function posterStatusLabel(status?: MediaItem["posterStatus"]) {
   if (status === "ready_video_frame") return "Video frame";
   if (status === "ready") return "Poster ready";
   if (status === "processing") return "Poster processing";
   if (status === "failed") return "Metadata preview";
   return "Preview";
+}
+
+function VideoHoverTools({ item }: { item: MediaItem }) {
+  const [liked, setLiked] = useState(false);
+
+  return (
+    <div className="absolute right-4 top-1/2 z-40 flex -translate-y-1/2 flex-col gap-2 rounded-full bg-black/35 p-1.5 opacity-0 shadow-2xl ring-1 ring-white/10 backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100">
+      <button
+        type="button"
+        onClick={(event) => { event.stopPropagation(); setLiked((value) => !value); }}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-white/15"
+        aria-label="Favorite video"
+        title="Favorite"
+      >
+        <Heart size={16} fill={liked ? "white" : "none"} />
+      </button>
+      <button
+        type="button"
+        onClick={(event) => { event.stopPropagation(); void copyTextToClipboard(item.prompt || "Generated video"); }}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-white/15"
+        aria-label="Copy prompt"
+        title="Copy prompt"
+      >
+        <Copy size={16} />
+      </button>
+      <button
+        type="button"
+        onClick={(event) => { event.stopPropagation(); downloadVideoItem(item); }}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-white/15"
+        aria-label="Download video"
+        title="Download"
+      >
+        <Download size={16} />
+      </button>
+      <button
+        type="button"
+        onClick={(event) => event.stopPropagation()}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-white/15"
+        aria-label="More actions"
+        title="More"
+      >
+        <MoreHorizontal size={17} />
+      </button>
+    </div>
+  );
 }
 
 function VideoHistoryPreview({ item, index }: { item: MediaItem; index: number }) {
@@ -85,7 +149,7 @@ function VideoHistoryPreview({ item, index }: { item: MediaItem; index: number }
   const usePoster = Boolean(item.poster && !posterFailed);
 
   return (
-    <div className="relative flex h-full min-h-[320px] items-center justify-center overflow-hidden rounded-[14px] bg-[#202225]">
+    <div className="relative isolate flex h-full min-h-[320px] items-center justify-center overflow-hidden rounded-[14px] bg-[#202225]">
       <div
         className="absolute inset-0 opacity-70"
         style={{
@@ -104,7 +168,7 @@ function VideoHistoryPreview({ item, index }: { item: MediaItem; index: number }
           decoding="async"
           fetchPriority={index === 0 ? "high" : "auto"}
           onError={() => setPosterFailed(true)}
-          className="relative z-10 h-full max-h-[560px] w-full object-contain"
+          className="absolute inset-0 z-10 h-full w-full object-cover"
         />
       ) : item.src && !item.src.startsWith("gradient:") ? (
         <video
@@ -122,7 +186,7 @@ function VideoHistoryPreview({ item, index }: { item: MediaItem; index: number }
               // Some remote media sources disallow seeking before enough metadata is buffered.
             }
           }}
-          className="relative z-10 h-full max-h-[560px] w-full object-contain"
+          className="absolute inset-0 z-10 h-full w-full object-cover"
           style={{ opacity: videoReady ? 1 : 0.01 }}
         />
       ) : null}
@@ -149,6 +213,7 @@ function VideoHistoryPreview({ item, index }: { item: MediaItem; index: number }
       <span className="absolute left-4 top-4 z-30 rounded-md bg-black/65 px-2 py-1 text-[11px] font-bold text-slate-200 ring-1 ring-white/10">
         {item.ratio}
       </span>
+      <VideoHoverTools item={item} />
     </div>
   );
 }
@@ -215,8 +280,18 @@ function VideoHistoryList({
                   <span className="h-2 w-2 rounded-full" style={{ background: color, boxShadow: `0 0 10px ${hexA(color, 0.8)}` }} />
                   {item.model}
                 </div>
-                <div className="mt-8 min-h-[130px] text-sm font-semibold leading-6 text-slate-300 line-clamp-6">
-                  {item.prompt || "Generated video"}
+                <div className="mt-7">
+                  <div className="min-h-[112px] text-sm font-semibold leading-6 text-slate-300 line-clamp-6">
+                    {item.prompt || "Generated video"}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(event) => { event.stopPropagation(); void copyTextToClipboard(item.prompt || "Generated video"); }}
+                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-200 transition-colors hover:bg-white/[0.08]"
+                  >
+                    <Copy size={14} />
+                    Copy Prompt
+                  </button>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   <span className="rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-bold text-slate-300 ring-1 ring-white/5">{item.ratio}</span>
@@ -228,15 +303,54 @@ function VideoHistoryList({
                     {item.providerRequestId}
                   </div>
                 ) : null}
-                <div className="mt-auto flex gap-2 pt-6">
+                <div className="mt-5 space-y-2">
+                  <button
+                    type="button"
+                    onClick={(event) => { event.stopPropagation(); onInspect(item); }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-white shadow-[0_12px_26px_rgba(249,115,22,0.22)] transition-transform hover:-translate-y-0.5"
+                    style={{ background: "linear-gradient(135deg, #f97316, #f59e0b)" }}
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/15"><Languages size={17} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-extrabold leading-5">Lipsync / Dubbing</span>
+                      <span className="block text-[11px] font-semibold text-white/75">Sync audio to face</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => { event.stopPropagation(); onInspect(item); }}
+                    className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-slate-100 transition-colors hover:bg-white/[0.08]"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.07]"><Clapperboard size={17} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-extrabold leading-5">Extend Video</span>
+                      <span className="block text-[11px] font-semibold text-slate-400">Continue the scene</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => { event.stopPropagation(); onInspect(item); }}
+                    className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-slate-100 transition-colors hover:bg-white/[0.08]"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.07]"><Music2 size={17} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-extrabold leading-5">Add Voiceover</span>
+                      <span className="block text-[11px] font-semibold text-slate-400">AI narration layer</span>
+                    </span>
+                  </button>
                   <button
                     type="button"
                     onClick={(event) => { event.stopPropagation(); downloadVideoItem(item); }}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-300 transition-colors hover:bg-white/[0.08]"
-                    aria-label="Download video"
+                    className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-left text-slate-100 transition-colors hover:bg-white/[0.08]"
                   >
-                    <Download size={15} />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.07]"><Download size={17} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-extrabold leading-5">Download</span>
+                      <span className="block text-[11px] font-semibold text-slate-400">Export MP4 / WebM</span>
+                    </span>
                   </button>
+                </div>
+                <div className="mt-auto flex gap-2 pt-5">
                   {onDelete ? (
                     <button
                       type="button"

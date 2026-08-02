@@ -2621,3 +2621,8 @@
 - /video results use a wide history/list presentation rather than the small card grid.
 - The preview priority is: posterUrl when available, then a muted metadata-only video element to reveal the first frame when poster generation is missing or failed.
 - The original MP4 URL remains unchanged and is still opened in Asset Inspector for full playback/details. The list preview is a display fallback for existing videos whose poster backfill is not ready.
+## Video Page History Actions Update (2026-08-02)
+- /video history rows should fill their preview surface without empty side bands; card previews use cover-style framing for poster or metadata video preview display.
+- Result rows expose prompt copying both from the details panel and from hover quick tools.
+- Hover quick tools on each preview include favorite, copy prompt, download, and more actions. The side panel shows video workflow commands: Lipsync / Dubbing, Extend Video, Add Voiceover, and Download.
+- The original video URL remains the canonical playback/download asset and still opens through Asset Inspector for full preview.

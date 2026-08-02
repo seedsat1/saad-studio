@@ -9946,3 +9946,9 @@
 - Behavior: Each video result now renders as a wide row with a large preview surface and a compact details panel. If posterUrl is ready it is used first; if the poster fails or is missing, the row falls back to a muted metadata-only video preview to reveal the first frame without autoplay. Opening the row still uses Asset Inspector and the original video URL.
 - Verification: npx.cmd tsc --noEmit --pretty false passed. npm.cmd run build passed with existing non-blocking Next/Tailwind warnings.
 - Decision: Changed the presentation because the poster-only card grid did not produce acceptable visual results for existing videos whose poster generation was not ready.
+## 2026-08-02 22:22:29 +03:00 - Video history commands and no-gap preview
+- Status: Updated /video history/list presentation to better match the requested reference layout.
+- Affected files: app/(dash)/(routes)/video/page.tsx, PROJECT_CONTEXT.md, docs/saad-studio-premiere-reference-ar.md.
+- Behavior: Video history previews now fill the preview surface with object-cover to avoid empty side space. Hovering a result shows quick actions for favorite, copy prompt, download, and more. The side panel now includes a Copy Prompt button plus visible command cards for Lipsync / Dubbing, Extend Video, Add Voiceover, and Download.
+- Verification: npx.cmd tsc --noEmit --pretty false passed. npm.cmd run build passed with existing non-blocking Next/Tailwind warnings.
+- Decision: Kept existing Asset Inspector/original video flow for non-download command cards instead of adding unverified generation routes.
