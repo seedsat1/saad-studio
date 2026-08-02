@@ -92,10 +92,15 @@ model Generation {
   duration         Float?
   aspectRatio      String?
   quality          String?
+  posterUrl        String?
+  posterStatus     String   @default("pending")
+  posterGeneratedAt DateTime?
+  posterError      String?
   providerCostSource String? // 'actual' | 'estimated' | 'unknown'
 
   @@index([userId])
   @@index([createdAt])
+  @@index([posterStatus])
   providerUsageRecords ProviderUsageRecord[]
   generationRequestSnapshot GenerationRequestSnapshot?
 }

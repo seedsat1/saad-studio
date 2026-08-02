@@ -33,6 +33,7 @@ import {
   Cpu,
   Brain,
 } from "lucide-react";
+import NextImage from "next/image";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
@@ -764,7 +765,7 @@ export default function StoryboardProductionPage() {
                 <h1 className="text-xl font-black tracking-tight text-white uppercase leading-none flex items-center gap-1">
                   Storyboard <span className="text-cyan-400">AI</span>
                 </h1>
-                <p className="text-[8px] tracking-[0.25em] text-slate-500 uppercase font-bold mt-0.5">Saad Studio</p>
+                <p className="text-[8px] tracking-[0.25em] text-slate-400 uppercase font-bold mt-0.5">Saad Studio</p>
               </div>
             </div>
 
@@ -791,6 +792,7 @@ export default function StoryboardProductionPage() {
                     <img src={imageDataUrl} alt="Reference" className="w-full rounded-lg object-contain" style={{ maxHeight: 120 }} />
                     <button
                       type="button"
+                      aria-label="Remove image reference"
                       className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-black/70 border border-white/10 hover:bg-black/90 transition text-white"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -812,7 +814,7 @@ export default function StoryboardProductionPage() {
                   <div className="select-none py-1">
                     <Upload size={20} className="text-slate-400 mx-auto mb-2" />
                     <div className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Upload Reference Image</div>
-                    <div className="text-[8px] text-slate-500 mt-0.5">Drag & drop or click to browse</div>
+                    <div className="text-[8px] text-slate-400 mt-0.5">Drag & drop or click to browse</div>
                   </div>
                 )}
               </div>
@@ -835,6 +837,7 @@ export default function StoryboardProductionPage() {
                 <SectionLabel>Aspect Ratio</SectionLabel>
                 <div className="relative">
                   <button
+                    aria-label="Aspect Ratio selector"
                     className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-[10px] font-bold transition border border-white/10 bg-slate-900/40 text-cyan-400"
                     onClick={() => {
                       setRatioOpen((prev) => !prev);
@@ -877,6 +880,7 @@ export default function StoryboardProductionPage() {
                 <SectionLabel>Grid size</SectionLabel>
                 <div className="relative">
                   <button
+                    aria-label="Grid size selector"
                     className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-[10px] font-bold transition border border-white/10 bg-slate-900/40 text-cyan-400"
                     onClick={() => {
                       setPanelsOpen((prev) => !prev);
@@ -915,6 +919,7 @@ export default function StoryboardProductionPage() {
                 <SectionLabel>Quality</SectionLabel>
                 <div className="relative">
                   <button
+                    aria-label="Quality selector"
                     className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-[10px] font-bold transition border border-white/10 bg-slate-900/40 text-cyan-400"
                     onClick={() => {
                       setQualityOpen((prev) => !prev);
@@ -953,14 +958,14 @@ export default function StoryboardProductionPage() {
             <div>
               <div className="flex items-center justify-between">
                 <SectionLabel>Scene Prompt</SectionLabel>
-                <span className="text-[8px] font-bold text-slate-600">{scenePrompt.length}/600</span>
+                <span className="text-[8px] font-bold text-slate-400">{scenePrompt.length}/600</span>
               </div>
               <textarea
                 value={scenePrompt}
                 onChange={(event) => setScenePrompt(event.target.value.slice(0, 600))}
                 placeholder="Describe the action, mood, lighting, or scene details..."
                 rows={3}
-                className="w-full resize-none rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-[10px] font-medium leading-relaxed text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20"
+                className="w-full resize-none rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-[10px] font-medium leading-relaxed text-slate-200 outline-none transition placeholder:text-slate-400 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20"
               />
             </div>
 
@@ -968,7 +973,7 @@ export default function StoryboardProductionPage() {
             <div className="flex flex-col gap-1.5">
               <div className="flex justify-between items-center">
                 <SectionLabel>Perspectives</SectionLabel>
-                <span className="text-[9px] font-black text-slate-500">({selectedAngles.length}/{numPanels})</span>
+                <span className="text-[9px] font-black text-slate-400">({selectedAngles.length}/{numPanels})</span>
               </div>
               <div className="grid grid-cols-2 gap-x-3 gap-y-1 bg-slate-950/40 border border-white/5 rounded-xl p-3 max-h-[300px] overflow-y-auto scrollbar-thin">
                 {CAMERA_ANGLES.map((angle) => {
@@ -978,7 +983,7 @@ export default function StoryboardProductionPage() {
                       key={angle.id}
                       type="button"
                       className={`flex items-center gap-2 py-1.5 rounded text-[10px] font-extrabold text-left transition ${
-                        isSelected ? "text-slate-100" : "text-slate-500 hover:text-slate-400"
+                        isSelected ? "text-slate-100" : "text-slate-400 hover:text-slate-200"
                       }`}
                       onClick={() => toggleCameraAngle(angle.id)}
                     >
@@ -1005,7 +1010,7 @@ export default function StoryboardProductionPage() {
               type="button"
               onClick={handleGenerate}
               disabled={isBusy || !imageDataUrl}
-              className="w-full h-11 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 hover:from-cyan-400 hover:to-violet-500 disabled:from-slate-800 disabled:to-slate-900 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wider text-white flex items-center justify-center gap-2 transition"
+              className="w-full h-11 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 hover:from-cyan-400 hover:to-violet-500 disabled:from-slate-800 disabled:to-slate-900 disabled:text-slate-400 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wider text-white flex items-center justify-center gap-2 transition"
             >
               {isCheckingImageSafety ? (
                 <>
@@ -1024,7 +1029,7 @@ export default function StoryboardProductionPage() {
                 </>
               )}
             </button>
-            <div className="text-center text-[9px] text-slate-500">
+            <div className="text-center text-[9px] text-slate-400">
               Consumes <span className="font-bold text-violet-400">{totalCost} credits</span> for {numPanels} panels.
             </div>
           </div>
@@ -1041,8 +1046,8 @@ export default function StoryboardProductionPage() {
                 <Lightbulb size={20} />
               </div>
               <div className="min-w-0">
-                <h4 className="text-xs font-bold text-slate-200 leading-tight">Idea / Text</h4>
-                <p className="text-[9px] text-slate-500 truncate mt-0.5">Write your idea or story summary</p>
+                <div className="text-xs font-bold text-slate-200 leading-tight">Idea / Text</div>
+                <p className="text-[9px] text-slate-400 truncate mt-0.5">Write your idea or story summary</p>
               </div>
             </div>
             
@@ -1059,8 +1064,8 @@ export default function StoryboardProductionPage() {
                 <Brain size={20} />
               </div>
               <div className="min-w-0">
-                <h4 className="text-xs font-bold text-slate-200 leading-tight">AI Analysis</h4>
-                <p className="text-[9px] text-slate-500 truncate mt-0.5">Analyzes the idea & splits to scenes</p>
+                <div className="text-xs font-bold text-slate-200 leading-tight">AI Analysis</div>
+                <p className="text-[9px] text-slate-400 truncate mt-0.5">Analyzes the idea & splits to scenes</p>
               </div>
             </div>
 
@@ -1077,8 +1082,8 @@ export default function StoryboardProductionPage() {
                 <Film size={20} />
               </div>
               <div className="min-w-0">
-                <h4 className="text-xs font-bold text-slate-200 leading-tight">Scene Layout</h4>
-                <p className="text-[9px] text-slate-500 truncate mt-0.5">Design each shot & its details</p>
+                <div className="text-xs font-bold text-slate-200 leading-tight">Scene Layout</div>
+                <p className="text-[9px] text-slate-400 truncate mt-0.5">Design each shot & its details</p>
               </div>
             </div>
 
@@ -1095,8 +1100,8 @@ export default function StoryboardProductionPage() {
                 <CheckCircle size={20} />
               </div>
               <div className="min-w-0">
-                <h4 className="text-xs font-bold text-slate-200 leading-tight">Ready Board</h4>
-                <p className="text-[9px] text-slate-500 truncate mt-0.5">Professional storyboard ready</p>
+                <div className="text-xs font-bold text-slate-200 leading-tight">Ready Board</div>
+                <p className="text-[9px] text-slate-400 truncate mt-0.5">Professional storyboard ready</p>
               </div>
             </div>
           </div>
@@ -1157,13 +1162,13 @@ export default function StoryboardProductionPage() {
               </div>
 
               {/* Chalkboard Title */}
-              <h3 
+              <h2
                 className="font-handwritten text-cyan-400/85 tracking-[0.25em] text-3xl font-bold uppercase text-center pl-10 shadow-sm select-none"
                 style={{ fontFamily: 'var(--font-handwritten), cursive' }}
               >
                 STORYBOARD
                 <span className="block h-0.5 w-36 mx-auto bg-cyan-400/30 rounded-full mt-1.5" />
-              </h3>
+              </h2>
 
               {/* Album controls (visible in library) */}
               <div className="flex gap-1.5 items-center">
@@ -1259,14 +1264,18 @@ export default function StoryboardProductionPage() {
 
                         {/* Thumbnail image */}
                         <div className="aspect-[16/10] w-full rounded bg-slate-100 overflow-hidden relative border border-slate-200/60 shrink-0">
-                          <img 
-                            src={panel.image} 
-                            alt={panel.type} 
-                            className="w-full h-full object-cover grayscale contrast-[1.15] brightness-[1.02] group-hover:scale-102 transition duration-300" 
+                          <NextImage
+                            src={panel.image}
+                            alt={panel.type}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            priority={panel.image.includes("creation_3139417698.jpg") || panel.num === "01" || panel.num === "02"}
+                            className="w-full h-full object-cover grayscale contrast-[1.15] brightness-[1.02] group-hover:scale-102 transition duration-300"
                           />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3 transition">
                             <button
                               type="button"
+                              aria-label="Inspect panel image"
                               className="rounded-lg bg-white/20 p-2 text-white ring-1 ring-white/30 hover:bg-white/35 transition"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1283,6 +1292,7 @@ export default function StoryboardProductionPage() {
                             </button>
                             <button
                               type="button"
+                              aria-label="Download panel image"
                               className="rounded-lg bg-white/20 p-2 text-white ring-1 ring-white/30 hover:bg-white/35 transition"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1297,16 +1307,16 @@ export default function StoryboardProductionPage() {
                         {/* Descriptions table */}
                         <div className="space-y-2 text-[10px] border-t border-slate-200/80 pt-3.5 select-text">
                           <div className="flex gap-2">
-                            <span className="font-black text-slate-400 uppercase w-12 shrink-0">Action:</span>
+                            <span className="font-black text-slate-600 uppercase w-12 shrink-0">Action:</span>
                             <span className="text-slate-700 leading-relaxed font-semibold">{panel.action}</span>
                           </div>
                           <div className="flex gap-2">
-                            <span className="font-black text-slate-400 uppercase w-12 shrink-0">Camera:</span>
+                            <span className="font-black text-slate-600 uppercase w-12 shrink-0">Camera:</span>
                             <span className="text-blue-600 font-bold">{panel.camera}</span>
                           </div>
                           <div className="flex gap-2">
-                            <span className="font-black text-slate-400 uppercase w-12 shrink-0">Notes:</span>
-                            <span className="text-slate-600 leading-relaxed font-medium">{panel.notes}</span>
+                            <span className="font-black text-slate-600 uppercase w-12 shrink-0">Notes:</span>
+                            <span className="text-slate-700 leading-relaxed font-medium">{panel.notes}</span>
                           </div>
                         </div>
 
@@ -1405,8 +1415,8 @@ export default function StoryboardProductionPage() {
                               {album.name}
                               <span className="opacity-60">({album.assetIds.length})</span>
                             </button>
-                            <button onClick={() => renameAlbum(album.id)} className="px-2 py-1 text-[9px] font-bold uppercase text-slate-500 hover:text-cyan-400">Rename</button>
-                            <button onClick={() => deleteAlbum(album.id)} className="px-2 py-1 text-[9px] font-bold uppercase text-slate-500 hover:text-red-400">×</button>
+                            <button onClick={() => renameAlbum(album.id)} className="px-2 py-1 text-[9px] font-bold uppercase text-slate-400 hover:text-cyan-400">Rename</button>
+                            <button onClick={() => deleteAlbum(album.id)} aria-label="Delete album" className="px-2 py-1 text-[9px] font-bold uppercase text-slate-400 hover:text-red-400">×</button>
                           </div>
                         );
                       })}
@@ -1434,7 +1444,7 @@ export default function StoryboardProductionPage() {
                             : "border-white/5 hover:border-cyan-500/40"
                         }`}
                       >
-                        <img src={item.url} alt={item.prompt} className="w-full h-full object-cover group-hover:scale-102 transition duration-300" />
+                        <NextImage src={item.url} alt={item.prompt} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="w-full h-full object-cover group-hover:scale-102 transition duration-300" />
                         {selectionMode && (
                           <div className="absolute top-2 left-2 bg-black/60 p-1 rounded-md text-white">
                             {selectedIds.has(item.id) ? <CheckSquare size={13} className="text-cyan-400" /> : <Square size={13} />}
@@ -1444,6 +1454,7 @@ export default function StoryboardProductionPage() {
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition">
                             <button
                               type="button"
+                              aria-label="Inspect asset image"
                               className="rounded-md bg-white/10 p-1.5 text-white"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1460,6 +1471,7 @@ export default function StoryboardProductionPage() {
                             </button>
                             <button
                               type="button"
+                              aria-label="Download asset image"
                               className="rounded-md bg-white/10 p-1.5 text-white"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1475,7 +1487,7 @@ export default function StoryboardProductionPage() {
                   </div>
 
                   {visibleHistory.length === 0 && (
-                    <div className="py-12 text-center text-xs text-slate-500 select-none">
+                    <div className="py-12 text-center text-xs text-slate-400 select-none">
                       {activeAlbumId ? "This album is empty." : "No storyboard images found yet."}
                     </div>
                   )}
@@ -1490,7 +1502,7 @@ export default function StoryboardProductionPage() {
                 <span className="text-sm font-black tracking-widest text-cyan-100 uppercase">
                   {statusMessage || "Generating Storyboard..."}
                 </span>
-                <span className="text-xs text-slate-500 mt-2 max-w-[240px] leading-relaxed">
+                <span className="text-xs text-slate-400 mt-2 max-w-[240px] leading-relaxed">
                   Dividing inputs and illustrating scenes. Please do not close this tab.
                 </span>
               </div>
@@ -1504,8 +1516,8 @@ export default function StoryboardProductionPage() {
                 <Download size={16} />
               </div>
               <div className="space-y-0.5">
-                <h4 className="text-[11px] font-bold text-slate-200">Multi-format Export</h4>
-                <p className="text-[10px] text-slate-500">PDF - PNG - Excel formats</p>
+                <div className="text-[11px] font-bold text-slate-200">Multi-format Export</div>
+                <p className="text-[10px] text-slate-400">PDF - PNG - Excel formats</p>
               </div>
             </div>
             
@@ -1514,8 +1526,8 @@ export default function StoryboardProductionPage() {
                 <Users size={16} />
               </div>
               <div className="space-y-0.5">
-                <h4 className="text-[11px] font-bold text-slate-200">Easy Sharing</h4>
-                <p className="text-[10px] text-slate-500">Share boards with team</p>
+                <div className="text-[11px] font-bold text-slate-200">Easy Sharing</div>
+                <p className="text-[10px] text-slate-400">Share boards with team</p>
               </div>
             </div>
 
@@ -1524,8 +1536,8 @@ export default function StoryboardProductionPage() {
                 <Cloud size={16} />
               </div>
               <div className="space-y-0.5">
-                <h4 className="text-[11px] font-bold text-slate-200">Cloud Storage</h4>
-                <p className="text-[10px] text-slate-500">Access work from anywhere</p>
+                <div className="text-[11px] font-bold text-slate-200">Cloud Storage</div>
+                <p className="text-[10px] text-slate-400">Access work from anywhere</p>
               </div>
             </div>
 
@@ -1534,8 +1546,8 @@ export default function StoryboardProductionPage() {
                 <Sliders size={16} />
               </div>
               <div className="space-y-0.5">
-                <h4 className="text-[11px] font-bold text-slate-200">Custom Editing</h4>
-                <p className="text-[10px] text-slate-500">Easily edit scenes & notes</p>
+                <div className="text-[11px] font-bold text-slate-200">Custom Editing</div>
+                <p className="text-[10px] text-slate-400">Easily edit scenes & notes</p>
               </div>
             </div>
           </div>
@@ -1576,8 +1588,8 @@ function AlbumPicker({ albums, count, mode, onPick, onCreate, onClose }: { album
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1222] p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white"><X className="h-4 w-4" /></button>
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <button onClick={onClose} aria-label="Close modal" className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white"><X className="h-4 w-4" /></button>
         </div>
 
         {albums.length > 0 && (

@@ -11,6 +11,8 @@ interface GalleryAsset {
   id: string;
   type: AssetType;
   url?: string;
+  originalUrl?: string;
+  thumbnailUrl?: string;
   textContent?: string;
   prompt?: string;
   model?: string;
@@ -69,6 +71,8 @@ export default function GalleryPage() {
   const [assets, setAssets] = useState<GalleryAsset[]>([]);
   const [counts, setCounts] = useState<AssetCounts>({ all: 0, image: 0, video: 0, audio: 0, "3d": 0, text: 0 });
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [activeAssetId, setActiveAssetId] = useState<string | null>(null);
@@ -98,32 +102,41 @@ export default function GalleryPage() {
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
   const exitSelectionMode = useCallback(() => { setSelectionMode(false); setSelectedIds(new Set()); }, []);
 
-  const loadAssets = useCallback(async (filter: FilterValue) => {
+  const loadAssets = useCallback(async (filter: FilterValue, nextPage = 0, mode: "replace" | "append" = "replace") => {
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch(`/api/assets?type=${encodeURIComponent(filter)}`, { cache: "no-store" });
+      const params = new URLSearchParams({
+        type: filter,
+        page: String(nextPage),
+        limit: "12",
+      });
+      const res = await fetch(`/api/assets?${params.toString()}`, { cache: "no-cache" });
       const data = await res.json().catch(() => null);
 
       if (!res.ok || !Array.isArray(data?.assets)) {
         throw new Error(data?.error || "Failed to load gallery assets.");
       }
 
-      setAssets(data.assets as GalleryAsset[]);
+      setAssets((prev) => mode === "append" ? [...prev, ...(data.assets as GalleryAsset[])] : (data.assets as GalleryAsset[]));
+      setPage(typeof data?.page === "number" ? data.page : nextPage);
+      setHasMore(Boolean(data?.hasMore));
       if (data?.counts) {
         setCounts(data.counts as AssetCounts);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load gallery assets.");
-      setAssets([]);
+      if (mode === "replace") setAssets([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadAssets(activeFilter);
+    setPage(0);
+    setHasMore(false);
+    void loadAssets(activeFilter, 0, "replace");
   }, [activeFilter, loadAssets]);
 
   const visibleAssets = useMemo(() => {
@@ -161,7 +174,7 @@ export default function GalleryPage() {
       // close lightbox if the deleted asset was open
       setLightboxIndex(null);
       setActiveAssetId(null);
-      await loadAssets(activeFilter);
+      await loadAssets(activeFilter, 0, "replace");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Delete failed");
     }
@@ -188,7 +201,7 @@ export default function GalleryPage() {
       setSelectionMode(false);
       setLightboxIndex(null);
       setActiveAssetId(null);
-      await loadAssets(activeFilter);
+      await loadAssets(activeFilter, 0, "replace");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Bulk delete failed");
     }
@@ -344,6 +357,7 @@ export default function GalleryPage() {
           <button
             onClick={closeLightbox}
             className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+            aria-label="Close asset details"
           >
             <X className="h-5 w-5 text-white" />
           </button>
@@ -353,6 +367,7 @@ export default function GalleryPage() {
             <button
               onClick={prevImage}
               className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+              aria-label="Previous asset"
             >
               <ChevronLeft className="h-6 w-6 text-white" />
             </button>
@@ -363,6 +378,7 @@ export default function GalleryPage() {
             <button
               onClick={nextImage}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+              aria-label="Next asset"
             >
               <ChevronRight className="h-6 w-6 text-white" />
             </button>
@@ -374,22 +390,24 @@ export default function GalleryPage() {
               {lightboxAsset.type === "image" && lightboxAsset.url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={lightboxAsset.url}
+                  src={lightboxAsset.originalUrl || lightboxAsset.url}
                   alt={lightboxAsset.prompt || "image"}
                   className="max-h-[76vh] max-w-full rounded-xl object-contain"
                 />
               ) : lightboxAsset.type === "video" && lightboxAsset.url ? (
                 <video
-                  src={lightboxAsset.url}
+                  src={lightboxAsset.originalUrl || lightboxAsset.url}
                   controls
                   autoPlay
                   playsInline
                   className="max-h-[76vh] max-w-full rounded-xl object-contain"
-                />
+                >
+                  <track kind="captions" srcLang="en" label="No dialogue" />
+                </video>
               ) : lightboxAsset.type === "audio" && lightboxAsset.url ? (
                 <div className="w-full max-w-xl rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-8">
                   <Music className="h-12 w-12 text-emerald-300" />
-                  <audio src={lightboxAsset.url} controls className="mt-6 w-full" />
+                  <audio src={lightboxAsset.originalUrl || lightboxAsset.url} controls className="mt-6 w-full" />
                 </div>
               ) : lightboxAsset.type === "text" ? (
                 <div className="w-full max-w-2xl rounded-2xl border border-violet-400/20 bg-violet-500/10 p-6">
@@ -409,10 +427,10 @@ export default function GalleryPage() {
                   {lightboxAsset.type.toUpperCase()}
                 </div>
                 <h2 className="mt-4 text-xl font-bold text-white">Asset Details</h2>
-                <p className="mt-1 break-all text-xs text-slate-500">{lightboxAsset.id}</p>
+                <p className="mt-1 break-all text-xs text-slate-400">{lightboxAsset.id}</p>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-[11px] uppercase tracking-wide text-slate-500">Prompt</p>
+                <p className="text-[11px] uppercase tracking-wide text-slate-400">Prompt</p>
                 <p className="mt-1 text-sm leading-6 text-slate-200">
                   {lightboxAsset.prompt || lightboxAsset.textContent || "No prompt"}
                 </p>
@@ -430,7 +448,7 @@ export default function GalleryPage() {
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 {lightboxAsset.url && (
                   <button
-                    onClick={() => downloadAsset(lightboxAsset)}
+                    onClick={() => downloadAsset({ ...lightboxAsset, url: lightboxAsset.originalUrl || lightboxAsset.url })}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 text-xs text-cyan-100 hover:bg-cyan-500/20 transition-colors"
                   >
                     <Download className="h-3.5 w-3.5" />
@@ -439,7 +457,7 @@ export default function GalleryPage() {
                 )}
                 {lightboxAsset.url && (
                   <button
-                    onClick={() => void saveAsReference(lightboxAsset)}
+                    onClick={() => void saveAsReference({ ...lightboxAsset, url: lightboxAsset.originalUrl || lightboxAsset.url })}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/10 text-xs text-emerald-100 hover:bg-emerald-500/20 transition-colors"
                   >
                     {referenceSaved ? <Check className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -448,7 +466,7 @@ export default function GalleryPage() {
                 )}
                 {lightboxAsset.url && (
                   <a
-                    href={lightboxAsset.url}
+                    href={lightboxAsset.originalUrl || lightboxAsset.url}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/15 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition-colors"
@@ -459,7 +477,7 @@ export default function GalleryPage() {
                 )}
                 {lightboxAsset.url && (
                   <button
-                    onClick={() => void copyUrl(lightboxAsset.url!)}
+                    onClick={() => void copyUrl((lightboxAsset.originalUrl || lightboxAsset.url)!)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/15 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition-colors"
                   >
                     {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
@@ -485,7 +503,7 @@ export default function GalleryPage() {
             <p className="text-slate-400 text-sm mt-1">{titleCount} real assets from database</p>
           </div>
           <button
-            onClick={() => void loadAssets(activeFilter)}
+            onClick={() => void loadAssets(activeFilter, 0, "replace")}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/15 bg-white/5 text-sm hover:bg-white/10"
           >
             <RefreshCw className="h-4 w-4" />
@@ -520,7 +538,7 @@ export default function GalleryPage() {
         {/* ── Albums ─────────────────────────────────────────────────── */}
         {albums.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="text-[11px] uppercase tracking-wide text-slate-500 mr-1">Albums:</span>
+            <span className="text-[11px] uppercase tracking-wide text-slate-400 mr-1">Albums:</span>
             {albums.map((album) => {
               const isActive = activeAlbumId === album.id;
               return (
@@ -530,7 +548,7 @@ export default function GalleryPage() {
                     <span>{album.name}</span>
                     <span className="opacity-70">{album.assetIds.length}</span>
                   </button>
-                  <button onClick={() => deleteAlbum(album.id)} className="px-1.5 py-1.5 hover:bg-red-500/20 hover:text-red-200 rounded-r-lg" title="Delete album">
+                  <button onClick={() => deleteAlbum(album.id)} className="px-1.5 py-1.5 hover:bg-red-500/20 hover:text-red-200 rounded-r-lg" title="Delete album" aria-label={`Delete album ${album.name}`}>
                     <X className="h-3 w-3" />
                   </button>
                 </div>
@@ -588,7 +606,7 @@ export default function GalleryPage() {
           />
         )}
 
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-slate-400">
           Text outputs in DB: <span className="text-violet-300 font-semibold">{counts.text}</span>
         </div>
 
@@ -596,7 +614,7 @@ export default function GalleryPage() {
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>
         ) : null}
 
-        {loading ? (
+        {loading && assets.length === 0 ? (
           <div className="text-slate-400 text-sm">Loading assets...</div>
         ) : visibleAssets.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-slate-400">
@@ -604,7 +622,7 @@ export default function GalleryPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {visibleAssets.map((asset) => {
+            {visibleAssets.map((asset, index) => {
               const isSelected = selectedIds.has(asset.id);
               const handleTileClick = () => {
                 if (selectionMode) toggleSelected(asset.id);
@@ -637,12 +655,18 @@ export default function GalleryPage() {
                 <div className="relative aspect-square bg-[#0a1020]">
                   {asset.type === "image" && asset.url ? (
                     <button
-                      className={cn("block w-full h-full", selectionMode ? "cursor-pointer" : "cursor-zoom-in")}
+                      className={cn("relative block w-full h-full", selectionMode ? "cursor-pointer" : "cursor-zoom-in")}
                       onClick={handleTileClick}
                       aria-label={selectionMode ? "Toggle selection" : "View asset details"}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={asset.url} alt={asset.prompt || "image"} className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300" />
+                      <img
+                        src={asset.thumbnailUrl || asset.url}
+                        alt={asset.prompt || "image"}
+                        loading={index === 0 ? "eager" : "lazy"}
+                        fetchPriority={index === 0 ? "high" : "auto"}
+                        decoding="async"
+                        className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                      />
                       {!selectionMode && (
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                           <ExternalLink className="h-7 w-7 text-white opacity-0 group-hover:opacity-80 transition-opacity drop-shadow-lg" />
@@ -655,7 +679,9 @@ export default function GalleryPage() {
                       className="block w-full h-full cursor-pointer"
                       aria-label={selectionMode ? "Toggle selection" : "View video details"}
                     >
-                      <video src={asset.url} className="w-full h-full object-cover pointer-events-none" muted playsInline />
+                      <video src={asset.url} className="w-full h-full object-cover pointer-events-none" muted playsInline>
+                        <track kind="captions" srcLang="en" label="No dialogue" />
+                      </video>
                       {!selectionMode && (
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                           <ExternalLink className="h-7 w-7 text-white opacity-0 group-hover:opacity-80 transition-opacity drop-shadow-lg" />
@@ -683,7 +709,7 @@ export default function GalleryPage() {
                       <p className="text-sm text-slate-200 line-clamp-6">{asset.textContent || asset.prompt || "Text output"}</p>
                     </button>
                   ) : (
-                    <div className="w-full h-full p-4 flex items-center justify-center text-slate-500 text-sm">No preview</div>
+                    <div className="w-full h-full p-4 flex items-center justify-center text-slate-400 text-sm">No preview</div>
                   )}
 
                   <div className={cn("absolute top-2 right-2 px-2 py-1 rounded-full border text-[11px] font-semibold", TYPE_BADGE[asset.type])}>
@@ -693,8 +719,8 @@ export default function GalleryPage() {
 
                 <div className="p-3 space-y-2">
                   <p className="text-xs text-slate-300 line-clamp-2">{asset.prompt || "No prompt"}</p>
-                  <div className="text-[11px] text-slate-500">{asset.model || "Unknown model"}</div>
-                  <div className="text-[11px] text-slate-500">{asset.date || "Unknown date"}</div>
+                  <div className="text-[11px] text-slate-400">{asset.model || "Unknown model"}</div>
+                  <div className="text-[11px] text-slate-400">{asset.date || "Unknown date"}</div>
 
                   <div className="flex items-center gap-2 pt-1">
                     {asset.url ? (
@@ -732,6 +758,18 @@ export default function GalleryPage() {
             })}
           </div>
         )}
+
+        {hasMore && !activeAlbumId && !loading ? (
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={() => void loadAssets(activeFilter, page + 1, "append")}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm text-slate-200 hover:bg-white/10"
+            >
+              Load more
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -745,7 +783,7 @@ function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Alb
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1222] p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Add {count} item(s) to album</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10" aria-label="Close album picker"><X className="h-4 w-4" /></button>
         </div>
 
         {albums.length > 0 && (
@@ -768,7 +806,8 @@ function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Alb
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") onCreate(newName); }}
               placeholder="Album name"
-              className="flex-1 rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-amber-400/50"
+              aria-label="Album name"
+              className="flex-1 rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400/50"
             />
             <button onClick={() => onCreate(newName)} disabled={!newName.trim()} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-400/40 bg-amber-500/20 text-sm text-amber-100 hover:bg-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed">
               <FolderPlus className="h-3.5 w-3.5" />

@@ -1203,49 +1203,77 @@ function VideoPageInner() {
 
   // Results
   const [results, setResults] = useState<MediaItem[]>([]);
+  const [videoResultsPage, setVideoResultsPage] = useState(0);
+  const [videoResultsHasMore, setVideoResultsHasMore] = useState(false);
+  const [loadingMoreVideos, setLoadingMoreVideos] = useState(false);
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
   const allModels = useMemo(() => MODEL_GROUPS.flatMap((group) => group.models), []);
 
-  useEffect(() => {
-    let cancelled = false;
-    const loadPersisted = async () => {
-      try {
-        const res = await fetch("/api/assets?type=video", { cache: "no-store" });
-        const data = await res.json().catch(() => null);
-        if (!res.ok || !Array.isArray(data?.assets) || cancelled) return;
-
-        const seenUrls = new Set<string>();
-        const mapped: MediaItem[] = data.assets.flatMap((asset: any) => {
-          if (!asset?.url || seenUrls.has(asset.url)) return [];
-          seenUrls.add(asset.url);
-          const model = allModels.find((m) => m.api_route === asset.model || m.name === asset.model);
-          return [{
-            id: asset.id,
-            type: "video",
-            src: asset.url,
-            model: model?.name ?? (asset.model || "Video"),
-            modelColor: model?.family_color ?? "#06b6d4",
-            ratio: "16:9",
-            duration: "auto",
-            prompt: asset.prompt || "",
-            providerRequestId: asset.providerRequestId,
-            gradient: model ? (FAMILY_GRADIENTS[model.family] ?? "from-slate-900 via-slate-800 to-slate-900") : "from-slate-900 via-slate-800 to-slate-900",
-            createdAt: asset.createdAt ? new Date(asset.createdAt) : new Date(),
-          }];
-        });
-
-        resultUrlsRef.current = seenUrls;
-        setResults(mapped);
-      } catch {
-        // keep local results only
-      }
-    };
-
-    void loadPersisted();
-    return () => {
-      cancelled = true;
+  const mapAssetToMediaItem = useCallback((asset: any): MediaItem | null => {
+    const originalUrl = asset?.originalUrl || asset?.url;
+    if (!originalUrl) return null;
+    const model = allModels.find((m) => m.api_route === asset.model || m.name === asset.model);
+    const durationValue = typeof asset.duration === "number" && Number.isFinite(asset.duration)
+      ? `${asset.duration}s`
+      : typeof asset.duration === "string" && asset.duration
+        ? asset.duration
+        : "auto";
+    return {
+      id: String(asset.id),
+      type: "video",
+      src: String(originalUrl),
+      poster: typeof asset.posterUrl === "string" ? asset.posterUrl : undefined,
+      posterStatus: typeof asset.posterStatus === "string" ? asset.posterStatus : undefined,
+      model: model?.name ?? (asset.model || "Video"),
+      modelColor: model?.family_color ?? "#06b6d4",
+      ratio: asset.resolution || asset.aspectRatio || "16:9",
+      duration: durationValue,
+      prompt: asset.prompt || "",
+      providerRequestId: asset.providerRequestId,
+      gradient: model ? (FAMILY_GRADIENTS[model.family] ?? "from-slate-900 via-slate-800 to-slate-900") : "from-slate-900 via-slate-800 to-slate-900",
+      createdAt: asset.createdAt ? new Date(asset.createdAt) : new Date(),
     };
   }, [allModels]);
+
+  const loadPersistedVideos = useCallback(async (nextPage = 0, mode: "replace" | "append" = "replace") => {
+    if (mode === "append") setLoadingMoreVideos(true);
+    try {
+      const params = new URLSearchParams({ type: "video", page: String(nextPage), limit: "12" });
+      const res = await fetch(`/api/assets?${params.toString()}`, { cache: "no-cache" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !Array.isArray(data?.assets)) return;
+
+      const pageSeen = new Set<string>();
+      const mapped = data.assets.flatMap((asset: any) => {
+        const item = mapAssetToMediaItem(asset);
+        if (!item || pageSeen.has(item.src)) return [];
+        pageSeen.add(item.src);
+        return [item];
+      });
+
+      setResults((prev) => {
+        const next = mode === "append" ? [...prev] : [];
+        const seen = new Set(next.map((item) => item.src));
+        for (const item of mapped) {
+          if (seen.has(item.src)) continue;
+          seen.add(item.src);
+          next.push(item);
+        }
+        resultUrlsRef.current = seen;
+        return next;
+      });
+      setVideoResultsPage(typeof data?.page === "number" ? data.page : nextPage);
+      setVideoResultsHasMore(Boolean(data?.hasMore));
+    } catch {
+      // keep local results only
+    } finally {
+      if (mode === "append") setLoadingMoreVideos(false);
+    }
+  }, [mapAssetToMediaItem]);
+
+  useEffect(() => {
+    void loadPersistedVideos(0, "replace");
+  }, [loadPersistedVideos]);
 
   // Capability shorthand
   const caps = selectedModel.capabilities;
@@ -1586,6 +1614,7 @@ function VideoPageInner() {
               videoUrl.includes("supabase.co/storage/v1/object/public"));
           const newItem: MediaItem = {
             id: "gen-" + taskId, type: "video", src: videoUrl,
+            posterStatus: "pending",
             model: ctx.model.name, modelColor: ctx.model.family_color,
             ratio: ctx.ratio, duration: ctx.duration != null ? `${ctx.duration}s` : "auto",
             prompt: ctx.promptText,
@@ -1616,11 +1645,12 @@ function VideoPageInner() {
                 setResults((prev) =>
                   prev.map((item) =>
                     item.id === newItem.id || item.providerRequestId === taskId
-                      ? { ...item, src: durableUrl }
+                      ? { ...item, src: durableUrl, poster: typeof persistJson?.posterUrl === "string" ? persistJson.posterUrl : item.poster, posterStatus: typeof persistJson?.posterStatus === "string" ? persistJson.posterStatus : item.posterStatus }
                       : item
                   )
                 );
               })
+              .then(() => loadPersistedVideos(0, "replace"))
               .catch(() => {});
           }
           removePending();
@@ -1634,7 +1664,7 @@ function VideoPageInner() {
     poll();
     const intervalId = setInterval(poll, 4000);
     pollRefs.current.set(taskId, intervalId);
-  }, [addAsset]);
+  }, [addAsset, loadPersistedVideos]);
 
   // Resume any in-flight video generations that were interrupted by a page refresh.
   useEffect(() => {
@@ -2593,7 +2623,9 @@ function VideoPageInner() {
             <MediaGrid
               items={results}
               skeletonModels={Array.from(pendingTasks.values()).map(t => ({ name: t.model.name, ratio: t.ratio }))}
-              onInspect={(item) => setInspectorAsset({ id: item.id, type: item.type, url: item.src, prompt: item.prompt ?? "", model: item.model, date: item.createdAt ? item.createdAt.toISOString() : undefined, providerRequestId: item.providerRequestId })}
+              hasMore={videoResultsHasMore}
+              loadingMore={loadingMoreVideos}
+              onLoadMore={() => void loadPersistedVideos(videoResultsPage + 1, "append")}
               onDelete={async (id) => {
                 setResults(prev => prev.filter(r => r.id !== id));
                 try {

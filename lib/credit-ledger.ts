@@ -1,5 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { scheduleImageThumbnailGeneration } from "@/lib/image-thumbnails";
+import { scheduleVideoPosterGeneration } from "@/lib/video-posters";
 import { WELCOME_SIGNUP_CREDITS } from "@/lib/credits-config";
 import { SAAD_PLANS } from "@/lib/pricing-models";
 import { isStorageConfigured, uploadUrlToStorage } from "@/lib/supabase-storage";
@@ -941,6 +943,12 @@ export async function setGenerationMediaUrl(generationId: string, mediaUrl: stri
     },
   }).catch((e) => console.error("[setGenerationMediaUrl] Failed to update ProviderUsageRecord status:", e));
 
+  const generationType = gen ? inferGenerationType(gen.assetType) : undefined;
+  if (gen && finalUrl && !finalUrl.startsWith("task:") && !finalUrl.startsWith("failed:")) {
+    if (generationType === "video") scheduleVideoPosterGeneration(generationId, "setGenerationMediaUrl");
+    if (generationType === "image") scheduleImageThumbnailGeneration(generationId, "setGenerationMediaUrl");
+  }
+
   void maybeScanAndFlagGeneration(generationId).catch(() => {});
 }
 
@@ -984,7 +992,15 @@ export async function saveAdditionalGenerationUrls(
     }),
   );
 
-  await prismadb.generation.createMany({ data: prepared });
+  const created = [] as { id: string; type: string | null; mediaUrl: string | null }[];
+  for (const data of prepared) {
+    const row = await prismadb.generation.create({ data, select: { id: true, type: true, mediaUrl: true } });
+    created.push(row);
+  }
+
+  for (const row of created) {
+    if (row.type === "image" && row.mediaUrl) scheduleImageThumbnailGeneration(row.id, "additional-image-url");
+  }
   void maybeScanAndFlagRecentGenerationsByMediaUrls(userId, additionalUrls).catch(() => {});
 }
 

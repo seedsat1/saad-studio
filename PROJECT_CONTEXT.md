@@ -1,4 +1,187 @@
+#### Latest task: Make /image thumbnails non-blocking (2026-08-02)
+
+- Status:
+  Completed. Image completion now depends only on saving the original image URL. Thumbnail generation is scheduled in the background and is no longer part of the subscriber-visible completion path.
+- Changes made:
+  - Added `lib/image-thumbnails.ts` with shared thumbnail helpers that create/reuse deterministic 560px WebP thumbnails in Backblaze under `thumbnails/{userId}/{generationId}-560.webp`.
+  - Updated `/api/assets/thumbnail` to reuse the shared helper while keeping the existing on-demand fallback for old images whose thumbnails are not ready yet.
+  - Updated `setGenerationMediaUrl()` so completed image generations schedule thumbnail creation after the original URL is saved.
+  - Updated `saveAdditionalGenerationUrls()` so multi-image generations create individual records and schedule thumbnails for each additional image.
+  - Updated `/api/assets/persist` and manual image uploads through `/api/assets` to return immediately with `thumbnailUrl` while thumbnail generation runs asynchronously.
+- Affected files:
+  - `lib/image-thumbnails.ts`
+  - `lib/credit-ledger.ts`
+  - `app/api/assets/thumbnail/route.ts`
+  - `app/api/assets/persist/route.ts`
+  - `app/api/assets/route.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+  - `npm.cmd run build` passed successfully. Existing dynamic-server warnings for unrelated admin/editor API routes still appear during build.
+- Errors/remaining:
+  - If a serverless runtime interrupts fire-and-forget thumbnail work after the response, `/api/assets/thumbnail` still generates on first card request as a fallback.
+  - Production deployment is required before `/image` sees the improvement live.
+- Decisions:
+  - `originalUrl` saved means the image is complete for the subscriber.
+  - `thumbnailUrl` is non-blocking display metadata and must not replace or compress the original.
+#### Latest task: Make video poster generation non-blocking (2026-08-02)
+
+- Status:
+  Completed. New-video completion no longer waits for FFmpeg poster extraction or Backblaze poster upload. The subscriber sees the completed MP4 as soon as `videoUrl`/`mediaUrl` is saved, while `posterUrl` remains a background optimization.
+- Changes made:
+  - Added `scheduleVideoPosterGeneration()` in `lib/video-posters.ts`, which starts `ensureVideoPosterForGeneration()` asynchronously and logs failures without delaying the current request.
+  - Updated `lib/credit-ledger.ts` so `setGenerationMediaUrl()` schedules poster generation after saving the completed video URL instead of awaiting it.
+  - Updated `app/api/assets/persist/route.ts` so persisted video responses return immediately with existing poster data or `posterStatus: pending`, then schedule poster generation in the background.
+  - Updated `app/api/assets/route.ts` manual video upload handling so uploaded videos return immediately with `posterStatus: pending` and poster creation runs separately.
+- Affected files:
+  - `lib/video-posters.ts`
+  - `lib/credit-ledger.ts`
+  - `app/api/assets/persist/route.ts`
+  - `app/api/assets/route.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+  - `npm.cmd run build` passed successfully. Existing dynamic-server warnings for unrelated admin/editor API routes still appear during build.
+  - `git diff --check` is still blocked only by unrelated pre-existing trailing whitespace in `app/(dash)/(routes)/storyboard/page.tsx` at lines 1165 and 1267.
+- Errors/remaining:
+  - In serverless runtimes, fire-and-forget work can be interrupted after the response. The resumable admin/batch backfill endpoint remains the durable retry path and should be scheduled in production.
+  - Backblaze credentials still need to be valid in the runtime before old or failed posters can be generated successfully.
+- Decisions:
+  - `videoUrl` saved means the video is completed for the subscriber.
+  - `posterUrl` is non-blocking display metadata only; failed or pending posters use placeholders and retry later.
+#### Latest task: Video Poster Optimization for /video (2026-08-02)
+
+- Status:
+  Mostly completed in code and database structure. The application now preserves the original MP4 as the canonical video file and uses a separate lightweight WebP poster for `/video` grid cards. Existing-video backfill is implemented as an idempotent batch job, but the local backfill run could not complete because the available Backblaze credentials returned `Malformed Access Key Id`.
+- Changes made:
+  - Added `posterUrl`, `posterStatus`, `posterGeneratedAt`, and `posterError` to `Generation`, plus a `posterStatus` index, and applied the manual SQL migration to the configured database.
+  - Added `lib/video-posters.ts` to extract a 480px WebP poster with FFmpeg, upload it to Backblaze at `videos/posters/{userId}/{videoId}.webp`, skip records that already have a poster, and mark failures without changing the original video URL.
+  - Added `app/api/admin/video-posters/backfill/route.ts` and `scripts/backfill-video-posters.ts` for resumable batch processing of old videos.
+  - Updated new-video persistence paths (`lib/credit-ledger.ts`, `app/api/assets/persist/route.ts`, and manual video uploads through `app/api/assets/route.ts`) so poster generation is attempted only after the MP4 URL is safely saved.
+  - Extended `/api/assets` video responses with poster metadata and pagination so `/video` can request the first 12 items and load more pages later.
+  - Updated `components/MediaGrid.tsx` and `app/(dash)/(routes)/video/page.tsx` so result grid cards render only `posterUrl` via `next/image`; MP4 files are loaded only inside the Lightbox player with `preload="metadata"`. Missing posters show a static placeholder with a play icon and do not fall back to loading MP4.
+- Affected files:
+  - `prisma/schema.prisma`
+  - `prisma/migrations/manual/2026-08-02-generation-video-posters.sql`
+  - `lib/video-posters.ts`
+  - `lib/credit-ledger.ts`
+  - `app/api/assets/route.ts`
+  - `app/api/assets/persist/route.ts`
+  - `app/api/admin/video-posters/backfill/route.ts`
+  - `scripts/backfill-video-posters.ts`
+  - `components/MediaGrid.tsx`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `tsconfig.json`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd prisma db execute --file prisma/migrations/manual/2026-08-02-generation-video-posters.sql --schema prisma/schema.prisma` succeeded after network escalation.
+  - `npx.cmd prisma generate` passed.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+  - `npm.cmd run build` passed successfully; existing dynamic-server warnings remain on unrelated admin/editor API routes.
+  - A small local backfill test reached the database and attempted 3 videos, but all 3 failed at Backblaze upload/check time with `Malformed Access Key Id`.
+  - `git diff --check` is blocked only by unrelated pre-existing trailing whitespace in `app/(dash)/(routes)/storyboard/page.tsx` at lines 1165 and 1267.
+- Errors/remaining:
+  - Configure valid Backblaze credentials in the target runtime and rerun the backfill job for old videos. The job retries failed rows by default and remains idempotent because it skips rows with `posterUrl`.
+  - The 3 locally tested videos currently have `posterStatus=failed` with the Backblaze credential error; they should recover on the next valid retry.
+  - Production deployment is still required before `/video` Lighthouse can reflect the poster-only grid behavior.
+- Decisions:
+  - Do not delete, compress, or replace existing MP4 originals; `videoUrl`/`mediaUrl` stays canonical.
+  - Use deterministic poster object paths to prevent duplicate posters across retries.
+  - Do not load MP4 as a card fallback when `posterUrl` is missing; use a static placeholder instead.
 # Saad Studio Project Context Update
+
+#### Latest task: Optimize /image Thumbnail Delivery & Pagination (2026-08-02)
+
+- Status:
+  Completed. The `/image` workspace now follows the same original/thumbnail split as `/gallery`: full-resolution originals remain preserved in Backblaze for download, reference reuse, and large preview, while card grids load lightweight thumbnail URLs.
+- Changes made:
+  - Updated `app/(dash)/(routes)/image/page.tsx` so generated/result cards render `thumbnailUrl`, but preview, download, remix/reference handoff, bulk download, and Asset Inspector use `originalUrl`.
+  - Limited persisted `/image` results to 12 per page and added a Load more flow that appends additional pages without replacing the current grid.
+  - Marked only the first visible result image as eager/high priority (`priority`, `loading="eager"`, `fetchPriority="high"`); all other card images remain lazy.
+  - Attached deterministic `/api/assets/thumbnail?id=...` URLs to newly persisted image results so new production output can use thumbnails immediately without replacing the original.
+  - Extended `/api/assets` image responses with `originalUrl`, `thumbnailUrl`, `width`, and `height`, deriving dimensions from stored `resolution`/`aspectRatio` metadata without downloading full media during list calls.
+- Affected files:
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `app/api/assets/route.ts`
+  - `app/api/assets/thumbnail/route.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+  - `npm.cmd run build` passed successfully.
+  - `git diff --check` did not pass because of unrelated pre-existing trailing whitespace in `app/(dash)/(routes)/storyboard/page.tsx` at lines 1165 and 1267.
+- Errors/remaining:
+  - Existing image thumbnails are generated lazily on first thumbnail request and cached in Backblaze; production still needs deployment before live Lighthouse scores improve.
+  - Unrelated dirty changes remain in `app/(dash)/(routes)/hook-studio/page.tsx` and `app/(dash)/(routes)/storyboard/page.tsx` and were not touched.
+- Decisions:
+  - Reused the deterministic thumbnail endpoint instead of adding a database migration for stored thumbnail URLs.
+  - Kept originals as the canonical media source and used thumbnails only for small card presentation.
+#### Latest task: Optimize /gallery Thumbnail Delivery & Pagination (2026-08-02)
+
+- Status:
+  Completed. The gallery no longer treats the full-resolution result as its grid thumbnail. Originals remain preserved in Backblaze for downloads, large preview, and detail/lightbox viewing, while the grid receives lightweight WebP thumbnail URLs.
+- Changes made:
+  - Added `app/api/assets/thumbnail/route.ts`, an authenticated thumbnail endpoint that lazily creates a 560px WebP preview with `sharp`, stores it in Backblaze under deterministic `thumbnails/{userId}/{generationId}-560.webp`, and reuses the cached thumbnail on later requests.
+  - Updated `app/api/assets/route.ts` to paginate gallery assets with a default `limit=12`, return `hasMore`, `page`, `limit`, `total`, and expose both `originalUrl` and `thumbnailUrl` for image assets.
+  - Updated `app/(dash)/(routes)/gallery/page.tsx` so the grid loads `thumbnailUrl`, the first visible image is eager with `fetchPriority="high"`, offscreen images use `loading="lazy"` and `decoding="async"`, and the Lightbox/download/reference/open/copy flows use `originalUrl`.
+  - Added a Load more control for additional pages and kept minor accessibility/contrast fixes on gallery controls.
+- Affected files:
+  - `app/(dash)/(routes)/gallery/page.tsx`
+  - `app/api/assets/route.ts`
+  - `app/api/assets/thumbnail/route.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+  - `npm.cmd run build` passed successfully.
+  - `git diff --check` did not pass because of unrelated pre-existing trailing whitespace in `app/(dash)/(routes)/storyboard/page.tsx` at lines 1165 and 1267.
+- Errors/remaining:
+  - Existing thumbnail files are generated on first thumbnail request and then cached; production still needs deployment before the live `/gallery` audit can improve.
+  - Unrelated dirty changes remain in `app/(dash)/(routes)/hook-studio/page.tsx` and `app/(dash)/(routes)/storyboard/page.tsx`.
+- Decisions:
+  - Avoided a database migration by returning a deterministic thumbnail endpoint from `/api/assets` instead of adding a stored `thumbnailUrl` column.
+  - Preserved original media URLs as the canonical asset source and used thumbnails only for gallery grid presentation.
+
+#### Latest task: Optimize /hook-studio Route Performance & Accessibility (2026-08-02)
+
+- Status:
+  Completed. Resolved Lighthouse audit concerns on the Hook Studio page (`/hook-studio`), specifically targeting bfcache restoration failure, button accessible names, unassociated select elements, missing video captions, and low text contrast.
+- Changes made:
+  - Removed `export const dynamic = "force-dynamic";` from `app/(dash)/(routes)/hook-studio/page.tsx` to allow Next.js to serve cacheable headers and permit dynamic rendering without forcing `no-store` headers on page requests.
+  - Linked all 7 form `<select>` elements (Video Model, Thinking Model, Duration, Ratio, Quality, Genre, Hook Angle) and the checkbox (Native Audio) with their respective `<label>` tags using explicit `id` and `htmlFor` attributes to resolve missing label association warnings.
+  - Attached explicit `aria-label` attributes to the main user message `<input>` field, the hidden file attachment `<input>` tag, the Paperclip button, the Send message button, and the inline generated cards' Sparkles, Download, and Background Remover buttons.
+  - Upgraded gray text labels and descriptions from low-contrast `text-slate-500` to WCAG AA-compliant `text-slate-400` across the settings sidebar and chat details layout, and boosted input text placeholder contrast to `placeholder-slate-400`.
+  - Added `<track kind="captions">` elements to all three `<video>` tags (completed generated videos, message video attachments, and active uploads preview panel) to fulfill media accessibility guidelines.
+- Affected files:
+  - `app/(dash)/(routes)/hook-studio/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Full TypeScript validation check (`npx tsc --noEmit`) completed with 0 errors.
+  - Next.js production build (`npm run build`) completed successfully with zero build errors.
+- Decisions:
+  - Removing page-level `force-dynamic` constraints on "use client" pages allows Next.js to handle static shell compilation, while keeping runtime dynamics intact, enabling browser-side bfcache restoration.
+
+#### Latest task: Optimize /storyboard Route Performance & Accessibility (2026-08-02)
+
+- Status:
+  Completed. Resolved Lighthouse audit concerns on the storyboard page (`/storyboard`), specifically targetting low text contrast issues, unoptimized image delivery, LCP preloading priority, button accessible names, and sequential heading outline skips.
+- Changes made:
+  - Imported and applied Next.js's `<NextImage>` with custom `fill` and adaptive `sizes` configuration inside both chalkboard storyboard panels and library grid views of `app/(dash)/(routes)/storyboard/page.tsx` to serve compressed and responsive formats.
+  - Enabled dynamic `priority` preloading flag on the above-the-fold panel thumbnails (first two panels and LCP image `creation_3139417698.jpg`), which eliminates lazy-loading delays and instructs browsers to prioritize painting the LCP resource early.
+  - Resolved heading sequence outline hops by converting pipeline steps (`<h4>` labels) and bottom feature grid titles (`<h4>` labels) into bold styled `<div>` elements, and elevated Workspace Chalkboard/Modal headers to `<h2>` (sequentially following the page's `<h1>`).
+  - Upgrade text contrast of input description spans, placeholder notes, and panel action details from low-contrast `text-slate-500` / `text-slate-600` levels to WCAG AA-compliant levels (using `text-slate-400` on dark background elements, and `text-slate-600` / `text-slate-700` labels on off-white chalkboard cards).
+  - Attached explicit `aria-label` tags to control dropdown selectors (aspect ratio, panel size, quality) and icon-only buttons (remove reference, inspect, download, delete album, close modal) to satisfy accessible name compliance.
+- Affected files:
+  - `app/(dash)/(routes)/storyboard/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Full TypeScript typecheck (`npx tsc --noEmit`) completed with 0 errors.
+  - Next.js production build (`npm run build`) completed successfully.
+- Decisions:
+  - Distinguishing text elements on light background cards (where `text-slate-400` fails contrast audits) from dark workspace background text guarantees that contrast compliance is correctly met in both light and dark presentation wrappers on the same page.
 
 #### Latest task: Optimize /apps/tool/transitions Route Performance & Accessibility (2026-08-02)
 

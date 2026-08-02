@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import NextImage from "next/image";
 import { Download, Heart, Trash2, Play, X, Zap, Sparkles } from "lucide-react";
 import { cn, getFallbackUrls } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ export interface MediaItem {
   /** Real URL or placeholder gradient string starting with "gradient:" */
   src: string;
   poster?: string;
+  posterStatus?: "pending" | "processing" | "ready" | "failed" | string;
   model: string;
   modelColor?: string;
   ratio: string;           // "16:9" | "9:16" | "1:1" | "4:3" | "21:9" | "3:4" …
@@ -34,6 +36,9 @@ interface MediaGridProps {
   onDelete?: (id: string) => void;
   onInspect?: (item: MediaItem) => void;
   className?: string;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
 }
 
 function downloadMedia(item: MediaItem) {
@@ -139,7 +144,7 @@ function Lightbox({ item, onClose }: { item: MediaItem; onClose: () => void }) {
               width: "auto", height: "auto", objectFit: "contain",
             }} />
           ) : (
-            <video src={currentSrc} poster={item.poster} controls autoPlay loop muted={false} onError={handleError} style={{
+            <video src={currentSrc} poster={item.poster} controls autoPlay loop muted={false} preload="metadata" onError={handleError} style={{
               display: "block", maxWidth: "88vw", maxHeight: "82vh",
               width: "auto", height: "auto", objectFit: "contain",
             }} />
@@ -170,12 +175,12 @@ function Lightbox({ item, onClose }: { item: MediaItem; onClose: () => void }) {
 
 
 
-function MediaCard({ item, onOpen, onDelete }: {
-  item: MediaItem; onOpen: () => void; onDelete?: (id: string) => void;
+function MediaCard({ item, index, onOpen, onDelete }: {
+  item: MediaItem; index: number; onOpen: () => void; onDelete?: (id: string) => void;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [liked, setLiked] = useState(false);
   const [hov, setHov] = useState(false);
+  const [posterFailed, setPosterFailed] = useState(false);
   const isPlaceholder = !item.src || item.src.startsWith("gradient:");
   const color = item.modelColor ?? "#06b6d4";
 
@@ -191,29 +196,17 @@ function MediaCard({ item, onOpen, onDelete }: {
     const list = getFallbackUrls(item.src);
     const nextIndex = list.indexOf(currentSrc) + 1;
     if (nextIndex > 0 && nextIndex < list.length) {
-      const nextSrc = list[nextIndex];
-      setCurrentSrc(nextSrc);
-      setTimeout(() => {
-        const v = videoRef.current;
-        if (v) {
-          v.load();
-          if (hov) {
-            v.play().catch(() => {});
-          }
-        }
-      }, 50);
+      setCurrentSrc(list[nextIndex]);
     }
   };
 
   const handleEnter = useCallback(() => {
     setHov(true);
-    if (item.type === "video" && videoRef.current) videoRef.current.play().catch(() => {});
-  }, [item.type]);
+  }, []);
 
   const handleLeave = useCallback(() => {
     setHov(false);
-    if (item.type === "video" && videoRef.current) { videoRef.current.pause(); videoRef.current.currentTime = 0; }
-  }, [item.type]);
+  }, []);
 
   return (
     <motion.div
@@ -268,8 +261,29 @@ function MediaCard({ item, onOpen, onDelete }: {
             transform: hov ? "scale(1.04)" : "scale(1)", transition: "transform 0.45s ease",
           }} />
         ) : (
-          <video ref={videoRef} src={currentSrc} poster={item.poster} muted loop playsInline preload="metadata" aria-label={item.prompt || "Generated video preview"} onError={handleError}
-            style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} />
+          item.poster && !posterFailed ? (
+          <NextImage
+            src={item.poster}
+            alt={item.prompt || "Generated video poster"}
+            fill
+            sizes="(max-width: 480px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 33vw, 240px"
+            className="object-cover transition-transform duration-500"
+            style={{ transform: hov ? "scale(1.04)" : "scale(1)" }}
+            priority={index === 0}
+            loading={index === 0 ? "eager" : "lazy"}
+            fetchPriority={index === 0 ? "high" : "auto"}
+            onError={() => setPosterFailed(true)}
+          />
+        ) : (
+          <div className={cn("absolute inset-0 bg-gradient-to-br", item.gradient ?? "from-slate-800 to-slate-900")}>
+            <div style={{ position: "absolute", inset: 0, backgroundImage: `linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)`, backgroundSize: "28px 28px" }} />
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Play size={16} fill="white" color="white" style={{ marginLeft: 2 }} />
+              </div>
+            </div>
+          </div>
+        )
         )}
 
         {/* Play overlay */}
@@ -392,7 +406,7 @@ function FPill({ label, active, onClick }: { label: string; active: boolean; onC
 
 // ─── Main MediaGrid ───────────────────────────────────────────────────────────
 
-export default function MediaGrid({ items, skeletonModels, onDelete, onInspect, className }: MediaGridProps) {
+export default function MediaGrid({ items, skeletonModels, onDelete, onInspect, className, hasMore, onLoadMore, loadingMore }: MediaGridProps) {
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "image" | "video">("all");
   const [ratioFilter, setRatioFilter] = useState("all");
@@ -417,11 +431,23 @@ export default function MediaGrid({ items, skeletonModels, onDelete, onInspect, 
       <div className={cn("mg-masonry", className)}>
         {(skeletonModels ?? []).map((s, i) => <SkeletonCard key={i} modelName={s.name} ratio={s.ratio ?? "16:9"} />)}
         <AnimatePresence>
-          {visible.map((item) => (
-            <MediaCard key={item.id} item={item} onOpen={() => onInspect ? onInspect(item) : setLightboxItem(item)} onDelete={onDelete} />
+          {visible.map((item, index) => (
+            <MediaCard key={item.id} item={item} index={index} onOpen={() => onInspect ? onInspect(item) : setLightboxItem(item)} onDelete={onDelete} />
           ))}
         </AnimatePresence>
       </div>
+      {hasMore ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: "10px 16px 18px" }}>
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            style={{ borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#cbd5e1", padding: "8px 16px", fontSize: 12, cursor: loadingMore ? "wait" : "pointer", opacity: loadingMore ? 0.65 : 1 }}
+          >
+            {loadingMore ? "Loading..." : "Load more"}
+          </button>
+        </div>
+      ) : null}
 
       {/* Lightbox */}
       <AnimatePresence>

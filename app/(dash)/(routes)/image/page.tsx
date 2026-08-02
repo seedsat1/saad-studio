@@ -167,12 +167,50 @@ function normalizeImageResponseUrls(data: any): string[] {
 type ResultItem = {
   id: string;
   url: string;
+  originalUrl?: string;
+  thumbnailUrl?: string;
+  width?: number;
+  height?: number;
   tool: ToolId;
   model: string;
   prompt: string;
   aspect: string;
   isPending?: boolean;
 };
+
+function resultOriginalUrl(item: ResultItem): string {
+  return item.originalUrl || item.url;
+}
+
+function resultThumbnailUrl(item: ResultItem): string {
+  return item.thumbnailUrl || item.url;
+}
+
+function mapAssetToResultItem(asset: any, fallback?: Partial<ResultItem>): ResultItem {
+  return {
+    id: String(asset?.id || fallback?.id || uid("img")),
+    url: String(asset?.originalUrl || asset?.url || fallback?.url || ""),
+    originalUrl: String(asset?.originalUrl || asset?.url || fallback?.originalUrl || fallback?.url || ""),
+    thumbnailUrl: typeof asset?.thumbnailUrl === "string" ? asset.thumbnailUrl : fallback?.thumbnailUrl,
+    width: typeof asset?.width === "number" ? asset.width : fallback?.width,
+    height: typeof asset?.height === "number" ? asset.height : fallback?.height,
+    tool: fallback?.tool || "create",
+    model: String(asset?.model || fallback?.model || "Image"),
+    prompt: String(asset?.prompt || fallback?.prompt || ""),
+    aspect: String(asset?.resolution || fallback?.aspect || "1:1"),
+  };
+}
+
+function resultInspectorAsset(item: ResultItem): Asset {
+  return {
+    type: "image",
+    url: resultOriginalUrl(item),
+    prompt: item.prompt,
+    model: item.model,
+    title: "Generated image",
+    resolution: item.aspect,
+  };
+}
 
 type CharacterReference = {
   id: string;
@@ -637,7 +675,7 @@ function CompareSlider({ before, after }: { before: string; after: string }) {
   );
 }
 
-function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onUse: (item: ResultItem) => void; onDelete: (id: string) => void; onBulkDelete: (ids: string[]) => void }) {
+function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, hasMore, onLoadMore, loadingMore }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onUse: (item: ResultItem) => void; onDelete: (id: string) => void; onBulkDelete: (ids: string[]) => void; hasMore?: boolean; onLoadMore?: () => void; loadingMore?: boolean }) {
   const { t, lang } = useImageTranslation();
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -699,7 +737,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
   }, [selectedIds, onBulkDelete]);
 
   const handleBulkDownload = useCallback(async () => {
-    const selectedItems = items.filter((item) => selectedIds.has(item.id) && item.url && !item.isPending);
+    const selectedItems = items.filter((item) => selectedIds.has(item.id) && resultOriginalUrl(item) && !item.isPending);
     if (selectedItems.length === 0 || isBulkDownloading) return;
 
     setIsBulkDownloading(true);
@@ -835,7 +873,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
               onClick={() => {
                 if (item.isPending) return;
                 if (selectionMode) { toggleSelected(item.id); return; }
-                onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" });
+                onInspect(resultInspectorAsset(item));
               }}
             >
               {item.isPending ? (
@@ -853,13 +891,16 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
                 </div>
               ) : (
                 <NextImage
-                  src={item.url}
+                  src={resultThumbnailUrl(item)}
                   alt={item.prompt || "Generated image"}
                   fill
-                  sizes="(max-width: 480px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 33vw, 240px"
+                  sizes="(max-width: 640px) 50vw, 240px"
                   className="block h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
                   unoptimized={false}
-                  priority={index < 4}
+                  priority={index === 0}
+                  loading={index === 0 ? "eager" : "lazy"}
+                  fetchPriority={index === 0 ? "high" : "auto"}
+                  quality={78}
                 />
               )}
 
@@ -882,8 +923,8 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
 
               {!item.isPending && !selectionMode ? (
                 <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
-                  <button onClick={(e) => { e.stopPropagation(); onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Preview")}><Eye className="h-4 w-4" /></button>
-                  <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Download")}><Download className="h-4 w-4" /></a>
+                  <button onClick={(e) => { e.stopPropagation(); onInspect(resultInspectorAsset(item)); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Preview")}><Eye className="h-4 w-4" /></button>
+                  <a href={resultOriginalUrl(item)} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Download")}><Download className="h-4 w-4" /></a>
                   <button onClick={(e) => { e.stopPropagation(); onUse(item); }} className="flex items-center gap-1 rounded-lg bg-pink-500/80 px-3 py-2 text-xs font-semibold text-white ring-1 ring-pink-300/40 hover:bg-pink-500" title={t("Use as reference image")}><Wand2 className="h-3.5 w-3.5" /> {t("Use")}</button>
                   <button onClick={(e) => { e.stopPropagation(); onRemix(item); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">{t("Remix")}</button>
                   <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">{t("Delete")}</button>
@@ -894,6 +935,19 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
           })}
         </AnimatePresence>
       </div>
+
+      {hasMore ? (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm text-zinc-200 hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
+          >
+            {loadingMore ? t("Loading...") : t("Load more")}
+          </button>
+        </div>
+      ) : null}
 
       {showAlbumPicker && (
         <AlbumPicker
@@ -1116,6 +1170,8 @@ function useImageTranslation() {
       "Upload media and upscale": "ارفع الوسائط وكبّر دقتها",
       "Upload source and target images": "ارفع الصور المصدر والهدف لتبديل الوجه",
       "Start generating to see results.": "ابدأ التوليد لرؤية النتائج.",
+      "Load more": "تحميل المزيد",
+      "Loading...": "جار التحميل...",
       "Upload image to start painting mask.": "ارفع صورة للبدء في رسم القناع.",
 
       // Sidebar Right Panel Settings
@@ -1294,6 +1350,9 @@ export default function ImageWorkspacePage() {
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ResultItem[]>([]);
   const [pendingItems, setPendingItems] = useState<ResultItem[]>([]);
+  const [resultsPage, setResultsPage] = useState(0);
+  const [resultsHasMore, setResultsHasMore] = useState(false);
+  const [loadingMoreResults, setLoadingMoreResults] = useState(false);
   const [compare, setCompare] = useState<{ before: string; after: string } | null>(null);
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
@@ -1373,34 +1432,29 @@ export default function ImageWorkspacePage() {
     };
   }, [isAuthLoaded, isSignedIn]);
 
-  useEffect(() => {
+  const loadPersistedImages = useCallback(async (nextPage = 0, mode: "replace" | "append" = "replace") => {
     if (isAuthLoaded && !isSignedIn) return;
-    let cancelled = false;
-    const loadPersisted = async () => {
-      try {
-        const res = await fetch("/api/assets?type=image", { cache: "no-store" });
-        const data = await res.json().catch(() => null);
-        if (!res.ok || !Array.isArray(data?.assets) || cancelled) return;
+    if (mode === "append") setLoadingMoreResults(true);
+    try {
+      const params = new URLSearchParams({ type: "image", page: String(nextPage), limit: "12" });
+      const res = await fetch(`/api/assets?${params.toString()}`, { cache: "no-cache" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !Array.isArray(data?.assets)) return;
 
-        const mapped: ResultItem[] = data.assets.map((asset: any) => ({
-          id: asset.id,
-          url: asset.url,
-          tool: "create",
-          model: asset.model || "Image",
-          prompt: asset.prompt || "",
-          aspect: asset.resolution || "1:1",
-        }));
-        setResults(mapped);
-      } catch {
-        // no-op: keep current state
-      }
-    };
-
-    void loadPersisted();
-    return () => {
-      cancelled = true;
-    };
+      const mapped: ResultItem[] = data.assets.map((asset: any) => mapAssetToResultItem(asset));
+      setResults((prev) => mode === "append" ? [...prev, ...mapped.filter((item) => !prev.some((existing) => existing.id === item.id))] : mapped);
+      setResultsPage(typeof data?.page === "number" ? data.page : nextPage);
+      setResultsHasMore(Boolean(data?.hasMore));
+    } catch {
+      // no-op: keep current state
+    } finally {
+      if (mode === "append") setLoadingMoreResults(false);
+    }
   }, [isAuthLoaded, isSignedIn]);
+
+  useEffect(() => {
+    void loadPersistedImages(0, "replace");
+  }, [loadPersistedImages]);
 
   // Recover an in-flight generation that was interrupted by a page refresh.
   // Strategy: if a pending marker exists in localStorage, show placeholders + poll
@@ -1458,14 +1512,7 @@ export default function ImageWorkspacePage() {
             return t >= saved.startedAt - 2000; // small clock-skew tolerance
           });
           if (fresh.length > 0) {
-            const matched: ResultItem[] = fresh.map((a: any) => ({
-              id: a.id,
-              url: a.url,
-              tool: saved.tool,
-              model: a.model || saved.model,
-              prompt: a.prompt || saved.prompt,
-              aspect: a.resolution || saved.aspect,
-            }));
+            const matched: ResultItem[] = fresh.map((a: any) => mapAssetToResultItem(a, { tool: saved.tool, model: saved.model, prompt: saved.prompt, aspect: saved.aspect }));
             finish(matched);
           } else if (Date.now() - saved.startedAt > 5 * 60 * 1000) {
             finish(null);
@@ -1570,10 +1617,21 @@ export default function ImageWorkspacePage() {
     return 4;
   }, [activeTool, enhanceModelId, inpaintVariations, isAnnualUnlimitedCreate, numImages, relightVariations, selectedModel, selectedQuality]);
 
-  const addResultItems = useCallback((urls: string[], tool: ToolId, model: string, p: string, aspect: string) => {
-    const newItems = urls.map((url) => ({ id: uid("img"), url, tool, model, prompt: p, aspect }));
+  const addResultItems = useCallback((urls: string[], tool: ToolId, model: string, p: string, aspect: string, records?: Partial<ResultItem>[]) => {
+    const newItems = urls.map((url, index) => ({
+      id: records?.[index]?.id || uid("img"),
+      url,
+      originalUrl: records?.[index]?.originalUrl || url,
+      thumbnailUrl: records?.[index]?.thumbnailUrl,
+      width: records?.[index]?.width,
+      height: records?.[index]?.height,
+      tool,
+      model,
+      prompt: p,
+      aspect,
+    }));
     setResults((prev) => [...newItems, ...prev]);
-    newItems.forEach((item) => addAsset({ type: "image", url: item.url, prompt: item.prompt, model: item.model, resolution: item.aspect, title: item.prompt.slice(0, 60) }));
+    newItems.forEach((item) => addAsset({ type: "image", url: resultOriginalUrl(item), prompt: item.prompt, model: item.model, resolution: item.aspect, title: item.prompt.slice(0, 60) }));
   }, [addAsset]);
 
   const generateCreate = useCallback(async () => {
@@ -1655,9 +1713,14 @@ export default function ImageWorkspacePage() {
       persistedUrls = urls;
     }
 
-    // 3. Update UI state with permanent Supabase URL(s)
-    addResultItems(persistedUrls, "create", selectedModel.label, prompt, aspectRatio);
-  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId, selectedPalette]);
+    const persistedRecords: Partial<ResultItem>[] = generationId && persistedUrls[0]
+      ? [{ id: String(generationId), originalUrl: persistedUrls[0], thumbnailUrl: `/api/assets/thumbnail?id=${encodeURIComponent(String(generationId))}` }]
+      : [];
+
+    // 3. Update UI state with permanent original URL(s); cards render thumbnailUrl when a DB id is available.
+    addResultItems(persistedUrls, "create", selectedModel.label, prompt, aspectRatio, persistedRecords);
+    void loadPersistedImages(0, "replace");
+  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, loadPersistedImages, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId, selectedPalette]);
 
   const generateRelight = useCallback(async () => {
     if (!relightFile) throw new Error("Upload image first");
@@ -1900,12 +1963,12 @@ export default function ImageWorkspacePage() {
                             item.url.includes("cloudflare");
       if (!requiresProxy) {
         try {
-          const direct = await fetch(item.url, { mode: "cors" });
+          const direct = await fetch(resultOriginalUrl(item), { mode: "cors" });
           if (direct.ok) blob = await direct.blob();
         } catch { /* CORS or network — fall through to proxy */ }
       }
       if (!blob) {
-        const proxied = await fetch(`/api/proxy-image?url=${encodeURIComponent(item.url)}`);
+        const proxied = await fetch(`/api/proxy-image?url=${encodeURIComponent(resultOriginalUrl(item))}`);
         if (!proxied.ok) throw new Error(`Proxy returned ${proxied.status}`);
         blob = await proxied.blob();
       }
@@ -1932,7 +1995,7 @@ export default function ImageWorkspacePage() {
   }, [selectedModel]);
 
   const renderWorkspace = () => {
-    if (activeTool === "create") return <ResultGrid items={[...pendingItems, ...results]} onInspect={setInspectorAsset} onRemix={(item) => { setActiveTool("create"); setPrompt(`Remix this style: ${item.prompt}`); }} onUse={handleUseAsReference} onDelete={handleDelete} onBulkDelete={handleBulkDelete} />;
+    if (activeTool === "create") return <ResultGrid items={[...pendingItems, ...results]} onInspect={setInspectorAsset} onRemix={(item) => { setActiveTool("create"); setPrompt(`Remix this style: ${item.prompt}`); }} onUse={handleUseAsReference} onDelete={handleDelete} onBulkDelete={handleBulkDelete} hasMore={resultsHasMore} loadingMore={loadingMoreResults} onLoadMore={() => void loadPersistedImages(resultsPage + 1, "append")} />;
     if (activeTool === "inpaint") return <InpaintWorkspace source={inpaintFile} setSource={setInpaintFile} brushSize={brushSize} setBrushSize={setBrushSize} maskVersion={maskVersion} setMaskVersion={setMaskVersion} registerMaskExporter={(fn) => { maskExporterRef.current = fn; }} />;
     if (compare) return <CompareSlider before={compare.before} after={compare.after} />;
     if (activeTool === "enhance") {

@@ -4,6 +4,8 @@ import prismadb from "@/lib/prismadb";
 import { deleteFromStorage } from "@/lib/supabase-storage";
 import { reconcilePendingBytePlusGenerations } from "@/lib/providers/byteplus-reconcile";
 import { normalizeMediaUrl } from "@/lib/r2-storage";
+import { scheduleImageThumbnailGeneration } from "@/lib/image-thumbnails";
+import { scheduleVideoPosterGeneration } from "@/lib/video-posters";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +50,63 @@ function resolveAssetUrl(mediaUrl: string | null, outputUrl: string | null): str
   return "";
 }
 
+function firstNumberParam(req: NextRequest, key: string, fallback: number, min: number, max: number): number {
+  const raw = Number(req.nextUrl.searchParams.get(key));
+  if (!Number.isFinite(raw)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(raw)));
+}
+
+function buildAssetTypeWhere(type: string): any {
+  if (type === "image") {
+    return {
+      OR: [
+        { assetType: { contains: "image", mode: "insensitive" } },
+        { assetType: { contains: "storyboard", mode: "insensitive" } },
+        { assetType: { contains: "makeup", mode: "insensitive" } },
+        { assetType: { contains: "relight", mode: "insensitive" } },
+        { assetType: { contains: "thumbnail", mode: "insensitive" } },
+      ],
+    };
+  }
+  if (type === "video") return { assetType: { contains: "video", mode: "insensitive" } };
+  if (type === "audio") return { assetType: { contains: "audio", mode: "insensitive" } };
+  if (type === "3d") return { assetType: "3d" };
+  if (type === "text") {
+    return {
+      OR: [
+        { assetType: { contains: "assist", mode: "insensitive" } },
+        { assetType: { contains: "conversation", mode: "insensitive" } },
+        { assetType: { contains: "code", mode: "insensitive" } },
+        { assetType: { contains: "text", mode: "insensitive" } },
+      ],
+    };
+  }
+  return {};
+}
+
+function galleryThumbnailUrl(id: string, type: AssetType): string | undefined {
+  if (type !== "image") return undefined;
+  return `/api/assets/thumbnail?id=${encodeURIComponent(id)}`;
+}
+function galleryImageDimensions(resolution?: string | null, aspectRatio?: string | null): { width?: number; height?: number } {
+  const rawResolution = String(resolution || "").trim();
+  const exact = rawResolution.match(/(\d{3,5})\s*[x×]\s*(\d{3,5})/i);
+  if (exact) {
+    return { width: Number(exact[1]), height: Number(exact[2]) };
+  }
+
+  const ratio = String(aspectRatio || rawResolution || "1:1").trim().toLowerCase();
+  const ratioMatch = ratio.match(/^(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)/);
+  if (!ratioMatch) return { width: 1024, height: 1024 };
+
+  const w = Number(ratioMatch[1]);
+  const h = Number(ratioMatch[2]);
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return { width: 1024, height: 1024 };
+
+  if (w === h) return { width: 1024, height: 1024 };
+  if (w > h) return { width: Math.round(1024 * (w / h)), height: 1024 };
+  return { width: 1024, height: Math.round(1024 * (h / w)) };
+}
 function normalizeProviderTaskId(raw: string): string {
   if (!raw.startsWith("gen-")) return raw;
   const unwrapped = raw.slice(4);
@@ -147,6 +206,17 @@ export async function GET(req: NextRequest) {
     }
 
     const requestedType = (req.nextUrl.searchParams.get("type") || "all").toLowerCase();
+    const limit = firstNumberParam(req, "limit", 12, 1, 24);
+    const page = firstNumberParam(req, "page", 0, 0, 10_000);
+    const skip = page * limit;
+    const typeWhere = requestedType === "all" ? {} : buildAssetTypeWhere(requestedType);
+    const baseWhere = {
+      userId,
+      OR: [
+        { mediaUrl: { not: null as string | null } },
+        { outputUrl: { not: null as string | null } },
+      ],
+    };
 
     // Resolve this user's pending Seedance jobs before loading the gallery.
     // This works even when the original browser session was closed.
@@ -154,51 +224,75 @@ export async function GET(req: NextRequest) {
       console.error("[api/assets] BytePlus reconciliation failed", error);
     });
 
-    const rows = await prismadb.generation.findMany({
-      where: {
-        userId,
-        OR: [
-          { mediaUrl: { not: null as string | null } },
-          { outputUrl: { not: null as string | null } },
-        ],
-      },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        mediaUrl: true,
-        outputUrl: true,
-        prompt: true,
-        modelUsed: true,
-        assetType: true,
-        cost: true,
-        createdAt: true,
-        providerRequestId: true,
-      },
-    });
+    const [totalForFilter, allCount, imageCount, videoCount, audioCount, threeDCount, textCount, rows] = await Promise.all([
+      prismadb.generation.count({ where: { AND: [baseWhere, typeWhere] } as any }),
+      prismadb.generation.count({ where: baseWhere }),
+      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("image")] } as any }),
+      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("video")] } as any }),
+      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("audio")] } as any }),
+      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("3d")] } as any }),
+      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("text")] } as any }),
+      (prismadb.generation as any).findMany({
+        where: { AND: [baseWhere, typeWhere] } as any,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit + 1,
+        select: {
+          id: true,
+          mediaUrl: true,
+          outputUrl: true,
+          prompt: true,
+          modelUsed: true,
+          assetType: true,
+          cost: true,
+          createdAt: true,
+          providerRequestId: true,
+          resolution: true,
+          aspectRatio: true,
+          posterUrl: true,
+          posterStatus: true,
+          posterGeneratedAt: true,
+          posterError: true,
+        },
+      }),
+    ]);
 
-    const normalized = rows
-      .map((row) => {
+    const pageRows = rows.slice(0, limit);
+    const hasMore = rows.length > limit;
+
+    const normalized = pageRows
+      .map((row: any) => {
         const resolvedUrl = resolveAssetUrl(row.mediaUrl, row.outputUrl);
         return {
           ...row,
           resolvedUrl,
         };
       })
-      .filter((row) => isRenderableAssetUrl(row.resolvedUrl))
-      .map((row) => {
+      .filter((row: any) => isRenderableAssetUrl(row.resolvedUrl))
+      .map((row: any) => {
         const type = toAssetType(row.assetType);
         const mediaUrl = row.resolvedUrl;
         const isTextMarker = mediaUrl.startsWith("text:");
+        const dimensions = type === "image" ? galleryImageDimensions(row.resolution, row.aspectRatio) : {};
+        const videoPosterUrl = type === "video" && typeof row.posterUrl === "string" && row.posterUrl ? (normalizeMediaUrl(row.posterUrl) || row.posterUrl) : undefined;
 
         return {
           id: row.id,
           type,
           url: isTextMarker ? undefined : mediaUrl,
+          originalUrl: isTextMarker ? undefined : mediaUrl,
+          thumbnailUrl: isTextMarker ? undefined : galleryThumbnailUrl(row.id, type),
+          posterUrl: videoPosterUrl,
+          posterStatus: type === "video" ? (row.posterStatus ?? "pending") : undefined,
+          posterGeneratedAt: row.posterGeneratedAt ? row.posterGeneratedAt.toISOString() : undefined,
+          posterError: type === "video" ? (row.posterError ?? undefined) : undefined,
           textContent: isTextMarker ? row.prompt : undefined,
           prompt: row.prompt,
           model: row.modelUsed,
-          resolution: undefined,
-          duration: undefined,
+          resolution: row.resolution ?? row.aspectRatio ?? undefined,
+          width: dimensions.width,
+          height: dimensions.height,
+          duration: row.duration ?? undefined,
           date: row.createdAt.toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
@@ -211,20 +305,15 @@ export async function GET(req: NextRequest) {
       });
 
     const counts = {
-      all: normalized.length,
-      image: normalized.filter((a) => a.type === "image").length,
-      video: normalized.filter((a) => a.type === "video").length,
-      audio: normalized.filter((a) => a.type === "audio").length,
-      "3d": normalized.filter((a) => a.type === "3d").length,
-      text: normalized.filter((a) => a.type === "text").length,
+      all: allCount,
+      image: imageCount,
+      video: videoCount,
+      audio: audioCount,
+      "3d": threeDCount,
+      text: textCount,
     };
 
-    const assets =
-      requestedType === "all"
-        ? normalized
-        : normalized.filter((asset) => asset.type === requestedType);
-
-    return NextResponse.json({ assets, counts }, { status: 200 });
+    return NextResponse.json({ assets: normalized, counts, page, limit, total: totalForFilter, hasMore }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load assets.";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -298,10 +387,23 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    const uploadedPosterUrl: string | undefined = undefined;
+    const uploadedPosterStatus: string | undefined = type === "video" ? "pending" : undefined;
+    if (type === "video") {
+      scheduleVideoPosterGeneration(record.id, "api-assets-upload-video");
+    }
+    if (type === "image") {
+      scheduleImageThumbnailGeneration(record.id, "api-assets-upload-image");
+    }
+
     const returnedAsset = {
       id: record.id,
       type,
       url,
+      originalUrl: url,
+      thumbnailUrl: type === "image" ? galleryThumbnailUrl(record.id, "image") : undefined,
+      posterUrl: uploadedPosterUrl,
+      posterStatus: uploadedPosterStatus,
       prompt: record.prompt,
       model: record.modelUsed,
       date: record.createdAt.toLocaleDateString("en-US", {

@@ -1,6 +1,6 @@
 "use client";
 
-export const dynamic = "force-dynamic";
+
 
 import React, { useState, useRef, useEffect, DragEvent } from "react";
 import {
@@ -1336,7 +1336,9 @@ export default function HookStudioPage() {
                           onClick={() => setPreviewMedia({ type: "video", url: msg.videoTask!.videoUrl!, title: "Generated Hook" })}
                           className="relative rounded-xl overflow-hidden group cursor-zoom-in border border-slate-800"
                         >
-                          <video src={msg.videoTask.videoUrl} className="object-cover w-full h-48 group-hover:scale-105 transition-transform" />
+                          <video src={msg.videoTask.videoUrl} className="object-cover w-full h-48 group-hover:scale-105 transition-transform">
+                             <track kind="captions" src="" srcLang="en" label="Muted preview" default />
+                          </video>
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-75 group-hover:opacity-100 transition-opacity">
                             <Play className="w-8 h-8 text-white fill-white" />
                           </div>
@@ -1412,6 +1414,7 @@ export default function HookStudioPage() {
                                   onClick={() => setPreviewMedia({ type: "image", url, title: isAr ? `مشهد ${index + 1}` : `Scene ${index + 1}` })}
                                   className="p-1.5 bg-slate-850 hover:bg-slate-800 rounded-lg text-slate-200 hover:text-white transition-colors"
                                   title={isAr ? "عرض الصورة" : "View Image"}
+                                  aria-label={isAr ? "عرض الصورة" : "View Image"}
                                 >
                                   <Sparkles className="w-3.5 h-3.5" />
                                 </button>
@@ -1419,6 +1422,7 @@ export default function HookStudioPage() {
                                   onClick={() => handleDownload(url, `scene-${index + 1}`)}
                                   className="p-1.5 bg-slate-850 hover:bg-slate-800 rounded-lg text-slate-200 hover:text-white transition-colors"
                                   title={isAr ? "تحميل الصورة" : "Download Image"}
+                                  aria-label={isAr ? "تحميل الصورة" : "Download Image"}
                                 >
                                   <Download className="w-3.5 h-3.5" />
                                 </button>
@@ -1427,6 +1431,7 @@ export default function HookStudioPage() {
                                   disabled={removingBgUrl !== null}
                                   className="p-1.5 bg-slate-850 hover:bg-slate-800 rounded-lg text-slate-200 hover:text-white transition-colors"
                                   title={isAr ? "تصدير مفرغ PNG" : "Export Transparent PNG"}
+                                  aria-label={isAr ? "تصدير مفرغ PNG" : "Export Transparent PNG"}
                                 >
                                   {removingBgUrl === url ? (
                                     <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
@@ -1438,7 +1443,7 @@ export default function HookStudioPage() {
                             </div>
                           ))}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-[11px] text-slate-400">
                           {isAr ? "تم توليد الصور كلقطات ثابتة للمشاهد الأربعة بنجاح." : "Images generated as scene stills successfully."}
                         </div>
                       </div>
@@ -1467,7 +1472,9 @@ export default function HookStudioPage() {
                             onClick={() => setPreviewMedia({ type: "video", url: file.url, title: file.name })}
                             className="relative rounded-xl max-h-48 overflow-hidden group cursor-zoom-in"
                           >
-                            <video src={file.url} className="object-cover max-h-48 w-full group-hover:scale-105 transition-transform" />
+                            <video src={file.url} className="object-cover max-h-48 w-full group-hover:scale-105 transition-transform">
+                              <track kind="captions" src="" srcLang="en" label="Muted preview" default />
+                            </video>
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-75 group-hover:opacity-100 transition-opacity">
                               <Play className="w-7 h-7 text-white fill-white" />
                             </div>
@@ -1482,7 +1489,7 @@ export default function HookStudioPage() {
                               <Volume2 className="w-4 h-4 text-indigo-400" />
                               <span className="text-slate-300 font-medium truncate max-w-[140px]">{file.name}</span>
                             </div>
-                            <Download className="w-3.5 h-3.5 text-slate-500 hover:text-white" />
+                            <Download className="w-3.5 h-3.5 text-slate-400 hover:text-white" />
                           </div>
                         )}
                         {file.type === "file" && (
@@ -1501,7 +1508,7 @@ export default function HookStudioPage() {
 
                 {/* System Subtitle */}
                 {msg.isSystem && (
-                  <span className="text-[10px] text-slate-500 font-medium px-1 uppercase tracking-wider block">
+                  <span className="text-[10px] text-slate-400 font-medium px-1 uppercase tracking-wider block">
                     {t.systemAgent}
                   </span>
                 )}
@@ -1542,10 +1549,13 @@ export default function HookStudioPage() {
                         {file.type === "image" ? (
                           <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
                         ) : (
-                          <video src={file.url} className="w-full h-full object-cover" />
+                          <video src={file.url} className="w-full h-full object-cover">
+                            <track kind="captions" src="" srcLang="en" label="Muted preview" default />
+                          </video>
                         )}
                         <button
                           onClick={() => handleRemoveAttachment(file.id)}
+                          aria-label={isAr ? "إزالة المرفق" : "Remove attachment"}
                           className="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/70 hover:bg-rose-600 flex items-center justify-center text-white transition-all shadow-sm"
                         >
                           <X className="w-2.5 h-2.5" />
@@ -1568,7 +1578,8 @@ export default function HookStudioPage() {
                         </span>
                         <button
                           onClick={() => handleRemoveAttachment(file.id)}
-                          className="text-slate-500 hover:text-rose-400 transition-colors ml-1"
+                          aria-label={isAr ? "إزالة المرفق" : "Remove attachment"}
+                          className="text-slate-400 hover:text-rose-400 transition-colors ml-1"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -1599,7 +1610,8 @@ export default function HookStudioPage() {
                 }}
                 onPaste={handlePaste}
                 placeholder={t.inputPlaceholder}
-                className="flex-1 bg-transparent text-xs text-slate-200 placeholder-slate-500 focus:outline-none py-1"
+                aria-label={t.inputPlaceholder}
+                className="flex-1 bg-transparent text-xs text-slate-200 placeholder-slate-400 focus:outline-none py-1"
               />
 
               {/* Actions */}
@@ -1611,17 +1623,20 @@ export default function HookStudioPage() {
                   onChange={handleFileSelect}
                   className="hidden"
                   accept="image/*,video/*,audio/*"
+                  aria-label={isAr ? "تحميل الملفات" : "Upload files"}
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-all"
                   title="Attach files"
+                  aria-label={isAr ? "إرفاق ملفات" : "Attach files"}
                 >
                   <Paperclip className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleSendMessage}
                   disabled={isGenerating || (!inputText.trim() && attachedFiles.length === 0)}
+                  aria-label={isAr ? "إرسال الرسالة" : "Send message"}
                   className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white transition-all shadow-md shadow-indigo-600/10"
                 >
                   {isGenerating ? (
@@ -1640,10 +1655,11 @@ export default function HookStudioPage() {
       <div className="w-80 border-l border-slate-800 bg-[#090b10] p-5 space-y-6 hidden md:block overflow-y-auto flex-shrink-0 scrollbar-thin">
         {/* Section: Video Model */}
         <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+          <label htmlFor="video-model-select" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
             {t.videoModel}
           </label>
           <select
+            id="video-model-select"
             value={selectedVideoModel}
             onChange={(e) => {
               const val = e.target.value;
@@ -1673,10 +1689,11 @@ export default function HookStudioPage() {
 
         {/* Section: Thinking Model */}
         <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+          <label htmlFor="thinking-model-select" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
             {t.thinkingModel}
           </label>
           <select
+            id="thinking-model-select"
             value={selectedThinkingModel}
             onChange={(e) => setSelectedThinkingModel(e.target.value)}
             className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-semibold cursor-pointer"
@@ -1698,10 +1715,11 @@ export default function HookStudioPage() {
           <div className="space-y-4">
             {/* Duration */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+              <label htmlFor="duration-select" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
                 {t.duration}
               </label>
               <select
+                id="duration-select"
                 value={selectedDuration}
                 onChange={(e) => setSelectedDuration(e.target.value)}
                 className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
@@ -1716,10 +1734,11 @@ export default function HookStudioPage() {
 
             {/* Ratio */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+              <label htmlFor="ratio-select" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
                 {t.ratio}
               </label>
               <select
+                id="ratio-select"
                 value={selectedRatio}
                 onChange={(e) => setSelectedRatio(e.target.value)}
                 className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
@@ -1734,10 +1753,11 @@ export default function HookStudioPage() {
 
             {/* Quality */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+              <label htmlFor="quality-select" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
                 {t.quality}
               </label>
               <select
+                id="quality-select"
                 value={selectedQuality}
                 onChange={(e) => setSelectedQuality(e.target.value)}
                 className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
@@ -1751,9 +1771,10 @@ export default function HookStudioPage() {
             </div>
 
             {/* Native Audio */}
-            <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#11141e] px-3 py-2.5 text-xs text-slate-200">
+            <label htmlFor="native-audio-checkbox" className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#11141e] px-3 py-2.5 text-xs text-slate-200">
               <span className="font-semibold">{isAr ? "توليد صوت أصلي" : "Native audio"}</span>
               <input
+                id="native-audio-checkbox"
                 type="checkbox"
                 checked={generateAudio}
                 onChange={(e) => setGenerateAudio(e.target.checked)}
@@ -1763,10 +1784,11 @@ export default function HookStudioPage() {
 
             {/* Genre */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+              <label htmlFor="genre-select" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
                 {t.genre}
               </label>
               <select
+                id="genre-select"
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(e.target.value)}
                 className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
@@ -1781,10 +1803,11 @@ export default function HookStudioPage() {
 
             {/* Hook Angle */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+              <label htmlFor="hook-angle-select" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
                 {t.hookAngle}
               </label>
               <select
+                id="hook-angle-select"
                 value={selectedHookAngle}
                 onChange={(e) => setSelectedHookAngle(e.target.value)}
                 className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"

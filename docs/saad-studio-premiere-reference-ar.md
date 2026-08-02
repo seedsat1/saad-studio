@@ -1,4 +1,41 @@
+## سلوك اكتمال الصور والـ Thumbnail غير الحاجز (2026-08-02)
+
+- اكتمال نتيجة الصورة للمشترك يعتمد على حفظ `originalUrl`/`mediaUrl` فقط. لا يجوز جعل إنشاء `thumbnailUrl` شرطا لعرض الصورة أو تحميلها أو استخدامها كمرجع.
+- بعد حفظ الأصل الكامل، يستدعي النظام `scheduleImageThumbnailGeneration()` لتوليد مصغر WebP في الخلفية داخل `thumbnails/{userId}/{generationId}-560.webp` بدون `await` داخل مسار الاستجابة.
+- صفحة `/image` وصفحة `/gallery` تستخدمان `thumbnailUrl` داخل البطاقات فقط، بينما المعاينة الكبيرة، التحميل، النسخ، وإعادة الاستخدام كمرجع تعتمد على الأصل الكامل.
+- إذا لم يلحق التوليد الخلفي قبل عرض البطاقة، يبقى مسار `/api/assets/thumbnail?id=...` مسؤولا عن توليد المصغر عند أول طلب كـ fallback للصور القديمة أو غير الجاهزة.
+- فشل إنشاء المصغر لا يغير الأصل ولا يؤخر ظهور النتيجة. الأصل يبقى محفوظا بكامل الجودة، والمصغر مجرد تحسين أداء للشبكات الصغيرة.
+## سلوك اكتمال الفيديو والـ Poster غير الحاجز (2026-08-02)
+
+- اكتمال نتيجة الفيديو للمشترك يعتمد على حفظ `videoUrl`/`mediaUrl` فقط. لا يجوز جعل `posterStatus = ready` شرطا لعرض الفيديو أو فتحه أو تحميله.
+- بعد حفظ رابط MP4 الأصلي، يستدعي النظام `scheduleVideoPosterGeneration()` لتوليد الـ Poster في الخلفية بدون `await` داخل مسار الاستجابة.
+- واجهات الحفظ مثل `setGenerationMediaUrl()` و`/api/assets/persist` ورفع الفيديو اليدوي يجب أن ترجع فور حفظ الفيديو مع `posterStatus: pending` إذا لم يكن `posterUrl` جاهزا بعد.
+- إذا توقف تنفيذ الخلفية في بيئة serverless بعد إرسال الرد، تبقى معالجة الـ Posters مسؤولية مسار الدفعات `POST /api/admin/video-posters/backfill` أو السكربت، وكلاهما يعيد محاولة السجلات غير الجاهزة لاحقا.
+- في الواجهة، حالة `pending` أو `failed` تعني عرض Placeholder داخل البطاقة فقط. الضغط على البطاقة ما زال يفتح MP4 الأصلي مباشرة من `videoUrl`.
+## أداء الفيديو - Poster WebP منفصل عن MP4 الأصلي (2026-08-02)
+
+- سجلات الفيديو في `Generation` تحتوي حقول `posterUrl`, `posterStatus`, `posterGeneratedAt`, و`posterError` لتتبع حالة صورة الغلاف الخفيفة لكل فيديو.
+- ملف الفيديو الأصلي الكامل يبقى محفوظا كما هو في `mediaUrl`/`outputUrl` داخل Backblaze. ممنوع حذف الأصل أو ضغطه أو استبداله عند إنشاء الـ Poster.
+- صورة الـ Poster تحفظ كـ WebP بعرض يقارب 480px مع الحفاظ على النسبة، وترفع إلى Backblaze في مسار ثابت: `videos/posters/{userId}/{videoId}.webp`.
+- الفيديوهات الجديدة: بعد حفظ رابط MP4 بنجاح في قاعدة البيانات، يحاول النظام استخراج Poster تلقائيا عبر FFmpeg. فشل الـ Poster لا يلغي الفيديو ولا يغير رابطه؛ فقط يسجل `posterStatus = failed` مع رسالة مختصرة في `posterError` لإعادة المحاولة لاحقا.
+- الفيديوهات القديمة: تعالج عبر دفعات قابلة للاستئناف من `POST /api/admin/video-posters/backfill` أو عبر `scripts/backfill-video-posters.ts`. العملية idempotent وتترك أي سجل يحتوي `posterUrl` بدون إعادة معالجة.
+- صفحة `/video` لا تعرض `<video src="...">` داخل بطاقات النتائج. البطاقات تعرض `posterUrl` فقط باستخدام `next/image`، وأول Poster ظاهر فقط يستخدم `priority` و`fetchPriority="high"`، وباقي العناصر lazy.
+- عند الضغط على بطاقة الفيديو، يفتح الـ Lightbox ثم يحمل MP4 الأصلي داخل المشغل مع `preload="metadata"`. قبل الفتح لا يتم تحميل MP4 من بطاقات الـ Grid.
+- إذا لم يوجد `posterUrl` أو كانت حالته failed، تعرض البطاقة Placeholder ثابت مع أيقونة تشغيل، ولا تستخدم MP4 كبديل داخل الشبكة.
+- نتيجة فحص محلي في 2026-08-02: سكربت الـ backfill وصل إلى قاعدة البيانات لكن فشل رفع/فحص Backblaze بسبب `Malformed Access Key Id`. يجب إعادة تشغيل الدفعات في بيئة تحتوي مفاتيح Backblaze صحيحة.
 # مرجع Saad Studio لتكامل Premiere وReap
+
+## أداء صفحات الصور والمعرض - فصل المصغرات عن الأصل (2026-08-02)
+
+- صفحات `/image` و`/gallery` يجب أن تعرض داخل البطاقات نسخة مصغرة WebP فقط، ولا تستخدم ملف النتيجة الأصلي كصورة بطاقة صغيرة.
+- الأصل الكامل يبقى محفوظا كما هو في Backblaze للجودة الكاملة، التحميل، النسخ، الاستخدام كمرجع، والـ Lightbox أو صفحة التفاصيل. ممنوع ضغط الأصل أو استبداله بالمصغر.
+- `/api/assets` يرجع النتائج بشكل مقسم إلى صفحات، الافتراضي `limit=12`، ويعيد لكل أصل صورة: `originalUrl` للملف الكامل، `thumbnailUrl` للعرض داخل البطاقات، و`width`/`height` مشتقة من `resolution` أو `aspectRatio` عند توفرها، مع `hasMore` و`page` و`total`.
+- مسار `/api/assets/thumbnail?id=...` ينشئ عند أول طلب نسخة WebP بعرض/ارتفاع أقصى 560px باستخدام `sharp` ويحفظها في Backblaze داخل `thumbnails/{userId}/{generationId}-560.webp` لإعادة الاستخدام.
+- صفحة `/image` تحمل أول 12 نتيجة فقط ثم تضيف النتائج التالية عبر Load more، وصفحة `/gallery` تستخدم نفس نمط التقسيم. يمكن لاحقا استبدال زر التحميل بـ Infinite Scroll دون تغيير عقد البيانات.
+- أول صورة ظاهرة في الشبكة فقط تستخدم `loading="eager"` و`fetchPriority="high"` لتقليل تأخر اكتشاف LCP؛ باقي صور البطاقات تستخدم `loading="lazy"` و`decoding="async"` حيث ينطبق ذلك.
+- عند فتح النتيجة في المعاينة الكبيرة أو الـ Asset Inspector أو استخدامها كمرجع أو تحميلها، يجب استخدام `originalUrl` وليس `thumbnailUrl`.
+- البنية المعتمدة في الواجهة:
+  `{ originalUrl, thumbnailUrl, width, height }`، مع إبقاء `url` كحقل توافق قديم يشير إلى الأصل عند الحاجة.
 
 ## Performance & Accessibility - Cinematic Styles Route Compliance (2026-08-02)
 
@@ -390,12 +427,14 @@
 - لا يجوز تنظيف listener الخاص بـ `saad-language-changed` عبر `DOMNodeRemoved` داخل صفحة Podcast، لأن إعادة رسم محتوى الصفحة نفسها قد تطلق الحدث وتفصل listener قبل ضغط المستخدم على زر اللغة.
 
 ## API video Gemini taskId prefix compatibility (2026-07-15)
+
 - مسار `GET /api/video?taskId=...` يجب أن يقبل معرفات Gemini المباشرة `gvo:...` وكذلك الشكل المغلف القادم من الواجهة `gen-gvo:...`.
 - قبل اختيار مسار polling، يتم إزالة بادئة `gen-` فقط إذا كان بعدها بادئة مزود معروفة مثل `gvo:`, `ark:`, `ws:`, `veo:`, `veo1080:`, أو `veo4k:`.
 - هذا يمنع مهام Gemini Omni/Veo من السقوط في مسار KIE العام وإرجاع `502 Bad Gateway`.
 - `previousTaskId` الخاص بتحرير/استكمال Gemini يجب أن يستخدم نفس التطبيع حتى يقبل `gen-gvo:...`.
 
 ## Cinema Flow pasted-image upload fallback behavior (2026-07-15)
+
 - صفحة `/cinema-flow` ترفع صور اللصق والملفات المختارة عبر مساعد واحد `uploadMediaFile(...)`.
 - يبدأ الرفع بمسار `/api/media/upload` بصيغة `multipart/form-data` حتى يبقى الرفع من السيرفر إلى التخزين هو المسار الأساسي.
 - إذا فشل المسار المباشر، تستخدم الصفحة مسار signed upload الموجود مسبقًا وترفع الملف مباشرة إلى التخزين بنفس نمط صفحات الأدوات الأخرى.
@@ -403,12 +442,14 @@
 - عند فشل الرفع، يجب عرض سبب الخطأ أو status القادم من السيرفر بدل رسالة عامة فقط.
 
 ## Cinema Flow clipboard image paste behavior (2026-07-15)
+
 - صفحة الموقع `/cinema-flow` تدعم لصق الصور مباشرة داخل صندوق محادثة الوكيل.
 - الصور الملصوقة من المتصفح أو أدوات لقطة الشاشة في Windows تتحول إلى `File` عادي باسم `clipboard-image-...` عند عدم وجود اسم أصلي.
 - الصور الملصوقة تستخدم نفس مسار الرفع الحالي `handleFileSelection(...)`، ثم تظهر كصور مرجعية نشطة مثل زر `+` والسحب والإفلات.
 - لا يوجد مسار تخزين منفصل للـ clipboard، ويستمر حد الصور المرجعية الأربع كما هو.
 
 ## Saad Agent Reference Registry behavior (2026-07-14)
+
 - `ReferenceRegistryService` هو المصدر المركزي لمسارات المراجع داخل Saad Agent.
 - مرجع التصميم `DEZ` يجب أن يرجع من السجل إلى الجذر الحقيقي داخل حزمة/مشروع Saad Agent، مع `DESIGN_REFERENCE_MANIFEST.json` و`DESIGN_REFERENCE_INDEX.md`.
 - مرجع هندسة الوكيل `claude-code` يجب أن يرجع إلى `E:\Agent-Reach-main\claude-code` مع `CLAUDE_CODE_REFERENCE_MANIFEST.json` و`CLAUDE_CODE_REFERENCE_INDEX.md`.
@@ -418,6 +459,7 @@
 - ممنوع نسخ أو تشغيل أو تضمين كود Claude Code المسرب/الملكي؛ الاستخدام المسموح هو الدليل المعماري عالي المستوى فقط.
 
 ## Saad Agent Claude architecture read-only audit behavior (2026-07-14)
+
 - إذا طلب المستخدم اختبارًا معماريًا فقط أو تقريرًا فقط عن سلوك Saad Agent كوكيل هندسي، وذكر `E:\Agent-Reach-main\claude-code` كمرجع قراءة فقط، فهذا فحص محلي وليس مهمة Runtime.
 - يجب أن يرد Saad Agent بـ `usedModel: false` وألا يستدعي LM Studio أو Pi/Codex أو Gemini أو Ollama أو أي مزود نموذج.
 - يجب قراءة `CLAUDE_CODE_REFERENCE_MANIFEST.json` واختيار ملفات مرجعية محدودة من Claude Code للمعمارية فقط، مع قراءة ملفات Saad Agent المقابلة مثل `agent-loop.ts`, `tool-manager.ts`, `approval-policy.ts`, `conversation-state-engine.ts`, `chat-orchestrator.ts`.
@@ -428,6 +470,7 @@
 - إذا كان `CONFIG.PROJECT_ROOT` يشير إلى جذر الريبو أو إلى `saad-agent` نفسه، يجب أن يجد الفحص ملفات Saad Agent الحقيقية ولا يرجع `blocked` بسبب تركيب مسار خاطئ.
 
 ## Saad Agent Startup Warmup behavior (2026-07-14)
+
 - `StartupWarmupService` يبدأ تحميلًا مبكرًا غير حاجب للإعدادات، سجل المراجع، المهارات، والموصلات.
 - يبدأ warmup بعد ضبط `SAAD_AGENT_SETTINGS_ROOT` على مسار `userData` في Electron حتى لا يقرأ إعدادات من مكان خاطئ.
 - `StartupManager.initializeApplication()` يعيد استخدام نتيجة warmup بدل تكرار تهيئة متسلسلة.
@@ -435,12 +478,14 @@
 - هذا تنفيذ أصلي داخل Saad Agent، وليس نسخًا أو تشغيلًا لكود خارجي/مسرب.
 
 ## Saad Agent TypeScript build/typecheck behavior (2026-07-14)
+
 - إعداد `saad-agent/tsconfig.json` الرئيسي يجب أن يبقى مخصصًا لبناء Electron/Node وإخراج ملفات `dist`.
 - فحص الأنواع بدون إخراج يتم عبر `saad-agent/tsconfig.typecheck.json` والأمر `npm run typecheck`.
 - لا يجوز نسخ إعدادات Bun/Claude المرجعية فوق إعداد البناء الرئيسي، خصوصًا `noEmit: true` أو `types: ["bun-types"]` أو `moduleResolution: "bundler"`، لأنها تكسر مسار الحزمة الحالي.
 - إذا احتاج Saad Agent دعم Bun لاحقًا، يضاف كمسار منفصل ومثبت باختبارات، لا كتغيير عشوائي على build الموجود.
 
 ## Saad Agent Claude Code reference evidence gate behavior (2026-07-14)
+
 - `saad-agent/CLAUDE_CODE_REFERENCE_MANIFEST.json` is the generated file-level inventory for the local `E:\Agent-Reach-main\claude-code` comparative architecture reference.
 - `saad-agent/CLAUDE_CODE_REFERENCE_INDEX.md` records the safety rules: read-only architecture reference only; no copying, running, importing, vendoring, bundling, or reverse-engineering source from the reference folder.
 - Agent architecture/runtime/tooling tasks must inspect the Saad Agent source plus the Claude Code manifest/reference paths before claiming Claude Code-style integration.
@@ -451,6 +496,7 @@
 - If a prompt uses a protected reference path as an output target, Saad Agent must stop before `CodexRuntimeBridge` and ask for a real target workspace instead of silently writing elsewhere.
 
 ## Saad Agent DEZ design reference behavior (2026-07-14)
+
 - `saad-agent/DESIGN_REFERENCE_INDEX.md` is the active safe map for local `DEZ` UI/design references.
 - The index points Saad Agent to relevant shadcn dashboard/landing/admin/chat/settings/pricing/auth/component folders while keeping them read-only.
 - Design/page tasks should inspect the real target workspace first, then consult the matching `DEZ` reference category for patterns, then implement original code in the user's target path.
@@ -458,6 +504,7 @@
 - Arabic translation requests remain text-only unless RTL is explicitly requested; no-RTL user instructions keep layout LTR.
 
 ## Saad Agent attachment-only OpenAPI/spec continuation (2026-07-13)
+
 - UI messages that contain only `Attached long pasted content as file.` with a readable OpenAPI/API/config attachment are not ordinary chat messages.
 - If recent conversation history contains a prior engineering request such as model integration, provider wiring, API panel creation, or page implementation, `ChatOrchestratorService` must combine that previous task with the attachment context and route through engineering execution.
 - If no prior engineering task is available, Saad Agent must answer locally with a short clarification request and must not call Gemini, LM Studio, Ollama, Pi/Codex, or any other provider.
@@ -465,12 +512,14 @@
 - The prompt UI must clear the long-paste notice after the file is removed or sent. Sent attachment chips must display the real file badge (`TXT`, `YML`, `JSON`, etc.) and must not force a `PDF` label through CSS.
 
 ## Saad Agent local image assets in page-build prompts (2026-07-13)
+
 - Prompts that ask Saad Agent to build/design/implement a page and use existing local images from a folder are engineering file tasks, not inline image-generation tasks.
 - Example: if the user targets `C:\Users\PC\Desktop\lang` and says to use images from `C:\Users\PC\Desktop\lang\New folder`, runtime execution must target `C:\Users\PC\Desktop\lang`; the `New folder` path is only an asset source.
 - These prompts must not call `CreativeService`, must not require `SAAD_AGENT_IMAGE_GENERATION_ENDPOINT` or `KIE_API_KEY`, and must not return `No real image generator is configured`.
 - Path scoring must prefer explicit workspace cues such as `Ø§Ø´ØªØºÙ„ ÙÙ‚Ø· Ø¯Ø§Ø®Ù„ Ù‡Ø°Ø§ Ø§Ù„Ù…Ø³Ø§Ø±` / `work only inside this path` over asset cues such as `Ø§Ø³ØªØ®Ø¯Ù… Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯Ø© Ù‡Ù†Ø§` / `use images here`.
 
 ## Saad Agent explicit design target path behavior (2026-07-13)
+
 - Explicit target paths inside design/build prompts outrank copied active-workspace paths. If the text mentions `TEST ANG` but says the design should go to `E:\Agent-Reach-main\claude-code`, the latter is the execution workspace.
 - Local-path AI Studio/SaaS/page implementation requests route to `engineering.modify` before generic inspect/audit review, training ingest, or memory-save shortcuts.
 - In these requests, inspect-first wording means inspect before implementing; it must not convert the task into review-only daily maintenance.
@@ -478,6 +527,7 @@
 - `E:\Agent-Reach-main\claude-code` remains a comparative reference path only. It may be a target workspace if the user explicitly asks to write there, but Saad Agent must not copy, run, vendor, or reverse-engineer source from it.
 
 ## Saad Agent Codex-agentic workflow doctrine (2026-07-12)
+
 - `ENGINEERING_CONSTITUTION.md` now records the Codex-agentic workflow doctrine as a governing engineering rule for Saad Agent.
 - Saad Agent engineering work should follow an evidence-driven loop: classify, collect evidence, plan, request approval when required, execute, verify, repair or report a verified blocker, then document the outcome.
 - Public Codex documentation and the open-source `openai/codex` repository support exposed capabilities such as local repository work, file inspection/editing, command execution, permissions, and review workflows.
@@ -485,6 +535,7 @@
 - Terms such as Decision Engine, Planner, Executor, Verifier, and Self-Repair are Saad Agent architectural labels, not official OpenAI internal component names unless OpenAI publishes those exact names.
 
 ## Saad Agent Claude Code comparative-reference safety (2026-07-12)
+
 - Claude Code is an important comparative coding-agent reference for patterns such as terminal operation, codebase reading, file editing, command execution, permission modes, MCP/tools, skills, memory, subagents, worktrees, reviews, and verification loops.
 - The user-provided `tanbiralam/claude-code`, `fazxes/Claude-code`, and `Njengah/claude-code-source-code-leak` repositories describe themselves as leaked/proprietary or mirrored Claude Code source snapshots. They must not be copied, vendored, run, or reverse-engineered into Saad Agent.
 - Any Claude Code-inspired pattern must be validated through official Claude Code documentation or independent public research before becoming a Saad Agent product rule.
@@ -492,6 +543,7 @@
 - If Saad Agent becomes a sold, subscription, public, customer-facing, or third-party distributed product, these local leaked/proprietary reference folders and archives must be deleted or excluded from all repositories, build inputs, training bundles, release packages, and shipped artifacts before packaging.
 
 ## Saad Agent private daily maintenance engineer behavior (2026-07-12)
+
 - Saad Agent is the user's private maintenance engineer for the user's own site and software projects, not a subscriber-facing public assistant by default.
 - The local folder `E:\Agent-Reach-main\claude-code` is treated as the active high-risk Claude Code comparative reference path. It may guide high-level behavior for large-project maintenance, design workflows, command systems, tool orchestration, permission modes, memory, plugins, skills, sub-agents, bridge patterns, and verification loops.
 - Saad Agent should be Claude-first in operating style for design and large projects, but Saad-original in implementation. No leaked/proprietary source files from that folder may be copied, run, bundled, imported, vendored, or reverse-engineered into the product.
@@ -504,6 +556,7 @@
 - Daily-maintenance prompts that explicitly mention manual approval, such as `Ø¨Ø¹Ø¯ Ù…ÙˆØ§ÙÙ‚ØªÙŠ`, must show an approval card before execution even if the global approval mode would otherwise auto-approve.
 
 ## Saad Agent Claude/Codex-style architecture adoption matrix (2026-07-12)
+
 - The user's checklist is useful as architecture guidance, not as source code. Saad Agent may adopt the concepts with original implementation only.
 - Agent Loop: partially present through `ChatOrchestratorService`, `ExecutionPolicyService`, workflow routing, and approval-aware execution. Missing: one generic iterative model -> tool -> observation -> repeat loop for approved tasks.
 - Tool System: present through `ToolManager`, `MCPClient`, `PluginSDK`, and trusted workspace commands. Next improvement: make all tool execution pass through one lifecycle with approval and trace hooks.
@@ -531,6 +584,7 @@
 - Disabled Gemini or any disabled provider must not be callable and must not keep the default marker. If the selected provider is disabled or incomplete, Saad Agent should prefer a configured local runtime and otherwise return local setup guidance.
 
 ## Saad Agent central request-routing behavior (2026-07-12)
+
 - Saad Agent uses `RequestRoutingService` as the central top-level route contract before model, RAG, external research, or engineering fallbacks.
 - `ChatOrchestratorService` and `ExecutionPolicyService` must not let legacy keyword heuristics override a clear central route.
 - Local/no-tool/no-search constraints such as `Ù„Ø§ ØªØ¨Ø­Ø«`, `Ù„Ø§ ØªØ³ØªØ®Ø¯Ù… Ø¨Ø­Ø«`, `Ù„Ø§ ØªØ³ØªØ®Ø¯Ù… Ø£Ø¯ÙˆØ§Øª`, and `do not use tools` must block live search and unrelated trained-knowledge fallback.
@@ -538,17 +592,20 @@
 - Packaged releases must include `dist/platform/services/request-routing.js` inside `app.asar`.
 
 ## Saad Agent chat message footer actions (2026-07-12)
+
 - Each chat message shows a compact footer action row with copy, read aloud, thumbs up, thumbs down, and regenerate icons.
 - Copy and read aloud are local UI actions. Thumbs up/down are local visual feedback only in this phase.
 - Regenerate restores the previous user prompt into the composer for explicit resend; it must not silently re-run model/tool execution.
 
 ## Saad Agent image prompt drafting routing behavior (2026-07-11)
+
 - Ø·Ù„Ø¨Ø§Øª ÙƒØªØ§Ø¨Ø© Ø£Ùˆ ØªØµÙ…ÙŠÙ… Ø¨Ø±ÙˆÙ…Ø¨Øª ØµÙˆØ±Ø© Ù…Ø«Ù„ `Ø§Ø±ÙŠØ¯ ØªØµÙ…ÙŠÙ… Ù„ÙˆÙƒØ³ Ø¨Ø±ÙˆÙ…Ø¨ÙŠØª ØµÙˆØ±Ø© Ø§Ø¹Ø±Ø¶Ù‡Ø§ Ù‡Ù†Ø§` Ù‡ÙŠ Ø·Ù„Ø¨Ø§Øª ØµÙŠØ§ØºØ© Ù†ØµÙŠØ© ÙˆÙ„ÙŠØ³Øª Ø¨Ø­Ø« ØµÙˆØ±.
 - ÙˆØ¬ÙˆØ¯ ÙƒÙ„Ù…Ø© `ØµÙˆØ±Ø©` Ø¯Ø§Ø®Ù„ Ø·Ù„Ø¨ Ø¨Ø±ÙˆÙ…Ø¨Øª Ù„Ø§ ÙŠÙƒÙÙŠ Ù„ØªØ´ØºÙŠÙ„ Brave Image Search Ø£Ùˆ Ø·Ù„Ø¨ Ù…ÙˆØ§ÙÙ‚Ø© Ø¨Ø­Ø«.
 - Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¨Ø­Ø« Ø§Ù„ØµØ±ÙŠØ­Ø© Ø¹Ù† ØµÙˆØ±ØŒ Ù…Ø«Ù„ `Ø§Ø¨Ø­Ø«Ù„ÙŠ Ø¹Ù† ØµÙˆØ± Ù†ÙˆØ± Ø²Ù‡ÙŠØ±`ØŒ ØªØ¨Ù‚Ù‰ ÙÙŠ Ù…Ø³Ø§Ø± image search Ø§Ù„Ø­Ù‚ÙŠÙ‚ÙŠ.
 - Ø§Ù„Ø±Ø¯ Ø§Ù„Ù…Ø¨Ø§Ø´Ø± Ù„Ø·Ù„Ø¨ Ø¨Ø±ÙˆÙ…Ø¨Øª Ø§Ù„ØµÙˆØ±Ø© ÙŠØ¬Ø¨ Ø£Ù† ÙŠØ¹Ø·ÙŠ Ø¨Ø±ÙˆÙ…Ø¨Øª Ø¬Ø§Ù‡Ø²Ø§Ù‹ ÙˆØ³Ù„Ø¨ÙŠØ§Ù‹ Ù…Ø®ØªØµØ±Ø§Ù‹ Ø¨Ø¯ÙˆÙ† Ø§Ø®ØªØ±Ø§Ø¹ Ù†ØªØ§Ø¦Ø¬ Ø¨Ø­Ø« Ø£Ùˆ Ø±ÙˆØ§Ø¨Ø·.
 
 ## Saad Agent inline image generation behavior (2026-07-12)
+
 - Inline image generation is separate from prompt drafting. If the user asks to generate/render/show an actual image inside chat, Saad Agent must not call image search, must not route to a text model, and must not display placeholder/mock images.
 - Inline generation now routes through `CreativeService` and the Saad Studio creative provider. It can use a configured image endpoint (`SAAD_AGENT_IMAGE_GENERATION_ENDPOINT` or `SAAD_STUDIO_IMAGE_ENDPOINT`) or direct KIE credentials (`KIE_API_KEY` or `KIEAI_API_KEY`).
 - If generation succeeds, chat returns a Markdown image (`![Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„Ù†Ø§ØªØ¬Ø©](...)`) so the existing renderer shows a clickable thumbnail inside the conversation.
@@ -556,12 +613,14 @@
 - Legacy Creative providers must not create 1x1 PNG placeholder assets or emit generated-asset completed/stored events without a real image-generation provider.
 
 ## Saad Agent malformed Skill/provider crash guard (2026-07-11)
+
 - Skill matching must normalize custom and built-in Skill records before routing. Missing keywords, file patterns, task types, capabilities, prompt templates, recommended tools, or supported-agent arrays are treated as empty lists.
 - Malformed custom Skills must not crash chat/planning with raw errors such as `Cannot read properties of undefined (reading 'toLowerCase')`.
 - Missing provider type values must return a clear configuration error instead of a raw JavaScript exception.
 - Creative/design/image requests can still route through normal chat/model or creative approval paths, but malformed Skill data must not break the request before a proper response is produced.
 
 ## Saad Agent clean Chat context and Gemini extraction behavior (2026-07-11)
+
 - Normal conversational answers use the configured `Chat` role. Engineering workflows continue to use `Coding`.
 - Before a provider call, Saad Agent strips corrupted mojibake fragments and unrelated noisy history from the conversation context so old broken text is not copied into new answers.
 - Ordinary prompts must not receive unrelated adult-story training context. Private narrative knowledge is still available when the user explicitly asks for saved/training/private story knowledge or analysis.
@@ -570,6 +629,7 @@
 - Expertise topic cleanup removes wrappers such as `for:`, `about`, `from Gemini`, and `save it` before generating titles and filenames.
 
 ## Saad Agent URL monitoring and image attachment behavior (2026-07-11)
+
 - URL prompts with a concrete HTTP/HTTPS link and monitor/update wording such as `Ø±Ø§Ù‚Ø¨`, `ØªØ§Ø¨Ø¹`, `Ø§Ù„ØªØ­Ø¯ÙŠØ«Ø§Øª`, `Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©`, `monitor`, `watch`, `check updates`, `what's new`, or `changelog` are direct URL read/import requests.
 - These prompts must use the URL crawler/training path, save the readable page, and send only a bounded retrieved excerpt to the model.
 - If the URL crawler cannot fetch the page or cannot extract enough readable text, direct URL read/import requests must return a non-model failure message with the real crawler reason. They must not continue into model fallback.
@@ -579,6 +639,7 @@
 - Screenshots attached as context for an existing text problem should continue through normal chat orchestration without forcing the Vision provider.
 
 ## Saad Agent saved knowledge lookup precedence (2026-07-11)
+
 - Requests that explicitly ask from saved/stored/local/training knowledge route to local `knowledge_lookup` before external research, image search, memory save, training ingest, or model fallback.
 - Example: `Ø§Ø´Ø±Ø­Ù„ÙŠ Ù…Ù† Ù…Ø¹Ø±ÙØªÙƒ Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø© Ø¹Ù† image search thumbnails` must read indexed training knowledge and must not call Brave Image Search even though the topic contains `image search`.
 - The local lookup response lists matching saved cards and states that no internet search was used.
@@ -586,6 +647,7 @@
 - Explicit saved-knowledge lookup suppresses weak unrelated RAG matches when an exact topic card exists. Topic identity is checked against title, file path, and tags before broad summary/chunk matches.
 
 ## Saad Agent local model expertise extraction behavior (2026-07-11)
+
 - Explicit requests to extract, distill, capture, or learn expertise from the local model route to `ModelExpertiseExtractionService` before generic memory-save or training-ingest handling.
 - The service asks the configured active local model for a structured Markdown expertise card, scrubs secrets, saves the card under `.saad-agent/training/lessons/model-expertise/`, and reindexes the existing training knowledge through `KnowledgeIngestionService`.
 - Saved cards are tagged `model-expertise`, `local-model`, and `model-generated-unverified`.
@@ -597,6 +659,7 @@
 - Provider-aware guard: explicit Gemini or ChatGPT/OpenAI expertise extraction requests are recognized, but this phase does not fake those providers. If no real connector is configured, the agent returns a not-configured response, does not call the local model as a substitute, and saves no card.
 
 ## Saad Agent strict local-answer behavior (2026-07-11)
+
 - Prompts that say `Ù„Ø§ ØªØ³ØªØ®Ø¯Ù… Ø£ÙŠ Ø£Ø¯Ø§Ø©`, `Ù„Ø§ ØªØ¨Ø­Ø«`, `Ø£Ø¬Ø¨ ÙÙ‚Ø·`, `Ø§Ù„Ù†ØªÙŠØ¬Ø© Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠØ© ÙÙ‚Ø·`, or `Ø¥Ø°Ø§ Ù„Ù… ØªØ¹Ø±Ù ÙÙ‚Ù„ ...` must not use trained-knowledge fallback when the active model fails.
 - Memory-save prompts that include `Ù„Ø§ ØªØ±Ø¯` must save the fact silently and return an empty response.
 - Exact remembered-number recall must return only the remembered number when the user asks for it.
@@ -604,6 +667,7 @@
 - Explicit unknown fallback answers such as `Ù„Ø§ Ø£Ø¹Ù„Ù…` must be preserved even though they start with `Ù„Ø§`.
 
 ## Saad Agent deterministic text-instruction behavior (2026-07-11)
+
 - Simple text instructions are handled deterministically before URL crawling, memory, trained knowledge, and model fallback.
 - Bare literal write prompts such as `Ø§ÙƒØªØ¨` followed by `12345` and `ÙˆÙ„Ø§ ØªØ¶Ù Ø£ÙŠ Ø´ÙŠØ¡` must return only the requested literal text.
 - Word-count prompts extract quoted text first and count words locally, including Arabic words with diacritics as single words.
@@ -611,6 +675,7 @@
 - These handlers must preserve the user's original output text and must not print trained-knowledge matches when the provider is unavailable.
 
 ## Saad Agent direct non-model answer behavior (2026-07-11)
+
 - Simple arithmetic, literal echo requests, and project-language questions are handled before URL crawling, memory, trained knowledge, and model fallback.
 - Arithmetic such as `8 + 9` must return the computed value directly without model or RAG.
 - Literal requests such as `write the word Ù…Ø±Ø­Ø¨Ø§ only` must return only the requested literal text.
@@ -618,6 +683,7 @@
 - These direct answers must not print trained-knowledge matches when the provider is unavailable.
 
 ## Saad Agent media/link request routing (2026-07-10)
+
 - Link/image/video/audio requests are handled as structured request families before model fallback.
 - Generic Arabic prompts such as `Ø§Ø±ÙŠØ¯ Ø±Ø§Ø¨Ø·`, `Ø§Ø±ÙŠØ¯ ÙÙŠØ¯ÙŠÙˆ`, and `Ø§Ø±ÙŠØ¯ ØµÙˆØª` ask for the missing topic before approval or provider execution.
 - Image requests continue to use `ResearchGatewayService.searchImages(...)`; video/audio/link discovery uses `ResearchGatewayService.search(...)` with cleaned topic terms and media-specific expansion terms.
@@ -626,6 +692,7 @@
 - Short Iraqi acknowledgements such as `Ø´ÙƒØ±Ø§ Ø§Ù„Ùƒ` use deterministic replies without model calls.
 
 ## Saad Agent internet image-search thumbnail behavior (2026-07-10)
+
 - Requests such as `Ø§Ø±ÙŠØ¯ ØµÙˆØ± Ù…Ù† Ø§Ù„Ø§Ù†ØªØ±Ù†Øª Ø¹Ù† ...` remain in the canonical `external_research` path and are detected by `ResearchGatewayService.isImageSearchRequest(...)`.
 - `ChatOrchestratorService` calls `ResearchGatewayService.searchImages(...)` for image-search prompts, not the active model.
 - The current concrete provider is Brave Image Search at `/res/v1/images/search`, using the existing Brave provider settings and API key.
@@ -634,6 +701,7 @@
 - The first implementation uses strict Safe Search by default; expose configurable Safe Search later only through Settings, not ad hoc prompt logic.
 
 ## Saad Agent deterministic official-link routing (2026-07-10)
+
 - Stable official homepage requests such as YouTube, Adobe, GitHub, Google, Civitai, Mobily, and Reddit are resolved by `DeterministicCommandService` before orchestration/model fallback.
 - YouTube homepage aliases include common Arabic spellings and typos: `ÙŠÙˆØªÙŠÙˆØ¨`, `Ø§Ù„ÙŠÙˆØªÙŠÙˆØ¨`, `ÙŠÙˆØªÙˆØ¨`, `Ø§Ù„ÙŠÙˆØªÙˆØ¨`, `ÙŠÙˆØªÙˆÙŠØ¨`, and `Ø§Ù„ÙŠÙˆØªÙˆÙŠØ¨`.
 - These direct homepage answers return clickable Markdown links, do not require internet approval, and must not call the active model.
@@ -641,6 +709,7 @@
 - Official-site command patterns remain centralized in `DeterministicCommandService`; UI and orchestrator code must not duplicate the same site list.
 
 ## Saad Agent external research planning behavior (2026-07-10)
+
 - `ResearchGatewayService` is the single live-search gateway and now has an `AgentReachProvider` adapter before Brave fallback.
 - Social profile/account/page/link requests for platforms such as Instagram, Facebook, TikTok, X/Twitter, Snapchat, and LinkedIn route to canonical `external_research`, even when the Arabic prompt uses `ØµÙØ­Ø©`. They must not route to engineering page creation, `pi_exec`, trained-knowledge fallback, or model-generated links.
 - Social-profile query planning preserves the target name and adds platform-aware variants such as `site:instagram.com`.
@@ -658,6 +727,7 @@
 - Chat orchestration must keep using this gateway for `external_research`; it must not ask the active model to invent links.
 
 ## Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ø§Ù„Ø°ÙƒÙŠ ÙˆØ§Ù„ØªÙˆØ­ÙŠØ¯ Ù„Ù…ÙˆØ¯ÙŠÙ„ Seedream 5.0 Pro (2026-07-09)
+
 - **Ø¢Ù„ÙŠØ© Ø§Ù„Ø¹Ù…Ù„**: ØªÙ… Ø¯Ù…Ø¬ ÙˆØªÙˆØ­ÙŠØ¯ Ø®ÙŠØ§Ø± Ù…ÙˆØ¯ÙŠÙ„ **Seedream 5.0 Pro** ÙÙŠ ÙˆØ§Ø¬Ù‡Ø© ØªÙˆÙ„ÙŠØ¯ Ø§Ù„ØµÙˆØ± (`app/(dash)/(routes)/image/page.tsx`) ÙƒØ®ÙŠØ§Ø± ÙˆØ§Ø­Ø¯ Ù…ÙˆØ­Ø¯ (`seedream/5-pro`).
 - **Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ**: ÙŠÙ‚ÙˆÙ… Ø§Ù„Ø®Ø§Ø¯Ù… (`app/api/generate/image/route.ts` Ùˆ `app/api/image/generate/route.ts`) Ø¨ÙØ­Øµ Ø§Ù„Ù…Ø¯Ø®Ù„Ø§Øª ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹:
   - ÙÙŠ Ø­Ø§Ù„ Ø¥Ø±Ø³Ø§Ù„ Ù†Øµ ÙÙ‚Ø·ØŒ ÙŠØªÙ… ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø¨ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ù„Ù„Ù…ÙˆØ¯ÙŠÙ„ Ø§Ù„Ù†ØµÙŠ `seedream/5-pro-text-to-image`.
@@ -671,6 +741,7 @@
 - **Ø§Ù„Ù†Ø³Ø¨ Ø§Ù„Ù…ØªØ§Ø­Ø©**: ØªÙ… ØªÙØ¹ÙŠÙ„ Ø§Ù„Ù†Ø³Ø¨ØªÙŠÙ† `2:3` Ùˆ `3:2` Ù…Ø¹ ØªØµÙ…ÙŠÙ… Ø£Ø´ÙƒØ§Ù„Ù‡Ù…Ø§ Ø§Ù„ØªÙˆØ¶ÙŠØ­ÙŠØ© Ù„Ø¹Ø±Ø¶Ù‡Ù…Ø§ ÙÙŠ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø©.
 
 ## Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ø§Ù„Ø°ÙƒÙŠ Ù„Ù…ÙˆØ¯ÙŠÙ„Ø§Øª Seedance 2.0 Ùˆ Mini Ù„ØªÙØ§Ø¯ÙŠ Ù‚ÙŠÙˆØ¯ Ø§Ù„Ø£Ù…Ø§Ù† (2026-07-09)
+
 - **Ø¢Ù„ÙŠØ© Ø§Ù„Ø¹Ù…Ù„**: ØªÙ… Ø¯Ù…Ø¬ Ø³Ù„ÙˆÙƒ ØªÙˆØ¬ÙŠÙ‡ ØªÙ„Ù‚Ø§Ø¦ÙŠ Ø°ÙƒÙŠ ÙÙŠ Ø®Ø§Ø¯Ù… Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ (`app/api/video/route.ts` Ùˆ `app/api/panel/generate/video/route.ts`) Ù„Ù„ØªØ¹Ø§Ù…Ù„ Ù…Ø¹ Ù‚ÙŠÙˆØ¯ Ø±ÙØ¹ Ø§Ù„ØµÙˆØ± ÙˆØ§Ù„Ø£ÙØªØ§Ø± ÙÙŠ Ù…ÙˆØ¯ÙŠÙ„Ø§Øª Seedance Ù…Ù† Ø§Ù„Ù…ØµØ¯Ø± (BytePlus).
 - **Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ù„Ù€ KIE**: Ø¹Ù†Ø¯ Ù‚ÙŠØ§Ù… Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø£Ùˆ Ø§Ù„Ù…Ø´ØªØ±Ùƒ Ø¨Ø±ÙØ¹ Ø£ÙŠ ØµÙˆØ±Ø© Ù…Ø±Ø¬Ø¹ÙŠØ©ØŒ Ø£ÙØªØ§Ø±ØŒ ØµÙˆØ±Ø© ÙØ±ÙŠÙ… Ø£ÙˆÙ„ Ø£Ùˆ Ø£Ø®ÙŠØ±ØŒ ÙŠØªÙ… ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø¨ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¥Ù„Ù‰ Ù…Ù†ØµØ© `kie.ai` Ù„Ø¥Ù†ØªØ§Ø¬ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ù„ØªØ¬Ù†Ø¨ Ø³ÙŠØ§Ø³Ø§Øª Ø§Ù„Ø±ÙØ¶ ÙˆØ§Ù„ØªØµÙÙŠØ© Ø§Ù„ØµØ§Ø±Ù…Ø© Ù„Ù„Ù…ØµØ¯Ø±.
 - **ØªØ³Ø¹ÙŠØ± Ø¬ÙˆØ¯Ø© 480p**: ØªÙ… ØªØ­Ø¯ÙŠØ¯ ØªØ³Ø¹ÙŠØ± Ù…ÙˆØ¯ÙŠÙ„ Seedance 2.0 Mini Ù„Ø¯Ù‚Ø© 480p Ù„ÙŠÙƒÙˆÙ† **20 Ø±ØµÙŠØ¯ Ù„ÙƒÙ„ 15 Ø«Ø§Ù†ÙŠØ©** (Ø¨Ù…Ø¹Ø¯Ù„ 20/15 Ø±ØµÙŠØ¯ ÙÙŠ Ø§Ù„Ø«Ø§Ù†ÙŠØ©).
@@ -681,12 +752,14 @@
 - **Ø´Ø§Ø±Ø§Øª Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…Ø±Ø¬Ø¹ÙŠØ© Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠØ©**: ØªÙ… Ø¥Ø¶Ø§ÙØ© Ø´Ø§Ø±Ø§Øª ØªÙØ§Ø¹Ù„ÙŠØ© ØªØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ ØµÙˆØ± Ù…ØµØºØ±Ø© ÙˆØ±Ù…ÙˆØ² Ù…Ø±Ø¬Ø¹ÙŠØ© (Ù…Ø«Ù„ `@image1`) ØªØ¸Ù‡Ø± ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ ÙÙˆÙ‚ Ø­Ù‚Ù„ ÙƒØªØ§Ø¨Ø© Ø§Ù„Ù†Ø«Ø± Ø¹Ù†Ø¯ Ù‚ÙŠØ§Ù… Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ø±ÙØ¹ ØµÙˆØ± Ù…Ø±Ø¬Ø¹ÙŠØ©ØŒ ØªØªÙŠØ­ Ù„Ù‡ Ø§Ù„Ù†Ù‚Ø± Ø¹Ù„ÙŠÙ‡Ø§ Ù„Ø¥Ø¯Ø±Ø§Ø¬ Ø§Ù„Ø±Ù…Ø² Ù…Ø¨Ø§Ø´Ø±Ø© Ø¯Ø§Ø®Ù„ Ù†Øµ Ø§Ù„Ù†Ø«Ø±.
 
 ## Ø¥Ø¶Ø§ÙØ© Ù…ÙŠØ²Ø© ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„Ø­Ù‚ÙŠÙ‚ÙŠ (Video-to-Video Editing) Ø¹Ø¨Ø± Gemini Omni Flash (2026-07-08)
+
 - **Ø±ÙØ¹ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ (Base Video Upload)**: ØªÙ… ØªØ²ÙˆÙŠØ¯ ÙˆØ§Ø¬Ù‡Ø© ØµÙØ­Ø© Ø§Ù„Ø±Ø³Ù… Ù„Ù„ØªÙˆÙ„ÙŠØ¯ (`app/(dash)/(routes)/apps/tool/draw-to-video/page.tsx`) Ø¨Ø§Ù„Ù‚Ø¯Ø±Ø© Ø¹Ù„Ù‰ Ø±ÙØ¹ Ù…Ù‚Ø§Ø·Ø¹ ÙÙŠØ¯ÙŠÙˆ ÙƒØ®Ù„ÙÙŠØ© (Ø¨ØµÙŠØº mp4, webm, mov) Ø¬Ù†Ø¨Ø§Ù‹ Ø¥Ù„Ù‰ Ø¬Ù†Ø¨ Ù…Ø¹ Ø§Ù„ØµÙˆØ±.
 - **Ù…Ø´ØºÙ„ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠ ÙˆØ§Ù„Ø±Ø¨Ø· Ø¨Ø§Ù„ÙØ±Ø´Ø§Ø©**: Ø¹Ù†Ø¯ Ø±ÙØ¹ ÙÙŠØ¯ÙŠÙˆØŒ ÙŠØ¸Ù‡Ø± Ù…Ø´ØºÙ„ ÙÙŠØ¯ÙŠÙˆ HTML5 ØªÙØ§Ø¹Ù„ÙŠ Ø®Ù„Ù Ù„ÙˆØ­Ø© Ø§Ù„Ø±Ø³Ù…ØŒ Ù…Ø¹ Ø§Ù„ØªØ²Ø§Ù… Ø¨Ø£Ø¨Ø¹Ø§Ø¯ Ø§Ù„ÙƒÙˆØ¯ ÙˆÙ†Ø³Ø¨ Ø§Ù„Ø¹Ø±Ø¶ Ù„ØªØ·Ø§Ø¨Ù‚ Ù†Ø¸Ø§Ù… Ø¥Ø­Ø¯Ø§Ø«ÙŠØ§Øª Ø§Ù„ÙØ±Ø´Ø§Ø© ØªÙ…Ø§Ù…Ø§Ù‹. ÙƒÙ…Ø§ ÙŠØªÙˆÙ‚Ù Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ ÙÙˆØ± Ø¨Ø¯Ø¡ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ø§Ù„Ø±Ø³Ù… Ù„ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ù…Ù†Ø·Ù‚Ø© Ø§Ù„Ù…Ø±Ø§Ø¯ ØªØ¹Ø¯ÙŠÙ„Ù‡Ø§ (Masking).
 - **Ø§Ù„ØªØ­ÙƒÙ… Ø¨Ø§Ù„ØªØ´ØºÙŠÙ„ ÙˆØ§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©**: ØªÙ… Ø¥Ø¶Ø§ÙØ© Ø£Ø²Ø±Ø§Ø± ØªØ´ØºÙŠÙ„ ÙˆØ¥ÙŠÙ‚Ø§Ù Ù…Ø¤Ù‚Øª (Play/Pause) ÙÙŠ Ø´Ø±ÙŠØ· Ø§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ø¹Ø§Ø¦Ù… Ù„ØªØ³Ù‡ÙŠÙ„ Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„ÙØ±ÙŠÙ… Ø§Ù„Ø¯Ù‚ÙŠÙ‚ Ù„Ù„ØªØ¹Ø¯ÙŠÙ„.
 - **Ø¯Ù…Ø¬ Ø§Ù„ÙØ±ÙŠÙ…Ø§Øª ÙˆØ§Ù„ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø°ÙƒÙŠ**: ÙŠÙ‚ÙˆÙ… Ø§Ù„Ù†Ø¸Ø§Ù… Ø¨Ø§Ù„ØªÙ‚Ø§Ø· Ø§Ù„ÙØ±ÙŠÙ… Ø§Ù„Ù†Ø´Ø· Ø§Ù„Ø­Ø§Ù„ÙŠ Ù…Ù† Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ÙˆØ¯Ù…Ø¬Ù‡ Ù…Ø¹ Ø·Ø¨Ù‚Ø© Ø§Ù„Ø±Ø³Ù… Ø§Ù„Ù…Ù„ÙˆÙ†Ø© Ù„Ø¥Ø±Ø³Ø§Ù„Ù‡Ø§ ÙƒØ¥Ø¯Ø®Ø§Ù„ Ø£ÙˆÙ„ÙŠ (`image_url`) Ù…Ø¹ ØªÙ…Ø±ÙŠØ± Ù…Ù„Ù Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„Ø£ØµÙ„ÙŠ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ ÙƒÙ€ `video_url` Ù„Ø·Ù„Ø¨ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ Ù…Ù† Ø®Ù„Ø§Ù„ Ù…ÙˆØ¯ÙŠÙ„ **Gemini Omni Flash** (Ø¨Ù…Ù‡Ù…Ø© `edit_video` Ø¨Ø§Ù„Ù€ Backend) Ù„Ø¥Ù†ØªØ§Ø¬ ÙÙŠØ¯ÙŠÙˆ Ø¬Ø¯ÙŠØ¯ Ù…Ø¹Ø¯Ù„ ÙƒÙ„ÙŠØ§Ù‹ ÙˆÙ…Ø¯Ù…Ø¬ Ø¨ØµØ±ÙŠØ§Ù‹.
 
 ## Ø¥Ø¶Ø§ÙØ© Ù…Ø¹Ø±Ø¶ Ø£Ø¹Ù…Ø§Ù„ Ø§Ù„Ø§Ø³ØªÙˆØ¯ÙŠÙˆ ÙˆØ¯Ø¹Ù… Ø±ÙØ¹ Ø§Ù„ØµÙˆØ± ÙˆØ§Ù„ÙÙŠØ¯ÙŠÙˆÙ‡Ø§Øª Ø¨Ø§Ù„Ù†Ø³Ø¨ Ø§Ù„Ø£ØµÙ„ÙŠØ© (2026-07-08)
+
 - **Ù…Ø¹Ø±Ø¶ Ø£Ø¹Ù…Ø§Ù„ Ø§Ù„Ø§Ø³ØªÙˆØ¯ÙŠÙˆ (Studio Creations Feed)**: ØªÙ… ØªØµÙ…ÙŠÙ… ÙˆØ¥Ø¯Ø±Ø§Ø¬ Ù‚Ø³Ù… ØªÙØ§Ø¹Ù„ÙŠ Ø¬Ø¯ÙŠØ¯ ÙÙŠ ØµÙØ­Ø© Ø§ÙƒØªØ´Ù (`app/(dash)/(routes)/explore/page.tsx`) Ø£Ø³ÙÙ„ ØµÙ Ø§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ø¯Ø§Ø¦Ø±ÙŠØ© Ù…Ø¨Ø§Ø´Ø±Ø©. ÙŠÙ‚ÙˆÙ… Ù‡Ø°Ø§ Ø§Ù„Ù‚Ø³Ù… Ø¨Ø¬Ù„Ø¨ Ø¨Ø·Ø§Ù‚Ø§Øª Ø§Ù„ØªÙˆÙ„ÙŠØ¯ Ø§Ù„ÙÙ†ÙŠØ© (Showcase items) Ø§Ù„Ù…Ù†Ø´ÙˆØ±Ø© ÙÙŠ Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª ÙˆØ¹Ø±Ø¶Ù‡Ø§ ÙÙŠ Ø´Ø¨ÙƒØ© Ø¨Ø·Ø§Ù‚Ø§Øª Ù…ØªÙ†Ø§Ø³Ù‚Ø© ØªØ¯Ø¹Ù… Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ù„Ù„ÙÙŠØ¯ÙŠÙˆ Ø¹Ù†Ø¯ Ù…Ø±ÙˆØ± Ø§Ù„ÙØ£Ø±Ø© ÙˆÙ†Ø³Ø® Ø§Ù„Ù€ Prompts.
 - **Ø§Ù„Ø§Ù„ØªØ²Ø§Ù… Ø¨Ù†Ø³Ø¨ Ø§Ù„Ø£Ø¨Ø¹Ø§Ø¯ (Aspect Ratio Control)**: ØªØ¯Ø¹Ù… Ø§Ù„Ø¨Ø·Ø§Ù‚Ø§Øª Ø§Ù„Ø§Ù„ØªØ²Ø§Ù… Ø¨Ø§Ù„Ù†Ø³Ø¨ Ø§Ù„Ø£ØµÙ„ÙŠØ© Ø§Ù„ØªÙŠ ØªÙ… ØªÙˆÙ„ÙŠØ¯Ù‡Ø§ Ø¨Ù‡Ø§ (Ù…Ø«Ù„ 16:9 Ùˆ 9:16 Ùˆ 1:1 Ùˆ 4:3 Ùˆ 3:4) Ø¹Ù† Ø·Ø±ÙŠÙ‚ ÙØ¦Ø§Øª Tailwind Ø§Ù„Ø¯ÙŠÙ†Ø§Ù…ÙŠÙƒÙŠØ© (`aspect-[16/9]`ØŒ `aspect-[9/16]`ØŒ Ø¥Ù„Ø®) Ù…Ù…Ø§ ÙŠÙ…Ù†Ø¹ ØªØ´ÙˆÙŠÙ‡ Ø§Ù„Ù…Ø´Ù‡Ø¯ Ø£Ùˆ ØªÙ…Ø¯Ø¯Ù‡.
 - **ØªÙƒØ§Ù…Ù„ Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ… (Admin Panel Integration)**: ØªÙ… ØªØ±Ù‚ÙŠØ© Ù„ÙˆØ­Ø© Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ø­ØªÙˆÙ‰ Ù„ØµÙØ­Ø© Ø§ÙƒØªØ´Ù (`app/admin/cms/explore/page.tsx`) Ù„ØªÙ…ÙƒÙŠÙ† Ø§Ù„Ù…Ø¯ÙŠØ± Ù…Ù†:
@@ -695,6 +768,7 @@
   - Ø±ÙØ¹ Ø§Ù„ØµÙˆØ± Ù…Ø¨Ø§Ø´Ø±Ø© ÙƒÙ€ Showcase Item Ø¯ÙˆÙ† Ø§Ø´ØªØ±Ø§Ø· ÙˆØ¬ÙˆØ¯ Ù…Ù„Ù ÙÙŠØ¯ÙŠÙˆ Ù…Ø±Ø§ÙÙ‚ (ÙŠÙ‚ÙˆÙ… Ø§Ù„Ù†Ø¸Ø§Ù… Ø¨Ø±Ø¨Ø· Ø±Ø§Ø¨Ø· Ø§Ù„ØµÙˆØ±Ø© ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ ÙƒÙ€ `thumbnail_url` Ùˆ `video_url` Ù„Ø¶Ù…Ø§Ù† ØªÙƒØ§Ù…Ù„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª).
 
 ## ØªØ·ÙˆÙŠØ± Ø¹Ù…ÙŠÙ„ ØµÙØ­Ø© Ø§ÙƒØªØ´Ù ÙˆØ¥Ø¶Ø§ÙØ© Ø§Ù„Ø£Ù†Ù…Ø§Ø· Ø§Ù„Ø¥Ø¨Ø¯Ø§Ø¹ÙŠØ© Ø§Ù„Ù…Ø¨ØªÙƒØ±Ø© (2026-07-07)
+
 - **Ø¯Ø¹Ù… ÙƒØªØ§Ø¨Ø© Ø§Ù„Ù…Ø­ØªÙˆÙ‰ (Content Writing)**: ØªÙ… ØªØ·ÙˆÙŠØ± Ø§Ù„Ø³Ù„ÙˆÙƒ Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠ Ù„Ø¹Ù…ÙŠÙ„ ØµÙØ­Ø© Ø§ÙƒØªØ´Ù ÙÙŠ Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ø®Ù„ÙÙŠ `app/api/explore/route.ts` Ù„ÙŠØªØ¹Ø±Ù Ø¹Ù„Ù‰ Ø·Ù„Ø¨Ø§Øª ÙƒØªØ§Ø¨Ø© Ø§Ù„Ø³ÙŠÙ†Ø§Ø±ÙŠÙˆÙ‡Ø§ØªØŒ Ø§Ù„Ù‚ØµØµØŒ Ø§Ù„Ù…Ù‚Ø§Ù„Ø§ØªØŒ ÙˆØ§Ù„Ø£ÙÙƒØ§Ø± Ø§Ù„Ø¯Ø±Ø§Ù…ÙŠØ© Ø£Ùˆ Ø§Ù„Ø³ÙŠÙ†Ù…Ø§Ø¦ÙŠØ©ØŒ Ø­ÙŠØ« ÙŠÙ‚ÙˆÙ… Ø§Ù„Ø¹Ù…ÙŠÙ„ Ø§Ù„Ø°ÙƒÙŠ Ø¨ÙƒØªØ§Ø¨Ø© Ø§Ù„Ù…Ø­ØªÙˆÙ‰ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© ÙˆØ¥Ø¹Ø§Ø¯ØªÙ‡ ÙÙŠ Ø­Ù‚Ù„ Ø§Ù„Ù€ `response` Ù…Ø¨Ø§Ø´Ø±Ø© Ø¯ÙˆÙ† Ø§Ù„Ø­Ø§Ø¬Ø© Ù„Ø·Ù„Ø¨ Ø¥Ø¹Ø§Ø¯Ø© ØªÙˆØ¬ÙŠÙ‡ (set `"action": "chat"`).
 - **Ø¯Ù…Ø¬ Ø§Ù„Ø£Ù†Ù…Ø§Ø· Ø§Ù„Ø¥Ø¨Ø¯Ø§Ø¹ÙŠØ© ÙˆØ§Ù„Ø£Ø¯ÙˆØ§Øª (Creative AI Presets)**: ØªÙ… ØªÙˆØ³ÙŠØ¹ Ù…ØµÙÙˆÙØ© Ø§Ù„ØªÙˆØ¬ÙŠÙ‡Ø§Øª Ø§Ù„Ø°ÙƒÙŠØ© ÙˆØªÙƒÙˆÙŠÙ† Ù…Ø³Ø§Ø±Ø§Øª Ø¨Ø±Ù…Ø¬ÙŠØ© ÙˆPrompt presets Ù…Ø®ØµØµØ© Ù„Ù„Ø£Ù†Ù…Ø§Ø· ÙˆØ§Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¥Ø¨Ø¯Ø§Ø¹ÙŠØ© Ø§Ù„ØªØ§Ù„ÙŠØ©:
   - **DV Diary**: ØªØ­ÙˆÙŠÙ„ ÙÙˆØ±ÙŠ Ø¥Ù„Ù‰ ØµÙØ­Ø© ØªÙˆÙ„ÙŠØ¯ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ù…Ø¹ Prompt ÙŠØ­Ø§ÙƒÙŠ ØªØ³Ø¬ÙŠÙ„Ø§Øª Handycam Ø§Ù„Ù…Ù†Ø²Ù„ÙŠØ© ÙˆØ§Ù„ØªØ³Ø¹ÙŠÙ†ÙŠØ§Øª.
@@ -710,6 +784,7 @@
 
 
 ## ØªÙØ¹ÙŠÙ„ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø®ØµØµØ© ÙˆØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ÙˆØ¶Ø¹ Ø§Ù„ØµØ§Ù…Øª/Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚ÙŠ Ø§Ù„ØµØ±Ù Ø¨Ø´ÙƒÙ„ ØµØ§Ø±Ù… (2026-07-06)
+
 - ØªÙ… Ø¥ØµÙ„Ø§Ø­ Ù…Ø´ÙƒÙ„Ø© Ø¹Ø¯Ù… Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø®ØµØµØ© (Verse, Chorus, Bridge) ÙÙŠ Ø­Ø§Ù„ ÙƒØªØ§Ø¨ØªÙ‡Ø§ ÙˆØ§Ù„Ø±Ø¬ÙˆØ¹ Ù„ØªØ¨ÙˆÙŠØ¨ Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ (Prompt) Ù‚Ø¨Ù„ Ø§Ù„Ù†Ù‚Ø± Ø¹Ù„Ù‰ Ø§Ù„ØªÙˆÙ„ÙŠØ¯. Ø£ØµØ¨Ø­Øª Ø§Ù„ÙƒÙ„Ù…Ø§Øª ØªÙØ±Ø³Ù„ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø·Ø§Ù„Ù…Ø§ ÙƒØ§Ù†Øª Ø§Ù„Ø­Ù‚ÙˆÙ„ Ù…Ù…Ù„ÙˆØ¡Ø© Ø¨ØºØ¶ Ø§Ù„Ù†Ø¸Ø± Ø¹Ù† Ø§Ù„ØªØ¨ÙˆÙŠØ¨ Ø§Ù„Ù†Ø´Ø·.
 - ØªÙ… ØªØ­Ø³ÙŠÙ† Ø§Ù„Ù…ÙˆØ¬Ù‡ Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ (Default Prompt Builder) ÙÙŠ Ø­Ø§Ù„ ØªØ±Ùƒ Ø­Ù‚Ù„ Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ ÙØ§Ø±ØºØ§Ù‹ Ù„ÙƒÙŠ ÙŠÙÙ†Ø´Ø¦ ØµÙŠØºØ© Ø·Ø¨ÙŠØ¹ÙŠØ© Ù…ØªÙˆØ§ÙÙ‚Ø© Ù…Ø¹ Ø­Ø§Ù„Ø© Ø§Ù„ÙˆØ¶Ø¹ Ø§Ù„ØµØ§Ù…Øª (Instrumental) Ø£Ùˆ Ø§Ù„ØºÙ†Ø§Ø¦ÙŠ Ø§Ù„ØªØ¹Ø¨ÙŠØ±ÙŠ.
 - ØªÙ… ØªØ´Ø¯ÙŠØ¯ ØªÙØ¹ÙŠÙ„ Ø®ÙŠØ§Ø± "Instrumental Only" (Ø¨Ø¯ÙˆÙ† Ø£ØµÙˆØ§Øª Ø¨Ø´Ø±ÙŠØ©) ÙÙŠ Ø§Ù„Ø³ÙŠØ±ÙØ± Ù„Ù…Ù†Ø¹ Ø£ÙŠ Ø®Ø±ÙˆØ¬ Ø¹Ù† Ø§Ù„ØªØ¹Ù„ÙŠÙ…Ø§Øª Ø¨ÙˆØ§Ø³Ø·Ø© Ù…ÙˆØ¯ÙŠÙ„ Google Lyria:
@@ -717,6 +792,7 @@
   - ØªÙ… Ø¥Ø±ÙØ§Ù‚ ØªÙˆØ¬ÙŠÙ‡ Ø­Ø±Ø¬ ÙˆØµØ§Ø±Ù… ÙÙŠ Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ù…ÙˆØ¬Ù‡ ÙŠÙ…Ù†Ø¹ ØªÙˆÙ„ÙŠØ¯ Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø£Ùˆ Ø§Ù„Ø£ØµÙˆØ§Øª Ø§Ù„Ø¨Ø´Ø±ÙŠØ© Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹ Ù„Ø¶Ù…Ø§Ù† Ø¥Ù†ØªØ§Ø¬ Ù…ÙˆØ³ÙŠÙ‚Ù‰ Ø¢Ù„Ø§ØªÙŠØ© ØµØ±ÙØ©.
 
 ## Ø¯Ù…Ø¬ ØµÙØ­Ø§Øª AI Canvas Ùˆ3D Studio ÙˆAssist ÙˆSmart CLI ÙÙŠ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„Ù…Ù†Ø³Ø¯Ù„Ø© (2026-07-06)
+
 - Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ø·Ù„Ø¨ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ØŒ ØªÙ… Ø¯Ù…Ø¬ ÙˆØªÙˆØ­ÙŠØ¯ Ø§Ù„ØµÙØ­Ø§Øª Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© Ø§Ù„Ø¥Ø¶Ø§ÙÙŠØ© Ù„ØªÙƒÙˆÙ† Ù‚Ø§Ø¨Ù„Ø© Ù„Ù„ÙˆØµÙˆÙ„ Ù…Ø¨Ø§Ø´Ø±Ø© Ù…Ù† Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„Ù…Ù†Ø³Ø¯Ù„Ø© (Video Dropdown):
   - **Ø§Ù„ØµÙØ­Ø§Øª Ø§Ù„Ù…Ø¶Ø§ÙØ©**:
     - **AI Canvas** (`/canvas`): Ù„Ø¨Ù†Ø§Ø¡ Ø¨ÙŠØ¦Ø© Ø§Ù„Ø¹Ù…Ù„ ÙˆØªØµÙ…ÙŠÙ… Ø§Ù„Ù…Ø´Ø§Ù‡Ø¯ ÙˆØ§Ù„ØªØ­ÙƒÙ… Ø§Ù„Ù…ØªÙ†Ø§Ø³Ù‚ Ø¨Ø§Ù„Ù†ÙˆØ¯Ø§Øª.
@@ -729,6 +805,7 @@
     - ÙŠØ¯Ø¹Ù… Ù‡Ø°Ø§ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ Ø¸Ù‡ÙˆØ± Ø§Ù„ØµÙØ­Ø§Øª ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ ÙÙŠ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…ÙŠØ²Ø§Øª (Features) Ø¯Ø§Ø®Ù„ Ù…Ù†Ø³Ø¯Ù„Ø© Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ù„Ø³Ø·Ø­ Ø§Ù„Ù…ÙƒØªØ¨ØŒ ÙˆÙƒØ°Ù„Ùƒ ÙÙŠ Ø´Ø¬Ø±Ø© Ø§Ù„Ø£ÙƒÙˆØ±Ø¯ÙŠÙˆÙ† Ø§Ù„Ù…Ø³ØªØ¬ÙŠØ¨Ø© Ù„Ù„Ù‡ÙˆØ§ØªÙ Ø§Ù„Ù…Ø­Ù…ÙˆÙ„Ø© (Mobile Drawer).
 
 ## Ø¥ØµÙ„Ø§Ø­ Ø£Ø³Ù…Ø§Ø¡ ÙˆØ®Ø§Ù…Ø§Øª ÙˆØµÙˆØ± Ø£ØµÙˆØ§Øª Google TTS (Gemini) ÙˆØªÙ‡ÙŠØ¦Ø© ØµÙØ­Ø© Ø§Ù„Ù…Ø²Ø§Ù…Ù†Ø© (2026-07-06)
+
 - ØªÙ… Ø­Ù„ Ù…Ø´Ø§ÙƒÙ„ Ø§Ù„Ø£Ø³Ù…Ø§Ø¡ ÙˆØ§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø§Øª Ø§Ù„Ù…Ø³Ù…ÙˆØ¹Ø© ÙˆØ§Ù„ØµÙˆØ± Ø§Ù„Ø±Ù…Ø²ÙŠØ© Ù„Ø£ØµÙˆØ§Øª Google TTS Ø¨Ø´ÙƒÙ„ Ø¬Ø°Ø±ÙŠ ÙˆØ¯Ù‚ÙŠÙ‚:
   - **ØªÙˆÙ„ÙŠØ¯ Ø®Ø§Ù…Ø§Øª Ø§Ù„ØµÙˆØª ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ ÙˆØªØ®Ø²ÙŠÙ†Ù‡Ø§ (On-the-fly Generation & Caching)**: ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ø®Ù„ÙÙŠ Ø§Ù„Ù…Ø¹Ù†ÙŠ Ø¨Ø¬Ù„Ø¨ Ø¹ÙŠÙ†Ø§Øª Ø®Ø§Ù…Ø§Øª Ø§Ù„ØµÙˆØª `/api/voice-sample` Ù„ÙŠÙ‚ÙˆÙ… ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¹Ù†Ø¯ Ø£ÙˆÙ„ Ø·Ù„Ø¨ Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„ØµÙˆØª Ø¨ÙØ­ØµÙ‡ ÙÙŠ Ø§Ù„Ø³Ø¬Ù„ØŒ ÙˆÙÙŠ Ø­Ø§Ù„ Ø¹Ø¯Ù… ØªÙˆÙ„ÙŠØ¯Ù‡ Ù…Ø³Ø¨Ù‚Ø§Ù‹ Ù…Ù† Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©ØŒ ÙŠÙ‚ÙˆÙ… Ø¨Ø¥Ù†Ø´Ø§Ø¦Ù‡ ÙÙˆØ±Ø§Ù‹ Ø¹Ø¨Ø± ÙˆØ§Ø¬Ù‡Ø© Ø¨Ø±Ù…Ø¬Ø© ØªØ·Ø¨ÙŠÙ‚Ø§Øª Google Gemini Ø§Ù„Ø±Ø³Ù…ÙŠØ© Ø¨Ù†Ø·Ù‚ Ø¬Ù…Ù„Ø© ØªØ±Ø­ÙŠØ¨ÙŠØ© Ù…Ø¹Ø±ÙØ© Ù„Ù„ØµÙˆØª Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© Ø¨Ø§Ø³Ù… Ø§Ù„Ù…ÙˆÙ‚Ø¹ (Ù…Ø«Ø§Ù„: `Ù…Ø±Ø­Ø¨Ø§Ù‹ØŒ Ø£Ù†Ø§ Ø²ÙŠÙÙŠØ±ØŒ ØµÙˆØª Ø£Ù†Ø«ÙˆÙŠ Ù…Ù† Ø³Ø¹Ø¯ Ø³ØªÙˆØ¯ÙŠÙˆ.`) ÙˆØªØ­ÙˆÙŠÙ„ Ø§Ù„ØªØ±Ù…ÙŠØ² Ù…Ù† PCM Ø¥Ù„Ù‰ WAV ÙˆØ±ÙØ¹Ù‡ Ù„Ù€ Supabase ÙˆØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø±Ø§Ø¨Ø· ÙÙŠ Ø§Ù„Ø³Ø¬Ù„ Ù„ÙŠØ¹Ù…Ù„ ÙÙˆØ±Ø§Ù‹ ÙˆØ¨Ø³Ø±Ø¹Ø© ÙØ§Ø¦Ù‚Ø© ÙÙŠ Ø§Ù„Ù…Ø±Ø§Øª Ø§Ù„ØªØ§Ù„ÙŠØ© Ø¨Ø¯Ù„Ø§Ù‹ Ù…Ù† ØªÙƒØ±Ø§Ø± Ø§Ù„ØµÙˆØª Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ `Sulafat` Ù„Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø£ØµÙˆØ§Øª.
   - **ØµÙˆØ± Ø±Ù…Ø²ÙŠØ© Ø§Ø­ØªØ±Ø§ÙÙŠØ© (Premium Portraits)**: ØªÙ… ØªØºÙŠÙŠØ± Ø¢Ù„ÙŠØ© Ø¹Ø±Ø¶ Ø§Ù„ØµÙˆØ± Ù„Ù‚Ø±Ø§Ø¡ Ø§Ù„ÙÙˆÙŠØ²Ø§Øª Ù„Ø£ØµÙˆØ§Øª Gemini ÙÙŠ ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„Ø§Ø³ØªÙˆØ¯ÙŠÙˆ ([sound.html](file:///E:/Ù…ÙˆÙ‚Ø¹%20Ø«Ø§Ù†ÙŠ/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/public/stude/sound.html)) Ù„ØªØ³ØªØ®Ø¯Ù… Ù†ÙØ³ Ù…Ø­Ø±Ùƒ Ø¬Ù„Ø¨ Ø§Ù„ØµÙˆØ± Ø§Ù„Ø±Ù…Ø²ÙŠØ© Ø§Ù„Ù…Ù„ÙˆÙ†Ø© ÙˆØ§Ù„Ù…Ù…ØªØ§Ø²Ø© (getVoiceAvatar) Ø¨Ø¯Ù„Ø§Ù‹ Ù…Ù† Ø§Ù„Ø¯ÙˆØ§Ø¦Ø± Ø§Ù„Ù…Ù„ÙˆÙ†Ø© Ø§Ù„Ø¨Ø³ÙŠØ·Ø© Ø§Ù„ØªÙŠ ØªÙˆØ­ÙŠ Ø¨ÙˆØ¬ÙˆØ¯ Ø®Ø·Ø£ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„ØµÙˆØ±ØŒ Ù…Ø¹ Ø§Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ ØªØ±Ø§Ø¬Ø¹ Ù†ØµÙŠ Ø¢Ù…Ù† ÙÙŠ Ø­Ø§Ù„ ÙØ´Ù„ Ø§Ù„ØªØ­Ù…ÙŠÙ„.
@@ -736,11 +813,13 @@
   - **ØªÙˆØ³ÙŠØ¹ ÙˆØ¶Ø¨Ø· Ø®ÙŠØ§Ø±Ø§Øª Ù…Ø²Ø§Ù…Ù†Ø© Ø§Ù„Ø´ÙØ§Ù‡ (Lipsync)**: ØªÙ… ØªØµØ­ÙŠØ­ Ø§Ù„Ø£Ø®Ø·Ø§Ø¡ Ø§Ù„Ù…ØªØ¹Ù„Ù‚Ø© Ø¨ØªØ­Ø¯ÙŠØ¯ Ù†ÙˆØ¹ Ø¬Ù†Ø³ Ø£ØµÙˆØ§Øª Gemini (ØªØ¹Ø¯ÙŠÙ„ ØªØµÙ†ÙŠÙ Zephyr Ù„Ù€ Ø£Ù†Ø«Ù‰ Ø¨Ø¯Ù„Ø§Ù‹ Ù…Ù† Ø°ÙƒØ±) ÙˆØªÙˆØ³ÙŠØ¹ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…Ù†Ø³Ø¯Ù„Ø© ÙÙŠ ØµÙØ­Ø© Ø§Ù„Ù…Ø²Ø§Ù…Ù†Ø© ([lipsync/page.tsx](file:///E:/Ù…ÙˆÙ‚Ø¹%20Ø«Ø§Ù†ÙŠ/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/lipsync/page.tsx)) Ù„ØªØ´Ù…Ù„ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø£ØµÙˆØ§Øª Ø§Ù„Ù€ 30 Ø§Ù„Ø±Ø³Ù…ÙŠØ© Ø¨Ø¯Ù‚Ø© Ù…ØªÙƒØ§Ù…Ù„Ø©.
 
 ## Ø±Ø¨Ø· ÙˆØªÙØ¹ÙŠÙ„ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª ØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚Ù‰ (Ø§Ù„Ù†ÙˆØ¹ØŒ Ø§Ù„Ø­Ø§Ù„Ø©ØŒ Ø³Ø±Ø¹Ø© Ø§Ù„Ø¥ÙŠÙ‚Ø§Ø¹ BPMØŒ ÙˆØ§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø®ØµØµØ©) Ø¨Ù…ÙˆØ¯ÙŠÙ„ Lyria (2026-07-06)
+
 - ØªÙ… Ø­Ù„ Ù…Ø´ÙƒÙ„Ø© ØªØ¬Ø§Ù‡Ù„ Ø§Ù„Ø³ÙŠØ±ÙØ± Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª ØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚Ù‰ ÙˆØ¬Ø¹Ù„Ù‡Ø§ Ø­Ù‚ÙŠÙ‚ÙŠØ© ÙˆØªÙØ§Ø¹Ù„ÙŠØ© Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ ÙˆÙ„ÙŠØ³Øª ÙˆÙ‡Ù…ÙŠØ© Ø£Ùˆ Ø¹Ø´ÙˆØ§Ø¦ÙŠØ©:
   - ØªÙ… ØªØ­Ø¯ÙŠØ« ÙƒÙˆØ¯ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© ([audio/page.tsx](file:///E:/Ù…ÙˆÙ‚Ø¹%20Ø«Ø§Ù†ÙŠ/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/audio/page.tsx)) Ù„ÙŠØ±Ø³Ù„ Ù‚ÙŠÙ… Ø§Ù„Ù€ `genre` (Ø§Ù„Ù†ÙˆØ¹)ØŒ Ø§Ù„Ù€ `mood` (Ø§Ù„Ø­Ø§Ù„Ø©)ØŒ ÙˆØ§Ù„Ù€ `bpm` (Ø³Ø±Ø¹Ø© Ø§Ù„Ø¥ÙŠÙ‚Ø§Ø¹) Ø¨Ø´ÙƒÙ„ ØµØ±ÙŠØ­ Ø¶Ù…Ù† Ø§Ù„Ø­Ù…ÙˆÙ„Ø© Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ù„Ù„Ø·Ù„Ø¨ POST Ø¥Ù„Ù‰ `/api/music`.
   - ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ø®Ù„ÙÙŠ ÙÙŠ Ø®Ø§Ø¯Ù… Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„ØªÙˆÙ„ÙŠØ¯ ([route.ts](file:///E:/Ù…ÙˆÙ‚Ø¹%20Ø«Ø§Ù†ÙŠ/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/music/route.ts)) Ù„Ø§Ø³ØªØ®Ø±Ø§Ø¬ Ù‡Ø°Ù‡ Ø§Ù„Ù…ØªØºÙŠØ±Ø§Øª ÙˆØ¨Ù†Ø§Ø¡ ÙƒØªÙ„Ø© Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ù…ÙˆØ³ÙŠÙ‚ÙŠØ© Ù…Ù‡ÙŠÙƒÙ„Ø© `[Musical Specifications]` ÙÙŠ Ø£Ø¹Ù„Ù‰ Ø§Ù„Ù€ Prompt Ø§Ù„Ù…ÙˆØ¬Ù‡ Ù„Ù…ÙˆØ¯ÙŠÙ„ Google Lyria Ù„Ø¶Ù…Ø§Ù† Ø§Ù„ØªØ²Ø§Ù…Ù‡ ÙˆØªØ·Ø¨ÙŠÙ‚Ù‡ Ù„Ù„Ù†ÙˆØ¹ ÙˆØ§Ù„Ø­Ø§Ù„Ø© ÙˆØ³Ø±Ø¹Ø© Ø§Ù„Ø¥ÙŠÙ‚Ø§Ø¹ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©ØŒ Ù…Ø¹ Ø¥Ø¯Ø±Ø§Ø¬ Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø®ØµØµØ© ØªØ­Øª ÙˆØ³Ù… `Lyrics:` Ø§Ù„Ø±Ø³Ù…ÙŠ Ù„Ø¶Ù…Ø§Ù† Ø¥Ù†ØªØ§Ø¬Ù‡Ø§ Ø¨ØµÙˆØª ØºÙ†Ø§Ø¦ÙŠ Ù…ØªÙ†Ø§Ø³Ù‚ Ø¨Ø¯Ù„Ø§Ù‹ Ù…Ù† ØªÙˆÙ„ÙŠØ¯Ù‡Ø§ Ø¨Ø´ÙƒÙ„ Ø¹Ø´ÙˆØ§Ø¦ÙŠ.
 
 ## Ø¥ØµÙ„Ø§Ø­ Ù…Ø´ØºÙ„ Ø§Ù„ØµÙˆØª Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠ ÙˆØ§Ù„ØªØ­ÙˆÙŠÙ„ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ù„Ù„ØµÙŠØº Ø¹Ù†Ø¯ Ø§Ù„ØªÙ†Ø²ÙŠÙ„ (2026-07-06)
+
 - ØªÙ… Ø¬Ø¹Ù„ Ù…Ø´ØºÙ„ Ø§Ù„ØµÙˆØª ØªÙØ§Ø¹Ù„ÙŠØ§Ù‹ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ (Interactive Waveform Player):
   - ØªÙ… Ø±Ø¨Ø· Ø²Ù…Ù† Ø§Ù„Ø£ØºÙ†ÙŠØ© ÙˆØªØ´ØºÙŠÙ„Ù‡Ø§ Ø¨Ø§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯ Ø¹Ù„Ù‰ Ù…Ø¯Ø© Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø­Ù‚ÙŠÙ‚ÙŠØ© Ø§Ù„Ù…Ø³ØªØ±Ø¬Ø¹Ø© `audioDuration` Ø¹Ù†Ø¯ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ÙˆØµÙÙŠØ© Ù„Ù„ØµÙˆØª (onLoadedMetadata)ØŒ Ø¨Ø¯Ù„Ø§Ù‹ Ù…Ù† Ø§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯ Ø¹Ù„Ù‰ Ù…Ø¯Ø© Ø´Ø±ÙŠØ· Ø§Ù„ØªÙ…Ø±ÙŠØ± Ø§Ù„Ù…ÙØªØ±Ø¶ØŒ Ù…Ù…Ø§ Ø£ØµÙ„Ø­ Ù…Ø¤Ø´Ø± Ø§Ù„ØªØ´ØºÙŠÙ„ ÙˆØ§Ù„ØªÙ…Ø±ÙŠØ± Ø¨Ø§Ù„ÙƒØ§Ù…Ù„.
   - ØªÙ… ØªØ­ÙˆÙŠÙ„ Ø£Ù„ÙˆØ§Ù† Ø´Ø±ÙŠØ· Ø§Ù„Ø£Ù…ÙˆØ§Ø¬ Ø§Ù„Ù…ÙØ¹Ù‘Ù„ Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„ØªØ´ØºÙŠÙ„ Ù…Ù† Ø§Ù„Ù„ÙˆÙ† Ø§Ù„Ø¨Ù†ÙØ³Ø¬ÙŠ Ø¥Ù„Ù‰ Ø§Ù„Ù„ÙˆÙ† Ø§Ù„Ø³Ù…Ø§ÙˆÙŠ Ø§Ù„Ù…ØªÙ†Ø§Ø³Ù‚ Ù…Ø¹ Ø¨Ù‚ÙŠØ© Ø«ÙŠÙ… Ø§Ù„Ù…ÙˆÙ‚Ø¹.
@@ -749,25 +828,30 @@
   - ØªÙ… ØªÙƒÙˆÙŠÙ† Ù…Ø³Ø§Ø± Ø§Ù„ØªÙ†Ø²ÙŠÙ„ Ø§Ù„Ø®Ù„ÙÙŠ Ù„ÙŠÙ‚ÙˆÙ… Ø¨Ø¹Ù…Ù„ÙŠØ© ØªØ­ÙˆÙŠÙ„ ØªØ±Ù…ÙŠØ² ØªÙ„Ù‚Ø§Ø¦ÙŠØ© (On-the-fly Transcoding) Ø¨ÙŠÙ† Ø§Ù„ØµÙŠØºØªÙŠÙ† **MP3 Ùˆ WAV** Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… **FFmpeg** Ø¥Ø°Ø§ Ø§Ø®ØªÙ„ÙØª Ø§Ù„ØµÙŠØºØ© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© Ø¹Ù† ØµÙŠØºØ© Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø£ØµÙ„ÙŠ Ø§Ù„Ù…Ø®Ø²Ù†ØŒ ÙˆØªØ¯ÙÙ‚ Ø§Ù„Ù…Ù„Ù Ø¨Ø§Ù„ØªØ±Ù…ÙŠØ² ÙˆØ±Ø£Ø³ Ø§Ù„Ø§Ø³ØªØ¬Ø§Ø¨Ø© Ø§Ù„Ù…Ø­Ø¯Ù‘Ø«ÙŠÙ†ØŒ Ù…Ù…Ø§ ÙŠØ¶Ù…Ù† Ø­ØµÙˆÙ„ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¹Ù„Ù‰ Ø§Ù„ØµÙŠØºØ© Ø§Ù„ØªÙŠ Ø§Ø®ØªØ§Ø±Ù‡Ø§ Ø¨Ø¯Ù‚Ø©.
 
 ## Ø¶Ù…Ø§Ù† Ù…Ø¯Ø© ØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚Ù‰ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… FFmpeg ÙˆØªÙˆØ¬ÙŠÙ‡Ø§Øª Lyria (2026-07-06)
+
 - ØªÙ… Ø­Ù„ Ù…Ø´ÙƒÙ„Ø© Ø²ÙŠØ§Ø¯Ø© Ù…Ø¯Ø© Ø§Ù„Ù…Ù„Ù Ø§Ù„ØµÙˆØªÙŠ Ø§Ù„Ù…ÙˆÙ„Ø¯ Ø¨Ø´ÙƒÙ„ ÙƒØ¨ÙŠØ± Ø¹Ù† Ø§Ù„Ù…Ø¯Ø© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© Ù…Ù† Ù‚Ø¨Ù„ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙÙŠ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© (Ù…Ø«Ø§Ù„: Ø·Ù„Ø¨ 59 Ø«Ø§Ù†ÙŠØ© ÙˆØªÙˆÙ„ÙŠØ¯ 2:33 Ø¯Ù‚ÙŠÙ‚Ø©).
 - ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø³Ø§Ø± `/api/music/route.ts` Ù„ÙŠÙ‚ÙˆÙ… Ø¨Ø¥Ø±Ø³Ø§Ù„ Ø´Ø±ÙˆØ· Ø§Ù„Ù…Ø¯Ø© Ø§Ù„Ø²Ù…Ù†ÙŠØ© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© Ù„Ù„Ù…ÙˆØ¯ÙŠÙ„ google/lyria Ù…Ø¨Ø§Ø´Ø±Ø© ÙÙŠ Ø§Ù„Ù€ Prompt.
 - ØªÙ… Ø¯Ù…Ø¬ Ù…Ø¹Ø§Ù„Ø¬Ø© Ø®Ù„ÙÙŠØ© Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø£Ø¯Ø§Ø© **FFmpeg** Ù„ØªÙ‚Ù„ÙŠÙ… Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚ÙŠ (Trim) ÙÙˆØ± ØªÙˆÙ„ÙŠØ¯Ù‡ Ø¨Ø­ÙŠØ« ÙŠØ·Ø§Ø¨Ù‚ Ù…Ø¯Ø© Ø§Ù„ØªÙ…Ø±ÙŠØ± Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© ØªÙ…Ø§Ù…Ø§Ù‹ØŒ Ù…Ø¹ ØªØ·Ø¨ÙŠÙ‚ ØªÙ„Ø§Ø´Ù ØªØ¯Ø±ÙŠØ¬ÙŠ Ù†Ø§Ø¹Ù… Ù„Ù„ØµÙˆØª (Fade-out) Ù…Ø¯ØªÙ‡ 3 Ø«ÙˆØ§Ù†Ù ÙÙŠ Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ù…Ù‚Ø·Ø¹ Ù„Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Ø§Ø­ØªØ±Ø§ÙÙŠØ© Ø§Ù„Ø§Ù†ØªÙ‚Ø§Ù„ Ø§Ù„ØµÙˆØªÙŠ Ù‚Ø¨Ù„ Ø±ÙØ¹Ù‡ Ù„Ù€ Supabase.
 
 ## Ø¥Ø¶Ø§ÙØ© Ù…ÙƒØªØ¨Ø© Ø§Ù„Ø¥Ù†ØªØ§Ø¬ ÙˆØªÙ†Ø§Ø³Ù‚ Ø£Ù„ÙˆØ§Ù† Ø¬Ù†Ø§Ø­ Ø§Ù„ØµÙˆØª Ù…Ø¹ ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„ÙÙŠØ¯ÙŠÙˆ (2026-07-06)
+
 - ØªÙ… Ø¥Ø¶Ø§ÙØ© ØªØ¨ÙˆÙŠØ¨ Ø«Ø§Ù„Ø« "Production Library" (Ù…ÙƒØªØ¨Ø© Ø§Ù„Ø¥Ù†ØªØ§Ø¬) ÙÙŠ ØµÙØ­Ø© Ø¬Ù†Ø§Ø­ Ø§Ù„ØµÙˆØª (`app/(dash)/(routes)/audio/page.tsx`).
 - ØªÙ… Ø¯Ù…Ø¬ Ø¯Ø§Ù„Ø© `loadLibrary` Ù„Ø¬Ù„Ø¨ ÙƒØ§ÙØ© Ø§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„ØµÙˆØªÙŠØ© Ø§Ù„Ù…ÙˆÙ„Ù‘Ø¯Ø© Ø§Ù„Ø®Ø§ØµØ© Ø¨Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ù…Ù† Ø§Ù„Ù…Ø³Ø§Ø± `/api/assets?type=audio` Ø¹Ù†Ø¯ ØªØ­Ù…ÙŠÙ„ Ø§Ù„ØµÙØ­Ø©ØŒ ÙˆØ¹Ø±Ø¶Ù‡Ø§ ÙÙŠ Ø´Ø¨ÙƒØ© Ø¨Ø·Ø§Ù‚Ø§Øª Ù…Ø¹ Ø¥Ù…ÙƒØ§Ù†ÙŠØ© Ø§Ù„ØªØ´ØºÙŠÙ„ØŒ Ø§Ù„ØªÙ†Ø²ÙŠÙ„ØŒ ÙˆØ§Ù„Ø­Ø°Ù.
 - ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø£Ù„ÙˆØ§Ù† Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ù…Ù† Ø§Ù„Ù„ÙˆÙ† Ø§Ù„Ø¨Ù†ÙØ³Ø¬ÙŠ (Violet) Ø¥Ù„Ù‰ Ø§Ù„Ù„ÙˆÙ† Ø§Ù„Ø³Ù…Ø§ÙˆÙŠ ÙˆØ§Ù„Ø¯Ø§ÙƒÙ† (Slate/Blue/Cyan) Ù„ØªØªØ·Ø§Ø¨Ù‚ ØªÙ…Ø§Ù…Ø§Ù‹ Ù…Ø¹ ÙˆØ§Ø¬Ù‡Ø§Øª ØªÙˆÙ„ÙŠØ¯ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ÙˆØµÙ†Ø§Ø¹Ø© Ø§Ù„Ø£ÙÙ„Ø§Ù… Ø¨Ø§Ù„Ù…ÙˆÙ‚Ø¹.
 
 ## Ø­Ù„ Ù…Ø´ÙƒÙ„Ø© ÙØ´Ù„ ØªÙ†Ø²ÙŠÙ„ Ø§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„ØµÙˆØªÙŠØ© (2026-07-06)
+
 - ØªÙ… Ø¥ØµÙ„Ø§Ø­ Ù…Ø´ÙƒÙ„Ø© ÙØ´Ù„ ØªÙ†Ø²ÙŠÙ„ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„ØµÙˆØªÙŠØ© ÙˆØ¸Ù‡ÙˆØ± Ø®Ø·Ø£ "Failed - Unknown server error" ÙÙŠ Ø§Ù„Ù…ØªØµÙØ­.
 - ØªÙ… ØªØ­Ø¯ÙŠØ« Ù…Ø³Ø§Ø± Ø§Ù„ØªÙ†Ø²ÙŠÙ„ `/api/download/route.ts` Ù„ÙŠØ¯Ø¹Ù… Ø§Ù„Ù…Ø³Ø§Ø±Ø§Øª Ø§Ù„Ù†Ø³Ø¨ÙŠØ© (Ù…Ø«Ù„ `audio/user_...`) Ø¹Ù† Ø·Ø±ÙŠÙ‚ Ø¬Ù„Ø¨ Ø§Ù„Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ø¨Ø¯ÙŠÙ„Ø© Ø§Ù„Ù…Ø³ØªÙ‚Ø±Ø© getFallbackUrls ÙˆØªØ¬Ø±Ø¨ØªÙ‡Ø§ Ø¨Ø§Ù„ØªÙˆØ§Ù„ÙŠ ÙˆØ§Ù„Ø±ÙØ¹ Ø¨Ø§Ù„Ù€ Stream Ù„ØªØ¬Ø§ÙˆØ² Ø£ÙŠ Ù…Ø´Ø§ÙƒÙ„ ØªÙˆØ§ÙØ±.
 
 ## Ø§Ø³ØªØ®Ø±Ø§Ø¬ ØªÙØ§ØµÙŠÙ„ Ø®Ø·Ø£ Ø§Ù„Ù€ 400 ÙˆØªÙˆØ¶ÙŠØ­ Ù‚ÙŠÙˆØ¯ Ø§Ù„Ø£Ù…Ø§Ù† (2026-07-05)
+
 - ØªÙ… Ø¥ØµÙ„Ø§Ø­ Ù…Ø´ÙƒÙ„Ø© Ø¹Ø¯Ù… ÙˆØ¶ÙˆØ­ Ø£Ø³Ø¨Ø§Ø¨ Ø®Ø·Ø£ 400 (Bad Request) Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙÙŠ ÙˆØ§Ø¬Ù‡Ø© ØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚Ù‰.
 - ØªÙ… ØªØ­Ø¯ÙŠØ« Ø¯Ø§Ù„Ø© `getSafeErrorMessage` ÙÙŠ `hooks/use-generation-gate.ts` Ù„ØªÙ‚ÙˆÙ… Ø¨Ø§Ø³ØªØ®Ø±Ø§Ø¬ Ù†Øµ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„ØªÙØµÙŠÙ„ÙŠØ© Ù…Ù† Ø§Ø³ØªØ¬Ø§Ø¨Ø© Axios (Ø³ÙˆØ§Ø¡ ÙƒØ§Ù†Øª Ù†ØµØ§Ù‹ Ø®Ø§Ù…Ø§Ù‹ Ø£Ùˆ ÙƒØ§Ø¦Ù†Ø§Ù‹ ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ `error`) Ø¨Ø¯Ù„Ø§Ù‹ Ù…Ù† Ø¹Ø±Ø¶ Ø±Ø³Ø§Ù„Ø© Axios Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠØ© Ø§Ù„Ø¹Ø§Ù…Ø©.
 - ØªÙ… Ø¥Ø¯Ø±Ø§Ø¬ Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…ÙØªØ§Ø­ÙŠØ© Ø§Ù„Ù…ØªØ¹Ù„Ù‚Ø© Ø¨Ø³ÙŠØ§Ø³Ø§Øª Ø§Ù„Ø£Ù…Ø§Ù† ÙˆØ§Ù„Ø­Ø¸Ø± Ø§Ù„Ø®Ø§ØµØ© Ø¨Ù€ Google Lyria (Ù…Ø«Ù„ `Lyria`, `blocked`, `policy`, `sensitive`) Ø¶Ù…Ù† Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø¨ÙŠØ¶Ø§Ø¡ Ù„Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ù…Ø³Ù…ÙˆØ­ Ø¨Ø¹Ø±Ø¶Ù‡Ø§ ÙÙŠ `lib/generation-errors.ts` Ù„ÙŠØªØ³Ù†Ù‰ Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… Ù…Ø¹Ø±ÙØ© Ù…ØªÙ‰ ØªÙ… Ø±ÙØ¶ Ø·Ù„Ø¨Ù‡ Ø¨Ø³Ø¨Ø¨ Ø§Ø­ØªÙˆØ§Ø¡ Ø§Ù„Ù†Øµ Ø¹Ù„Ù‰ ÙƒÙ„Ù…Ø§Øª Ø­Ø³Ø§Ø³Ø© Ø£Ùˆ Ø£Ø³Ù…Ø§Ø¡ ØªØ¬Ø§Ø±ÙŠØ© Ù…Ù…Ù†ÙˆØ¹Ø©.
 
 ## Ø¯Ù…Ø¬ Ù†Ø¸Ø§Ù… Ø¥Ù†ØªØ§Ø¬ Ø²ÙˆØ§ÙŠØ§ Ø§Ù„ØªØµÙˆÙŠØ± (Angles Production System) ÙˆØªØ¬Ø²Ø¦Ø© Ø§Ù„Ù€ JSON ÙˆØ§Ù„Ù€ Router (2026-07-05)
+
 - ØªÙ… Ø¨Ù†Ø§Ø¡ ÙˆØªÙƒØ§Ù…Ù„ Ù†Ø¸Ø§Ù… Ø¥Ù†ØªØ§Ø¬ Ø²ÙˆØ§ÙŠØ§ Ø§Ù„ØªØµÙˆÙŠØ± Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ ÙÙŠ ØµÙØ­Ø© Ø§Ù„Ù€ Canvas Ø§Ù„Ø®Ø§ØµØ© Ø¨Ø§Ù„Ù€ React Flow (`/canvas`).
 - ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…ÙƒÙˆÙ† `components/canvas/CanvasNode.tsx` Ù„Ø¯Ø¹Ù… ÙˆØ¶Ø¹ Ø§Ù„Ù€ `isRouter` Ø§Ù„Ù…Ø®ØµØµ Ù„Ù†ÙˆØ¯Ø§Øª Ø§Ù„Ù€ `connector` (Ù…Ù…Ø± Ø§Ù„ØµÙˆØ±)ØŒ Ø­ÙŠØ« ØªØ¸Ù‡Ø± ÙƒØ¨Ø·Ø§Ù‚Ø© Ø±Ø£Ø³ÙŠØ© Ø·ÙˆÙ„ÙŠØ© Ø¨Ù€ 10 Ù…Ù†Ø§ÙØ° Ø¥Ø®Ø±Ø§Ø¬ (Handles) Ù…Ø³Ù…Ù‘Ø§Ø© Ù…Ù† `route 1` Ø¥Ù„Ù‰ `route 10` Ù…Ø¹ Ù†Ù‚Ø§Ø· Ø®Ø¶Ø±Ø§Ø¡ Ù…Ù…ÙŠØ²Ø©.
 - ØªÙ… ØªØ·ÙˆÙŠØ± Ù†ÙˆØ¯Ø§Øª Ø§Ù„Ù€ `list` (Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©) ÙÙŠ `components/canvas/CanvasNode.tsx` Ù„ØªÙ‚Ù‡Ù… ÙˆØªØ¬Ø²Ø¡ Ø§Ù„Ù†ØµÙˆØµ Ø§Ù„Ù…Ø¯Ø®Ù„Ø© ÙˆØ¹Ø±Ø¶ Ø§Ù„Ø¹Ù†Ø§ØµØ± ÙƒØµÙÙˆÙ Ù…Ù†ÙØµÙ„Ø©ØŒ Ù…Ø¹ ØªØ²ÙˆÙŠØ¯ ÙƒÙ„ ØµÙ Ø¨Ù†Ù‚Ø·Ø© Ø¥Ø®Ø±Ø§Ø¬ Ø¨Ù†ÙØ³Ø¬ÙŠØ© Ù…Ø®ØµØµØ© (`prompt-0` Ø¥Ù„Ù‰ `prompt-9`) ÙˆÙ…Ø­Ø§Ø°Ø§ØªÙ‡Ø§ ØªÙ…Ø§Ù…Ø§Ù‹ Ù…Ø¹ Ù…Ø±ÙƒØ² Ø§Ù„ØµÙ Ø¹Ù…ÙˆØ¯ÙŠØ§Ù‹ØŒ Ù…Ø¹ Ø²Ø± ØªØ¨Ø¯ÙŠÙ„ "ØªØ¹Ø¯ÙŠÙ„/Ø­ÙØ¸" Ù„ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù†Øµ Ø§Ù„Ø®Ø§Ù… Ù…Ø¨Ø§Ø´Ø±Ø©.
@@ -780,12 +864,14 @@
 
 
 ## Ø¥ØµÙ„Ø§Ø­ Ø®Ø·Ø£ CORS ÙÙŠ Ø±ÙØ¹ Ø§Ù„Ù…Ù„ÙØ§Øª Ø¥Ù„Ù‰ Backblaze B2 (2026-07-05)
+
 - ØªÙ… Ø­Ù„ Ù…Ø´ÙƒÙ„Ø© CORS Ø¹Ù†Ø¯ Ù…Ø­Ø§ÙˆÙ„Ø© Ø§Ù„Ù…ØªØµÙØ­ Ø±ÙØ¹ Ø§Ù„ØµÙˆØ± Ø£Ùˆ Ø§Ù„ÙˆØ³Ø§Ø¦Ø· Ø§Ù„Ù…ÙˆÙ„Ù‘Ø¯Ø© Ù…Ø¨Ø§Ø´Ø±Ø© Ø¥Ù„Ù‰ bucket Ø§Ù„Ù€ Backblaze B2 (`saadstudio-storage`) ÙÙŠ Ù…Ø³Ø§Ø± PutObject.
 - ØªÙ… ØªØ­Ø¯ÙŠØ« Ø³ÙƒØ±Ø¨Øª Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª `scripts/set-r2-cors.mjs` Ù„ÙŠØ¯Ø¹Ù… ØªØ­Ù…ÙŠÙ„ Ù…Ù„ÙØ§Øª Ø§Ù„Ø¨ÙŠØ¦Ø© Ø§Ù„Ù…ØªØ¹Ø¯Ø¯Ø© (Ø¨Ù…Ø§ ÙÙŠ Ø°Ù„Ùƒ `.env.migration`) ÙˆÙ‚Ø±Ø§Ø¡Ø© Ù…ØªØºÙŠØ±Ø§Øª Backblaze B2 (`B2_*`) ÙˆØªØ·Ø¨ÙŠÙ‚ Ù‚ÙˆØ§Ø¹Ø¯ CORS Ø§Ù„Ù…Ù†Ø§Ø³Ø¨Ø© ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¹Ù„Ù‰ Ø§Ù„Ù€ bucket Ø§Ù„Ù†Ø´Ø·.
 - ØªÙ… Ø¥Ø²Ø§Ù„Ø© Ø®ÙŠØ§Ø± `"OPTIONS"` Ù…Ù† Ø­Ù‚Ù„ Ø§Ù„Ø·Ø±Ù‚ Ø§Ù„Ù…Ø³Ù…ÙˆØ­Ø© (`AllowedMethods`) Ù„ØªÙØ§Ø¯ÙŠ Ø±ÙØ¶ Ø§Ù„Ø®Ø¯Ù…Ø© Ù…Ù† Ù‚Ø¨Ù„ ÙˆØ§Ø¬Ù‡Ø© S3 Ø§Ù„Ø®Ø§ØµØ© Ø¨Ù€ Backblaze B2 Ø§Ù„ØªÙŠ Ù„Ø§ ØªØ¯Ø¹Ù… Ø¥Ø¯Ø±Ø§Ø¬Ù‡ ÙŠØ¯ÙˆÙŠØ§Ù‹ ÙˆØªØªØ¹Ø§Ù…Ù„ Ù…Ø¹ Ø·Ù„Ø¨Ø§Øª preflight ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹.
 - ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ `app/api/admin/r2-cors/route.ts` Ù„ÙŠØªÙ…Ø§Ø´Ù‰ Ù…Ø¹ Ù†ÙØ³ Ø§Ù„Ø³Ù„ÙˆÙƒ Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠ Ù„Ù€ B2.
 
 ## Ø¥ØµÙ„Ø§Ø­ Ø£Ø®Ø·Ø§Ø¡ Ø¨Ù†Ø§Ø¡ ÙˆØ¨Ù†Ø§Ø¡ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ Ø¹Ù„Ù‰ Vercel (2026-07-05)
+
 - ØªÙ… Ø­Ù„ ÙƒØ§ÙØ© Ù…Ø´Ø§ÙƒÙ„ Ø§Ù„Ù€ TypeScript Ø§Ù„ØªÙŠ ÙƒØ§Ù†Øª ØªÙ…Ù†Ø¹ Ø¨Ù†Ø§Ø¡ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ ÙˆØªÙ…Ù†Ø¹ Vercel Ù…Ù† Ù†Ø´Ø± ÙˆØªØ«Ø¨ÙŠØª Ø§Ù„Ø¥ØµÙ„Ø§Ø­Ø§Øª Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠØ©.
 - ØªÙ… Ù†Ù‚Ù„ Ø¯ÙˆØ§Ù„ Ø§Ù„Ù€ Registry Ø§Ù„Ø®Ø§ØµØ© Ø¨Ø§Ù„Ø¹ÙŠÙ†Ø§Øª Ø§Ù„ØµÙˆØªÙŠØ© Ø¥Ù„Ù‰ Ù…Ù„Ù Ù…Ø³ØªÙ‚Ù„ `lib/voice-registry.ts` Ù„ØªÙØ§Ø¯ÙŠ Ø£Ø®Ø·Ø§Ø¡ Next.js Ø§Ù„Ø®Ø§ØµØ© Ø¨Ø§Ù„ØªØµØ¯ÙŠØ± Ù…Ù† Ù…Ù„Ù Ø§Ù„Ø±ÙˆØ§Ø¨Ø·.
 - ØªÙ… ØªØµØ­ÙŠØ­ Ø§Ø³ØªØ¯Ø¹Ø§Ø¡Ø§Øª `guardGeneration` ÙÙŠ ÙƒÙ„ Ù…Ù† `video-edit` Ùˆ `cinema-flow` Ù„ØªØªÙˆØ§ÙÙ‚ ØªÙ…Ø§Ù…Ø§Ù‹ Ù…Ø¹ Ø¨Ù†ÙŠØ© Ø§Ù„Ø¯Ø§Ù„Ø©.
@@ -793,15 +879,18 @@
 - ØªÙ… Ø¥ØµÙ„Ø§Ø­ ÙƒØ§ÙØ© Ø§Ù„Ø£Ø®Ø·Ø§Ø¡ Ø§Ù„Ø®Ø§ØµØ© Ø¨Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© ÙÙŠ `components/TopNavbar.tsx` Ø¨ØªØ¹Ø±ÙŠÙ Ø¯Ø§Ù„Ø© `onOpen` Ø§Ù„Ù…ÙÙ‚ÙˆØ¯Ø©.
 
 ## Ø¥ØµÙ„Ø§Ø­ Ù…Ø³Ø§Ø± ØªØ´ØºÙŠÙ„ Ø§Ù„ØµÙˆØª ÙÙŠ ØµÙØ­Ø© Ø¬Ù†Ø§Ø­ Ø§Ù„ØµÙˆØª (2026-07-05)
+
 - ØªÙ… Ø­Ù„ Ù…Ø´ÙƒÙ„Ø© Ø®Ø·Ø£ HTTP 404 (Not Found) Ø¹Ù†Ø¯ ØªØ´ØºÙŠÙ„ Ø§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚ÙŠØ© Ø§Ù„Ù…ÙˆÙ‘Ù„Ø¯Ø© ÙÙŠ ÙˆØ§Ø¬Ù‡Ø© Audio Suite.
 - ØªÙ… Ø¥Ø¯Ø®Ø§Ù„ Ù…ÙŠØ²Ø© Ø§Ù„Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© Ø§Ù„Ù…Ø³ØªÙ‚Ø±Ø© getFallbackUrls Ù„ØªÙ‚ÙˆÙ… Ø¨ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø±Ø§Ø¨Ø· Ø§Ù„Ù†Ø³Ø¨ÙŠ ÙˆØªØ¬Ø±Ø¨Ø© Ø§Ù„Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ù…Ø¨Ø§Ø´Ø±Ø© Ù„Ù€ Backblaze B2 Ùˆ Cloudflare R2 ÙˆØ¨ÙˆØ§Ø¨Ø© Ø§Ù„Ù€ Proxy.
 
 ## Ø¥ØµÙ„Ø§Ø­ Ø®Ø·Ø£ Ø±ÙØ¹ Ø§Ù„ØµÙˆØª Ù„ØªÙˆÙ„ÙŠØ¯ Google Lyria (2026-07-05)
+
 - Ã˜ÂªÃ™â€¦ Ã˜Â­Ã™â€ž Ã™â€¦Ã˜Â´Ã™Æ’Ã™â€žÃ˜Â© Ã˜Â®Ã˜Â·Ã˜Â£ HTTP 500 (Internal Server Error) Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯ Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â³Ã™Å Ã™â€šÃ™â€° Ã˜Â¨Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã˜Â§Ã™â€¦ Ã™â€¦Ã™Ë†Ã˜Â¯Ã™Å Ã™â€žÃ˜Â§Ã˜Âª Google Lyria.
 - Ã˜ÂªÃ˜Â¨Ã™Å Ã™â€  Ã˜Â£Ã™â€  Ã˜Â¯Ã˜Â§Ã™â€žÃ˜Â© `uploadBufferToStorage` Ã™Æ’Ã˜Â§Ã™â€ Ã˜Âª Ã˜ÂªÃ™ Ã˜Â³Ã˜ÂªÃ˜Â¯Ã˜Â¹Ã™â€° Ã˜Â¨Ã™â€¦Ã˜ÂªÃ˜ÂºÃ™Å Ã˜Â±Ã˜Â§Ã˜Âª Ã˜Â®Ã˜Â§Ã˜Â·Ã˜Â¦Ã˜Â© (`bucket` Ã™Ë† `path`) Ã™â€¦Ã™â€¦Ã˜Â§ Ã˜ÂªÃ˜Â³Ã˜Â¨Ã˜Â¨ Ã™ Ã™Å  Ã™ Ã™Â´Ã™â€ž Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã™â€žÃ™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â±Ã™â€¦Ã˜Â¬Ã™Å  Ã™â€žÃ™â€žÃ™Ë†Ã˜Â³Ã˜Â§Ã˜Â¦Ã˜Â· Ã™â€ Ã˜ÂªÃ™Å Ã˜Â¬Ã˜Â© Ã˜ÂªÃ™â€¦Ã˜Â±Ã™Å Ã˜Â± `assetType` Ã˜Â¨Ã™â€šÃ™Å Ã™â€¦Ã˜Â© `undefined` Ã™Ë†Ã˜Â§Ã™â€žÃ˜Â°Ã™Å  Ã˜Â£Ã˜Â¯Ã™â€° Ã™â€žÃ˜Â®Ã˜Â·Ã˜Â£ `TypeError`.
 - Ã˜ÂªÃ™â€¦ Ã˜ÂªÃ˜ÂµÃ˜Â­Ã™Å Ã˜Â­ Ã™â€¦Ã˜Â¹Ã˜Â§Ã™â€¦Ã™â€žÃ˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜Â§Ã˜Â³Ã˜ÂªÃ˜Â¯Ã˜Â¹Ã˜Â§Ã˜Â¡ Ã™â€žÃ˜ÂªÃ™â€¦Ã˜Â±Ã™Å Ã˜Â± `userId` Ã™Ë† `assetType: "AUDIO"` Ã™Ë† `generationId` Ã™Ë† `fileName` Ã˜Â¨Ã˜Â´Ã™Æ’Ã™â€ž Ã˜Â³Ã™â€žÃ™Å Ã™â€¦Ã˜Å’ Ã™Ë†Ã˜ÂªÃ˜Â£Ã™Æ’Ã™Å Ã˜Â¯ Ã˜Â§Ã™â€žÃ˜ÂªÃ™Ë†Ã˜Â§Ã™ Ã™â€š Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â±Ã™â€¦Ã˜Â¬Ã™Å  Ã˜Â§Ã™â€žÃ™Æ’Ã˜Â§Ã™â€¦Ã™â€ž Ã™â€¦Ã˜Â¹ Ã˜ÂªÃ™Ë†Ã™â€šÃ™Å Ã˜Â¹ Ã˜Â§Ã™â€žÃ˜Â¯Ã˜Â§Ã™â€žÃ˜Â©.
 
 ## Saad Agent Image Page Creation vs Local Image Classification Routing (2026-07-04)
+
 - Requests that create or design a page about images, gallery, or photos are engineering page-creation tasks.
 - Example: `Ø§Ù†Ø´Ø¦ ØµÙØ­Ø© ÙƒÙ„Ø±ÙŠ Ø®Ø§ØµØ© Ø¨Ø§Ù„ØµÙˆØ± ÙˆØ¶Ø¹ Ø§Ù„ØµÙØ­Ø© ÙÙŠ Ù‡Ø°Ø§ Ø§Ù„ÙÙˆÙ„Ø¯Ø± C:\Users\PC\Desktop\New folder (3)` must route to `engineering_workflow`, not `local_image_classification`.
 - Only requests that inspect, classify, sort, or move existing image files inside a local folder should route to `local_image_classification`.
@@ -809,6 +898,7 @@
 - This correction prevents fake missing-image-classifier failures for normal page creation requests.
 
 ## Saad Agent Internal Executor Encoding Fix (2026-07-05)
+
 - `InternalWorkspaceExecutor` must not return mojibake chat output after creating static page files.
 - Generated static page templates now use ASCII-safe English copy to avoid corrupted text in `index.html`.
 - Arabic user-facing executor responses must be stored as Unicode escape literals in source so packaged Electron output remains readable.
@@ -816,6 +906,7 @@
 
 
 ## Ã˜Â¥Ã˜ÂµÃ™â€žÃ˜Â§Ã˜Â­ Ã˜ÂªÃ˜Â¯Ã˜Â§Ã˜Â®Ã™â€ž Ã™Ë†Ã˜Â§Ã˜Â¬Ã™â€¡Ã˜Â© Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Âª Ã™Ë†Ã˜Â§Ã™â€žÃ˜Â£Ã™â€žÃ™Ë†Ã˜Â§Ã™â€  Ã˜Â§Ã™â€žÃ˜Â¯Ã˜Â§Ã™Æ’Ã™â€ Ã˜Â© (2026-07-04)
+
 - Ã˜ÂªÃ™â€¦ Ã˜Â­Ã™â€ž Ã™â€¦Ã˜Â´Ã™Æ’Ã™â€žÃ˜Â© Ã˜ÂªÃ˜Â¯Ã˜Â§Ã˜Â®Ã™â€ž Ã˜Â±Ã˜Â£Ã˜Â³ Ã˜ÂµÃ™ÂÃ˜Â­Ã˜Â© Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Âª `/audio` Ã™â€¦Ã˜Â¹ Ã™â€šÃ˜Â§Ã˜Â¦Ã™â€¦Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â¯Ã™Ë†Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ™â€¦Ã™â€ Ã˜Â³Ã˜Â¯Ã™â€žÃ˜Â© (Dropdown) Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ™â€¡Ã™Å Ã˜Â¯Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â±Ã˜Â¦Ã™Å Ã˜Â³Ã™Å  Ã™â€žÃ™â€žÃ™â€¦Ã™Ë†Ã™â€šÃ˜Â¹ Ã™â€¦Ã™â€  Ã˜Â®Ã™â€žÃ˜Â§Ã™â€ž Ã˜ÂªÃ˜ÂºÃ™Å Ã™Å Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â¶Ã˜Â¹ Ã™â€¦Ã™â€  `sticky top-0 z-50` Ã˜Â¥Ã™â€žÃ™â€° `relative z-10` Ã™â€žÃ™Æ’Ã™Å  Ã˜ÂªÃ˜Â°Ã™â€¡Ã˜Â¨ Ã˜ÂªÃ˜Â­Ã˜Âª Ã˜Â§Ã™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™â€¦Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã™â€ Ã˜Â³Ã˜Â¯Ã™â€žÃ˜Â© Ã™Ë†Ã™â€žÃ˜Â§ Ã˜ÂªÃ˜ÂºÃ˜Â·Ã™Å Ã™â€¡Ã˜Â§.
 - Ã˜ÂªÃ™â€¦ Ã˜Â­Ã˜Â°Ã™Â Ã˜Â§Ã™â€žÃ˜Â´Ã˜Â±Ã™Å Ã˜Â· Ã˜Â§Ã™â€žÃ˜Â³Ã™ÂÃ™â€žÃ™Å  (Footer) Ã˜Â¨Ã˜Â§Ã™â€žÃ™Æ’Ã˜Â§Ã™â€¦Ã™â€ž Ã˜Â¨Ã™â€ Ã˜Â§Ã˜Â¡Ã™â€¹ Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â·Ã™â€žÃ˜Â¨ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦.
 - Ã˜ÂªÃ™â€¦ Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â¨Ã˜Â¯Ã˜Â§Ã™â€ž Ã˜Â¬Ã™â€¦Ã™Å Ã˜Â¹ Ã™â€¦Ã˜ÂªÃ˜ÂºÃ™Å Ã˜Â±Ã˜Â§Ã˜Âª Ã˜Â«Ã™Å Ã™â€¦ Tailwind Ã˜Â§Ã™â€žÃ™Æ’Ã™â€žÃ˜Â§Ã˜Â³Ã™Å Ã™Æ’Ã™Å Ã˜Â© Ã˜Â¨Ã˜Â£Ã™â€žÃ™Ë†Ã˜Â§Ã™â€  Ã˜Â¯Ã˜Â§Ã™Æ’Ã™â€ Ã˜Â© Ã˜ÂµÃ˜Â±Ã™Å Ã˜Â­Ã˜Â© Ã™Ë†Ã˜Â¹Ã˜Â§Ã™â€žÃ™Å Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¯Ã™â€šÃ˜Â© Ã™â€¦Ã˜Â·Ã˜Â§Ã˜Â¨Ã™â€šÃ˜Â© Ã˜ÂªÃ™â€¦Ã˜Â§Ã™â€¦Ã˜Â§Ã™â€¹ Ã™â€žÃ™â€¦Ã™Ë†Ã™â€šÃ˜Â¹ Ã˜Â³Ã˜Â¹Ã˜Â¯ Ã˜Â³Ã˜ÂªÃ™Ë†Ã˜Â¯Ã™Å Ã™Ë† (`bg-[#0a0a0c]` Ã™â€žÃ™â€žÃ˜Â®Ã™â€žÃ™ÂÃ™Å Ã˜Â©Ã˜Å’ Ã™Ë†`bg-[#111115]` Ã™â€žÃ™â€žÃ˜Â¨Ã˜Â·Ã˜Â§Ã™â€šÃ˜Â§Ã˜ÂªÃ˜Å’ Ã™Ë†`border-zinc-800/80` Ã™â€žÃ™â€žÃ˜Â­Ã˜Â¯Ã™Ë†Ã˜Â¯Ã˜Å’ Ã™Ë†`text-zinc-100` Ã™â€žÃ™â€žÃ™â€ Ã˜ÂµÃ™Ë†Ã˜Âµ) Ã™â€žÃ˜Â¶Ã™â€¦Ã˜Â§Ã™â€  Ã˜Â¨Ã™â€šÃ˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜ÂµÃ™ÂÃ˜Â­Ã˜Â© Ã˜Â¯Ã˜Â§Ã™Æ’Ã™â€ Ã˜Â© Ã™Ë†Ã˜Â«Ã˜Â§Ã˜Â¨Ã˜ÂªÃ˜Â© Ã˜Â¨Ã˜ÂºÃ˜Â¶ Ã˜Â§Ã™â€žÃ™â€ Ã˜Â¸Ã˜Â± Ã˜Â¹Ã™â€  Ã˜Â­Ã˜Â§Ã™â€žÃ˜Â© Ã˜Â«Ã™Å Ã™â€¦ Ã™â€žÃ™Ë†Ã˜Â­Ã˜Â© Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã™Æ’Ã™â€¦.
@@ -829,6 +920,7 @@
 - ØªÙ… ØªØ­Ø¯ÙŠØ« Ù…Ø­Ø±Ùƒ ØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚Ù‰ Ù„Ù…ÙˆØ¯ÙŠÙ„Ø§Øª Google Lyria ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ© Ù„Ù„Ø§Ø¹ØªÙ…Ø§Ø¯ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ø¹Ù„Ù‰ Ø­Ø²Ù…Ø© `@google/genai` Ø§Ù„Ø±Ø³Ù…ÙŠØ© ÙˆØ§Ø³ØªØ¯Ø¹Ø§Ø¡ `interactions.create` ÙƒÙ…Ø§ Ù‡Ùˆ Ù…Ø­Ø¯Ø¯ ÙÙŠ Ù…Ø±Ø¬Ø¹ ØºÙˆØºÙ„ Ø§Ù„Ø¬Ø¯ÙŠØ¯ Ù„ØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ø£Ù„Ø­Ø§Ù† ÙˆØ§Ù„Ù…Ø³Ø§Ø±Ø§Øª Ø§Ù„ØµÙˆØªÙŠØ©.
 
 ## Saad Agent Local Trusted Workspace File Search Routing (2026-07-04)
+
 - Local file search prompts such as `Ã˜Â§Ã˜Â¨Ã˜Â­Ã˜Â« Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ™Æ’Ã™â€¦Ã˜Â¨Ã™Å Ã™Ë†Ã˜ÂªÃ˜Â± Ã˜Â¹Ã™â€  Ã˜Â§Ã™Å  Ã™â€¦Ã™â€žÃ™Â Ã˜Â§Ã™Ë† Ã™Ë†Ã˜Â±Ã˜Â¯ Ã˜Â¨Ã˜Â¹Ã™â€ Ã™Ë†Ã˜Â§Ã™â€  Ã™Ë†Ã˜ÂµÃ™Â Ã˜Â§Ã™â€žÃ™ÂÃ™Å Ã˜Â¯Ã™Å Ã™Ë†` are read-only workspace search tasks, not casual conversation and not direct LLM answers.
 - `ExecutionPolicyService` classifies these requests as `SEARCH` with workflow `local_filesystem_search`.
 - `ChatOrchestratorService` routes the workflow to `LocalFileSearchExecutor`, which searches configured Trusted Workspaces through `TrustedWorkspaceRuntime.search(...)`.
@@ -837,6 +929,7 @@
 - External web research remains separate: product/model/news requests such as `Seedance 2.0 Mini` must still route to `external_research`.
 
 ## Saad Agent Local Image Folder Classification Routing (2026-07-03)
+
 - Local folder image classification requests must not be routed through the generic direct-answer model path.
 - Requests such as `Ã˜Â§Ã™â€ Ã˜Â¸Ã˜Â± Ã˜Â¯Ã˜Â§Ã˜Â®Ã™â€ž C:\Users\PC\Pictures\Screenshots Ã™Ë†Ã˜ÂµÃ™â€ Ã™Â Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±` are classified as `vision_analysis` and routed by Execution Policy to `local_image_classification`.
 - The Chat Orchestrator intercepts this workflow before project context expansion and before `ReasoningEngine`, so Qwen/LM Studio is not called and context-length failures are avoided.
@@ -845,12 +938,14 @@
 - A future implementation should install/connect a real local image classifier, produce a dry-run classification preview, then move files only when approval/access policy allows.
 
 ## Saad Agent Brave Answers Secret Path Alignment (2026-07-03)
+
 - Brave Answers external search uses provider id `brave-answers` and encrypted secret reference `provider:brave-answers:api-key`.
 - In the packaged Electron runtime, provider Settings and encrypted provider secrets must resolve from the same `SAAD_AGENT_SETTINGS_ROOT` / Electron app data root.
 - Legacy workspace secrets can be migrated into the active app-data secret store, but API keys must not be written into Settings JSON, logs, diagnostics, memory, or project documentation.
 - The Brave request header remains `X-Subscription-Token`; stored encrypted secrets take priority over environment-variable fallback.
 
 ## Saad Agent Internal Static Page Executor Fallback (2026-07-03)
+
 - If `CodexRuntimeBridge` reaches execution but the installed Codex CLI is not spawnable from Node/Electron (`Access is denied` / `spawn EPERM`), Saad Agent may use a deterministic internal fallback only for simple static page creation requests.
 - The fallback is intentionally limited: it writes real `index.html`, `styles.css`, `script.js`, and `README.md` files inside the resolved trusted workspace and reports the exact files written.
 - The fallback must refuse packaged Electron runtime paths such as `release-production-v4/win-unpacked`; those folders are application distribution output, not user project workspaces.
@@ -859,12 +954,14 @@
 - Requests such as `Ã˜Â§Ã˜Â±Ã™Å Ã˜Â¯ Ã˜ÂªÃ™â€ Ã˜Â´Ã˜Â¦Ã™â€žÃ™Å  Ã˜ÂµÃ™ÂÃ˜Â­Ã˜Â© Ã˜Â®Ã˜Â§Ã˜ÂµÃ˜Â©... Ã˜Â¯Ã˜Â§Ã˜Â®Ã™â€ž C:\Users\PC\Desktop\test` should create files when the path is trusted/resolved and approval policy allows safe edits.
 
 ## Saad Agent Local Path Engineering Request Routing (2026-07-03)
+
 - Direct chat requests that include an explicit local path and an execution verb are engineering tasks, not casual conversation.
 - Example: `Ã™Ë†Ã˜Â³Ã™Ë†Ã™Å  Ã˜Â³Ã˜Â¹Ã˜Â¯ Ã˜Â§Ã˜Â´Ã˜ÂªÃ˜ÂºÃ™â€ž Ã™ÂÃ™Å Ã˜Â±Ã™Å Ã™â€¦ Ã˜Â¯Ã˜Â§Ã˜Â®Ã™â€ž Ã™â€¡Ã˜Â°Ã˜Â§ Ã˜Â§Ã™â€žÃ™ÂÃ™Ë†Ã™â€žÃ˜Â¯ C:\Users\PC\Desktop\test` must classify as `PLAN` / `engineering_workflow`, not `ANSWER` / `conversation`.
 - When the mentioned local path exists, `ChatOrchestratorService` uses it as the active workspace for the request. If it does not exist, the runtime falls back to the current workspace and should report the real path/workspace issue instead of giving generic manual instructions.
 - External research routing remains separate; requests like `Ã˜Â§Ã˜Â¨Ã˜Â­Ã˜Â«Ã™â€žÃ™Å  Seedance 2.0 Mini` must continue to classify as `SEARCH` / `external_research`.
 
 ## Ã˜Â¥Ã˜ÂµÃ™â€žÃ˜Â§Ã˜Â­ Ã˜ÂªÃ˜Â³Ã™â€žÃ˜Â³Ã™â€ž Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â­Ã˜Â§Ã˜Â¯Ã˜Â«Ã˜Â© Ã™Ë†Ã™ÂÃ™â€¡Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â³Ã™Å Ã˜Â§Ã™â€š Ã™ÂÃ™Å  Saad Agent (2026-07-03)
+
 - Ã˜ÂªÃ™â€¦ Ã˜Â¥Ã˜Â¯Ã™â€¦Ã˜Â§Ã˜Â¬ Ã˜Â°Ã˜Â§Ã™Æ’Ã˜Â±Ã˜Â© Ã˜ÂªÃ˜Â§Ã˜Â±Ã™Å Ã˜Â® Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â­Ã˜Â§Ã˜Â¯Ã˜Â«Ã˜Â© Ã™ÂÃ™Å  Ã˜Â·Ã˜Â¨Ã™â€šÃ˜Â© Ã˜Â§Ã™â€žÃ˜ÂªÃ™â€ Ã˜Â³Ã™Å Ã™â€š Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¨Ã˜Â§Ã˜Â´Ã˜Â± (Direct Chat).
 - Ã™Å Ã™â€šÃ™Ë†Ã™â€¦ Ã˜Â§Ã™â€žÃ™â€ Ã˜Â¸Ã˜Â§Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â¢Ã™â€  Ã˜Â¨Ã˜Â­Ã™ÂÃ˜Â¸ Ã˜Â¢Ã˜Â®Ã˜Â± 10 Ã˜Â±Ã˜Â³Ã˜Â§Ã˜Â¦Ã™â€ž (5 Ã˜Â£Ã˜Â¯Ã™Ë†Ã˜Â§Ã˜Â± Ã˜Â­Ã™Ë†Ã˜Â§Ã˜Â±Ã™Å Ã˜Â©) Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ˜Â°Ã˜Â§Ã™Æ’Ã˜Â±Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¤Ã™â€šÃ˜ÂªÃ˜Â© Ã™â€žÃ™â€žÃ™â‚¬ Session.
 - Ã˜Â¹Ã™â€ Ã˜Â¯Ã™â€¦Ã˜Â§ Ã™Å Ã™Æ’Ã™Ë†Ã™â€  Ã˜ÂªÃ˜ÂµÃ™â€ Ã™Å Ã™Â Ã˜Â§Ã™â€žÃ™â€ Ã™Å Ã˜Â© (Intent) Ã™â€¡Ã™Ë† `conversation` Ã˜Â£Ã™Ë† Ã˜ÂªÃ˜Â±Ã˜Â­Ã™Å Ã˜Â¨Ã˜Â§Ã™â€¹ Ã˜Â¹Ã˜Â§Ã™â€¦Ã˜Â§Ã™â€¹:
@@ -872,6 +969,7 @@
   2. Ã™Å Ã™â€šÃ™Ë†Ã™â€¦ Ã˜Â§Ã™â€žÃ˜ÂªÃ™â€ Ã˜Â³Ã™Å Ã™â€š Ã˜Â¨Ã˜Â­Ã™â€šÃ™â€  Ã˜ÂªÃ˜Â§Ã˜Â±Ã™Å Ã˜Â® Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â­Ã˜Â§Ã˜Â¯Ã˜Â«Ã˜Â© Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ™â‚¬ prompt Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â±Ã˜Â³Ã™â€ž Ã˜Â¥Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬ Ã™â€¦Ã™â€¦Ã˜Â§ Ã™Å Ã˜ÂªÃ™Å Ã˜Â­ Ã™â€žÃ™â€¡ Ã™ÂÃ™â€¡Ã™â€¦ Ã˜Â³Ã™Å Ã˜Â§Ã™â€š Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂªÃ˜Â§Ã˜Â¨Ã˜Â¹Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜ÂªÃ™ÂÃ˜Â§Ã˜Â¹Ã™â€žÃ™Å Ã˜Â© Ã™â€¦Ã˜Â«Ã™â€ž Ã™Æ’Ã™â€žÃ™â€¦Ã˜Â© "Ã™â€¦Ã˜Â§Ã˜Â¯Ã™Å " Ã˜Â±Ã˜Â¯Ã˜Â§Ã™â€¹ Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â±Ã˜Â­Ã™Å Ã˜Â¨.
 
 ## Ã˜Â¥Ã˜ÂµÃ™â€žÃ˜Â§Ã˜Â­ Ã˜ÂªÃ˜Â¬Ã™â€¦Ã™Å Ã˜Â¯ Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â³Ã˜Â¦Ã™â€žÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â§Ã™â€¦Ã˜Â© Ã™ÂÃ™Å  Saad Agent (2026-07-03)
+
 - Ã˜ÂªÃ™â€¦ Ã˜ÂªÃ˜ÂµÃ˜Â­Ã™Å Ã˜Â­ Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â³Ã˜Â¦Ã™â€žÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â§Ã™â€¦Ã˜Â© Ã˜Â§Ã™â€žÃ™â€šÃ˜ÂµÃ™Å Ã˜Â±Ã˜Â© Ã™â€¦Ã˜Â«Ã™â€ž `Ã˜Â¹Ã™â€ Ã˜Â¯Ã™Å  Ã˜Â³Ã˜Â¤Ã˜Â§Ã™â€ž Ã™â€¦Ã™â€ Ã™Ë† Ã™â€¡Ã™Ë† Ã˜Â§Ã™â€žÃ™â€ Ã˜Â¨Ã™Å  Ã™â€¦Ã˜Â­Ã™â€¦Ã˜Â¯` Ã˜Â­Ã˜ÂªÃ™â€° Ã™â€žÃ˜Â§ Ã˜ÂªÃ˜Â¯Ã˜Â®Ã™â€ž Ã˜Â®Ã˜Â· Ã™ÂÃ˜Â­Ã˜Âµ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â´Ã˜Â±Ã™Ë†Ã˜Â¹ Ã™Ë†Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¹Ã˜Â±Ã™ÂÃ˜Â© Ã™Ë†Ã˜Â§Ã™â€žÃ™â€¦Ã™â€¡Ã˜Â§Ã˜Â±Ã˜Â§Ã˜Âª.
 - Ã˜Â§Ã™â€žÃ˜Â³Ã˜Â¨Ã˜Â¨ Ã™Æ’Ã˜Â§Ã™â€  Ã˜Â£Ã™â€  Ã˜Â¨Ã™Å Ã˜Â§Ã™â€ Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ™Æ’Ã™Ë†Ã™â€¦Ã˜Â¨Ã™Ë†Ã˜Â²Ã˜Â± Ã™â€¦Ã˜Â«Ã™â€ž `Provider` Ã™Ë†`Model` Ã™Ë†`Workspace` Ã™Ë†Ã˜ÂµÃ™â€žÃ˜Âª Ã˜Â¥Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ˜ÂªÃ˜ÂµÃ™â€ Ã™Å Ã™Â Ã™Ë†Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â­Ã˜Â«Ã˜Å’ Ã™ÂÃ˜ÂªÃ™â€¦ Ã˜Â§Ã˜Â®Ã˜ÂªÃ™Å Ã˜Â§Ã˜Â± workflow Ã˜ÂºÃ™Å Ã˜Â± Ã˜ÂµÃ˜Â­Ã™Å Ã˜Â­ Ã™â€¦Ã˜Â«Ã™â€ž `provider-integration`.
 - Ã™Å Ã˜Â¹Ã˜ÂªÃ™â€¦Ã˜Â¯ Direct Chat Ã˜Â§Ã™â€žÃ˜Â¢Ã™â€  Ã˜Â¹Ã™â€žÃ™â€° Ã™â€ Ã˜Âµ `User request:` Ã˜Â§Ã™â€žÃ˜Â­Ã™â€šÃ™Å Ã™â€šÃ™Å  Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ˜ÂªÃ˜ÂµÃ™â€ Ã™Å Ã™Â Ã™Ë†Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â­Ã˜Â« Ã™Ë†Ã˜Â¨Ã™â€ Ã˜Â§Ã˜Â¡ promptÃ˜Å’ Ã™Ë†Ã™â€žÃ™Å Ã˜Â³ Ã˜Â¹Ã™â€žÃ™â€° metadata Ã˜Â§Ã™â€žÃ˜Â¯Ã˜Â§Ã˜Â®Ã™â€žÃ™Å Ã˜Â©.
@@ -879,16 +977,19 @@
 - Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜Â¨Ã™â€šÃ˜Â§Ã˜Â¡ Ã˜Â·Ã™â€žÃ˜Â¨Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ™â€¡Ã™â€ Ã˜Â¯Ã˜Â³Ã˜Â© Ã™Ë†Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â¹Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â®Ã˜Â§Ã˜Â±Ã˜Â¬ Ã™â€¡Ã˜Â°Ã˜Â§ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â±Ã˜Å’ Ã™Ë†Ã˜ÂªÃ˜Â¸Ã™â€ž Ã˜ÂªÃ™â€¦Ã˜Â± Ã˜Â¹Ã˜Â¨Ã˜Â± Execution Policy Ã™Ë†Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â§Ã™ÂÃ™â€šÃ˜Â©.
 
 ## Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã™â€¦Ã™Ë†Ã˜Â¯Ã™Å Ã™â€ž Google Gemini Omni Flash Ã™â€žÃ™â€žÃ™ÂÃ™Å Ã˜Â¯Ã™Å Ã™Ë† (2026-07-02)
+
 - Ã˜ÂªÃ™â€¦ Ã˜Â¯Ã™â€¦Ã˜Â¬ Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯ `Google Gemini Omni Flash` (Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â·Ã˜Â§Ã˜Â¨Ã™â€š Ã™â€žÃ™â‚¬ `gemini-omni-flash-preview` Ã™â€¦Ã™â€  Ã™â€šÃ™Ë†Ã™â€šÃ™â€ž) Ã˜Â¨Ã˜ÂµÃ™ÂÃ˜Â­Ã˜Â© Ã˜Â§Ã™â€žÃ™ÂÃ™Å Ã˜Â¯Ã™Å Ã™Ë† Ã™Ë†Ã˜Â£Ã˜Â¯Ã˜Â§Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â±Ã˜Â³Ã™â€¦ Ã™â€žÃ™â€žÃ™â‚¬ Draw-to-Video.
 - Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â¯Ã™Å Ã™â€ž Ã™Å Ã˜Â¯Ã˜Â¹Ã™â€¦ Ã™â€ Ã˜Â³Ã˜Â¨ Ã˜Â£Ã˜Â¨Ã˜Â¹Ã˜Â§Ã˜Â¯ Ã™â€¦Ã˜ÂªÃ™â€ Ã™Ë†Ã˜Â¹Ã˜Â© (16:9Ã˜Å’ 9:16)Ã˜Å’ Ã˜Â¯Ã™â€šÃ˜Â© 720pÃ˜Å’ Ã™Ë†Ã™Å Ã˜Â³Ã™â€¦Ã˜Â­ Ã˜Â¨Ã™â€¦Ã˜Â¯Ã˜Â¯ Ã™â€¦Ã˜Â±Ã™â€ Ã˜Â© Ã˜ÂªÃ˜ÂªÃ˜Â±Ã˜Â§Ã™Ë†Ã˜Â­ Ã˜Â¨Ã™Å Ã™â€  **3 Ã˜Â¥Ã™â€žÃ™â€° 10 Ã˜Â«Ã™Ë†Ã˜Â§Ã™â€ Ã™Â** Ã™â€¦Ã˜Â¹ Ã˜Â§Ã˜Â³Ã˜ÂªÃ™â€¡Ã™â€žÃ˜Â§Ã™Æ’ Ã˜Â±Ã˜ÂµÃ™Å Ã˜Â¯ Ã™â€šÃ˜Â¯Ã˜Â±Ã™â€¡ **3.00 Ã™â€ Ã™â€šÃ˜Â·Ã˜Â© Ã˜Â¨Ã˜Â§Ã™â€žÃ˜Â«Ã˜Â§Ã™â€ Ã™Å Ã˜Â©** (30 Ã™â€ Ã™â€šÃ˜Â·Ã˜Â© Ã™â€žÃ™Æ’Ã™â€ž 10 Ã˜Â«Ã™Ë†Ã˜Â§Ã™â€ Ã™ ).
 
 ## Ã˜ÂªÃ˜Â«Ã˜Â¨Ã™Å Ã˜Âª Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â³Ã˜Â¦Ã™â€žÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â³Ã™Å Ã˜Â·Ã˜Â© Ã™ÂÃ™Å  Saad Agent (2026-07-02)
+
 - Ã˜ÂªÃ™â€¦ Ã˜ÂªÃ˜ÂµÃ˜Â­Ã™Å Ã˜Â­ Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â¯Ã˜Â¹Ã˜Â§Ã˜Â¡ LM Studio Ã˜Â¯Ã˜Â§Ã˜Â®Ã™â€ž Saad Agent Ã˜Â­Ã˜ÂªÃ™â€° Ã™â€žÃ˜Â§ Ã˜ÂªÃ˜Â¨Ã™â€šÃ™â€° Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â³Ã˜Â¦Ã™â€žÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â³Ã™Å Ã˜Â·Ã˜Â© Ã˜Â¹Ã˜Â§Ã™â€žÃ™â€šÃ˜Â© Ã˜Â¹Ã™â€žÃ™â€° `Processing request`.
 - Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã˜Â§Ã™â€¦ LM StudioÃ˜Å’ Ã™Å Ã˜Â¨Ã˜Â¯Ã˜Â£ runtime Ã˜Â§Ã™â€žÃ˜Â¢Ã™â€  Ã˜Â¨Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± `/api/v1/chat/completions` Ã˜Â«Ã™â€¦ Ã™Å Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦ `/api/v1/chat` Ã™Æ’Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â¨Ã˜Â¯Ã™Å Ã™â€žÃ˜Å’ Ã™Ë†Ã™â€žÃ˜Â§ Ã™Å Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦ `/chat/completions` Ã˜ÂºÃ™Å Ã˜Â± Ã˜Â§Ã™â€žÃ˜ÂµÃ˜Â­Ã™Å Ã˜Â­ Ã™â€žÃ™â€¦Ã˜Â²Ã™Ë†Ã˜Â¯ LM Studio.
 - Ã˜ÂªÃ™â€¦ Ã˜Â¶Ã˜Â¨Ã˜Â· Ã˜Â­Ã˜Â¯ Ã˜Â²Ã™â€¦Ã™â€ Ã™Å  Ã™â€žÃ˜Â§Ã˜Â³Ã˜ÂªÃ˜Â¯Ã˜Â¹Ã˜Â§Ã˜Â¡Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜ÂªÃ™ÂÃ˜Â§Ã˜Â¹Ã™â€žÃ™Å Ã˜Â©Ã˜Å’ Ã™Ë†Ã˜Â¥Ã˜Â°Ã˜Â§ Ã™ÂÃ˜Â´Ã™â€ž Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â²Ã™Ë†Ã˜Â¯ Ã™Å Ã˜Â±Ã˜Â¬Ã˜Â¹ Ã˜Â§Ã™â€žÃ™Ë†Ã™Æ’Ã™Å Ã™â€ž Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ˜Â© Ã˜Â®Ã˜Â·Ã˜Â£ Ã™Ë†Ã˜Â§Ã˜Â¶Ã˜Â­Ã˜Â© Ã˜Â¨Ã˜Â¯Ã™â€ž Ã˜Â¥Ã˜Â¨Ã™â€šÃ˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â§Ã˜Â¬Ã™â€¡Ã˜Â© Ã˜Â¨Ã˜Â­Ã˜Â§Ã™â€žÃ˜Â© Ã˜ÂªÃ˜Â´Ã˜ÂºÃ™Å Ã™â€ž.
 - Ã˜ÂªÃ™â€¦ Ã˜Â¥Ã˜Â¹Ã˜Â§Ã˜Â¯Ã˜Â© Ã˜Â­Ã˜Â²Ã™â€¦ `release-production-v4/win-unpacked/resources/app.asar` Ã˜Â¨Ã˜Â¹Ã˜Â¯ Ã™â€ Ã˜Â¬Ã˜Â§Ã˜Â­ Ã˜Â§Ã™â€žÃ˜Â¨Ã™â€ Ã˜Â§Ã˜Â¡ Ã™Ë†Ã˜Â§Ã˜Â®Ã˜ÂªÃ˜Â¨Ã˜Â§Ã˜Â± Ã˜Â³Ã˜Â¤Ã˜Â§Ã™â€ž Ã˜Â¨Ã˜Â³Ã™Å Ã˜Â· Ã™â€¦Ã™â€  Ã˜Â§Ã™â€žÃ™â€ Ã˜Â³Ã˜Â®Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¥Ã™â€ Ã˜ÂªÃ˜Â§Ã˜Â¬Ã™Å Ã˜Â©.
 
 ## Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã™â€¦Ã™Ë†Ã˜Â¯Ã™Å Ã™â€ž Google Nano Banana 2 Lite Ã™â€žÃ™â€žÃ˜ÂµÃ™Ë†Ã˜Â± (2026-07-02)
+
 - Ã˜ÂªÃ™â€¦ Ã˜Â¯Ã™â€¦Ã˜Â¬ Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯ `Google Nano Banana 2 Lite` (Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â·Ã˜Â§Ã˜Â¨Ã™â€š Ã™â€žÃ™â‚¬ `gemini-3.1-flash-lite-image-preview` Ã™â€¦Ã™â€  Ã™â€šÃ™Ë†Ã™â€šÃ™â€ž) Ã˜Â¨Ã˜ÂµÃ™ÂÃ˜Â­Ã˜Â© Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â± Ã™Ë†Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â¯Ã™Ë†Ã˜Â§Ã˜Âª Ã™Ë†Ã˜Â¹Ã™â€¦Ã™â€žÃ˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ™â‚¬ CEP.
 - Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â¯Ã™Å Ã™â€ž Ã™Å Ã˜Â¯Ã˜Â¹Ã™â€¦ Ã™â€ Ã˜Â³Ã˜Â¨ Ã˜Â£Ã˜Â¨Ã˜Â¹Ã˜Â§Ã˜Â¯ Ã™â€¦Ã˜ÂªÃ™â€ Ã™Ë†Ã˜Â¹Ã˜Â©Ã˜Å’ Ã™Ë†Ã˜Â¨Ã˜Â­Ã˜Â¯ Ã˜Â£Ã™â€šÃ˜ÂµÃ™â€° 14 Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™â€¦Ã˜Â±Ã˜Â¬Ã˜Â¹Ã™Å Ã˜Â© Ã™â€žÃ™â€žÃ™â‚¬ Image-to-Image Ã™Ë†Ã˜Â¨Ã˜Â£Ã™â€šÃ™â€ž Ã˜ÂªÃ™Æ’Ã™â€žÃ™ÂÃ˜Â© Ã˜Â§Ã˜Â³Ã˜ÂªÃ™â€¡Ã™â€žÃ˜Â§Ã™Æ’ Ã˜Â±Ã˜ÂµÃ™Å Ã˜Â¯ (0.40 Ã™â€ Ã™â€šÃ˜Â·Ã˜Â©).
 
@@ -899,6 +1000,7 @@
 - Ã˜Â§Ã™â€žÃ˜Â±Ã˜Â¯Ã™Ë†Ã˜Â¯ Ã˜Â§Ã™â€žÃ™â€šÃ˜ÂµÃ™Å Ã˜Â±Ã˜Â© Ã™â€¦Ã˜Â«Ã™â€ž `Ã™â€ Ã˜Â¹Ã™â€¦` Ã˜Â¨Ã˜Â¹Ã˜Â¯ Ã˜Â³Ã˜Â¤Ã˜Â§Ã™â€ž Ã˜ÂªÃ™Ë†Ã˜Â¶Ã™Å Ã˜Â­Ã™Å  Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜Â£Ã™â€  Ã˜ÂªÃ˜Â¨Ã™â€šÃ™â€° Ã˜Â¶Ã™â€¦Ã™â€  Ã™â€ Ã™ÂÃ˜Â³ Ã˜Â§Ã™â€žÃ˜Â³Ã™Å Ã˜Â§Ã™â€š. Ã˜Â¥Ã˜Â°Ã˜Â§ Ã™Æ’Ã˜Â§Ã™â€  Ã˜Â§Ã™â€žÃ˜ÂªÃ™Ë†Ã˜Â¶Ã™Å Ã˜Â­ Ã™â€ Ã˜Â§Ã™â€šÃ˜ÂµÃ˜Â§Ã™â€¹Ã˜Å’ Ã™Å Ã˜Â·Ã™â€žÃ˜Â¨ Ã˜Â§Ã™â€žÃ™Ë†Ã™Æ’Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜ÂªÃ™ÂÃ˜ÂµÃ™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â·Ã™â€žÃ™Ë†Ã˜Â¨ Ã˜Â¨Ã˜Â¯Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â§Ã™â€ Ã˜ÂªÃ™â€šÃ˜Â§Ã™â€ž Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â¶Ã™Ë†Ã˜Â¹ Ã˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯ Ã˜Â£Ã™Ë† Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â¯Ã˜Â¹Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â¯Ã™Å Ã™â€ž.
 
 ## Ã˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â« Ã˜Â³Ã™Å Ã˜Â§Ã˜Â³Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â³Ã™â€žÃ™ÂÃ˜Â© (Credit Advance Policy Update) Ã¢â‚¬â€ (2026-07-01)
+
 - **Ã™â€¦Ã™â€ Ã˜Â¹ Ã˜Â·Ã™â€žÃ˜Â¨ Ã˜Â§Ã™â€žÃ˜Â³Ã™â€žÃ™ÂÃ˜Â© Ã™ÂÃ™Å  Ã˜Â¢Ã˜Â®Ã˜Â± Ã˜Â´Ã™â€¡Ã˜Â±Ã™Å Ã™â€ **: Ã˜ÂªÃ™â€¦ Ã˜ÂªÃ˜Â¹Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â¢Ã™â€žÃ™Å Ã˜Â© Ã˜Â·Ã™â€žÃ˜Â¨ Ã˜Â§Ã™â€žÃ˜Â³Ã™â€žÃ™ÂÃ˜Â© (`creditAdvance`) Ã™â€žÃ™â€žÃ™â€¦Ã˜Â´Ã˜ÂªÃ˜Â±Ã™Æ’Ã™Å Ã™â€  Ã˜Â§Ã™â€žÃ˜Â³Ã™â€ Ã™Ë†Ã™Å Ã™Å Ã™â€  Ã˜Â¨Ã˜Â­Ã™Å Ã˜Â« Ã˜ÂªÃ™ÂÃ˜Â¹Ã˜Â·Ã™â€ž Ã˜ÂªÃ™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™Å Ã˜Â§Ã™â€¹ Ã™Ë†Ã˜ÂªÃ˜Â¸Ã™â€¡Ã˜Â± Ã˜ÂºÃ™Å Ã˜Â± Ã™â€¦Ã˜ÂªÃ˜Â§Ã˜Â­Ã˜Â© (`available: false`) Ã˜Â®Ã™â€žÃ˜Â§Ã™â€ž Ã˜Â¢Ã˜Â®Ã˜Â± Ã˜Â´Ã™â€¡Ã˜Â±Ã™Å Ã™â€  (60 Ã™Å Ã™Ë†Ã™â€¦Ã˜Â§Ã™â€¹) Ã™â€¦Ã™â€  Ã™ÂÃ˜ÂªÃ˜Â±Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â§Ã˜Â´Ã˜ÂªÃ˜Â±Ã˜Â§Ã™Æ’ Ã˜Â§Ã™â€žÃ™ÂÃ˜Â¹Ã™â€žÃ™Å  Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂªÃ˜Â¨Ã™â€šÃ™Å Ã˜Â© (`stripeCurrentPeriodEnd`). Ã™Å Ã™â€¦Ã™â€ Ã˜Â¹ Ã˜Â§Ã™â€žÃ™â€ Ã˜Â¸Ã˜Â§Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â®Ã™â€žÃ™ÂÃ™Å  Ã˜Â·Ã™â€žÃ˜Â¨Ã™â€¡Ã˜Â§ Ã™ÂÃ™Å  Ã™â€¡Ã˜Â°Ã™â€¡ Ã˜Â§Ã™â€žÃ™ÂÃ˜ÂªÃ˜Â±Ã˜Â© Ã™Ë†Ã™Å Ã˜Â¹Ã™Å Ã˜Â¯ Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ˜Â© Ã˜Â®Ã˜Â·Ã˜Â£ Ã™Ë†Ã˜Â§Ã˜Â¶Ã˜Â­Ã˜Â© Ã˜Â¨Ã˜Â§Ã™â€žÃ™â€žÃ˜ÂºÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â±Ã˜Â¨Ã™Å Ã˜Â© Ã™Ë†Ã˜Â§Ã™â€žÃ˜Â¥Ã™â€ Ã˜Â¬Ã™â€žÃ™Å Ã˜Â²Ã™Å Ã˜Â©.
 
 ## Saad Agent Engineering Knowledge Manager & Permanent Learning Library Ã¢â‚¬â€ Phase 2 & Action Updates (2026-06-30)
@@ -1023,6 +1125,7 @@
 - **Reap API** Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã™â€¦Ã™â€ Ã™ÂÃ˜ÂµÃ™â€ž Ã˜Â¹Ã™â€  Ã˜ÂªÃ™â€ Ã™ÂÃ™Å Ã˜Â° Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã™â€ Ã˜ÂªÃ˜Â§Ã˜Â¬ Ã˜Â¯Ã˜Â§Ã˜Â®Ã™â€ž Premiere.
 
 ## Ã˜Â­Ã˜Â§Ã™â€žÃ˜Â© Ã™â€¦Ã™Å Ã˜Â²Ã˜Â© Auto Zoom Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â§Ã™â€žÃ™Å Ã˜Â©
+
 - **Auto Zoom Status**:
   * Disabled (Ã™â€¦Ã˜Â¹Ã˜Â·Ã™â€žÃ˜Â© Ã˜Â¨Ã˜Â§Ã™â€žÃ™Æ’Ã˜Â§Ã™â€¦Ã™â€ž)
   * Hidden from UI (Ã™â€¦Ã˜Â®Ã™ÂÃ™Å Ã˜Â© Ã™â€¦Ã™â€  Ã™Ë†Ã˜Â§Ã˜Â¬Ã™â€¡Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦)
@@ -1245,9 +1348,11 @@
 > Ã™â€¡Ã˜Â°Ã˜Â§ Ã˜Â§Ã™â€žÃ™â€šÃ˜Â³Ã™â€¦ Ã™Å Ã˜Â­Ã˜ÂªÃ™Ë†Ã™Å  Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â«Ã™â€šÃ˜Â§Ã˜Âª Ã™Ë†Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â¹Ã™â€¦Ã˜Â§Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â³Ã˜Â§Ã˜Â¨Ã™â€šÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â®Ã˜Â§Ã˜ÂµÃ˜Â© Ã˜Â¨Ã™â€¦Ã™Å Ã˜Â²Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â²Ã™Ë†Ã™â€¦ Ã˜Â§Ã™â€žÃ˜ÂªÃ™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™Å  (Auto Zoom) Ã™Ë†Ã˜Â§Ã™â€žÃ˜ÂªÃ™Å  Ã˜ÂªÃ™â€¦ Ã˜ÂªÃ˜Â¹Ã˜Â·Ã™Å Ã™â€žÃ™â€¡Ã˜Â§ Ã™Ë†Ã˜Â­Ã˜Â¬Ã˜Â¨Ã™â€¡Ã˜Â§ Ã™â€¦Ã™â€  Ã™Ë†Ã˜Â§Ã˜Â¬Ã™â€¡Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦ Ã™Ë†Ã˜Â§Ã™â€žÃ™â‚¬ Pipeline Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â§Ã™â€žÃ™Å  Ã˜Â§Ã™â€žÃ˜Â¥Ã™â€ Ã˜ÂªÃ˜Â§Ã˜Â¬Ã™Å Ã˜Å’ Ã™Ë†Ã˜Â£Ã˜Â±Ã˜Â´Ã™ÂÃ˜ÂªÃ™â€¡Ã˜Â§ Ã™â€žÃ™â€žÃ˜Â¥Ã˜ÂµÃ™â€žÃ˜Â§Ã˜Â­Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜ÂªÃ™â€šÃ˜Â¨Ã™â€žÃ™Å Ã˜Â©.
 
 ### Auto Zoom Production Ready & Overlay Architecture (Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â§Ã™â€žÃ˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¤Ã˜Â±Ã˜Â´Ã™ÂÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â³Ã˜Â§Ã˜Â¨Ã™â€šÃ˜Â©)
+
 - Ã™Æ’Ã˜Â§Ã™â€ Ã˜Âª Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¹Ã™â€¦Ã˜Â§Ã˜Â±Ã™Å Ã˜Â© Ã˜Â§Ã™â€žÃ™â€šÃ˜Â¯Ã™Å Ã™â€¦Ã˜Â© Ã˜ÂªÃ˜ÂµÃ™Â Ã˜ÂªÃ˜Â·Ã˜Â¨Ã™Å Ã™â€š Auto Zoom Ã™Æ’Ã™â‚¬ Production Ready Ã™Ë† Overlay Architecture Ã™â€¦Ã˜Â³Ã˜ÂªÃ™â€šÃ˜Â±Ã˜Â© (Selected = Inserted = Effects)Ã˜Å’ Ã™â€žÃ™Æ’Ã™â€  Ã™â€ Ã˜Â¸Ã˜Â±Ã˜Â§Ã™â€¹ Ã™â€žÃ™â€žÃ™â€¦Ã˜Â´Ã˜Â§Ã™Æ’Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â§Ã™â€žÃ™Å Ã˜Â© Ã˜ÂªÃ™â€¦ Ã˜Â£Ã˜Â±Ã˜Â´Ã™ÂÃ˜ÂªÃ™â€¡Ã˜Â§ Ã˜Â¨Ã˜Â§Ã™â€žÃ™Æ’Ã˜Â§Ã™â€¦Ã™â€ž Ã™Ë†Ã™â€žÃ˜Â§ Ã˜ÂªÃ™ÂÃ˜Â¹Ã˜Â§Ã™â€¦Ã™â€ž Ã™Æ’Ã˜Â¬Ã˜Â²Ã˜Â¡ Ã™â€¦Ã™â€  Ã˜Â§Ã™â€žÃ˜Â¥Ã™â€ Ã˜ÂªÃ˜Â§Ã˜Â¬ Ã˜Â§Ã™â€žÃ™ÂÃ˜Â¹Ã™â€žÃ™Å .
 
 ### Auto Zoom Ã™Ë†Ã™â€šÃ˜Â¯Ã˜Â±Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ™â‚¬ Adjustment Layer
+
 - Auto Zoom Ã™â€žÃ˜Â§ Ã™Å Ã™ÂÃ˜ÂªÃ˜Â±Ã˜Â¶ Ã˜Â£Ã™â€  Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Adjustment Layer Ã™â€¦Ã™Ë†Ã˜Â¬Ã™Ë†Ã˜Â¯ Ã˜Â­Ã˜ÂµÃ˜Â±Ã™â€¹Ã˜Â§ Ã˜Â¹Ã™â€žÃ™â€° QEÃ˜â€º Ã™Å Ã™ÂÃ˜Â­Ã˜Âµ Runtime Ã™â€žÃ™Æ’Ã™â€ž Ã™â€¦Ã™â€  `app.project.newAdjustmentLayer` Ã™Ë†`qe.project.newAdjustmentLayer` Ã™Ë†Ã™Å Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂªÃ˜Â§Ã˜Â­ Ã™ÂÃ™â€šÃ˜Â· Ã˜Â¨Ã˜Â¹Ã˜Â¯ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã™â€šÃ™â€š Ã™â€¦Ã™â€  ProjectItem Ã˜Â§Ã™â€žÃ™â€ Ã˜Â§Ã˜ÂªÃ˜Â¬.
 - Auto Zoom Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â§Ã™â€žÃ™Å  Ã™Å Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â±Ã˜Â¬ Ã˜Â£Ã˜Â­Ã˜Â¯Ã˜Â§Ã˜Â«Ã™â€¡ Ã™â€¦Ã™â€  cuts Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â¬Ã™Ë†Ã˜Â¯Ã˜Â© Ã™ÂÃ™Å  Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ™ÂÃ™Å Ã˜Â¯Ã™Å Ã™Ë† Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â®Ã˜ÂªÃ˜Â§Ã˜Â±. Ã˜ÂºÃ™Å Ã˜Â§Ã˜Â¨ cuts Ã™Å Ã˜Â¨Ã™â€šÃ™â€° Ã˜ÂªÃ˜Â­Ã˜Â°Ã™Å Ã˜Â±Ã™â€¹Ã˜Â§ Ã™Ë†Ã™â€žÃ˜Â§ Ã™Å Ã˜Â¤Ã˜Â¯Ã™Å  Ã˜Â¥Ã™â€žÃ™â€° Ã˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯ zooms Ã˜Â¯Ã™Ë†Ã˜Â±Ã™Å Ã˜Â© Ã˜Â¹Ã˜Â´Ã™Ë†Ã˜Â§Ã˜Â¦Ã™Å Ã˜Â©.
 - Ã˜Â£Ã˜Â«Ã˜Â¨Ã˜Âª Runtime Ã™ÂÃ™Å  Premiere 26.2 Ã˜ÂºÃ™Å Ã˜Â§Ã˜Â¨ Ã˜Â¯Ã˜Â§Ã™â€žÃ˜ÂªÃ™Å  Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Adjustment Layer Ã˜Â¹Ã™â€žÃ™â€° `app.project` Ã™Ë†`qe.project`. Ã™â€žÃ˜Â°Ã™â€žÃ™Æ’ Auto Zoom Ã™Å Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦ `direct-transform` Ã™Æ’Ã™â‚¬fallback: Ã™Å Ã˜Â¶Ã™Å Ã™Â Ã˜ÂªÃ˜Â£Ã˜Â«Ã™Å Ã˜Â± Transform Ã™Ë†Ã™â€¦Ã™ÂÃ˜Â§Ã˜ÂªÃ™Å Ã˜Â­ Scale Ã™â€šÃ˜Â§Ã˜Â¨Ã™â€žÃ˜Â© Ã™â€žÃ™â€žÃ˜ÂªÃ˜Â¹Ã˜Â¯Ã™Å Ã™â€ž Ã™â€¦Ã˜Â¨Ã˜Â§Ã˜Â´Ã˜Â±Ã˜Â© Ã˜Â¥Ã™â€žÃ™â€° clips Ã˜Â§Ã™â€žÃ˜ÂªÃ™Å  Ã˜ÂªÃ˜ÂºÃ˜Â·Ã™Å  cuts Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â®Ã˜ÂªÃ˜Â§Ã˜Â±Ã˜Â©. Ã™Å Ã˜Â¨Ã™â€šÃ™â€° Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Adjustment Layer Ã˜Â§Ã˜Â®Ã˜ÂªÃ™Å Ã˜Â§Ã˜Â±Ã™Å Ã™â€¹Ã˜Â§ Ã˜Â¥Ã˜Â°Ã˜Â§ Ã˜Â¸Ã™â€¡Ã˜Â± Ã™ÂÃ™Å  Runtime Ã˜Â¢Ã˜Â®Ã˜Â±.
@@ -1255,18 +1360,22 @@
 - Runtime Proof Ã˜Â¨Ã˜ÂªÃ˜Â§Ã˜Â±Ã™Å Ã˜Â® 2026-06-18 Ã˜Â£Ã˜Â«Ã˜Â¨Ã˜Âª Ã˜Â£Ã™â€  fallback `direct-transform` Ã™Å Ã˜Â¸Ã™â€¡Ã˜Â± `Runtime: Ready` Ã™ÂÃ™Å  Premiere 26.2Ã˜â€º Ã™â€žÃ™â€¦ Ã™Å Ã™ÂÃ˜Â®Ã˜ÂªÃ˜Â¨Ã˜Â± Ã˜ÂªÃ˜Â·Ã˜Â¨Ã™Å Ã™â€š Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â£Ã˜Â«Ã™Å Ã˜Â± Ã˜Â¨Ã˜Â¹Ã˜Â¯ Ã™â€žÃ˜Â£Ã™â€  sequence Ã˜Â§Ã™â€žÃ˜Â®Ã˜Â§Ã™â€¦ Ã™â€žÃ™â€¦ Ã™Å Ã˜Â­Ã˜ÂªÃ™Ë†Ã™Â cuts.
 
 ### Ã™â€¦Ã˜Â·Ã˜Â§Ã˜Â¨Ã™â€šÃ˜Â© Ã™ÂÃ™â€¡Ã˜Â±Ã˜Â³ DOM track.clips Ã™ÂÃ™Å  Auto Zoom QE
+
 - Ã™â€žÃ˜Â§ Ã™Å Ã˜Â¬Ã™Ë†Ã˜Â² Ã˜Â§Ã™ÂÃ˜ÂªÃ˜Â±Ã˜Â§Ã˜Â¶ Ã˜ÂªÃ˜Â·Ã˜Â§Ã˜Â¨Ã™â€š Ã™ÂÃ™â€¡Ã˜Â±Ã˜Â³ DOM `track.clips` Ã™â€¦Ã˜Â¹ Ã™ÂÃ™â€¡Ã˜Â±Ã˜Â³ QE `getItemAt`. Auto Zoom Ã™Å Ã˜Â·Ã˜Â§Ã˜Â¨Ã™â€š QE item Ã˜Â¨Ã˜Â²Ã™â€¦Ã™â€  Ã˜Â¨Ã˜Â¯Ã˜Â§Ã™Å Ã˜Â© TrackItemÃ˜Å’ Ã˜Â«Ã™â€¦ Ã™Å Ã˜Â¹Ã™Å Ã˜Â¯ Ã™â€šÃ˜Â±Ã˜Â§Ã˜Â¡Ã˜Â© DOM TrackItem Ã˜Â¨Ã˜Â¹Ã˜Â¯ `addVideoEffect` Ã™â€šÃ˜Â¨Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â­Ã˜Â« Ã˜Â¹Ã™â€  Transform/Scale.
 - Ã™â€ Ã˜ÂªÃ™Å Ã˜Â¬Ã˜Â© build Ã™Ë†Ã˜Â­Ã˜Â¯Ã™â€¡Ã˜Â§ Ã™â€žÃ™Å Ã˜Â³Ã˜Âª Runtime ProofÃ˜â€º Ã™Å Ã™â€žÃ˜Â²Ã™â€¦ Ã˜Â¥Ã˜Â«Ã˜Â¨Ã˜Â§Ã˜Âª `effectsApplied > 0` Ã˜Â¹Ã™â€žÃ™â€° duplicate sequence.
 
 ### Auto Zoom Ã™ÂÃ™Å  Ã™â€¦Ã˜Â±Ã˜Â¬Ã˜Â¹ AutoSplice
+
 - Auto Zoom Ã˜ÂºÃ™Å Ã˜Â± Ã™â€¦Ã™â€ Ã™ÂÃ˜Â° Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂµÃ˜Â¯Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â§Ã™â€žÃ™Å . Ã™Ë†Ã˜Â«Ã™Å Ã™â€šÃ˜Â© Ã˜Â§Ã™â€žÃ˜ÂªÃ˜ÂµÃ™â€¦Ã™Å Ã™â€¦ Ã™ÂÃ™â€šÃ˜Â· Ã˜ÂªÃ™â€šÃ˜ÂªÃ˜Â±Ã˜Â­ Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã˜Â§Ã™â€¦ Ã˜Â§Ã™â€žÃ™â€¦Ã™Æ’Ã™Ë†Ã™â€˜Ã™â€  Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¯Ã™â€¦Ã˜Â¬ Motion Ã™Ë†Ã˜Â®Ã˜Â§Ã˜ÂµÃ™Å Ã˜Â© Scale Ã˜Â¨Ã˜Â¯Ã™â€ž Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© TransformÃ˜â€º Ã™â€¡Ã˜Â°Ã˜Â§ Ã˜Â§Ã˜ÂªÃ˜Â¬Ã˜Â§Ã™â€¡ Ã˜Â§Ã˜Â®Ã˜ÂªÃ˜Â¨Ã˜Â§Ã˜Â± Ã™â€¦Ã˜Â­Ã˜ÂªÃ™â€¦Ã™â€ž Ã™Ë†Ã™â€žÃ™Å Ã˜Â³ Ã˜Â­Ã™â€šÃ™Å Ã™â€šÃ˜Â© Runtime.
 
 ### Ã˜Â«Ã˜Â¨Ã˜Â§Ã˜Âª Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜ÂªÃ˜Â­Ã™â€žÃ™Å Ã™â€ž Auto Zoom
+
 - Ã™â€šÃ™Å Ã™â€¦Ã˜Â© Analyze Track Ã˜Â­Ã˜Â§Ã™â€žÃ˜Â© Ã˜ÂµÃ˜Â±Ã™Å Ã˜Â­Ã˜Â© Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â§Ã˜Â¬Ã™â€¡Ã˜Â©Ã˜Å’ Ã™Ë†Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜Â¥Ã˜Â³Ã™â€ Ã˜Â§Ã˜Â¯Ã™â€¡Ã˜Â§ Ã˜Â¥Ã™â€žÃ™â€° Ã˜Â®Ã˜Â§Ã˜ÂµÃ™Å Ã˜Â© DOM `HTMLSelectElement.value` Ã˜Â¨Ã˜Â¹Ã˜Â¯ Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜Â®Ã™Å Ã˜Â§Ã˜Â±Ã˜Â§Ã˜ÂªÃ˜â€º Ã˜ÂµÃ™ÂÃ˜Â© HTML `value` Ã™Ë†Ã˜Â­Ã˜Â¯Ã™â€¡Ã˜Â§ Ã™â€žÃ˜Â§ Ã˜ÂªÃ˜Â®Ã˜ÂªÃ˜Â§Ã˜Â± option Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜Â¥Ã˜Â¹Ã˜Â§Ã˜Â¯Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â±Ã˜Â³Ã™â€¦.
 - Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã™â€žÃ™Å Ã™â€ž Ã™Å Ã˜Â³Ã˜ÂªÃ™â€šÃ˜Â¨Ã™â€ž `analyzedVideoTrackIndexes` Ã™Ë†Ã™Å Ã˜Â­Ã˜ÂµÃ˜Â± Ã˜Â§Ã™Æ’Ã˜ÂªÃ˜Â´Ã˜Â§Ã™Â cuts Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â®Ã˜ÂªÃ˜Â§Ã˜Â±. Ã˜ÂªÃ˜Â­Ã™ÂÃ˜Â¸ Ã˜Â§Ã™â€žÃ™â€ Ã˜ÂªÃ™Å Ã˜Â¬Ã˜Â© Ã˜Â§Ã™â€žÃ™ÂÃ™â€¡Ã˜Â§Ã˜Â±Ã˜Â³ Ã˜Â§Ã™â€žÃ˜ÂªÃ™Å  Ã˜Â­Ã™ÂÃ™â€žÃ™â€žÃ˜ÂªÃ˜Å’ Ã™Ë†Ã™Å Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦ Apply Ã˜Â§Ã™â€žÃ™ÂÃ™â€¡Ã˜Â§Ã˜Â±Ã˜Â³ Ã™â€ Ã™ÂÃ˜Â³Ã™â€¡Ã˜Â§ Ã™â€žÃ˜Â¶Ã™â€¦Ã˜Â§Ã™â€  Ã˜Â¹Ã˜Â¯Ã™â€¦ Ã˜Â§Ã˜Â®Ã˜ÂªÃ™â€žÃ˜Â§Ã™Â Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã™â€žÃ™Å Ã™â€ž Ã˜Â¹Ã™â€  Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ˜ÂªÃ™â€ Ã™ÂÃ™Å Ã˜Â°.
 - Ã˜ÂªÃ˜ÂºÃ™Å Ã™Å Ã˜Â± Analyze Track Ã™Å Ã™â€žÃ˜ÂºÃ™Å  Ã˜ÂªÃ˜Â­Ã™â€žÃ™Å Ã™â€ž Auto Zoom Ã˜Â§Ã™â€žÃ˜Â³Ã˜Â§Ã˜Â¨Ã™â€š Ã™Ë†Ã™Å Ã˜Â³Ã˜ÂªÃ™â€žÃ˜Â²Ã™â€¦ Analyze Ã˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯Ã™â€¹Ã˜Â§ Ã™â€šÃ˜Â¨Ã™â€ž ApplyÃ˜â€º Ã™â€žÃ˜Â§ Ã™Å Ã˜Â¬Ã™Ë†Ã˜Â² Ã˜ÂªÃ˜Â·Ã˜Â¨Ã™Å Ã™â€š Ã™â€ Ã˜ÂªÃ™Å Ã˜Â¬Ã˜Â© Ã˜ÂªÃ˜Â­Ã™â€žÃ™Å Ã™â€ž Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â¹Ã™â€žÃ™â€° Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â¢Ã˜Â®Ã˜Â±.
 
 ### Ã˜ÂªÃ™â€ Ã™ÂÃ™Å Ã˜Â° Auto Zoom Ã˜Â¹Ã˜Â¨Ã˜Â± Motion Scale
+
 - Ã™ÂÃ™Å  Premiere 26.2 Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â³Ã˜Â§Ã˜Â³Ã™Å  Ã™â€¡Ã™Ë† Ã˜Â®Ã˜Â§Ã˜ÂµÃ™Å Ã˜Â© `Scale` Ã˜Â¯Ã˜Â§Ã˜Â®Ã™â€ž Ã˜Â§Ã™â€žÃ™â€¦Ã™Æ’Ã™Ë†Ã™â€˜Ã™â€  Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¯Ã™â€¦Ã˜Â¬ `Motion` Ã˜Â¹Ã™â€žÃ™â€° TrackItemÃ˜â€º Ã™â€žÃ˜Â§ Ã™Å Ã˜Â­Ã˜ÂªÃ˜Â§Ã˜Â¬ Ã™â€¡Ã˜Â°Ã˜Â§ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â¥Ã™â€žÃ™â€° Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã˜ÂªÃ˜Â£Ã˜Â«Ã™Å Ã˜Â± Ã˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯ Ã˜Â¹Ã˜Â¨Ã˜Â± QE.
 - Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â­Ã˜Â« Ã™Å Ã˜Â¹Ã˜ÂªÃ™â€¦Ã˜Â¯ `matchName` (`ADBE Motion` Ã™Ë†`ADBE Scale`) Ã™Ë†`displayName` Ã™â€¦Ã˜Â¹ fallback Ã™â€¦Ã™Ë†Ã˜Â¶Ã˜Â¹Ã™Å  `components[1].properties[1]` Ã™â€žÃ™â€žÃ™â€¦Ã˜Â¶Ã™Å Ã™Â Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂªÃ™Ë†Ã˜Â§Ã™ÂÃ™â€š. Ã™Å Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦ Transform Ã˜Â¹Ã˜Â¨Ã˜Â± QE Ã™Æ’Ã˜Â§Ã˜Â­Ã˜ÂªÃ™Å Ã˜Â§Ã˜Â· Ã™ÂÃ™â€šÃ˜Â·.
 - Ã˜Â£Ã˜Â²Ã™â€¦Ã™â€ Ã˜Â© Ã™â€¦Ã™ÂÃ˜Â§Ã˜ÂªÃ™Å Ã˜Â­ Scale Ã™â€¡Ã™Å  Ã˜Â£Ã˜Â²Ã™â€¦Ã™â€ Ã˜Â© timelineÃ˜Å’ Ã™Ë†Ã˜ÂªÃ™ÂÃ™â€šÃ™Å Ã˜Â¯ Ã˜Â¨Ã˜Â­Ã˜Â¯Ã™Å  Ã˜Â¨Ã˜Â¯Ã˜Â§Ã™Å Ã˜Â© Ã™Ë†Ã™â€ Ã™â€¡Ã˜Â§Ã™Å Ã˜Â© clip. Ã™â€žÃ˜Â§ Ã™Å Ã˜Â¬Ã™Ë†Ã˜Â² Ã™Ë†Ã˜Â¶Ã˜Â¹ Ã™â€¦Ã™ÂÃ˜ÂªÃ˜Â§Ã˜Â­ Ã˜Â¨Ã˜Â¹Ã˜Â¯ Ã™â€ Ã™â€¡Ã˜Â§Ã™Å Ã˜Â© TrackItem.
@@ -1275,6 +1384,7 @@
 - Rhythm Ã™Å Ã˜Â­Ã˜Â¯Ã˜Â¯ Ã˜Â¹Ã˜Â¯Ã˜Â¯ Ã˜Â£Ã˜Â­Ã˜Â¯Ã˜Â§Ã˜Â« Ã˜Â§Ã™â€žÃ˜Â²Ã™Ë†Ã™â€¦ Ã˜Â¨Ã˜Â§Ã™â€žÃ˜ÂªÃ™â€šÃ˜Â±Ã™Å Ã˜Â¨: `round(cutCount Ãƒâ€” rhythm)` Ã˜Â¨Ã˜Â­Ã˜Â¯ Ã˜Â£Ã˜Â¯Ã™â€ Ã™â€° Ã˜Â­Ã˜Â¯Ã˜Â« Ã™Ë†Ã˜Â§Ã˜Â­Ã˜Â¯ Ã˜Â¹Ã™â€ Ã˜Â¯ Ã™Ë†Ã˜Â¬Ã™Ë†Ã˜Â¯ cutsÃ˜Å’ Ã™Ë†Ã˜ÂªÃ™Ë†Ã˜Â²Ã˜Â¹ Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â­Ã˜Â¯Ã˜Â§Ã˜Â« Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â®Ã˜ÂªÃ˜Â§Ã˜Â±Ã˜Â© Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€¦Ã˜ÂªÃ˜Â¯Ã˜Â§Ã˜Â¯ Ã˜Â§Ã™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™â€¦Ã˜Â©. Ã™â€¦Ã˜Â«Ã˜Â§Ã™â€ž: 3 cuts Ã˜Â¹Ã™â€ Ã˜Â¯ 60% Ã˜ÂªÃ˜Â¹Ã˜Â·Ã™Å  Ã˜ÂªÃ˜Â£Ã˜Â«Ã™Å Ã˜Â±Ã™Å Ã™â€ .
 
 ### Auto Zoom Ã™â€žÃ™â€žÃ˜Â¨Ã™Ë†Ã˜Â¯Ã™Æ’Ã˜Â§Ã˜Â³Ã˜Âª: Cut-Based Ã™â€¦Ã™â€šÃ˜Â§Ã˜Â¨Ã™â€ž Emphasis-Based
+
 - Ã˜Â§Ã™â€žÃ˜ÂªÃ™â€ Ã™ÂÃ™Å Ã˜Â° Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â§Ã™â€žÃ™Å  cut-based: Ã™Å Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â±Ã˜Â¬ Ã˜Â­Ã˜Â¯Ã™Ë†Ã˜Â¯ TrackItems Ã™â€¦Ã™â€  Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ™ÂÃ™Å Ã˜Â¯Ã™Å Ã™Ë† Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â®Ã˜ÂªÃ˜Â§Ã˜Â±Ã˜Å’ Ã™Å Ã™â€ Ã˜ÂªÃ™â€šÃ™Å  Ã™â€ Ã˜Â³Ã˜Â¨Ã˜Â© Ã™â€¦Ã™â€ Ã™â€¡Ã˜Â§ Ã˜Â¹Ã˜Â¨Ã˜Â± RhythmÃ˜Å’ Ã™Ë†Ã™Å Ã™Æ’Ã˜ÂªÃ˜Â¨ Motion Scale. Ã™â€¡Ã˜Â°Ã˜Â§ Ã™â€¦Ã™â€ Ã˜Â§Ã˜Â³Ã˜Â¨ Ã™â€žÃ™â€žÃ˜Â²Ã™Ë†Ã™â€¦ Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜ÂªÃ˜ÂºÃ™Å Ã™â€˜Ã˜Â± Ã˜Â§Ã™â€žÃ™â€žÃ™â€šÃ˜Â·Ã˜Â©Ã˜Å’ Ã™â€žÃ™Æ’Ã™â€ Ã™â€¡ Ã™â€žÃ˜Â§ Ã™Å Ã™Æ’Ã˜ÂªÃ˜Â´Ã™Â Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â´Ã˜Â¯Ã™Å Ã˜Â¯ Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜ÂªÃ™Å  Ã˜Â¯Ã˜Â§Ã˜Â®Ã™â€ž Ã™â€žÃ™â€šÃ˜Â·Ã˜Â© Ã˜Â·Ã™Ë†Ã™Å Ã™â€žÃ˜Â©.
 - Ã˜Â§Ã™â€žÃ˜ÂªÃ˜ÂµÃ™â€¦Ã™Å Ã™â€¦ Ã˜Â§Ã™â€žÃ™â€¦Ã™â€šÃ˜ÂªÃ˜Â±Ã˜Â­ v2 emphasis-based: Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â±Ã˜Â§Ã˜Â¬ envelope/RMS Ã™â€žÃ™â€žÃ˜ÂµÃ™Ë†Ã˜ÂªÃ˜Å’ Ã˜Â§Ã™Æ’Ã˜ÂªÃ˜Â´Ã˜Â§Ã™Â peaks Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â§Ã˜Â±Ã˜Â²Ã˜Â© Ã™â€ Ã˜Â³Ã˜Â¨Ã˜Â©Ã™â€¹ Ã˜Â¥Ã™â€žÃ™â€° baseline Ã™â€¦Ã˜Â­Ã™â€žÃ™Å Ã˜Å’ Ã˜Â¯Ã™â€¦Ã˜Â¬ peaks Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂªÃ™â€šÃ˜Â§Ã˜Â±Ã˜Â¨Ã˜Â©Ã˜Å’ Ã˜ÂªÃ˜Â·Ã˜Â¨Ã™Å Ã™â€š cooldownÃ˜Å’ Ã˜Â«Ã™â€¦ Ã˜ÂªÃ˜Â­Ã™Ë†Ã™Å Ã™â€ž Ã˜Â²Ã™â€¦Ã™â€  Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Âª Ã˜Â¥Ã™â€žÃ™â€° timeline Ã™â€šÃ˜Â¨Ã™â€ž Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Ã™â€¦Ã™ÂÃ˜Â§Ã˜ÂªÃ™Å Ã˜Â­ Motion Scale.
 - Ã™â€ Ã˜Â·Ã˜Â§Ã™â€šÃ˜Â§Ã˜Âª Ã˜Â§Ã˜Â®Ã˜ÂªÃ˜Â¨Ã˜Â§Ã˜Â± Ã˜Â£Ã™Ë†Ã™â€žÃ™Å Ã˜Â© Ã™Ë†Ã™â€žÃ™Å Ã˜Â³Ã˜Âª Ã˜Â­Ã™â€šÃ˜Â§Ã˜Â¦Ã™â€š Ã™â€¦Ã˜Â«Ã˜Â¨Ã˜ÂªÃ˜Â©: Scale 108Ã¢â‚¬â€œ115%Ã˜Å’ Ã˜Â¯Ã˜Â®Ã™Ë†Ã™â€ž 8Ã¢â‚¬â€œ15 frameÃ˜Å’ hold 1Ã¢â‚¬â€œ3sÃ˜Å’ Ã˜Â®Ã˜Â±Ã™Ë†Ã˜Â¬ Ã˜ÂªÃ˜Â¯Ã˜Â±Ã™Å Ã˜Â¬Ã™Å Ã˜Å’ Ã™Ë†Ã™ÂÃ˜Â§Ã˜ÂµÃ™â€ž 4Ã¢â‚¬â€œ6s Ã™â€šÃ˜Â¨Ã™â€ž zoom Ã˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯. Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜ÂªÃ˜Â«Ã˜Â¨Ã™Å Ã˜Âª default Ã˜Â¹Ã˜Â¨Ã˜Â± fixtures Ã™Ë†Ã™â€¦Ã˜Â´Ã˜Â§Ã™â€¡Ã˜Â¯Ã˜Â© Ã™ÂÃ˜Â¹Ã™â€žÃ™Å Ã˜Â© Ã˜Â¹Ã™â€žÃ™â€° 25fps Ã™Ë†Ã™â€¦Ã˜Â¹Ã˜Â¯Ã™â€žÃ˜Â§Ã˜Âª Ã˜Â£Ã˜Â®Ã˜Â±Ã™â€°.
@@ -1282,12 +1392,14 @@
 - Ã™â€žÃ˜Â§ Ã™Å Ã™ÂÃ™â€šÃ˜Â¨Ã™â€ž Ã™â€ Ã˜Â¬Ã˜Â§Ã˜Â­ setter Ã™Ë†Ã˜Â­Ã˜Â¯Ã™â€¡ Ã™Æ’Ã˜Â¯Ã™â€žÃ™Å Ã™â€ž Ã˜Â¨Ã˜ÂµÃ˜Â±Ã™Å Ã˜â€º Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã™â€šÃ™â€š Ã™Å Ã˜Â´Ã™â€¦Ã™â€ž Ã˜Â¹Ã˜Â¯Ã˜Â¯ keyframesÃ˜Å’ Ã™â€šÃ™Å Ã™â€¦Ã™â€¡Ã˜Â§ Ã™Ë†Ã˜Â£Ã˜Â²Ã™â€¦Ã™â€ Ã˜ÂªÃ™â€¡Ã˜Â§Ã˜Å’ Ã™Ë†Ã˜Â§Ã˜Â®Ã˜ÂªÃ˜Â¨Ã˜Â§Ã˜Â± playback Ã˜Â¹Ã™â€ Ã˜Â¯ event times.
 
 ### Ã™â€¦Ã˜Â§ Ã˜Â«Ã˜Â¨Ã˜Âª Ã™â€¦Ã™â€  Ã™â€¦Ã˜Â±Ã˜Â¬Ã˜Â¹ AutoCut AutoZoom Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â±Ã˜Â¦Ã™Å 
+
 - Ã™Ë†Ã˜Â§Ã˜Â¬Ã™â€¡Ã˜Â© AutoCut Ã˜ÂªÃ™ÂÃ˜ÂµÃ™â€ž Ã˜Â¨Ã™Å Ã™â€  Ã˜ÂªÃ™Ë†Ã˜Â§Ã˜ÂªÃ˜Â±/Ã™Æ’Ã˜Â«Ã˜Â§Ã™ÂÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â²Ã™Ë†Ã™â€¦Ã˜Â§Ã˜ÂªÃ˜Å’ Ã™â€¦Ã™â€šÃ˜Â¯Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â²Ã™Ë†Ã™â€¦Ã˜Å’ Ã™Ë†Ã™â€ Ã™â€¦Ã˜Â· Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â±Ã™Æ’Ã˜Â©Ã˜Å’ Ã™Ë†Ã˜ÂªÃ˜Â¹Ã˜Â±Ã˜Â¶ Ã˜Â«Ã™â€žÃ˜Â§Ã˜Â«Ã˜Â© Ã˜Â£Ã™â€ Ã™â€¦Ã˜Â§Ã˜Â· Ã™â€¦Ã˜Â±Ã˜Â¦Ã™Å Ã˜Â©: `Cut` Ã™Ë†`Smooth` Ã™Ë†`Snap-In`.
 - Ã˜Â§Ã™â€žÃ™â€¦Ã™â€ Ã˜ÂªÃ˜Â¬ Ã™Å Ã˜Â¹Ã˜Â±Ã˜Â¶ Preview/Processing Ã™â€šÃ˜Â¨Ã™â€ž Ã˜Â§Ã™â€žÃ™â€ Ã˜ÂªÃ™Å Ã˜Â¬Ã˜Â©Ã˜Å’ Ã™Ë†Ã™Å Ã˜ÂªÃ˜Â±Ã™Æ’ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â§Ã˜Â¯Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â£Ã˜ÂµÃ™â€žÃ™Å Ã˜Â© Ã™â€¦Ã˜Â¹ Ã™â€¦Ã˜Â®Ã˜Â±Ã˜Â¬Ã˜Â§Ã˜Âª Ã™â€¦Ã˜Â±Ã˜Â¦Ã™Å Ã˜Â© Ã˜Â¹Ã™â€žÃ™â€° Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â£Ã˜Â¹Ã™â€žÃ™â€° Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ™â€žÃ™â€šÃ˜Â·Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¹Ã˜Â±Ã™Ë†Ã˜Â¶Ã˜Â©. Ã™Å Ã™ÂÃ˜Â¹Ã˜ÂªÃ™â€¦Ã˜Â¯ Ã™â€¦Ã™â€  Ã˜Â°Ã™â€žÃ™Æ’ Ã™â€¦Ã˜Â¨Ã˜Â¯Ã˜Â¢Ã™â€  Ã™ÂÃ™â€šÃ˜Â·: Ã™ÂÃ˜ÂµÃ™â€ž Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜ÂªÃ˜Å’ Ã™Ë†Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜ÂªÃ˜Â·Ã˜Â¨Ã™Å Ã™â€š Ã˜ÂºÃ™Å Ã˜Â± Ã™â€¡Ã˜Â¯Ã™â€˜Ã˜Â§Ã™â€¦ Ã™â€šÃ˜Â¯Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â¥Ã™â€¦Ã™Æ’Ã˜Â§Ã™â€ .
 - Ã˜Â§Ã™â€žÃ™ÂÃ™Å Ã˜Â¯Ã™Å Ã™Ë† Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â³Ã™Ë†Ã™Å Ã™â€šÃ™Å  Ã™â€žÃ˜Â§ Ã™Å Ã™Æ’Ã˜Â´Ã™Â Ã˜Â®Ã™Ë†Ã˜Â§Ã˜Â±Ã˜Â²Ã™â€¦Ã™Å Ã˜Â© Ã˜Â§Ã˜Â®Ã˜ÂªÃ™Å Ã˜Â§Ã˜Â± Ã˜Â£Ã˜Â²Ã™â€¦Ã™â€ Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â²Ã™Ë†Ã™â€¦ Ã™Ë†Ã™â€žÃ˜Â§ Ã™Å Ã˜Â«Ã˜Â¨Ã˜Âª Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã˜Â§Ã™â€¦ RMS Ã˜Â£Ã™Ë† peaks Ã˜Â£Ã™Ë† Adjustment Layer Ã˜Â¨Ã˜Â¹Ã™Å Ã™â€ Ã™â€¡. Ã™â€žÃ˜Â§ Ã˜ÂªÃ™ÂÃ˜Â¹Ã™Ë†Ã™â€˜Ã™â€ž Ã™â€¡Ã˜Â°Ã™â€¡ Ã˜Â§Ã™â€žÃ˜Â£Ã™â€¦Ã™Ë†Ã˜Â± Ã˜Â¥Ã™â€žÃ™â€° Ã˜Â­Ã™â€šÃ˜Â§Ã˜Â¦Ã™â€š Ã™â€¦Ã˜Â¹Ã™â€¦Ã˜Â§Ã˜Â±Ã™Å Ã˜Â© Ã˜Â¨Ã™â€žÃ˜Â§ Ã˜ÂªÃ™Ë†Ã˜Â«Ã™Å Ã™â€š Ã˜Â£Ã™Ë† Runtime Proof.
 - Ã™ÂÃ™Å  Premiere 26.2 Ã™Å Ã˜Â¨Ã™â€šÃ™â€° Motion > Scale Ã™â€¡Ã™Ë† Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â«Ã˜Â¨Ã˜Âª Ã˜Â­Ã˜Â§Ã™â€žÃ™Å Ã™â€¹Ã˜Â§ Ã™ÂÃ™Å  Saad Studio. Ã˜Â§Ã™â€žÃ˜Â§Ã™â€ Ã˜ÂªÃ™â€šÃ˜Â§Ã™â€ž Ã˜Â¥Ã™â€žÃ™â€° Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â¹Ã™â€žÃ™Ë†Ã™Å  Ã™â€¦Ã™Ë†Ã™â€žÃ™â€˜Ã˜Â¯ Ã™Å Ã˜Â­Ã˜ÂªÃ˜Â§Ã˜Â¬ Ã˜Â¥Ã˜Â«Ã˜Â¨Ã˜Â§Ã˜Âª Ã˜Â£Ã™â€  Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜Â¹Ã™â€ Ã˜ÂµÃ˜Â± Ã™Ë†Ã™Æ’Ã˜ÂªÃ˜Â§Ã˜Â¨Ã˜Â© Ã˜ÂªÃ˜Â£Ã˜Â«Ã™Å Ã˜Â±Ã˜Â§Ã˜ÂªÃ™â€¡ Ã™â€¦Ã˜ÂªÃ˜Â§Ã˜Â­Ã˜Â§Ã™â€  Ã™Ë†Ã™â€¦Ã™Ë†Ã˜Â«Ã™Ë†Ã™â€šÃ˜Â§Ã™â€  Ã™ÂÃ™Å  CEP/QE Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ˜Â¥Ã˜ÂµÃ˜Â¯Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜ÂªÃ™â€¡Ã˜Â¯Ã™Â.
 
 ### Ã™â€šÃ™Ë†Ã˜Â§Ã˜Â¹Ã˜Â¯ Ã˜ÂªÃ˜Â®Ã˜Â·Ã™Å Ã˜Â· Ã™Ë†Ã˜ÂªÃ™â€ Ã™ÂÃ™Å Ã˜Â° Auto Zoom
+
 - Ã˜ÂªÃ˜Â¬Ã˜Â±Ã˜Â¨Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã˜Â§Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â¥Ã™â€ Ã˜ÂªÃ˜Â§Ã˜Â¬Ã™Å Ã˜Â© Ã˜Â²Ã˜Â± Ã™Ë†Ã˜Â§Ã˜Â­Ã˜Â¯: `Run Auto Zoom` Ã™Å Ã™â€ Ã™ÂÃ˜Â° Auto-detect Ã˜Â«Ã™â€¦ Inspect Ã˜Â«Ã™â€¦ Apply. Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â³Ã˜Â§Ã˜Â³Ã™Å Ã˜Â© Ã™â€žÃ™Å Ã˜Â³Ã˜Âª Ã˜Â®Ã˜Â·Ã™Ë†Ã˜Â© Ã™â€¦Ã˜Â·Ã™â€žÃ™Ë†Ã˜Â¨Ã˜Â© Ã™â€¦Ã™â€  Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦Ã˜â€º Ã™Å Ã™ÂÃ˜Â¹Ã˜Â§Ã˜Â¯ Ã™ÂÃ˜Â±Ã˜Â¶ preset Ã™â€¦Ã˜Â­Ã˜Â§Ã™ÂÃ˜Â¸ Ã˜Â¹Ã™â€ Ã˜Â¯ Ã™Æ’Ã™â€ž Ã˜ÂªÃ˜Â´Ã˜ÂºÃ™Å Ã™â€ž: Rhythm 60%Ã˜Å’ zoom multiplier 1.12Ã˜Å’ Ã™â€¦Ã˜Â¯Ã˜Â© 1.5 Ã˜Â«Ã˜Â§Ã™â€ Ã™Å Ã˜Â©Ã˜Å’ Ã™Ë†Smooth. Ã˜ÂªÃ˜Â¹Ã˜Â±Ã˜Â¶ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â§Ã˜Â¬Ã™â€¡Ã˜Â© Ã™â€¡Ã˜Â°Ã™â€¡ Ã˜Â§Ã™â€žÃ™â€šÃ™Å Ã™â€¦ Ã™Æ’Ã˜Â­Ã™â€šÃ™Ë†Ã™â€ž Ã™â€šÃ˜Â±Ã˜Â§Ã˜Â¡Ã˜Â© Ã™ÂÃ™â€šÃ˜Â·.
 - Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜ÂªÃ˜Â´Ã˜ÂºÃ™Å Ã™â€ž Auto Zoom Ã™ÂÃ™Ë†Ã™â€š Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± `Saad Auto Switch` Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã™â€žÃ˜Â¯Ã˜Å’ Ã˜ÂªÃ™ÂÃ˜Â³Ã˜ÂªÃ˜Â¨Ã˜Â¹Ã˜Â¯ Ã˜ÂªÃ™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™Å Ã™â€¹Ã˜Â§ Ã˜Â­Ã˜Â¯Ã™Ë†Ã˜Â¯ Ã˜Â§Ã™â€žÃ™â€¦Ã™â€šÃ˜Â§Ã˜Â·Ã˜Â¹ Ã˜Â§Ã™â€žÃ˜ÂªÃ™Å  Ã™Å Ã™Æ’Ã™Ë†Ã™â€  Ã™â€¦Ã˜ÂµÃ˜Â¯Ã˜Â±Ã™â€¡Ã˜Â§ Wide Camera. Ã˜ÂªÃ™ÂÃ™â€šÃ˜Â±Ã˜Â£ Ã™â€¡Ã™Ë†Ã™Å Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂµÃ˜Â¯Ã˜Â± Ã™â€¦Ã™â€  Ã˜Â§Ã˜Â³Ã™â€¦ `Saad Auto Switch Vn` Ã™Ë†Ã˜ÂªÃ™ÂÃ™â€šÃ˜Â§Ã˜Â±Ã™â€  Ã˜Â¨Ã˜ÂªÃ˜Â¹Ã™Å Ã™Å Ã™â€  Wide Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â§Ã™â€žÃ™Å Ã˜â€º Ã˜Â§Ã™â€žÃ˜Â²Ã™Ë†Ã™â€¦ Ã™Å Ã™ÂÃ˜Â®Ã˜ÂµÃ˜Âµ Ã™â€žÃ™â€žÃ™â€šÃ˜Â·Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂªÃ˜Â­Ã˜Â¯Ã˜Â«Ã™Å Ã™â€  Ã™Ë†Ã™â€žÃ˜Â§ Ã™Å Ã™Ë†Ã˜Â¶Ã˜Â¹ Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ™â€žÃ™â€šÃ˜Â·Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â§Ã™â€¦Ã˜Â©.
 - Ã™â€žÃ˜Â¶Ã™â€¦Ã˜Â§Ã™â€  Ã˜Â¨Ã™â€šÃ˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ™â€¡Ã™Ë†Ã™Å Ã˜Â© Ã˜Â¨Ã˜Â¹Ã˜Â¯ Ã˜Â¥Ã˜Â¹Ã˜Â§Ã˜Â¯Ã˜Â© Ã™ÂÃ˜ÂªÃ˜Â­ Premiere Ã˜Â£Ã™Ë† Ã˜ÂªÃ˜Â¨Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™â‚¬SequenceÃ˜Å’ Ã˜ÂªÃ™ÂÃ™Ë†Ã˜Â³Ã™â€¦ Ã˜Â§Ã™â€žÃ™â€žÃ™â€šÃ˜Â·Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â§Ã™â€¦Ã˜Â© Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯Ã™â€¡Ã˜Â§ Ã˜Â¨Ã˜Â§Ã˜Â³Ã™â€¦ `Saad Auto Switch WIDE Vn ...`. Ã˜Â§Ã™â€žÃ˜Â§Ã˜Â³Ã˜ÂªÃ˜Â¨Ã˜Â¹Ã˜Â§Ã˜Â¯ Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â³Ã˜Â§Ã˜Â³Ã™Å  Ã™Å Ã˜Â¹Ã˜ÂªÃ™â€¦Ã˜Â¯ Ã™â€¡Ã˜Â°Ã˜Â§ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â³Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â¯Ã˜Â§Ã˜Â¦Ã™â€¦Ã˜Å’ Ã˜Â¨Ã™Å Ã™â€ Ã™â€¦Ã˜Â§ Ã™â€¦Ã™â€šÃ˜Â§Ã˜Â±Ã™â€ Ã˜Â© Vn Ã˜Â¨Ã˜ÂªÃ˜Â¹Ã™Å Ã™Å Ã™â€  Wide Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â§Ã˜Â¬Ã™â€¡Ã˜Â© fallback Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ™Å  Ã™ÂÃ™â€šÃ˜Â·. Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã™Ë†Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ™â€šÃ˜Â¯Ã™Å Ã™â€¦Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â³Ã˜Â§Ã˜Â¨Ã™â€šÃ˜Â© Ã™â€žÃ™â€¡Ã˜Â°Ã˜Â§ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â³Ã™â€¦ Ã™â€žÃ˜Â§ Ã˜ÂªÃ˜ÂµÃ™â€žÃ˜Â­ Ã™â€žÃ˜Â§Ã˜Â®Ã˜ÂªÃ˜Â¨Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â§Ã˜Â³Ã˜ÂªÃ˜Â¨Ã˜Â¹Ã˜Â§Ã˜Â¯.
@@ -1298,6 +1410,7 @@
 - Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜Â£Ã™â€  Ã™Å Ã˜Â³Ã˜Â¨Ã™â€š Runtime Proof Ã˜Â§Ã˜Â®Ã˜ÂªÃ˜Â¨Ã˜Â§Ã˜Â± fixture Ã™â€žÃ™â€¦Ã™â€ Ã˜Â¹ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â¯Ã˜Â§Ã˜Â®Ã™â€ž Ã™Ë†Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â¹Ã˜Â§Ã˜Â¯Ã˜Â© Ã˜Â§Ã™â€žÃ™â€šÃ™Å Ã™â€¦Ã˜Â©Ã˜Å’ Ã˜Â«Ã™â€¦ Ã˜ÂªÃ™ÂÃ™ÂÃ˜Â­Ã˜Âµ Ã˜Â§Ã™â€žÃ™â€¦Ã™ÂÃ˜Â§Ã˜ÂªÃ™Å Ã˜Â­ Ã™ÂÃ˜Â¹Ã™â€žÃ™Å Ã™â€¹Ã˜Â§ Ã™ÂÃ™Å  Effect Controls Ã˜Â¹Ã™â€žÃ™â€° duplicate Ã™â€ Ã˜Â¸Ã™Å Ã™Â.
 
 ### Ã™â€¦Ã˜Â±Ã˜Â¬Ã˜Â¹ PremiereGPTBeta Ã˜Â§Ã™â€žÃ˜Â¯Ã™Å Ã™â€ Ã˜Â§Ã™â€¦Ã™Å Ã™Æ’Ã™Å 
+
 - Ã™â€¦Ã˜Â¬Ã™â€žÃ˜Â¯ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â«Ã˜Â¨Ã™Å Ã˜Âª Ã™â€žÃ™Å Ã˜Â³ Ã™â€¦Ã˜ÂµÃ˜Â¯Ã˜Â± Ã˜Â§Ã™â€žÃ˜ÂªÃ™â€ Ã™ÂÃ™Å Ã˜Â° Ã˜Â§Ã™â€žÃ™Æ’Ã˜Â§Ã™â€¦Ã™â€žÃ˜â€º Ã˜Â§Ã™â€žÃ™â‚¬loader Ã™Å Ã˜Â­Ã™â€šÃ™â€  Ã˜Â­Ã˜Â²Ã™â€¦Ã˜Â© Ã˜Â¨Ã˜Â¹Ã™Å Ã˜Â¯Ã˜Â© Ã™â€¦Ã™â€  `api.premierecopilot.com/api/snake3`Ã˜Å’ Ã™Ë†Ã˜Â¯Ã™Ë†Ã˜Â§Ã™â€ž JSX Ã˜Â§Ã™â€žÃ˜Â¥Ã™â€ Ã˜ÂªÃ˜Â§Ã˜Â¬Ã™Å Ã˜Â© Ã˜ÂªÃ™ÂÃ˜Â¬Ã™â€žÃ˜Â¨ Ã˜Â­Ã˜Â³Ã˜Â¨ Ã˜Â§Ã™â€žÃ˜Â§Ã˜Â³Ã™â€¦ Ã™â€¦Ã™â€  endpoint `/jsx`.
 - AutoZoom Ã™ÂÃ™Å Ã™â€¡ Ã™Å Ã™ÂÃ˜ÂµÃ™â€ž Ã™â€¦Ã˜Â±Ã˜Â­Ã™â€žÃ˜Â© Ã˜Â§Ã™â€žÃ™â€šÃ˜Â±Ã˜Â§Ã˜Â± Ã˜Â¹Ã™â€  Premiere mutation: Ã˜ÂªÃ˜ÂµÃ˜Â¯Ã™Å Ã˜Â± Ã˜ÂµÃ™Ë†Ã˜Âª + Ã™â€šÃ˜Â±Ã˜Â§Ã˜Â¡Ã˜Â© Ã˜Â¨Ã™â€ Ã™Å Ã˜Â© Sequence Ã¢â€ â€™ Ã˜ÂªÃ˜Â­Ã™â€žÃ™Å Ã™â€ž Ã˜Â®Ã˜Â§Ã˜Â¯Ã™â€¦Ã™Å  Ã¢â€ â€™ Ã™â€ Ã˜ÂªÃ™Å Ã˜Â¬Ã˜Â© Ã™â€šÃ˜Â±Ã˜Â§Ã˜Â±Ã˜Â§Ã˜Âª Ã¢â€ â€™ Ã˜Â¬Ã™â€žÃ˜Â¨ `AUTOZOOM_main` Ã™Ë†Ã˜ÂªÃ™â€ Ã™ÂÃ™Å Ã˜Â°Ã™â€¡Ã˜Â§ Ã™ÂÃ™Å  Premiere.
 - Ã˜Â­Ã™â€šÃ™Ë†Ã™â€ž Ã˜Â§Ã™â€žÃ™â€šÃ˜Â±Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â±Ã˜Â¦Ã™Å Ã˜Â© Ã˜ÂªÃ˜Â´Ã™â€¦Ã™â€ž cuts Ã™Ë†emotion Ã™Ë†speech Ã™Ë†random Ã™Ë†contextÃ˜Å’ Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã˜Â¥Ã™â€žÃ™â€° rhythm Ã™Ë†fastness Ã™Ë†zoom amount Ã™Ë†motion camera Ã™Ë†X/Y Ã™Ë†Ã˜Â§Ã™â€žÃ˜Â£Ã™â€ Ã™â€¦Ã˜Â§Ã˜Â· Ã˜Â§Ã™â€žÃ˜Â«Ã™â€žÃ˜Â§Ã˜Â«Ã˜Â©. Ã™â€¡Ã˜Â°Ã˜Â§ Ã™Å Ã˜Â«Ã˜Â¨Ã˜Âª Ã˜Â´Ã™Æ’Ã™â€ž pipeline Ã™Ë†Ã˜Â§Ã™â€žÃ™â‚¬inputsÃ˜Å’ Ã™Ë†Ã™â€žÃ˜Â§ Ã™Å Ã˜Â«Ã˜Â¨Ã˜Âª Ã˜Â®Ã™Ë†Ã˜Â§Ã˜Â±Ã˜Â²Ã™â€¦Ã™Å Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â®Ã˜Â§Ã˜Â¯Ã™â€¦ Ã˜Â£Ã™Ë† Ã˜Â·Ã˜Â±Ã™Å Ã™â€šÃ˜Â© keyframes Ã˜Â§Ã™â€žÃ˜Â¯Ã˜Â§Ã˜Â®Ã™â€žÃ™Å Ã˜Â©.
@@ -1305,37 +1418,44 @@
 - Ã™ÂÃ˜ÂªÃ˜Â­ Effect Controls Ã˜Â£Ã™Ë† Ã˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â¯ TrackItem Ã™Å Ã˜Â¯Ã™Ë†Ã™Å Ã™â€¹Ã˜Â§ Ã™â€¦Ã˜Â³Ã™â€¦Ã™Ë†Ã˜Â­ Ã™Æ’Ã˜Â§Ã˜Â®Ã˜ÂªÃ˜Â¨Ã˜Â§Ã˜Â± Ã˜ÂªÃ˜Â·Ã™Ë†Ã™Å Ã˜Â± Ã™ÂÃ™â€šÃ˜Â·Ã˜â€º Ã™â€žÃ˜Â§ Ã™Å Ã˜Â¯Ã˜Â®Ã™â€ž Ã˜Â¶Ã™â€¦Ã™â€  UX Ã˜Â§Ã™â€žÃ™â€ Ã™â€¡Ã˜Â§Ã˜Â¦Ã™Å . Auto Zoom Ã˜Â§Ã™â€žÃ˜Â¥Ã™â€ Ã˜ÂªÃ˜Â§Ã˜Â¬Ã™Å  Ã™â€¦Ã˜Â³Ã˜Â¤Ã™Ë†Ã™â€ž Ã˜Â¹Ã™â€  Ã˜Â§Ã™Æ’Ã˜ÂªÃ˜Â´Ã˜Â§Ã™Â Ã˜Â§Ã™â€žÃ™â€¡Ã˜Â¯Ã™Â Ã™Ë†Ã™Æ’Ã˜ÂªÃ˜Â§Ã˜Â¨Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã™ÂÃ˜Â§Ã˜ÂªÃ™Å Ã˜Â­ Ã™Ë†Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã™â€šÃ™â€š Ã™â€¦Ã™â€ Ã™â€¡Ã˜Â§ Ã˜ÂªÃ™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™Å Ã™â€¹Ã˜Â§.
 
 ### Ã˜Â§Ã™â€žÃ˜Â§Ã™Æ’Ã˜ÂªÃ˜Â´Ã˜Â§Ã™Â Ã˜Â§Ã™â€žÃ˜ÂªÃ™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™Å  Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Auto Zoom
+
 - Ã™â€žÃ˜Â§ Ã˜ÂªÃ˜Â¹Ã˜ÂªÃ™â€¦Ã˜Â¯ Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â¯Ã˜Â§Ã˜Â© Ã˜Â¹Ã™â€žÃ™â€° track index Ã™â€¦Ã˜Â­Ã™ÂÃ™Ë†Ã˜Â¸ Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â§Ã˜Â¬Ã™â€¡Ã˜Â© Ã™â€žÃ˜Â£Ã™â€  Ã™â€¡Ã™Ë†Ã™Å Ã˜Â©/Ã˜Â¨Ã™â€ Ã™Å Ã˜Â© Ã˜Â§Ã™â€žÃ™â‚¬Sequence Ã™â€šÃ˜Â¯ Ã˜ÂªÃ˜ÂªÃ˜ÂºÃ™Å Ã˜Â±. Host Ã™Å Ã™ÂÃ˜Â­Ã˜Âµ Ã™Æ’Ã™â€ž Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â±Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ™ÂÃ™Å Ã˜Â¯Ã™Å Ã™Ë† Ã™Ë†Ã™Å Ã˜Â­Ã˜Â³Ã˜Â¨ Ã˜Â£Ã˜Â­Ã˜Â¯Ã˜Â§Ã˜Â« Ã˜Â§Ã™â€žÃ™â€šÃ˜Âµ Ã™â€¦Ã™â€  Ã˜Â¨Ã˜Â¯Ã˜Â§Ã™Å Ã˜Â§Ã˜Âª TrackItems Ã˜Â§Ã™â€žÃ˜Â¯Ã˜Â§Ã˜Â®Ã™â€žÃ™Å Ã˜Â©Ã˜Å’ Ã˜Â«Ã™â€¦ Ã™Å Ã˜Â®Ã˜ÂªÃ˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜ÂµÃ˜Â§Ã˜Â­Ã˜Â¨ Ã˜Â£Ã™Æ’Ã˜Â¨Ã˜Â± Ã˜Â¹Ã˜Â¯Ã˜Â¯ Ã™â€¦Ã™â€  Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â­Ã˜Â¯Ã˜Â§Ã˜Â«Ã˜â€º Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â¹Ã˜Â§Ã˜Â¯Ã™â€ž Ã™Å Ã™ÂÃ˜Â­Ã˜Â³Ã™â€¦ Ã™â€žÃ™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â¹Ã™â€žÃ™â€°.
 - Ã˜Â¯Ã™Ë†Ã˜Â±Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¥Ã™â€ Ã˜ÂªÃ˜Â§Ã˜Â¬ Ã˜Â²Ã˜Â± Ã™Ë†Ã˜Â§Ã˜Â­Ã˜Â¯: Auto-detect Ã¢â€ â€™ Inspect Ã¢â€ â€™ Apply. Ã˜Â§Ã˜Â®Ã˜ÂªÃ™Å Ã˜Â§Ã˜Â± track Ã˜Â£Ã™Ë† clip Ã™Ë†Ã™ÂÃ˜ÂªÃ˜Â­ Effect Controls Ã™â€žÃ™Å Ã˜Â³Ã˜Âª Ã˜Â®Ã˜Â·Ã™Ë†Ã˜Â§Ã˜Âª Ã™â€žÃ™â€žÃ™â€¦Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦.
 - Ã˜Â¥Ã™â€  Ã™â€žÃ™â€¦ Ã™Å Ã™Ë†Ã˜Â¬Ã˜Â¯ cut Ã˜Â¯Ã˜Â§Ã˜Â®Ã™â€žÃ™Å  Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â£Ã™Å  Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â±Ã˜Å’ Ã˜ÂªÃ˜ÂªÃ™Ë†Ã™â€šÃ™Â Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â¯Ã˜Â§Ã˜Â© Ã˜Â¨Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ˜Â© `AUTO_ZOOM_TRACK_WITH_CUTS_NOT_FOUND` Ã˜Â¨Ã˜Â¯Ã™â€ž Ã˜Â§Ã˜Â®Ã˜ÂªÃ™Å Ã˜Â§Ã˜Â± V1 Ã˜Â§Ã™ÂÃ˜ÂªÃ˜Â±Ã˜Â§Ã˜Â¶Ã™Å Ã™â€¹Ã˜Â§ Ã˜Â£Ã™Ë† Ã˜Â§Ã™â€žÃ˜Â§Ã˜Â¯Ã˜Â¹Ã˜Â§Ã˜Â¡ Ã˜Â¨Ã˜Â§Ã™â€žÃ™â€ Ã˜Â¬Ã˜Â§Ã˜Â­.
 
 ### Ã™â€šÃ™Ë†Ã˜Â§Ã˜Â¹Ã˜Â¯ Ã™â€¦Ã˜Â³Ã˜ÂªÃ™ÂÃ˜Â§Ã˜Â¯Ã˜Â© Ã™â€¦Ã™â€  JumpCut Ã™Ë†SoundBuddy Ã™ÂÃ™Å  Auto Zoom
+
 - Ã™â€žÃ˜Â§ Ã™Å Ã™ÂÃ™â€ Ã™â€šÃ™â€ž Ã™Æ’Ã™Ë†Ã˜Â¯ JumpCut (GPL-3.0) Ã˜Â£Ã™Ë† SoundBuddy Studio (AGPL-3.0) Ã˜Â¥Ã™â€žÃ™â€° Saad Studio. Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã™â€¦Ã™Ë†Ã˜Â­ Ã™â€¡Ã™Ë† Ã˜Â¥Ã˜Â¹Ã˜Â§Ã˜Â¯Ã˜Â© Ã˜ÂªÃ™â€ Ã™ÂÃ™Å Ã˜Â° Ã™â€¦Ã˜Â¨Ã˜Â¯Ã˜Â£ Ã˜Â¹Ã˜Â§Ã™â€¦ Ã˜Â¨Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™â€¦Ã˜Â³Ã˜ÂªÃ™â€šÃ™â€žÃ˜Â© Ã™â€¦Ã˜Â¹ fixture Ã™Ë†Runtime Proof.
 - Ã˜Â²Ã™â€¦Ã™â€  Ã˜Â§Ã™â€ Ã˜ÂªÃ™â€šÃ˜Â§Ã™â€ž Ã˜Â§Ã™â€žÃ™â€šÃ˜ÂµÃ™Å Ã˜Â± Ã™â€žÃ˜Â§ Ã™Å Ã™ÂÃ˜Â«Ã˜Â¨Ã˜Âª Ã˜Â¹Ã™â€žÃ™â€° 30fpsÃ˜â€º Ã˜ÂªÃ™ÂÃ™â€šÃ˜Â±Ã˜Â£ Ã™â€¦Ã˜Â¯Ã˜Â© Ã˜Â§Ã™â€žÃ™ÂÃ˜Â±Ã™Å Ã™â€¦ Ã™â€¦Ã™â€  `Sequence.timebase`Ã˜Å’ Ã˜Â«Ã™â€¦ Ã™â€¦Ã™â€  `Sequence.getSettings().videoFrameRate`Ã˜Å’ Ã™â€¦Ã˜Â¹ fallback 25fps Ã™â€žÃ™â€žÃ™â€¦Ã˜Â¶Ã™Å Ã™Â Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜ÂªÃ™â€¡Ã˜Â¯Ã™Â.
 - Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â¯Ã˜Â¹Ã˜Â§Ã˜Â¡ `addKey` Ã™Ë†`setValueAtKey` Ã™â€žÃ™Å Ã˜Â³ Ã˜Â¥Ã˜Â«Ã˜Â¨Ã˜Â§Ã˜Âª Ã™â€ Ã˜Â¬Ã˜Â§Ã˜Â­. Ã˜Â¥Ã˜Â°Ã˜Â§ Ã™Æ’Ã˜Â§Ã™â€  `ComponentParam.getKeys()` Ã™â€¦Ã˜ÂªÃ˜Â§Ã˜Â­Ã˜Â§Ã™â€¹Ã˜Å’ Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜Â£Ã™â€  Ã˜ÂªÃ˜Â­Ã˜ÂªÃ™Ë†Ã™Å  Ã˜Â§Ã™â€žÃ™â€šÃ˜Â±Ã˜Â§Ã˜Â¡Ã˜Â© Ã˜Â§Ã™â€žÃ™â€žÃ˜Â§Ã˜Â­Ã™â€šÃ˜Â© Ã™Æ’Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â²Ã™â€¦Ã™â€ Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â·Ã™â€žÃ™Ë†Ã˜Â¨Ã˜Â© Ã˜Â¶Ã™â€¦Ã™â€  Ã˜Â³Ã™â€¦Ã˜Â§Ã˜Â­Ã™Å Ã˜Â© 0.002 Ã˜Â«Ã˜Â§Ã™â€ Ã™Å Ã˜Â©Ã˜â€º Ã™Ë†Ã˜Â¥Ã™â€žÃ˜Â§ Ã™Å Ã™ÂÃ˜Â¹Ã˜Â¯ Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â¯Ã˜Â« Ã™ÂÃ˜Â§Ã˜Â´Ã™â€žÃ˜Â§Ã™â€¹ Ã™Ë†Ã™â€žÃ˜Â§ Ã™Å Ã˜Â²Ã˜Â§Ã˜Â¯ `effectsApplied`.
 - Beat tracking Ã˜Â§Ã™â€žÃ™â€¦Ã™Ë†Ã˜Â³Ã™Å Ã™â€šÃ™Å  (Ã™â€¦Ã˜Â«Ã™â€ž `librosa.beat.beat_track` in SoundBuddy) Ã™â€žÃ™Å Ã˜Â³ Ã˜Â¨Ã˜Â¯Ã™Å Ã™â€žÃ˜Â§Ã™â€¹ Ã™â€¦Ã˜Â«Ã˜Â¨Ã˜ÂªÃ˜Â§Ã™â€¹ Ã™â€žÃ™â‚¬Speech Emphasis. Ã™â€žÃ˜Â§ Ã™Å Ã™ÂÃ˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦ Ã™â€žÃ˜ÂªÃ™Ë†Ã™â€šÃ™Å Ã˜Âª Zoom Ã™â€žÃ™â€žÃ˜Â¨Ã™Ë†Ã˜Â¯Ã™Æ’Ã˜Â§Ã˜Â³Ã˜Âª Ã™â€¦Ã™â€  Ã˜Â¯Ã™Ë†Ã™â€  Ã™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬/fixture Ã˜ÂµÃ™Ë†Ã˜Âª Ã™Æ’Ã™â€žÃ˜Â§Ã™â€¦ Ã™Ë†Ã™â€¦Ã˜Â¹Ã™Å Ã˜Â§Ã˜Â± Ã™â€šÃ˜Â¨Ã™Ë†Ã™â€ž Ã™â€¦Ã™â€ Ã™ÂÃ˜ÂµÃ™â€ž.
 
 ### Ã˜Â¥Ã˜Â«Ã˜Â¨Ã˜Â§Ã˜Âª Ã™â€šÃ™Å Ã™â€¦Ã˜Â© Auto Zoom Ã™Ë†Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¹Ã˜Â§Ã™Å Ã™â€ Ã˜Â©
+
 - `ComponentParam.getKeys()` Ã™Å Ã˜Â«Ã˜Â¨Ã˜Âª Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â²Ã™â€¦Ã™â€ Ã˜Â© Ã™ÂÃ™â€šÃ˜Â·. Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜ÂªÃ™Ë†Ã™ÂÃ˜Â± `getValueAtKey` Ã˜Â£Ã™Ë† `getValueAtTime` Ã™Å Ã˜Â¬Ã˜Â¨ Ã™â€¦Ã™â€šÃ˜Â§Ã˜Â±Ã™â€ Ã˜Â© Ã™â€šÃ™Å Ã™â€¦Ã˜Â© Ã™Æ’Ã™â€ž Ã™â€¦Ã™ÂÃ˜ÂªÃ˜Â§Ã˜Â­ Ã˜Â¨Ã˜Â§Ã™â€žÃ™â€šÃ™Å Ã™â€¦Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â·Ã™â€žÃ™Ë†Ã˜Â¨Ã˜Â©Ã˜â€º Ã™Ë†Ã˜Â¬Ã™Ë†Ã˜Â¯ Ã™â€¦Ã™ÂÃ˜Â§Ã˜ÂªÃ™Å Ã˜Â­ Ã™Æ’Ã™â€žÃ™â€¡Ã˜Â§ Ã˜Â¹Ã™â€žÃ™â€° Scale Ã˜Â§Ã™â€žÃ˜Â£Ã˜ÂµÃ™â€žÃ™Å  Ã™â€žÃ™Å Ã˜Â³ Zoom Ã™â€ Ã˜Â§Ã˜Â¬Ã˜Â­Ã˜Â§Ã™â€¹.
 - Ã˜Â¨Ã˜Â¹Ã˜Â¯ Ã˜ÂªÃ˜Â·Ã˜Â¨Ã™Å Ã™â€š Ã™â€ Ã˜Â§Ã˜Â¬Ã˜Â­ Ã™Å Ã™ÂÃ™â€ Ã™â€šÃ™â€ž Player Position Ã˜ÂªÃ™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™Å Ã˜Â§Ã™â€¹ Ã˜Â¥Ã™â€žÃ™â€° Ã˜Â°Ã˜Â±Ã™Ë†Ã˜Â© Ã˜Â£Ã™Ë†Ã™â€ž Ã˜Â­Ã˜Â¯Ã˜Â« Zoom. Ã™â€¡Ã˜Â°Ã™â€¡ Ã™â€¦Ã˜Â¹Ã˜Â§Ã™Å Ã™â€ Ã˜Â© Ã˜Â¢Ã™â€žÃ™Å Ã˜Â© Ã™â€žÃ˜Â§ Ã˜ÂªÃ˜Â¯Ã˜Â®Ã™â€ž Ã™Å Ã˜Â¯Ã™Ë†Ã™Å Ã˜Å’ Ã™Ë†Ã˜ÂªÃ™â€¦Ã™â€ Ã˜Â¹ Ã˜Â§Ã˜Â®Ã˜ÂªÃ˜Â¨Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ™â€ Ã˜ÂªÃ™Å Ã˜Â¬Ã˜Â© Ã˜Â¹Ã™â€ Ã˜Â¯ Ã™â€¦Ã™Ë†Ã˜Â¶Ã˜Â¹ Ã˜Â¨Ã˜Â¹Ã™Å Ã˜Â¯ Ã˜Â¹Ã™â€  Ã™â€ Ã˜Â§Ã™ÂÃ˜Â°Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â²Ã™Ë†Ã™â€¦ Ã˜Â§Ã™â€žÃ™â€šÃ˜ÂµÃ™Å Ã˜Â±Ã˜Â©.
 - Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ˜Â© Ã˜Â§Ã™â€žÃ™â€ Ã˜Â¬Ã˜Â§Ã˜Â­ Ã˜ÂªÃ˜Â¹Ã˜Â±Ã˜Â¶ Ã˜Â£Ã˜Â²Ã™â€¦Ã™â€ Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â­Ã˜Â¯Ã˜Â§Ã˜Â« Ã˜Â§Ã™â€žÃ˜ÂªÃ™Å  Ã˜Â·Ã™ÂÃ˜Â¨Ã™â€šÃ˜Âª Ã™ÂÃ˜Â¹Ã™â€žÃ™Å Ã˜Â§Ã™â€¹. Ã™â€žÃ˜Â§ Ã™Å Ã™ÂÃ˜Â¹Ã˜Â±Ã˜Â¶ `effectsApplied > 0` Ã˜Â¥Ã˜Â°Ã˜Â§ Ã™ÂÃ˜Â´Ã™â€ž readback Ã™â€žÃ™â€žÃ˜Â²Ã™â€¦Ã™â€  Ã˜Â£Ã™Ë† Ã˜Â§Ã™â€žÃ™â€šÃ™Å Ã™â€¦Ã˜Â©.
 
 ### Ã˜ÂªÃ˜Â­Ã™Ë†Ã™Å Ã™â€ž Ã˜Â²Ã™â€¦Ã™â€  Ã™â€¦Ã˜Â¹Ã˜Â§Ã™Å Ã™â€ Ã˜Â© Auto Zoom
+
 - Ã˜Â£Ã˜Â²Ã™â€¦Ã™â€ Ã˜Â© Ã™â€šÃ˜Â±Ã˜Â§Ã˜Â±Ã˜Â§Ã˜Âª Auto Zoom Ã™Ë†Ã™â€¦Ã™ÂÃ˜Â§Ã˜ÂªÃ™Å Ã˜Â­ Motion Scale Ã™â€¡Ã™Å  Ã˜Â£Ã˜Â²Ã™â€¦Ã™â€ Ã˜Â© Timeline. Ã˜Â£Ã™â€¦Ã˜Â§ `Sequence.setPlayerPosition()` Ã™ÂÃ™Å Ã˜ÂªÃ˜Â£Ã˜Â«Ã˜Â± Ã˜Â¨Ã™â‚¬`Sequence.zeroPoint`Ã˜â€º Ã™â€žÃ˜Â°Ã™â€žÃ™Æ’ Ã™â€žÃ˜Â§ Ã™Å Ã˜Â¬Ã™Ë†Ã˜Â² Ã˜ÂªÃ™â€¦Ã˜Â±Ã™Å Ã˜Â± ticks Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â­Ã˜Â³Ã™Ë†Ã˜Â¨Ã˜Â© Ã™â€¦Ã™â€  Ã˜Â²Ã™â€¦Ã™â€  Timeline Ã™â€¦Ã˜Â¨Ã˜Â§Ã˜Â´Ã˜Â±Ã˜Â© Ã˜Â¹Ã™â€ Ã˜Â¯Ã™â€¦Ã˜Â§ Ã˜ÂªÃ™Æ’Ã™Ë†Ã™â€  Ã™â€ Ã™â€šÃ˜Â·Ã˜Â© Ã˜Â§Ã™â€žÃ˜ÂµÃ™ÂÃ˜Â± Ã˜ÂºÃ™Å Ã˜Â± Ã˜ÂµÃ™ÂÃ˜Â±Ã™Å Ã˜Â©.
 - Ã™â€¦Ã™Ë†Ã˜Â¶Ã˜Â¹ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¹Ã˜Â§Ã™Å Ã™â€ Ã˜Â© Ã™Å Ã™ÂÃ˜Â­Ã˜Â³Ã˜Â¨ Ã™â€¡Ã™Æ’Ã˜Â°Ã˜Â§: `playerTicks = max(0, timelineTicks - zeroPointTicks)`. Ã™Å Ã˜Â·Ã˜Â¨Ã™â€š Ã™â€¡Ã˜Â°Ã˜Â§ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã™Ë†Ã™Å Ã™â€ž Ã˜Â¹Ã™â€žÃ™â€° Ã˜ÂªÃ˜Â­Ã˜Â±Ã™Å Ã™Æ’ Ã˜Â±Ã˜Â£Ã˜Â³ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â´Ã˜ÂºÃ™Å Ã™â€ž Ã™â€žÃ™â€žÃ™â€¦Ã˜Â¹Ã˜Â§Ã™Å Ã™â€ Ã˜Â© Ã™ÂÃ™â€šÃ˜Â·Ã˜Å’ Ã™Ë†Ã™â€žÃ˜Â§ Ã™Å Ã™ÂÃ˜Â·Ã˜Â±Ã˜Â­ zero point Ã™â€¦Ã™â€  Ã˜Â£Ã˜Â²Ã™â€¦Ã™â€ Ã˜Â© Ã™â€¦Ã™ÂÃ˜Â§Ã˜ÂªÃ™Å Ã˜Â­ Scale.
 - Ã˜Â¸Ã™â€¡Ã™Ë†Ã˜Â± Scale=100 Ã™ÂÃ™Å  Effect Controls Ã˜Â®Ã˜Â§Ã˜Â±Ã˜Â¬ Ã™â€ Ã˜Â§Ã™ÂÃ˜Â°Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â²Ã™Ë†Ã™â€¦ Ã™â€žÃ˜Â§ Ã™Å Ã˜Â«Ã˜Â¨Ã˜Âª Ã™ÂÃ˜Â´Ã™â€ž Ã˜Â§Ã™â€žÃ™Æ’Ã˜ÂªÃ˜Â§Ã˜Â¨Ã˜Â©. Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â«Ã˜Â¨Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜ÂµÃ˜Â­Ã™Å Ã˜Â­ Ã™Å Ã™Æ’Ã™Ë†Ã™â€  Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜Â°Ã˜Â±Ã™Ë†Ã˜Â© Ã˜Â­Ã˜Â¯Ã˜Â« Ã™â€¦Ã˜Â·Ã˜Â¨Ã™â€š Ã™Ë†Ã˜Â¨Ã˜Â¹Ã˜Â¯ Ã™â€ Ã˜Â¬Ã˜Â§Ã˜Â­ readback Ã™â€žÃ™â€žÃ˜Â£Ã˜Â²Ã™â€¦Ã™â€ Ã˜Â© Ã™Ë†Ã˜Â§Ã™â€žÃ™â€šÃ™Å Ã™â€¦.
 - Ã™â€ Ã™â€šÃ™â€ž Player Position Ã™â€žÃ˜Â§ Ã™Å Ã˜ÂºÃ™Å Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã™â€šÃ˜Â·Ã˜Â¹ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â­Ã˜Â¯Ã˜Â¯ Ã™ÂÃ™Å  Premiere. Ã™â€žÃ™Æ’Ã™Å  Ã˜ÂªÃ™Æ’Ã™Ë†Ã™â€  Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¹Ã˜Â§Ã™Å Ã™â€ Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¢Ã™â€žÃ™Å Ã˜Â© Ã˜ÂµÃ˜Â§Ã˜Â¯Ã™â€šÃ˜Â©Ã˜Å’ Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜Â£Ã™â€  Ã˜ÂªÃ˜Â­Ã˜Â¯Ã˜Â¯ Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â¯Ã˜Â§Ã˜Â© TrackItem Ã˜ÂµÃ˜Â§Ã˜Â­Ã˜Â¨ Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â¯Ã˜Â« Ã˜Â¨Ã˜Â¹Ã˜Â¯ Ã˜Â§Ã™â€žÃ™â€ Ã™â€šÃ™â€žÃ˜â€º Ã™Ë†Ã˜Â¥Ã™â€žÃ˜Â§ Ã™â€šÃ˜Â¯ Ã™Å Ã˜Â¹Ã˜Â±Ã˜Â¶ Effect Controls Ã˜Â§Ã™â€žÃ™â€¦Ã™â€šÃ˜Â·Ã˜Â¹ Ã˜Â§Ã™â€žÃ˜Â³Ã˜Â§Ã˜Â¨Ã™â€š Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜Â­Ã˜Â¯ Ã˜Â§Ã™â€žÃ™â€šÃ˜Â·Ã˜Â¹ Ã˜Â±Ã˜ÂºÃ™â€¦ Ã™Ë†Ã˜Â¬Ã™Ë†Ã˜Â¯ Ã˜Â§Ã™â€žÃ™â€¦Ã™ÂÃ˜Â§Ã˜ÂªÃ™Å Ã˜Â­ Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ™â€¦Ã™â€šÃ˜Â·Ã˜Â¹ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â§Ã™â€žÃ™Å .
 
 ### Ã˜Â­Ã™ÂÃ˜Â¸ Ã˜Â§Ã™â€žÃ™â‚¬ Mappings Ã™Ë†Ã˜Â§Ã™â€žÃ™â‚¬ Fallback Ã™ÂÃ™Å  Auto Zoom (2026-06-20)
+
 - Ã˜Â§Ã™â€žÃ™â‚¬ sequence watcher Ã™â€žÃ˜Â§ Ã™Å Ã™â€šÃ™Ë†Ã™â€¦ Ã˜Â¨Ã™â€¦Ã˜Â³Ã˜Â­ state.mappings Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜Â§Ã™â€žÃ˜Â§Ã™â€ Ã˜ÂªÃ™â€šÃ˜Â§Ã™â€ž Ã™â€¦Ã™â€  Ã˜Â§Ã™â€žÃ™â‚¬ source sequence Ã˜Â¥Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ™â‚¬ Draft sequence Ã˜Â§Ã™â€žÃ™â€ Ã˜Â§Ã˜ÂªÃ˜Â¬ Ã™â€¦Ã™â€ Ã™â€¡Ã˜Â§ (e.g. Synced Sequence - Saad Auto Switch Draft).
 - Ã™ÂÃ™Å  Ã˜Â­Ã˜Â§Ã™â€ž Ã™Æ’Ã˜Â§Ã™â€  Ã˜Â§Ã˜Â®Ã˜ÂªÃ™Å Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ™Æ’Ã˜Â§Ã™â€¦Ã™Å Ã˜Â±Ã˜Â§ Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â§Ã™â€¦Ã˜Â© (Wide) Ã˜ÂºÃ™Å Ã˜Â± Ã™â€¦Ã˜Â­Ã˜Â¯Ã˜Â¯ (null) Ã™ÂÃ™Å  Ã˜Â§Ã™â€žÃ™â‚¬ mappingsÃ˜Å’ Ã™Å Ã™â€šÃ™Ë†Ã™â€¦ Ã˜Â§Ã™â€žÃ™â‚¬ Auto Zoom Ã˜ÂªÃ™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™Å Ã™â€¹Ã˜Â§ Ã˜Â¨Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â¨Ã˜Â¹Ã˜Â§Ã˜Â¯ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜Â§Ã˜Â± 0 (V1) Ã™Æ’Ã™â‚¬ fallback Ã˜Â§Ã™ÂÃ˜ÂªÃ˜Â±Ã˜Â§Ã˜Â¶Ã™Å  Ã™â€žÃ˜Â­Ã™â€¦Ã˜Â§Ã™Å Ã˜Â© Ã˜Â§Ã™â€žÃ™â€žÃ™â€šÃ˜Â·Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â§Ã™â€¦Ã˜Â© Ã™â€¦Ã™â€  Ã˜Â§Ã™â€žÃ˜Â²Ã™Ë†Ã™â€¦Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â´Ã™Ë†Ã˜Â§Ã˜Â¦Ã™Å Ã˜Â©.
 
 ### Ã˜Â¯Ã˜Â¹Ã™â€¦ Ã˜Â§Ã™â€žÃ™â€žÃ˜ÂºÃ˜Â§Ã˜Âª Ã™Ë†Ã˜Â¥Ã˜Â²Ã˜Â§Ã™â€žÃ˜Â© Ã˜Â§Ã™â€žÃ™Æ’Ã™Å  Ã™ÂÃ˜Â±Ã™Å Ã™â€¦Ã˜Â² Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â´Ã™Ë†Ã˜Â§Ã˜Â¦Ã™Å Ã˜Â© Ã™â€žÃ™â€žÃ™â‚¬ Playhead Ã™ÂÃ™Å  Auto Zoom (2026-06-20)
+
 - Ã˜Â¯Ã˜Â§Ã™â€žÃ˜Â© `findAutoZoomTransformComponent` Ã˜ÂªÃ˜Â¬Ã™â€¦Ã˜Â¹ Ã˜Â§Ã™â€žÃ˜Â¢Ã™â€  `matchName` Ã™Ë†`displayName` Ã™â€¦Ã˜Â¹Ã˜Â§Ã™â€¹ Ã™â€žÃ˜Â¶Ã™â€¦Ã˜Â§Ã™â€  Ã˜Â§Ã™Æ’Ã˜ÂªÃ˜Â´Ã˜Â§Ã™Â Ã˜ÂªÃ˜Â£Ã˜Â«Ã™Å Ã˜Â± Transform Ã˜ÂªÃ˜Â­Ã˜Âª Ã˜Â£Ã™Å  Ã™â€žÃ˜ÂºÃ˜Â© Ã™Ë†Ã˜Â§Ã˜Â¬Ã™â€¡Ã˜Â© (Ã™â€¦Ã˜Â«Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â±Ã˜Â¨Ã™Å Ã˜Â© "Ã˜ÂªÃ˜Â­Ã™Ë†Ã™Å Ã™â€ž").
 - Ã˜Â¯Ã˜Â§Ã™â€žÃ˜Â© `findAutoZoomMotionScaleProperty` Ã˜ÂªÃ˜Â·Ã˜Â§Ã˜Â¨Ã™â€š Ã˜Â®Ã˜Â§Ã˜ÂµÃ™Å Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã™â€šÃ™Å Ã˜Â§Ã˜Â³ Ã˜Â¨Ã˜Â§Ã™â€žÃ˜Â§Ã˜Â³Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â«Ã˜Â§Ã˜Â¨Ã˜Âª `"ADBE Motion Scale"` Ã˜Â¨Ã˜Â¬Ã˜Â§Ã™â€ Ã˜Â¨ Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â³Ã™â€¦Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜Â§Ã™ÂÃ˜ÂªÃ˜Â±Ã˜Â§Ã˜Â¶Ã™Å Ã˜Â©.
 - Ã™â€žÃ˜ÂªÃ™ÂÃ˜Â§Ã˜Â¯Ã™Å  Ã˜Â§Ã™â€žÃ™Æ’Ã™Å  Ã™ÂÃ˜Â±Ã™Å Ã™â€¦Ã˜Â² Ã˜Â§Ã™â€žÃ˜Â¹Ã˜Â´Ã™Ë†Ã˜Â§Ã˜Â¦Ã™Å Ã˜Â© Ã˜Â§Ã™â€žÃ˜ÂªÃ™Å  Ã™Å Ã˜Â¶Ã˜Â¹Ã™â€¡Ã˜Â§ Premiere Ã˜ÂªÃ™â€žÃ™â€šÃ˜Â§Ã˜Â¦Ã™Å Ã˜Â§Ã™â€¹ Ã˜Â¹Ã™â€ Ã˜Â¯ Ã™â€¦Ã™Ë†Ã˜Â¶Ã˜Â¹ Ã˜Â§Ã™â€žÃ™â‚¬ playhead Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â§Ã™â€žÃ™Å  Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜ÂªÃ˜Â´Ã˜ÂºÃ™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â³Ã˜Â§Ã˜Â¹Ã˜Â© `setTimeVarying(true)`Ã˜Å’ Ã™Å Ã˜ÂªÃ™â€¦ Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â¯Ã˜Â¹Ã˜Â§Ã˜Â¡ `removeKeyRange` Ã˜Â¹Ã™â€žÃ™â€° Ã™â€ Ã˜Â·Ã˜Â§Ã™â€š Ã˜Â§Ã™â€žÃ™â€¦Ã™â€šÃ˜Â·Ã˜Â¹ Ã™Æ’Ã˜Â§Ã™â€¦Ã™â€žÃ˜Â§Ã™â€¹ Ã™â€žÃ˜ÂªÃ™â€ Ã˜Â¸Ã™Å Ã™Â Ã˜Â§Ã™â€žÃ˜Â®Ã˜ÂµÃ˜Â§Ã˜Â¦Ã˜Âµ Ã™â€šÃ˜Â¨Ã™â€ž Ã™Æ’Ã˜ÂªÃ˜Â§Ã˜Â¨Ã˜Â© Ã™â€¦Ã™ÂÃ˜Â§Ã˜ÂªÃ™Å Ã˜Â­ Ã˜Â§Ã™â€žÃ˜Â²Ã™Ë†Ã™â€¦ Ã˜Â§Ã™â€žÃ™ÂÃ˜Â¹Ã˜Â§Ã™â€žÃ˜Â©.
 
 ### Ã™â€šÃ˜Â§Ã˜Â¹Ã˜Â¯Ã˜Â© Synchronize Duplicate-only (2026-06-26)
+
 - Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â± Apply Sync Ã™â€žÃ˜Â§ Ã™Å Ã˜Â·Ã˜Â¨Ã™â€š Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â²Ã˜Â§Ã˜Â­Ã˜Â§Ã˜Âª Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ™â‚¬ Original Sequence Ã™â€ Ã™â€¡Ã˜Â§Ã˜Â¦Ã™Å Ã˜Â§Ã™â€¹. Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜ÂªÃ™â€ Ã˜Â´Ã™Å Ã˜Â· Ã˜Â§Ã™â€žÃ˜Â³Ã™Ë†Ã˜Â±Ã˜Â³Ã˜Å’ Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Ã™â€ Ã˜Â³Ã˜Â®Ã˜Â© `Saad Sync Draft`Ã˜Å’ Ã˜Â«Ã™â€¦ Ã˜ÂªÃ™â€ Ã˜Â´Ã™Å Ã˜Â· Ã˜Â§Ã™â€žÃ™â€ Ã˜Â³Ã˜Â®Ã˜Â© Ã™Ë†Ã˜ÂªÃ˜Â·Ã˜Â¨Ã™Å Ã™â€š Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â²Ã˜Â§Ã˜Â­Ã˜Â§Ã˜Âª Ã˜Â¹Ã™â€žÃ™Å Ã™â€¡Ã˜Â§ Ã™ÂÃ™â€šÃ˜Â·.
 - Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜Â§Ã™â€žÃ˜Â­Ã™ÂÃ˜Â§Ã˜Â¸ Ã˜Â¹Ã™â€žÃ™â€° Timeline Scanner Ã™Ë†Audio Analysis Ã™Ë†Pairwise Correlation Ã™Ë†Sync Graph Ã™Ë†Fine Alignment Ã™Ë†Validation Ã™Æ’Ã˜Â·Ã˜Â¨Ã™â€šÃ˜Â§Ã˜Âª Ã™â€¦Ã˜Â³Ã˜ÂªÃ™â€šÃ™â€žÃ˜Â©Ã˜â€º Ã˜ÂªÃ˜ÂºÃ™Å Ã™Å Ã˜Â± Ã˜Â³Ã™Å Ã˜Â± Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â·Ã˜Â¨Ã™Å Ã™â€š Ã™â€žÃ˜Â§ Ã™Å Ã˜Â¹Ã™â€ Ã™Å  Ã˜Â¥Ã˜Â¹Ã˜Â§Ã˜Â¯Ã˜Â© Ã™Æ’Ã˜ÂªÃ˜Â§Ã˜Â¨Ã˜Â© Ã™â€¦Ã˜Â­Ã˜Â±Ã™Æ’ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã™â€žÃ™Å Ã™â€ž.
 - Ã˜Â¹Ã™â€ Ã˜Â¯ Ã˜ÂªÃ˜Â­Ã˜Â±Ã™Å Ã™Æ’ Ã™â€¦Ã™â€šÃ˜Â·Ã˜Â¹ Ã˜Â¯Ã˜Â§Ã˜Â®Ã™â€ž Ã˜Â§Ã™â€žÃ™â€ Ã˜Â³Ã˜Â®Ã˜Â©Ã˜Å’ Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜Â§Ã™â€žÃ˜Â­Ã™ÂÃ˜Â§Ã˜Â¸ Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ˜Â¹Ã™â€žÃ˜Â§Ã™â€šÃ˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â±Ã˜ÂªÃ˜Â¨Ã˜Â·Ã˜Â© Ã˜Â¨Ã™Å Ã™â€  Ã˜Â§Ã™â€žÃ™ÂÃ™Å Ã˜Â¯Ã™Å Ã™Ë† Ã™Ë†Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Âª Ã˜Â¹Ã˜Â¨Ã˜Â± Ã™â€¦Ã™â€ Ã˜Â·Ã™â€š linked items Ã™ÂÃ™Å  JSX Ã™Ë†Ã˜Â¹Ã˜Â¯Ã™â€¦ Ã˜ÂªÃ˜Â­Ã˜Â±Ã™Å Ã™Æ’ Ã˜Â§Ã™â€žÃ˜Â¹Ã™â€ Ã˜ÂµÃ˜Â± Ã™â€ Ã™ÂÃ˜Â³Ã™â€¡ Ã˜Â£Ã™Æ’Ã˜Â«Ã˜Â± Ã™â€¦Ã™â€  Ã™â€¦Ã˜Â±Ã˜Â©.
@@ -1734,6 +1854,7 @@
 - Chat and prompt composer layout now uses bounded responsive constraints to avoid tiny text, uncontrolled wide trace cards, and prompt-box overlap while resizing.
 - 2026-07-05: Saad Agent packaged UI now defaults execution tracing to Simple mode. The full Execution Trace card is no longer created for ordinary running or successful chat tasks in Simple mode. Failure and approval-required tasks still surface the trace card. Developer and Verbose remain diagnostic opt-in modes.
 ## Saad Agent private story knowledge behavior (2026-07-06)
+
 - Saad Agent now has a documented private narrative psychology knowledge rule for consensual adult fictional story interests.
 - The update preserves the current training architecture by storing structured story analysis cards under `.saad-agent/training/lessons/stories/`.
 - Story entries should be compact knowledge cards with title, source, category, tags, summary, characters, relationship dynamics, key themes, psychological notes, narrative style, vocabulary, lessons, and safety notes.
@@ -1742,6 +1863,7 @@
 - Safety boundary: only adult consensual fictional/narrative material belongs in this path; content involving minors, coercion, real non-consensual harm, exploitation, or illegal activity must not be stored or trained.
 
 ## Saad Agent real URL crawler training import behavior (2026-07-06)
+
 - The Knowledge Manager URL import is now a real request-time crawler, not a link-only placeholder.
 - `knowledge:import-url` fetches a public HTTP/HTTPS URL, extracts readable HTML/text, writes a Markdown training file, and runs the existing `KnowledgeIngestionService.ingestTrainingKnowledge(...)` pipeline.
 - Private narrative/story-like sources route under `.saad-agent/training/lessons/stories/` and include a story knowledge card header plus crawled page text.
@@ -1749,6 +1871,7 @@
 - The crawler does not bypass protected content. For inaccessible pages, the user must provide reachable text or a reachable source URL.
 
 ## Saad Agent direct URL reading behavior (2026-07-09)
+
 - A direct HTTP/HTTPS URL in chat is fetched before response generation and its readable text is passed as webpage context.
 - When fetched webpage context exists, quiet/general chat shortcuts must not run because they would discard the retrieved text.
 - The response model must answer from the retrieved context and must not claim that it cannot open the supplied URL.
@@ -1763,6 +1886,7 @@
 - The global knowledge index supports up to 5,000 chunks so long stories, books, and accumulated URL sources remain retrievable.
 
 ## Saad Agent Knowledge document normalization and crawler error clarity (2026-07-06)
+
 - `knowledge:list` and `knowledge:get-document` must normalize training registry records before returning them to the Knowledge Manager UI.
 - Registry fields such as `fileName`, `filePath`, `addedDate`, and `type` map to UI fields such as `title`, `originalFileName`, `sourcePath`, `importedAt`, and `fileType`.
 - This preserves the existing registry schema and avoids creating a second knowledge service.
@@ -1770,6 +1894,7 @@
 - The crawler must not save fake full-content records when the URL cannot be reached or readable content cannot be extracted.
 
 ## Saad Agent attachment training and conversation continuity behavior (2026-07-06)
+
 - Runtime attachments must be normalized at the orchestration boundary before any training import, readable attachment scan, approval check, or model prompt assembly.
 - Attachments that arrive with `name`, missing `filename`, missing `mimeType`, or only a local path must receive safe filename and MIME fallbacks before storage/indexing.
 - When a prompt with attachments asks to save, store, remember, train, read, classify, search, index, use memory, or use as reference, Saad Agent must save and index the attachments first through the existing `.saad-agent/training/` pipeline and must not answer as if it only received metadata.
@@ -1778,6 +1903,7 @@
 - An explicit approval mode sent with the current request takes precedence over stale stored conversation mode. Stored mode is fallback-only when no explicit mode is present.
 
 ## Saad Agent translation route behavior (2026-07-06)
+
 - Translation prompts must route through a dedicated `translation` path before raw knowledge lookup reporting.
 - Default translation target is natural Iraqi Arabic matching the user's preferred private-agent voice.
 - Explicit user requests for Modern Standard Arabic or English override the Iraqi Arabic default.
@@ -1786,23 +1912,27 @@
 - If the active model/provider fails, the fallback should list only possible source names and the provider error, not raw matched content.
 
 ## Saad Agent chat readability sizing behavior (2026-07-06)
+
 - Chat message body text and composer input text should use stable 16px sizing for readability.
 - Narrow/mobile composer rules must not reduce the prompt text below the product-level readable size.
 - Font-size readability changes are UI-only and must not alter chat orchestration, memory, training, provider, or backend behavior.
 
 ## Saad Agent compact execution status behavior (2026-07-09)
+
 - `simple` mode is the product-facing execution display: a compact icon, localized status, progress bar, and percentage.
 - Technical failure text stays collapsed by default and is exposed only through an optional details disclosure.
 - `developer` and `verbose` remain the explicit diagnostic modes that may render the full execution timeline.
 - The persisted trace-mode key is versioned so older detailed-mode selections do not force legacy trace walls after UI upgrades.
 
 ## Saad Agent affirmative follow-up continuity behavior (2026-07-06)
+
 - Short affirmative replies such as `Ù†Ø¹Ù…`, `Ø¥ÙŠ`, `ØªÙ…Ø§Ù…`, `ok`, or `yes` must inspect the immediately previous assistant message before using the generic acknowledgement shortcut.
 - If the previous assistant message offered a concrete action such as writing, drafting, translating, summarizing, analyzing, or continuing something, the affirmative reply means the user approved that offered action.
 - In that case, Saad Agent must continue the same topic using conversation history and perform the offered action; it must not answer only `Ø­Ø§Ø¶Ø±`.
 - Standalone thanks and acknowledgements remain deterministic no-model responses when there is no previous actionable assistant offer.
 
 ## Saad Agent Brave Answers configuration behavior (2026-07-06)
+
 - External research and link requests must use the real Brave Answers provider when live sources are required.
 - External research now routes through `ResearchGatewayService` first. Brave Answers is the current concrete provider behind that gateway, and future providers such as Agent-Reach or MindSearch must be added there instead of calling them directly from chat orchestration.
 - `ResearchGatewayService` performs deterministic query planning before provider calls: it extracts target domains for `site:` searches, expands clear user intent into multiple planned queries, requests enough provider results, merges and deduplicates URLs, and reranks sources by relevance before formatting the answer. This is the built-in deep-search layer until optional Agent-Reach or MindSearch adapters are added behind the same gateway.
@@ -1860,6 +1990,7 @@
 - Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª regression Ø§Ù„ØªÙŠ ØªÙØ­Øµ Ù…Ø´Ø±ÙˆØ¹Ø§Ù‹ Ø£Ùˆ ØªÙƒØªØ¨ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª ÙŠØ¬Ø¨ Ø£Ù† ØªØ³ØªØ®Ø¯Ù… workspaces ÙˆØ¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ù…Ø¤Ù‚ØªØ©ØŒ ÙˆØªÙØ´Ù„ Ø¨Ø®Ø±ÙˆØ¬ ØºÙŠØ± ØµÙØ±ÙŠ Ø¹Ù†Ø¯ ÙˆØ¬ÙˆØ¯ Ø®Ø·Ø£ Ø­Ù‚ÙŠÙ‚ÙŠ.
 
 ## Saad Agent durable conversation persistence behavior (2026-07-09)
+
 - Chat conversations are product state and must survive closing and reopening the desktop app.
 - The renderer may keep `localStorage` as a fallback cache, but the authoritative durable copy is saved through Electron IPC to the app user-data state folder.
 - Startup loading must not overwrite the durable conversation store with an empty bootstrap screen before the persisted store is read.
@@ -1869,6 +2000,7 @@
 - Desktop conversation saving writes through a temp file, renames atomically to `conversations.json`, and keeps a sibling `.bak` copy when replacing an existing store.
 
 ## Saad Agent prompt box clipboard image behavior (2026-07-10)
+
 - The prompt box accepts pasted images from browser copy actions and Windows screenshot tools through `clipboardData.items`.
 - Pasted images are normalized into named image `File` objects and sent through the existing attachment pipeline with `sourceKind: clipboard`.
 - The UI must show the same thumbnail preview used for uploaded images, and sending the message must store/analyze the pasted image through the same backend attachment path.
@@ -1895,29 +2027,34 @@
 - The skill can guide Knowledge/RAG and answer style, but it cannot override system, developer, security, or application rules.
 - The agent must clearly distinguish fully extracted/read sources from metadata-only saved links.
 ## Saad Agent Arabic image-search routing fix (2026-07-10)
+
 - Arabic image-search prompts such as `Ø§Ø¨Ø­Ø«Ù„ÙŠ Ø¹Ù† ØµÙˆØ± Ù†ÙˆØ± Ø²Ù‡ÙŠØ±` route to canonical `external_research` even without an explicit internet word, unless a local path/folder/workspace scope is present.
 - Generic internet follow-ups such as `ÙÙŠ Ø§Ù„Ø§Ù†ØªØ±Ù†Øª` reuse the immediately previous search-like user request in the same conversation, then call `ResearchGatewayService` with the reconstructed topic.
 - Query cleanup removes longer Arabic search verbs before shorter roots so `Ø§Ø¨Ø­Ø«Ù„ÙŠ` does not leave polluted terms such as `Ù„ÙŠ Ù†ÙˆØ± Ø²Ù‡ÙŠØ±`.
 - Image results remain under `ResearchGatewayService.searchImages(...)`; the active model must not invent image links or route this to Trusted Workspace search.
 
 ## Saad Agent public page/profile lookup behavior (2026-07-11)
+
 - Public page/profile/account lookup requests such as `I want Kazem Al Saher page` route to canonical `external_research`.
 - Creation/build wording such as create/build/design/write page remains engineering work and must not be converted into internet search.
 - `ResearchGatewayService.isPublicPageLookupRequest(...)` is the shared detector used by research planning, execution policy, and chat intent routing.
 - Public lookup planning expands queries with official page/profile/website variants and must not call the model or coding runtime before search.
 
 ## Saad Agent structured country facts behavior (2026-07-11)
+
 - Questions asking for a country's capital, currency, or continent are answered from structured imported country tables before model reasoning and before semantic RAG fallback.
 - The lookup covers every row present in the country reference files, not a hard-coded single-country answer.
 - If a row is found, the answer is direct and compact; unrelated training references must not be printed.
 - If no row is found, the request falls through to normal routing without fabricating a country fact.
 
 ## Saad Agent project audit and repair prompt routing behavior (2026-07-11)
+
 - Long prompts that ask to inspect, review, audit, or repair a real project are engineering tasks, not permanent memory-save requests.
 - Words such as save/store/Ø­ÙØ¸ inside project rules, including `do not save failed results` or `Ø·Ø±ÙŠÙ‚Ø© Ø­ÙØ¸ Ø§Ù„Ù†ØªØ§Ø¦Ø¬`, must not trigger memory save unless the prompt starts as an explicit memory command.
 - `web project` and `Ù…Ø´Ø±ÙˆØ¹ ÙˆÙŠØ¨` describe local project scope and must not trigger external internet research by themselves.
 - Inspect-first/report-first wording routes to `code_review`; direct repair wording routes to the normal engineering modification path.
 ## Saad Agent Gemini provider and expertise extraction behavior (2026-07-11)
+
 - Gemini provider calls use Google Generative Language `models/{model}:generateContent` with the API key supplied by the configured provider secret or `GEMINI_API_KEY`.
 - Gemini model discovery uses the Google `models` endpoint and normalizes returned ids such as `models/gemini-*` to local model ids.
 - Expertise extraction can target Gemini only when Gemini is enabled and has an API key. Otherwise the request returns a configuration error and saves nothing.
@@ -1925,12 +2062,14 @@
 - Gemini extraction must not silently fall back to LM Studio or another provider; preserving the true knowledge source is required.
 
 ## Saad Agent Chat/Coding model role separation (2026-07-11)
+
 - `Chat` is a separate model role for normal conversation, translation, conversational fallback wording, and short follow-up replies.
 - `Coding` remains reserved for engineering workflows, project inspection, code review, planning, and implementation.
 - Settings > Models should allow configuring `Chat` independently from `Coding`, so Gemini can power normal chat, coding, or both without accidental role mixing.
 - Gemini model names must be discovered or explicitly configured; the product must not ship guessed Gemini model ids.
 
 ## Saad Agent Gemini activation and no-random-RAG fallback behavior (2026-07-11)
+
 - Saving a Gemini API key from Settings > Providers enables the Gemini provider so extraction/chat configuration does not remain blocked as disabled.
 - Settings > Models must require a discovered model id before persisting Chat or Coding to Gemini; provider selection without discovered models is only staged in the UI until discovery succeeds.
 - If a normal chat model call fails, Saad Agent must show a provider/model configuration failure and must not replace the answer with unrelated training references.
@@ -1938,12 +2077,14 @@
 - Provider failure copy must be provider-neutral and must not name LM Studio unless LM Studio is actually the configured failing provider.
 
 ## Saad Agent legacy Chat model repair behavior (2026-07-11)
+
 - Legacy settings that do not include a `Chat` role must be repaired during settings load.
 - Missing `Chat` inherits the current `Coding` provider/model so normal conversation does not fall back to an obsolete hard-coded model id.
 - If a provider has discovered models and a role references an unavailable model id, the role is repaired to a discovered model id. For `Chat`, the Coding model is preferred when available on the same provider.
 - Obsolete default model ids such as `lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF` must not remain active when LM Studio reports a different available model list.
 
 ## Saad Agent direct local model runtime behavior (2026-07-12)
+
 - `Saad Local Direct` is the app-managed local inference provider path.
 - It launches a configured `llama-server` executable with a configured local GGUF model file and serves it on `http://127.0.0.1:<port>/v1`.
 - It is not a bundled model and does not download model weights; the user must provide a compatible local runtime and model file.
@@ -1961,24 +2102,28 @@
 - Inspected GGUF model paths under `E:\mod` and `C:\Users\PC\.lmstudio\models\lmstudio-community` are model files only; they still require a runtime executable such as `llama-server.exe`.
 - ComfyUI portable's embedded Python is useful for image workflows but is not a substitute for a text LLM runtime executable.
 ## Saad Agent immediate session-history behavior (2026-07-12)
+
 - Same-chat recall questions such as `Ù…Ø§Ø°Ø§ Ø±Ø³Ù„Øª Ù„Ùƒ ÙÙŠ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ø³Ø§Ø¨Ù‚Ø©ØŸ` are answered locally from `conversationState.history` before model routing.
 - The assistant must not claim there is no memory of the previous message when that message exists in the current session history.
 - Certainty follow-ups after maintenance reports, such as `Ù‡Ù„ Ø§Ù†Øª Ù…ØªØ§ÙƒØ¯ØŸ`, must avoid unsupported certainty and ask for/read verification evidence instead.
 - This behavior belongs to `ChatOrchestratorService` as deterministic conversation handling with `usedModel: false`.
 
 ## Saad Agent self-workspace and Arabic direction behavior (2026-07-13)
+
 - Requests that explicitly target Saad Agent itself, the agent app, or the agent UI must route to the real `saad-agent` workspace when no explicit path is supplied.
 - The active external workspace is not enough evidence for agent self-modification. If the active workspace is `TEST ANG`, an `Ø§Ù„Ø§Ø¬ÙŠÙ†Øª` UI request must not edit `TEST ANG`.
 - Arabic localization and RTL layout are separate. Arabic text must not move the UI, flip message direction, or change alignment unless the user explicitly asks for RTL.
 - Chat message text that contains Arabic remains `dir="ltr"` and left-aligned under the no-RTL policy.
 
 ## Saad Agent persisted conversation history behavior (2026-07-13)
+
 - The UI may restore conversations from durable storage after app/computer restart, while backend session memory starts empty.
 - Every `chatComplete` request must include recent visible conversation history so the backend can hydrate `ConversationStateEngine` before handling the new prompt.
 - Previous-message follow-ups such as `Ø§Ù†Ø§ Ø§Ø¹Ø·ÙŠØªÙƒ Ø§Ù…Ø± ÙÙŠ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ø³Ø§Ø¨Ù‚Ø©` must resolve from hydrated persisted history with `usedModel: false`.
 - Approval continuations must pass the same recent history to avoid losing the original task context after restart.
 
 ## Saad Agent image-reference engineering routing behavior (2026-07-13)
+
 - A screenshot attached to a prompt that asks to design/build/implement a page is a design reference for engineering execution, not a standalone vision-analysis request.
 - The UI should not route such prompts to the Vision Provider merely because the prompt mentions `Ø§Ù„ØµÙˆØ±Ø©` and `Ø§ÙØ­Øµ`.
 - Engineering terms such as `ØµÙ…Ù…`, `Ù†ÙØ°`, `ØµÙØ­Ø©`, `ÙˆØ§Ø¬Ù‡Ø©`, `Ù…Ø«Ù„ Ø§Ù„ØµÙˆØ±Ø©`, `design`, `build`, `implement`, `page`, `UI`, `navbar`, and `cards` keep the request on the engineering/chat path.
