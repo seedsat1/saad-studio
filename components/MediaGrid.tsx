@@ -73,6 +73,11 @@ function ratioCss(ratio: string): string {
   return map[ratio] ?? "16 / 9";
 }
 
+function posterStateText(status?: MediaItem["posterStatus"]): string {
+  if (status === "failed") return "Poster retry queued";
+  if (status === "processing") return "Poster processing";
+  return "Poster pending";
+}
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 
 
@@ -219,7 +224,7 @@ function MediaCard({ item, index, onOpen, onDelete }: {
       onMouseLeave={handleLeave}
       onClick={onOpen}
       style={{
-        breakInside: "avoid", marginBottom: 12, borderRadius: 14, overflow: "hidden",
+        breakInside: "avoid", borderRadius: 14, overflow: "hidden",
         background: "#080e1e",
         border: `1px solid ${hov ? hexA(color, 0.4) : "rgba(255,255,255,0.07)"}`,
         boxShadow: hov
@@ -276,10 +281,22 @@ function MediaCard({ item, index, onOpen, onDelete }: {
           />
         ) : (
           <div className={cn("absolute inset-0 bg-gradient-to-br", item.gradient ?? "from-slate-800 to-slate-900")}>
-            <div style={{ position: "absolute", inset: 0, backgroundImage: `linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)`, backgroundSize: "28px 28px" }} />
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Play size={16} fill="white" color="white" style={{ marginLeft: 2 }} />
+            <div style={{ position: "absolute", inset: 0, backgroundImage: `linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)`, backgroundSize: "28px 28px" }} />
+            <div style={{ position: "absolute", inset: 0, background: `radial-gradient(circle at 22% 18%, ${hexA(color, 0.34)}, transparent 32%), linear-gradient(to top, rgba(0,0,0,0.72), transparent 55%)` }} />
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ maxWidth: "70%", color: "#e2e8f0", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.model}</span>
+                <span style={{ color: color, fontSize: 9, fontWeight: 700, background: hexA(color, 0.14), border: `1px solid ${hexA(color, 0.3)}`, padding: "2px 7px", borderRadius: 999 }}>{posterStateText(item.posterStatus)}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1 }}>
+                <div style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(0,0,0,0.58)", backdropFilter: "blur(6px)", border: `1px solid ${hexA(color, 0.32)}`, boxShadow: `0 0 28px ${hexA(color, 0.18)}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Play size={17} fill="white" color="white" style={{ marginLeft: 2 }} />
+                </div>
+              </div>
+              <div style={{ minHeight: 34 }}>
+                <p style={{ margin: 0, color: "rgba(255,255,255,0.76)", fontSize: 12, fontWeight: 650, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                  {item.prompt || "Generated video"}
+                </p>
               </div>
             </div>
           </div>
@@ -287,7 +304,7 @@ function MediaCard({ item, index, onOpen, onDelete }: {
         )}
 
         {/* Play overlay */}
-        {item.type === "video" && !isPlaceholder && (
+        {item.type === "video" && !isPlaceholder && item.poster && !posterFailed && (
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
             opacity: hov ? 0 : 1, background: "rgba(0,0,0,0.18)", transition: "opacity 0.25s", pointerEvents: "none" }}>
             <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
@@ -322,9 +339,14 @@ function MediaCard({ item, index, onOpen, onDelete }: {
         borderTop: "1px solid rgba(255,255,255,0.04)",
         background: "linear-gradient(to bottom, rgba(4,8,20,0.7), rgba(4,8,20,1))",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: color, boxShadow: `0 0 7px ${hexA(color, 0.7)}`, flexShrink: 0 }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#cbd5e1", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.model}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: color, boxShadow: `0 0 7px ${hexA(color, 0.7)}`, flexShrink: 0 }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#cbd5e1", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.model}</span>
+          </div>
+          {item.prompt ? (
+            <span style={{ paddingLeft: 13, fontSize: 10, lineHeight: 1.25, color: "#7c8aa1", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.prompt}</span>
+          ) : null}
         </div>
         <div style={{ display: "flex", gap: 3, flexShrink: 0, opacity: hov ? 1 : 0.45, transition: "opacity 0.2s" }}>
           {[{ icon: <Heart size={11} fill={liked ? color : "none"} color={liked ? color : "currentColor"} />, title: "Like", fn: (e: React.MouseEvent) => { e.stopPropagation(); setLiked(v => !v); }, red: false, active: liked },
@@ -358,7 +380,7 @@ function MiniBtn({ children, onClick, title, color, danger }: { children: React.
 
 function SkeletonCard({ modelName, ratio = "16:9" }: { modelName: string; ratio?: string }) {
   return (
-    <div style={{ breakInside: "avoid", marginBottom: 12, borderRadius: 14, overflow: "hidden",
+    <div style={{ breakInside: "avoid", borderRadius: 14, overflow: "hidden",
       background: "#080e1e", border: "1px solid rgba(6,182,212,0.15)",
       boxShadow: "0 0 20px rgba(6,182,212,0.05), inset 0 1px 0 rgba(255,255,255,0.03)" }}>
       <div style={{ position: "relative", width: "100%", background: "#060c1a", aspectRatio: ratioCss(ratio), overflow: "hidden" }}>
@@ -421,14 +443,14 @@ export default function MediaGrid({ items, skeletonModels, onDelete, onInspect, 
 
   return (
     <>
-      {/* Masonry */}
+      {/* Responsive card grid */}
       <style>{`
-        .mg-masonry { column-count: 4; column-gap: 12px; padding: 0 16px; }
-        @media (max-width: 1280px) { .mg-masonry { column-count: 3; } }
-        @media (max-width: 860px)  { .mg-masonry { column-count: 2; } }
-        @media (max-width: 480px)  { .mg-masonry { column-count: 1; } }
+        .mg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; padding: 0 16px; align-items: start; }
+        @media (min-width: 1800px) { .mg-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); } }
+        @media (max-width: 720px)  { .mg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0 10px; gap: 10px; } }
+        @media (max-width: 480px)  { .mg-grid { grid-template-columns: 1fr; } }
       `}</style>
-      <div className={cn("mg-masonry", className)}>
+      <div className={cn("mg-grid", className)}>
         {(skeletonModels ?? []).map((s, i) => <SkeletonCard key={i} modelName={s.name} ratio={s.ratio ?? "16:9"} />)}
         <AnimatePresence>
           {visible.map((item, index) => (

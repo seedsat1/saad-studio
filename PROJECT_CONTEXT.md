@@ -9888,3 +9888,23 @@
   - `npm.cmd run build` passed; existing unrelated Browserslist/Tailwind ambiguity/dynamic-server warnings remain.
 - Errors/remaining:
   - The initial manual edit attempt briefly decoded the file with the wrong PowerShell encoding; the file was restored to HEAD and the final diff is limited to the intended `unoptimized` condition.
+
+## Latest task: Improve /video card theme and grid width (2026-08-02)
+
+- Status:
+  Improved the `/video` result grid presentation after poster optimization made old videos without `posterUrl` appear as repeated empty blue placeholders.
+- Behavior:
+  - Video cards still do not load MP4 files in the grid; only `posterUrl` is used when ready.
+  - If `posterUrl` is missing or fails, the card now renders a themed visual fallback from the model color/gradient, shows the model name, poster status, play control, and prompt snippet instead of a blank generic tile.
+  - Card footers now include the prompt/theme snippet under the model name when available.
+  - The media grid changed from CSS columns/masonry to a responsive CSS grid using `auto-fill/minmax`, so wide `/video` layouts use available horizontal space instead of leaving a large empty area to the right.
+- Affected files/paths:
+  - `components/MediaGrid.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `git diff --check` passed with only the existing global git ignore permission warning.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `npm.cmd run build` passed; existing unrelated Browserslist/Tailwind ambiguity/dynamic-server warnings remain.
+- Errors/remaining:
+  - Old videos still need the poster backfill job to generate real WebP posters once production Backblaze credentials are valid. Until then, the improved themed fallback is shown without loading MP4 in cards.

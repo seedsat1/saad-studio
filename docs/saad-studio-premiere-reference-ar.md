@@ -2603,3 +2603,9 @@
 - In `/image`, keep `next/image` for layout behavior, but set `unoptimized` when the computed thumbnail URL starts with `/api/assets/thumbnail`.
 - This prevents production requests like `/_next/image?url=%2Fapi%2Fassets%2Fthumbnail...` from returning 400 while preserving the original Backblaze image URL for the lightbox and downloads.
 - `/gallery` uses a native `<img>` for cards, so the thumbnail endpoint is requested directly there.
+
+## Video Grid Theme Fallback and Width Behavior (2026-08-02)
+
+- `/video` cards must keep the poster-only rule: do not load MP4 in the grid when `posterUrl` is absent.
+- Missing/failed posters should not appear as empty repeated tiles. The fallback card should use model color/gradient, model name, poster status, play affordance, and prompt snippet so each video keeps a visible theme while the poster job is pending or failed.
+- The result grid should use responsive CSS grid columns (`auto-fill` with a minimum card width) rather than balanced CSS columns, because video cards are mostly same-ratio and the grid should fill wide desktop space without a large blank area on the right.
