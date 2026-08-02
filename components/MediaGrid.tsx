@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import NextImage from "next/image";
 import { Download, Heart, Trash2, Play, X, Zap, Sparkles } from "lucide-react";
 import { cn, getFallbackUrls } from "@/lib/utils";
 
@@ -102,6 +101,7 @@ function Lightbox({ item, onClose }: { item: MediaItem; onClose: () => void }) {
     setCurrentSrc(list[0] || "");
   }, [item.src]);
 
+
   const handleError = () => {
     const list = getFallbackUrls(item.src);
     const nextIndex = list.indexOf(currentSrc) + 1;
@@ -188,9 +188,12 @@ function MediaCard({ item, index, onOpen, onDelete }: {
   const [liked, setLiked] = useState(false);
   const [hov, setHov] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
+  const [posterRetry, setPosterRetry] = useState(0);
   const isPlaceholder = !item.src || item.src.startsWith("gradient:");
   const color = item.modelColor ?? "#06b6d4";
-  const posterNeedsDirectRequest = item.poster?.startsWith("/api/") || item.poster?.startsWith("data:");
+  const posterSrc = item.poster && item.poster.startsWith("/api/")
+    ? `${item.poster}${item.poster.includes("?") ? "&" : "?"}retry=${posterRetry}`
+    : item.poster;
 
   const srcList = getFallbackUrls(item.src);
   const [currentSrc, setCurrentSrc] = useState(srcList[0] || "");
@@ -199,6 +202,20 @@ function MediaCard({ item, index, onOpen, onDelete }: {
     const list = getFallbackUrls(item.src);
     setCurrentSrc(list[0] || "");
   }, [item.src]);
+
+  useEffect(() => {
+    setPosterFailed(false);
+    setPosterRetry(0);
+  }, [item.poster]);
+
+  const handlePosterError = () => {
+    if (item.poster?.startsWith("/api/") && posterRetry < 6) {
+      const delay = Math.min(1000 * Math.pow(1.7, posterRetry), 8000);
+      window.setTimeout(() => setPosterRetry((value) => value + 1), delay);
+      return;
+    }
+    setPosterFailed(true);
+  };
 
   const handleError = () => {
     const list = getFallbackUrls(item.src);
@@ -270,18 +287,16 @@ function MediaCard({ item, index, onOpen, onDelete }: {
           }} />
         ) : (
           item.poster && !posterFailed ? (
-          <NextImage
-            src={item.poster}
+          <img
+            src={posterSrc}
             alt={item.prompt || "Generated video poster"}
-            fill
             sizes="(max-width: 480px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 33vw, 240px"
             className="object-cover transition-transform duration-500"
-            style={{ transform: hov ? "scale(1.04)" : "scale(1)" }}
-            priority={index === 0}
             loading={index === 0 ? "eager" : "lazy"}
+            decoding="async"
             fetchPriority={index === 0 ? "high" : "auto"}
-            unoptimized={posterNeedsDirectRequest}
-            onError={() => setPosterFailed(true)}
+            onError={handlePosterError}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", transform: hov ? "scale(1.04)" : "scale(1)" }}
           />
         ) : (
           <div className={cn("absolute inset-0 bg-gradient-to-br", item.gradient ?? "from-slate-800 to-slate-900")}>
