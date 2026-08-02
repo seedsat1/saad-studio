@@ -10071,3 +10071,16 @@
   - `npm.cmd run build` passed before staging with existing non-blocking project warnings.
 - Decision:
   - Publish the direct MP4 display correction immediately so production no longer shows a poster/cropped preview in the subscriber video row.
+
+#### Latest task: Route /video Lipsync command to existing /lipsync page (2026-08-03)
+
+- Status:
+  Completed. The `/video` side action `Lipsync / Dubbing` now opens the existing `/lipsync` page instead of looping back to `/video?tool=lipsync`.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decision:
+  - Use `/lipsync?imageUrl=...` because the existing lipsync page accepts `imageUrl` as the linked source media parameter and supports video input for the LipSync 3 flow.

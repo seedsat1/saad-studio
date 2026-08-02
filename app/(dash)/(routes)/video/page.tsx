@@ -431,7 +431,7 @@ function VideoHistoryList({
                 <div className="mt-5 space-y-2">
                   <button
                     type="button"
-                    onClick={(event) => { event.stopPropagation(); window.location.href = buildVideoToolHref("/video?tool=lipsync", item, "imageUrl"); }}
+                    onClick={(event) => { event.stopPropagation(); window.location.href = buildVideoToolHref("/lipsync", item, "imageUrl"); }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-white shadow-[0_12px_26px_rgba(249,115,22,0.22)] transition-transform hover:-translate-y-0.5"
                     style={{ background: "linear-gradient(135deg, #f97316, #f59e0b)" }}
                   >

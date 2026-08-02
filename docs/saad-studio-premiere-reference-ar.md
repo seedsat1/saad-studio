@@ -2671,3 +2671,8 @@
 - The direct player must preserve the original video aspect ratio with contain-style framing. Do not use cover-style cropping for the original MP4 player.
 - `posterUrl` remains an optimization for lightweight thumbnails and other surfaces, but it must not replace or visually mask the original subscriber playback row.
 - UI labels in the direct playback row should make clear that the displayed media is the original MP4, not a poster preview.
+
+## Video Lipsync Command Routing (2026-08-03)
+
+- The `/video` result-row `Lipsync / Dubbing` command should open the existing `/lipsync` route, not `/video?tool=lipsync`.
+- The selected video URL is passed as `imageUrl` because `/lipsync` currently uses that query parameter as its linked source media field and can accept video input for the LipSync 3 model.
