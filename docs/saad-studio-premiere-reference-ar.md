@@ -2613,3 +2613,7 @@
 - صفحة /video يجب أن تبقي شبكة النتائج خفيفة: لا يتم تحميل MP4 داخل البطاقات.
 - مصدر صورة البطاقة بالترتيب: posterUrl الجاهز، ثم start/source frame من generationRequestSnapshot.requestPayload، ثم placeholder ثابت مع أيقونة تشغيل.
 - فتح البطاقة يستخدم Asset Inspector لتحميل الفيديو الأصلي videoUrl فقط عند الطلب، مع الحفاظ على الملف الأصلي كامل الجودة.
+## تحديث معماري - Video Poster عند الطلب
+- عند غياب posterUrl في سجلات الفيديو، ترجع قائمة /api/assets رابطاً داخلياً /api/assets/video-poster?id=... بدلاً من تمرير base64 أو ترك البطاقة بلا صورة.
+- مسار video-poster موثق كـ fallback مصادق: يعيد poster المخزن، أو يولد WebP 480px من صورة البداية داخل requestPayload، أو يستخرج فريم من MP4 عبر FFmpeg، ويحاول حفظ النتيجة كـ posterUrl مستقل.
+- يظل MP4 الأصلي خارج بطاقات /video ولا يحمّله المتصفح داخل الشبكة؛ الفيديو الأصلي يفتح فقط في Asset Inspector/المعاينة.

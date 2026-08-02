@@ -189,6 +189,7 @@ function MediaCard({ item, index, onOpen, onDelete }: {
   const [posterFailed, setPosterFailed] = useState(false);
   const isPlaceholder = !item.src || item.src.startsWith("gradient:");
   const color = item.modelColor ?? "#06b6d4";
+  const posterNeedsDirectRequest = item.poster?.startsWith("/api/") || item.poster?.startsWith("data:");
 
   const srcList = getFallbackUrls(item.src);
   const [currentSrc, setCurrentSrc] = useState(srcList[0] || "");
@@ -278,6 +279,7 @@ function MediaCard({ item, index, onOpen, onDelete }: {
             priority={index === 0}
             loading={index === 0 ? "eager" : "lazy"}
             fetchPriority={index === 0 ? "high" : "auto"}
+            unoptimized={posterNeedsDirectRequest}
             onError={() => setPosterFailed(true)}
           />
         ) : (

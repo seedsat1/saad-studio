@@ -1,3 +1,20 @@
+#### Latest task: Omar credit balance audit (2026-08-02)
+
+- Status:
+  Completed read-only database audit for `omarworkimn@gmail.com`.
+- Findings:
+  - Current `User.creditBalance` is 2700, `monthlyCredits` is 2700, `creditsExpireAt` is 2026-09-01T11:02:53.827Z, and `lastCreditRenewal` is 2026-08-02T11:02:53.827Z.
+  - A credit advance was requested at 2026-08-02T11:20:46.559Z, setting `creditAdvanceBalance` to 2700 for the current cycle.
+  - Recorded historical spend is 817 credits from `Generation` plus 96 credits from completed `TransitionJob`, total 913 credits. No Reap, Cinema, or Variation credit usage was found for this user.
+  - Since the 2026-08-02 renewal, only one upload record with cost 0 was found; no paid generations after renewal were found.
+- Verification:
+  - Read-only Prisma raw queries against the configured Neon database succeeded after network escalation.
+- Errors/remaining:
+  - `CreditLedgerEntry` is not available through the active Prisma schema/client, so the audit relied on current `User`, `AdminTransaction`, `Generation`, `TransitionJob`, `ReapJob`, `CinemaJob`, and `VariationOutput` data.
+  - The first user-balance query captured `creditBalance=0` before the new credit advance; repeated reads after `creditAdvanceRequestedAt=2026-08-02T11:20:46.559Z` confirmed current balance is 2700.
+- Decisions:
+  - No code or database data changes were made.
+
 #### Latest task: Make /image thumbnails non-blocking (2026-08-02)
 
 - Status:
@@ -9915,3 +9932,11 @@
 - السلوك: الضغط على بطاقة فيديو يفتح AssetInspector ويحمل videoUrl الأصلي داخل تجربة المعاينة/التفاصيل القديمة.
 - التحقق: npx.cmd tsc --noEmit --pretty false نجح، git diff --check نجح، npm.cmd run build نجح مع تحذيرات Next/Tailwind موجودة غير مانعة.
 - أخطاء/ملاحظات: بعض الفيديوهات ستظل placeholder إذا لم يكن لها posterUrl ولا start/source image محفوظة؛ يلزم backfill posters لإظهار ثيمتها كاملة.
+
+## 2026-08-02 14:42:28 +03:00 - Video poster on-demand theme repair
+- الحالة: إصلاح عدم ظهور ثيمة الفيديو في /video عندما تكون posterUrl مفقودة أو فاشلة.
+- السبب المكتشف: بعض سجلات الفيديو لا تحتوي posterUrl جاهز، وصورة البداية محفوظة داخل generationRequestSnapshot.requestPayload كـ data:image/base64 أو داخل مفاتيح متداخلة؛ تمريرها مباشرة للواجهة غير مناسب وقد لا يظهر، والسجلات النصية تحتاج استخراج فريم من MP4.
+- الملفات المتأثرة: app/api/assets/video-poster/route.ts, app/api/assets/route.ts, components/MediaGrid.tsx, PROJECT_CONTEXT.md, docs/saad-studio-premiere-reference-ar.md.
+- السلوك الجديد: /api/assets يرجع للبطاقة /api/assets/video-poster?id=... عند غياب posterUrl جاهز. هذا المسار يعيد poster المخزن إن وجد، أو يصنع WebP 480px من source/start image في payload، أو يستخرج فريم WebP من MP4 عبر FFmpeg، ثم يحاول حفظه في Backblaze وتحديث posterUrl دون تغيير الفيديو الأصلي.
+- الحماية: المتصفح لا يحمّل MP4 داخل grid؛ التحويل يحدث في السيرفر عند طلب صورة البطاقة فقط، ويفشل إلى placeholder إذا لم يمكن توليد poster.
+- التحقق: npx.cmd tsc --noEmit --pretty false نجح، git diff --check نجح، npm.cmd run build نجح مع تحذيرات Next/Tailwind غير مانعة وموجودة سابقاً.

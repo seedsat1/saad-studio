@@ -88,6 +88,10 @@ function galleryThumbnailUrl(id: string, type: AssetType): string | undefined {
   if (type !== "image") return undefined;
   return `/api/assets/thumbnail?id=${encodeURIComponent(id)}`;
 }
+function videoPosterUrl(id: string, type: AssetType): string | undefined {
+  if (type !== "video") return undefined;
+  return `/api/assets/video-poster?id=${encodeURIComponent(id)}`;
+}
 function galleryImageDimensions(resolution?: string | null, aspectRatio?: string | null): { width?: number; height?: number } {
   const rawResolution = String(resolution || "").trim();
   const exact = rawResolution.match(/(\d{3,5})\s*[x×]\s*(\d{3,5})/i);
@@ -278,20 +282,16 @@ export async function GET(req: NextRequest) {
         const mediaUrl = row.resolvedUrl;
         const isTextMarker = mediaUrl.startsWith("text:");
         const dimensions = type === "image" ? galleryImageDimensions(row.resolution, row.aspectRatio) : {};
-        const payload = row.generationRequestSnapshot?.requestPayload as any;
-        const sourceFrameUrl = type === "video" ? firstString(payload, ["first_frame_url", "firstFrameUrl", "image", "image_url", "imageUrl"]) : null;
-        const normalizedSourceFrameUrl = sourceFrameUrl ? (normalizeMediaUrl(sourceFrameUrl) || sourceFrameUrl) : undefined;
         const readyPosterUrl = type === "video" && typeof row.posterUrl === "string" && row.posterUrl ? (normalizeMediaUrl(row.posterUrl) || row.posterUrl) : undefined;
-        const videoPosterUrl = readyPosterUrl || normalizedSourceFrameUrl;
-
+        const videoPoster = readyPosterUrl || videoPosterUrl(row.id, type);
         return {
           id: row.id,
           type,
           url: isTextMarker ? undefined : mediaUrl,
           originalUrl: isTextMarker ? undefined : mediaUrl,
           thumbnailUrl: isTextMarker ? undefined : galleryThumbnailUrl(row.id, type),
-          posterUrl: videoPosterUrl,
-          posterStatus: type === "video" ? (readyPosterUrl ? (row.posterStatus ?? "ready") : normalizedSourceFrameUrl ? "source" : (row.posterStatus ?? "pending")) : undefined,
+          posterUrl: videoPoster,
+          posterStatus: type === "video" ? (readyPosterUrl ? (row.posterStatus ?? "ready") : (row.posterStatus ?? "pending")) : undefined,
           posterGeneratedAt: row.posterGeneratedAt ? row.posterGeneratedAt.toISOString() : undefined,
           posterError: type === "video" ? (row.posterError ?? undefined) : undefined,
           textContent: isTextMarker ? row.prompt : undefined,
