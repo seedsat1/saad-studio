@@ -9952,3 +9952,9 @@
 - Behavior: Video history previews now fill the preview surface with object-cover to avoid empty side space. Hovering a result shows quick actions for favorite, copy prompt, download, and more. The side panel now includes a Copy Prompt button plus visible command cards for Lipsync / Dubbing, Extend Video, Add Voiceover, and Download.
 - Verification: npx.cmd tsc --noEmit --pretty false passed. npm.cmd run build passed with existing non-blocking Next/Tailwind warnings.
 - Decision: Kept existing Asset Inspector/original video flow for non-download command cards instead of adding unverified generation routes.
+## 2026-08-02 22:36:40 +03:00 - Video history horizontal gap cleanup
+- Status: Removed the large horizontal empty bands around /video history results.
+- Affected files: app/(dash)/(routes)/video/page.tsx, PROJECT_CONTEXT.md, docs/saad-studio-premiere-reference-ar.md.
+- Behavior: The history list no longer uses a centered max-width. It now spans the available center panel width, uses tighter row gaps, a narrower details column, and reduced center-panel horizontal padding so the results sit close to the left engines panel and right settings panel.
+- Verification: npx.cmd tsc --noEmit --pretty false passed. npm.cmd run build passed with existing non-blocking Next/Tailwind warnings.
+- Decision: Kept a very small 8px center padding to avoid edge collision while removing the visible wasted space marked in the screenshot.

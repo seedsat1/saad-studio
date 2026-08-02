@@ -2626,3 +2626,6 @@
 - Result rows expose prompt copying both from the details panel and from hover quick tools.
 - Hover quick tools on each preview include favorite, copy prompt, download, and more actions. The side panel shows video workflow commands: Lipsync / Dubbing, Extend Video, Add Voiceover, and Download.
 - The original video URL remains the canonical playback/download asset and still opens through Asset Inspector for full preview.
+## Video Page Center Width Update (2026-08-02)
+- /video history rows should not be centered inside a max-width container when the page already has fixed left and right sidebars.
+- The history list spans the available center panel width with minimal padding, so large empty bands do not appear between the engines panel, result rows, and settings panel.

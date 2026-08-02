@@ -238,11 +238,11 @@ function VideoHistoryList({
   return (
     <>
       <style>{`
-        .video-history-list { max-width: 1540px; margin: 0 auto; padding: 16px 10px 28px; display: flex; flex-direction: column; gap: 22px; }
-        .video-history-card { display: grid; grid-template-columns: minmax(0, 1fr) 258px; gap: 14px; min-height: 380px; border-radius: 16px; }
+        .video-history-list { width: 100%; max-width: none; margin: 0; padding: 12px 0 24px; display: flex; flex-direction: column; gap: 16px; }
+        .video-history-card { display: grid; grid-template-columns: minmax(0, 1fr) 248px; gap: 10px; min-height: 380px; border-radius: 16px; }
         .video-history-preview { min-height: clamp(330px, 43vw, 560px); }
         @media (max-width: 1180px) { .video-history-card { grid-template-columns: 1fr; } .video-history-side { min-height: auto; } }
-        @media (max-width: 720px) { .video-history-list { padding: 12px 0 24px; gap: 14px; } .video-history-preview { min-height: 260px; } }
+        @media (max-width: 720px) { .video-history-list { padding: 10px 0 24px; gap: 12px; } .video-history-preview { min-height: 260px; } }
       `}</style>
       <div className="video-history-list">
         {(skeletonModels ?? []).map((item, index) => (
@@ -2937,7 +2937,7 @@ function VideoPageInner() {
       {/* -- Center Panel --------------------------------------------------- */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden pb-[60px] lg:pb-0">
         {/* Results grid */}
-        <div className="flex-1 overflow-y-auto px-4">
+        <div className="flex-1 overflow-y-auto px-2">
           {results.length === 0 && pendingTasks.size === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 pb-16">
               <motion.div
