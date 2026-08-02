@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -317,6 +317,7 @@ export default function ClipCraftStudioPage() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [activeTool, setActiveTool] = useState<ToolType>("captions");
 
@@ -376,6 +377,14 @@ export default function ClipCraftStudioPage() {
   const [selectedPresetCategory, setSelectedPresetCategory] = useState("all");
   const [isDemoMode, setIsDemoMode] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState("templates");
+
+  useEffect(() => {
+    const linkedSourceUrl = searchParams.get("sourceUrl") || searchParams.get("videoUrl");
+    if (!linkedSourceUrl || !/^https?:\/\//i.test(linkedSourceUrl)) return;
+    setSourceUrl(linkedSourceUrl);
+    setFile(null);
+    setIsDemoMode(false);
+  }, [searchParams]);
 
   useEffect(() => {
     if (activeTool === "captions" || activeTool === "audiogram") {

@@ -2640,3 +2640,27 @@
 - Heart uses Generation.isFavorite and POST /api/assets/favorite with Clerk ownership validation; it must not be local-only visual state.
 - /api/assets returns isFavorite so history rows hydrate the real saved favorite state.
 - Copy Prompt, Download, and Details remain direct actions. Do not add hover icons without a backed API route, persisted state, or concrete navigation target.
+## سلوك قائمة أدوات الفيديو من زر الثلاث نقاط (2026-08-02)
+
+- في صفحة `/video`، زر الثلاث نقاط داخل أدوات hover يفتح قائمة إجراءات موسعة بدلاً من فتح الـInspector مباشرة.
+- الإجراءات القابلة للنقر يجب أن تكون مرتبطة بسلوك حقيقي ومباشر: فتح Studio Edit للترجمة، فتح ClipCraft Dubbing مع رابط الفيديو، فتح الـInspector، إعادة استخدام البرومبت داخل محرر الفيديو، Like/Unlike عبر `/api/assets/favorite`، المشاركة عبر Web Share أو نسخ الرابط، التحميل، والحذف.
+- صفحة ClipCraft Studio تقرأ `sourceUrl` أو `videoUrl` من query string وتضع الرابط في حقل المصدر، حتى لا تكون عملية Change Voice مجرد زر شكلي.
+- لا تغير هذه القائمة ملفات الفيديو الأصلية أو مسار `videoUrl`; هي طبقة تعامل وفتح أدوات فقط.
+## ضبط قائمة الثلاث نقاط للفيديو بدون عناصر غير مكتملة (2026-08-03)
+
+- لا تعرض قائمة الثلاث نقاط في `/video` أي خيار لا يملك سلوكاً مباشراً واضحاً في النظام الحالي.
+- أزيلت عناصر `Virality Predictor` و`Publish` و`Add to folder` لأنها كانت Handoff أو تخزيناً محلياً وليست أدوات فيديو مكتملة مدعومة بخلفية واضحة.
+- القائمة المسموحة حالياً: Translate، Change Voice، Open، Regenerate، Reuse، Like/Unlike، Share، Download، Delete.
+## Video Direct Preview Blank Frame Fix (2026-08-03)
+
+- In `/video` history/list rows, direct subscriber playback must not depend on an internal on-demand poster endpoint as the `<video poster>` source.
+- `/api/assets` should return a video `posterUrl` only when a stored poster URL already exists. If no stored poster exists, omit `posterUrl` and let the native MP4 preview reveal the first frame.
+- `/video` preview players should nudge the video to the first visible frame after metadata/data loading when no stored poster is available, so users do not see an empty gray preview surface.
+- The original `videoUrl`/`mediaUrl` remains the canonical playback and download asset. Poster generation remains an optimization, not a requirement for viewing the video.
+
+## Video Three-Dots Menu Interaction Guard (2026-08-03)
+
+- In `/video`, the three-dots button in the app hover action rail must open the app action menu. It must not bubble into row-level detail opening.
+- Do not attach a general `onClick` inspector opener to the entire video history row when the preview contains its own playback controls and hover actions.
+- Asset Inspector opening should be explicit through the `Open` action only.
+- Native video controls should avoid extra browser overflow/download options where possible; the product-level Download action remains the canonical download path.

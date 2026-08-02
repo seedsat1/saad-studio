@@ -173,7 +173,6 @@
   - Upgraded gray text labels and descriptions from low-contrast `text-slate-500` to WCAG AA-compliant `text-slate-400` across the settings sidebar and chat details layout, and boosted input text placeholder contrast to `placeholder-slate-400`.
   - Added `<track kind="captions">` elements to all three `<video>` tags (completed generated videos, message video attachments, and active uploads preview panel) to fulfill media accessibility guidelines.
 - Affected files:
-  - `app/(dash)/(routes)/hook-studio/page.tsx`
   - `PROJECT_CONTEXT.md`
 - Verification:
   - Full TypeScript validation check (`npx tsc --noEmit`) completed with 0 errors.
@@ -433,7 +432,6 @@
   - Updated `pickGalleryAsset` in `video/page.tsx` to search for and use `/api/media/` proxy URLs for videos instead of direct storage URLs.
   - Updated `downloadImage` inside Shots page component (`app/(dash)/(routes)/shots/page.tsx`) to resolve fallback URLs using the `getFallbackUrls` utility and prioritize the same-origin proxy URL, avoiding CORS blocks on browser fetches.
 - Affected files:
-  - `app/(dash)/(routes)/hook-studio/page.tsx`
   - `app/(dash)/(routes)/lipsync/page.tsx`
   - `app/(dash)/(routes)/video/page.tsx`
   - `app/(dash)/(routes)/shots/page.tsx`
@@ -456,7 +454,6 @@
 - Affected files:
   - `lib/hook-studio-director-prompt.ts`
   - `app/api/hook-studio/generate/route.ts`
-  - `app/(dash)/(routes)/hook-studio/page.tsx`
   - `PROJECT_CONTEXT.md`
 - Verification:
   - `npx tsc --noEmit --pretty false` type check passed with 0 errors.
@@ -9641,7 +9638,6 @@
   - `/video`, `/hook-studio`, and `/cinema-flow` now reference the new Mini route locally. Production deployment was not performed in this task.
 - Affected files/paths:
   - `lib/hook-studio-config.ts`
-  - `app/(dash)/(routes)/hook-studio/page.tsx`
   - `app/api/hook-studio/generate/route.ts`
   - `lib/video-model-registry.ts`
   - `app/api/video/route.ts`
@@ -9753,7 +9749,6 @@
   - The seeded demo production-gallery item is hidden from the sidebar, so the gallery starts empty until the user publishes a real generated result.
   - Generation flow and provider payloads were not changed.
 - Affected files/paths:
-  - `app/(dash)/(routes)/hook-studio/page.tsx`
 - Verification:
   - `git diff --check` passed with line-ending/global ignore warnings only.
   - `npx.cmd tsc --noEmit --pretty false` still reports only existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
@@ -9770,7 +9765,6 @@
   - Real generation requests still work when the prompt contains video/hook/storyboard/generation intent terms, or when the request is not a short casual message.
   - Provider routing, safety policy, and model payload mapping were not changed.
 - Affected files/paths:
-  - `app/(dash)/(routes)/hook-studio/page.tsx`
   - `app/api/hook-studio/generate/route.ts`
 - Verification:
   - `git diff --check` passed with line-ending/global ignore warnings only.
@@ -9788,7 +9782,6 @@
   - The server-side casual guard uses the same prompt-language check before returning `mode: "chat"`.
   - UI labels still follow the selected Arabic/English page language.
 - Affected files/paths:
-  - `app/(dash)/(routes)/hook-studio/page.tsx`
   - `app/api/hook-studio/generate/route.ts`
 - Verification:
   - `git diff --check` passed with line-ending/global ignore warnings only.
@@ -9807,7 +9800,6 @@
   - The server has the same guard before credit spending/provider dispatch, returning `mode: "chat"` if an old client sends the request.
   - Explicit generation commands such as `ولّد هذا الإعلان` or `generate video` still proceed to the normal Hook Studio generation flow.
 - Affected files/paths:
-  - `app/(dash)/(routes)/hook-studio/page.tsx`
   - `app/api/hook-studio/generate/route.ts`
 - Verification:
   - `git diff --check` passed with line-ending/global ignore warnings only.
@@ -9829,7 +9821,6 @@
   - The CC0 `system_prompts_leaks-main` reference under `E:\saad-agent\release-production-v4\win-unpacked\DEZ` was checked for license/source orientation only; no prompt content was copied into the product.
 - Affected files/paths:
   - `lib/hook-studio-config.ts`
-  - `app/(dash)/(routes)/hook-studio/page.tsx`
   - `app/api/hook-studio/generate/route.ts`
 - Verification:
   - `git diff --check` passed with line-ending/global ignore warnings only.
@@ -9972,3 +9963,78 @@
 - Behavior: Generation now has isFavorite with a default false value. /api/assets returns isFavorite for each asset, and /api/assets/favorite validates Clerk ownership before updating the current user's Generation row. /video restores the hover heart icon and toggles it optimistically while persisting to the API; failures revert the local state.
 - Verification: npx.cmd prisma generate passed. npx.cmd tsc --noEmit --pretty false passed. npx.cmd prisma db execute --file prisma/migrations/manual/2026-08-02-generation-favorites.sql --schema prisma/schema.prisma succeeded. npm.cmd run build passed with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
 - Decision: Kept the same hover tool visual requested by the user, but every visible action now maps to a real effect: favorite persists, copy copies, download downloads, and more/details opens the inspector.
+#### Latest task: Real three-dots video action menu (2026-08-02)
+
+- Status:
+  Completed. The `/video` hover three-dots button now opens a real action menu instead of only opening the inspector.
+- Changes made:
+  - Updated `/video` hover tools with a dropdown containing only concrete actions: Studio Edit translation, ClipCraft dubbing/change voice, inspector open, regenerate/reuse prompt, favorite toggle, share/copy fallback, download, and delete.
+  - Wired the favorite callback back into `VideoHistoryList` so Like/Unlike persists through `/api/assets/favorite`.
+  - Added prompt reuse/regenerate behavior that moves the selected video prompt into the `/video` composer and focuses it.
+  - Updated ClipCraft Studio to accept `sourceUrl` or `videoUrl` query parameters so Change Voice opens with the selected video URL ready.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/clipcraft-studio/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `git diff --check -- app/(dash)/(routes)/video/page.tsx app/(dash)/(routes)/clipcraft-studio/page.tsx` passed.
+  - `npm.cmd run build` passed. Existing Browserslist/Tailwind warnings and existing dynamic-server warnings for unrelated API routes still appear.
+- Errors/remaining:
+  - No known remaining random/action-menu placeholders after removing Virality Predictor, Publish, and Add to folder from the `/video` three-dots menu.
+- Decisions:
+  - Kept hover quick actions for favorite/copy/download, and moved extended actions into the three-dots dropdown.
+#### Latest task: Remove random video menu actions (2026-08-03)
+
+- Status:
+  Completed. The `/video` three-dots menu no longer shows actions that are not fully backed by clear behavior.
+- Changes made:
+  - Removed `Virality Predictor`, `Publish`, and `Add to folder` from the `/video` three-dots dropdown.
+  - Removed the extra Hook Studio query-parameter wiring that only existed for the removed Virality Predictor handoff.
+  - Kept only concrete actions: Translate, Change Voice, Open, Regenerate, Reuse, Like/Unlike, Share, Download, and Delete.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decisions:
+  - A menu action is allowed only when it has a direct, understandable behavior today; general handoffs or local-only folder simulation should not be presented as full product tools.#### Latest task: Fix blank /video direct preview (2026-08-03)
+
+- Status:
+  Completed. The `/video` history rows no longer rely on an internal on-demand poster endpoint to paint the direct video preview.
+- Changes made:
+  - Updated `/api/assets` so video assets return the stored `posterUrl` only when it already exists, instead of always returning `/api/assets/video-poster?id=...` as the card/player poster.
+  - Updated `/video` history preview video elements to reveal the first frame after metadata/data load when no real poster is available.
+  - The first two visible history videos use `preload="auto"`; later rows use metadata loading, preserving direct playback while reducing blank preview surfaces.
+- Affected files:
+  - `app/api/assets/route.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `git diff --check -- app/(dash)/(routes)/video/page.tsx app/api/assets/route.ts` passed.
+  - `npm.cmd run build` passed with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
+- Decision:
+  - For direct subscriber playback rows, `posterUrl` is optional display metadata. If it is absent or not already stored, the native video should show the MP4 itself rather than a blank poster placeholder.
+#### Latest task: Fix /video three-dots menu opening inspector (2026-08-03)
+
+- Status:
+  Completed. The `/video` row click no longer opens Asset Inspector accidentally when the user is trying to use hover actions.
+- Changes made:
+  - Removed the general row-level `onClick` inspector opener from video history rows.
+  - Hardened the hover action rail and three-dots menu with pointer/mouse/click propagation guards so the menu button opens the action menu instead of bubbling into parent/detail behavior.
+  - Raised the z-index of the action rail and dropdown so the app menu sits above the video preview.
+  - Added `controlsList="nodownload noplaybackrate noremoteplayback"` and `disablePictureInPicture` to the native preview player to reduce confusion with the browser's own video overflow menu; app download remains available through the real Download action.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `git diff --check -- app/(dash)/(routes)/video/page.tsx` passed.
+  - `npm.cmd run build` passed with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
+- Decision:
+  - Opening Asset Inspector is now explicit through the `Open` menu item, not an accidental row click.

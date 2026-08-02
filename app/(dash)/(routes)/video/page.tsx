@@ -10,6 +10,7 @@ import {
   PenTool, Zap, Music2, Users,
   X, AlertCircle, Loader2, Upload, CheckCircle2, Settings,
   Play, Download, Trash2, Heart, Copy, MoreHorizontal,
+  ExternalLink, RefreshCw, Share2,
   type LucideIcon, Languages,
 } from "lucide-react";
 
@@ -101,7 +102,7 @@ function hasPlayableVideo(item: MediaItem) {
   return Boolean(item.src && !item.src.startsWith("gradient:"));
 }
 
-function buildVideoToolHref(path: string, item: MediaItem, sourceParam: "videoUrl" | "imageUrl" = "videoUrl") {
+function buildVideoToolHref(path: string, item: MediaItem, sourceParam: "videoUrl" | "imageUrl" | "sourceUrl" = "videoUrl") {
   const params = new URLSearchParams();
   if (hasPlayableVideo(item)) params.set(sourceParam, item.src);
   if (item.prompt?.trim()) params.set("prompt", item.prompt.trim());
@@ -109,31 +110,66 @@ function buildVideoToolHref(path: string, item: MediaItem, sourceParam: "videoUr
   return `${path}${path.includes("?") ? "&" : "?"}${params.toString()}`;
 }
 
+async function shareVideoItem(item: MediaItem) {
+  const url = hasPlayableVideo(item) ? item.src : window.location.href;
+  const title = item.prompt?.trim() || "Saad Studio video";
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text: title, url });
+      return;
+    }
+  } catch (error) {
+    if ((error as DOMException)?.name === "AbortError") return;
+  }
+  await copyTextToClipboard(url);
+}
+
+function openVideoTool(path: string, item: MediaItem, sourceParam: "videoUrl" | "imageUrl" | "sourceUrl" = "videoUrl") {
+  window.location.href = buildVideoToolHref(path, item, sourceParam);
+}
+
 function VideoHoverTools({
   item,
   onInspect,
   onToggleFavorite,
+  onReusePrompt,
+  onDelete,
 }: {
   item: MediaItem;
   onInspect?: (item: MediaItem) => void;
   onToggleFavorite?: (item: MediaItem) => Promise<void> | void;
+  onReusePrompt?: (item: MediaItem) => void;
+  onDelete?: (id: string) => void;
 }) {
   const [savingFavorite, setSavingFavorite] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleFavorite = async () => {
+    if (!onToggleFavorite) return;
+    setSavingFavorite(true);
+    try {
+      await onToggleFavorite(item);
+    } finally {
+      setSavingFavorite(false);
+    }
+  };
+
+  const menuItemClass = "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-semibold text-slate-100 transition-colors hover:bg-white/10";
+  const dividerClass = "my-1 h-px bg-white/10";
 
   return (
-    <div className="absolute right-4 top-1/2 z-40 flex -translate-y-1/2 flex-col gap-2 rounded-full bg-black/35 p-1.5 opacity-0 shadow-2xl ring-1 ring-white/10 backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100">
+    <div
+      className="absolute right-4 top-1/2 z-[70] flex -translate-y-1/2 flex-col gap-2 rounded-full bg-black/35 p-1.5 opacity-0 shadow-2xl ring-1 ring-white/10 backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100"
+      onPointerDown={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+    >
       <button
         type="button"
         disabled={savingFavorite || !onToggleFavorite}
         onClick={async (event) => {
           event.stopPropagation();
-          if (!onToggleFavorite) return;
-          setSavingFavorite(true);
-          try {
-            await onToggleFavorite(item);
-          } finally {
-            setSavingFavorite(false);
-          }
+          await handleFavorite();
         }}
         className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-white/15 disabled:cursor-wait disabled:opacity-70"
         aria-label={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -160,15 +196,70 @@ function VideoHoverTools({
         <Download size={16} />
       </button>
       {onInspect ? (
-        <button
-          type="button"
-          onClick={(event) => { event.stopPropagation(); onInspect(item); }}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-white/15"
-          aria-label="Open details"
-          title="Details"
-        >
-          <MoreHorizontal size={17} />
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => { event.preventDefault(); event.stopPropagation(); setMenuOpen((value) => !value); }}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-white/15"
+            aria-label="More video actions"
+            title="More"
+            aria-expanded={menuOpen}
+          >
+            <MoreHorizontal size={17} />
+          </button>
+          {menuOpen ? (
+            <div
+              className="absolute right-11 top-[-130px] z-[90] w-64 rounded-xl border border-white/10 bg-[#202225] p-2 text-white shadow-2xl"
+              onPointerDown={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button type="button" className={menuItemClass} onClick={() => openVideoTool("/studio-edit", item, "videoUrl")}>
+                <Languages size={16} />
+                <span>Translate</span>
+              </button>
+              <button type="button" className={menuItemClass} onClick={() => openVideoTool("/clipcraft-studio/dubbing", item, "sourceUrl")}>
+                <Music2 size={16} />
+                <span>Change Voice</span>
+              </button>
+              <button type="button" className={menuItemClass} onClick={() => onInspect(item)}>
+                <ExternalLink size={16} />
+                <span>Open</span>
+              </button>
+              <button type="button" className={menuItemClass} onClick={() => { onReusePrompt?.(item); setMenuOpen(false); }}>
+                <RefreshCw size={16} />
+                <span>Regenerate</span>
+              </button>
+              <button type="button" className={menuItemClass} onClick={() => { onReusePrompt?.(item); void copyTextToClipboard(item.prompt || "Generated video"); setMenuOpen(false); }}>
+                <Copy size={16} />
+                <span>Reuse</span>
+              </button>
+              <div className={dividerClass} />
+              <button type="button" className={menuItemClass} onClick={() => { void handleFavorite(); setMenuOpen(false); }}>
+                <Heart size={16} fill={item.isFavorite ? "white" : "none"} />
+                <span>{item.isFavorite ? "Unlike" : "Like"}</span>
+              </button>
+              <button type="button" className={menuItemClass} onClick={() => { void shareVideoItem(item); setMenuOpen(false); }}>
+                <Share2 size={16} />
+                <span className="flex-1">Share</span>
+                <span className="text-slate-500">›</span>
+              </button>
+              <div className={dividerClass} />
+              <button type="button" className={menuItemClass} onClick={() => { downloadVideoItem(item); setMenuOpen(false); }}>
+                <Download size={16} />
+                <span>Download</span>
+              </button>
+              {onDelete ? (
+                <button type="button" className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/10" onClick={() => { onDelete(item.id); setMenuOpen(false); }}>
+                  <Trash2 size={16} />
+                  <span>Delete</span>
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
@@ -178,16 +269,31 @@ function VideoHistoryPreview({
   index,
   onInspect,
   onToggleFavorite,
+  onReusePrompt,
+  onDelete,
 }: {
   item: MediaItem;
   index: number;
   onInspect?: (item: MediaItem) => void;
   onToggleFavorite?: (item: MediaItem) => Promise<void> | void;
+  onReusePrompt?: (item: MediaItem) => void;
+  onDelete?: (id: string) => void;
 }) {
   const [posterFailed, setPosterFailed] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const color = item.modelColor ?? "#06b6d4";
   const usePoster = Boolean(item.poster && !posterFailed);
-  const playable = hasPlayableVideo(item);
+  const playable = hasPlayableVideo(item) && !videoFailed;
+
+  const revealFirstFrame = useCallback(() => {
+    if (usePoster) return;
+    const video = videoRef.current;
+    if (!video || video.readyState < 1 || video.currentTime > 0.05) return;
+    try {
+      video.currentTime = 0.05;
+    } catch {}
+  }, [usePoster]);
 
   return (
     <div
@@ -203,12 +309,17 @@ function VideoHistoryPreview({
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[length:32px_32px]" />
       {playable ? (
         <video
+          ref={videoRef}
           src={item.src}
           poster={usePoster ? item.poster : undefined}
           controls
+          controlsList="nodownload noplaybackrate noremoteplayback"
+          disablePictureInPicture
           playsInline
-          preload={index === 0 ? "metadata" : "none"}
-          onError={() => setPosterFailed(true)}
+          preload={index < 2 ? "auto" : "metadata"}
+          onLoadedMetadata={revealFirstFrame}
+          onLoadedData={revealFirstFrame}
+          onError={() => { setPosterFailed(true); setVideoFailed(true); }}
           className="absolute inset-0 z-10 h-full w-full object-cover"
         />
       ) : (
@@ -229,7 +340,7 @@ function VideoHistoryPreview({
       <span className="pointer-events-none absolute left-4 top-4 z-30 rounded-md bg-black/65 px-2 py-1 text-[11px] font-bold text-slate-200 ring-1 ring-white/10">
         {item.ratio}
       </span>
-      <VideoHoverTools item={item} onInspect={onInspect} onToggleFavorite={onToggleFavorite} />
+      <VideoHoverTools item={item} onInspect={onInspect} onToggleFavorite={onToggleFavorite} onReusePrompt={onReusePrompt} onDelete={onDelete} />
     </div>
   );
 }
@@ -241,6 +352,7 @@ function VideoHistoryList({
   onLoadMore,
   onInspect,
   onToggleFavorite,
+  onReusePrompt,
   onDelete,
 }: {
   items: MediaItem[];
@@ -250,6 +362,7 @@ function VideoHistoryList({
   onLoadMore?: () => void;
   onInspect: (item: MediaItem) => void;
   onToggleFavorite?: (item: MediaItem) => Promise<void> | void;
+  onReusePrompt?: (item: MediaItem) => void;
   onDelete?: (id: string) => void;
 }) {
   return (
@@ -286,11 +399,10 @@ function VideoHistoryList({
               layout
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              className="video-history-card group cursor-pointer overflow-hidden border border-white/5 bg-[#111315] p-2 shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-colors hover:border-white/10"
-              onClick={() => onInspect(item)}
+              className="video-history-card group overflow-hidden border border-white/5 bg-[#111315] p-2 shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-colors hover:border-white/10"
             >
               <div className="video-history-preview">
-                <VideoHistoryPreview item={item} index={index} onInspect={onInspect} onToggleFavorite={onToggleFavorite} />
+                <VideoHistoryPreview item={item} index={index} onInspect={onInspect} onToggleFavorite={onToggleFavorite} onReusePrompt={onReusePrompt} onDelete={onDelete} />
               </div>
               <aside className="video-history-side flex min-h-full flex-col rounded-[14px] border border-white/5 bg-[#111315] p-4">
                 <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs font-bold text-slate-100">
@@ -3008,6 +3120,12 @@ function VideoPageInner() {
               loadingMore={loadingMoreVideos}
               onLoadMore={() => void loadPersistedVideos(videoResultsPage + 1, "append")}
               onInspect={(item) => setInspectorAsset(mediaItemToInspectorAsset(item))}
+              onToggleFavorite={toggleVideoFavorite}
+              onReusePrompt={(item) => {
+                setPrompt(item.prompt || "");
+                document.getElementById("video-prompt-composer")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                requestAnimationFrame(() => document.getElementById("video-prompt-input")?.focus());
+              }}
               onDelete={async (id) => {
                 setResults(prev => prev.filter(r => r.id !== id));
                 try {
@@ -3096,8 +3214,9 @@ function VideoPageInner() {
           )}
 
           {/* Middle Section inside Card: Full Width Multi-Line Textarea */}
-          <div className="flex-1 w-full min-h-[64px]">
+          <div id="video-prompt-composer" className="flex-1 w-full min-h-[64px]">
             <textarea
+              id="video-prompt-input"
               rows={Math.min(8, Math.max(3, prompt.split('\n').length))}
               value={prompt}
               onChange={e => setPrompt(e.target.value)}

@@ -88,9 +88,11 @@ function galleryThumbnailUrl(id: string, type: AssetType): string | undefined {
   if (type !== "image") return undefined;
   return `/api/assets/thumbnail?id=${encodeURIComponent(id)}`;
 }
-function videoPosterUrl(id: string, type: AssetType): string | undefined {
+function videoPosterUrl(id: string, type: AssetType, storedPosterUrl?: string | null): string | undefined {
   if (type !== "video") return undefined;
-  return `/api/assets/video-poster?id=${encodeURIComponent(id)}`;
+  const normalizedPoster = normalizeMediaUrl(String(storedPosterUrl || "").trim());
+  if (normalizedPoster) return normalizedPoster;
+  return undefined;
 }
 function galleryImageDimensions(resolution?: string | null, aspectRatio?: string | null): { width?: number; height?: number } {
   const rawResolution = String(resolution || "").trim();
@@ -284,7 +286,7 @@ export async function GET(req: NextRequest) {
         const isTextMarker = mediaUrl.startsWith("text:");
         const dimensions = type === "image" ? galleryImageDimensions(row.resolution, row.aspectRatio) : {};
         const posterIsVideoFrame = type === "video" && row.posterStatus === "ready_video_frame";
-        const videoPoster = videoPosterUrl(row.id, type);
+        const videoPoster = videoPosterUrl(row.id, type, row.posterUrl);
         return {
           id: row.id,
           type,
