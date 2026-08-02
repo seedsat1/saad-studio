@@ -1235,6 +1235,20 @@ function VideoPageInner() {
     };
   }, [allModels]);
 
+  const mediaItemToInspectorAsset = useCallback((item: MediaItem): Asset => ({
+    id: item.id,
+    type: "video",
+    url: item.src,
+    title: item.model,
+    prompt: item.prompt,
+    model: item.model,
+    resolution: item.ratio,
+    duration: item.duration,
+    date: item.createdAt
+      ? item.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      : undefined,
+    providerRequestId: item.providerRequestId,
+  }), []);
   const loadPersistedVideos = useCallback(async (nextPage = 0, mode: "replace" | "append" = "replace") => {
     if (mode === "append") setLoadingMoreVideos(true);
     try {
@@ -2626,6 +2640,7 @@ function VideoPageInner() {
               hasMore={videoResultsHasMore}
               loadingMore={loadingMoreVideos}
               onLoadMore={() => void loadPersistedVideos(videoResultsPage + 1, "append")}
+              onInspect={(item) => setInspectorAsset(mediaItemToInspectorAsset(item))}
               onDelete={async (id) => {
                 setResults(prev => prev.filter(r => r.id !== id));
                 try {

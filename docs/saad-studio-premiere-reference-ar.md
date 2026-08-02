@@ -2609,3 +2609,7 @@
 - `/video` cards must keep the poster-only rule: do not load MP4 in the grid when `posterUrl` is absent.
 - Missing/failed posters should not appear as empty repeated tiles. The fallback card should use model color/gradient, model name, poster status, play affordance, and prompt snippet so each video keeps a visible theme while the poster job is pending or failed.
 - The result grid should use responsive CSS grid columns (`auto-fill` with a minimum card width) rather than balanced CSS columns, because video cards are mostly same-ratio and the grid should fill wide desktop space without a large blank area on the right.
+## تحديث معماري - Video Posters وفتح المعاينة
+- صفحة /video يجب أن تبقي شبكة النتائج خفيفة: لا يتم تحميل MP4 داخل البطاقات.
+- مصدر صورة البطاقة بالترتيب: posterUrl الجاهز، ثم start/source frame من generationRequestSnapshot.requestPayload، ثم placeholder ثابت مع أيقونة تشغيل.
+- فتح البطاقة يستخدم Asset Inspector لتحميل الفيديو الأصلي videoUrl فقط عند الطلب، مع الحفاظ على الملف الأصلي كامل الجودة.

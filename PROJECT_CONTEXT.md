@@ -9908,3 +9908,10 @@
   - `npm.cmd run build` passed; existing unrelated Browserslist/Tailwind ambiguity/dynamic-server warnings remain.
 - Errors/remaining:
   - Old videos still need the poster backfill job to generate real WebP posters once production Backblaze credentials are valid. Until then, the improved themed fallback is shown without loading MP4 in cards.
+## 2026-08-02 05:42:25 +03:00 - Video grid inspector/theme restoration
+- الحالة: استرجاع تجربة فتح الفيديو عبر Asset Inspector من بطاقات /video مع بقاء تحسين الأداء في الشبكة.
+- الملفات المتأثرة: app/(dash)/(routes)/video/page.tsx, app/api/assets/route.ts, components/MediaGrid.tsx.
+- القرار: بطاقات الفيديو لا تعرض <video> ولا تحمل MP4؛ تعرض posterUrl الجاهز، أو صورة البداية المخزنة في requestPayload كـ source frame عند غياب poster، أو placeholder ثابت فقط إن لم توجد صورة.
+- السلوك: الضغط على بطاقة فيديو يفتح AssetInspector ويحمل videoUrl الأصلي داخل تجربة المعاينة/التفاصيل القديمة.
+- التحقق: npx.cmd tsc --noEmit --pretty false نجح، git diff --check نجح، npm.cmd run build نجح مع تحذيرات Next/Tailwind موجودة غير مانعة.
+- أخطاء/ملاحظات: بعض الفيديوهات ستظل placeholder إذا لم يكن لها posterUrl ولا start/source image محفوظة؛ يلزم backfill posters لإظهار ثيمتها كاملة.

@@ -19,7 +19,7 @@ export interface MediaItem {
   /** Real URL or placeholder gradient string starting with "gradient:" */
   src: string;
   poster?: string;
-  posterStatus?: "pending" | "processing" | "ready" | "failed" | string;
+  posterStatus?: "pending" | "processing" | "ready" | "failed" | "source" | string;
   model: string;
   modelColor?: string;
   ratio: string;           // "16:9" | "9:16" | "1:1" | "4:3" | "21:9" | "3:4" …
@@ -76,6 +76,7 @@ function ratioCss(ratio: string): string {
 function posterStateText(status?: MediaItem["posterStatus"]): string {
   if (status === "failed") return "Poster retry queued";
   if (status === "processing") return "Poster processing";
+  if (status === "source") return "Source frame";
   return "Poster pending";
 }
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
