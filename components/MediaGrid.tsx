@@ -26,6 +26,10 @@ export interface MediaItem {
   prompt?: string;
   providerRequestId?: string;
   isFavorite?: boolean;
+  status?: string;
+  isFailed?: boolean;
+  failureReason?: string;
+  creditsRefunded?: boolean;
   gradient?: string;       // Tailwind gradient classes for placeholder bg
   createdAt?: Date;
 }

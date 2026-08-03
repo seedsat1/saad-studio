@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
 
+export const dynamic = "force-dynamic";
+
 function parseTransactionPlan(raw: string) {
   const parts = raw.split("|").map((p) => p.trim()).filter(Boolean);
 

@@ -4,6 +4,8 @@ import prismadb from "@/lib/prismadb";
 import { normalizeMediaUrl, defaultProvider } from "@/lib/storage";
 import { getProviderFor } from "@/lib/provider-router";
 
+export const dynamic = "force-dynamic";
+
 function inferType(assetType: string | null | undefined): "image" | "video" {
   const t = String(assetType || "").toLowerCase();
   return t.includes("video") ? "video" : "image";

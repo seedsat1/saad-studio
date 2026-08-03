@@ -1,3 +1,27 @@
+#### Latest task: Fix admin API route bails and prefill showcase provider (2026-08-03)
+
+- Status:
+  Completed. Resolved Next.js dynamic routing bails/500 errors on admin list endpoints by adding force-dynamic configuration. Resolved the showcase creator 400 Bad Request error by defaulting empty provider values to "Saad Studio".
+- Changes made:
+  - Added `export const dynamic = "force-dynamic";` to `/api/admin/generations`, `/api/admin/users`, `/api/admin/transactions`, and `/api/admin/stats` to prevent Next.js from attempting static generation and throwing DynamicServerErrors in production.
+  - Updated showcase payload parsing in `lib/showcase.ts` to default the `provider` field to `"Saad Studio"` if it is blank or omitted.
+  - Prefilled the default provider state to `"Saad Studio"` in `emptyForm` in `/admin/cms/explore` UI page component.
+- Affected files:
+  - `app/api/admin/generations/route.ts`
+  - `app/api/admin/users/route.ts`
+  - `app/api/admin/transactions/route.ts`
+  - `app/api/admin/stats/route.ts`
+  - `lib/showcase.ts`
+  - `app/admin/cms/explore/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx tsc --noEmit --pretty false` compilation check passed with 0 errors.
+- Errors/remaining:
+  - None.
+- Decisions:
+  - Forcing dynamic rendering ensures that dynamic endpoints (using headers/auth) do not trigger static bails in Next.js production builds.
+  - Defaulting provider to "Saad Studio" ensures that showcases are successfully created even if the admin leaves the provider field blank in the UI.
+
 #### Latest task: Omar credit balance audit (2026-08-02)
 
 - Status:
@@ -10084,3 +10108,43 @@
   - `npx.cmd tsc --noEmit --pretty false` passed.
 - Decision:
   - Use `/lipsync?imageUrl=...` because the existing lipsync page accepts `imageUrl` as the linked source media parameter and supports video input for the LipSync 3 flow.
+
+#### Latest task: Failed video history cards (2026-08-03 03:58:45 +03:00)
+
+- Status:
+  Completed. Failed video generations now remain visible in `/video` history as explicit failed-result cards instead of disappearing or being treated like playable media.
+- Changes made:
+  - `/api/assets` now recognizes `status=failed/error/cancelled` and `failed:`/`error:` media markers, returns `isFailed`, `failureReason`, and `creditsRefunded`, and does not treat failed markers as renderable video URLs.
+  - `/video` maps failed assets to a dedicated `FailedVideoHistoryCard` with `Failed` and `Credits refunded` badges, a visible reason, expandable prompt text, and real `Retry`/`Delete` actions only.
+  - `Retry` reuses the original prompt in the composer through the existing prompt-reuse flow. `Delete` calls the existing asset delete callback with the real generation id.
+  - Direct download, tool handoff, playback, and Asset Inspector opening are blocked for failed pseudo-URLs.
+- Affected files:
+  - `app/api/assets/route.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `components/MediaGrid.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `git diff --check` passed for touched files.
+  - `npm.cmd run build` passed; existing non-blocking Browserslist/Tailwind and dynamic-server warnings remain.
+- Decisions:
+  - Failed generations are displayable history records, not playable media. Only actions backed by existing behavior are shown.
+
+#### Latest task: /video delete confirmation modal (2026-08-03 04:05:13 +03:00)
+
+- Status:
+  Completed. Video history delete actions now open a custom confirmation modal before calling the real delete API.
+- Changes made:
+  - Added `DeleteGenerationDialog` to `/video` with the requested dark rounded layout, close button, warning text, `Cancel`, and red `Delete` action.
+  - Changed all `/video` history delete callbacks to set a pending delete target instead of deleting immediately.
+  - Confirming deletion calls `DELETE /api/assets` for the real generation id; failed API responses reload persisted video history instead of silently losing the row.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `git diff --check -- app/(dash)/(routes)/video/page.tsx` passed.
+- Decisions:
+  - Destructive video actions should require an explicit in-app confirmation instead of immediate deletion.

@@ -60,7 +60,7 @@ function hexA(hex: string, a: number): string {
 }
 
 function downloadVideoItem(item: MediaItem) {
-  if (!item.src || item.src.startsWith("gradient:")) return;
+  if (!hasPlayableVideo(item)) return;
   const a = document.createElement("a");
   const filename = `saad-video-${item.id}.mp4`;
   a.href = `/api/download?url=${encodeURIComponent(item.src)}&filename=${encodeURIComponent(filename)}`;
@@ -99,7 +99,8 @@ function posterStatusLabel(status?: MediaItem["posterStatus"]) {
 }
 
 function hasPlayableVideo(item: MediaItem) {
-  return Boolean(item.src && !item.src.startsWith("gradient:"));
+  const src = String(item.src || "");
+  return Boolean(src && !item.isFailed && !src.startsWith("gradient:") && !src.startsWith("failed:") && !src.startsWith("error:"));
 }
 
 function buildVideoToolHref(path: string, item: MediaItem, sourceParam: "videoUrl" | "imageUrl" | "sourceUrl" = "videoUrl") {
@@ -340,6 +341,166 @@ function VideoHistoryPreview({
     </div>
   );
 }
+function failedVideoTitle(reason?: string): string {
+  const text = normalizeGenerationError(reason || "Generation failed. Please try again.").trim();
+  const lower = text.toLowerCase();
+  if (lower.includes("copyright")) return "Rejected due to copyright restrictions.";
+  if (lower.includes("content") || lower.includes("policy") || lower.includes("filter")) return "Rejected by content policy.";
+  if (lower.includes("rate limit") || lower.includes("too many requests")) return "Too many requests.";
+  const sentence = text.match(/^[^.!?]+[.!?]?/)?.[0]?.trim();
+  return sentence || "Generation failed.";
+}
+
+function failedVideoDetail(item: MediaItem): string {
+  return normalizeGenerationError(item.failureReason || item.prompt || "Generation failed. Please try again.").trim();
+}
+
+function FailedVideoHistoryCard({
+  item,
+  onReusePrompt,
+  onDelete,
+}: {
+  item: MediaItem;
+  onReusePrompt?: (item: MediaItem) => void;
+  onDelete?: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const detail = failedVideoDetail(item);
+  const promptText = item.prompt?.trim() || detail;
+
+  return (
+    <motion.article
+      key={item.id}
+      layout
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative min-h-[360px] overflow-hidden rounded-2xl border border-white/5 bg-[#202225] p-5 shadow-[0_12px_36px_rgba(0,0,0,0.28)]"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(239,68,68,0.16),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)]" />
+      <div className="relative z-10 flex items-center gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-sm font-extrabold text-white">
+          <X size={14} className="rounded-full bg-white text-[#202225]" />
+          Failed
+        </span>
+        {item.creditsRefunded ? (
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-sm font-extrabold text-white">
+            <CheckCircle2 size={15} />
+            Credits refunded
+          </span>
+        ) : null}
+      </div>
+      <div className="relative z-10 flex min-h-[285px] flex-col justify-end gap-4">
+        <div className="max-w-[calc(100%-210px)] min-w-0 max-md:max-w-full">
+          <h3 className="text-base font-extrabold text-white">{failedVideoTitle(detail)}</h3>
+          <p className={expanded ? "mt-2 text-sm font-semibold leading-6 text-slate-400" : "mt-2 text-sm font-semibold leading-6 text-slate-400 line-clamp-1"}>
+            {promptText}
+          </p>
+          {promptText.length > 120 ? (
+            <button
+              type="button"
+              onClick={() => setExpanded((value) => !value)}
+              className="mt-2 inline-flex items-center gap-1 text-sm font-extrabold text-white transition-colors hover:text-slate-300"
+            >
+              {expanded ? "View less" : "View more"}
+              <ChevronDown size={14} className={expanded ? "rotate-180 transition-transform" : "transition-transform"} />
+            </button>
+          ) : null}
+        </div>
+        <div className="absolute bottom-0 right-0 flex gap-2 max-md:relative max-md:bottom-auto max-md:right-auto">
+          <button
+            type="button"
+            disabled={!onReusePrompt}
+            onClick={() => onReusePrompt?.(item)}
+            className="inline-flex items-center gap-2 rounded-xl bg-white/12 px-4 py-3 text-sm font-extrabold text-white transition-colors hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw size={16} />
+            Retry
+          </button>
+          <button
+            type="button"
+            disabled={!onDelete}
+            onClick={() => onDelete?.(item.id)}
+            className="inline-flex items-center gap-2 rounded-xl bg-white/12 px-4 py-3 text-sm font-extrabold text-white transition-colors hover:bg-red-500/20 hover:text-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Trash2 size={16} />
+            Delete
+          </button>
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+function DeleteGenerationDialog({
+  open,
+  deleting,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  deleting?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-[2px]"
+          onClick={onCancel}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 14, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.96 }}
+            transition={{ duration: 0.16 }}
+            className="relative w-full max-w-[500px] rounded-[28px] border border-white/10 bg-[#202124] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-generation-title"
+          >
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={deleting}
+              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/8 text-slate-300 transition-colors hover:bg-white/12 hover:text-white disabled:cursor-wait disabled:opacity-60"
+              aria-label="Cancel delete"
+            >
+              <X size={20} />
+            </button>
+            <h2 id="delete-generation-title" className="pr-12 text-xl font-extrabold text-white">
+              Delete selected generations?
+            </h2>
+            <p className="mt-6 max-w-[390px] text-base font-medium leading-6 text-zinc-400">
+              Selected generations will be permanently deleted. This cannot be undone.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={deleting}
+                className="rounded-xl border border-white/12 bg-transparent px-6 py-3 text-base font-extrabold text-white transition-colors hover:bg-white/8 disabled:cursor-wait disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={onConfirm}
+                disabled={deleting}
+                className="rounded-xl bg-[#ff3347] px-6 py-3 text-base font-extrabold text-white transition-colors hover:bg-[#ff4658] disabled:cursor-wait disabled:opacity-70"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
 function VideoHistoryList({
   items,
   skeletonModels,
@@ -388,6 +549,9 @@ function VideoHistoryList({
           </div>
         ))}
         {items.map((item, index) => {
+          if (item.isFailed) {
+            return <FailedVideoHistoryCard key={item.id} item={item} onReusePrompt={onReusePrompt} onDelete={onDelete} />;
+          }
           const color = item.modelColor ?? "#06b6d4";
           return (
             <motion.article
@@ -1656,12 +1820,15 @@ function VideoPageInner() {
   const [videoResultsPage, setVideoResultsPage] = useState(0);
   const [videoResultsHasMore, setVideoResultsHasMore] = useState(false);
   const [loadingMoreVideos, setLoadingMoreVideos] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
   const allModels = useMemo(() => MODEL_GROUPS.flatMap((group) => group.models), []);
 
   const mapAssetToMediaItem = useCallback((asset: any): MediaItem | null => {
+    const isFailed = Boolean(asset?.isFailed || String(asset?.status || "").toLowerCase() === "failed");
     const originalUrl = asset?.originalUrl || asset?.url;
-    if (!originalUrl) return null;
+    if (!originalUrl && !isFailed) return null;
     const model = allModels.find((m) => m.api_route === asset.model || m.name === asset.model);
     const durationValue = typeof asset.duration === "number" && Number.isFinite(asset.duration)
       ? `${asset.duration}s`
@@ -1671,7 +1838,7 @@ function VideoPageInner() {
     return {
       id: String(asset.id),
       type: "video",
-      src: String(originalUrl),
+      src: isFailed ? `failed:${asset.id}` : String(originalUrl),
       poster: typeof asset.posterUrl === "string" ? asset.posterUrl : undefined,
       posterStatus: typeof asset.posterStatus === "string" ? asset.posterStatus : undefined,
       model: model?.name ?? (asset.model || "Video"),
@@ -1680,6 +1847,10 @@ function VideoPageInner() {
       duration: durationValue,
       prompt: asset.prompt || "",
       providerRequestId: asset.providerRequestId,
+      status: typeof asset.status === "string" ? asset.status : undefined,
+      isFailed,
+      failureReason: typeof asset.failureReason === "string" ? asset.failureReason : undefined,
+      creditsRefunded: Boolean(asset.creditsRefunded),
       gradient: model ? (FAMILY_GRADIENTS[model.family] ?? "from-slate-900 via-slate-800 to-slate-900") : "from-slate-900 via-slate-800 to-slate-900",
       isFavorite: Boolean(asset.isFavorite),
       createdAt: asset.createdAt ? new Date(asset.createdAt) : new Date(),
@@ -1735,20 +1906,20 @@ function VideoPageInner() {
       const pageSeen = new Set<string>();
       const mapped = data.assets.flatMap((asset: any) => {
         const item = mapAssetToMediaItem(asset);
-        if (!item || pageSeen.has(item.src)) return [];
-        pageSeen.add(item.src);
+        if (!item || pageSeen.has(item.id)) return [];
+        pageSeen.add(item.id);
         return [item];
       });
 
       setResults((prev) => {
         const next = mode === "append" ? [...prev] : [];
-        const seen = new Set(next.map((item) => item.src));
+        const seenIds = new Set(next.map((item) => item.id));
         for (const item of mapped) {
-          if (seen.has(item.src)) continue;
-          seen.add(item.src);
+          if (seenIds.has(item.id)) continue;
+          seenIds.add(item.id);
           next.push(item);
         }
-        resultUrlsRef.current = seen;
+        resultUrlsRef.current = new Set(next.map((item) => item.src));
         return next;
       });
       setVideoResultsPage(typeof data?.page === "number" ? data.page : nextPage);
@@ -1760,6 +1931,25 @@ function VideoPageInner() {
     }
   }, [mapAssetToMediaItem]);
 
+  const confirmDeleteVideo = useCallback(async () => {
+    const id = deleteTargetId;
+    if (!id || deletingId) return;
+    setDeletingId(id);
+    setResults((prev) => prev.filter((item) => item.id !== id));
+    try {
+      const res = await fetch("/api/assets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      setDeleteTargetId(null);
+    } catch {
+      void loadPersistedVideos(0, "replace");
+    } finally {
+      setDeletingId(null);
+    }
+  }, [deleteTargetId, deletingId, loadPersistedVideos]);
   useEffect(() => {
     void loadPersistedVideos(0, "replace");
   }, [loadPersistedVideos]);
@@ -2145,7 +2335,9 @@ function VideoPageInner() {
           removePending();
           setGenerationError(null);
         } else if (data.status === "failed") {
-          setGenerationError(normalizeGenerationError(data.error)); removePending();
+          setGenerationError(normalizeGenerationError(data.error));
+          removePending();
+          void loadPersistedVideos(0, "replace");
         }
       } catch { setGenerationError("Failed to check generation status"); removePending(); }
     };
@@ -3122,16 +3314,7 @@ function VideoPageInner() {
                 document.getElementById("video-prompt-composer")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
                 requestAnimationFrame(() => document.getElementById("video-prompt-input")?.focus());
               }}
-              onDelete={async (id) => {
-                setResults(prev => prev.filter(r => r.id !== id));
-                try {
-                  await fetch("/api/assets", {
-                    method: "DELETE",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id }),
-                  });
-                } catch { /* rollback not needed - next refresh will re-fetch */ }
-              }}
+              onDelete={(id) => setDeleteTargetId(id)}
             />
           )}
         </div>
@@ -6082,6 +6265,14 @@ function VideoPageInner() {
         )}
       </AnimatePresence>
 
+      <DeleteGenerationDialog
+        open={Boolean(deleteTargetId)}
+        deleting={Boolean(deletingId)}
+        onCancel={() => {
+          if (!deletingId) setDeleteTargetId(null);
+        }}
+        onConfirm={confirmDeleteVideo}
+      />
       {/* Asset Inspector Modal */}
       <AnimatePresence>
         {inspectorAsset ? (

@@ -67,7 +67,7 @@ const emptyForm: ShowcaseForm = {
   title: "",
   slug: "",
   model: "",
-  provider: "",
+  provider: "Saad Studio",
   video_url: "",
   thumbnail_url: "",
   prompt: "",

@@ -2676,3 +2676,18 @@
 
 - The `/video` result-row `Lipsync / Dubbing` command should open the existing `/lipsync` route, not `/video?tool=lipsync`.
 - The selected video URL is passed as `imageUrl` because `/lipsync` currently uses that query parameter as its linked source media field and can accept video input for the LipSync 3 model.
+
+## Video Failed Generation Display (2026-08-03)
+
+- `/api/assets` must preserve failed video generation records in history when they have `status=failed/error/cancelled` or stored `failed:`/`error:` media markers.
+- Failed markers are not playable media URLs and must not be passed to video players, downloads, tool handoffs, or Asset Inspector.
+- `/video` renders failed results as dedicated failure cards with visible failure reason, `Failed` status, `Credits refunded` when the failure path has refunded the generation, and real actions only.
+- The allowed failed-card actions are `Retry`, which reuses the original prompt in the video composer, and `Delete`, which deletes the real generation asset id through the existing delete path.
+- Do not add decorative failed-state tools. Any action shown on a failed result must have a concrete route/API/state effect.
+
+## Video Delete Confirmation (2026-08-03)
+
+- `/video` delete actions must not delete immediately from row buttons, hover tools, failed cards, or menus.
+- Pressing delete opens an in-app confirmation dialog with `Delete selected generations?`, explanatory irreversible-delete text, `Cancel`, and a red `Delete` confirmation.
+- Only the confirmation button calls the existing `DELETE /api/assets` endpoint with the real generation id.
+- If the API delete fails, reload persisted video history so the UI does not pretend an asset was removed permanently.

@@ -87,7 +87,7 @@ export async function uniqueShowcaseSlug(input: string, currentId?: string) {
 export function parseShowcasePayload(body: Record<string, unknown>): ShowcasePayload {
   const title = String(body.title ?? "").trim();
   const model = String(body.model ?? "").trim();
-  const provider = String(body.provider ?? "").trim();
+  const provider = String(body.provider ?? "").trim() || "Saad Studio";
   const type = String(body.type ?? "video").trim();
   const aspectRatio = String(body.aspect_ratio ?? body.aspectRatio ?? "16:9").trim();
   const videoUrl = String(body.video_url ?? body.videoUrl ?? "").trim();

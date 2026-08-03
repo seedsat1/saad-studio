@@ -30,10 +30,38 @@ function isRenderableAssetUrl(url: string): boolean {
   if (!url) return false;
   const lower = url.trim().toLowerCase();
   if (lower.startsWith("task:")) return false;
+  if (lower.startsWith("failed:") || lower.startsWith("failed ")) return false;
   if (lower.startsWith("error:") || lower.startsWith("error ")) return false;
   return true;
 }
 
+function decodeStatusMarker(raw: string): string | undefined {
+  const value = String(raw || "").trim();
+  const lower = value.toLowerCase();
+  const marker = lower.startsWith("failed:") ? "failed:" : lower.startsWith("error:") ? "error:" : "";
+  if (!marker) return undefined;
+  const encoded = value.slice(marker.length).trim();
+  if (!encoded) return "Generation failed.";
+  try {
+    return decodeURIComponent(encoded);
+  } catch {
+    return encoded;
+  }
+}
+
+function isFailedGeneration(row: { status?: string | null; mediaUrl?: string | null; outputUrl?: string | null }): boolean {
+  const status = String(row.status || "").trim().toLowerCase();
+  if (["failed", "error", "cancelled", "canceled"].includes(status)) return true;
+  const media = String(row.mediaUrl || "").trim().toLowerCase();
+  const output = String(row.outputUrl || "").trim().toLowerCase();
+  return media.startsWith("failed:") || media.startsWith("error:") || output.startsWith("failed:") || output.startsWith("error:");
+}
+
+function generationFailureReason(row: { mediaUrl?: string | null; outputUrl?: string | null; posterError?: string | null }): string {
+  return decodeStatusMarker(String(row.mediaUrl || ""))
+    || decodeStatusMarker(String(row.outputUrl || ""))
+    || "Generation failed. Credits were returned. Please retry or delete this result.";
+}
 function resolveAssetUrl(mediaUrl: string | null, outputUrl: string | null): string {
   const media = String(mediaUrl || "").trim();
   const output = String(outputUrl || "").trim();
@@ -221,6 +249,10 @@ export async function GET(req: NextRequest) {
       OR: [
         { mediaUrl: { not: null as string | null } },
         { outputUrl: { not: null as string | null } },
+        { status: "failed" },
+        { status: "error" },
+        { status: "cancelled" },
+        { status: "canceled" },
       ],
     };
 
@@ -247,6 +279,7 @@ export async function GET(req: NextRequest) {
           id: true,
           mediaUrl: true,
           outputUrl: true,
+          status: true,
           prompt: true,
           modelUsed: true,
           assetType: true,
@@ -274,15 +307,17 @@ export async function GET(req: NextRequest) {
     const normalized = pageRows
       .map((row: any) => {
         const resolvedUrl = resolveAssetUrl(row.mediaUrl, row.outputUrl);
+        const failed = isFailedGeneration(row);
         return {
           ...row,
           resolvedUrl,
+          failed,
         };
       })
-      .filter((row: any) => isRenderableAssetUrl(row.resolvedUrl))
+      .filter((row: any) => row.failed || isRenderableAssetUrl(row.resolvedUrl))
       .map((row: any) => {
         const type = toAssetType(row.assetType);
-        const mediaUrl = row.resolvedUrl;
+        const mediaUrl = row.failed ? `failed:${row.id}` : row.resolvedUrl;
         const isTextMarker = mediaUrl.startsWith("text:");
         const dimensions = type === "image" ? galleryImageDimensions(row.resolution, row.aspectRatio) : {};
         const posterIsVideoFrame = type === "video" && row.posterStatus === "ready_video_frame";
@@ -294,7 +329,11 @@ export async function GET(req: NextRequest) {
           originalUrl: isTextMarker ? undefined : mediaUrl,
           thumbnailUrl: isTextMarker ? undefined : galleryThumbnailUrl(row.id, type),
           posterUrl: videoPoster,
-          posterStatus: type === "video" ? (posterIsVideoFrame ? "ready_video_frame" : (row.posterStatus ?? "pending")) : undefined,
+          posterStatus: type === "video" ? (row.failed ? "failed" : (posterIsVideoFrame ? "ready_video_frame" : (row.posterStatus ?? "pending"))) : undefined,
+          status: row.failed ? "failed" : (row.status ?? undefined),
+          isFailed: Boolean(row.failed),
+          failureReason: row.failed ? generationFailureReason(row) : undefined,
+          creditsRefunded: row.failed ? true : undefined,
           posterGeneratedAt: row.posterGeneratedAt ? row.posterGeneratedAt.toISOString() : undefined,
           posterError: type === "video" ? (row.posterError ?? undefined) : undefined,
           textContent: isTextMarker ? row.prompt : undefined,

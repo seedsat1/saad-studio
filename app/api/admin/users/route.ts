@@ -3,6 +3,8 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   if (!(await isAdmin())) {
     return new NextResponse("Unauthorized", { status: 401 });
