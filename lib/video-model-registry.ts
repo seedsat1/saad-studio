@@ -158,8 +158,10 @@ function i2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCap
 export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
 
   // ╔══════════════════════════════════════════════════════════════════════════
-  // ║ Kling V3.0 Image-to-Video
+  // ║ Kling V3.0 Text/Image Smart Route
   // ║ Confirmed:
+  // ║ - https://wavespeed.ai/docs/docs-api/kwaivgi/kwaivgi-kling-v3.0-std-text-to-video
+  // ║ - https://wavespeed.ai/docs/docs-api/kwaivgi/kwaivgi-kling-v3.0-pro-text-to-video
   // ║ - https://wavespeed.ai/docs/docs-api/kwaivgi/kwaivgi-kling-v3.0-std-image-to-video
   // ║ - https://wavespeed.ai/docs/docs-api/kwaivgi/kwaivgi-kling-v3.0-pro-image-to-video
   // ╚══════════════════════════════════════════════════════════════════════════
@@ -168,7 +170,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Kling 3.0",
     family: "kling", family_label: "Kling", family_color: "#06b6d4",
     badge: "NEW",
-    description: "Kuaishou Kling V3.0 image-to-video with Standard/Pro route selection, optional end frame, native audio, multi-shot, and element references.",
+    description: "Kuaishou Kling V3.0 text/image-to-video with Standard/Pro smart route selection, optional end frame for image mode, native audio, multi-shot, and element references.",
     api_route: "kwaivgi/kling-v3.0-std/image-to-video",
     route_confirmed: true,
     capabilities: i2vCaps({
@@ -251,9 +253,9 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_images: 2,
     }),
   },
-  // ╔══════════════════════════════════════════════════════════════════════════
   // ║ Minimax Hailuo 2.3
-  // ║ Confirmed: https://docs.kie.ai/market/hailuo/2-3-image-to-video-pro
+  // ║ Confirmed:
+  // ║ - https://docs.kie.ai/market/hailuo/2-3-image-to-video-pro
   // ║ Params: prompt (req), image_url (req, single string), duration ("6"|"10"),
   // ║         resolution ("768P"|"1080P"), nsfw_checker (bool, default false)
   // ║ NOTE: 10s NOT supported with 1080P — server enforces 768P fallback.
@@ -267,7 +269,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     api_route: "hailuo/2-3-image-to-video-standard",
     route_confirmed: true,
     capabilities: i2vCaps({
-      aspect_ratios: ["16:9", "9:16", "1:1"],
+      aspect_ratios: [],
       durations:     [6, 10],
       resolutions:   ["768P", "1080P"],
     }),
@@ -281,7 +283,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     api_route: "hailuo/2-3-image-to-video-pro",
     route_confirmed: true,
     capabilities: i2vCaps({
-      aspect_ratios: ["16:9", "9:16", "1:1"],
+      aspect_ratios: [],
       durations:     [6, 10],
       resolutions:   ["768P", "1080P"],
     }),
@@ -289,7 +291,8 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
 
   // ╔══════════════════════════════════════════════════════════════════════════
   // ║ OpenAI Sora 2
-  // ║ Confirmed: https://docs.kie.ai/market/sora2/sora-2-text-to-video
+  // ║ Confirmed:
+  // ║ - https://docs.kie.ai/market/sora2/sora-2-text-to-video
   // ║ Params: prompt, aspect_ratio ("portrait"|"landscape"), n_frames ("10"|"15"),
   // ║         remove_watermark, character_id_list, upload_method ("s3"|"oss" REQUIRED)
   // ║ I2V adds image_urls (array, max 1 image, REQUIRED)
@@ -336,160 +339,8 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
   },
   // ╔══════════════════════════════════════════════════════════════════════════
   // ║ Google Veo 3.1
-  // ║ Confirmed: https://docs.kie.ai/veo3-api/generate-veo-3-video
-  // ║ Uses dedicated /api/v1/veo/generate (NOT /jobs/createTask). See route.ts.
-  // ║ - model enum mapped to: veo3 / veo3_fast / veo3_lite
-  // ║ - aspect_ratio: "16:9" | "9:16" | "Auto"
-  // ║ - resolution: 720p | 1080p | 4k (4k = ~2× credits)
-  // ║ - duration is FIXED at ~8s by the model (no duration param accepted)
-  // ║ - audio is ALWAYS-ON (no sound toggle)
-  // ║ - imageUrls: 1 (animate) / 2 (first+last) / 1-3 (REFERENCE_2_VIDEO, fast only)
-  // ╚══════════════════════════════════════════════════════════════════════════
-  {
-    id: "google-veo3.1-lite-t2v",
-    name: "Google Veo 3.1 Lite",
-    family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
-    badge: null,
-    description: "Lightweight, affordable Veo 3.1. Fixed ~8s. Native audio always-on.",
-    api_route: "google/veo3.1-lite-text-to-video",
-    route_confirmed: true,
-    capabilities: t2vCaps({
-      optional_image: true,
-      has_end_frame:  true,
-      aspect_ratios: ["16:9", "9:16"],
-      durations:     [4, 6, 8],
-      resolutions:   ["720p", "1080p"],
-      max_reference_images: 2, // Lite: 1 (animate) or 2 (first+last frames)
-    }),
-  },
-  {
-    id: "google-veo3.1-fast-t2v",
-    name: "Google Veo 3.1 Fast",
-    family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
-    badge: "FAST",
-    description: "Veo 3.1 Fast. Durations: 4/6/8s. Native audio always-on. Up to 3 reference images.",
-    api_route: "google/veo3.1-fast-text-to-video",
-    route_confirmed: true,
-    capabilities: t2vCaps({
-      optional_image: true,
-      has_end_frame:  true,
-      // Google spec: 16:9 or 9:16 only. "Auto" is NOT a documented value.
-      aspect_ratios: ["16:9", "9:16"],
-      // Google spec: 4, 6, 8 are the only valid durations.
-      durations:     [4, 6, 8],
-      // Google spec: 720p (default), 1080p, 4k.
-      resolutions:   ["720p", "1080p", "4k"],
-      // Google spec: up to 3 reference images of a single person/character/product.
-      max_reference_images: 3,
-    }),
-  },
-  {
-    id: "google-veo3.1-t2v",
-    name: "Google Veo 3.1",
-    family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
-    badge: "NEW",
-    description: "Veo 3.1 (Pro). Durations: 4/6/8s. Native audio always-on. Up to 3 reference images. 720p/1080p/4K.",
-    api_route: "google/veo3.1-text-to-video",
-    route_confirmed: true,
-    capabilities: t2vCaps({
-      optional_image: true,
-      has_end_frame:  true,
-      // Google spec: 16:9 or 9:16 only.
-      aspect_ratios: ["16:9", "9:16"],
-      // Google spec: 4, 6, 8 are the only valid durations.
-      durations:     [4, 6, 8],
-      // Google spec: 720p (default), 1080p, 4k.
-      resolutions:   ["720p", "1080p", "4k"],
-      // Google spec: up to 3 reference images for both Fast and Pro variants.
-      max_reference_images: 3,
-    }),
-  },
-  // ╔══════════════════════════════════════════════════════════════════════════
-  // ║ Minimax Hailuo 2.3
-  // ║ Confirmed: https://docs.kie.ai/market/hailuo/2-3-image-to-video-pro
-  // ║ Params: prompt (req), image_url (req, single string), duration ("6"|"10"),
-  // ║         resolution ("768P"|"1080P"), nsfw_checker (bool, default false)
-  // ║ NOTE: 10s NOT supported with 1080P — server enforces 768P fallback.
-  // ╚══════════════════════════════════════════════════════════════════════════
-  {
-    id: "minimax-hailuo-2.3-i2v-fast",
-    name: "Minimax Hailuo 2.3 Fast",
-    family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
-    badge: "FAST",
-    description: "Hailuo 2.3 I2V Standard — fast, image required.",
-    api_route: "hailuo/2-3-image-to-video-standard",
-    route_confirmed: true,
-    capabilities: i2vCaps({
-      aspect_ratios: [],
-      durations:     [6, 10],
-      resolutions:   ["768P", "1080P"],
-    }),
-  },
-  {
-    id: "minimax-hailuo-2.3-i2v-pro",
-    name: "Minimax Hailuo 2.3",
-    family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
-    badge: "PRO",
-    description: "Hailuo 2.3 I2V Pro — highest quality, image required.",
-    api_route: "hailuo/2-3-image-to-video-pro",
-    route_confirmed: true,
-    capabilities: i2vCaps({
-      aspect_ratios: [],
-      durations:     [6, 10],
-      resolutions:   ["768P", "1080P"],
-    }),
-  },
-
-  // ╔══════════════════════════════════════════════════════════════════════════
-  // ║ OpenAI Sora 2
-  // ║ Confirmed: https://docs.kie.ai/market/sora2/sora-2-text-to-video
-  // ║ Params: prompt, aspect_ratio ("portrait"|"landscape"), n_frames ("10"|"15"),
-  // ║         remove_watermark, character_id_list, upload_method ("s3"|"oss" REQUIRED)
-  // ║ I2V adds image_urls (array, max 1 image, REQUIRED)
-  // ║ Pro adds size ("standard"|"high")
-  // ╚══════════════════════════════════════════════════════════════════════════
-  {
-    id: "openai-sora-2-t2v",
-    name: "Sora 2",
-    family: "sora", family_label: "OpenAI Sora 2", family_color: "#8b5cf6",
-    badge: null,
-    description: "OpenAI Sora 2 multi-character T2V. 10s or 15s, portrait or landscape.",
-    api_route: "openai/sora-2/text-to-video",
-    route_confirmed: true,
-    capabilities: t2vCaps({
-      aspect_ratios: ["landscape", "portrait"],
-      durations:     [10, 15],
-    }),
-  },
-  {
-    id: "openai-sora-2-i2v",
-    name: "Sora 2 I2V",
-    family: "sora", family_label: "OpenAI Sora 2", family_color: "#8b5cf6",
-    badge: null,
-    description: "OpenAI Sora 2 image-to-video. Single first-frame image.",
-    api_route: "openai/sora-2/image-to-video",
-    route_confirmed: true,
-    capabilities: i2vCaps({
-      aspect_ratios: ["landscape", "portrait"],
-      durations:     [10, 15],
-    }),
-  },
-  {
-    id: "openai-sora-2-pro-t2v",
-    name: "Sora 2 Pro",
-    family: "sora", family_label: "OpenAI Sora 2", family_color: "#8b5cf6",
-    badge: "PRO",
-    description: "Pro-tier Sora 2 — higher fidelity, 10s or 15s.",
-    api_route: "openai/sora-2/text-to-video-pro",
-    route_confirmed: true,
-    capabilities: t2vCaps({
-      aspect_ratios: ["landscape", "portrait"],
-      durations:     [10, 15],
-    }),
-  },
-  // ╔══════════════════════════════════════════════════════════════════════════
-  // ║ Google Veo 3.1
-  // ║ Confirmed: https://docs.kie.ai/veo3-api/generate-veo-3-video
+  // ║ Confirmed:
+  // ║ - https://docs.kie.ai/veo3-api/generate-veo-3-video
   // ║ Uses dedicated /api/v1/veo/generate (NOT /jobs/createTask). See route.ts.
   // ║ - model enum mapped to: veo3 / veo3_fast / veo3_lite
   // ║ - aspect_ratio: "16:9" | "9:16" | "Auto"
@@ -593,11 +444,11 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
       durations:     [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions:   ["720p", "1080p"],
-      max_reference_images: 2,
-      max_reference_videos: 0,
-      max_reference_video_total_seconds: 0,
-      max_reference_audios: 0,
-      max_reference_audio_total_seconds: 0,
+      max_reference_images: 9,
+      max_reference_videos: 3,
+      max_reference_video_total_seconds: 15,
+      max_reference_audios: 3,
+      max_reference_audio_total_seconds: 15,
       has_sound: true,
       sound_param: "generate_audio",
     }),
@@ -616,11 +467,11 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       aspect_ratios:  ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
       durations:      [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions:    ["480p", "720p", "1080p", "4k"],
-      max_reference_images: 2,
-      max_reference_videos: 0,
-      max_reference_video_total_seconds: 0,
-      max_reference_audios: 0,
-      max_reference_audio_total_seconds: 0,
+      max_reference_images: 9,
+      max_reference_videos: 3,
+      max_reference_video_total_seconds: 15,
+      max_reference_audios: 3,
+      max_reference_audio_total_seconds: 15,
       has_sound: true,
       sound_param: "generate_audio",
     }),
@@ -639,11 +490,11 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       aspect_ratios:  ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
       durations:      [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions:    ["480p", "720p", "1080p", "4k"],
-      max_reference_images: 2,
-      max_reference_videos: 0,
-      max_reference_video_total_seconds: 0,
-      max_reference_audios: 0,
-      max_reference_audio_total_seconds: 0,
+      max_reference_images: 9,
+      max_reference_videos: 3,
+      max_reference_video_total_seconds: 15,
+      max_reference_audios: 3,
+      max_reference_audio_total_seconds: 15,
       has_sound: true,
       sound_param: "generate_audio",
     }),
@@ -651,7 +502,8 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
 
   // ╔══════════════════════════════════════════════════════════════════════════
   // ║ xAI Grok Imagine (video)
-  // ║ Confirmed: https://docs.kie.ai/market/grok-imagine/text-to-video
+  // ║ Confirmed:
+  // ║ - https://docs.kie.ai/market/grok-imagine/text-to-video
   // ║            https://docs.kie.ai/market/grok-imagine/image-to-video
   // ║ T2V input: prompt (req), aspect_ratio (2:3|3:2|1:1|16:9|9:16, default 2:3),
   // ║            mode (fun|normal|spicy), duration NUMBER 6-30, resolution (480p|720p),
@@ -733,7 +585,12 @@ export interface ModelGroup {
 
 export function getModelGroups(): ModelGroup[] {
   const map = new Map<string, ModelGroup>();
+  const seenModelIds = new Set<string>();
+
   for (const m of VIDEO_MODEL_REGISTRY) {
+    if (seenModelIds.has(m.id)) continue;
+    seenModelIds.add(m.id);
+
     if (!map.has(m.family)) {
       map.set(m.family, {
         family:       m.family,

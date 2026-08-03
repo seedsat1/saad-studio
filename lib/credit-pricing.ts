@@ -15,6 +15,7 @@ const VIDEO_MODEL_BY_ID_MAP = new Map(VIDEO_MODELS.map((m) => [m.id, m]));
 const VIDEO_ROUTE_REGISTRY_MAP = new Map(VIDEO_MODEL_REGISTRY.map((m) => [m.api_route, m]));
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
+  ["kwaivgi/kling-v3.0-std/text-to-video", 9.0],
   ["kwaivgi/kling-v3.0-std/image-to-video", 9.0],
   ["kwaivgi/kling-v3.0-pro/image-to-video", 17.5],
   ["kwaivgi/kling-v3.0-pro/text-to-video", 17.5],
@@ -142,7 +143,7 @@ function getKling3Credits(payload?: VideoPayload): number {
   return parseFloat((duration * 2.5 * 1.0).toFixed(2));
 }
 
-function getKling30StdImageCredits(payload?: VideoPayload): number {
+function getKling30StdCredits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
   const base = parseFloat((duration * 1.8).toFixed(2));
   return hasSoundEnabled(payload) ? parseFloat((base * 1.5).toFixed(2)) : base;
@@ -298,8 +299,11 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
     const duration = readDuration(payload, 5);
     return applySoundMultiplier(parseFloat((duration * 4.0).toFixed(2)), payload);
   }
+  if (modelRoute === "kwaivgi/kling-v3.0-std/text-to-video") {
+    return getKling30StdCredits(payload);
+  }
   if (modelRoute === "kwaivgi/kling-v3.0-std/image-to-video") {
-    return getKling30StdImageCredits(payload);
+    return getKling30StdCredits(payload);
   }
   if (modelRoute === "kwaivgi/kling-v3.0-pro/image-to-video") {
     return applySoundMultiplier(getKling3Credits(payload), payload);

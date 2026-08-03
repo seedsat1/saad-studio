@@ -176,6 +176,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "grok-imagine/image-to-video-1-5":              "grok_vid_v15_i2v",
 
   // ── Cinema — app/api/video (KIE model routes) ────────────────────────────
+  "kwaivgi/kling-v3.0-std/text-to-video":         "kling30",
   "kwaivgi/kling-v3.0-pro/text-to-video":         "kling30",
   "kwaivgi/kling-v3.0-std/image-to-video":        "kling30",
   "kwaivgi/kling-v3.0-pro/image-to-video":        "kling30",
@@ -458,6 +459,7 @@ const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "bytedance/seedance-v2/text-to-video":        { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "seedance2":                                  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "kwaivgi/kling-v3.0-std/text-to-video":        { "pro": 1.6, "std": 1.0 },
   "kwaivgi/kling-v3.0-pro/text-to-video":        { "pro": 1.6, "std": 1.0 },
   "kwaivgi/kling-v3.0-pro/motion-control":       { "pro": 1.6, "std": 1.0 },
   "kling-3.0/video":                            { "pro": 1.6, "std": 1.0 },

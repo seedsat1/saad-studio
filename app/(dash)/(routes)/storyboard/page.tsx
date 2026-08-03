@@ -4,6 +4,7 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Caveat } from "next/font/google";
+import { confirmAction } from "@/lib/confirm-action";
 import {
   ArrowLeft,
   Upload,
@@ -440,7 +441,7 @@ export default function StoryboardProductionPage() {
   const onBulkDelete = useCallback(async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    if (typeof window !== "undefined" && !window.confirm(`Delete ${ids.length} storyboard image(s)? This cannot be undone.`)) return;
+    if (!(await confirmAction({ title: "Delete storyboard images?", description: `${ids.length} storyboard image(s) will be permanently deleted. This cannot be undone.`, confirmLabel: "Delete", destructive: true }))) return;
     try {
       const res = await fetch("/api/assets", {
         method: "DELETE",
@@ -507,8 +508,8 @@ export default function StoryboardProductionPage() {
     setAlbums((prev) => prev.map((album) => album.id === albumId ? { ...album, name: nextName } : album));
   }, [albums]);
 
-  const deleteAlbum = useCallback((albumId: string) => {
-    if (typeof window !== "undefined" && !window.confirm("Delete this album? Images will stay in your storyboard library.")) return;
+  const deleteAlbum = useCallback(async (albumId: string) => {
+    if (!(await confirmAction({ title: "Delete album?", description: "Delete this album? Images will stay in your storyboard library.", confirmLabel: "Delete", destructive: true }))) return;
     setAlbums((prev) => prev.filter((album) => album.id !== albumId));
     if (activeAlbumId === albumId) setActiveAlbumId(null);
   }, [activeAlbumId]);

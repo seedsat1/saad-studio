@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, Sparkles, ImagePlus, X, Loader2, Wand2, Video, ArrowRight, Layers, Trash2 } from "lucide-react";
 import { useLanguage } from "@/lib/use-language";
 import { getTalentStudioCopy } from "@/components/influencers/talent-studio-i18n";
+import { confirmAction } from "@/lib/confirm-action";
 
 export type InfluencerItem = {
   id: string;
@@ -76,7 +77,7 @@ export function InfluencerRoster({
 
   const handleDeleteActiveInfluencer = async () => {
     if (!activeInfluencer || !onDeleteInfluencer) return;
-    if (!window.confirm(deleteConfirm)) return;
+    if (!(await confirmAction({ title: "Delete influencer?", description: deleteConfirm, confirmLabel: "Delete", destructive: true }))) return;
     setDeleting(true);
     setError(null);
     try {

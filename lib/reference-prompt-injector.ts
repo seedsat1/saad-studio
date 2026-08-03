@@ -2,7 +2,7 @@
  * Shared helper: turn Reference Studio preset selections into a prompt suffix.
  *
  * The Reference Studio's Style / Effects / Camera / Sketch tabs are prompt-only
- * modifiers — their thumbnails are just visual index cards, not references.
+ * modifiers - their thumbnails are just visual index cards, not references.
  * When the user selects one, its `systemPromptAddon` / `promptDescription`
  * must be appended to the generation prompt so the model actually applies it.
  *
@@ -16,12 +16,14 @@ import {
   HOOK_LOCATIONS,
   HOOK_CAMERAS,
   HOOK_EFFECTS,
+  HOOK_CHARACTERS,
   HOOK_SKETCHES,
 } from "./hook-studio-config";
 
 export interface PresetSelections {
   selectedStyleId?: string | null;
   selectedEffectId?: string | null;
+  selectedCharacterId?: string | null;
   selectedCameraId?: string | null;
   selectedSketchId?: string | null;
   /** Semantic hint for a built-in preset location (not the user's own uploaded one). */
@@ -37,7 +39,7 @@ export interface PresetSelections {
  * Returns "" when nothing is selected.
  *
  * Example output:
- *   "[Style: Photorealistic style, ... . Effect: #vibrant — Rich highly saturated colors ...]"
+ *   "[Style: Photorealistic style, ... . Effect: #vibrant - Rich highly saturated colors ...]"
  */
 export function buildPresetPromptSuffix(sel: PresetSelections): string {
   const parts: string[] = [];
@@ -51,6 +53,11 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
     const e = HOOK_EFFECTS.find((x) => x.id === sel.selectedEffectId);
     const addon = e?.systemPromptAddon || e?.promptDescription;
     if (addon) parts.push(`Effect (${e?.tag ?? ""}): ${addon}`);
+  }
+
+  if (sel.selectedCharacterId) {
+    const ch = HOOK_CHARACTERS.find((x) => x.id === sel.selectedCharacterId);
+    if (ch?.promptDescription) parts.push(`Character (${ch.tag}): ${ch.promptDescription}`);
   }
 
   if (sel.selectedCameraId) {
@@ -75,7 +82,7 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
 
   if (sel.selectedPalette && Array.isArray(sel.selectedPalette.colors) && sel.selectedPalette.colors.length >= 2) {
     const hex = sel.selectedPalette.colors.join(", ");
-    parts.push(`Color Palette "${sel.selectedPalette.name}" — apply this color grade using only these hex tones: ${hex}`);
+    parts.push(`Color Palette "${sel.selectedPalette.name}" - apply this color grade using only these hex tones: ${hex}`);
   }
 
   return parts.length > 0 ? ` [${parts.join(" . ")}]` : "";

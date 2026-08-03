@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { confirmAction } from "@/lib/confirm-action";
 import {
   Edit3,
   Eye,
@@ -629,7 +630,7 @@ export default function ExploreCmsPage() {
   };
 
   const deleteItem = async (item: ShowcaseItem) => {
-    if (!window.confirm(`Delete "${item.title}" from showcase?`)) return;
+    if (!(await confirmAction({ title: "Delete showcase item?", description: `Delete "${item.title}" from showcase?`, confirmLabel: "Delete", destructive: true }))) return;
     await fetch(`/api/admin/showcase/${item.id}`, { method: "DELETE" });
     if (form.id === item.id) setForm(emptyForm);
     await loadItems();

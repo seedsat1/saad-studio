@@ -1,3 +1,20 @@
+## Video Reference Studio Prompt Layer (2026-08-04)
+
+- In `/video`, Reference Studio tabs such as Style, Character, Element, Location, Color, Effects, Camera, and Sketch are model-agnostic prompt controls.
+- `withPresetsAppended()` is the shared prompt-injection path and must include built-in preset descriptions before a generation request is submitted.
+- Kling 3.0 must use the same preset-enriched prompt for single-shot generation instead of rebuilding a raw prompt that drops Reference Studio selections.
+- Uploaded media from Reference Studio must not be sent as `reference_image_urls` to models whose registry capabilities do not document image reference support. Seedance remains the special documented media-reference model with image/video/audio reference fields.
+- This is a no-guessing contract: tools may become prompt guidance for every model, but provider-specific media payload fields are used only when documented in `lib/video-model-registry.ts` capabilities.
+## Video Model Registry Dropdown Contract (2026-08-04)
+
+- The /video AI Model dropdown must render one visible row per unique WaveSpeedVideoModel.id.
+- lib/video-model-registry.ts is the source of truth for model capabilities: aspect ratios, durations, resolutions/quality, reference image/video support, character/reference limits, sound flags, and provider route.
+- Google Veo/Gemini routes that start with google/ remain handled by the dedicated Google/Veo generation path in /api/video, including google/gemini-omni-flash; non-Google provider routes continue through their documented provider mappings.
+- Do not duplicate registry blocks for speed/pro/lite variants. Add a distinct model only when it has a unique id, real provider route, and exact documented capability metadata.
+- Seedance 2.0 models are the only /video models documented to support prompt-addressable media tags: `@Image1..@Image9`, `@Video1..@Video3`, and `@Audio1..@Audio3`. Audio references require at least one image or video reference and cannot be used as text+audio/audio-only. Google Veo accepts image references only; Gemini Omni may accept a video input for editing/continuation, but Google models do not use the Seedance prompt-tag media system.
+- Multi-reference support does not automatically mean prompt-tag support. In /video, non-Seedance models may show `Image 1`, `Image 2`, etc. as reference-order labels only; they must not insert or advertise `@ImageN` prompt tags unless the provider docs explicitly support that syntax. Stale `@ImageN`/`@imgN` tags should be stripped from Google/Veo prompts before provider submission.
+- Kling 3.0 is intentionally one /video dropdown model, not four duplicated rows. The app routes it internally by input and quality: text+Standard -> `kwaivgi/kling-v3.0-std/text-to-video`, text+Pro -> `kwaivgi/kling-v3.0-pro/text-to-video`, image+Standard -> `kwaivgi/kling-v3.0-std/image-to-video`, image+Pro -> `kwaivgi/kling-v3.0-pro/image-to-video`. Motion-control must remain on `kwaivgi/kling-v3.0-pro/motion-control` and must not be caught by generic Kling fallback.
+
 ## سلوك اكتمال الصور والـ Thumbnail غير الحاجز (2026-08-02)
 
 - اكتمال نتيجة الصورة للمشترك يعتمد على حفظ `originalUrl`/`mediaUrl` فقط. لا يجوز جعل إنشاء `thumbnailUrl` شرطا لعرض الصورة أو تحميلها أو استخدامها كمرجع.
@@ -2712,3 +2729,11 @@
 - `/image` delete actions, including bulk selected deletion, must use the in-app dark confirmation card and must never call browser-native `confirm()` or `window.confirm()`.
 - The confirmation card should show the selected generation count when deleting multiple images, then call `DELETE /api/assets` only after the user presses the red Delete action.
 - Stale backup files inside active route folders must not preserve old browser-confirm delete behavior.
+
+## Site-wide Destructive Action Confirmation Contract (2026-08-03)
+
+- Active UI files under `app` and `components` must not use browser-native `confirm()` or `window.confirm()` for delete, wipe, reset, or permanent destructive actions.
+- Use the shared confirmation surface from `components/confirm-action-dialog.tsx` directly when local pending state is needed, or `confirmAction()` from `lib/confirm-action.tsx` for simple one-shot confirmations.
+- The confirmation UI should keep the dark rounded product card with `Delete selected generations?`, irreversible-delete description, `Cancel`, and red `Delete` action for destructive flows.
+- Asset deletion for generated media must still go through `DELETE /api/assets`, which performs real storage cleanup before deleting database rows. UI confirmation alone is not deletion.
+- Do not present decorative or unfinished actions in menus. The `/video` three-dots menu should only expose actions backed by concrete behavior today.

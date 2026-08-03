@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
+import { confirmAction } from "@/lib/confirm-action";
 import {
   Music2, Upload, Play, Pause, Volume2, VolumeX, Download, Share2, Copy,
   ChevronDown, ChevronUp, ChevronRight, Sparkles, X, Settings2, RefreshCw,
@@ -860,7 +861,7 @@ export default function AudioPage() {
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={async () => {
-                                  if (confirm(t("Are you sure you want to delete this track?"))) {
+                                  if (await confirmAction({ title: "Delete audio track?", description: t("Are you sure you want to delete this track?"), confirmLabel: "Delete", destructive: true })) {
                                     try {
                                       const res = await fetch("/api/assets", {
                                         method: "DELETE",

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { confirmAction } from "@/lib/confirm-action";
 import {
   LayoutDashboard,
   Users,
@@ -932,9 +933,7 @@ export default function AdminDashboard() {
 
   const handleDeleteUser = async (userId: string) => {
     const user = users.find((u) => u.id === userId);
-    const confirmed = window.confirm(
-      `⚠️ هل أنت متأكد من حذف المستخدم "${user?.email}" نهائياً؟\nلا يمكن التراجع عن هذا الإجراء.`
-    );
+    const confirmed = await confirmAction({ title: "Delete user?", description: `⚠️ هل أنت متأكد من حذف المستخدم "${user?.email}" نهائياً؟\nلا يمكن التراجع عن هذا الإجراء.`, confirmLabel: "Delete", destructive: true });
     if (!confirmed) return;
     setUsers((prev) => prev.filter((u) => u.id !== userId));
     await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });

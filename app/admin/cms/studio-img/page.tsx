@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { confirmAction } from "@/lib/confirm-action";
 import {
   ArrowLeft,
   Check,
@@ -180,7 +181,13 @@ export default function CmsStudioImgPage() {
   };
 
   const deleteItem = async (id: string) => {
-    if (!confirm("حذف هذه البطاقة نهائياً؟")) return;
+    const confirmed = await confirmAction({
+      title: "Delete selected generations?",
+      description: "This Studio Image card will be permanently deleted. This cannot be undone.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       await fetch(`/api/admin/studio-img/${id}`, { method: "DELETE" });
       setItems((prev) => prev.filter((it) => it.id !== id));
@@ -221,11 +228,14 @@ export default function CmsStudioImgPage() {
   };
 
   const runSeedImport = async (wipe: boolean) => {
-    if (
-      wipe &&
-      !confirm("سيتم مسح كل بطاقات Studio Image الموجودة قبل الاستيراد. هل تريد المتابعة؟")
-    ) {
-      return;
+    if (wipe) {
+      const confirmed = await confirmAction({
+        title: "Delete selected generations?",
+        description: "All existing Studio Image cards will be deleted before importing the seed data. This cannot be undone.",
+        confirmLabel: "Delete",
+        destructive: true,
+      });
+      if (!confirmed) return;
     }
     setImportingSeed(true);
     setImportStats(null);
@@ -817,8 +827,14 @@ function ItemEditor({
                       steps: local.steps.map((s) => (s.id === step.id ? { ...s, ...patch } : s)),
                     })
                   }
-                  onDelete={() => {
-                    if (!confirm(`حذف ${step.label || `Step ${idx + 1}`}؟`)) return;
+                  onDelete={async () => {
+                    const confirmed = await confirmAction({
+                      title: "Delete selected generations?",
+                      description: `${step.label || `Step ${idx + 1}`} will be permanently deleted. This cannot be undone.`,
+                      confirmLabel: "Delete",
+                      destructive: true,
+                    });
+                    if (!confirmed) return;
                     setLocal({ ...local, steps: local.steps.filter((s) => s.id !== step.id) });
                   }}
                   isDragging={dragId === step.id}

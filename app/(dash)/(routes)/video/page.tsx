@@ -711,8 +711,8 @@ function useVideoTranslation() {
       "Reference media": "وسائط مرجعية",
       "Reference images": "صور مرجعية",
       "Reference images mode is active; first/last frame inputs will be ignored for this generation.": "وضع مراجع الصور نشط، وسيتم تجاهل إدخالات إطارات البداية والنهاية في هذا التوليد.",
-      "Use @image1, @image2, @image3 inside prompt/shot prompts to activate references.": "استخدم @image1، @image2، @image3 داخل الوصف/لقطات الوصف لتفعيل المراجع.",
-      "Seedance maps @Image1..@Image9 from image references only; video and audio references are sent separately.": "سيدانس يقوم برسم @Image1..@Image9 من مراجع الصور فقط، ويتم إرسال مراجع الفيديو والصوت بشكل منفصل.",
+      "Kling uses Elements with @element_name, not @Image prompt tags.": "Kling يستخدم Elements بصيغة @element_name، وليس وسوم @Image داخل الوصف.",
+      "Seedance supports @Image1..@Image9, @Video1..@Video3, and @Audio1..@Audio3. Audio requires at least one image or video reference.": "Seedance يدعم @Image1..@Image9 و@Video1..@Video3 و@Audio1..@Audio3. الصوت يحتاج صورة أو فيديو مرجعي واحد على الأقل.",
       "AI Model": "نموذج الذكاء الاصطناعي",
       "Character Reference": "مرجع الشخصية",
       "No saved character": "لا توجد شخصية محفوظة",
@@ -868,7 +868,7 @@ function useVideoTranslation() {
       "Estimated cost:": "التكلفة التقديرية:",
       "Both slots have the same image!": "كلا الحقلين يحتويان على نفس الصورة!",
       "First/last frame inputs will be ignored.": "سيتم تجاهل إدخالات إطارات البداية والنهاية.",
-      "Use @image1, @image2, @image3 inside prompt": "استخدم @image1، @image2، @image3 داخل الوصف",
+      "Kling uses Elements with @element_name": "Kling يستخدم Elements بصيغة @element_name",
       "Element": "عنصر",
       "Element name": "اسم العنصر",
       "Element description": "وصف العنصر",
@@ -1121,8 +1121,16 @@ function isSeedanceV2VideoModel(model: WaveSpeedVideoModel): boolean {
   return model.id.startsWith("bytedance-seedance-v2");
 }
 
+function isKling30Route(route: string): boolean {
+  return route.startsWith("kwaivgi/kling-v3.0-") && !route.includes("/motion-control");
+}
+
+function supportsPromptReferenceTags(model: WaveSpeedVideoModel): boolean {
+  return model.id.startsWith("bytedance-seedance-v2");
+}
+
 function getReferenceFileLimits(model: WaveSpeedVideoModel) {
-  const isKling30 = model.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+  const isKling30 = isKling30Route(model.api_route);
   return {
     images: isKling30 ? 3 : Math.max(0, model.capabilities.max_reference_images || 0),
     videos: Math.max(0, model.capabilities.max_reference_videos || 0),
@@ -2410,8 +2418,7 @@ function VideoPageInner() {
     const multiOn = caps.has_multi_prompt && (multiPrompts.length > 1 || multiPrompts[0] !== "");
 
     // Kling 3.0 detected early — its own validation runs inside the block below
-    const isKling30VideoEarly =
-      selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+    const isKling30VideoEarly = isKling30Route(selectedModel.api_route);
     const isKling30StdImageEarly =
       selectedModel.api_route === "kwaivgi/kling-v3.0-std/image-to-video" ||
       selectedModel.api_route === "kwaivgi/kling-v3.0-pro/image-to-video";
@@ -2601,6 +2608,7 @@ function VideoPageInner() {
       const promptedWithPresets = withPresetsAppended(promptedText, {
         selectedStyleId: selectedStyle,
         selectedEffectId,
+        selectedCharacterId: selectedCharacterPresetId,
         selectedCameraId,
         selectedSketchId,
         selectedLocationId,
@@ -2610,8 +2618,7 @@ function VideoPageInner() {
       payload.prompt = toolPrefix ? `${toolPrefix} ${promptedWithPresets}` : promptedWithPresets;
 
       const isSeedanceV2 = selectedModel.id.startsWith("bytedance-seedance-v2");
-      const isKling30Video =
-        selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+      const isKling30Video = isKling30Route(selectedModel.api_route);
       const isKlingElementModel = selectedModel.family === "kling" && caps.has_element_list;
       const isKling30StdImage =
         selectedModel.api_route === "kwaivgi/kling-v3.0-std/image-to-video" ||
@@ -2677,13 +2684,13 @@ function VideoPageInner() {
         } else if (uploadedImageRefs[1]) {
           payload.end_image = uploadedImageRefs[1];
         }
-      } else if (referenceImages.length > 0 || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)) {
+      } else if ((isSeedanceV2 && referenceImages.length > 0) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
         if (isSeedanceV2) {
           // Split unified referenceImages by type → 3 separate KIE fields
           const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
           const refVids  = referenceImages.filter(f => f.type.startsWith("video/"));
           const refAuds  = referenceImages.filter(f => f.type.startsWith("audio/"));
-          const seedanceImageLimit = Math.max(1, Math.min(2, caps.max_reference_images || 2));
+          const seedanceImageLimit = Math.max(1, Math.min(9, caps.max_reference_images || 9));
           const explicitStartImage = startFrame
             ? await fileToDataURL(startFrame)
             : linkedStartFrameUrl
@@ -2700,10 +2707,6 @@ function VideoPageInner() {
             payload.first_frame_url = mergedImageRefs[0];
             payload.reference_image_urls = mergedImageRefs;
           }
-          if (mergedImageRefs[1]) {
-            payload.last_image = mergedImageRefs[1];
-            payload.last_frame_url = mergedImageRefs[1];
-          }
           if (refVids.length > 0)
             payload.reference_video_urls = await Promise.all(refVids.slice(0, 3).map(f => fileToDataURL(f)));
           if (refAuds.length > 0)
@@ -2715,7 +2718,7 @@ function VideoPageInner() {
             payload.last_frame_url = explicitEndImage;
           }
         } else {
-          const uploadedRefs = await Promise.all(referenceImages.map((f) => fileToDataURL(f)));
+          const uploadedRefs = await Promise.all(referenceImages.filter((f) => f.type.startsWith("image/")).map((f) => fileToDataURL(f)));
           payload.reference_image_urls = [...characterReferenceUrls, ...uploadedRefs].slice(0, Math.max(1, caps.max_reference_images || 1));
         }
       } else if ((caps.requires_image || caps.optional_image) && startFrame) {
@@ -2956,7 +2959,7 @@ function VideoPageInner() {
         payload.sound = !!sound;
         payload.duration = resolvedDuration;
         payload.aspect_ratio = targetKlingRatio;
-        const rawKlingPrompt = toolPrefix ? `${toolPrefix} ${promptedText.trim()}` : promptedText.trim();
+        const rawKlingPrompt = toolPrefix ? `${toolPrefix} ${promptedWithPresets.trim()}` : promptedWithPresets.trim();
         payload.prompt = kling30MultiEnabled ? "" : compactKlingSingleShotPrompt(rawKlingPrompt);
 
         if (validKlingEls.length > 0 || selectedCharacterElement) {
@@ -3026,9 +3029,21 @@ function VideoPageInner() {
             ? "bytedance/seedance-2.0/image-to-video"
             : "bytedance/seedance-2.0/text-to-video";
         }
+      } else if (isKling30Route(requestModelRoute)) {
+        const normalizedKlingQuality = typeof payload.mode === "string"
+          ? payload.mode.toLowerCase()
+          : typeof payload.resolution === "string"
+            ? payload.resolution.toLowerCase()
+            : typeof payload.quality === "string"
+              ? payload.quality.toLowerCase()
+              : "std";
+        const wantsKlingPro = normalizedKlingQuality === "pro" || normalizedKlingQuality === "1080p";
+        requestModelRoute = payloadHasImageInput
+          ? (wantsKlingPro ? "kwaivgi/kling-v3.0-pro/image-to-video" : "kwaivgi/kling-v3.0-std/image-to-video")
+          : (wantsKlingPro ? "kwaivgi/kling-v3.0-pro/text-to-video" : "kwaivgi/kling-v3.0-std/text-to-video");
       }
       if (
-        requestModelRoute === "kwaivgi/kling-v3.0-pro/text-to-video" ||
+        isKling30Route(requestModelRoute) ||
         requestModelRoute === "bytedance/seedance-v2/text-to-video" ||
         requestModelRoute === "bytedance/seedance-v2/text-to-video-fast" ||
         requestModelRoute.startsWith("bytedance/seedance-2.0")
@@ -3074,7 +3089,7 @@ function VideoPageInner() {
 
       // Show the ratio the user explicitly requested. Kling frames are normalized
       // to this ratio before submit, so the pending/result card should match it.
-      const isKling30 = selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+      const isKling30 = isKling30Route(selectedModel.api_route);
       const _capturedRatio = isKling30
         ? (aspectRatio ?? "16:9")
         : (aspectRatio ?? (size ? sizeToRatio(size) : "16:9"));
@@ -3121,7 +3136,7 @@ function VideoPageInner() {
     activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isVeo31Model, isVeo31FastModel, isVeo31FixedEightSecond,
     startFrame, linkedStartFrameUrl, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
-    sceneControl, orientation, startPolling,
+    sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId, selectedPalette, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
     estimatedCredits, getSafeErrorMessage, guardGeneration,
   ]);
@@ -3132,8 +3147,7 @@ function VideoPageInner() {
     ? BADGE_STYLE[selectedModel.badge as keyof typeof BADGE_STYLE]
     : null;
 
-  const isKling30Video =
-    selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+  const isKling30Video = isKling30Route(selectedModel.api_route);
   const isKlingElementModel = selectedModel.family === "kling" && caps.has_element_list;
   const isKling30Image =
     selectedModel.api_route === "kwaivgi/kling-v3.0-std/image-to-video" ||
@@ -3174,6 +3188,7 @@ function VideoPageInner() {
   const isSeedanceV2Model = selectedModel.id.startsWith("bytedance-seedance-v2");
   const referenceFileSummary = getReferenceFileSummary(referenceImages, selectedModel);
   const referenceFileMaxLabel = getReferenceFileMaxLabel(selectedModel);
+  const promptReferenceTagsEnabled = supportsPromptReferenceTags(selectedModel);
   const hasRequiredImageInput =
     !caps.requires_image || !!startFrame || !!linkedStartFrameUrl || referenceImages.length > 0 || Boolean(selectedCharacter?.referenceUrls?.length);
   const hasRequiredVideoInput = !caps.requires_video || !!motionVideo;
@@ -3349,10 +3364,10 @@ function VideoPageInner() {
           }}
         >
           {/* Top Section inside Card: Reference Badges */}
-          {referenceImages.length > 0 && (
+          {referenceImages.some((file) => file.type.startsWith("image/")) && (
             <div className="flex flex-wrap gap-2 items-center pb-2.5 border-b border-white/[0.06]">
               <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mr-1 flex items-center gap-1">
-                <Sparkles size={11} className="text-cyan-400" /> {t("Click to insert reference:")}
+                <Sparkles size={11} className="text-cyan-400" /> {promptReferenceTagsEnabled ? t("Click to insert reference:") : "Reference order:"}
               </span>
               {(() => {
                 let imageCount = 0;
@@ -3360,22 +3375,24 @@ function VideoPageInner() {
                   const isImage = file.type.startsWith("image/");
                   if (!isImage) return null;
                   imageCount++;
-                  const tag = `@image${imageCount}`;
+                  const tag = `@Image${imageCount}`;
+                  const label = promptReferenceTagsEnabled ? tag : `Image ${imageCount}`;
                   const previewSrc = referencePreviews[idx];
                   return (
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => {
+                      disabled={!promptReferenceTagsEnabled}
+                      onClick={promptReferenceTagsEnabled ? () => {
                         setPrompt(prev => prev ? `${prev} ${tag}` : tag);
-                      }}
-                      className="flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-[1.03] active:scale-[0.97] shadow-sm"
+                      } : undefined}
+                      className={`flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-semibold shadow-sm ${promptReferenceTagsEnabled ? "transition-all hover:scale-[1.03] active:scale-[0.97]" : "cursor-default"}`}
                       style={{
                         background: "rgba(6, 182, 212, 0.12)",
                         border: "1px solid rgba(6, 182, 212, 0.3)",
                         color: "#22d3ee",
                       }}
-                      title={lang === "ar" ? `انقر لإدراج ${tag} في الوصف` : `Click to insert ${tag} into prompt`}
+                      title={promptReferenceTagsEnabled ? `Click to insert ${tag} into prompt` : "Reference image order sent to the model"}
                     >
                       {previewSrc && (
                         <img
@@ -3384,7 +3401,7 @@ function VideoPageInner() {
                           className="w-5 h-5 rounded object-cover border border-cyan-500/30"
                         />
                       )}
-                      <span className="font-mono text-[10px]">{tag}</span>
+                      <span className="font-mono text-[10px]">{label}</span>
                     </button>
                   );
                 });
@@ -3419,8 +3436,6 @@ function VideoPageInner() {
               placeholder={
                 activeTool === "lipsync"
                   ? t("Lipsync prompt (optional) e.g., talk naturally, smile...")
-                  : isKling30Video
-                  ? t("Describe the video… use @image1 for references")
                   : t("Describe the video you want to create…")
               }
               className="w-full bg-transparent outline-none text-[13.5px] sm:text-[14px] resize-y min-h-[64px] max-h-[220px] p-1.5 leading-relaxed overflow-y-auto custom-scrollbar"
@@ -4372,7 +4387,7 @@ function VideoPageInner() {
                       <div className="flex flex-wrap gap-2 items-center">
                         {imageFiles.map((file, idx) => {
                           imageIdx++;
-                          const tag = `@image${imageIdx}`;
+                          const tag = promptReferenceTagsEnabled ? `@Image${imageIdx}` : `Image ${imageIdx}`;
                           const previewSrc = referencePreviews[referenceImages.indexOf(file)];
                           return (
                             <div
@@ -4399,9 +4414,9 @@ function VideoPageInner() {
                   })()}
                   <p className="text-[10px]" style={{ color: "#a1a1aa" }}>
                     {showSimpleKlingRefs
-                      ? "Use @image1, @image2, @image3 inside prompt/shot prompts to activate references."
+                      ? "Kling uses Elements with @element_name, not @Image prompt tags."
                       : isSeedanceV2Model
-                        ? "Seedance maps @Image1..@Image9 from image references only; video and audio references are sent separately."
+                        ? "Seedance supports @Image1..@Image9, @Video1..@Video3, and @Audio1..@Audio3. Audio requires at least one image or video reference."
                         : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
                   </p>
                 </div>
@@ -5413,7 +5428,7 @@ function VideoPageInner() {
                     <textarea
                       value={mp}
                       onChange={e => setMultiPrompts(prev => prev.map((v, idx) => idx === i ? e.target.value : v))}
-                      placeholder={isKling30Video ? `Shot ${i + 1} scene… use @image${Math.min(i + 1, 3)}` : `Shot ${i + 1} scene…`}
+                      placeholder={`Shot ${i + 1} scene…`}
                       rows={2}
                       className="w-full bg-transparent rounded-lg px-3 py-2 pr-16 text-[12px] outline-none resize-none"
                       style={{
@@ -5499,7 +5514,7 @@ function VideoPageInner() {
                     <textarea
                       value={mp}
                       onChange={e => setMultiPrompts(prev => prev.map((v, idx) => idx === i ? e.target.value : v))}
-                      placeholder={isKling30Video ? `Shot ${i + 1} scene… use @image${Math.min(i + 1, 3)}` : `Shot ${i + 1} scene…`}
+                      placeholder={`Shot ${i + 1} scene…`}
                       rows={2}
                       className="w-full bg-transparent rounded-lg px-3 py-2 pr-7 text-[12px] outline-none resize-none"
                       style={{
@@ -6143,12 +6158,12 @@ function VideoPageInner() {
                     </button>
                     {showSimpleKlingRefs && (
                       <p className="text-[10px] mt-1" style={{ color: "#94a3b8" }}>
-                        Use @image1, @image2, @image3 in your prompt
+                        Kling uses Elements with @element_name
                       </p>
                     )}
                     {isSeedanceV2Model && referenceImages.length > 0 && (
                       <p className="text-[10px] mt-1" style={{ color: "#94a3b8" }}>
-                        @Image1..@Image9 follow image reference order only.
+                        @Image1..@Image9, @Video1..@Video3, and @Audio1..@Audio3 follow reference order. Audio cannot be used alone.
                       </p>
                     )}
                   </div>

@@ -2,6 +2,7 @@
 
 import { ChangeEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { confirmAction } from "@/lib/confirm-action";
 import {
   ArrowLeft,
   ArrowUpDown,
@@ -402,8 +403,8 @@ export default function StudioImgPage() {
     setEditorOpen(false);
   };
 
-  const removeItem = (id: string) => {
-    if (!window.confirm("Delete this item?")) return;
+  const removeItem = async (id: string) => {
+    if (!(await confirmAction({ title: "Delete Studio Image item?", description: "Delete this item? This cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     setItems((prev) => prev.filter((item) => item.id !== id));
     if (detailItem?.id === id) setDetailItem(null);
     if (lightboxItem?.id === id) setLightboxItem(null);
@@ -414,9 +415,9 @@ export default function StudioImgPage() {
     });
   };
 
-  const bulkDelete = () => {
+  const bulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    if (!window.confirm(`Delete ${selectedIds.size} item(s)?`)) return;
+    if (!(await confirmAction({ title: "Delete selected Studio Image items?", description: `${selectedIds.size} item(s) will be permanently deleted. This cannot be undone.`, confirmLabel: "Delete", destructive: true }))) return;
     setItems((prev) => prev.filter((item) => !selectedIds.has(item.id)));
     setSelectedIds(new Set());
     setSelectionMode(false);
@@ -443,8 +444,14 @@ export default function StudioImgPage() {
 
 
 
-  const reloadSeed = () => {
-    if (!window.confirm("سيتم استبدال المكتبة الحالية بنسخة البذرة الأصلية. متابعة؟")) return;
+  const reloadSeed = async () => {
+    const confirmed = await confirmAction({
+      title: "Delete selected generations?",
+      description: "The current Studio Image library will be replaced with the original seed library. This cannot be undone.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!confirmed) return;
     window.localStorage.removeItem(STORAGE_KEY);
     window.localStorage.removeItem(SEED_KEY);
     window.location.href = `${window.location.pathname}?fresh=${Date.now()}`;
@@ -859,8 +866,8 @@ export default function StudioImgPage() {
               setSettingsOpen(false);
               reloadSeed();
             }}
-            onClearAll={() => {
-              if (!window.confirm("All data will be deleted permanently. Continue?")) return;
+            onClearAll={async () => {
+              if (!(await confirmAction({ title: "Clear Studio Image data?", description: "All data will be deleted permanently. Continue?", confirmLabel: "Delete", destructive: true }))) return;
               window.localStorage.removeItem(STORAGE_KEY);
               window.localStorage.removeItem(CATEGORY_KEY);
               window.localStorage.removeItem(MODEL_KEY);
@@ -1619,8 +1626,14 @@ function DetailView({
               onToggleEdit={() => setEditStepId(editStepId === step.id ? null : step.id)}
               onUpdate={(patch) => onUpdateStep(step.id, patch)}
               onCopy={() => onCopy(`step_${step.id}`, step.content)}
-              onDelete={() => {
-                if (window.confirm("حذف هذه الخطوة؟")) onDeleteStep(step.id);
+              onDelete={async () => {
+                const confirmed = await confirmAction({
+                  title: "Delete selected generations?",
+                  description: "This step will be permanently deleted. This cannot be undone.",
+                  confirmLabel: "Delete",
+                  destructive: true,
+                });
+                if (confirmed) onDeleteStep(step.id);
               }}
               onDragStart={() => setDragId(step.id)}
               onDragOver={() => setDragOverId(step.id)}
@@ -2715,8 +2728,14 @@ function CategoryManagerModal({
                       {count}
                     </span>
                     <button
-                      onClick={() => {
-                        if (!window.confirm(`حذف "${cat}"؟`)) return;
+                      onClick={async () => {
+                        const confirmed = await confirmAction({
+                          title: "Delete selected generations?",
+                          description: `Category "${cat}" will be removed from this library. This cannot be undone.`,
+                          confirmLabel: "Delete",
+                          destructive: true,
+                        });
+                        if (!confirmed) return;
                         setCategories(categories.filter((c) => c !== cat));
                       }}
                       className="flex h-7 w-7 items-center justify-center rounded-lg text-pink-300 hover:bg-pink-500/20"
@@ -2810,8 +2829,14 @@ function ModelManagerModal({
                     />
                     <span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-bold text-slate-400">{count}</span>
                     <button
-                      onClick={() => {
-                        if (!window.confirm(`حذف "${m}"؟`)) return;
+                      onClick={async () => {
+                        const confirmed = await confirmAction({
+                          title: "Delete selected generations?",
+                          description: `Model "${m}" will be removed from this library. This cannot be undone.`,
+                          confirmLabel: "Delete",
+                          destructive: true,
+                        });
+                        if (!confirmed) return;
                         setModels(models.filter((x) => x !== m));
                       }}
                       className="flex h-7 w-7 items-center justify-center rounded-lg text-pink-300 hover:bg-pink-500/20"

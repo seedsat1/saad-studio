@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { Folder, Download, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { confirmAction } from "@/lib/confirm-action";
 
 type AssetRecord = {
   id: string;
@@ -85,7 +86,7 @@ export function LibraryStudio() {
   }, [loadAssets]);
 
   const handleDeleteAsset = async (id: string) => {
-    if (!window.confirm("Delete this media item?")) return;
+    if (!(await confirmAction({ title: "Delete media item?", description: "This media item will be permanently deleted. This cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     setDeletingId(id);
     setError(null);
     try {

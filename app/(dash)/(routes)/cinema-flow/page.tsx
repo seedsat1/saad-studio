@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useTransition } from "react";
 import { useUser } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
+import { confirmAction } from "@/lib/confirm-action";
 import {
   Search, Sliders, Play, Plus, HelpCircle, Settings, X, Edit,
   Send, Sparkles, AlertCircle, Loader2, Image as ImageIcon,
@@ -1456,7 +1457,7 @@ export default function CinemaFlowPage() {
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
-                              if (confirm(`Are you sure you want to delete ${character.name}?`)) {
+                              if (await confirmAction({ title: "Delete character?", description: `Are you sure you want to delete ${character.name}?`, confirmLabel: "Delete", destructive: true })) {
                                 await handleDeleteCharacter(character.id);
                               }
                             }}
@@ -1563,7 +1564,7 @@ export default function CinemaFlowPage() {
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
-                              if (confirm("Are you sure you want to delete this asset?")) {
+                              if (await confirmAction({ title: "Delete asset?", description: "Are you sure you want to delete this asset?", confirmLabel: "Delete", destructive: true })) {
                                 await handleDeleteAsset(asset.id);
                               }
                             }}

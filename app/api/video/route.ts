@@ -48,6 +48,7 @@ const LOCKED_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   // These are high-traffic paid routes. Keep them immutable so a catalog sync or
   // env override can never accidentally submit a Kling request as Seedance, or
   // the reverse. New aliases can still be added below the lock.
+  "kwaivgi/kling-v3.0-std/text-to-video": "kling-3.0/video",
   "kwaivgi/kling-v3.0-pro/text-to-video": "kling-3.0/video",
   "kwaivgi/kling-v3.0-pro/motion-control": "kling-3.0/motion-control",
   "bytedance/seedance-v2/text-to-video": "bytedance/seedance-2",
@@ -85,7 +86,7 @@ function payloadHasImageInput(payload: Record<string, unknown>): boolean {
 
 function stripPromptReferenceTags(value: unknown): string {
   if (typeof value !== "string") return "";
-  return value.replace(/@image[1-9]\b/gi, "").trim();
+  return value.replace(/@(image|img)[1-9]\b/gi, "").trim();
 }
 
 function providerFailureMessage(payload: Record<string, unknown> | null, status: number) {
@@ -1972,15 +1973,22 @@ export async function POST(req: Request) {
     }
 
     const hasImage = payloadHasImageInput(payload);
+    const hasSeedanceReferenceVideo =
+      Array.isArray(payload.reference_video_urls) &&
+      payload.reference_video_urls.some((value) => typeof value === "string" && value.trim().length > 0);
+    const hasSeedanceReferenceAudio =
+      Array.isArray(payload.reference_audio_urls) &&
+      payload.reference_audio_urls.some((value) => typeof value === "string" && value.trim().length > 0);
 
     // Canonical Route Normalization & Auto-routing between Text-to-Video and Image-to-Video
     if (modelRoute.includes("seedance")) {
+      const hasSeedanceReferenceMedia = hasImage || hasSeedanceReferenceVideo || hasSeedanceReferenceAudio;
       if (modelRoute.includes("mini")) {
-        modelRoute = hasImage ? "bytedance/seedance-2.0-mini/image-to-video" : "bytedance/seedance-2.0-mini/text-to-video";
+        modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0-mini/image-to-video" : "bytedance/seedance-2.0-mini/text-to-video";
       } else if (modelRoute.includes("fast") || modelRoute.includes("turbo")) {
-        modelRoute = hasImage ? "bytedance/seedance-2.0/image-to-video-turbo" : "bytedance/seedance-2.0/text-to-video-turbo";
+        modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0/image-to-video-turbo" : "bytedance/seedance-2.0/text-to-video-turbo";
       } else {
-        modelRoute = hasImage ? "bytedance/seedance-2.0/image-to-video" : "bytedance/seedance-2.0/text-to-video";
+        modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0/image-to-video" : "bytedance/seedance-2.0/text-to-video";
       }
     } else if (modelRoute.includes("kling")) {
       const requestedKlingTier = typeof payload?.quality === "string"
@@ -2024,17 +2032,17 @@ export async function POST(req: Request) {
         modelRoute = `kwaivgi/kling-v2.6-${tier}/${hasImage ? "image-to-video" : "text-to-video"}`;
       } else if (modelRoute.includes("v2-5-turbo")) {
         modelRoute = hasImage ? "kling/v2-5-turbo-image-to-video-pro" : "kling/v2-5-turbo-text-to-video-pro";
-      } else if (modelRoute.includes("v3.0-pro/image-to-video")) {
-        modelRoute = "kwaivgi/kling-v3.0-pro/image-to-video";
-      } else if (modelRoute.includes("v3.0-std")) {
-        modelRoute = "kwaivgi/kling-v3.0-std/image-to-video";
-      } else if (modelRoute.includes("kling-v3.0-pro")) {
+      } else if (modelRoute.includes("motion-control")) {
+        modelRoute = "kwaivgi/kling-v3.0-pro/motion-control";
+      } else if (modelRoute.includes("kling-v3.0")) {
         modelRoute = hasImage
           ? (wantsKlingPro ? "kwaivgi/kling-v3.0-pro/image-to-video" : "kwaivgi/kling-v3.0-std/image-to-video")
-          : "kwaivgi/kling-v3.0-pro/text-to-video";
+          : (wantsKlingPro ? "kwaivgi/kling-v3.0-pro/text-to-video" : "kwaivgi/kling-v3.0-std/text-to-video");
       } else {
-        // Kling 3.0 / Kling O3
-        modelRoute = "kwaivgi/kling-v3.0-pro/text-to-video";
+        // Generic Kling 3.0 alias.
+        modelRoute = hasImage
+          ? (wantsKlingPro ? "kwaivgi/kling-v3.0-pro/image-to-video" : "kwaivgi/kling-v3.0-std/image-to-video")
+          : (wantsKlingPro ? "kwaivgi/kling-v3.0-pro/text-to-video" : "kwaivgi/kling-v3.0-std/text-to-video");
       }
     } else if (modelRoute.includes("seedream")) {
       modelRoute = "bytedance/seedream-v5.0-pro/edit";
@@ -2067,6 +2075,7 @@ export async function POST(req: Request) {
     const isWaveSpeedOnlyModel = 
       modelRoute.startsWith("bytedance/seedance-2.0") ||
       modelRoute.includes("seedance") ||
+      modelRoute === "kwaivgi/kling-v3.0-std/text-to-video" ||
       modelRoute === "kwaivgi/kling-v3.0-std/image-to-video" ||
       modelRoute === "kwaivgi/kling-v3.0-pro/image-to-video" ||
       modelRoute === "kwaivgi/kling-v3-turbo-std/image-to-video" ||
@@ -2411,7 +2420,7 @@ export async function POST(req: Request) {
 
     // ── Direct Google Gemini video path (no KIE, no WaveSpeed) ───────────────
     if (isVeoModelRoute) {
-      const prompt = typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 5000) : "";
+      const prompt = typeof payload.prompt === "string" ? sanitizePrompt(stripPromptReferenceTags(payload.prompt), 5000) : "";
       if (!prompt) {
         return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
       }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, ImageIcon, Video, Music, Box, FileText, Trash2, Download, RefreshCw, X, ChevronLeft, ChevronRight, Copy, Check, ExternalLink, FolderPlus, Folder, CheckSquare, Square, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 
 type AssetType = "image" | "video" | "audio" | "3d" | "text";
 type FilterValue = "all" | "image" | "video" | "audio" | "3d";
@@ -19,6 +20,8 @@ interface GalleryAsset {
   date?: string;
   createdAt?: string;
 }
+
+type PendingConfirm = { title: string; description: string; action: () => Promise<void> | void };
 
 interface AssetCounts {
   all: number;
@@ -79,6 +82,8 @@ export default function GalleryPage() {
   const [copied, setCopied] = useState(false);
   const [referenceSaved, setReferenceSaved] = useState(false);
   const lightboxRef = useRef<HTMLDivElement>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   // Selection mode + multi-select state
   const [selectionMode, setSelectionMode] = useState(false);
@@ -160,7 +165,7 @@ export default function GalleryPage() {
     return counts[activeFilter];
   }, [activeFilter, counts]);
 
-  const onDelete = useCallback(async (id: string) => {
+  const performDelete = useCallback(async (id: string) => {
     try {
       const res = await fetch("/api/assets", {
         method: "DELETE",
@@ -180,11 +185,18 @@ export default function GalleryPage() {
     }
   }, [activeFilter, loadAssets]);
 
+  const requestDelete = useCallback((id: string) => {
+    setPendingConfirm({
+      title: "Delete selected generations?",
+      description: "Selected generation will be permanently deleted. This cannot be undone.",
+      action: () => performDelete(id),
+    });
+  }, [performDelete]);
+
   // Bulk delete selected assets in one API call
-  const onBulkDelete = useCallback(async () => {
+  const performBulkDelete = useCallback(async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    if (typeof window !== "undefined" && !window.confirm(`Delete ${ids.length} item(s)? This cannot be undone.`)) return;
     try {
       const res = await fetch("/api/assets", {
         method: "DELETE",
@@ -206,6 +218,16 @@ export default function GalleryPage() {
       setError(e instanceof Error ? e.message : "Bulk delete failed");
     }
   }, [selectedIds, activeFilter, loadAssets]);
+
+  const requestBulkDelete = useCallback(() => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setPendingConfirm({
+      title: "Delete selected generations?",
+      description: `${ids.length} selected generations will be permanently deleted. This cannot be undone.`,
+      action: () => performBulkDelete(),
+    });
+  }, [performBulkDelete, selectedIds]);
 
   // Add selected assets to an album (creates the album if it doesn't exist)
   const addSelectionToAlbum = useCallback((albumId: string) => {
@@ -233,9 +255,14 @@ export default function GalleryPage() {
   }, []);
 
   const deleteAlbum = useCallback((albumId: string) => {
-    if (typeof window !== "undefined" && !window.confirm("Delete this album? Items will not be deleted.")) return;
-    setAlbums((prev) => prev.filter((a) => a.id !== albumId));
-    if (activeAlbumId === albumId) setActiveAlbumId(null);
+    setPendingConfirm({
+      title: "Delete selected generations?",
+      description: "This album will be permanently deleted from the gallery. Items inside it will not be deleted.",
+      action: () => {
+        setAlbums((prev) => prev.filter((a) => a.id !== albumId));
+        if (activeAlbumId === albumId) setActiveAlbumId(null);
+      },
+    });
   }, [activeAlbumId]);
 
   // Lightbox navigation helpers
@@ -485,7 +512,7 @@ export default function GalleryPage() {
                   </button>
                 )}
                 <button
-                  onClick={() => void onDelete(lightboxAsset.id)}
+                  onClick={() => requestDelete(lightboxAsset.id)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-200 hover:bg-red-500/20 transition-colors ml-auto"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -582,7 +609,7 @@ export default function GalleryPage() {
                     <FolderPlus className="h-3.5 w-3.5" />
                     Add to album
                   </button>
-                  <button onClick={() => void onBulkDelete()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/40 bg-red-500/10 text-xs text-red-200 hover:bg-red-500/20">
+                  <button onClick={requestBulkDelete} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/40 bg-red-500/10 text-xs text-red-200 hover:bg-red-500/20">
                     <Trash2 className="h-3.5 w-3.5" />
                     Delete selected
                   </button>
@@ -735,7 +762,7 @@ export default function GalleryPage() {
                       </a>
                     ) : null}
                     <button
-                      onClick={() => void onDelete(asset.id)}
+                      onClick={() => requestDelete(asset.id)}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-200 hover:bg-red-500/20"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -771,6 +798,20 @@ export default function GalleryPage() {
           </div>
         ) : null}
       </div>
+
+      <ConfirmActionDialog
+        open={Boolean(pendingConfirm)}
+        title={pendingConfirm?.title}
+        description={pendingConfirm?.description}
+        confirmLabel="Delete"
+        destructive
+        onCancel={() => setPendingConfirm(null)}
+        onConfirm={async () => {
+          const action = pendingConfirm?.action;
+          setPendingConfirm(null);
+          await action?.();
+        }}
+      />
     </div>
   );
 }

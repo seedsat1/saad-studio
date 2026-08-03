@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type ElementType, type React
 import Link from "next/link";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useLanguage } from "@/lib/use-language";
+import { confirmAction } from "@/lib/confirm-action";
 import {
   Settings,
   User,
@@ -562,7 +563,10 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = async () => {
     if (!user) return;
-    const ok = window.confirm(t("Delete account permanently? This action cannot be undone."));
+    const ok = await confirmAction({
+      title: t("Delete account permanently?"),
+      description: t("Delete account permanently? This action cannot be undone."),
+    });
     if (!ok) return;
     setDeleteBusy(true);
     setSettingsError("");

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { confirmAction } from "@/lib/confirm-action";
 import {
   Sparkles,
   User,
@@ -573,9 +574,7 @@ export function ReferenceStudioModal({
       locations: isAr ? "هذا الموقع" : "this location",
       palettes: isAr ? "هذه اللوحة" : "this palette",
     };
-    const ok = window.confirm(
-      (isAr ? `حذف ${labels[kind]}؟ لا يمكن التراجع.` : `Delete ${labels[kind]}? This cannot be undone.`),
-    );
+    const ok = await confirmAction({ title: "Delete reference?", description: (isAr ? `حذف ${labels[kind]}؟ لا يمكن التراجع.` : `Delete ${labels[kind]}? This cannot be undone.`), confirmLabel: "Delete", destructive: true });
     if (!ok) return;
     try {
       const res = await fetch(`/api/${kind}/${id}`, { method: "DELETE" });

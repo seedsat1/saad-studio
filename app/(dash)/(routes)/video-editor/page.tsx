@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { confirmAction } from "@/lib/confirm-action";
 
 const LAST_OPENED_PROJECT_KEY = "videoEditor.lastOpenedProjectId";
 const RELOAD_RESUME_PROJECT_KEY = "videoEditor.reloadResumeProjectId";
@@ -247,7 +248,7 @@ export default function VideoEditorPage() {
 
   async function deleteProject(id: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!confirm("Delete this project? This cannot be undone.")) return;
+    if (!(await confirmAction({ title: "Delete project?", description: "Delete this project? This cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     setDeletingId(id);
     try {
       await fetch("/api/editor/projects", {
