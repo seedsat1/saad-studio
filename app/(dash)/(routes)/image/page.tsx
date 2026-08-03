@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, type ChangeEvent, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, type ChangeEvent, type DragEvent, type MouseEvent } from "react";
 import { useAuth } from "@clerk/nextjs";
 import {
   Aperture,
@@ -9,6 +9,7 @@ import {
   Camera,
   Check,
   ChevronDown,
+  Copy,
   Download,
   Eye,
   Folder,
@@ -19,8 +20,10 @@ import {
   ScanFace,
   Search,
   Settings2,
+  ShieldAlert,
   SlidersHorizontal,
   Sparkles,
+  Trash2,
   UploadCloud,
   Wand2,
   X,
@@ -176,6 +179,10 @@ type ResultItem = {
   prompt: string;
   aspect: string;
   isPending?: boolean;
+  status?: string;
+  isFailed?: boolean;
+  failureReason?: string;
+  creditsRefunded?: boolean;
 };
 
 function resultOriginalUrl(item: ResultItem): string {
@@ -186,18 +193,41 @@ function resultThumbnailUrl(item: ResultItem): string {
   return item.thumbnailUrl || item.url;
 }
 
+function normalizeGenerationError(value?: string | null): string {
+  const text = String(value || "").trim();
+  if (!text) return "Generation failed. Please try again.";
+  return text
+    .replace(/^failed:\s*/i, "")
+    .replace(/^error:\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim() || "Generation failed. Please try again.";
+}
+
+function imageFailureTitle(reason?: string | null): string {
+  const lower = normalizeGenerationError(reason).toLowerCase();
+  if (lower.includes("restricted") || lower.includes("content") || lower.includes("policy") || lower.includes("copyright")) {
+    return "Restricted content detected";
+  }
+  return "Generation failed";
+}
+
 function mapAssetToResultItem(asset: any, fallback?: Partial<ResultItem>): ResultItem {
+  const isFailed = Boolean(asset?.isFailed || ["failed", "error", "cancelled", "canceled"].includes(String(asset?.status || "").toLowerCase()));
   return {
     id: String(asset?.id || fallback?.id || uid("img")),
-    url: String(asset?.originalUrl || asset?.url || fallback?.url || ""),
-    originalUrl: String(asset?.originalUrl || asset?.url || fallback?.originalUrl || fallback?.url || ""),
-    thumbnailUrl: typeof asset?.thumbnailUrl === "string" ? asset.thumbnailUrl : fallback?.thumbnailUrl,
+    url: isFailed ? "" : String(asset?.originalUrl || asset?.url || fallback?.url || ""),
+    originalUrl: isFailed ? "" : String(asset?.originalUrl || asset?.url || fallback?.originalUrl || fallback?.url || ""),
+    thumbnailUrl: isFailed ? undefined : (typeof asset?.thumbnailUrl === "string" ? asset.thumbnailUrl : fallback?.thumbnailUrl),
     width: typeof asset?.width === "number" ? asset.width : fallback?.width,
     height: typeof asset?.height === "number" ? asset.height : fallback?.height,
     tool: fallback?.tool || "create",
     model: String(asset?.model || fallback?.model || "Image"),
     prompt: String(asset?.prompt || fallback?.prompt || ""),
     aspect: String(asset?.resolution || fallback?.aspect || "1:1"),
+    status: typeof asset?.status === "string" ? asset.status : fallback?.status,
+    isFailed,
+    failureReason: typeof asset?.failureReason === "string" ? asset.failureReason : fallback?.failureReason,
+    creditsRefunded: Boolean(asset?.creditsRefunded || fallback?.creditsRefunded),
   };
 }
 
@@ -675,6 +705,157 @@ function CompareSlider({ before, after }: { before: string; after: string }) {
   );
 }
 
+function FailedImageResultCard({ item, onDelete }: { item: ResultItem; onDelete: (id: string) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const detail = normalizeGenerationError(item.failureReason || item.prompt || "Generation failed. Please try again.");
+  const title = imageFailureTitle(detail);
+  const copyText = item.prompt?.trim() || detail;
+
+  const copyPrompt = useCallback(async (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!copyText) return;
+    try {
+      await navigator.clipboard.writeText(copyText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      setCopied(false);
+    }
+  }, [copyText]);
+
+  return (
+    <motion.div
+      key={item.id}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+      className="result-card group relative overflow-hidden rounded-lg border border-white/8 bg-[#202225] ring-1 ring-white/10"
+      data-ratio={item.aspect}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(239,68,68,0.18),transparent_40%),linear-gradient(180deg,rgba(255,255,255,0.03),transparent)]" />
+      <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 text-[11px] font-extrabold text-white">
+        <ShieldAlert className="h-3.5 w-3.5" />
+        Failed
+      </div>
+      {item.creditsRefunded ? (
+        <div className="absolute right-3 top-3 z-10 rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 text-[11px] font-extrabold text-white">
+          Credits refunded
+        </div>
+      ) : null}
+      <div className="relative z-10 flex h-full flex-col justify-end p-4">
+        <div className="rounded-2xl bg-[#2b2d31]/95 p-3 shadow-[0_10px_30px_rgba(0,0,0,0.28)] ring-1 ring-white/8">
+          <h3 className="text-sm font-extrabold text-white">{title}</h3>
+          <p className={expanded ? "mt-2 text-xs font-semibold leading-5 text-zinc-400" : "mt-2 text-xs font-semibold leading-5 text-zinc-400 line-clamp-2"}>
+            {detail}
+          </p>
+          {detail.length > 90 ? (
+            <button
+              type="button"
+              onClick={(event) => { event.stopPropagation(); setExpanded((value) => !value); }}
+              className="mt-2 text-xs font-extrabold text-white hover:text-zinc-300"
+            >
+              {expanded ? "View less" : "View more"}
+            </button>
+          ) : null}
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={copyPrompt}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/12 text-white transition-colors hover:bg-white/18"
+              aria-label="Copy prompt"
+              title="Copy prompt"
+            >
+              <Copy className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={(event) => { event.stopPropagation(); onDelete(item.id); }}
+              className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-white/12 px-4 py-2 text-sm font-extrabold text-white transition-colors hover:bg-red-500/20 hover:text-red-100"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          </div>
+          {copied ? <p className="mt-2 text-[11px] font-semibold text-emerald-300">Copied</p> : null}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function DeleteImageDialog({
+  open,
+  deleting,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  deleting?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-[2px]"
+          onClick={onCancel}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 14, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.96 }}
+            transition={{ duration: 0.16 }}
+            className="relative w-full max-w-[500px] rounded-[28px] border border-white/10 bg-[#202124] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-image-generation-title"
+          >
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={deleting}
+              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/8 text-slate-300 transition-colors hover:bg-white/12 hover:text-white disabled:cursor-wait disabled:opacity-60"
+              aria-label="Cancel delete"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h2 id="delete-image-generation-title" className="pr-12 text-xl font-extrabold text-white">
+              Delete selected generations?
+            </h2>
+            <p className="mt-6 max-w-[390px] text-base font-medium leading-6 text-zinc-400">
+              Selected generations will be permanently deleted. This cannot be undone.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={deleting}
+                className="rounded-xl border border-white/12 bg-transparent px-6 py-3 text-base font-extrabold text-white transition-colors hover:bg-white/8 disabled:cursor-wait disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={onConfirm}
+                disabled={deleting}
+                className="rounded-xl bg-[#ff3347] px-6 py-3 text-base font-extrabold text-white transition-colors hover:bg-[#ff4658] disabled:cursor-wait disabled:opacity-70"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
 function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, hasMore, onLoadMore, loadingMore }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onUse: (item: ResultItem) => void; onDelete: (id: string) => void; onBulkDelete: (ids: string[]) => void; hasMore?: boolean; onLoadMore?: () => void; loadingMore?: boolean }) {
   const { t, lang } = useImageTranslation();
   const [selectionMode, setSelectionMode] = useState(false);

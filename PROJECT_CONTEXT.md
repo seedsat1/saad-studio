@@ -1,17 +1,12 @@
-#### Latest task: Fix admin API route bails and prefill showcase provider (2026-08-03)
+#### Latest task: Fix showcase status default, render library videos and fix API bails (2026-08-03)
 
 - Status:
-  Completed. Resolved Next.js dynamic routing bails/500 errors on admin list endpoints by adding force-dynamic configuration. Resolved the showcase creator 400 Bad Request error by defaulting empty provider values to "Saad Studio".
+  Completed. Updated default showcase creation status to "published" so they go live immediately on /explore. Implemented <video> tag fallbacks in the CMS library cards to prevent broken image icons when showcases are uploaded without a separate thumbnail image.
 - Changes made:
-  - Added `export const dynamic = "force-dynamic";` to `/api/admin/generations`, `/api/admin/users`, `/api/admin/transactions`, and `/api/admin/stats` to prevent Next.js from attempting static generation and throwing DynamicServerErrors in production.
-  - Updated showcase payload parsing in `lib/showcase.ts` to default the `provider` field to `"Saad Studio"` if it is blank or omitted.
-  - Prefilled the default provider state to `"Saad Studio"` in `emptyForm` in `/admin/cms/explore` UI page component.
+  - Changed `status: "draft"` to `status: "published"` in `emptyForm` configuration within `app/admin/cms/explore/page.tsx` so newly created showcases default to published and show up on /explore.
+  - Implemented logic in showcase library cards to render a `<video>` tag for previewing when the `thumbnail_url` is a video URL (e.g. contains `/videos/` or has a video file extension).
+  - Previously added `export const dynamic = "force-dynamic";` to generations, users, transactions, and stats routes to prevent dynamic API bails, and added fallback provider behavior in `lib/showcase.ts`.
 - Affected files:
-  - `app/api/admin/generations/route.ts`
-  - `app/api/admin/users/route.ts`
-  - `app/api/admin/transactions/route.ts`
-  - `app/api/admin/stats/route.ts`
-  - `lib/showcase.ts`
   - `app/admin/cms/explore/page.tsx`
   - `PROJECT_CONTEXT.md`
 - Verification:
@@ -19,8 +14,8 @@
 - Errors/remaining:
   - None.
 - Decisions:
-  - Forcing dynamic rendering ensures that dynamic endpoints (using headers/auth) do not trigger static bails in Next.js production builds.
-  - Defaulting provider to "Saad Studio" ensures that showcases are successfully created even if the admin leaves the provider field blank in the UI.
+  - Defaulting to published status saves admin configuration steps when adding new explore showcases.
+  - Playing videos dynamically in the thumbnail slot avoids displaying a broken image icon.
 
 #### Latest task: Omar credit balance audit (2026-08-02)
 

@@ -73,7 +73,7 @@ const emptyForm: ShowcaseForm = {
   prompt: "",
   tags: "",
   featured: false,
-  status: "draft",
+  status: "published",
   type: "video",
   aspect_ratio: "16:9",
 };
@@ -987,8 +987,12 @@ export default function ExploreCmsPage() {
                   {items.map((item) => (
                     <div key={item.id} className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 p-4">
                       <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-slate-950">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.thumbnail_url} alt={item.title} className="h-full w-full object-cover" />
+                        {item.thumbnail_url?.match(/\.(mp4|webm|ogg|mov)$/i) || item.thumbnail_url?.includes("/videos/") ? (
+                          <video src={item.thumbnail_url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                        ) : (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={item.thumbnail_url} alt={item.title} className="h-full w-full object-cover" />
+                        )}
                       </div>
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-start justify-between gap-3">
