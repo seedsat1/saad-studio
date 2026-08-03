@@ -787,11 +787,13 @@ function FailedImageResultCard({ item, onDelete }: { item: ResultItem; onDelete:
 
 function DeleteImageDialog({
   open,
+  count,
   deleting,
   onCancel,
   onConfirm,
 }: {
   open: boolean;
+  count: number;
   deleting?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -830,7 +832,7 @@ function DeleteImageDialog({
               Delete selected generations?
             </h2>
             <p className="mt-6 max-w-[390px] text-base font-medium leading-6 text-zinc-400">
-              Selected generations will be permanently deleted. This cannot be undone.
+              {count > 1 ? `${count} selected generations` : "Selected generation"} will be permanently deleted. This cannot be undone.
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button
@@ -911,14 +913,13 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
   const handleBulkDelete = useCallback(() => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    if (typeof window !== "undefined" && !window.confirm(`Delete ${ids.length} item(s)?`)) return;
     onBulkDelete(ids);
     setSelectedIds(new Set());
     setSelectionMode(false);
   }, [selectedIds, onBulkDelete]);
 
   const handleBulkDownload = useCallback(async () => {
-    const selectedItems = items.filter((item) => selectedIds.has(item.id) && resultOriginalUrl(item) && !item.isPending);
+    const selectedItems = items.filter((item) => selectedIds.has(item.id) && resultOriginalUrl(item) && !item.isPending && !item.isFailed);
     if (selectedItems.length === 0 || isBulkDownloading) return;
 
     setIsBulkDownloading(true);
@@ -929,7 +930,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: selectedItems.map((item, index) => ({
-            url: item.url,
+            url: resultOriginalUrl(item),
             filename: `saadstudio-image-${index + 1}`,
           })),
         }),
@@ -1038,6 +1039,9 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
       <div className="result-masonry w-full">
         <AnimatePresence>
           {items.map((item, index) => {
+            if (item.isFailed) {
+              return <FailedImageResultCard key={item.id} item={item} onDelete={onDelete} />;
+            }
             const isSelected = selectedIds.has(item.id);
             return (
             <motion.div
@@ -1537,6 +1541,8 @@ export default function ImageWorkspacePage() {
   const [compare, setCompare] = useState<{ before: string; after: string } | null>(null);
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+  const [deleteTargetIds, setDeleteTargetIds] = useState<string[]>([]);
+  const [deletingImages, setDeletingImages] = useState(false);
 
   const [showReferenceStudioModal, setShowReferenceStudioModal] = useState(false);
   const [activeStudioTab, setActiveStudioTab] = useState("style");
@@ -2106,30 +2112,40 @@ export default function ImageWorkspacePage() {
     }
   }, [activeTool, aspectRatio, beginGeneration, canGenerate, enhanceModelId, estimatedCredits, finishGeneration, generateCreate, generateEnhance, generateFaceSwap, generateInpaint, generateRelight, generateUpscale, getSafeErrorMessage, guardGeneration, inpaintModelId, inpaintVariations, numImages, prompt, relightVariations, selectedModel.label]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    setResults((prev) => prev.filter((i) => i.id !== id));
-    try {
-      await fetch("/api/assets", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-    } catch {}
+  const handleDelete = useCallback((id: string) => {
+    setDeleteTargetIds([id]);
   }, []);
 
-  // Bulk delete from local results + server in one call
-  const handleBulkDelete = useCallback(async (ids: string[]) => {
+  const handleBulkDelete = useCallback((ids: string[]) => {
     if (ids.length === 0) return;
-    const idSet = new Set(ids);
-    setResults((prev) => prev.filter((i) => !idSet.has(i.id)));
+    setDeleteTargetIds(ids);
+  }, []);
+
+  const cancelImageDelete = useCallback(() => {
+    if (deletingImages) return;
+    setDeleteTargetIds([]);
+  }, [deletingImages]);
+
+  const confirmImageDelete = useCallback(async () => {
+    if (deleteTargetIds.length === 0 || deletingImages) return;
+    const ids = deleteTargetIds;
+    setDeletingImages(true);
     try {
-      await fetch("/api/assets", {
+      const response = await fetch("/api/assets", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify(ids.length === 1 ? { id: ids[0] } : { ids }),
       });
-    } catch {}
-  }, []);
+      if (!response.ok) throw new Error("Failed to delete image generation.");
+      const idSet = new Set(ids);
+      setResults((prev) => prev.filter((item) => !idSet.has(item.id)));
+      setDeleteTargetIds([]);
+    } catch {
+      void loadPersistedImages(0, "replace");
+    } finally {
+      setDeletingImages(false);
+    }
+  }, [deleteTargetIds, deletingImages, loadPersistedImages]);
 
   // Use a generated image as a reference for the next generation. If the active
   // model doesn't accept references, switch to a sensible image-to-image default.
@@ -2705,6 +2721,13 @@ export default function ImageWorkspacePage() {
         />
       </div>
 
+      <DeleteImageDialog
+        open={deleteTargetIds.length > 0}
+        count={deleteTargetIds.length}
+        deleting={deletingImages}
+        onCancel={cancelImageDelete}
+        onConfirm={() => void confirmImageDelete()}
+      />
       <AnimatePresence>{inspectorAsset ? <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/80 p-4" onClick={() => setInspectorAsset(null)}><motion.div initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }} className="mx-auto h-[82vh] max-w-5xl overflow-hidden rounded-2xl" onClick={(e) => e.stopPropagation()}><AssetInspector asset={inspectorAsset} onClose={() => setInspectorAsset(null)} /></motion.div></motion.div> : null}</AnimatePresence>
     </>
   );

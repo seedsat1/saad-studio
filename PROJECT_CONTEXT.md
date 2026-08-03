@@ -1,21 +1,19 @@
-#### Latest task: Fix showcase status default, render library videos and fix API bails (2026-08-03)
+#### Latest task: Fix explore page masonry ordering and visual jumps (2026-08-03)
 
 - Status:
-  Completed. Updated default showcase creation status to "published" so they go live immediately on /explore. Implemented <video> tag fallbacks in the CMS library cards to prevent broken image icons when showcases are uploaded without a separate thumbnail image.
+  Completed. Replaced CSS multi-column layouts with programmatic column distribution using a dynamic column count hook. This resolves the random visual shifts and sorting anomalies when new explore showcases are uploaded.
 - Changes made:
-  - Changed `status: "draft"` to `status: "published"` in `emptyForm` configuration within `app/admin/cms/explore/page.tsx` so newly created showcases default to published and show up on /explore.
-  - Implemented logic in showcase library cards to render a `<video>` tag for previewing when the `thumbnail_url` is a video URL (e.g. contains `/videos/` or has a video file extension).
-  - Previously added `export const dynamic = "force-dynamic";` to generations, users, transactions, and stats routes to prevent dynamic API bails, and added fallback provider behavior in `lib/showcase.ts`.
+  - Added dynamic window resize listener state `columnCount` and a `columnsData` memo to programmatic-distribute items into columns.
+  - Refactored explore creations rendering in `app/(dash)/(routes)/explore/page.tsx` to use the distributed columns inside a responsive CSS grid, preserving the visual chronological layout order.
 - Affected files:
-  - `app/admin/cms/explore/page.tsx`
+  - `app/(dash)/(routes)/explore/page.tsx`
   - `PROJECT_CONTEXT.md`
 - Verification:
   - `npx tsc --noEmit --pretty false` compilation check passed with 0 errors.
 - Errors/remaining:
   - None.
 - Decisions:
-  - Defaulting to published status saves admin configuration steps when adding new explore showcases.
-  - Playing videos dynamically in the thumbnail slot avoids displaying a broken image icon.
+  - Distributing items programmatically into columns preserves the masonry feel for card aspect ratios while keeping the chronological order predictable horizontally (left-to-right).
 
 #### Latest task: Omar credit balance audit (2026-08-02)
 
@@ -10144,3 +10142,69 @@
   - `npm.cmd run build` passed; existing non-blocking Browserslist/Tailwind and dynamic-server warnings remain.
 - Decisions:
   - Destructive video actions should require an explicit in-app confirmation instead of immediate deletion.
+
+#### Latest task: /image failed/restricted generation display (2026-08-03 04:24:56 +03:00)
+
+- Status:
+  Completed. Failed or restricted image generations now stay visible in /image as explicit non-media failure cards instead of being sent to the thumbnail/image renderer.
+- Changes made:
+  - Extended /image result mapping to preserve status, isFailed, failureReason, and creditsRefunded metadata from /api/assets.
+  - Added a failed image result card with a visible Restricted content detected / Generation failed title, normalized reason text, copy-prompt action, and real delete action.
+  - Blocked failed image records from preview, download, reference use, bulk download, and thumbnail rendering so pseudo URLs like failed: are never passed to next/image.
+  - Replaced immediate image deletion and window.confirm bulk deletion with an in-app delete confirmation modal that calls the real DELETE /api/assets endpoint only after confirmation.
+- Affected files:
+  - app/(dash)/(routes)/image/page.tsx
+  - PROJECT_CONTEXT.md
+  - docs/saad-studio-premiere-reference-ar.md
+- Verification:
+  - npx.cmd tsc --noEmit --pretty false passed with 0 errors.
+  - git diff --check -- app/(dash)/(routes)/image/page.tsx passed.
+  - npm.cmd run build passed with existing non-blocking Browserslist/Tailwind and dynamic-server warnings.
+- Errors/remaining:
+  - No known remaining issue for failed image cards in /image.
+- Decisions:
+  - Failed image generations are history records, not image files. They should expose only actions with concrete behavior: copy prompt and delete.
+#### Latest task: Real asset deletion cleanup (2026-08-03 04:41:30 +03:00)
+
+- Status:
+  Completed. Asset deletion now performs awaited storage cleanup before removing Generation rows from history.
+- Changes made:
+  - Updated DELETE /api/assets to select mediaUrl, outputUrl, and posterUrl, then await deleteFromStorage for each owned generation before deleting database rows.
+  - If storage cleanup reports failures, the API now aborts the database delete and returns 502 with storageCleanup details instead of silently hiding the asset from the UI.
+  - Expanded storage cleanup to target original guessed paths, exact stored URLs, image thumbnails at thumbnails/{userId}/{generationId}-560.webp, video posters at videos/posters/{userId}/{generationId}.webp, and legacy media bucket paths.
+  - Treated transition asset types as video storage for deletion routing.
+- Affected files:
+  - app/api/assets/route.ts
+  - lib/r2-storage.ts
+  - lib/supabase-storage.ts
+  - PROJECT_CONTEXT.md
+  - docs/saad-studio-premiere-reference-ar.md
+- Verification:
+  - npx.cmd tsc --noEmit --pretty false passed with 0 errors.
+  - git diff --check passed for the touched deletion/image files.
+  - npm.cmd run build passed with existing non-blocking Browserslist/Tailwind and dynamic-server warnings.
+- Errors/remaining:
+  - Live deletion success still depends on valid Backblaze/R2/Supabase credentials in the runtime. If credentials fail, the API now keeps the DB row and reports the cleanup failure.
+- Decisions:
+  - For user-visible assets, a delete should not be considered complete unless known storage cleanup succeeds first.
+
+#### Latest task: Remove browser confirm from /image deletion (2026-08-03)
+
+- Status:
+  Completed. The /image deletion flow no longer has any browser-native confirm prompt in the active image route folder.
+- Changes made:
+  - Deleted the stale app/(dash)/(routes)/image/page.tsx.backup file that still contained the old `window.confirm(`Delete ${ids.length} item(s)?`)` bulk delete prompt.
+  - Updated the in-app DeleteImageDialog to receive the selected count and show it inside the custom dark confirmation card.
+  - Verified that `rg` finds no `confirm(` or `window.confirm` in app/(dash)/(routes)/image.
+- Affected files:
+  - app/(dash)/(routes)/image/page.tsx
+  - app/(dash)/(routes)/image/page.tsx.backup
+  - PROJECT_CONTEXT.md
+- Verification:
+  - npx.cmd tsc --noEmit --pretty false passed with 0 errors.
+  - git diff --check passed for the touched /image files.
+  - npm.cmd run build passed with existing non-blocking Browserslist/Tailwind and dynamic-server warnings.
+- Errors/remaining:
+  - If production still shows the browser confirm after this commit is deployed, the browser is serving an older bundle and needs redeploy/cache refresh.
+- Decisions:
+  - Keep destructive image deletion inside the product modal only; stale backup files with old UI behavior should not remain under route folders.

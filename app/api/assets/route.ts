@@ -393,19 +393,41 @@ export async function DELETE(req: NextRequest) {
 
     const records = await prismadb.generation.findMany({
       where: { id: { in: safeIds }, userId },
-      select: { id: true, assetType: true },
+      select: { id: true, assetType: true, mediaUrl: true, outputUrl: true, posterUrl: true },
     });
 
-    await prismadb.generation.deleteMany({
-      where: { id: { in: safeIds }, userId },
-    });
+    const cleanupResults = await Promise.all(records.map((record) => deleteFromStorage({
+      userId,
+      generationId: record.id,
+      assetType: record.assetType,
+      mediaUrl: record.mediaUrl,
+      outputUrl: record.outputUrl,
+      posterUrl: record.posterUrl,
+    })));
 
-    // Best-effort storage cleanup, fire-and-forget per record.
-    for (const record of records) {
-      deleteFromStorage({ userId, generationId: record.id, assetType: record.assetType }).catch(() => {});
+    const cleanup = cleanupResults.reduce(
+      (acc, result) => ({
+        attempted: acc.attempted + result.attempted,
+        failed: acc.failed + result.failed,
+        failures: [...acc.failures, ...result.failures],
+      }),
+      { attempted: 0, failed: 0, failures: [] as Array<{ bucket: string; path: string; error: string }> },
+    );
+
+    if (cleanup.failed > 0) {
+      console.error("[api/assets] Storage cleanup failed; database delete aborted", cleanup.failures.slice(0, 20));
+      return NextResponse.json({
+        ok: false,
+        error: "Storage cleanup failed. Asset was not deleted from history.",
+        storageCleanup: cleanup,
+      }, { status: 502 });
     }
 
-    return NextResponse.json({ ok: true, deleted: records.length }, { status: 200 });
+    await prismadb.generation.deleteMany({
+      where: { id: { in: records.map((record) => record.id) }, userId },
+    });
+
+    return NextResponse.json({ ok: true, deleted: records.length, storageCleanup: cleanup }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete asset.";
     return NextResponse.json({ error: message }, { status: 500 });

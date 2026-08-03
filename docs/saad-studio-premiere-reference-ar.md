@@ -2691,3 +2691,24 @@
 - Pressing delete opens an in-app confirmation dialog with `Delete selected generations?`, explanatory irreversible-delete text, `Cancel`, and a red `Delete` confirmation.
 - Only the confirmation button calls the existing `DELETE /api/assets` endpoint with the real generation id.
 - If the API delete fails, reload persisted video history so the UI does not pretend an asset was removed permanently.
+
+## Image Failed/Restricted Generation Display (2026-08-03)
+
+- /image must not pass failed, error, cancelled, or policy-rejected generation records to next/image, thumbnail endpoints, downloads, reference reuse, or Asset Inspector.
+- Failed image records returned by /api/assets should be rendered as explicit failure cards using isFailed, failureReason, and creditsRefunded metadata.
+- A restricted, policy, or copyright failure should show Restricted content detected when that meaning is present in the stored reason; otherwise use a generic Generation failed title.
+- Visible actions on failed image results must be real only: copy the stored prompt or reason, and delete the real generation id through DELETE /api/assets after confirmation.
+- Image delete actions, including bulk delete, must open the in-app confirmation dialog before permanent deletion. Do not use immediate deletion or browser window.confirm for /image result deletion.
+## Real Asset Delete Contract (2026-08-03)
+
+- DELETE /api/assets must delete real storage objects before removing Generation rows from the database.
+- Storage cleanup includes the canonical original paths, exact stored mediaUrl/outputUrl/posterUrl paths when they can be parsed, image thumbnails at thumbnails/{userId}/{generationId}-560.webp, video posters at videos/posters/{userId}/{generationId}.webp, and legacy media bucket paths.
+- If cleanup fails, the API returns an error with storageCleanup details and does not delete the database row, so the UI does not pretend the asset disappeared while files remain in storage.
+- Nonexistent guessed paths may be attempted as part of cleanup; this is expected and safe because every guessed path is scoped to the authenticated userId and generationId.
+- Transition asset types should route to video storage cleanup.
+
+## Image Delete Confirmation Contract (2026-08-03)
+
+- `/image` delete actions, including bulk selected deletion, must use the in-app dark confirmation card and must never call browser-native `confirm()` or `window.confirm()`.
+- The confirmation card should show the selected generation count when deleting multiple images, then call `DELETE /api/assets` only after the user presses the red Delete action.
+- Stale backup files inside active route folders must not preserve old browser-confirm delete behavior.
