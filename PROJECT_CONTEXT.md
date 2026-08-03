@@ -10146,5 +10146,6 @@
 - Verification:
   - `npx.cmd tsc --noEmit --pretty false` passed.
   - `git diff --check -- app/(dash)/(routes)/video/page.tsx` passed.
+  - `npm.cmd run build` passed; existing non-blocking Browserslist/Tailwind and dynamic-server warnings remain.
 - Decisions:
   - Destructive video actions should require an explicit in-app confirmation instead of immediate deletion.
