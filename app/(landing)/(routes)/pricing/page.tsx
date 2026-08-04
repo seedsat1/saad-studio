@@ -258,12 +258,12 @@ const MAX_ANNUAL_UNLIMITED_IMAGE_MODELS = [
   { name: "Nano Banana Pro", badge: "Unlimited" },
 ];
 
-// Source-of-truth values must match lib/pricing-models.ts:
-//   nano_pro.userCreditsRate = 3.07  (per image)
-//   kling30.userCreditsRate  = 3.5   (per second; 15s clip = 52.5 credits)
+// Source-of-truth values must match lib/pricing-models.ts + lib/pricing.ts:
+//   image type (1k/2k) → 2 credits flat (per lib/pricing.ts image override)
+//   kling30.userCreditsRate = 3.0  (per second; 15s Standard clip = 45 credits)
 // These constants drive the "X images / Y videos" copy on each plan card.
-const NANO_BANANA_PRO_CREDITS = 3.07;
-const KLING_3_15S_CREDITS = 52.5;
+const NANO_BANANA_PRO_CREDITS = 2;
+const KLING_3_15S_CREDITS = 45;
 
 const parsePlanCredits = (plan: { credits: string; creditsNum?: number }): number => {
   if (typeof plan.creditsNum === "number" && Number.isFinite(plan.creditsNum)) {
@@ -280,14 +280,19 @@ const formatCount = (value: number): string => value.toLocaleString("en-US");
 
 const MODEL_COSTS = {
   video: [
-    { name: "Kling 3.0",        cost: "17.5+ Credits", per: "5s 720p, duration based", free: false, color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
-    { name: "Wan 2.6",          cost: "8 Credits",  per: "per video",              free: false, color: "text-purple-400",  bg: "bg-purple-500/10",  border: "border-purple-500/20" },
-    { name: "Seedance 2.0",     cost: "32 / 120 Credits", per: "4s / 15s",          free: false, color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
+    { name: "Kling 3.0",        cost: "15+ Credits",  per: "5s Standard, duration based", free: false, color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
+    { name: "Kling 3.0 Turbo",  cost: "20+ Credits",  per: "5s Standard",                 free: false, color: "text-sky-400",     bg: "bg-sky-500/10",     border: "border-sky-500/20" },
+    { name: "Kling 2.6",        cost: "15+ Credits",  per: "10s Standard",                free: false, color: "text-indigo-400",  bg: "bg-indigo-500/10",  border: "border-indigo-500/20" },
+    { name: "Seedance 2.0",     cost: "31 / 116 Credits", per: "4s / 15s at 720p",        free: false, color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
+    { name: "Seedance 2.0 Mini", cost: "17 / 64 Credits", per: "4s / 15s at 720p",        free: false, color: "text-teal-400",    bg: "bg-teal-500/10",    border: "border-teal-500/20" },
+    { name: "Minimax H3",       cost: "18+ Credits",  per: "5s 768p",                     free: false, color: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/20" },
   ],
   image: [
-    { name: "Nano Banana Pro",  cost: "3.07+ Credits",  per: "1K image",              free: false, color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },
-    { name: "Flux.2 Pro 1K",    cost: "0.52 Credits",  per: "1K image",              free: false, color: "text-violet-400",  bg: "bg-violet-500/10",  border: "border-violet-500/20" },
-    { name: "GPT Image 2",      cost: "1.03+ Credits",  per: "1K image",              free: false, color: "text-rose-400",    bg: "bg-rose-500/10",    border: "border-rose-500/20" },
+    { name: "Nano Banana Pro",  cost: "2 Credits",    per: "1K / 2K image",               free: false, color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },
+    { name: "FLUX.2 Pro",       cost: "2 Credits",    per: "1K / 2K image",               free: false, color: "text-violet-400",  bg: "bg-violet-500/10",  border: "border-violet-500/20" },
+    { name: "Seedream 4.5",     cost: "2 Credits",    per: "1K / 2K image",               free: false, color: "text-pink-400",    bg: "bg-pink-500/10",    border: "border-pink-500/20" },
+    { name: "GPT Image 2",      cost: "2 Credits",    per: "1K / 2K image",               free: false, color: "text-rose-400",    bg: "bg-rose-500/10",    border: "border-rose-500/20" },
+    { name: "4K images",        cost: "4 Credits",    per: "any 4K image",                free: false, color: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/20" },
   ],
 };
 
