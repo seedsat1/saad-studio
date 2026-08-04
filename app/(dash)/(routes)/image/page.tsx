@@ -1650,7 +1650,7 @@ export default function ImageWorkspacePage() {
     if (isAuthLoaded && !isSignedIn) return;
     if (mode === "append") setLoadingMoreResults(true);
     try {
-      const params = new URLSearchParams({ type: "image", page: String(nextPage), limit: "12" });
+      const params = new URLSearchParams({ type: "image", page: String(nextPage), limit: "25" });
       const res = await fetch(`/api/assets?${params.toString()}`, { cache: "no-cache" });
       const data = await res.json().catch(() => null);
       if (!res.ok || !Array.isArray(data?.assets)) return;

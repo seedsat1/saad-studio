@@ -2805,3 +2805,7 @@
 - The active implementation uses CSS column masonry with a bounded column width so even a single result remains card-sized inside the gallery area.
 - Cards still preserve the derived aspect ratio and use thumbnail sources for display; original full-resolution assets remain reserved for preview, download, remix/reference reuse, and Asset Inspector.
 - Avoid JavaScript-only column measurement for this gallery because a zero/late measured width can make the first card stretch across the entire panel.
+## Image Gallery Page Size Update (2026-08-04)
+
+- `/image` requests 25 image assets for the initial gallery load and each Load more page.
+- `/api/assets` allows and defaults to a maximum page size of 25 assets so the UI request is not clipped below the requested amount.

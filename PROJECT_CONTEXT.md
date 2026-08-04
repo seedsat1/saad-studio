@@ -10413,3 +10413,10 @@
   - `npx.cmd tsc --noEmit --pretty false` passed.
   - `npm.cmd run build` passed successfully.
 - Decision: /image cards must never expand to a full-width preview inside the gallery; large originals belong only in inspector/preview surfaces.
+#### Latest task: Increase /image initial gallery page size to 25 (2026-08-04)
+
+- Status: Completed. Changed the `/image` initial result load and subsequent Load more page size from 12 to 25 images.
+- Changes made: `/image` now requests `limit=25`; `/api/assets` now defaults to and allows a maximum of 25 assets per page.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `app/api/assets/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `npm.cmd run build` passed successfully.
+- Decision: Use 25 visible images per page for the image gallery at the user's request.

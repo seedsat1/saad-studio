@@ -240,7 +240,7 @@ export async function GET(req: NextRequest) {
     }
 
     const requestedType = (req.nextUrl.searchParams.get("type") || "all").toLowerCase();
-    const limit = firstNumberParam(req, "limit", 12, 1, 24);
+    const limit = firstNumberParam(req, "limit", 25, 1, 25);
     const page = firstNumberParam(req, "page", 0, 0, 10_000);
     const skip = page * limit;
     const typeWhere = requestedType === "all" ? {} : buildAssetTypeWhere(requestedType);
