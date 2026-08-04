@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+
+<html class="dark" dir="rtl" lang="ar" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>استوديو سعد - الخدمات | Saad Studio - Services</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface-variant": "#bcc9cd",
+                    "surface-container-high": "#252a33",
+                    "text-primary": "#FFFFFF",
+                    "tertiary-container": "#e89337",
+                    "on-secondary": "#3f008e",
+                    "on-tertiary": "#4b2800",
+                    "surface": "#0e141c",
+                    "on-primary": "#003640",
+                    "on-tertiary-fixed-variant": "#6a3b00",
+                    "primary-fixed-dim": "#4cd7f6",
+                    "primary": "#4cd7f6",
+                    "on-error-container": "#ffdad6",
+                    "on-secondary-container": "#c9aeff",
+                    "surface-tint": "#4cd7f6",
+                    "accent-violet": "#7C3AED",
+                    "on-surface": "#dee2ef",
+                    "outline": "#869397",
+                    "on-tertiary-fixed": "#2d1600",
+                    "on-error": "#690005",
+                    "on-background": "#dee2ef",
+                    "tertiary": "#ffb873",
+                    "accent-cyan": "#06B6D4",
+                    "inverse-on-surface": "#2b313a",
+                    "on-secondary-fixed-variant": "#5a00c6",
+                    "tertiary-fixed-dim": "#ffb873",
+                    "secondary-container": "#6001d1",
+                    "surface-bright": "#343943",
+                    "tertiary-fixed": "#ffdcbf",
+                    "inverse-surface": "#dee2ef",
+                    "on-primary-fixed": "#001f26",
+                    "error-container": "#93000a",
+                    "on-primary-container": "#00424f",
+                    "secondary": "#d2bbff",
+                    "canvas-elevated": "#0A0F1A",
+                    "primary-container": "#06b6d4",
+                    "surface-container": "#1b2029",
+                    "on-primary-fixed-variant": "#004e5c",
+                    "canvas-deep": "#02050C",
+                    "surface-container-lowest": "#090e17",
+                    "inverse-primary": "#00687a",
+                    "outline-variant": "#3d494c",
+                    "error": "#ffb4ab",
+                    "on-tertiary-container": "#5b3200",
+                    "secondary-fixed": "#eaddff",
+                    "surface-variant": "#30353e",
+                    "secondary-fixed-dim": "#d2bbff",
+                    "primary-fixed": "#acedff",
+                    "background": "#0e141c",
+                    "text-secondary": "#E2E8F0",
+                    "surface-container-low": "#171c24",
+                    "surface-container-highest": "#30353e",
+                    "surface-dim": "#0e141c",
+                    "on-secondary-fixed": "#25005a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-tablet": "32px",
+                    "unit": "4px",
+                    "lg": "24px",
+                    "xxl": "64px",
+                    "xl": "40px",
+                    "margin-mobile": "20px",
+                    "gutter": "16px",
+                    "sm": "8px",
+                    "xs": "4px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Outfit"],
+                    "label-sm": ["Outfit"],
+                    "headline-lg": ["Outfit"],
+                    "display-lg-mobile": ["Outfit"],
+                    "label-md": ["Outfit"],
+                    "headline-md": ["Outfit"],
+                    "body-lg": ["Outfit"],
+                    "body-md": ["Outfit"]
+            },
+            "fontSize": {
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "display-lg-mobile": ["36px", {"lineHeight": "44px", "fontWeight": "700"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #02050C;
+            font-family: 'Outfit', sans-serif;
+        }
+        .glass-card {
+            background: rgba(10, 15, 26, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .text-glow {
+            text-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+        }
+        /* RTL support for the arrow back icon when in English mode */
+        [dir="ltr"] .material-symbols-outlined.reverse-on-ltr {
+            transform: scaleX(-1);
+        }
+        .lang-active {
+            color: #4cd7f6;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="text-on-surface antialiased overflow-x-hidden pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/60 backdrop-blur-xl border-b border-white/10 flex items-center px-margin-mobile h-16">
+<div class="flex flex-1 items-center gap-3">
+<div class="w-10 h-10 rounded-full border border-primary/20 overflow-hidden active:scale-95 transition-transform duration-200">
+<img class="w-full h-full object-cover" data-alt="A professional close-up studio portrait of a creative director" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCP9L3e9atWJhGvxpJqiIRJOb8qoz9gTBJ4w7Bq5-7YZIM9yn1Jxu1tgg3NtXMsEjLKJcok406F3vWYaWnT5DqLiiq-iZh4AqNf6FFVku0rvlniH3W06K4OuuDiHYCMwPQmBHvQnxmvRWGFyrnqhBZ35eDZ49aeDf6T-ccwJ8It1Q2x3VFY_w4vQM9rzrRwfCR9E-LBmjEORpFc-vmJDYiJgXeURe0js0zzbKun0WKnUC6ICsGaLK84"/>
+</div>
+<!-- Language Switcher -->
+<button class="flex items-center gap-1 bg-surface-container-high rounded-full px-3 py-1 border border-white/10 text-label-sm font-medium transition-all active:scale-95" onclick="toggleLanguage()">
+<span class="lang-active" id="lang-ar">AR</span>
+<span class="text-outline">/</span>
+<span class="text-on-surface-variant" id="lang-en">EN</span>
+</button>
+</div>
+<div class="flex-none text-center">
+<h1 class="font-display-lg-mobile text-display-lg-mobile font-bold text-accent-cyan tracking-tight">saadstudio</h1>
+</div>
+<div class="flex flex-1 justify-end items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant hover:text-accent-cyan transition-colors cursor-pointer">notifications</span>
+<button class="material-symbols-outlined text-primary hover:text-accent-cyan transition-colors active:scale-95 transition-transform duration-200">menu</button>
+</div>
+</header>
+<main class="mt-20 px-margin-mobile">
+<!-- Hero Section -->
+<section class="py-xl">
+<div class="relative rounded-xl overflow-hidden h-64 mb-lg">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AP1WRLsw_yHb0y6nSN9MGBf5UWeo9OeyHihY_LIlkNr69JDzT8EgbkbKwvDETyjUeYNZ7NZTvakIg-GQCz8fzn-ZPxvmFwUeMuyhgrIm8tWHtce9NKxbZvFnHs-JWgXIxLe3xm_BkJJVjdM55ebZqUjJ622jG0VMQ8Ql1JsKHnYyJ4H4skY2qFH53wjfnwPAIHD17RfwRMfWN45Cplm0fDHAot2v4xG9VPPi5Mfe3WAeVLD_XLaqnYktTJSqklU"/>
+<div class="absolute inset-0 bg-gradient-to-t from-canvas-deep via-transparent to-transparent"></div>
+<div class="absolute bottom-4 start-4 end-4 text-right ltr:text-left rtl:text-right">
+<span class="inline-block px-3 py-1 bg-accent-cyan text-canvas-deep rounded-full font-label-sm text-label-sm mb-2" data-localize="hero-badge">ابتكار مستقبلي</span>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-white font-bold leading-tight" data-localize="hero-title">خدمات إنتاج تفوق <br/>حدود الخيال</h2>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed" data-localize="hero-desc">
+                في استوديو سعد، ندمج بين التكنولوجيا المتقدمة والخبرة الإبداعية لنقدم حلولاً بصرية تعيد تعريف مفهوم الإنتاج السينمائي والتقني.
+            </p>
+</section>
+<!-- Services Bento Grid -->
+<section class="grid grid-cols-1 gap-gutter mb-xl">
+<!-- AI Scene Engine -->
+<div class="glass-card rounded-xl overflow-hidden group transition-all duration-700 ease-out">
+<div class="h-48 relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida/AP1WRLsNr0A9__9BjC4iyolYSzv4PVTshnP_vngH4uqX6LoFtJxQysm1cAkAcDqkdoddpmLT4QHUcjSZ4JDQjPQMY_Y82rGohhwpYEhRkv-vglM7pNA8fE3eRwL_7YasWPzG4RfMXYTq0eSVosovzl_OmKKu1rccGUyDNf52ErqeoEoAVvLIrnmvRwpFQWgDqbIDCpzERFZE3M-w5E-bRsQ_rqWucnBdnOQojFH35z1D9IbD5umpO85DD6x_5Bs"/>
+<div class="absolute inset-0 bg-gradient-to-l rtl:from-canvas-deep/80 ltr:from-transparent ltr:to-canvas-deep/80 flex items-center justify-end rtl:justify-end ltr:justify-start p-lg">
+<div class="text-right rtl:text-right ltr:text-left">
+<div class="w-12 h-12 rounded-xl bg-primary-container/20 flex items-center justify-center mb-sm">
+<span class="material-symbols-outlined text-accent-cyan" style="font-variation-settings: 'FILL' 1;">psychology</span>
+</div>
+</div>
+</div>
+</div>
+<div class="p-lg">
+<h3 class="font-headline-md text-headline-md text-white mb-sm text-right rtl:text-right ltr:text-left" data-localize="srv-1-title">محرك المشاهد بالذكاء الاصطناعي</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-lg text-right rtl:text-right ltr:text-left" data-localize="srv-1-desc">توليد بيئات افتراضية واقعية تماماً باستخدام أحدث تقنيات التعلم العميق، مما يقلل تكاليف الإنتاج ويزيد من مرونة الإبداع.</p>
+<button class="w-full py-3 bg-accent-cyan text-canvas-deep rounded-xl font-label-md text-label-md font-bold active:scale-95 transition-all" data-localize="cta-order">اطلب الخدمة</button>
+</div>
+</div>
+<!-- Cinematic Editing -->
+<div class="glass-card rounded-xl p-lg flex flex-col gap-md transition-all duration-700 ease-out">
+<div class="flex items-center justify-between">
+<div class="w-12 h-12 rounded-xl bg-accent-violet/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-accent-violet">movie_edit</span>
+</div>
+<span class="font-label-sm text-label-sm text-accent-violet" data-localize="badge-popular">الأكثر طلباً</span>
+</div>
+<div class="text-right rtl:text-right ltr:text-left">
+<h3 class="font-headline-md text-headline-md text-white mb-sm" data-localize="srv-2-title">المونتاج السينمائي الاحترافي</h3>
+<p class="font-body-md text-body-md text-on-surface-variant" data-localize="srv-2-desc">رواية قصتك بأسلوب بصري مذهل يجمع بين الإيقاع المثالي وتصحيح الألوان المتقدم.</p>
+</div>
+<div class="grid grid-cols-2 gap-sm">
+<div class="bg-surface-container rounded-lg p-3 text-center">
+<span class="block font-label-md text-label-md text-white">4K HDR</span>
+<span class="text-[10px] text-on-surface-variant" data-localize="tag-ultra">دقة فائقة</span>
+</div>
+<div class="bg-surface-container rounded-lg p-3 text-center">
+<span class="block font-label-md text-label-md text-white">VFX</span>
+<span class="text-[10px] text-on-surface-variant" data-localize="tag-vfx">مؤثرات بصرية</span>
+</div>
+</div>
+<button class="w-full py-3 border border-accent-violet text-white rounded-xl font-label-md text-label-md active:scale-95 transition-all" data-localize="cta-consult">استشارة فنية</button>
+</div>
+<!-- Virtual Production -->
+<div class="glass-card rounded-xl p-lg relative overflow-hidden transition-all duration-700 ease-out">
+<div class="absolute top-0 start-0 w-32 h-32 bg-primary/10 blur-3xl -translate-x-1/2 -translate-y-1/2 rtl:-translate-x-1/2 ltr:translate-x-1/2"></div>
+<div class="relative z-10 text-right rtl:text-right ltr:text-left">
+<div class="w-12 h-12 rounded-xl bg-primary-container/20 flex items-center justify-center mb-sm">
+<span class="material-symbols-outlined text-accent-cyan">videocam</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-white mb-sm" data-localize="srv-3-title">الإنتاج الافتراضي (VP)</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-lg" data-localize="srv-3-desc">نستخدم شاشات LED و Unreal Engine لخلق عوالم تفاعلية تتيح للمخرجين رؤية النتيجة النهائية أثناء التصوير.</p>
+<div class="flex items-center gap-2 text-accent-cyan cursor-pointer rtl:flex-row ltr:flex-row-reverse justify-end ltr:justify-start">
+<span class="font-label-md text-label-md" data-localize="link-explore">استكشف التقنية</span>
+<span class="material-symbols-outlined text-sm reverse-on-ltr">arrow_back</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Stats Section -->
+<section class="mb-xxl">
+<div class="flex gap-gutter overflow-x-auto pb-4 no-scrollbar">
+<div class="min-w-[140px] flex-shrink-0 bg-surface-container rounded-xl p-lg border border-white/5">
+<span class="block font-display-lg-mobile text-display-lg-mobile text-accent-cyan font-bold">+50</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-localize="stat-projects">مشروع ناجح</span>
+</div>
+<div class="min-w-[140px] flex-shrink-0 bg-surface-container rounded-xl p-lg border border-white/5">
+<span class="block font-display-lg-mobile text-display-lg-mobile text-accent-cyan font-bold">12</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-localize="stat-awards">جائزة إبداعية</span>
+</div>
+<div class="min-w-[140px] flex-shrink-0 bg-surface-container rounded-xl p-lg border border-white/5">
+<span class="block font-display-lg-mobile text-display-lg-mobile text-accent-cyan font-bold">100%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-localize="stat-satisfaction">رضا العملاء</span>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="glass-card rounded-2xl p-xl text-center mb-xxl relative overflow-hidden transition-all duration-700 ease-out">
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+<div class="absolute top-0 right-0 w-64 h-64 bg-accent-cyan blur-3xl"></div>
+</div>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-white font-bold mb-md" data-localize="cta-title">هل لديك رؤية تريد تحقيقها؟</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-xl" data-localize="cta-desc">نحن هنا لنحول أفكارك الطموحة إلى واقع بصري ملموس يتحدث لغة المستقبل.</p>
+<button class="px-xl py-4 bg-white text-canvas-deep rounded-full font-label-md text-label-md font-bold shadow-lg shadow-white/10 active:scale-95 transition-all" data-localize="cta-start">ابدأ مشروعك الآن</button>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-surface/60 backdrop-blur-xl border-t border-white/10 flex justify-around items-center px-4 pb-4 pt-2 rounded-t-xl rtl:flex-row-reverse ltr:flex-row">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm" data-localize="nav-home">الرئيسية</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">work</span>
+<span class="font-label-sm text-label-sm" data-localize="nav-projects">المشاريع</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary bg-primary-container/20 rounded-xl px-4 py-1 active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">category</span>
+<span class="font-label-sm text-label-sm" data-localize="nav-services">الخدمات</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">mail</span>
+<span class="font-label-sm text-label-sm" data-localize="nav-contact">اتصل بنا</span>
+</a>
+</nav>
+<script>
+    const translations = {
+        ar: {
+            "hero-badge": "ابتكار مستقبلي",
+            "hero-title": "خدمات إنتاج تفوق <br>حدود الخيال",
+            "hero-desc": "في استوديو سعد، ندمج بين التكنولوجيا المتقدمة والخبرة الإبداعية لنقدم حلولاً بصرية تعيد تعريف مفهوم الإنتاج السينمائي والتقني.",
+            "srv-1-title": "محرك المشاهد بالذكاء الاصطناعي",
+            "srv-1-desc": "توليد بيئات افتراضية واقعية تماماً باستخدام أحدث تقنيات التعلم العميق، مما يقلل تكاليف الإنتاج ويزيد من مرونة الإبداع.",
+            "cta-order": "اطلب الخدمة",
+            "badge-popular": "الأكثر طلباً",
+            "srv-2-title": "المونتاج السينمائي الاحترافي",
+            "srv-2-desc": "رواية قصتك بأسلوب بصري مذهل يجمع بين الإيقاع المثالي وتصحيح الألوان المتقدم.",
+            "tag-ultra": "دقة فائقة",
+            "tag-vfx": "مؤثرات بصرية",
+            "cta-consult": "استشارة فنية",
+            "srv-3-title": "الإنتاج الافتراضي (VP)",
+            "srv-3-desc": "نستخدم شاشات LED و Unreal Engine لخلق عوالم تفاعلية تتيح للمخرجين رؤية النتيجة النهائية أثناء التصوير.",
+            "link-explore": "استكشف التقنية",
+            "stat-projects": "مشروع ناجح",
+            "stat-awards": "جائزة إبداعية",
+            "stat-satisfaction": "رضا العملاء",
+            "cta-title": "هل لديك رؤية تريد تحقيقها؟",
+            "cta-desc": "نحن هنا لنحول أفكارك الطموحة إلى واقع بصري ملموس يتحدث لغة المستقبل.",
+            "cta-start": "ابدأ مشروعك الآن",
+            "nav-home": "الرئيسية",
+            "nav-projects": "المشاريع",
+            "nav-services": "الخدمات",
+            "nav-contact": "اتصل بنا"
+        },
+        en: {
+            "hero-badge": "Future Innovation",
+            "hero-title": "Production Services Beyond <br>Limits of Imagination",
+            "hero-desc": "At Saad Studio, we merge advanced technology with creative expertise to provide visual solutions that redefine cinematic and technical production.",
+            "srv-1-title": "AI Scene Engine",
+            "srv-1-desc": "Generate fully realistic virtual environments using deep learning, reducing costs and increasing creative flexibility.",
+            "cta-order": "Order Service",
+            "badge-popular": "Most Requested",
+            "srv-2-title": "Professional Cinematic Editing",
+            "srv-2-desc": "Tell your story with a stunning visual style that combines perfect rhythm and advanced color grading.",
+            "tag-ultra": "Ultra HD",
+            "tag-vfx": "Visual Effects",
+            "cta-consult": "Art Consultation",
+            "srv-3-title": "Virtual Production (VP)",
+            "srv-3-desc": "We use LED screens and Unreal Engine to create interactive worlds that let directors see the final result during shooting.",
+            "link-explore": "Explore Tech",
+            "stat-projects": "Successful Projects",
+            "stat-awards": "Creative Awards",
+            "stat-satisfaction": "Customer Satisfaction",
+            "cta-title": "Have a vision to achieve?",
+            "cta-desc": "We are here to turn your ambitious ideas into a tangible visual reality that speaks the language of the future.",
+            "cta-start": "Start Your Project Now",
+            "nav-home": "Home",
+            "nav-projects": "Projects",
+            "nav-services": "Services",
+            "nav-contact": "Contact"
+        }
+    };
+
+    let currentLang = 'ar';
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'ar' ? 'en' : 'ar';
+        document.documentElement.lang = currentLang;
+        document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+        
+        // Update UI Text
+        const elements = document.querySelectorAll('[data-localize]');
+        elements.forEach(el => {
+            const key = el.getAttribute('data-localize');
+            if (translations[currentLang][key]) {
+                el.innerHTML = translations[currentLang][key];
+            }
+        });
+
+        // Update Toggle Button Style
+        document.getElementById('lang-ar').className = currentLang === 'ar' ? 'lang-active' : 'text-on-surface-variant';
+        document.getElementById('lang-en').className = currentLang === 'en' ? 'lang-active' : 'text-on-surface-variant';
+    }
+
+    // Smooth reveal on scroll interaction
+    const observerOptions = {
+        threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('opacity-100', 'translate-y-0');
+                entry.target.classList.remove('opacity-0', 'translate-y-8');
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.glass-card').forEach(card => {
+        card.classList.add('transition-all', 'duration-700', 'ease-out', 'opacity-0', 'translate-y-8');
+        observer.observe(card);
+    });
+</script>
+</body></html>

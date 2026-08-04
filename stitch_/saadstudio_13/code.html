@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+
+<html class="dark" dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>استوديو سعد | Saad Studio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&amp;family=Noto+Sans+Arabic:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Noto Sans Arabic', 'Outfit', sans-serif;
+            background-color: #0e141c;
+            color: #dee2ef;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.3s ease;
+        }
+        .glass-card {
+            background: rgba(27, 32, 41, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .hero-gradient {
+            background: linear-gradient(180deg, rgba(14, 20, 28, 0) 0%, rgba(14, 20, 28, 0.9) 80%, rgba(14, 20, 28, 1) 100%);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* RTL support for icons */
+        [dir="ltr"] .material-symbols-outlined.flip-rtl {
+            transform: scaleX(-1);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#bcc9cd",
+                        "surface-container-high": "#252a33",
+                        "text-primary": "#FFFFFF",
+                        "tertiary-container": "#e89337",
+                        "on-secondary": "#3f008e",
+                        "on-tertiary": "#4b2800",
+                        "surface": "#0e141c",
+                        "on-primary": "#003640",
+                        "on-tertiary-fixed-variant": "#6a3b00",
+                        "primary-fixed-dim": "#4cd7f6",
+                        "primary": "#4cd7f6",
+                        "on-error-container": "#ffdad6",
+                        "on-secondary-container": "#c9aeff",
+                        "surface-tint": "#4cd7f6",
+                        "accent-violet": "#7C3AED",
+                        "on-surface": "#dee2ef",
+                        "outline": "#869397",
+                        "on-tertiary-fixed": "#2d1600",
+                        "on-error": "#690005",
+                        "on-background": "#dee2ef",
+                        "tertiary": "#ffb873",
+                        "accent-cyan": "#06B6D4",
+                        "inverse-on-surface": "#2b313a",
+                        "on-secondary-fixed-variant": "#5a00c6",
+                        "tertiary-fixed-dim": "#ffb873",
+                        "secondary-container": "#6001d1",
+                        "surface-bright": "#343943",
+                        "tertiary-fixed": "#ffdcbf",
+                        "inverse-surface": "#dee2ef",
+                        "on-primary-fixed": "#001f26",
+                        "error-container": "#93000a",
+                        "on-primary-container": "#00424f",
+                        "secondary": "#d2bbff",
+                        "canvas-elevated": "#0A0F1A",
+                        "primary-container": "#06b6d4",
+                        "surface-container": "#1b2029",
+                        "on-primary-fixed-variant": "#004e5c",
+                        "canvas-deep": "#02050C",
+                        "surface-container-lowest": "#090e17",
+                        "inverse-primary": "#00687a",
+                        "outline-variant": "#3d494c",
+                        "error": "#ffb4ab",
+                        "on-tertiary-container": "#5b3200",
+                        "secondary-fixed": "#eaddff",
+                        "surface-variant": "#30353e",
+                        "secondary-fixed-dim": "#d2bbff",
+                        "primary-fixed": "#acedff",
+                        "background": "#0e141c",
+                        "text-secondary": "#E2E8F0",
+                        "surface-container-low": "#171c24",
+                        "surface-container-highest": "#30353e",
+                        "surface-dim": "#0e141c",
+                        "on-secondary-fixed": "#25005a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-tablet": "32px",
+                        "unit": "4px",
+                        "lg": "24px",
+                        "xxl": "64px",
+                        "xl": "40px",
+                        "margin-mobile": "20px",
+                        "gutter": "16px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Outfit", "Noto Sans Arabic"],
+                        "label-sm": ["Outfit", "Noto Sans Arabic"],
+                        "headline-lg": ["Outfit", "Noto Sans Arabic"],
+                        "display-lg-mobile": ["Outfit", "Noto Sans Arabic"],
+                        "label-md": ["Outfit", "Noto Sans Arabic"],
+                        "headline-md": ["Outfit", "Noto Sans Arabic"],
+                        "body-lg": ["Outfit", "Noto Sans Arabic"],
+                        "body-md": ["Outfit", "Noto Sans Arabic"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "display-lg-mobile": ["36px", {"lineHeight": "44px", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/60 backdrop-blur-xl border-b border-white/10 flex items-center px-margin-mobile h-16">
+<div class="flex items-center gap-3 flex-1">
+<button class="active:scale-95 transition-transform duration-200 hover:text-accent-cyan text-on-surface-variant flex items-center">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="flex items-center gap-2">
+<img alt="Saad Studio Logo" class="w-8 h-8 object-contain" src="https://lh3.googleusercontent.com/aida/AP1WRLuEcEajsAhpH3qRgjTubIyUJxw6ollOw2McyupLb6RSddUUeD_SwWZDiQ22JCpr6BUBc0y_vxBnVfbsIyuwtuE6E0E47RzhdqGsNix3Wnez_n4D4YeIZ2fuC2l0nJuuCHCMfKupRltBWKUFBP9qDjGuJzz-zQxU5SeFRo7l0TBqQW8fI6sn9t5-3LZ0OkOM8Ks3QtMBYmsIqhCtKMrFuC7PlthIDt08VfdSSipm6XcYTci-ZhOlLEYZZz4"/>
+<h1 class="font-display-lg-mobile text-display-lg-mobile font-bold text-accent-cyan leading-none">saadstudio</h1>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container border border-white/10 overflow-hidden active:scale-95 transition-transform duration-200">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3jZIWr3ck01M37rNTagpWby2o_lM8EFrvEMfYoUjlFO0fYfuTkHMxnGB_1Wia-QjhiG9v1sJi5ivDHjeQKMP6veyeb5PUJ9m9ZyWXCL65rVEREnN2kBYwLqppaiTS6OEUAcr2JRLhY3cv0EXkN3U3XI3xc5ZwzSC_ViCl_3gEqBLNd1IGjat6TOeC2CDbh6ICH07W3kTRWKo62hl1s-DVV4-iSskajVgn9RrJbQNttcTii2PoAVNJ"/>
+</div>
+</div>
+</header>
+<main class="pt-16 pb-24">
+<!-- Hero Section -->
+<section class="relative h-[85vh] w-full overflow-hidden">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AP1WRLsQekq3td8JatP8cihu3dd4ooH-22PQSwr70z_9A5Sj4hX76GTrGv9rDTrubNxoR47ECeyCoI1Yoeddt53dxqsvFjxUkZxRFrTa_Kj3o7ACEEnGlPr72VpLmnEQ_zSDKSy67owA17mwLPDPSKYZg-iX0iiql3sq3hhIDcZe_bRXcer3CM9ux-avEWoGNkQm6Sp8npUbSqwKySYz7-VDPVns7QZ9ZrKpCvnyrnN0Yman4mzZG9kekaHaUKo"/>
+<div class="absolute inset-0 hero-gradient"></div>
+</div>
+<div class="relative z-10 h-full flex flex-col justify-end px-margin-mobile pb-12">
+<div class="max-w-md space-y-4">
+<h2 class="font-display-lg-mobile text-display-lg-mobile leading-tight text-white" data-key="heroTitle">ابدع بلا حدود</h2>
+<p class="font-body-lg text-on-surface-variant max-w-[80%]" data-key="heroSubtitle">نحوّل أفكارك الجريئة إلى واقع رقمي سينمائي باستخدام أحدث تقنيات الذكاء الاصطناعي والإنتاج الفني.</p>
+<div class="pt-4">
+<button class="bg-accent-cyan text-canvas-deep font-headline-md px-8 py-4 rounded-xl active:scale-95 transition-all shadow-[0_0_20px_rgba(6,182,212,0.15)] flex items-center gap-3">
+<span data-key="heroCta">ابدأ رحلتك الإبداعية</span>
+<span class="material-symbols-outlined flip-rtl">arrow_back</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Services Section -->
+<section class="mt-xxl px-margin-mobile">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-headline-lg text-white" data-key="servicesTitle">خدماتنا</h3>
+<button class="text-accent-cyan font-label-md flex items-center gap-1 hover:underline" data-key="viewAll">
+                مشاهدة الكل
+            </button>
+</div>
+<div class="grid grid-cols-1 gap-gutter">
+<!-- Service Card 1 -->
+<div class="glass-card rounded-xl p-lg flex items-center gap-md active:scale-[0.98] transition-all">
+<div class="w-14 h-14 rounded-full bg-accent-cyan/10 flex items-center justify-center text-accent-cyan shrink-0">
+<span class="material-symbols-outlined text-[32px]">videocam</span>
+</div>
+<div>
+<h4 class="font-headline-md text-white" data-key="s1Title">الإنتاج المرئي</h4>
+<p class="text-on-surface-variant font-body-md" data-key="s1Desc">صناعة محتوى فيديو عالي الجودة وبدقة 4K.</p>
+</div>
+</div>
+<!-- Service Card 2 -->
+<div class="glass-card rounded-xl p-lg flex items-center gap-md active:scale-[0.98] transition-all">
+<div class="w-14 h-14 rounded-full bg-accent-violet/10 flex items-center justify-center text-accent-violet shrink-0">
+<span class="material-symbols-outlined text-[32px]">smart_toy</span>
+</div>
+<div>
+<h4 class="font-headline-md text-white" data-key="s2Title">تكامل الذكاء الاصطناعي</h4>
+<p class="text-on-surface-variant font-body-md" data-key="s2Desc">حلول مبتكرة لتوليد المشاهد والشخصيات آلياً.</p>
+</div>
+</div>
+<!-- Service Card 3 -->
+<div class="glass-card rounded-xl p-lg flex items-center gap-md active:scale-[0.98] transition-all">
+<div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[32px]">design_services</span>
+</div>
+<div>
+<h4 class="font-headline-md text-white" data-key="s3Title">تصميم إبداعي</h4>
+<p class="text-on-surface-variant font-body-md" data-key="s3Desc">هويات بصرية عصرية تواكب المستقبل الرقمي.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Featured Work Section -->
+<section class="mt-xxl">
+<div class="px-margin-mobile flex justify-between items-center mb-md">
+<h3 class="font-headline-lg text-white" data-key="featuredTitle">أعمال مختارة</h3>
+<div class="flex gap-2">
+<button class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-sm flip-rtl">chevron_right</span>
+</button>
+<button class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-sm flip-rtl">chevron_left</span>
+</button>
+</div>
+</div>
+<div class="flex overflow-x-auto gap-gutter px-margin-mobile hide-scrollbar snap-x">
+<!-- Portfolio Card 1 -->
+<div class="min-w-[280px] snap-start group transition-all duration-700 opacity-100 translate-y-0">
+<div class="relative h-96 rounded-xl overflow-hidden border border-white/5">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFiQNisMaUNJH3hDFRZKxM10vKAGMegl_TIKSkkMbLPgqCOKPi0rbeYhKrcfKu0IOttft8Tk8z51LQHmBkghoh-0xJiIjRkjWr92pvJQQ_eR9hc5pgLfv084Pj9DCpjwibTzOT1Tbev6jliV9xhCD19fL_rbZQ0_-yHO6X7R_UxDVwDq3MeTbZNpO4ae7JKtydk6mq-MT4gl3qsvglAegcjDfEQj97F9x6FHWXcOD05cU4P7aQrI5H"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-lg">
+<span class="text-accent-cyan font-label-sm mb-1 uppercase tracking-wider">Sci-Fi Series</span>
+<h4 class="font-headline-md text-white" data-key="w1Title">مستقبل الرياض 2050</h4>
+</div>
+</div>
+</div>
+<!-- Portfolio Card 2 -->
+<div class="min-w-[280px] snap-start group transition-all duration-700 opacity-100 translate-y-0">
+<div class="relative h-96 rounded-xl overflow-hidden border border-white/5">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFB61lMUiGYYtMOktAITgCsmb9o3duGBuUKuB9UyTMm_Jr1bXcqAbNTOcrgI9nbUwZo0ov60LKo6CY-E8SlZsl01ezhnofQvWzIQEFBfLtyJL1FJQU2xO6dg15B0K0L-a7wjunAAsmg_dMrxKvh-U_oMzw0luqEHQutPY-jiBDShCJt3w10dQY_S4K9HV-4BRNoe45flZOQAmiCKkkZnXdnJK-SFy_Z160IOxYPCIbqChlZf7LqDA2"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-lg">
+<span class="text-accent-violet font-label-sm mb-1 uppercase tracking-wider">AI Experiment</span>
+<h4 class="font-headline-md text-white" data-key="w2Title">تحولات المادة</h4>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Promo Section -->
+<section class="mt-xxl px-margin-mobile">
+<div class="relative rounded-2xl overflow-hidden p-margin-mobile border border-white/10 bg-surface-container">
+<div class="relative z-10">
+<h3 class="font-headline-lg text-white mb-2" data-key="promoTitle">انضم لمجتمعنا الإبداعي</h3>
+<p class="font-body-md text-on-surface-variant mb-lg" data-key="promoDesc">احصل على وصول حصري لأحدث تقنيات الإنتاج وتدريبات الذكاء الاصطناعي.</p>
+<button class="bg-white text-canvas-deep font-label-md px-6 py-3 rounded-full hover:bg-accent-cyan transition-colors active:scale-95" data-key="promoCta">سجل الآن</button>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-4 pt-2 bg-surface/60 backdrop-blur-xl border-t border-white/10 rounded-t-xl h-20">
+<!-- Home (Active) -->
+<a class="flex flex-col items-center justify-center text-primary bg-primary-container/20 rounded-xl px-4 py-1 active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-sm text-label-sm" data-key="navHome">الرئيسية</span>
+</a>
+<!-- Projects -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">work</span>
+<span class="font-label-sm text-label-sm" data-key="navProjects">المشاريع</span>
+</a>
+<!-- Services -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">category</span>
+<span class="font-label-sm text-label-sm" data-key="navServices">الخدمات</span>
+</a>
+<!-- Contact -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">mail</span>
+<span class="font-label-sm text-label-sm" data-key="navContact">اتصل بنا</span>
+</a>
+</nav>
+<script>
+    const translations = {
+        ar: {
+            heroTitle: "ابدع بلا حدود",
+            heroSubtitle: "نحوّل أفكارك الجريئة إلى واقع رقمي سينمائي باستخدام أحدث تقنيات الذكاء الاصطناعي والإنتاج الفني.",
+            heroCta: "ابدأ رحلتك الإبداعية",
+            servicesTitle: "خدماتنا",
+            viewAll: "مشاهدة الكل",
+            s1Title: "الإنتاج المرئي",
+            s1Desc: "صناعة محتوى فيديو عالي الجودة وبدقة 4K.",
+            s2Title: "تكامل الذكاء الاصطناعي",
+            s2Desc: "حلول مبتكرة لتوليد المشاهد والشخصيات آلياً.",
+            s3Title: "تصميم إبداعي",
+            s3Desc: "هويات بصرية عصرية تواكب المستقبل الرقمي.",
+            featuredTitle: "أعمال مختارة",
+            w1Title: "مستقبل الرياض 2050",
+            w2Title: "تحولات المادة",
+            promoTitle: "انضم لمجتمعنا الإبداعي",
+            promoDesc: "احصل على وصول حصري لأحدث تقنيات الإنتاج وتدريبات الذكاء الاصطناعي.",
+            promoCta: "سجل الآن",
+            navHome: "الرئيسية",
+            navProjects: "المشاريع",
+            navServices: "الخدمات",
+            navContact: "اتصل بنا"
+        },
+        en: {
+            heroTitle: "Create Without Limits",
+            heroSubtitle: "We transform your bold ideas into cinematic digital reality using the latest AI and artistic production technologies.",
+            heroCta: "Start Your Creative Journey",
+            servicesTitle: "Our Services",
+            viewAll: "View All",
+            s1Title: "Visual Production",
+            s1Desc: "High-quality video production in 4K resolution.",
+            s2Title: "AI Integration",
+            s2Desc: "Innovative solutions for automated scene and character generation.",
+            s3Title: "Creative Design",
+            s3Desc: "Modern visual identities for the digital future.",
+            featuredTitle: "Featured Works",
+            w1Title: "Riyadh Future 2050",
+            w2Title: "Matter Transformations",
+            promoTitle: "Join Our Creative Community",
+            promoDesc: "Get exclusive access to the latest production techniques and AI training.",
+            promoCta: "Sign Up Now",
+            navHome: "Home",
+            navProjects: "Projects",
+            navServices: "Services",
+            navContact: "Contact"
+        }
+    };
+
+    let currentLang = 'ar';
+
+    function updateLanguage() {
+        const html = document.documentElement;
+        if (currentLang === 'ar') {
+            html.dir = 'rtl';
+            html.lang = 'ar';
+        } else {
+            html.dir = 'ltr';
+            html.lang = 'en';
+        }
+
+        // Update all text nodes with data-key
+        document.querySelectorAll('[data-key]').forEach(el => {
+            const key = el.getAttribute('data-key');
+            if (translations[currentLang][key]) {
+                el.textContent = translations[currentLang][key];
+            }
+        });
+    }
+
+    // Intersection Observer for scroll animations
+    document.addEventListener('DOMContentLoaded', () => {
+        const cards = document.querySelectorAll('.glass-card, .snap-start');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-4');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        cards.forEach(card => {
+            card.classList.add('transition-all', 'duration-700', 'opacity-0', 'translate-y-4');
+            observer.observe(card);
+        });
+        
+        updateLanguage();
+    });
+</script>
+</body></html>

@@ -59,6 +59,7 @@ type ShowcaseItem = {
   views: number;
   likes: number;
   created_at: string;
+  aspect_ratio?: string;
 };
 
 type FeedResponse = {
@@ -1405,6 +1406,31 @@ export default function ExplorePage() {
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Increment view count in database and update UI state when showcase item is previewed
+  useEffect(() => {
+    if (activeMediaItem) {
+      fetch(`/api/showcase/${activeMediaItem.id}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.item) {
+            const updatedItem = data.item;
+            const updateList = (list: ShowcaseItem[]) =>
+              list.map((u) => (u.id === updatedItem.id ? { ...u, views: updatedItem.views } : u));
+            setItems(updateList);
+            setFeatured(updateList);
+            setTrending(updateList);
+            setActiveMediaItem((current) => {
+              if (current && current.id === updatedItem.id) {
+                return { ...current, views: updatedItem.views };
+              }
+              return current;
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [activeMediaItem?.id]);
+
   const [heroTextIndex, setHeroTextIndex] = useState(0);
   const heroTexts = ["YOURS TO CREATE", "ASK ME AND I'LL GIVE YOU WHAT YOU WANT"];
 
@@ -1433,9 +1459,33 @@ export default function ExplorePage() {
   const columnsData = useMemo(() => {
     const list = activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items;
     const cols: ShowcaseItem[][] = Array.from({ length: columnCount }, () => []);
-    list.forEach((item, index) => {
-      cols[index % columnCount].push(item);
+    const colHeights = Array(columnCount).fill(0);
+
+    const aspectHeights: Record<string, number> = {
+      "16:9": 0.56,
+      "9:16": 1.77,
+      "1:1": 1.0,
+      "4:3": 0.75,
+      "3:4": 1.33,
+    };
+
+    list.forEach((item) => {
+      const aspect = item.aspect_ratio || "16:9";
+      const height = aspectHeights[aspect] || 0.56;
+
+      let minColIndex = 0;
+      let minColHeight = colHeights[0];
+      for (let i = 1; i < columnCount; i++) {
+        if (colHeights[i] < minColHeight) {
+          minColHeight = colHeights[i];
+          minColIndex = i;
+        }
+      }
+
+      cols[minColIndex].push(item);
+      colHeights[minColIndex] += height;
     });
+
     return cols;
   }, [activeFeed, featured, trending, items, columnCount]);
 

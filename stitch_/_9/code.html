@@ -1,0 +1,371 @@
+<!DOCTYPE html><html class="dark" dir="rtl" lang="ar" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>استوديو سعد - أنشئ أغنيتك</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&amp;family=Noto+Sans+Arabic:wght@100..900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        body {
+            font-family: 'Noto Sans Arabic', 'Outfit', sans-serif;
+            background-color: #02050C;
+            color: #FFFFFF;
+        }
+        .glass-card {
+            background: rgba(10, 15, 26, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-tab {
+            background: rgba(6, 182, 212, 0.1);
+            color: #4cd7f6;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #02050C;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30353e;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface": "#0e141c",
+                      "inverse-surface": "#dee2ef",
+                      "surface-container-low": "#171c24",
+                      "canvas-deep": "#02050C",
+                      "text-primary": "#FFFFFF",
+                      "on-primary-fixed": "#001f26",
+                      "text-secondary": "#E2E8F0",
+                      "secondary-fixed-dim": "#d2bbff",
+                      "on-secondary-fixed": "#25005a",
+                      "on-primary-container": "#00424f",
+                      "surface-container-lowest": "#090e17",
+                      "inverse-on-surface": "#2b313a",
+                      "on-secondary": "#3f008e",
+                      "surface-variant": "#30353e",
+                      "surface-container": "#1b2029",
+                      "surface-tint": "#4cd7f6",
+                      "primary-fixed": "#acedff",
+                      "on-surface-variant": "#bcc9cd",
+                      "primary-container": "#06b6d4",
+                      "background": "#0e141c",
+                      "on-secondary-container": "#c9aeff",
+                      "surface-container-highest": "#30353e",
+                      "canvas-elevated": "#0A0F1A",
+                      "on-primary": "#003640",
+                      "on-tertiary-fixed": "#2d1600",
+                      "on-background": "#dee2ef",
+                      "on-surface": "#dee2ef",
+                      "error-container": "#93000a",
+                      "surface-bright": "#343943",
+                      "secondary": "#d2bbff",
+                      "on-tertiary-fixed-variant": "#6a3b00",
+                      "surface-dim": "#0e141c",
+                      "surface-container-high": "#252a33",
+                      "tertiary-fixed-dim": "#ffb873",
+                      "tertiary-fixed": "#ffdcbf",
+                      "error": "#ffb4ab",
+                      "on-tertiary": "#4b2800",
+                      "on-secondary-fixed-variant": "#5a00c6",
+                      "secondary-container": "#6001d1",
+                      "secondary-fixed": "#eaddff",
+                      "on-error-container": "#ffdad6",
+                      "tertiary-container": "#e89337",
+                      "tertiary": "#ffb873",
+                      "primary-fixed-dim": "#4cd7f6",
+                      "on-primary-fixed-variant": "#004e5c",
+                      "outline": "#869397",
+                      "primary": "#4cd7f6",
+                      "outline-variant": "#3d494c",
+                      "on-error": "#690005",
+                      "on-tertiary-container": "#5b3200",
+                      "accent-violet": "#7C3AED",
+                      "inverse-primary": "#00687a",
+                      "accent-cyan": "#06B6D4"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "md": "16px",
+                      "gutter": "16px",
+                      "xl": "40px",
+                      "unit": "4px",
+                      "lg": "24px",
+                      "margin-mobile": "20px",
+                      "margin-tablet": "32px",
+                      "xs": "4px",
+                      "xxl": "64px",
+                      "sm": "8px"
+              },
+              "fontFamily": {
+                      "label-sm": ["Outfit"],
+                      "label-md": ["Outfit"],
+                      "headline-md": ["Outfit"],
+                      "display-lg-mobile": ["Outfit"],
+                      "body-lg": ["Outfit"],
+                      "headline-lg": ["Outfit"],
+                      "body-md": ["Outfit"],
+                      "display-lg": ["Outfit"]
+              },
+              "fontSize": {
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                      "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "display-lg-mobile": ["36px", {"lineHeight": "44px", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-canvas-deep min-h-screen pb-24 md:pb-0">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface/60 backdrop-blur-xl border-b border-white/10 h-16 flex flex-row-reverse justify-between items-center px-margin-mobile md:px-margin-tablet">
+<div class="flex items-center gap-4 flex-row-reverse">
+<span class="material-symbols-outlined text-primary cursor-pointer active:scale-95 transition-transform" data-icon="menu">menu</span>
+<h1 class="font-display-lg-mobile text-display-lg-mobile font-bold text-accent-cyan">saadstudio</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border border-white/10">
+<img class="w-full h-full object-cover" data-alt="A professional high-end studio portrait of a creative director in a dark, minimalist setting with soft cyan ambient lighting and deep shadows, reflecting a sophisticated and tech-forward persona." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3_8EiIaJrKH36_gAqMXsu9Khi4xV1FiFK5quWIKtpIkpQE5X90jNrMpmbO25fV5CYRMmde4SjQl36q_xhm1rmUvw8uwqd5wux9dJnuwRnV1gs7OEoQmvUwbnAJv3aKvNMEWvP9Ylueho08ZWqQGY-Dtgg0_HSUEMzrFOzYGkaKX4SLDEF3QYIEyKjRfzU3rokHcef2PoV1WORnczbtmhYNQdTn3APf0QlbUV284AXaJJqwhn5yPKL">
+</div>
+</div>
+</header>
+<main class="pt-20 px-margin-mobile md:px-margin-tablet max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 mb-xl">
+<!-- Input Canvas Section -->
+<section class="lg:col-span-8 space-y-lg">
+<header class="py-md">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-text-primary mb-xs">أنشئ أغنيتك</h2>
+<p class="text-on-surface-variant font-body-md">أنشئ موسيقى بجودة الاستوديو من النصوص أو الصور باستخدام الذكاء الاصطناعي الحديث.</p>
+</header>
+<!-- Main Form Card -->
+<div class="glass-card rounded-xl p-lg space-y-lg">
+<!-- Description/Lyrics Input -->
+<div class="space-y-sm">
+<div class="flex justify-between items-center flex-row-reverse">
+<label class="text-text-secondary font-label-md">الوصف / كلمات مخصصة</label>
+<span class="text-on-surface-variant font-label-sm">0 / 500</span>
+</div>
+<textarea class="w-full bg-surface-container-lowest border-b border-white/10 focus:border-accent-cyan outline-none rounded-lg p-md text-text-primary font-body-md min-h-[160px] resize-none transition-colors" placeholder="صف اللحن أو أدخل كلمات الأغنية هنا..."></textarea>
+</div>
+<!-- Style Suggestions -->
+<div class="space-y-sm">
+<label class="text-text-secondary font-label-md block text-right">اقتراحات الأنماط</label>
+<div class="flex flex-wrap gap-2 flex-row-reverse">
+<button class="px-4 py-1.5 rounded-full bg-surface-variant text-on-surface-variant hover:bg-accent-cyan/20 hover:text-accent-cyan transition-all text-sm">سينمائي</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-variant text-on-surface-variant hover:bg-accent-cyan/20 hover:text-accent-cyan transition-all text-sm">لو-فاي</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-variant text-on-surface-variant hover:bg-accent-cyan/20 hover:text-accent-cyan transition-all text-sm">إلكتروني</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-variant text-on-surface-variant hover:bg-accent-cyan/20 hover:text-accent-cyan transition-all text-sm">بوب</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-variant text-on-surface-variant hover:bg-accent-cyan/20 hover:text-accent-cyan transition-all text-sm">جاز</button>
+<button class="px-4 py-1.5 rounded-full border border-accent-cyan bg-accent-cyan/10 text-accent-cyan transition-all text-sm">عربي</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-variant text-on-surface-variant hover:bg-accent-cyan/20 hover:text-accent-cyan transition-all text-sm">محيط</button>
+</div>
+</div>
+<!-- Image Reference Upload -->
+<div class="space-y-sm">
+<label class="text-text-secondary font-label-md block text-right">مرجع الصورة (اختياري)</label>
+<div class="border-2 border-dashed border-white/10 rounded-xl p-xl flex flex-col items-center justify-center gap-4 hover:border-accent-cyan/50 transition-colors cursor-pointer bg-surface-container-low/30">
+<span class="material-symbols-outlined text-4xl text-on-surface-variant" data-icon="cloud_upload">cloud_upload</span>
+<div class="text-center">
+<p class="text-text-primary font-body-md">أفلت الصور هنا أو انقر للرفع</p>
+<p class="text-on-surface-variant font-label-sm mt-1">PNG, JPG, WEBP — بحد أقصى 10 صور</p>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full py-4 bg-accent-cyan text-canvas-deep font-bold rounded-xl flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all glow-cyan">
+<span class="">توليد الموسيقى · 20 نقطة</span>
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+</button>
+</div>
+</section>
+<!-- Sidebar / Settings Section -->
+<aside class="lg:col-span-4 space-y-lg">
+<!-- Settings Card -->
+<div class="glass-card rounded-xl p-lg">
+<div class="flex items-center gap-2 mb-lg flex-row-reverse border-b border-white/10 pb-md">
+<span class="material-symbols-outlined text-accent-cyan" data-icon="settings">settings</span>
+<h3 class="text-text-primary font-headline-md">الإعدادات</h3>
+</div>
+<div class="space-y-lg">
+<!-- Model Select -->
+<div class="space-y-sm">
+<label class="text-on-surface-variant font-label-sm block text-right">النموذج</label>
+<div class="grid grid-cols-2 gap-2">
+<button class="p-3 rounded-lg bg-surface-variant border border-accent-cyan/30 flex flex-col items-end gap-1">
+<span class="text-text-primary font-label-md">احترافي</span>
+<span class="text-[10px] text-accent-cyan">Google · معاينة</span>
+</button>
+<button class="p-3 rounded-lg bg-surface-container border border-white/5 flex flex-col items-end gap-1">
+<span class="text-on-surface-variant font-label-md">سريع</span>
+<span class="text-[10px] text-on-surface-variant">Google · سريع</span>
+</button>
+</div>
+</div>
+<!-- BPM Slider -->
+<div class="space-y-sm">
+<div class="flex justify-between flex-row-reverse">
+<label class="text-on-surface-variant font-label-sm">سرعة الإيقاع (BPM)</label>
+<span class="text-accent-cyan font-label-sm">120</span>
+</div>
+<input class="w-full h-1.5 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-accent-cyan" max="200" min="60" type="range" value="120">
+</div>
+<!-- Duration -->
+<div class="space-y-sm">
+<div class="flex justify-between flex-row-reverse">
+<label class="text-on-surface-variant font-label-sm">المدة</label>
+<span class="text-accent-cyan font-label-sm">2:00</span>
+</div>
+<div class="flex gap-2 flex-row-reverse">
+<button class="flex-1 py-2 bg-surface-variant rounded-lg text-sm">0:30</button>
+<button class="flex-1 py-2 bg-surface-variant border border-accent-cyan/40 text-accent-cyan rounded-lg text-sm">2:00</button>
+<button class="flex-1 py-2 bg-surface-variant rounded-lg text-sm">5:00</button>
+</div>
+</div>
+<!-- Toggle Music Only -->
+<div class="flex items-center justify-between flex-row-reverse pt-md border-t border-white/5">
+<div class="flex flex-col items-end">
+<span class="text-text-primary font-label-md">موسيقى فقط</span>
+<span class="text-on-surface-variant text-[11px]">بدون غناء</span>
+</div>
+<div class="w-12 h-6 bg-accent-cyan/20 border border-accent-cyan/30 rounded-full relative cursor-pointer">
+<div class="absolute right-1 top-1 w-4 h-4 bg-accent-cyan rounded-full transition-all"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Generation History -->
+<div class="space-y-md">
+<div class="flex items-center justify-between flex-row-reverse">
+<h3 class="text-text-primary font-headline-md">سجل التوليد</h3>
+<button class="text-on-surface-variant hover:text-error transition-colors font-label-sm">مسح الكل</button>
+</div>
+<!-- History Cards -->
+<div class="space-y-4">
+<!-- History Item 1 -->
+<div class="glass-card rounded-xl overflow-hidden group cursor-pointer transition-all hover:border-accent-cyan/30">
+<div class="h-24 w-full relative">
+<img class="w-full h-full object-cover" data-alt="A cinematic, moody digital art piece of a rainy city night with neon blue and violet lights reflecting on wet asphalt streets. The atmosphere is peaceful, lonely, and electronic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCYB0Uj0XBXVj0mhT5zM_6B4UVL4SWfavhv0J5oUU0ikMxdDFYaF7gwUy-lmUFtievuZDbId43wf8cMNMub8nEwurBz80Ize2nAnVbAveLS63kwOCwmG7sP_C7VZiOpeVq5OD-KBiHook1iGrDQvGmydmsY0DxwAaty6HVjpKT9VzzUWt3HcBUh54Hqk1buBW09fWDy_fd5kgdUAkN8dug49wbsua8oN4eSuS_00wbJMFgNiQ6Hem2w">
+<div class="absolute inset-0 bg-gradient-to-t from-canvas-elevated to-transparent"></div>
+<div class="absolute bottom-2 right-2 flex items-center gap-2">
+<span class="bg-black/40 backdrop-blur px-2 py-0.5 rounded text-[10px] text-accent-cyan uppercase">Ambient</span>
+</div>
+</div>
+<div class="p-4 space-y-2 text-right">
+<div class="flex justify-between items-center flex-row-reverse">
+<h4 class="text-text-primary font-label-md">Midnight Rain</h4>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-accent-cyan" data-icon="play_circle" style="font-variation-settings: 'FILL' 1;">play_circle</span>
+</div>
+<p class="text-on-surface-variant text-xs line-clamp-2">Melancholic piano with soft rain sounds and ambient reverb pads floating in the background</p>
+</div>
+</div>
+<!-- History Item 2 -->
+<div class="glass-card rounded-xl overflow-hidden group cursor-pointer transition-all hover:border-accent-cyan/30">
+<div class="h-24 w-full relative">
+<img class="w-full h-full object-cover" data-alt="Cyberpunk city street at dusk, glowing with vibrant neon signs in cyan and hot pink. The style is synthwave, high contrast, featuring retro-futuristic vibes and sharp digital details." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCd6CIR82EY9UjTDtxxBuT3lhm-aBpcI0JnMCwUN_cKGdeUL8D6oXjtUoh1y0BxBaZMyxuLMmBxDocl1U_b7KhtHnbodYRHaXI2FcsmNLiFGcICW87EFj1Ro_jCJK_QgdJbgVAJp0lJPsinzQ5IEkMc2OCaLyFU0Y7rPhdDJ5l8v43J4F7MG_ntQn44UIwe4kh2dbZeTgzeg9M_b2sDyGXXwLTxT3gYLYXc7LDXXcCR940xjB3vUh8k">
+<div class="absolute inset-0 bg-gradient-to-t from-canvas-elevated to-transparent"></div>
+<div class="absolute bottom-2 right-2 flex items-center gap-2">
+<span class="bg-black/40 backdrop-blur px-2 py-0.5 rounded text-[10px] text-accent-cyan uppercase">Synthwave</span>
+</div>
+</div>
+<div class="p-4 space-y-2 text-right">
+<div class="flex justify-between items-center flex-row-reverse">
+<h4 class="text-text-primary font-label-md">Urban Pulse</h4>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-accent-cyan" data-icon="play_circle" style="font-variation-settings: 'FILL' 1;">play_circle</span>
+</div>
+<p class="text-on-surface-variant text-xs line-clamp-2">Gritty synthwave with neon-soaked arpeggios and driving analog 80s drums through a tape compressor</p>
+</div>
+</div>
+<!-- History Item 3 -->
+<div class="glass-card rounded-xl overflow-hidden group cursor-pointer transition-all hover:border-accent-cyan/30">
+<div class="h-24 w-full relative">
+<img class="w-full h-full object-cover" data-alt="Golden sand dunes under a starlit night sky, with a subtle blue aurora-like glow on the horizon. The composition is wide and cinematic, blending traditional mystical desert elements with modern digital lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDo-ptagKCuM_gTEnYKWIhB8dY0XUKjE4Edpg0deySvNWO_2J4qfgCh9JCnVYUSsOAIZwQYOi3Sd_w4HSPaFy7pNYTHsv78OiEDGu9HJNe3P7Sj4rqiNMns-R2okL5IGeZahcK37p7Tu4QblXDufVFABFLymlbSOMjdAgJMcT3xdbHE6bbw6C7EuCL41X6KtiWCLIp0tPWfB1z8PXqpGAtSA64UCtTHZbi8WINbHBq9QUcIebrdfj3d">
+<div class="absolute inset-0 bg-gradient-to-t from-canvas-elevated to-transparent"></div>
+<div class="absolute bottom-2 right-2 flex items-center gap-2">
+<span class="bg-black/40 backdrop-blur px-2 py-0.5 rounded text-[10px] text-accent-cyan uppercase">Arabic</span>
+</div>
+</div>
+<div class="p-4 space-y-2 text-right">
+<div class="flex justify-between items-center flex-row-reverse">
+<h4 class="text-text-primary font-label-md">Desert Wind</h4>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-accent-cyan" data-icon="play_circle" style="font-variation-settings: 'FILL' 1;">play_circle</span>
+</div>
+<p class="text-on-surface-variant text-xs line-clamp-2">Traditional Arabic maqam melodies blended with modern electronic production and deep sub bass</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<!-- Bottom Navigation Bar (Mobile only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-surface/60 backdrop-blur-xl border-t border-white/10 flex flex-row-reverse justify-around items-center px-4 pb-4 pt-2">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm">الرئيسية</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="work">work</span>
+<span class="font-label-sm text-label-sm">المشاريع</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary bg-primary-container/20 rounded-xl px-4 py-1 active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="category">category</span>
+<span class="font-label-sm text-label-sm">الخدمات</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+<span class="font-label-sm text-label-sm">اتصل بنا</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interactions for buttons
+        document.querySelectorAll('button, a').forEach(elem => {
+            elem.addEventListener('mousedown', () => {
+                elem.style.transform = 'scale(0.96)';
+            });
+            elem.addEventListener('mouseup', () => {
+                elem.style.transform = 'scale(1)';
+            });
+            elem.addEventListener('mouseleave', () => {
+                elem.style.transform = 'scale(1)';
+            });
+        });
+
+        // Genre buttons selection toggle
+        const styleButtons = document.querySelectorAll('.flex-wrap button');
+        styleButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                styleButtons.forEach(b => {
+                    b.classList.remove('border', 'border-accent-cyan', 'bg-accent-cyan/10', 'text-accent-cyan');
+                    b.classList.add('bg-surface-variant', 'text-on-surface-variant');
+                });
+                btn.classList.add('border', 'border-accent-cyan', 'bg-accent-cyan/10', 'text-accent-cyan');
+                btn.classList.remove('bg-surface-variant', 'text-on-surface-variant');
+            });
+        });
+    </script>
+
+
+</body></html>

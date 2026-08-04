@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+
+<html class="dark" dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>استوديو سعد - إنشاء الفيديو</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #02050C;
+            color: #FFFFFF;
+            overflow-x: hidden;
+        }
+        .glass-panel {
+            background: rgba(10, 15, 26, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #06B6D4;
+            border-radius: 10px;
+        }
+        .active-glow {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.15);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface": "#0e141c",
+                      "inverse-surface": "#dee2ef",
+                      "surface-container-low": "#171c24",
+                      "canvas-deep": "#02050C",
+                      "text-primary": "#FFFFFF",
+                      "on-primary-fixed": "#001f26",
+                      "text-secondary": "#E2E8F0",
+                      "secondary-fixed-dim": "#d2bbff",
+                      "on-secondary-fixed": "#25005a",
+                      "on-primary-container": "#00424f",
+                      "surface-container-lowest": "#090e17",
+                      "inverse-on-surface": "#2b313a",
+                      "on-secondary": "#3f008e",
+                      "surface-variant": "#30353e",
+                      "surface-container": "#1b2029",
+                      "surface-tint": "#4cd7f6",
+                      "primary-fixed": "#acedff",
+                      "on-surface-variant": "#bcc9cd",
+                      "primary-container": "#06b6d4",
+                      "background": "#0e141c",
+                      "on-secondary-container": "#c9aeff",
+                      "surface-container-highest": "#30353e",
+                      "canvas-elevated": "#0A0F1A",
+                      "on-primary": "#003640",
+                      "on-tertiary-fixed": "#2d1600",
+                      "on-background": "#dee2ef",
+                      "on-surface": "#dee2ef",
+                      "error-container": "#93000a",
+                      "surface-bright": "#343943",
+                      "secondary": "#d2bbff",
+                      "on-tertiary-fixed-variant": "#6a3b00",
+                      "surface-dim": "#0e141c",
+                      "surface-container-high": "#252a33",
+                      "tertiary-fixed-dim": "#ffb873",
+                      "tertiary-fixed": "#ffdcbf",
+                      "error": "#ffb4ab",
+                      "on-tertiary": "#4b2800",
+                      "on-secondary-fixed-variant": "#5a00c6",
+                      "secondary-container": "#6001d1",
+                      "secondary-fixed": "#eaddff",
+                      "on-error-container": "#ffdad6",
+                      "tertiary-container": "#e89337",
+                      "tertiary": "#ffb873",
+                      "primary-fixed-dim": "#4cd7f6",
+                      "on-primary-fixed-variant": "#004e5c",
+                      "outline": "#869397",
+                      "primary": "#4cd7f6",
+                      "outline-variant": "#3d494c",
+                      "on-error": "#690005",
+                      "on-tertiary-container": "#5b3200",
+                      "accent-violet": "#7C3AED",
+                      "inverse-primary": "#00687a",
+                      "accent-cyan": "#06B6D4"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "md": "16px",
+                      "gutter": "16px",
+                      "xl": "40px",
+                      "unit": "4px",
+                      "lg": "24px",
+                      "margin-mobile": "20px",
+                      "margin-tablet": "32px",
+                      "xs": "4px",
+                      "xxl": "64px",
+                      "sm": "8px"
+              },
+              "fontFamily": {
+                      "label-sm": ["Outfit"],
+                      "label-md": ["Outfit"],
+                      "headline-md": ["Outfit"],
+                      "display-lg-mobile": ["Outfit"],
+                      "body-lg": ["Outfit"],
+                      "headline-lg": ["Outfit"],
+                      "body-md": ["Outfit"],
+                      "display-lg": ["Outfit"]
+              },
+              "fontSize": {
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                      "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "display-lg-mobile": ["36px", {"lineHeight": "44px", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-canvas-deep selection:bg-accent-cyan/30">
+<!-- Top AppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/60 backdrop-blur-xl border-b border-white/10 flex flex-row-reverse justify-between items-center px-margin-mobile h-16">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary hover:text-accent-cyan transition-colors cursor-pointer active:scale-95 duration-200">menu</span>
+<h1 class="font-display-lg-mobile text-display-lg-mobile font-bold text-accent-cyan">saadstudio</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex gap-6 mr-8 text-on-surface-variant font-label-md">
+<a class="hover:text-accent-cyan transition-colors" data-i18n="explore" href="#">استكشف</a>
+<a class="hover:text-accent-cyan transition-colors" data-i18n="images" href="#">الصور</a>
+<a class="text-primary border-b-2 border-accent-cyan pb-1" data-i18n="video" href="#">الفيديو</a>
+<a class="hover:text-accent-cyan transition-colors" data-i18n="audio" href="#">الصوت</a>
+</div>
+<!-- Language Switcher Toggle -->
+<div class="flex items-center bg-surface-container-high rounded-full p-1 border border-white/10">
+<button class="px-3 py-1 rounded-full text-label-sm transition-all bg-accent-cyan text-canvas-deep font-bold" id="lang-ar" onclick="switchLanguage('ar')">AR</button>
+<button class="px-3 py-1 rounded-full text-label-sm transition-all text-on-surface-variant hover:text-primary" id="lang-en" onclick="switchLanguage('en')">EN</button>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-high border border-white/10 overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDENUj6YWPls3FC1lSh_PsD8OlgnuH-xokK5jUS42o1_J6L7WfwyNXbTElBLXpiA_wix4Hf_UlKsSlCAclAHFjZLtCl9JcJ00TjOcA65GxCLFFL0COZiJM5q4q7xB6wY6tdWlZlNREzAA3b1KEU3D3HEoMrwit3nd1QCVMo2kPvzzfkCmSy8dE9ISn9hvmfkPbj9MFmcfhYq-dIXFVkwwPciNofoeFYUOrOUTlRJ_BSFuo6SYSqHmZV"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 md:pb-8 px-4 md:px-margin-tablet max-w-7xl mx-auto flex flex-col md:flex-row gap-8">
+<!-- Left Sidebar: Settings -->
+<aside class="w-full md:w-80 space-y-6 shrink-0">
+<section class="glass-panel p-6 rounded-xl">
+<h2 class="text-label-md font-bold text-accent-cyan mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span data-i18n="gen_settings">إعدادات الإنشاء</span>
+</h2>
+<div class="space-y-6">
+<!-- AI Model -->
+<div>
+<label class="block text-label-sm text-on-surface-variant mb-2" data-i18n="video_engine">محرك الفيديو</label>
+<div class="relative"><select class="w-full p-3 bg-surface-container-low border border-white/5 rounded-lg text-primary text-label-md appearance-none focus:ring-1 focus:ring-accent-cyan/50 cursor-pointer"><option selected="" value="kling-3.0">Kling 3.0 (NEW)</option><option value="seedance-2">Seedance 2</option><option value="veo-3.1">Veo 3.1</option><option value="hailuo-i2v">Hailuo I2V</option></select><div class="absolute inset-y-0 left-3 flex items-center pointer-events-none"><span class="material-symbols-outlined text-on-surface-variant">expand_more</span></div></div>
+</div>
+<!-- Duration -->
+<div>
+<label class="block text-label-sm text-on-surface-variant mb-2" data-i18n="duration">المدة الزمنية (ثواني)</label>
+<div class="relative"><select class="w-full p-3 bg-surface-container-low border border-white/5 rounded-lg text-primary text-label-md appearance-none focus:ring-1 focus:ring-accent-cyan/50 cursor-pointer"><option value="3s">3s</option><option selected="" value="5s">5s</option><option value="10s">10s</option><option value="15s">15s</option></select><div class="absolute inset-y-0 left-3 flex items-center pointer-events-none"><span class="material-symbols-outlined text-on-surface-variant">expand_more</span></div></div>
+</div>
+<!-- Aspect Ratio -->
+<div>
+<label class="block text-label-sm text-on-surface-variant mb-2" data-i18n="aspect_ratio">أبعاد الفيديو</label>
+<div class="relative"><select class="w-full p-3 bg-surface-container-low border border-white/5 rounded-lg text-primary text-label-md appearance-none focus:ring-1 focus:ring-accent-cyan/50 cursor-pointer"><option selected="" value="16:9">16:9 (Landscape)</option><option value="9:16">9:16 (Portrait)</option><option value="1:1">1:1 (Square)</option></select><div class="absolute inset-y-0 left-3 flex items-center pointer-events-none"><span class="material-symbols-outlined text-on-surface-variant">expand_more</span></div></div>
+</div>
+<!-- Shot Type -->
+<div>
+<label class="block text-label-sm text-on-surface-variant mb-2" data-i18n="shot_type">نوع اللقطة</label>
+<div class="flex gap-2 p-1 bg-surface-container-lowest rounded-xl">
+<button class="flex-1 py-1.5 rounded-lg bg-surface-container-high text-primary text-label-sm" data-i18n="smart">ذكي</button>
+<button class="flex-1 py-1.5 rounded-lg text-on-surface-variant text-label-sm" data-i18n="custom">مخصص</button>
+</div>
+</div>
+<!-- Advanced -->
+<div class="pt-4 border-t border-white/5"><label class="block text-label-sm text-on-surface-variant mb-2" data-i18n="gen_quality">جودة الإنشاء</label><div class="relative"><select class="w-full p-3 bg-surface-container-low border border-white/5 rounded-lg text-primary text-label-md appearance-none focus:ring-1 focus:ring-accent-cyan/50 cursor-pointer"><option value="standard">Standard</option><option selected="" value="pro">Pro</option><option value="ultra">Ultra</option></select><div class="absolute inset-y-0 left-3 flex items-center pointer-events-none"><span class="material-symbols-outlined text-on-surface-variant">expand_more</span></div></div></div>
+</div>
+</section>
+<button class="w-full py-4 rounded-xl bg-accent-cyan text-canvas-deep font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined">movie_filter</span>
+<span data-i18n="generate_btn">توليد الفيديو · 9 cr</span>
+</button>
+</aside>
+<!-- Main Content: Editor -->
+<div class="flex-1 space-y-6">
+<!-- Mode Selector -->
+<div class="flex gap-4 p-1.5 bg-surface-container-low rounded-2xl w-fit">
+<button class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-surface-container-high text-primary font-bold shadow-xl border border-white/5">
+<span class="material-symbols-outlined">text_fields</span>
+<span data-i18n="text_to_video">نص إلى فيديو</span>
+</button>
+<button class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">image</span>
+<span data-i18n="image_to_video">صورة إلى فيديو</span>
+</button>
+</div>
+<!-- Editor Canvas -->
+<div class="glass-panel rounded-3xl overflow-hidden relative group">
+<div class="relative p-8 min-h-[400px] flex flex-col items-center justify-center text-center">
+<div class="w-24 h-24 mb-6 rounded-full bg-accent-cyan/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined text-accent-cyan text-5xl">auto_fix_high</span>
+</div>
+<h3 class="font-headline-lg text-headline-lg text-primary mb-2" data-i18n="canvas_title">أنشئ أول فيديو لك</h3>
+<p class="text-body-lg text-on-surface-variant max-w-md" data-i18n="canvas_desc">اكتب وصفاً سينمائياً وسيقوم محرك Kling 3.0 بتحويل خيالك إلى واقع ملموس بدقة احترافية.</p>
+</div>
+<!-- Input Area -->
+<div class="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-canvas-elevated to-transparent">
+<div class="bg-surface-container-highest/80 backdrop-blur-md rounded-2xl border border-white/10 p-4 active-glow transition-all">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-primary text-body-md placeholder:text-on-surface-variant/50 resize-none min-h-[80px]" data-i18n-placeholder="prompt_placeholder" placeholder="مثال: لقطة سينمائية لغابة استوائية في المستقبل مع أمطار تتساقط من أوراق الشجر النيون..."></textarea>
+<div class="flex items-center justify-between mt-4">
+<div class="flex gap-2">
+<button class="p-2 hover:bg-white/5 rounded-lg transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">person_add</span>
+</button>
+<button class="p-2 hover:bg-white/5 rounded-lg transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">palette</span>
+</button>
+<button class="p-2 hover:bg-white/5 rounded-lg transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">add_photo_alternate</span>
+</button>
+</div>
+<div class="text-label-sm text-on-surface-variant/40 flex items-center gap-2">
+<span class="">0 / 500</span>
+<span class="material-symbols-outlined text-sm">info</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Models Selection Grid -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="glass-panel p-4 rounded-2xl border-accent-cyan/30 flex flex-col gap-2 cursor-pointer hover:bg-white/5 transition-all">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-accent-cyan">movie_edit</span>
+<span class="bg-accent-cyan/20 text-accent-cyan text-[10px] px-2 py-0.5 rounded-full" data-i18n="active_tag">ACTIVE</span>
+</div>
+<span class="text-label-md font-bold">Kling 3.0</span>
+<span class="text-[11px] text-on-surface-variant leading-tight" data-i18n="model_kling_desc">توليد فيديو مبني على نصوص دقيقة</span>
+</div>
+<div class="glass-panel p-4 rounded-2xl flex flex-col gap-2 cursor-pointer hover:bg-white/5 transition-all border-white/5">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-on-surface-variant">videocam</span>
+</div>
+<span class="text-label-md font-bold">Seedance 2</span>
+<span class="text-[11px] text-on-surface-variant leading-tight" data-i18n="model_seedance_desc">فيديوهات سينمائية مرجعية</span>
+</div>
+<div class="glass-panel p-4 rounded-2xl flex flex-col gap-2 cursor-pointer hover:bg-white/5 transition-all border-white/5">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-on-surface-variant">bolt</span>
+<span class="bg-accent-violet/20 text-accent-violet text-[10px] px-2 py-0.5 rounded-full" data-i18n="fast_tag">FAST</span>
+</div>
+<span class="text-label-md font-bold">Veo 3.1</span>
+<span class="text-[11px] text-on-surface-variant leading-tight" data-i18n="model_veo_desc">توليد سريع للمقاطع التجارية</span>
+</div>
+<div class="glass-panel p-4 rounded-2xl flex flex-col gap-2 cursor-pointer hover:bg-white/5 transition-all border-white/5">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-on-surface-variant">animation</span>
+</div>
+<span class="text-label-md font-bold">Hailuo I2V</span>
+<span class="text-[11px] text-on-surface-variant leading-tight" data-i18n="model_hailuo_desc">تحريك الصور بلمسة فنية</span>
+</div>
+</section>
+</div>
+</main>
+<!-- Bottom Navigation (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-surface/60 backdrop-blur-xl border-t border-white/10 flex flex-row-reverse justify-around items-center px-4 pb-4 pt-2">
+<div class="flex flex-col items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm" data-i18n="home">الرئيسية</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">work</span>
+<span class="font-label-sm text-label-sm" data-i18n="projects">المشاريع</span>
+</div>
+<div class="flex flex-col items-center justify-center text-primary bg-primary-container/20 rounded-xl px-4 py-1">
+<span class="material-symbols-outlined">category</span>
+<span class="font-label-sm text-label-sm" data-i18n="video">الفيديو</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">mail</span>
+<span class="font-label-sm text-label-sm" data-i18n="contact">اتصل بنا</span>
+</div>
+</nav>
+<script>
+    const translations = {
+        ar: {
+            explore: "استكشف",
+            images: "الصور",
+            video: "الفيديو",
+            audio: "الصوت",
+            gen_settings: "إعدادات الإنشاء",
+            video_engine: "محرك الفيديو",
+            duration: "المدة الزمنية (ثواني)",
+            aspect_ratio: "أبعاد الفيديو",
+            shot_type: "نوع اللقطة",
+            smart: "ذكي",
+            custom: "مخصص",
+            gen_quality: "جودة الإنشاء",
+            generate_btn: "توليد الفيديو · 9 cr",
+            text_to_video: "نص إلى فيديو",
+            image_to_video: "صورة إلى فيديو",
+            canvas_title: "أنشئ أول فيديو لك",
+            canvas_desc: "اكتب وصفاً سينمائياً وسيقوم محرك Kling 3.0 بتحويل خيالك إلى واقع ملموس بدقة احترافية.",
+            prompt_placeholder: "مثال: لقطة سينمائية لغابة استوائية في المستقبل مع أمطار تتساقط من أوراق الشجر النيون...",
+            active_tag: "نشط",
+            fast_tag: "سريع",
+            model_kling_desc: "توليد فيديو مبني على نصوص دقيقة",
+            model_seedance_desc: "فيديوهات سينمائية مرجعية",
+            model_veo_desc: "توليد سريع للمقاطع التجارية",
+            model_hailuo_desc: "تحريك الصور بلمسة فنية",
+            home: "الرئيسية",
+            projects: "المشاريع",
+            contact: "اتصل بنا"
+        },
+        en: {
+            explore: "Explore",
+            images: "Images",
+            video: "Video",
+            audio: "Audio",
+            gen_settings: "Generation Settings",
+            video_engine: "Video Engine",
+            duration: "Duration (Seconds)",
+            aspect_ratio: "Aspect Ratio",
+            shot_type: "Shot Type",
+            smart: "Smart",
+            custom: "Custom",
+            gen_quality: "Generation Quality",
+            generate_btn: "Generate Video · 9 cr",
+            text_to_video: "Text to Video",
+            image_to_video: "Image to Video",
+            canvas_title: "Create Your First Video",
+            canvas_desc: "Write a cinematic description and Kling 3.0 will bring your imagination to life with professional precision.",
+            prompt_placeholder: "Example: Cinematic shot of a futuristic tropical forest with neon rain falling from leaves...",
+            active_tag: "ACTIVE",
+            fast_tag: "FAST",
+            model_kling_desc: "Precise text-based video generation",
+            model_seedance_desc: "Reference cinematic videos",
+            model_veo_desc: "Fast commercial clip generation",
+            model_hailuo_desc: "Artistic image animation",
+            home: "Home",
+            projects: "Projects",
+            contact: "Contact Us"
+        }
+    };
+
+    function switchLanguage(lang) {
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        
+        // Update UI Text
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (translations[lang][key]) {
+                el.textContent = translations[lang][key];
+            }
+        });
+
+        // Update Placeholders
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (translations[lang][key]) {
+                el.placeholder = translations[lang][key];
+            }
+        });
+
+        // Toggle Switcher Styles
+        const btnAr = document.getElementById('lang-ar');
+        const btnEn = document.getElementById('lang-en');
+        
+        if (lang === 'ar') {
+            btnAr.className = "px-3 py-1 rounded-full text-label-sm transition-all bg-accent-cyan text-canvas-deep font-bold";
+            btnEn.className = "px-3 py-1 rounded-full text-label-sm transition-all text-on-surface-variant hover:text-primary";
+        } else {
+            btnEn.className = "px-3 py-1 rounded-full text-label-sm transition-all bg-accent-cyan text-canvas-deep font-bold";
+            btnAr.className = "px-3 py-1 rounded-full text-label-sm transition-all text-on-surface-variant hover:text-primary";
+        }
+
+        // Specific title update
+        document.title = lang === 'ar' ? 'استوديو سعد - إنشاء الفيديو' : 'Saad Studio - Video Generation';
+    }
+
+    // Subtle micro-interactions
+    document.querySelectorAll('.glass-panel').forEach(panel => {
+        panel.addEventListener('mousemove', (e) => {
+            const rect = panel.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            panel.style.setProperty('--mouse-x', `${x}px`);
+            panel.style.setProperty('--mouse-y', `${y}px`);
+        });
+    });
+
+    // Toggle focus state on textarea
+    const textarea = document.querySelector('textarea');
+    const inputWrapper = textarea.parentElement;
+    textarea.addEventListener('focus', () => {
+        inputWrapper.classList.add('border-accent-cyan/50', 'bg-surface-container-highest/95');
+    });
+    textarea.addEventListener('blur', () => {
+        inputWrapper.classList.remove('border-accent-cyan/50', 'bg-surface-container-highest/95');
+    });
+</script>
+</body></html>

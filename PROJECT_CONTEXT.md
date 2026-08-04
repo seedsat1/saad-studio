@@ -1,3 +1,13 @@
+#### Latest task: Fix explore page masonry layout balance and views increment (2026-08-05)
+- Status: Completed. Corrected unbalanced column heights on the explore page by distributing items to the shortest column based on their aspect ratio height factor. Added activeMediaItem preview useEffect to fetch the GET api which increments views in the database and updates frontend UI states.
+- Changes made:
+  - Added `aspect_ratio` key to `ShowcaseItem` type in `app/(dash)/(routes)/explore/page.tsx`.
+  - Refactored `columnsData` calculation to use dynamic height factors ("16:9": 0.56, "9:16": 1.77, etc.) and push each item into the shortest column.
+  - Added a `useEffect` hook listening to `activeMediaItem` preview opens, calling GET `/api/showcase/[id]` to increment database view count and updating `items`, `featured`, `trending`, and `activeMediaItem` states instantly.
+- Affected files: `app/(dash)/(routes)/explore/page.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx tsc --noEmit --pretty false` compilation check passed with 0 errors.
+- Decision: Shortest-column distribution keeps masonry grid columns visually balanced at the bottom, eliminating empty spaces. Fetching the GET endpoint on lightbox open makes the views count functional and real.
+
 #### Latest task: Video aspect ratio dropdown width match correction (2026-08-04)
 - Status: Fixed. Corrected /video AspectRatioPicker so the opened dropdown matches the full trigger width instead of shrinking into a narrow detached menu.
 - Changes made: Changed the opened menu from fixed narrow width to left/right anchored `w-full` while keeping the compact vertical row sizing and dark tool-panel styling.

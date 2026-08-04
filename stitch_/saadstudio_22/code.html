@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html class="dark" dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>استوديو سعد | باقات الاشتراك</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#dee2ef",
+                        "on-tertiary-fixed-variant": "#6a3b00",
+                        "primary-fixed": "#acedff",
+                        "outline": "#869397",
+                        "surface-container-high": "#252a33",
+                        "on-primary-fixed": "#001f26",
+                        "on-tertiary-fixed": "#2d1600",
+                        "on-primary-fixed-variant": "#004e5c",
+                        "inverse-on-surface": "#2b313a",
+                        "inverse-primary": "#00687a",
+                        "accent-cyan": "#06B6D4",
+                        "text-primary": "#FFFFFF",
+                        "tertiary-fixed": "#ffdcbf",
+                        "surface-container-low": "#171c24",
+                        "on-secondary-fixed": "#25005a",
+                        "accent-violet": "#7C3AED",
+                        "primary-fixed-dim": "#4cd7f6",
+                        "on-secondary-container": "#c9aeff",
+                        "on-surface-variant": "#bcc9cd",
+                        "inverse-surface": "#dee2ef",
+                        "tertiary-container": "#e89337",
+                        "surface-container": "#1b2029",
+                        "surface-container-highest": "#30353e",
+                        "surface-variant": "#30353e",
+                        "error": "#ffb4ab",
+                        "on-primary": "#003640",
+                        "canvas-deep": "#02050C",
+                        "surface-dim": "#0e141c",
+                        "secondary-fixed-dim": "#d2bbff",
+                        "text-secondary": "#E2E8F0",
+                        "on-secondary-fixed-variant": "#5a00c6",
+                        "tertiary": "#ffb873",
+                        "on-surface": "#dee2ef",
+                        "outline-variant": "#3d494c",
+                        "primary": "#4cd7f6",
+                        "on-tertiary-container": "#5b3200",
+                        "surface-tint": "#4cd7f6",
+                        "on-error-container": "#ffdad6",
+                        "surface-bright": "#343943",
+                        "secondary": "#d2bbff",
+                        "on-error": "#690005",
+                        "surface-container-lowest": "#090e17",
+                        "primary-container": "#06b6d4",
+                        "on-secondary": "#3f008e",
+                        "on-tertiary": "#4b2800",
+                        "tertiary-fixed-dim": "#ffb873",
+                        "secondary-fixed": "#eaddff",
+                        "secondary-container": "#6001d1",
+                        "on-primary-container": "#00424f",
+                        "surface": "#0e141c",
+                        "error-container": "#93000a",
+                        "canvas-elevated": "#0A0F1A",
+                        "background": "#0e141c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "xl": "40px",
+                        "md": "16px",
+                        "xxl": "64px",
+                        "margin-mobile": "20px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "unit": "4px",
+                        "sm": "8px",
+                        "margin-tablet": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Outfit"],
+                        "display-lg-mobile": ["Outfit"],
+                        "label-sm": ["Outfit"],
+                        "body-md": ["Outfit"],
+                        "body-lg": ["Outfit"],
+                        "display-lg": ["Outfit"],
+                        "label-md": ["Outfit"],
+                        "headline-md": ["Outfit"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "display-lg-mobile": ["36px", {"lineHeight": "44px", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { background-color: #02050C; color: #dee2ef; }
+        .glass-card { background: rgba(10, 15, 26, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glow-cyan { box-shadow: 0 0 20px rgba(6, 182, 212, 0.15); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .active-pill { background: rgba(6, 182, 212, 0.1); color: #06B6D4; border: 1px solid rgba(6, 182, 212, 0.3); }
+    </style>
+</head>
+<body class="font-body-md text-body-md selection:bg-accent-cyan/30">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/60 dark:bg-surface/60 backdrop-blur-xl border-b border-white/10 flex flex-row-reverse justify-between items-center px-margin-mobile h-16">
+<div class="flex items-center gap-3">
+<img alt="saadstudio" class="h-8 w-8" src="https://lh3.googleusercontent.com/aida/AP1WRLuEcEajsAhpH3qRgjTubIyUJxw6ollOw2McyupLb6RSddUUeD_SwWZDiQ22JCpr6BUBc0y_vxBnVfbsIyuwtuE6E0E47RzhdqGsNix3Wnez_n4D4YeIZ2fuC2l0nJuuCHCMfKupRltBWKUFBP9qDjGuJzz-zQxU5SeFRo7l0TBqQW8fI6sn9t5-3LZ0OkOM8Ks3QtMBYmsIqhCtKMrFuC7PlthIDt08VfdSSipm6XcYTci-ZhOlLEYZZz4"/>
+<span class="font-display-lg-mobile text-display-lg-mobile font-bold text-accent-cyan">saadstudio</span>
+</div>
+<button class="active:scale-95 transition-transform duration-200 text-primary">
+<span class="material-symbols-outlined text-2xl">menu</span>
+</button>
+</header>
+<main class="pt-24 pb-32 px-margin-mobile">
+<!-- Hero Section -->
+<section class="text-center mb-xl">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-text-primary mb-sm">اختر خطتك الإبداعية</h1>
+<p class="text-on-surface-variant max-w-xs mx-auto">رصيد نقاط موحد. جميع نماذج الذكاء الاصطناعي. لا توجد رسوم خفية.</p>
+</section>
+<!-- Toggle -->
+<div class="flex justify-center mb-xl">
+<div class="bg-surface-container rounded-full p-1 flex gap-1">
+<button class="px-6 py-2 rounded-full font-label-md text-label-md transition-all active-pill" id="monthly-toggle">شهرياً</button>
+<button class="px-6 py-2 rounded-full font-label-md text-label-md transition-all text-on-surface-variant" id="yearly-toggle">سنوياً</button>
+</div>
+</div>
+<!-- Pricing Grid (Bento Style) -->
+<div class="grid grid-cols-1 gap-lg">
+<!-- Most Popular: Pro Plan (Top of list for Mobile emphasis) -->
+<div class="glass-card rounded-xl p-lg relative border-accent-cyan/50 glow-cyan">
+<div class="absolute -top-3 right-6 bg-accent-cyan text-canvas-deep px-3 py-1 rounded-full font-label-sm text-label-sm">الأكثر شعبية</div>
+<div class="flex justify-between items-start mb-md">
+<div>
+<h3 class="font-headline-md text-headline-md text-text-primary">برو</h3>
+<p class="text-on-surface-variant font-label-sm text-label-sm">لاستوديوهات المحتوى الجادة</p>
+</div>
+<span class="material-symbols-outlined text-accent-cyan" style="font-variation-settings: 'FILL' 1;">stars</span>
+</div>
+<div class="mb-lg">
+<span class="font-display-lg-mobile text-display-lg-mobile text-text-primary">$70</span>
+<span class="text-on-surface-variant">/ شهرياً</span>
+</div>
+<div class="bg-surface-container/50 rounded-lg p-md mb-lg flex justify-between items-center border border-white/5">
+<span class="font-body-md text-body-md text-accent-cyan font-bold">1,800 نقطة</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">حتى 34 فيديو Kling</span>
+</div>
+<ul class="space-y-sm mb-xl">
+<li class="flex items-center gap-2 text-on-background font-body-md"><span class="material-symbols-outlined text-accent-cyan text-sm">check_circle</span>الوصول إلى النماذج المميزة</li>
+<li class="flex items-center gap-2 text-on-background font-body-md"><span class="material-symbols-outlined text-accent-cyan text-sm">check_circle</span>توليد متوازي (5 فيديو / 10 صور)</li>
+<li class="flex items-center gap-2 text-on-background font-body-md"><span class="material-symbols-outlined text-accent-cyan text-sm">check_circle</span>أولوية طابور التوليد</li>
+<li class="flex items-center gap-2 text-on-background font-body-md"><span class="material-symbols-outlined text-accent-cyan text-sm">check_circle</span>حقوق الاستخدام التجاري</li>
+</ul>
+<button class="w-full py-4 bg-accent-cyan text-canvas-deep rounded-xl font-headline-md text-headline-md hover:scale-[1.02] active:scale-95 transition-all">احصل على برو - الأكثر شعبية</button>
+</div>
+<!-- Podcast Add-on -->
+<div class="glass-card rounded-xl p-lg border-accent-violet/30">
+<div class="flex items-center gap-3 mb-md">
+<span class="material-symbols-outlined text-accent-violet">mic_external_on</span>
+<h3 class="font-headline-md text-headline-md text-text-primary">إضافة البودكاست</h3>
+</div>
+<p class="text-on-surface-variant font-body-md mb-lg">حزمة المونتاج الآلي لبريمير وافترافيكت</p>
+<div class="mb-lg">
+<span class="font-display-lg-mobile text-display-lg-mobile text-text-primary">$3</span>
+<span class="text-on-surface-variant">/ شهرياً</span>
+</div>
+<div class="grid grid-cols-2 gap-sm mb-lg">
+<div class="bg-surface-container p-2 rounded text-center text-label-sm">تبديل الكاميرات</div>
+<div class="bg-surface-container p-2 rounded text-center text-label-sm">التسميات الآلية</div>
+</div>
+<button class="w-full py-4 border border-accent-violet text-text-primary rounded-xl font-label-md text-label-md hover:bg-accent-violet/10 transition-all">اشترك بـ $3 فقط</button>
+</div>
+<!-- Starter Plan -->
+<div class="glass-card rounded-xl p-lg">
+<h3 class="font-headline-md text-headline-md text-text-primary mb-xs">مبتدئ</h3>
+<p class="text-on-surface-variant font-label-sm mb-lg">لصناع محتوى الذكاء الاصطناعي الجدد</p>
+<div class="mb-lg">
+<span class="font-display-lg-mobile text-display-lg-mobile text-text-primary">$15</span>
+<span class="text-on-surface-variant">/ شهرياً</span>
+</div>
+<div class="flex justify-between items-center mb-xl">
+<div class="flex flex-col">
+<span class="text-accent-cyan font-bold">300 نقطة</span>
+<span class="text-on-surface-variant text-label-sm">97 صورة Nano</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">rocket_launch</span>
+</div>
+<button class="w-full py-3 bg-surface-container text-text-primary rounded-xl font-label-md text-label-md hover:bg-surface-container-high transition-all">احصل على باقة المبتدئ</button>
+</div>
+<!-- Max Plan -->
+<div class="glass-card rounded-xl p-lg border-primary/20">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-headline-md text-headline-md text-text-primary">ماكس</h3>
+<span class="material-symbols-outlined text-primary">diamond</span>
+</div>
+<div class="mb-lg">
+<span class="font-display-lg-mobile text-display-lg-mobile text-text-primary">$99</span>
+<span class="text-on-surface-variant">/ شهرياً</span>
+</div>
+<p class="text-on-surface-variant font-body-md mb-lg">الوصول الكامل للـ API ومدير حساب مخصص للوكالات.</p>
+<div class="bg-primary/5 rounded-lg p-md mb-lg border border-primary/10">
+<span class="font-body-md text-accent-cyan font-bold">2,700 نقطة / شهر</span>
+</div>
+<button class="w-full py-4 border border-primary text-primary rounded-xl font-label-md text-label-md hover:bg-primary/10 transition-all">احصل على باقة ماكس</button>
+</div>
+</div>
+<!-- Top-up Section -->
+<section class="mt-xxl">
+<div class="flex items-center gap-3 mb-lg">
+<span class="material-symbols-outlined text-accent-cyan">add_circle</span>
+<h2 class="font-headline-lg text-headline-lg text-text-primary">اشترِ نقاطاً إضافية</h2>
+</div>
+<p class="text-on-surface-variant mb-lg">تتراكم النقاط مع خطتك ولا تنتهي صلاحيتها أبداً.</p>
+<div class="flex overflow-x-auto gap-md pb-4 snap-x rtl:flex-row-reverse" style="scrollbar-width: none;">
+<div class="snap-center shrink-0 w-40 glass-card p-md rounded-xl text-center">
+<div class="text-accent-cyan font-bold text-headline-md mb-xs">+75</div>
+<div class="text-on-surface-variant text-label-sm mb-md">نقطة</div>
+<div class="text-text-primary font-bold mb-md">$5</div>
+<button class="w-full py-2 bg-surface-container rounded-lg text-label-sm hover:bg-accent-cyan hover:text-canvas-deep transition-all">شراء</button>
+</div>
+<div class="snap-center shrink-0 w-40 glass-card p-md rounded-xl text-center relative border-accent-cyan/30">
+<div class="absolute -top-2 left-1/2 -translate-x-1/2 bg-accent-cyan text-canvas-deep text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap">أفضل قيمة</div>
+<div class="text-accent-cyan font-bold text-headline-md mb-xs">+250</div>
+<div class="text-on-surface-variant text-label-sm mb-md">نقطة</div>
+<div class="text-text-primary font-bold mb-md">$15</div>
+<button class="w-full py-2 bg-accent-cyan text-canvas-deep rounded-lg text-label-sm transition-all">شراء</button>
+</div>
+<div class="snap-center shrink-0 w-40 glass-card p-md rounded-xl text-center">
+<div class="text-accent-cyan font-bold text-headline-md mb-xs">+500</div>
+<div class="text-on-surface-variant text-label-sm mb-md">نقطة</div>
+<div class="text-text-primary font-bold mb-md">$30</div>
+<button class="w-full py-2 bg-surface-container rounded-lg text-label-sm hover:bg-accent-cyan hover:text-canvas-deep transition-all">شراء</button>
+</div>
+</div>
+</section>
+<!-- Usage Table -->
+<section class="mt-xxl glass-card rounded-xl overflow-hidden">
+<div class="p-lg border-b border-white/10 bg-white/5">
+<h3 class="font-headline-md text-headline-md text-text-primary">ماذا توفر لك نقطة واحدة؟</h3>
+<p class="text-on-surface-variant text-label-sm">التسعير التقريبي للنقاط لكل عملية توليد</p>
+</div>
+<div class="p-lg space-y-lg">
+<div>
+<h4 class="text-accent-cyan font-bold mb-md flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">videocam</span> نماذج الفيديو
+                    </h4>
+<div class="space-y-md">
+<div class="flex justify-between border-b border-white/5 pb-sm">
+<span class="text-on-background">Kling 3.0</span>
+<span class="text-accent-cyan font-bold">17.5+ نقطة</span>
+</div>
+<div class="flex justify-between border-b border-white/5 pb-sm">
+<span class="text-on-background">Wan 2.6</span>
+<span class="text-accent-cyan font-bold">8 نقاط</span>
+</div>
+</div>
+</div>
+<div>
+<h4 class="text-accent-cyan font-bold mb-md flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">image</span> نماذج الصور
+                    </h4>
+<div class="space-y-md">
+<div class="flex justify-between border-b border-white/5 pb-sm">
+<span class="text-on-background">Nano Banana Pro</span>
+<span class="text-accent-cyan font-bold">3.07+ نقطة</span>
+</div>
+<div class="flex justify-between border-b border-white/5 pb-sm">
+<span class="text-on-background">Flux.2 Pro</span>
+<span class="text-accent-cyan font-bold">0.52 نقطة</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="mt-xxl border-t border-white/10 pt-xl">
+<div class="flex flex-col items-center gap-6 text-center">
+<img alt="saadstudio logo" class="h-10 w-10 opacity-50 grayscale hover:grayscale-0 transition-all" src="https://lh3.googleusercontent.com/aida/AP1WRLuEcEajsAhpH3qRgjTubIyUJxw6ollOw2McyupLb6RSddUUeD_SwWZDiQ22JCpr6BUBc0y_vxBnVfbsIyuwtuE6E0E47RzhdqGsNix3Wnez_n4D4YeIZ2fuC2l0nJuuCHCMfKupRltBWKUFBP9qDjGuJzz-zQxU5SeFRo7l0TBqQW8fI6sn9t5-3LZ0OkOM8Ks3QtMBYmsIqhCtKMrFuC7PlthIDt08VfdSSipm6XcYTci-ZhOlLEYZZz4"/>
+<p class="text-on-surface-variant max-w-xs">The world's most powerful AI creative studio. Unlock your potential.</p>
+<div class="flex gap-lg">
+<a class="text-accent-cyan" href="tel:+9647755815500"><span class="material-symbols-outlined">call</span></a>
+<a class="text-accent-cyan" href="mailto:support@saadstudio.app"><span class="material-symbols-outlined">mail</span></a>
+<a class="text-accent-cyan" href="#"><span class="material-symbols-outlined">swap_horizontal_circle</span></a>
+</div>
+<div class="grid grid-cols-2 gap-x-xl gap-y-sm text-label-md text-on-surface-variant">
+<a class="hover:text-accent-cyan" href="#">عن الاستوديو</a>
+<a class="hover:text-accent-cyan" href="#">تواصل معنا</a>
+<a class="hover:text-accent-cyan" href="#">سياسة الخصوصية</a>
+<a class="hover:text-accent-cyan" href="#">الشروط والأحكام</a>
+</div>
+<p class="text-label-sm text-on-surface-variant/50 pt-lg">© 2026 Saad Studio. All rights reserved.</p>
+</div>
+</footer>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-surface/60 dark:bg-surface/60 backdrop-blur-xl border-t border-white/10 flex flex-row-reverse justify-around items-center px-4 pb-4 pt-2 rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">الرئيسية</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">work</span>
+<span class="font-label-sm text-label-sm">المشاريع</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary bg-primary-container/20 rounded-xl px-4 py-1 active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">category</span>
+<span class="font-label-sm text-label-sm">الخدمات</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">mail</span>
+<span class="font-label-sm text-label-sm">اتصل بنا</span>
+</a>
+</nav>
+<script>
+        const monthlyBtn = document.getElementById('monthly-toggle');
+        const yearlyBtn = document.getElementById('yearly-toggle');
+
+        monthlyBtn.addEventListener('click', () => {
+            monthlyBtn.classList.add('active-pill');
+            monthlyBtn.classList.remove('text-on-surface-variant');
+            yearlyBtn.classList.remove('active-pill');
+            yearlyBtn.classList.add('text-on-surface-variant');
+        });
+
+        yearlyBtn.addEventListener('click', () => {
+            yearlyBtn.classList.add('active-pill');
+            yearlyBtn.classList.remove('text-on-surface-variant');
+            monthlyBtn.classList.remove('active-pill');
+            monthlyBtn.classList.add('text-on-surface-variant');
+        });
+
+        // Simple parallax for glass effects
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const glassCards = document.querySelectorAll('.glass-card');
+            glassCards.forEach((card, index) => {
+                const speed = 0.05 + (index * 0.01);
+                card.style.transform = `translateY(${scrolled * speed}px)`;
+            });
+        });
+    </script>
+</body></html>

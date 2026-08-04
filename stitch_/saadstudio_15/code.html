@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+
+<html class="dark" dir="rtl" lang="ar" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>استوديو سعد | استكشف</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface": "#0e141c",
+                    "inverse-surface": "#dee2ef",
+                    "surface-container-low": "#171c24",
+                    "canvas-deep": "#02050C",
+                    "text-primary": "#FFFFFF",
+                    "on-primary-fixed": "#001f26",
+                    "text-secondary": "#E2E8F0",
+                    "secondary-fixed-dim": "#d2bbff",
+                    "on-secondary-fixed": "#25005a",
+                    "on-primary-container": "#00424f",
+                    "surface-container-lowest": "#090e17",
+                    "inverse-on-surface": "#2b313a",
+                    "on-secondary": "#3f008e",
+                    "surface-variant": "#30353e",
+                    "surface-container": "#1b2029",
+                    "surface-tint": "#4cd7f6",
+                    "primary-fixed": "#acedff",
+                    "on-surface-variant": "#bcc9cd",
+                    "primary-container": "#06b6d4",
+                    "background": "#0e141c",
+                    "on-secondary-container": "#c9aeff",
+                    "surface-container-highest": "#30353e",
+                    "canvas-elevated": "#0A0F1A",
+                    "on-primary": "#003640",
+                    "on-tertiary-fixed": "#2d1600",
+                    "on-background": "#dee2ef",
+                    "on-surface": "#dee2ef",
+                    "error-container": "#93000a",
+                    "surface-bright": "#343943",
+                    "secondary": "#d2bbff",
+                    "on-tertiary-fixed-variant": "#6a3b00",
+                    "surface-dim": "#0e141c",
+                    "surface-container-high": "#252a33",
+                    "tertiary-fixed-dim": "#ffb873",
+                    "tertiary-fixed": "#ffdcbf",
+                    "error": "#ffb4ab",
+                    "on-tertiary": "#4b2800",
+                    "on-secondary-fixed-variant": "#5a00c6",
+                    "secondary-container": "#6001d1",
+                    "secondary-fixed": "#eaddff",
+                    "on-error-container": "#ffdad6",
+                    "tertiary-container": "#e89337",
+                    "tertiary": "#ffb873",
+                    "primary-fixed-dim": "#4cd7f6",
+                    "on-primary-fixed-variant": "#004e5c",
+                    "outline": "#869397",
+                    "primary": "#4cd7f6",
+                    "outline-variant": "#3d494c",
+                    "on-error": "#690005",
+                    "on-tertiary-container": "#5b3200",
+                    "accent-violet": "#7C3AED",
+                    "inverse-primary": "#00687a",
+                    "accent-cyan": "#06B6D4"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "md": "16px",
+                    "gutter": "16px",
+                    "xl": "40px",
+                    "unit": "4px",
+                    "lg": "24px",
+                    "margin-mobile": "20px",
+                    "margin-tablet": "32px",
+                    "xs": "4px",
+                    "xxl": "64px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Outfit"],
+                    "label-md": ["Outfit"],
+                    "headline-md": ["Outfit"],
+                    "display-lg-mobile": ["Outfit"],
+                    "body-lg": ["Outfit"],
+                    "headline-lg": ["Outfit"],
+                    "body-md": ["Outfit"],
+                    "display-lg": ["Outfit"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "display-lg-mobile": ["36px", {"lineHeight": "44px", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #02050C;
+            color: #FFFFFF;
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass {
+            background: rgba(14, 20, 28, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .canvas-elevated-border {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(76, 215, 246, 0.3);
+            border-radius: 10px;
+        }
+        .fade-left {
+            mask-image: linear-gradient(to left, black 85%, transparent 100%);
+        }
+        [dir="ltr"] .fade-left {
+            mask-image: linear-gradient(to right, black 85%, transparent 100%);
+        }
+    </style>
+</head>
+<body class="dark selection:bg-accent-cyan selection:text-canvas-deep">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 glass border-b border-white/10 h-16 flex flex-row-reverse justify-between items-center px-margin-mobile">
+<div class="flex items-center gap-4">
+<div class="w-8 h-8 rounded-full overflow-hidden border border-accent-cyan/30 active:scale-95 transition-transform duration-200 cursor-pointer">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVc3PdHRYP3LJAbhq4SzSvoUQAYek7mh2kGLALOGg09iAccJcfrSIjVVu0J8f-gnAkFiC8h5zjvjg6TSdpI1vCWYYj8K6bGb3LTufbGx28p2QaanNKNUquE4GV9KMTQLnwb8nZ6wYd8q954x7ynoVdrrxTqGIEwv_jJrR-JwwzfqHKdI8WyX4R4vD74aFwi7R5wXxAzpdVOvy4xcfEpkcdyK6UwHLG534HQwaSC4QDihw1JIaHO3G-"/>
+</div>
+<button class="material-symbols-outlined text-primary hover:text-accent-cyan transition-colors active:scale-95">menu</button>
+</div>
+<div class="flex items-center gap-2">
+<img alt="saadstudio logo" class="w-8 h-8 object-contain" src="https://lh3.googleusercontent.com/aida/AP1WRLuEcEajsAhpH3qRgjTubIyUJxw6ollOw2McyupLb6RSddUUeD_SwWZDiQ22JCpr6BUBc0y_vxBnVfbsIyuwtuE6E0E47RzhdqGsNix3Wnez_n4D4YeIZ2fuC2l0nJuuCHCMfKupRltBWKUFBP9qDjGuJzz-zQxU5SeFRo7l0TBqQW8fI6sn9t5-3LZ0OkOM8Ks3QtMBYmsIqhCtKMrFuC7PlthIDt08VfdSSipm6XcYTci-ZhOlLEYZZz4"/>
+<h1 class="font-display-lg-mobile text-display-lg-mobile font-bold text-accent-cyan tracking-tight">saadstudio</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-primary hover:text-accent-cyan transition-colors active:scale-95">notifications</button>
+</div>
+</header>
+<main class="pt-20 pb-32 px-margin-mobile max-w-7xl mx-auto">
+<!-- Hero Section: Create What You Want -->
+<section class="mb-xl relative overflow-hidden rounded-xl bg-surface-container-lowest canvas-elevated-border p-6 md:p-10">
+<div class="relative z-10 text-center max-w-2xl mx-auto">
+<h2 class="font-headline-lg text-headline-lg mb-md" data-i18n="hero-title">أنشئ كما تريد</h2>
+<div class="flex justify-center gap-4 mb-lg">
+<button class="px-6 py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md active:scale-95 transition-all" data-i18n="tab-image">صورة</button>
+<button class="px-6 py-2 rounded-full border border-white/10 text-text-secondary font-label-md text-label-md hover:bg-white/5 active:scale-95 transition-all" data-i18n="tab-video">فيديو</button>
+</div>
+<div class="glass canvas-elevated-border rounded-xl p-4 flex flex-col md:flex-row gap-4 items-center">
+<div class="flex-1 w-full text-right ltr:text-left">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2" data-i18n="prompt-label">التوجيه (Prompt)</label>
+<input class="w-full bg-canvas-deep/50 border-b border-white/10 focus:border-accent-cyan focus:ring-0 text-text-primary px-0 py-2 placeholder:text-on-surface-variant/40" data-i18n-placeholder="prompt-placeholder" placeholder="اكتب ما يدور في ذهنك..." type="text"/>
+</div>
+<div class="flex gap-4 w-full md:w-auto">
+<div class="text-right ltr:text-left">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1">Ratio</label>
+<span class="text-accent-cyan font-label-md">1:1</span>
+</div>
+<div class="text-right ltr:text-left">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1">Style</label>
+<span class="text-accent-cyan font-label-md" data-i18n="style-dynamic">Dynamic</span>
+</div>
+</div>
+<button class="w-full md:w-auto bg-accent-cyan text-canvas-deep px-8 py-3 rounded-lg font-label-md text-label-md font-bold shadow-[0_0_20px_rgba(6,182,212,0.2)] active:scale-95 transition-all" data-i18n="btn-generate">توليد</button>
+</div>
+</div>
+</section>
+<!-- Categories / Quick Tools -->
+<nav class="mb-xl overflow-x-auto whitespace-nowrap custom-scrollbar pb-4 fade-left">
+<div class="flex gap-3">
+<a class="px-5 py-2 rounded-full bg-accent-violet text-white font-label-md text-label-md" data-i18n="cat-image" href="#">توليد الصور</a>
+<a class="px-5 py-2 rounded-full bg-surface-container-high canvas-elevated-border text-text-secondary font-label-md text-label-md" data-i18n="cat-video" href="#">توليد الفيديو</a>
+<a class="px-5 py-2 rounded-full bg-surface-container-high canvas-elevated-border text-text-secondary font-label-md text-label-md" data-i18n="cat-3d" href="#">توليد ثلاثي الأبعاد</a>
+<a class="px-5 py-2 rounded-full bg-accent-cyan/20 text-accent-cyan border border-accent-cyan/30 font-label-md text-label-md" data-i18n="cat-blueprints" href="#">NEW مخططات</a>
+<a class="px-5 py-2 rounded-full bg-surface-container-high canvas-elevated-border text-text-secondary font-label-md text-label-md" data-i18n="cat-realtime" href="#">NEW الوقت الفعلي</a>
+<a class="px-5 py-2 rounded-full bg-surface-container-high canvas-elevated-border text-text-secondary font-label-md text-label-md" data-i18n="cat-upscale" href="#">محسن الدقة</a>
+</div>
+</nav>
+<!-- Studio Works -->
+<section class="mb-xxl">
+<div class="flex justify-between items-center mb-lg">
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+<h2 class="font-headline-md text-headline-md" data-i18n="studio-works">أعمال الاستوديو</h2>
+</div>
+<div class="flex gap-4">
+<button class="text-accent-cyan font-label-md border-b-2 border-accent-cyan pb-1" data-i18n="filter-latest">الأحدث</button>
+<button class="text-on-surface-variant font-label-md hover:text-text-primary transition-colors pb-1" data-i18n="filter-featured">المميزة</button>
+<button class="text-on-surface-variant font-label-md hover:text-text-primary transition-colors pb-1" data-i18n="filter-trending">الرائجة</button>
+</div>
+</div>
+<!-- Works Grid (Bento) -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="col-span-2 row-span-2 group relative overflow-hidden rounded-xl aspect-square canvas-elevated-border">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0oO_tVrqeSyWrdo-NeOhgf-RQTvbhaLe0R15PzaOE1NeGTf7D-3W8x4lXLiKMBZMDdDx4RoAHqoamf6LxxHaLTvhk9qSsELLgj9a0tx2cEVxhPLGM1HCmQ0YPfyU2VZ9rFxY4YfVxLAZ9p-KsnqhmMuKlRt8i8cod9gjjp3uoPYtgGDUet-PSbTv2zNQgfDhBiHaJVs0yQPCIpiWBPyp53S2Bp73Y2LEZdZSJquCVoa-po54lD3Nc"/>
+<div class="absolute inset-0 bg-gradient-to-t from-canvas-deep via-transparent to-transparent opacity-60"></div>
+<div class="absolute bottom-4 right-4 text-right ltr:left-4 ltr:right-auto ltr:text-left">
+<p class="font-label-md text-label-md text-accent-cyan" data-i18n="case-study-tag">Featured Case Study</p>
+<h3 class="font-headline-md text-headline-md" data-i18n="case-study-title">أفق بغداد 2050</h3>
+</div>
+</div>
+<div class="group relative overflow-hidden rounded-xl aspect-square canvas-elevated-border">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmXbbS-NhbIejxEYD7TBzFefspij45SNteBvQeGSIYhnGqEXGvKrRCRfmsSH_2ATAzLxLKUTC7yazwrd54l3rWzOTtLA66zzPuZPiCfm6gX6VP9BNqGl09n0OOZiTpT2ybCZrYtLobt0_yBoCwkRXjFwhY09eRb3-oFDdF08ifkCqgIQHU6QwNEt0s0CnEzsim-Jg25cq9AifKzhtvHP3oRzYtNdWKdGWw7_vJY8p5dIh09GDR2pdp"/>
+</div>
+<div class="group relative overflow-hidden rounded-xl aspect-square canvas-elevated-border">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDX2cv18aenGLD227lHfwJhkNVSRnjBD8uO9DQ5Qh8vK5w8s1ADv438mAbDFWxK3i8lHsMYYy_BoyquhPXX5ArwsVsB-SG4wf8nPtm4YJGYj61w_7LgsRWWLwTP3L_7I-Qas6mG5yXEAfdZKGJepLlpumE7AjIOLUlqZcNBDiFBJuytWR9XDBwepgVyJxtEnlncExmaXACbkHklUqxjgWI5ltN9DP6LNi034ax5SuEZTCePzlV-zesL"/>
+</div>
+<div class="group relative overflow-hidden rounded-xl aspect-square canvas-elevated-border">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFF7R4j3bH9a3MFouqcZLWuMcDmhFtN862PAO0rAsW_vJcyZLHOt5HkMYYjMOmAF17p6jbrOQ0ugISFitCKwMywEX3JbgcbBsYaSXlpGImeXu6XLmqT5o0JTsUZCbS1-bsHcIbvJultKRZsPs7X1_z3XKxIFe87LUKcFO-HxA3H3Wl2Ofi9ZkqkA2QoFDoTz8N8s8ytFkUiEu2op7p2IRMWqlXD8t6peJ7ITAJpcomDE5JBUnPGiIW"/>
+</div>
+<div class="group relative overflow-hidden rounded-xl aspect-square canvas-elevated-border">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCM-p1jZnTf8MKEmCEZ9-_qY46Rbpk2vdArp78LEORC-O4YWRlkPgkck_8ama6cyuJB8MABjgXAy2SVC1f8uhrvhploCc4PsHiaPp82q92Inz3aBtuQ0KCGSgxvfqQTUt6XfSRKckeoXJ1zxmMcLmSScULX_BuvcTCT_9uvkpqzqcyNy71iJ2-_CdhSIgstIJ-iQst0q4xFLKrq2TInNlDow3q4Ja4-wxr0Lww93I6EOdmQteE1O4QK"/>
+</div>
+</div>
+</section>
+<!-- Featured Blueprints -->
+<section class="mb-xxl">
+<div class="flex justify-between items-center mb-lg">
+<h2 class="font-headline-md text-headline-md" data-i18n="blueprints-title">مخططات مميزة</h2>
+<a class="text-accent-cyan font-label-md hover:underline" data-i18n="view-more" href="#">عرض المزيد</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Preset 1 -->
+<div class="bg-surface-container-low canvas-elevated-border rounded-xl overflow-hidden group hover:border-accent-cyan/50 transition-all duration-300">
+<div class="h-48 relative">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyqy_RnLdmHqB54nkQbXnk49-sn3jqXFRjVoPT8Z_vuMp6xDq3Keysooqe3Cm8JLwHHwek8wum2yvQsfn1FPowE-IagXRVDm9LkfzP7iQU-aSwGgzAEL_7H3o1VoS-95ld5OcYQyJzSX0JYkSgfpemevHtodGp43MhhCsK-svg6rlCjcjSOBT_2yamFznCDPrfKBFYjbounee7jfr5gbcDpMODZwCmxoKs7t8KuIQdM1XT-Yqu4-ux"/>
+<span class="absolute top-3 right-3 ltr:right-auto ltr:left-3 bg-accent-cyan text-canvas-deep text-[10px] px-2 py-1 rounded-full font-bold" data-i18n="badge-new">جديد</span>
+</div>
+<div class="p-4 text-right ltr:text-left">
+<div class="flex justify-between items-start mb-2 ltr:flex-row-reverse">
+<span class="text-on-surface-variant text-[12px] font-label-sm" data-i18n="bp1-category">منشئ مرجع العرض</span>
+<h4 class="font-headline-md text-[20px]">3D Model</h4>
+</div>
+<p class="text-on-surface-variant text-label-sm font-label-sm mb-4" data-i18n="bp1-desc">عرض ثلاثي الأبعاد لنصب عراقي حديث، منحنيات بيضاء.</p>
+<button class="w-full py-2 bg-white/5 border border-white/10 rounded-lg text-text-secondary hover:bg-accent-cyan hover:text-canvas-deep transition-all duration-300" data-i18n="btn-create-preset">Create Preset</button>
+</div>
+</div>
+<!-- Preset 2 -->
+<div class="bg-surface-container-low canvas-elevated-border rounded-xl overflow-hidden group hover:border-accent-violet/50 transition-all duration-300">
+<div class="h-48 relative">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUsnXafK8uUR0zIr9qhLDy0FgVnlyzLq4JVZBzWsJvqLk0QnNJhd9DqbFMF1R6CLqxJVzug9EcZSfwMu57SknWENfQUXjtZLvf_dfWIpql1GogZO6UZVY8w2e51wgH2scFyKza9L3bvtIqa5Ajsd-iH22T4Snphoi4z-5LdnJyaGnD2hnTat80kP1sYcGDrEb6md8FAIaT51VJldWOYjQoGPuDUzhhq_O9HEaYeq5BbDpQYKy3eFL_"/>
+<span class="absolute top-3 right-3 ltr:right-auto ltr:left-3 bg-accent-violet text-white text-[10px] px-2 py-1 rounded-full font-bold">Motion</span>
+</div>
+<div class="p-4 text-right ltr:text-left">
+<div class="flex justify-between items-start mb-2 ltr:flex-row-reverse">
+<span class="text-on-surface-variant text-[12px] font-label-sm" data-i18n="bp2-category">معرض المنتجات الحركية</span>
+<h4 class="font-headline-md text-[20px]">Motion Showcase</h4>
+</div>
+<p class="text-on-surface-variant text-label-sm font-label-sm mb-4" data-i18n="bp2-desc">حركة سينمائية لمنتجات مستقبلية بأسلوب تقني عالي.</p>
+<button class="w-full py-2 bg-white/5 border border-white/10 rounded-lg text-text-secondary hover:bg-accent-violet hover:text-white transition-all duration-300" data-i18n="btn-create-preset">Create Preset</button>
+</div>
+</div>
+<!-- Preset 3 -->
+<div class="bg-surface-container-low canvas-elevated-border rounded-xl overflow-hidden group hover:border-primary/50 transition-all duration-300">
+<div class="h-48 relative">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJiKb1IcFgm2XgYwefly-M9YXDFqmctC4F6IoR_1QazO2y8gS76nU1iBmOf_clzxVp7CzgxOpDfRc6cAnrOKCxl_jZ8mfgFdjLp7WGVLv6GmET5zNAbzIz7Ta4XWPk7iEqPXvrZNY8GGF0n2CHjm1bvtHekZv2SuCgoy0y4Wt5bSIPJETnH7Eq-kcGL6TPLPoWAr40AxH5VCnwYDJyQdTWsc7PN_pMq2oA9qvro-tjldMtMPulU65N"/>
+<span class="absolute top-3 right-3 ltr:right-auto ltr:left-3 bg-primary text-on-primary text-[10px] px-2 py-1 rounded-full font-bold" data-i18n="badge-trending">شائع</span>
+</div>
+<div class="p-4 text-right ltr:text-left">
+<div class="flex justify-between items-start mb-2 ltr:flex-row-reverse">
+<span class="text-on-surface-variant text-[12px] font-label-sm" data-i18n="bp3-category">نمط السايبربانك</span>
+<h4 class="font-headline-md text-[20px]">Cyberpunk Style</h4>
+</div>
+<p class="text-on-surface-variant text-label-sm font-label-sm mb-4" data-i18n="bp3-desc">بلاد الرافدين بنمط مستقبلي، بوابات وزقورات نيون.</p>
+<button class="w-full py-2 bg-white/5 border border-white/10 rounded-lg text-text-secondary hover:bg-primary hover:text-on-primary transition-all duration-300" data-i18n="btn-create-preset">Create Preset</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Community Highlights -->
+<section class="mb-xxl">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-lg">
+<h2 class="font-headline-md text-headline-md" data-i18n="community-works">أعمال المجتمع (العراق وبغداد)</h2>
+<div class="flex gap-2 overflow-x-auto w-full md:w-auto pb-2">
+<button class="px-4 py-1 rounded-full bg-accent-cyan text-canvas-deep font-label-sm text-label-sm" data-i18n="com-cat-all">الكل</button>
+<button class="px-4 py-1 rounded-full bg-surface-container-high border border-white/10 text-on-surface-variant font-label-sm text-label-sm" data-i18n="com-cat-arch">الهندسة المعمارية</button>
+<button class="px-4 py-1 rounded-full bg-surface-container-high border border-white/10 text-on-surface-variant font-label-sm text-label-sm" data-i18n="com-cat-scifi">الخيال العلمي</button>
+<button class="px-4 py-1 rounded-full bg-surface-container-high border border-white/10 text-on-surface-variant font-label-sm text-label-sm" data-i18n="com-cat-history">التاريخ</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Community Card 1 -->
+<div class="flex flex-col gap-4">
+<div class="relative group overflow-hidden rounded-xl bg-surface-container-high aspect-video">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5Dp6CfRyLecZfxH2xyGKcFA-SlhxXIGKuotzUsCt5mScGLMkEjOW7FNl4fR7A-L2NXG5nTeuN4LEkkySaXSjZBUX4ExGNs7tvq7lnA6nheG2-Rnzv-SlPCqcZmw1NGN7YoD2B1LfwSrAwkBoYPZlG5nN-SLI-nMilKHdrGGvw4Vp__Rfqeu1v350WNEHKY47eAWfq-GgT9x2I2nrjyLzXRDsgMiTo5sSUmy4twTTQif_cr0N9toGs"/>
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+<button class="bg-white text-canvas-deep p-2 rounded-full hover:bg-accent-cyan transition-colors"><span class="material-symbols-outlined">favorite</span></button>
+<button class="bg-white text-canvas-deep p-2 rounded-full hover:bg-accent-cyan transition-colors"><span class="material-symbols-outlined">download</span></button>
+</div>
+</div>
+<div class="px-2">
+<div class="flex items-center justify-between mb-2 ltr:flex-row-reverse">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-accent-cyan/20 flex items-center justify-center text-[10px] text-accent-cyan font-bold">SS</div>
+<span class="font-label-md text-label-md text-text-primary">Saad Studio AI</span>
+<span class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-on-surface-variant">Flux Pro</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+<span class="text-[12px]">12.4k</span>
+</div>
+</div>
+<h3 class="font-headline-md text-[18px] mb-2 text-right ltr:text-left" data-i18n="com-title-1">أفق بغداد المستقبلي</h3>
+<p class="text-on-surface-variant text-label-sm font-label-sm line-clamp-2 mb-3 text-right ltr:text-left" data-i18n="com-desc-1">A hyper-realistic futuristic Baghdad skyline at night along the Tigris River...</p>
+<button class="flex items-center gap-2 text-accent-cyan font-label-sm hover:opacity-80 transition-opacity ml-auto ltr:ml-0 ltr:mr-auto">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+<span data-i18n="btn-copy-prompt">نسخ التوجيه</span>
+</button>
+</div>
+</div>
+<!-- Community Card 2 -->
+<div class="flex flex-col gap-4">
+<div class="relative group overflow-hidden rounded-xl bg-surface-container-high aspect-video">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLIMCnJaxVMZh6nTfNRvXRAgU9jEYWfi-vQ-N-jZlxncHIi8z1XZL_aB2Cw9RlBQWdHaD6Gft9zqwooCPouDXgVKljUI4sXSpzDF-Cf4urqIyNOrg-kQjYk_9ZFH6foAc-cfCL4BpRrw_jFIT4UO9Hm3AQe1HJCXviA6ONIryq0MAV-s5VlzY9bw-EODX9KkJkwMbZDJrqyP7v5fZBk7AiP1ci1k-h5vnnKdpBg7zPEDrPvqzMaL4z"/>
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+<button class="bg-white text-canvas-deep p-2 rounded-full hover:bg-accent-cyan transition-colors"><span class="material-symbols-outlined">favorite</span></button>
+<button class="bg-white text-canvas-deep p-2 rounded-full hover:bg-accent-cyan transition-colors"><span class="material-symbols-outlined">download</span></button>
+</div>
+</div>
+<div class="px-2">
+<div class="flex items-center justify-between mb-2 ltr:flex-row-reverse">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-accent-violet/20 flex items-center justify-center text-[10px] text-accent-violet font-bold">SS</div>
+<span class="font-label-md text-label-md text-text-primary">Saad Studio AI</span>
+<span class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-on-surface-variant">Flux Pro</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+<span class="text-[12px]">8.9k</span>
+</div>
+</div>
+<h3 class="font-headline-md text-[18px] mb-2 text-right ltr:text-left" data-i18n="com-title-2">أهوار المدينة البيئية</h3>
+<p class="text-on-surface-variant text-label-sm font-label-sm line-clamp-2 mb-3 text-right ltr:text-left" data-i18n="com-desc-2">A futuristic Mesopotamian eco-city built in the marshes of southern Iraq...</p>
+<button class="flex items-center gap-2 text-accent-cyan font-label-sm hover:opacity-80 transition-opacity ml-auto ltr:ml-0 ltr:mr-auto">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+<span data-i18n="btn-copy-prompt">نسخ التوجيه</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 glass border-t border-white/10 flex flex-row-reverse justify-around items-center px-4 pb-4 pt-2 rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan transition-all active:scale-90" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm mt-1" data-i18n="nav-home">الرئيسية</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary bg-primary-container/20 rounded-xl px-4 py-1 active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">explore</span>
+<span class="font-label-sm text-label-sm mt-1" data-i18n="nav-projects">المشاريع</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan transition-all active:scale-90" href="#">
+<span class="material-symbols-outlined">category</span>
+<span class="font-label-sm text-label-sm mt-1" data-i18n="nav-services">الخدمات</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan transition-all active:scale-90" href="#">
+<span class="material-symbols-outlined">mail</span>
+<span class="font-label-sm text-label-sm mt-1" data-i18n="nav-contact">اتصل بنا</span>
+</a>
+</nav>
+<!-- Floating Action Button (FAB) -->
+<button class="fixed bottom-24 left-6 ltr:right-6 ltr:left-auto w-14 h-14 rounded-2xl bg-accent-cyan text-canvas-deep flex items-center justify-center shadow-[0_8px_30px_rgb(6,182,212,0.3)] hover:scale-110 active:scale-95 transition-all z-40">
+<span class="material-symbols-outlined font-bold">add</span>
+</button>
+<script>
+    const translations = {
+        ar: {
+            'hero-title': 'أنشئ كما تريد',
+            'tab-image': 'صورة',
+            'tab-video': 'فيديو',
+            'prompt-label': 'التوجيه (Prompt)',
+            'prompt-placeholder': 'اكتب ما يدور في ذهنك...',
+            'style-dynamic': 'Dynamic',
+            'btn-generate': 'توليد',
+            'cat-image': 'توليد الصور',
+            'cat-video': 'توليد الفيديو',
+            'cat-3d': 'توليد ثلاثي الأبعاد',
+            'cat-blueprints': 'NEW مخططات',
+            'cat-realtime': 'NEW الوقت الفعلي',
+            'cat-upscale': 'محسن الدقة',
+            'studio-works': 'أعمال الاستوديو',
+            'filter-latest': 'الأحدث',
+            'filter-featured': 'المميزة',
+            'filter-trending': 'الرائجة',
+            'case-study-tag': 'Featured Case Study',
+            'case-study-title': 'أفق بغداد 2050',
+            'blueprints-title': 'مخططات مميزة',
+            'view-more': 'عرض المزيد',
+            'badge-new': 'جديد',
+            'badge-trending': 'شائع',
+            'bp1-category': 'منشئ مرجع العرض',
+            'bp1-desc': 'عرض ثلاثي الأبعاد لنصب عراقي حديث، منحنيات بيضاء.',
+            'bp2-category': 'معرض المنتجات الحركية',
+            'bp2-desc': 'حركة سينمائية لمنتجات مستقبلية بأسلوب تقني عالي.',
+            'bp3-category': 'نمط السايبربانك',
+            'bp3-desc': 'بلاد الرافدين بنمط مستقبلي، بوابات وزقورات نيون.',
+            'btn-create-preset': 'Create Preset',
+            'community-works': 'أعمال المجتمع (العراق وبغداد)',
+            'com-cat-all': 'الكل',
+            'com-cat-arch': 'الهندسة المعمارية',
+            'com-cat-scifi': 'الخيال العلمي',
+            'com-cat-history': 'التاريخ',
+            'com-title-1': 'أفق بغداد المستقبلي',
+            'com-desc-1': 'A hyper-realistic futuristic Baghdad skyline at night along the Tigris River...',
+            'com-title-2': 'أهوار المدينة البيئية',
+            'com-desc-2': 'A futuristic Mesopotamian eco-city built in the marshes of southern Iraq...',
+            'btn-copy-prompt': 'نسخ التوجيه',
+            'nav-home': 'الرئيسية',
+            'nav-projects': 'المشاريع',
+            'nav-services': 'الخدمات',
+            'nav-contact': 'اتصل بنا'
+        },
+        en: {
+            'hero-title': 'Create What You Want',
+            'tab-image': 'Image',
+            'tab-video': 'Video',
+            'prompt-label': 'Prompt',
+            'prompt-placeholder': 'Type what is on your mind...',
+            'style-dynamic': 'Dynamic',
+            'btn-generate': 'Generate',
+            'cat-image': 'Image Generation',
+            'cat-video': 'Video Generation',
+            'cat-3d': '3D Generation',
+            'cat-blueprints': 'NEW Blueprints',
+            'cat-realtime': 'NEW Real-time',
+            'cat-upscale': 'Upscaler',
+            'studio-works': 'Studio Works',
+            'filter-latest': 'Latest',
+            'filter-featured': 'Featured',
+            'filter-trending': 'Trending',
+            'case-study-tag': 'Featured Case Study',
+            'case-study-title': 'Baghdad Horizon 2050',
+            'blueprints-title': 'Featured Blueprints',
+            'view-more': 'View More',
+            'badge-new': 'NEW',
+            'badge-trending': 'HOT',
+            'bp1-category': 'Reference Showcase',
+            'bp1-desc': '3D view of a modern Iraqi monument, white curves.',
+            'bp2-category': 'Motion Product Gallery',
+            'bp2-desc': 'Cinematic motion for future products with tech style.',
+            'bp3-category': 'Cyberpunk Style',
+            'bp3-desc': 'Mesopotamia in future style, neon gates and zigurats.',
+            'btn-create-preset': 'Create Preset',
+            'community-works': 'Community Works (Iraq & Baghdad)',
+            'com-cat-all': 'All',
+            'com-cat-arch': 'Architecture',
+            'com-cat-scifi': 'Sci-Fi',
+            'com-cat-history': 'History',
+            'com-title-1': 'Future Baghdad Skyline',
+            'com-desc-1': 'A hyper-realistic futuristic Baghdad skyline at night...',
+            'com-title-2': 'Marshland Eco-City',
+            'com-desc-2': 'A futuristic Mesopotamian eco-city in southern Iraq...',
+            'btn-copy-prompt': 'Copy Prompt',
+            'nav-home': 'Home',
+            'nav-projects': 'Projects',
+            'nav-services': 'Services',
+            'nav-contact': 'Contact'
+        }
+    };
+
+    let currentLang = 'ar';
+
+    function updateLanguage(lang) {
+        currentLang = lang;
+        const html = document.documentElement;
+        html.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        html.lang = lang;
+        
+        // Translate elements with data-i18n
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (translations[lang][key]) {
+                el.textContent = translations[lang][key];
+            }
+        });
+
+        // Translate placeholders
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (translations[lang][key]) {
+                el.placeholder = translations[lang][key];
+            }
+        });
+    }
+
+    // Micro-interaction for cards
+    document.querySelectorAll('.canvas-elevated-border').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            card.style.setProperty('--mouse-x', `${x}px`);
+            card.style.setProperty('--mouse-y', `${y}px`);
+        });
+    });
+</script>
+</body></html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html><html class="dark" dir="rtl" lang="ar" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>استوديو سعد | Storyboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface": "#0e141c",
+                    "inverse-surface": "#dee2ef",
+                    "surface-container-low": "#171c24",
+                    "canvas-deep": "#02050C",
+                    "text-primary": "#FFFFFF",
+                    "on-primary-fixed": "#001f26",
+                    "text-secondary": "#E2E8F0",
+                    "secondary-fixed-dim": "#d2bbff",
+                    "on-secondary-fixed": "#25005a",
+                    "on-primary-container": "#00424f",
+                    "surface-container-lowest": "#090e17",
+                    "inverse-on-surface": "#2b313a",
+                    "on-secondary": "#3f008e",
+                    "surface-variant": "#30353e",
+                    "surface-container": "#1b2029",
+                    "surface-tint": "#4cd7f6",
+                    "primary-fixed": "#acedff",
+                    "on-surface-variant": "#bcc9cd",
+                    "primary-container": "#06b6d4",
+                    "background": "#0e141c",
+                    "on-secondary-container": "#c9aeff",
+                    "surface-container-highest": "#30353e",
+                    "canvas-elevated": "#0A0F1A",
+                    "on-primary": "#003640",
+                    "on-tertiary-fixed": "#2d1600",
+                    "on-background": "#dee2ef",
+                    "on-surface": "#dee2ef",
+                    "error-container": "#93000a",
+                    "surface-bright": "#343943",
+                    "secondary": "#d2bbff",
+                    "on-tertiary-fixed-variant": "#6a3b00",
+                    "surface-dim": "#0e141c",
+                    "surface-container-high": "#252a33",
+                    "tertiary-fixed-dim": "#ffb873",
+                    "tertiary-fixed": "#ffdcbf",
+                    "error": "#ffb4ab",
+                    "on-tertiary": "#4b2800",
+                    "on-secondary-fixed-variant": "#5a00c6",
+                    "secondary-container": "#6001d1",
+                    "secondary-fixed": "#eaddff",
+                    "on-error-container": "#ffdad6",
+                    "tertiary-container": "#e89337",
+                    "tertiary": "#ffb873",
+                    "primary-fixed-dim": "#4cd7f6",
+                    "on-primary-fixed-variant": "#004e5c",
+                    "outline": "#869397",
+                    "primary": "#4cd7f6",
+                    "outline-variant": "#3d494c",
+                    "on-error": "#690005",
+                    "on-tertiary-container": "#5b3200",
+                    "accent-violet": "#7C3AED",
+                    "inverse-primary": "#00687a",
+                    "accent-cyan": "#06B6D4"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "md": "16px",
+                    "gutter": "16px",
+                    "xl": "40px",
+                    "unit": "4px",
+                    "lg": "24px",
+                    "margin-mobile": "20px",
+                    "margin-tablet": "32px",
+                    "xs": "4px",
+                    "xxl": "64px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Outfit"],
+                    "label-md": ["Outfit"],
+                    "headline-md": ["Outfit"],
+                    "display-lg-mobile": ["Outfit"],
+                    "body-lg": ["Outfit"],
+                    "headline-lg": ["Outfit"],
+                    "body-md": ["Outfit"],
+                    "display-lg": ["Outfit"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "display-lg-mobile": ["36px", {"lineHeight": "44px", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #02050C;
+            color: #FFFFFF;
+            overflow-x: hidden;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(14, 20, 28, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .cyan-glow {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+        }
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite linear;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="font-body-md text-body-md selection:bg-accent-cyan selection:text-canvas-deep">
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface/60 dark:bg-surface/60 backdrop-blur-xl border-b border-white/10 flex flex-row-reverse justify-between items-center px-margin-mobile h-16 w-full">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary cursor-pointer active:scale-95 transition-transform duration-200">menu</span>
+<h1 class="font-display-lg-mobile text-display-lg-mobile font-bold text-accent-cyan">saadstudio</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-high border border-white/10 overflow-hidden flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">person</span>
+</div>
+</div>
+</header>
+<main class="relative min-h-screen pt-24 pb-32 px-margin-mobile md:px-margin-tablet max-w-7xl mx-auto">
+<!-- Background Animation -->
+<div class="fixed inset-0 -z-10 opacity-30 pointer-events-none">
+
+</div>
+<!-- Hero Section: The "Coming Soon" Experience -->
+<section class="flex flex-col items-center text-center mb-xxl mt-12 transition-all duration-1000 opacity-100 translate-y-0">
+<div class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan mb-6">
+<span class="material-symbols-outlined text-sm">auto_awesome</span>
+<span class="font-label-md text-label-md">ذكاء اصطناعي إبداعي</span>
+</div>
+<h2 class="font-display-lg text-display-lg-mobile md:text-display-lg max-w-4xl leading-tight mb-6">
+                حوّل أفكارك إلى <span class="text-accent-cyan">قصص بصرية</span> متكاملة
+            </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mb-10">
+                منصة "Storyboard" الجديدة من استوديو سعد. أداة احترافية تتيح لك بناء مخططات الإنتاج والقصص المصورة باستخدام الذكاء الاصطناعي في ثوانٍ.
+            </p>
+<div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+<button class="bg-accent-cyan text-canvas-deep px-8 py-4 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 cyan-glow">
+                    ابدأ الآن مجاناً
+                    <span class="material-symbols-outlined">arrow_back</span>
+</button>
+<button class="border border-accent-violet text-text-primary px-8 py-4 rounded-xl font-bold hover:bg-accent-violet/10 active:scale-95 transition-all flex items-center justify-center gap-2">
+                    شاهد العرض التوضيحي
+                    <span class="material-symbols-outlined">play_circle</span>
+</button>
+</div>
+</section>
+<!-- Preview Interface Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-xxl">
+<!-- Main Preview Card -->
+<div class="md:col-span-2 glass-panel rounded-2xl p-6 flex flex-col gap-6 relative overflow-hidden group transition-all duration-1000 opacity-100 translate-y-0">
+<div class="flex justify-between items-center relative z-10">
+<div class="flex gap-2">
+<div class="w-3 h-3 rounded-full bg-error/40"></div>
+<div class="w-3 h-3 rounded-full bg-tertiary/40"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">الواجهة التجريبية v1.0</span>
+</div>
+<div class="aspect-video w-full rounded-xl bg-canvas-deep border border-white/5 overflow-hidden relative">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" data-alt="A cinematic storyboard preview of a futuristic neon-lit city street at night. The lighting is dominated by deep cyan and violet neon signs reflected in rain-soaked asphalt. The camera angle is a low-angle tracking shot. The overall mood is high-end, cyber-noir, and professionally rendered in 8k resolution, fitting a dark luxury agency brand." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCfaYMwIIcnP8XVWd_y2sSIykDApel3xbOf31gDSEZsJBUs1aWwVaLvuYKlNDJVrr1leF2ZnD17h-78ezkuzZJFmXOnkjDFSqfjH6uoYyBVtAbP7l9_UI1NGYrzMp9m-ierrLmitUmfu-ht_V87XFKMZpYn-U8Pb6qYC2xjcd48Ww4shx3BU8wTZ2wZBCgO_B-7CglIvq6Q084FGvAu2XWX0gP3hK3E0pPZ3d8OZFhuBco9PiGQxm-n')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-canvas-deep via-transparent to-transparent opacity-60"></div>
+<div class="absolute bottom-4 right-4 left-4 flex justify-between items-end">
+<div class="bg-surface/80 backdrop-blur-md p-3 rounded-lg border border-white/10 max-w-xs">
+<p class="font-label-sm text-label-sm text-accent-cyan mb-1">اللقطة 01: شوارع المستقبل</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant line-clamp-2 text-xs">تتبع الكاميرا الشخصية الرئيسية عبر زقاق ضيق مظلم مضاء فقط بلافات النيون.</p>
+</div>
+<div class="flex gap-2">
+<button class="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-4 gap-3">
+<div class="aspect-square rounded-lg bg-surface-container border border-white/10 overflow-hidden shimmer"></div>
+<div class="aspect-square rounded-lg bg-surface-container border border-white/10 overflow-hidden shimmer"></div>
+<div class="aspect-square rounded-lg bg-surface-container border border-white/10 overflow-hidden shimmer"></div>
+<div class="aspect-square rounded-lg bg-surface-container-high border border-white/20 flex items-center justify-center cursor-pointer hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-accent-cyan">add</span>
+</div>
+</div>
+</div>
+<!-- Side Tools Panel -->
+<div class="glass-panel rounded-2xl p-6 flex flex-col gap-8 transition-all duration-1000 opacity-100 translate-y-0">
+<div>
+<h3 class="font-headline-md text-headline-md mb-4 text-text-primary">أدوات التحكم</h3>
+<div class="space-y-4">
+<div class="p-4 rounded-xl bg-canvas-deep border border-white/5">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-2">النمط البصري</label>
+<div class="grid grid-cols-2 gap-2">
+<button class="px-3 py-2 rounded-lg bg-accent-cyan text-canvas-deep font-label-sm text-label-sm">سينمائي</button>
+<button class="px-3 py-2 rounded-lg bg-surface-variant text-on-surface-variant font-label-sm text-label-sm">رسم يدوي</button>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-canvas-deep border border-white/5">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-2">نسبة العرض</label>
+<div class="flex gap-2">
+<div class="flex-1 text-center p-2 rounded bg-surface-variant text-xs text-on-surface-variant border border-white/5">16:9</div>
+<div class="flex-1 text-center p-2 rounded bg-surface-variant text-xs text-on-surface-variant border border-white/5">9:16</div>
+<div class="flex-1 text-center p-2 rounded bg-surface-variant text-xs text-on-surface-variant border border-white/5">1:1</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-auto">
+<div class="p-4 rounded-xl bg-accent-violet/5 border border-accent-violet/20">
+<p class="font-label-sm text-label-sm text-accent-violet mb-2 font-bold">تلميحة ذكية</p>
+<p class="font-body-md text-xs text-on-surface-variant leading-relaxed">
+                            استخدم الكلمات المفتاحية مثل "درامي"، "إضاءة نيون"، "تصوير علوي" للحصول على أفضل النتائج.
+                        </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Features Showcase -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-xxl transition-all duration-1000 opacity-100 translate-y-0">
+<div class="flex flex-col items-start gap-4">
+<div class="w-12 h-12 rounded-2xl bg-canvas-elevated flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined text-accent-cyan" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-text-primary">سرعة التنفيذ</h4>
+<p class="text-on-surface-variant">حوّل نصوصك السيناريو إلى لوحات بصرية كاملة في غضون ثوانٍ بفضل محركنا المتطور.</p>
+</div>
+<div class="flex flex-col items-start gap-4">
+<div class="w-12 h-12 rounded-2xl bg-canvas-elevated flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined text-accent-cyan" style="font-variation-settings: 'FILL' 1;">palette</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-text-primary">تخصيص كامل</h4>
+<p class="text-on-surface-variant">تحكم في كل تفصيلة، من زوايا الكاميرا إلى لوحة الألوان والإضاءة لكل مشهد على حدة.</p>
+</div>
+<div class="flex flex-col items-start gap-4">
+<div class="w-12 h-12 rounded-2xl bg-canvas-elevated flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined text-accent-cyan" style="font-variation-settings: 'FILL' 1;">groups</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-text-primary">تعاون الفريق</h4>
+<p class="text-on-surface-variant">شارك لوحة القصة مع فريق الإنتاج أو العملاء واحصل على تعليقات مباشرة في الوقت الفعلي.</p>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="glass-panel rounded-3xl p-12 overflow-hidden relative text-center transition-all duration-1000 opacity-100 translate-y-0">
+<div class="absolute inset-0 opacity-10 pointer-events-none">
+
+</div>
+<div class="relative z-10 max-w-2xl mx-auto">
+<h3 class="font-display-lg text-headline-lg-mobile md:text-headline-lg mb-6">هل أنت مستعد لبدء قصتك التالية؟</h3>
+<p class="text-on-surface-variant mb-10">انضم إلى قائمة الانتظار وكن أول من يختبر القوة الحقيقية للذكاء الاصطناعي في خدمة الإبداع البصري.</p>
+<form class="flex flex-col sm:flex-row gap-3">
+<input class="flex-1 bg-canvas-deep border border-white/10 rounded-xl px-6 py-4 focus:border-accent-cyan focus:ring-0 text-right" placeholder="بريدك الإلكتروني" type="email">
+<button class="bg-accent-cyan text-canvas-deep px-8 py-4 rounded-xl font-bold hover:brightness-110 transition-all" type="submit">سجل الآن</button>
+</form>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-surface/60 dark:bg-surface/60 backdrop-blur-xl border-t border-white/10 flex flex-row-reverse justify-around items-center px-4 pb-4 pt-2 rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan transition-all" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">الرئيسية</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary bg-primary-container/20 rounded-xl px-4 py-1" href="#">
+<span class="material-symbols-outlined">work</span>
+<span class="font-label-sm text-label-sm">المشاريع</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan transition-all" href="#">
+<span class="material-symbols-outlined">category</span>
+<span class="font-label-sm text-label-sm">الخدمات</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-accent-cyan transition-all" href="#">
+<span class="material-symbols-outlined">mail</span>
+<span class="font-label-sm text-label-sm">اتصل بنا</span>
+</a>
+</nav>
+<!-- Interactive Layer for cursor effect -->
+<div class="fixed top-0 left-0 w-96 h-96 bg-accent-cyan/10 rounded-full blur-[100px] pointer-events-none -translate-x-1/2 -translate-y-1/2 opacity-0 transition-opacity duration-500 z-0" id="cursor-glow"></div>
+<script>
+        // Micro-interaction for cursor glow
+        const glow = document.getElementById('cursor-glow');
+        window.addEventListener('mousemove', (e) => {
+            glow.style.left = e.clientX + 'px';
+            glow.style.top = e.clientY + 'px';
+            glow.style.opacity = '1';
+        });
+
+        // Simple reveal animation on scroll
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-10');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section, .glass-panel').forEach(el => {
+            el.classList.add('transition-all', 'duration-1000', 'opacity-0', 'translate-y-10');
+            observer.observe(el);
+        });
+    </script>
+
+
+</body></html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+
+<html class="dark" dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>استوديو سعد | توليد الصور الذكي</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&amp;family=Noto+Sans+Arabic:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#0e141c",
+                        "inverse-surface": "#dee2ef",
+                        "surface-container-low": "#171c24",
+                        "canvas-deep": "#02050C",
+                        "text-primary": "#FFFFFF",
+                        "on-primary-fixed": "#001f26",
+                        "text-secondary": "#E2E8F0",
+                        "secondary-fixed-dim": "#d2bbff",
+                        "on-secondary-fixed": "#25005a",
+                        "on-primary-container": "#00424f",
+                        "surface-container-lowest": "#090e17",
+                        "inverse-on-surface": "#2b313a",
+                        "on-secondary": "#3f008e",
+                        "surface-variant": "#30353e",
+                        "surface-container": "#1b2029",
+                        "surface-tint": "#4cd7f6",
+                        "primary-fixed": "#acedff",
+                        "on-surface-variant": "#bcc9cd",
+                        "primary-container": "#06b6d4",
+                        "background": "#0e141c",
+                        "on-secondary-container": "#c9aeff",
+                        "surface-container-highest": "#30353e",
+                        "canvas-elevated": "#0A0F1A",
+                        "on-primary": "#003640",
+                        "on-tertiary-fixed": "#2d1600",
+                        "on-background": "#dee2ef",
+                        "on-surface": "#dee2ef",
+                        "error-container": "#93000a",
+                        "surface-bright": "#343943",
+                        "secondary": "#d2bbff",
+                        "on-tertiary-fixed-variant": "#6a3b00",
+                        "surface-dim": "#0e141c",
+                        "surface-container-high": "#252a33",
+                        "tertiary-fixed-dim": "#ffb873",
+                        "tertiary-fixed": "#ffdcbf",
+                        "error": "#ffb4ab",
+                        "on-tertiary": "#4b2800",
+                        "on-secondary-fixed-variant": "#5a00c6",
+                        "secondary-container": "#6001d1",
+                        "secondary-fixed": "#eaddff",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-container": "#e89337",
+                        "tertiary": "#ffb873",
+                        "primary-fixed-dim": "#4cd7f6",
+                        "on-primary-fixed-variant": "#004e5c",
+                        "outline": "#869397",
+                        "primary": "#4cd7f6",
+                        "outline-variant": "#3d494c",
+                        "on-error": "#690005",
+                        "on-tertiary-container": "#5b3200",
+                        "accent-violet": "#7C3AED",
+                        "inverse-primary": "#00687a",
+                        "accent-cyan": "#06B6D4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "gutter": "16px",
+                        "xl": "40px",
+                        "unit": "4px",
+                        "lg": "24px",
+                        "margin-mobile": "20px",
+                        "margin-tablet": "32px",
+                        "xs": "4px",
+                        "xxl": "64px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Outfit", "Noto Sans Arabic"],
+                        "label-md": ["Outfit", "Noto Sans Arabic"],
+                        "headline-md": ["Outfit", "Noto Sans Arabic"],
+                        "display-lg-mobile": ["Outfit", "Noto Sans Arabic"],
+                        "body-lg": ["Outfit", "Noto Sans Arabic"],
+                        "headline-lg": ["Outfit", "Noto Sans Arabic"],
+                        "body-md": ["Outfit", "Noto Sans Arabic"],
+                        "display-lg": ["Outfit", "Noto Sans Arabic"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #02050C;
+            color: #FFFFFF;
+            font-family: 'Noto Sans Arabic', 'Outfit', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-panel {
+            background: rgba(14, 20, 28, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .active-tab-indicator {
+            position: absolute;
+            bottom: -1px;
+            height: 2px;
+            background: #06B6D4;
+            transition: all 0.3s ease;
+        }
+
+        .ratio-btn.active {
+            border-color: #06B6D4;
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        /* Localization support helpers */
+        html[dir="ltr"] .text-right { text-align: left; }
+        html[dir="ltr"] .flex-row-reverse { flex-direction: row; }
+        html[dir="ltr"] .absolute.left-3 { left: auto; right: 0.75rem; }
+        html[dir="ltr"] .absolute.left-1 { left: auto; right: 0.25rem; }
+        html[dir="ltr"] .ml-auto { margin-left: 0; margin-right: auto; }
+    </style>
+</head>
+<body class="bg-canvas-deep text-on-surface">
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface/60 backdrop-blur-xl border-b border-white/10 h-16 flex flex-row-reverse justify-between items-center px-margin-mobile md:px-margin-tablet">
+<div class="flex items-center gap-4 flex-row-reverse">
+<span class="font-display-lg-mobile text-display-lg-mobile font-bold text-accent-cyan tracking-tight">saadstudio</span>
+<button class="material-symbols-outlined text-primary text-2xl">menu</button>
+</div>
+<div class="flex items-center gap-6 flex-row-reverse">
+<!-- Navigation Links (Hidden on small mobile) -->
+<nav class="hidden lg:flex gap-8 flex-row-reverse">
+<a class="text-primary hover:text-accent-cyan transition-colors font-label-md text-label-md" data-ar="الرئيسية" data-en="Home" href="#">الرئيسية</a>
+<a class="text-accent-cyan font-label-md text-label-md" data-ar="الصور" data-en="Images" href="#">الصور</a>
+<a class="text-on-surface-variant hover:text-accent-cyan transition-colors font-label-md text-label-md" data-ar="الفيديو" data-en="Video" href="#">الفيديو</a>
+<a class="text-on-surface-variant hover:text-accent-cyan transition-colors font-label-md text-label-md" data-ar="المعرض" data-en="Gallery" href="#">المعرض</a>
+</nav>
+<div class="flex items-center gap-4 flex-row-reverse">
+<!-- Language Switcher Toggle -->
+<button class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-container-high border border-white/10 text-xs font-bold hover:bg-surface-bright transition-colors" id="lang-toggle">
+<span class="text-accent-cyan" id="current-lang">AR</span>
+<span class="text-on-surface-variant">/</span>
+<span class="text-on-surface-variant">EN</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface-container overflow-hidden border border-white/10 active:scale-95 transition-transform">
+<img class="w-full h-full object-cover" data-alt="User Avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARkOjQUvsM6nCPARhCE9nsVjXQ-E3ctBzEk5QqXerzoZTHV95g_wiKT_vrcR223gGI9Ri9tIwOYG2XtoTMKyAckrTrhA3N65E56Tt0cLrPHf2Z2fTnUdpV04cGgwt2iFfizSzGyb-iO7RJu0Eo62h-9_EcHPtLcWR7pLrEeqo_Zvg7snVtPnSJGzKCr24Ab6m8XS7kGSnvBL2xT-zzVnFZRnS8N07psXd-L8hHKAbLq5vzICAaTj7F"/>
+</div>
+</div>
+</div>
+</header>
+<main class="pt-20 pb-32 min-h-screen max-w-[1600px] mx-auto px-margin-mobile md:px-margin-tablet lg:flex lg:gap-8">
+<!-- Sidebar Controls -->
+<aside class="lg:w-[400px] flex-shrink-0 order-2">
+<div class="glass-panel rounded-xl p-6 sticky top-24 space-y-8">
+<!-- Model Selection -->
+<section>
+<div class="flex justify-between items-center mb-4 flex-row-reverse">
+<label class="font-label-md text-label-md text-text-secondary" data-ar="النموذج المستخدم" data-en="Used Model">النموذج المستخدم</label>
+<span class="text-[10px] px-2 py-0.5 rounded-full bg-accent-violet/20 text-accent-violet border border-accent-violet/30 font-bold" data-ar="جديد" data-en="NEW">جديد</span>
+</div>
+<div class="relative group">
+<select class="w-full bg-surface-container-low border border-white/10 rounded-lg p-3 text-right font-label-md text-text-primary appearance-none focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan transition-all cursor-pointer" id="model-select">
+<option data-ar="GPT Image 2 — أداء فائق للصور الواقعية" data-en="GPT Image 2 — Extreme performance for realistic photos" selected="" value="gpt2">GPT Image 2 — أداء فائق للصور الواقعية</option>
+<option data-ar="Nano Banana Pro — سرعة توليد فائقة وكفاءة" data-en="Nano Banana Pro — Ultra fast generation and efficiency" value="nano">Nano Banana Pro — سرعة توليد فائقة وكفاءة</option>
+<option data-ar="4K · Ultra Detail — تفاصيل سينمائية غاية في الدقة" data-en="4K · Ultra Detail — Extremely precise cinematic details" value="4k">4K · Ultra Detail — تفاصيل سينمائية غاية في الدقة</option>
+</select>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+</section>
+<!-- Aspect Ratio Selector -->
+<section>
+<label class="block font-label-md text-label-md text-text-secondary mb-4 text-right" data-ar="أبعاد الصورة" data-en="Aspect Ratio">أبعاد الصورة</label>
+<div class="relative group">
+<select class="w-full bg-surface-container-low border border-white/10 rounded-lg p-3 text-right font-label-md text-text-primary appearance-none focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan transition-all cursor-pointer" id="ratio-select">
+<option data-ar="1:1 (مربع)" data-en="1:1 (Square)" selected="" value="1:1">1:1 (مربع)</option>
+<option data-ar="16:9 (سينمائي)" data-en="16:9 (Cinematic)" value="16:9">16:9 (سينمائي)</option>
+<option data-ar="9:16 (جوال)" data-en="9:16 (Mobile)" value="9:16">9:16 (جوال)</option>
+<option data-ar="4:3 (تقليدي)" data-en="4:3 (Classic)" value="4:3">4:3 (تقليدي)</option>
+<option data-ar="3:4 (بورتريه)" data-en="3:4 (Portrait)" value="3:4">3:4 (بورتريه)</option>
+<option data-ar="21:9 (عريض جداً)" data-en="21:9 (Ultrawide)" value="21:9">21:9 (عريض جداً)</option>
+</select>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+</section>
+<!-- Character Reference -->
+<section>
+<div class="flex justify-between items-center mb-4 flex-row-reverse">
+<label class="font-label-md text-label-md text-text-secondary" data-ar="مرجع الشخصية" data-en="Character Reference">مرجع الشخصية</label>
+<a class="text-accent-cyan text-[12px] hover:underline" data-ar="إضافة شخصية" data-en="Add Character" href="/character">إضافة شخصية</a>
+</div>
+<div class="p-4 border-2 border-dashed border-white/10 rounded-xl bg-surface-container-lowest/50 text-center">
+<span class="material-symbols-outlined text-3xl text-on-surface-variant mb-2">person_add</span>
+<p class="text-xs text-on-surface-variant" data-ar="قم بسحب وإسقاط صورة الشخصية هنا للحفاظ على ثبات الملامح" data-en="Drag and drop character image here to maintain features consistency">قم بسحب وإسقاط صورة الشخصية هنا للحفاظ على ثبات الملامح</p>
+</div>
+</section>
+<!-- Generation Settings -->
+<section class="space-y-4">
+<div class="flex justify-between items-center flex-row-reverse">
+<span class="font-label-md text-label-md text-text-secondary" data-ar="عدد الصور" data-en="Number of Images">عدد الصور</span>
+<div class="relative w-24">
+<select class="w-full bg-surface-container border border-white/5 rounded-lg py-1.5 px-3 text-center font-label-md text-text-primary appearance-none focus:border-accent-cyan transition-all cursor-pointer">
+<option selected="" value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4">4</option>
+</select>
+<span class="material-symbols-outlined absolute left-1 top-1/2 -translate-y-1/2 pointer-events-none text-[16px] text-on-surface-variant">expand_more</span>
+</div>
+</div>
+<div class="flex justify-between items-center flex-row-reverse">
+<span class="font-label-md text-label-md text-text-secondary" data-ar="الدقة" data-en="Resolution">الدقة</span>
+<div class="relative w-24">
+<select class="w-full bg-surface-container border border-white/5 rounded-lg py-1.5 px-3 text-center font-label-md text-text-primary appearance-none focus:border-accent-cyan transition-all cursor-pointer">
+<option value="1k">1K</option>
+<option value="2k">2K</option>
+<option selected="" value="4k">4K</option>
+</select>
+<span class="material-symbols-outlined absolute left-1 top-1/2 -translate-y-1/2 pointer-events-none text-[16px] text-on-surface-variant">expand_more</span>
+</div>
+</div>
+</section>
+<button class="w-full bg-accent-cyan hover:bg-primary py-4 rounded-xl text-canvas-deep font-bold flex items-center justify-center gap-2 transition-all active:scale-95 glow-cyan">
+<span data-ar="توليد صورة · 2 نقطة" data-en="Generate Image · 2 Credits">توليد صورة · 2 نقطة</span>
+<span class="material-symbols-outlined">flare</span>
+</button>
+</div>
+</aside>
+<!-- Main Canvas Area -->
+<div class="flex-grow space-y-8 order-1">
+<!-- Prompt Input Area -->
+<div class="relative group">
+<div class="absolute -inset-0.5 bg-gradient-to-r from-accent-cyan to-accent-violet rounded-2xl blur opacity-20 group-focus-within:opacity-40 transition duration-1000"></div>
+<div class="relative glass-panel rounded-2xl overflow-hidden">
+<textarea class="w-full h-40 bg-transparent border-none p-6 text-xl text-text-primary placeholder:text-on-surface-variant/50 focus:ring-0 resize-none text-right" data-placeholder-ar="صف المشهد الذي تتخيله... (مثلاً: رائد فضاء يكتشف حضارة قديمة على كوكب من الكريستال، نمط سينمائي، إضاءة درامية)" data-placeholder-en="Describe the scene you imagine... (e.g., an astronaut discovering an ancient civilization on a crystal planet, cinematic style, dramatic lighting)" dir="rtl" placeholder="صف المشهد الذي تتخيله... (مثلاً: رائد فضاء يكتشف حضارة قديمة على كوكب من الكريستال، نمط سينمائي، إضاءة درامية)"></textarea>
+<div class="flex items-center justify-between p-4 bg-surface-container-highest/30 border-t border-white/5 flex-row-reverse">
+<div class="flex items-center gap-3 flex-row-reverse">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-on-surface-variant text-sm transition-colors flex-row-reverse">
+<span class="material-symbols-outlined text-[18px]">brush</span>
+<span data-ar="المراجع والأنماط" data-en="References &amp; Styling">المراجع والأنماط</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-on-surface-variant text-sm transition-colors flex-row-reverse">
+<span class="material-symbols-outlined text-[18px]">image</span>
+<span data-ar="إضافة صورة" data-en="Add Image">إضافة صورة</span>
+</button>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="text-xs">0 / 2000</span>
+<button class="material-symbols-outlined hover:text-accent-cyan">history</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Styles Presets Banner -->
+<div class="relative glass-panel rounded-xl p-5 flex items-center justify-between overflow-hidden group flex-row-reverse">
+<div class="absolute inset-0 bg-gradient-to-l from-accent-cyan/10 to-transparent pointer-events-none"></div>
+<div class="flex items-center gap-5 flex-row-reverse relative z-10">
+<div class="w-12 h-12 rounded-lg bg-accent-cyan/20 flex items-center justify-center text-accent-cyan">
+<span class="material-symbols-outlined text-2xl">style</span>
+</div>
+<div class="text-right">
+<h4 class="font-headline-md text-[18px] text-text-primary" data-ar="جديد 18 نمطاً" data-en="New 18 Styles">جديد 18 نمطاً</h4>
+<p class="text-sm text-on-surface-variant" data-ar="مكتبة الأنماط: اضغط على نمط منسق سيتم تطبيق الوصف والنموذج والأبعاد فوراً." data-en="Style Library: Click a curated style to apply prompt, model, and dimensions immediately.">مكتبة الأنماط: اضغط على نمط منسق سيتم تطبيق الوصف والنموذج والأبعاد فوراً.</p>
+</div>
+</div>
+<a class="relative z-10 px-6 py-2.5 rounded-full bg-white text-canvas-deep font-bold text-sm hover:scale-105 transition-transform flex items-center gap-2" href="/image-presets">
+<span data-ar="تصفح الأنماط" data-en="Browse Styles">تصفح الأنماط</span>
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</a>
+</div>
+<!-- Results Grid / Empty State -->
+<div class="space-y-6">
+<div class="flex items-center justify-between flex-row-reverse">
+<h3 class="font-headline-md text-headline-md" data-ar="المعرض" data-en="Gallery">المعرض</h3>
+<div class="flex gap-2">
+<button class="material-symbols-outlined p-2 rounded-lg bg-surface-container text-on-surface-variant">grid_view</button>
+<button class="material-symbols-outlined p-2 rounded-lg text-on-surface-variant">view_stream</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Placeholder Card 1 -->
+<div class="aspect-square glass-panel rounded-2xl overflow-hidden group cursor-pointer relative">
+<div class="absolute inset-0 bg-canvas-elevated flex flex-col items-center justify-center transition-opacity opacity-100 group-hover:opacity-40">
+<span class="material-symbols-outlined text-6xl text-white/10 mb-4">image</span>
+<p class="text-on-surface-variant font-label-md" data-ar="ابدأ التوليد لرؤية النتائج." data-en="Start generating to see results.">ابدأ التوليد لرؤية النتائج.</p>
+</div>
+</div>
+<!-- Placeholder Card 2 -->
+<div class="aspect-square glass-panel rounded-2xl overflow-hidden group cursor-pointer relative">
+<div class="absolute inset-0 bg-canvas-elevated flex flex-col items-center justify-center transition-opacity opacity-100 group-hover:opacity-40">
+<span class="material-symbols-outlined text-6xl text-white/10 mb-4">image</span>
+<p class="text-on-surface-variant font-label-md" data-ar="سيتم عرض نتائجك هنا" data-en="Your results will appear here">سيتم عرض نتائجك هنا</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-surface/60 backdrop-blur-xl border-t border-white/10 px-4 pb-6 pt-2 flex flex-row-reverse justify-around items-center rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm" data-ar="الرئيسية" data-en="Home">الرئيسية</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary bg-primary-container/20 rounded-xl px-4 py-1 active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined">category</span>
+<span class="font-label-sm text-label-sm" data-ar="الصور" data-en="Images">الصور</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined">work</span>
+<span class="font-label-sm text-label-sm" data-ar="المشاريع" data-en="Projects">المشاريع</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined">mail</span>
+<span class="font-label-sm text-label-sm" data-ar="اتصل بنا" data-en="Contact">اتصل بنا</span>
+</a>
+</nav>
+<!-- Contextual FAB -->
+<div class="fixed bottom-24 right-6 md:hidden z-50">
+<button class="w-14 h-14 bg-accent-cyan rounded-full shadow-2xl flex items-center justify-center text-canvas-deep active:scale-90 transition-transform glow-cyan">
+<span class="material-symbols-outlined text-3xl">auto_fix</span>
+</button>
+</div>
+<script>
+        const langToggle = document.getElementById('lang-toggle');
+        const currentLangDisplay = document.getElementById('current-lang');
+        const htmlTag = document.documentElement;
+        const textarea = document.querySelector('textarea');
+
+        langToggle.addEventListener('click', () => {
+            const currentLang = htmlTag.getAttribute('lang');
+            const newLang = currentLang === 'ar' ? 'en' : 'ar';
+            const newDir = newLang === 'ar' ? 'rtl' : 'ltr';
+
+            // Update page metadata
+            htmlTag.setAttribute('lang', newLang);
+            htmlTag.setAttribute('dir', newDir);
+            currentLangDisplay.textContent = newLang.toUpperCase();
+
+            // Localize text content
+            document.querySelectorAll('[data-ar], [data-en]').forEach(el => {
+                el.textContent = el.getAttribute(`data-${newLang}`);
+            });
+
+            // Localize placeholders and inputs
+            document.querySelectorAll('[data-placeholder-ar], [data-placeholder-en]').forEach(el => {
+                el.placeholder = el.getAttribute(`data-placeholder-${newLang}`);
+                el.style.textAlign = newDir === 'rtl' ? 'right' : 'left';
+                el.dir = newDir;
+            });
+
+            // Localize select options
+            document.querySelectorAll('option[data-ar]').forEach(opt => {
+                opt.textContent = opt.getAttribute(`data-${newLang}`);
+            });
+
+            // Update UI alignment specific classes if needed
+            // The CSS helpers handle most of this, but we can trigger specific layout logic here
+            if (newLang === 'en') {
+                document.title = "Saad Studio | AI Image Generation";
+            } else {
+                document.title = "استوديو سعد | توليد الصور الذكي";
+            }
+        });
+
+        // Maintain focus feedback
+        textarea.addEventListener('focus', () => {
+            // Visual feedback on focus handled by Tailwind focus:ring-0
+        });
+    </script>
+</body></html>
