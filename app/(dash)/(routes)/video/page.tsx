@@ -533,14 +533,14 @@ function VideoHistoryList({
       `}</style>
       <div className="video-history-list">
         {(skeletonModels ?? []).map((item, index) => (
-          <div key={`pending-${index}`} className="video-history-card overflow-hidden border border-white/5 bg-[#111315] p-2">
+          <div key={`pending-${index}`} className="video-history-card overflow-hidden border border-white/5 bg-[#050a14] p-2">
             <div className="video-history-preview relative overflow-hidden rounded-[14px] bg-[#050a14]">
               <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
               <div className="absolute inset-0 flex items-center justify-center">
                 <Loader2 size={28} className="animate-spin text-slate-400" />
               </div>
             </div>
-            <div className="video-history-side rounded-[14px] border border-white/5 bg-[#111315] p-4">
+            <div className="video-history-side rounded-[14px] border border-white/5 bg-[#050a14] p-4">
               <div className="h-5 w-36 rounded bg-white/10" />
               <div className="mt-8 h-3 w-full rounded bg-white/10" />
               <div className="mt-3 h-3 w-2/3 rounded bg-white/10" />
@@ -559,12 +559,12 @@ function VideoHistoryList({
               layout
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              className="video-history-card group overflow-hidden border border-white/5 bg-[#111315] p-2 shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-colors hover:border-white/10"
+              className="video-history-card group overflow-hidden border border-white/5 bg-[#050a14] p-2 shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-colors hover:border-white/10"
             >
               <div className="video-history-preview">
                 <VideoHistoryPreview item={item} index={index} onInspect={onInspect} onToggleFavorite={onToggleFavorite} onReusePrompt={onReusePrompt} onDelete={onDelete} />
               </div>
-              <aside className="video-history-side flex min-h-full flex-col rounded-[14px] border border-white/5 bg-[#111315] p-4">
+              <aside className="video-history-side flex min-h-full flex-col rounded-[14px] border border-white/5 bg-[#050a14] p-4">
                 <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs font-bold text-slate-100">
                   <span className="h-2 w-2 rounded-full" style={{ background: color, boxShadow: `0 0 10px ${hexA(color, 0.8)}` }} />
                   {item.model}

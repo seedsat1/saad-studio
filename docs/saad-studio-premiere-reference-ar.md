@@ -2792,3 +2792,9 @@
 - The card aspect ratio is derived from stored `width`/`height` first, then from ratio or resolution labels such as `16:9`, `9:16`, or `1024x1024`, with safe fallbacks for old records.
 - The gallery column count should respond to the actual available center-panel width, then distribute items into the shortest column to reduce empty vertical bands while preserving image proportions.
 - Cards still display `thumbnailUrl`/`/api/assets/thumbnail` for performance. Preview, download, remix/reference reuse, and Asset Inspector still use the original full-resolution URL.
+
+## Video History Row Unified Surface Color (2026-08-04)
+
+- `/video` history rows should use `#050a14` for the preview surface, native video background, row wrapper, and right-side details/tool panel.
+- Do not leave the details panel on the older `#111315` surface when the preview has already moved to `#050a14`.
+- Inner workflow buttons may keep translucent contrast layers, but the base row color should be unified.

@@ -10384,3 +10384,11 @@
 - Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed.
 - Decision: Use a packed masonry presentation for /image so mixed landscape, portrait, and square generations align tightly across desktop and smaller browser widths without random fixed-square spacing.
+
+#### Latest task: /video history side panel color completion (2026-08-04)
+
+- Status: Completed. Finished the #050a14 color unification for /video result rows by applying it to the history row wrapper and right-side details/tool panel, not only the video preview surface.
+- Changes made: Changed pending and completed `video-history-card` wrappers and `video-history-side` panels from `#111315` to `#050a14`.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed.
+- Decision: The whole /video history row surface should share the page display color; inner buttons can keep their subtle translucent contrast.
