@@ -191,11 +191,18 @@ const KNOWN_MODELS = [
   { id: "seedream/5-lite", kind: "image", label: "Seedream 5 Lite" },
   { id: "flux-2/pro", kind: "image", label: "Flux 2 Pro" },
   { id: "gpt-image-2", kind: "image", label: "GPT Image 2" },
+  { id: "minimax-h3-reference-to-video", kind: "video", label: "Minimax H3" },
   { id: "kling-3.0/video", kind: "video", label: "Kling 3.0 (default)" },
-  { id: "seedance/2.0", kind: "video", label: "Seedance 2.0" },
-  { id: "google/veo3", kind: "video", label: "Google Veo 3" },
-  { id: "wan/2.2", kind: "video", label: "Wan 2.2" },
-  { id: "sora-2/video", kind: "video", label: "Sora 2" },
+  { id: "kling-video-o3", kind: "video", label: "Kling O3 (top)" },
+  { id: "kling/v3-turbo-text-to-video", kind: "video", label: "Kling V3 Turbo (fast)" },
+  { id: "kling-v2.6-t2v", kind: "video", label: "Kling 2.6 (fast)" },
+  { id: "google/veo3.1-lite-text-to-video", kind: "video", label: "Google Veo 3.1 Lite" },
+  { id: "google/veo3.1-fast-text-to-video", kind: "video", label: "Google Veo 3.1 Fast" },
+  { id: "google/veo3.1-text-to-video", kind: "video", label: "Google Veo 3.1" },
+  { id: "google/gemini-omni-flash", kind: "video", label: "Google Gemini Omni" },
+  { id: "bytedance/seedance-v2/text-to-video-fast", kind: "video", label: "Seedance 2.0 Turbo" },
+  { id: "bytedance/seedance-v2/text-to-video-mini", kind: "video", label: "Seedance 2.0 Mini" },
+  { id: "bytedance/seedance-v2/text-to-video", kind: "video", label: "Seedance 2.0" },
 ];
 
 export async function modelsCommand(opts: ModelsOpts): Promise<void> {

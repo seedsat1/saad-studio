@@ -1,6 +1,6 @@
 {
   "name": "@saadstudio/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Saad Studio command line — generate images and videos from your terminal.",
   "keywords": ["saadstudio", "ai", "cli", "image-generation", "video-generation", "mcp"],
   "homepage": "https://www.saadstudio.app/smart-cli",

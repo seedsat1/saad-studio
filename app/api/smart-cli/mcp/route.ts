@@ -138,11 +138,18 @@ const AVAILABLE_MODELS = [
   { id: "seedream/5-lite", kind: "image", label: "Seedream 5 Lite", notes: "Cheaper Seedream tier.", badges: [] },
   { id: "flux-2/pro", kind: "image", label: "Flux 2 Pro", notes: "Black Forest Labs flagship.", badges: ["pro"] },
   { id: "gpt-image-2", kind: "image", label: "GPT Image 2", notes: "OpenAI image model. Slower, strong typography.", badges: [] },
-  { id: "kling-3.0/video", kind: "video", label: "Kling 3.0", notes: "Default video model. 5-10s, 1080p.", badges: ["default"] },
-  { id: "seedance/2.0", kind: "video", label: "Seedance 2.0", notes: "ByteDance video, accepts reference images + audio.", badges: ["new"] },
-  { id: "google/veo3", kind: "video", label: "Google Veo 3", notes: "Google flagship video, native audio.", badges: ["pro"] },
-  { id: "wan/2.2", kind: "video", label: "Wan 2.2", notes: "Cost-efficient text-to-video.", badges: [] },
-  { id: "sora-2/video", kind: "video", label: "Sora 2", notes: "OpenAI video model.", badges: ["pro"] },
+  { id: "minimax-h3-reference-to-video", kind: "video", label: "Minimax H3", notes: "Minimax reference-to-video.", badges: ["new"] },
+  { id: "kling-3.0/video", kind: "video", label: "Kling 3.0", notes: "Default video model. 5-10s, 1080p.", badges: ["default", "new"] },
+  { id: "kling-video-o3", kind: "video", label: "Kling O3", notes: "Flagship Kling. Best fidelity.", badges: ["top"] },
+  { id: "kling/v3-turbo-text-to-video", kind: "video", label: "Kling V3 Turbo", notes: "Faster Kling variant.", badges: ["fast"] },
+  { id: "kling-v2.6-t2v", kind: "video", label: "Kling 2.6", notes: "Previous-gen Kling, cheaper and quick.", badges: ["fast"] },
+  { id: "google/veo3.1-lite-text-to-video", kind: "video", label: "Google Veo 3.1 Lite", notes: "Lightweight Veo tier." },
+  { id: "google/veo3.1-fast-text-to-video", kind: "video", label: "Google Veo 3.1 Fast", notes: "Faster Veo 3.1.", badges: ["fast"] },
+  { id: "google/veo3.1-text-to-video", kind: "video", label: "Google Veo 3.1", notes: "Google flagship video, native audio.", badges: ["new"] },
+  { id: "google/gemini-omni-flash", kind: "video", label: "Google Gemini Omni", notes: "Gemini Omni video generation.", badges: ["new"] },
+  { id: "bytedance/seedance-v2/text-to-video-fast", kind: "video", label: "Seedance 2.0 Turbo", notes: "Fastest Seedance tier.", badges: ["fast"] },
+  { id: "bytedance/seedance-v2/text-to-video-mini", kind: "video", label: "Seedance 2.0 Mini", notes: "Cheapest Seedance tier.", badges: ["fast"] },
+  { id: "bytedance/seedance-v2/text-to-video", kind: "video", label: "Seedance 2.0", notes: "ByteDance flagship video, accepts reference images + audio.", badges: ["new"] },
 ];
 
 function withMcpHeaders(response: NextResponse) {
