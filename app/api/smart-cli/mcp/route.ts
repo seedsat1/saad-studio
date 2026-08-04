@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { verifyPanelToken } from "@/lib/panel-auth";
+import { getFallbackUrls } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -244,23 +245,42 @@ type InlineFetchOk = { ok: true; data: string; mimeType: string; bytes: number }
 type InlineFetchErr = { ok: false; reason: string };
 
 async function fetchInlineImage(url: string): Promise<InlineFetchOk | InlineFetchErr> {
-  try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return { ok: false, reason: `http_${res.status}` };
-    const buffer = Buffer.from(await res.arrayBuffer());
-    if (buffer.byteLength === 0) return { ok: false, reason: "empty_body" };
-    if (buffer.byteLength > MAX_INLINE_IMAGE_BYTES) {
-      return { ok: false, reason: `too_large_${buffer.byteLength}` };
+  // Panel APIs return storage-relative paths ("images/user_xxx/abc.jpg")
+  // that fetch() can't parse. getFallbackUrls expands them into the ordered
+  // list of absolute CDN URLs (Backblaze B2 → /api/media → R2). We stop at
+  // the first host that returns bytes so Claude actually gets the image.
+  const candidates = getFallbackUrls(url).filter((candidate) =>
+    /^https?:\/\//i.test(candidate),
+  );
+  if (candidates.length === 0) return { ok: false, reason: "no_absolute_url" };
+
+  const failures: string[] = [];
+  for (const candidate of candidates) {
+    try {
+      const res = await fetch(candidate, { cache: "no-store" });
+      if (!res.ok) {
+        failures.push(`http_${res.status}`);
+        continue;
+      }
+      const buffer = Buffer.from(await res.arrayBuffer());
+      if (buffer.byteLength === 0) {
+        failures.push("empty_body");
+        continue;
+      }
+      if (buffer.byteLength > MAX_INLINE_IMAGE_BYTES) {
+        return { ok: false, reason: `too_large_${buffer.byteLength}` };
+      }
+      const headerMime = res.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
+      const mimeType = headerMime.startsWith("image/")
+        ? headerMime
+        : guessImageMimeFromUrl(candidate) ?? "image/png";
+      return { ok: true, data: buffer.toString("base64"), mimeType, bytes: buffer.byteLength };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "unknown";
+      failures.push(`fetch_failed:${msg.slice(0, 60)}`);
     }
-    const headerMime = res.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
-    const mimeType = headerMime.startsWith("image/")
-      ? headerMime
-      : guessImageMimeFromUrl(url) ?? "image/png";
-    return { ok: true, data: buffer.toString("base64"), mimeType, bytes: buffer.byteLength };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "unknown";
-    return { ok: false, reason: `fetch_failed:${msg.slice(0, 80)}` };
   }
+  return { ok: false, reason: failures.join("|") || "all_candidates_failed" };
 }
 
 type InlineCollection = {
