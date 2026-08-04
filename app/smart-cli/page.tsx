@@ -12,8 +12,10 @@ import {
   Command,
   Globe2,
   Image as ImageIcon,
+  Images,
   KeyRound,
   Layers,
+  Layers3,
   Link2,
   PlaySquare,
   ShieldCheck,
@@ -40,7 +42,7 @@ const MCP_STEPS = [
   },
   {
     title: "Ask from chat",
-    text: "After approval, Claude can call the 3 generation tools listed below using your Saad Studio credits.",
+    text: "After approval, Claude can call the 5 tools listed below using your Saad Studio credits.",
     value: "Generate a cinematic image of a desert sunset.",
   },
 ];
@@ -54,6 +56,13 @@ const TOOL_GROUPS = [
       { icon: ImageIcon, title: "generate_image", text: "Generate an image (Nano Banana Pro by default; other models routed through KIE / Google / OpenAI per project rules)." },
       { icon: Layers, title: "generate_storyboard", text: "Return multiple concept variations from one idea so the user can pick before rendering." },
       { icon: PlaySquare, title: "generate_video", text: "Render a video from a prompt, optionally using a chosen concept as the first frame." },
+    ],
+  },
+  {
+    title: "Reference",
+    tools: [
+      { icon: Images, title: "show_generations", text: "List the most recent images and videos so Claude can reuse a previous frame or show the history." },
+      { icon: Layers3, title: "list_models", text: "Return the available image and video models with their capabilities so Claude picks the right one on request." },
     ],
   },
 ];
@@ -125,7 +134,7 @@ export default function SmartCliPage() {
                 Connect Saad Studio to Claude
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-400">
-                Paste the hosted connector URL into Claude. Approve once. Claude can now use 3 Saad Studio generation tools that spend credits from your account.
+                Paste the hosted connector URL into Claude. Approve once. Claude can now use 5 Saad Studio tools that spend credits from your account.
               </p>
             </div>
 
@@ -266,7 +275,7 @@ export default function SmartCliPage() {
                 What spending looks like
               </div>
               <p className="text-sm leading-6 text-slate-400">
-                Tool calls debit credits from your account the same way the website does. The 3 generation tools, and only those 3 tools, are exposed — nothing else.
+                Tool calls debit credits from your account the same way the website does. The 5 tools, and only those 5 tools, are exposed — nothing else.
               </p>
               <div className="mt-4 grid gap-2 text-sm text-slate-300">
                 <span className="inline-flex items-center gap-2"><Code2 className="h-4 w-4 text-emerald-300" /> structured tool calls only</span>

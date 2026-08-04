@@ -83,12 +83,12 @@ const tools = [
   {
     name: "generate_video",
     description:
-      "Render a video from a prompt. Optionally pass imageUrl (a concept from generate_storyboard) to do image-to-video.",
+      "Render a video from a prompt. Optionally pass imageUrl (a concept from generate_storyboard or from show_generations) to do image-to-video.",
     inputSchema: {
       type: "object",
       properties: {
         prompt: { type: "string" },
-        imageUrl: { type: "string", description: "Optional first-frame image URL (from a chosen storyboard concept)." },
+        imageUrl: { type: "string", description: "Optional first-frame image URL (from a chosen storyboard concept or an earlier generation)." },
         modelId: { type: "string", default: DEFAULT_VIDEO_MODEL },
         duration: { type: "number", default: 5 },
         aspectRatio: { type: "string", default: "16:9" },
@@ -97,6 +97,52 @@ const tools = [
       required: ["prompt"],
     },
   },
+  {
+    name: "show_generations",
+    description:
+      "List the most recent images/videos the user generated. Returns public URLs so Claude can reference an earlier image (e.g. as first frame for a new video via generate_video's imageUrl) or show the user their history.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "How many recent items to return (1-50). Default 10.", default: 10 },
+        kind: {
+          type: "string",
+          description: "Filter by media kind. Omit for all.",
+          enum: ["image", "video", "audio"],
+        },
+      },
+    },
+  },
+  {
+    name: "list_models",
+    description:
+      "List the image and video models available on Saad Studio, with their capabilities. Use before generate_image/generate_video when the user asks for a specific look, quality tier, or a named model.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: {
+          type: "string",
+          description: "Filter by kind. Omit for all.",
+          enum: ["image", "video"],
+        },
+      },
+    },
+  },
+];
+
+const AVAILABLE_MODELS = [
+  { id: "nano-banana-pro", kind: "image", label: "Nano Banana Pro", notes: "Default. Fast, photoreal, strong prompt adherence.", badges: ["default", "fast"] },
+  { id: "nano-banana-2", kind: "image", label: "Nano Banana 2", notes: "Balanced quality/speed.", badges: [] },
+  { id: "google/nano-banana", kind: "image", label: "Google Nano Banana", notes: "Google Imagen variant.", badges: [] },
+  { id: "seedream/5-pro", kind: "image", label: "Seedream 5 Pro", notes: "ByteDance high-fidelity. Accepts reference images for edit mode.", badges: ["pro"] },
+  { id: "seedream/5-lite", kind: "image", label: "Seedream 5 Lite", notes: "Cheaper Seedream tier.", badges: [] },
+  { id: "flux-2/pro", kind: "image", label: "Flux 2 Pro", notes: "Black Forest Labs flagship.", badges: ["pro"] },
+  { id: "gpt-image-2", kind: "image", label: "GPT Image 2", notes: "OpenAI image model. Slower, strong typography.", badges: [] },
+  { id: "kling-3.0/video", kind: "video", label: "Kling 3.0", notes: "Default video model. 5-10s, 1080p.", badges: ["default"] },
+  { id: "seedance/2.0", kind: "video", label: "Seedance 2.0", notes: "ByteDance video, accepts reference images + audio.", badges: ["new"] },
+  { id: "google/veo3", kind: "video", label: "Google Veo 3", notes: "Google flagship video, native audio.", badges: ["pro"] },
+  { id: "wan/2.2", kind: "video", label: "Wan 2.2", notes: "Cost-efficient text-to-video.", badges: [] },
+  { id: "sora-2/video", kind: "video", label: "Sora 2", notes: "OpenAI video model.", badges: ["pro"] },
 ];
 
 function withMcpHeaders(response: NextResponse) {
@@ -435,6 +481,59 @@ async function callGenerateVideo(
   return toolResult({ status: "completed", modelId: body.modelId, ...(res.data as object) });
 }
 
+async function callShowGenerations(
+  request: Request,
+  args: Record<string, unknown>,
+  token: string,
+): Promise<ToolResult> {
+  const rawLimit = Math.floor(asNumber(args.limit, 10));
+  const limit = Math.max(1, Math.min(50, rawLimit));
+  const kind = asString(args.kind).toLowerCase();
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (kind === "image" || kind === "video" || kind === "audio") {
+    query.set("kind", kind);
+  }
+
+  const res = await panelFetch(
+    request,
+    `/api/panel/generations?${query.toString()}`,
+    { method: "GET" },
+    token,
+  );
+  if (!res.ok) {
+    return toolResult(
+      { error: (res.data as { error?: string })?.error ?? "Failed to list generations." },
+      true,
+    );
+  }
+
+  const data = res.data as { items?: Array<Record<string, unknown>>; hasMore?: boolean };
+  const items = data.items ?? [];
+  const imageUrls = items
+    .filter((item) => item.kind === "image" && typeof item.url === "string")
+    .slice(0, 4)
+    .map((item) => item.url as string);
+  const collection = await collectInlineImages(imageUrls);
+
+  return toolResultWithImages({
+    items,
+    hasMore: data.hasMore ?? false,
+    hint: "To reuse an image as the first frame of a new video, call generate_video with imageUrl set to that item's url.",
+  }, collection);
+}
+
+function callListModels(args: Record<string, unknown>): ToolResult {
+  const kind = asString(args.kind).toLowerCase();
+  const models = kind === "image" || kind === "video"
+    ? AVAILABLE_MODELS.filter((model) => model.kind === kind)
+    : AVAILABLE_MODELS;
+  return toolResult({
+    defaults: { image: DEFAULT_IMAGE_MODEL, video: DEFAULT_VIDEO_MODEL },
+    models,
+    hint: "Pass any model id to generate_image or generate_video via the modelId parameter. Omit modelId to use the default.",
+  });
+}
+
 async function dispatchTool(
   name: string,
   args: Record<string, unknown>,
@@ -455,6 +554,10 @@ async function dispatchTool(
       return callGenerateStoryboard(request, args, token);
     case "generate_video":
       return callGenerateVideo(request, args, token);
+    case "show_generations":
+      return callShowGenerations(request, args, token);
+    case "list_models":
+      return callListModels(args);
     default:
       return toolResult({ error: `Unknown tool: ${name}` }, true);
   }
