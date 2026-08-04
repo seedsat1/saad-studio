@@ -2819,3 +2819,8 @@
 - أدوات بطاقة الصورة في صفحة `/image` يجب أن تبقى داخل حدود البطاقة مهما صغر عرضها.
 - المعاينة والتحميل تظهر كأيقونات صغيرة أعلى يسار البطاقة، وأوامر Use وRemix وDelete تظهر أسفل البطاقة مع التفاف responsive بدلاً من صف واحد قابل للقص.
 - لا يغير هذا السلوك ترتيب الصور أو تحميل المصغرات أو استخدام الأصل عند المعاينة/التحميل.
+## Image Automatic-Ratio Packed Grid (2026-08-04)
+
+- `/image` uses a CSS grid masonry approach based on small `grid-auto-rows` and per-card row spans derived from the card's real aspect ratio and current measured column width.
+- This keeps Load more/DOM order predictable while avoiding the large blank row gaps caused by normal fixed-row CSS grid when portrait, square, and landscape images are mixed.
+- Do not revert to CSS columns for this surface because columns visually reorder appended pages top-to-bottom by column.

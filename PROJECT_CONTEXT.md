@@ -10434,3 +10434,10 @@
 - Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed; `npm.cmd run build` passed successfully with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
 - Decision: Keep the ordered grid layout, but make hover controls responsive within each tile instead of allowing a single wide action row to overflow.
+#### Latest task: /image automatic-ratio packed grid correction (2026-08-04)
+
+- Status: Completed. Fixed the /image gallery row-gap/random-looking layout caused by normal CSS grid rows with mixed image aspect ratios.
+- Changes made: Converted the result grid to a measured CSS-grid masonry layout using small auto rows and per-card `gridRowEnd` spans calculated from each image's real aspect ratio and current column width. Kept the predictable DOM/Load more order and retained the responsive hover actions.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `npm.cmd run build` passed successfully with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
+- Decision: Use grid-row-span masonry for /image instead of CSS columns, because it preserves append order while removing large empty row bands from mixed image ratios.

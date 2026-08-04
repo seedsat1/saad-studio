@@ -892,6 +892,9 @@ function DeleteImageDialog({
     </AnimatePresence>
   );
 }
+const MASONRY_ROW_HEIGHT = 4;
+const MASONRY_GAP = 3;
+
 function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, hasMore, onLoadMore, loadingMore }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onUse: (item: ResultItem) => void; onDelete: (id: string) => void; onBulkDelete: (ids: string[]) => void; hasMore?: boolean; onLoadMore?: () => void; loadingMore?: boolean }) {
   const { t, lang } = useImageTranslation();
   const [selectionMode, setSelectionMode] = useState(false);
@@ -900,9 +903,35 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
   const [bulkDownloadError, setBulkDownloadError] = useState("");
   const [albums, setAlbums] = useState<Album[]>([]);
   const [showAlbumPicker, setShowAlbumPicker] = useState(false);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const [masonryColumnWidth, setMasonryColumnWidth] = useState(180);
 
   useEffect(() => { setAlbums(loadAlbums()); }, []);
   useEffect(() => { saveAlbums(albums); }, [albums]);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const updateColumnWidth = () => {
+      const width = grid.getBoundingClientRect().width;
+      if (!Number.isFinite(width) || width <= 0) return;
+      const isSmall = window.innerWidth <= 640;
+      const minColumn = isSmall ? 118 : Math.min(Math.max(width * 0.10, 132), 210);
+      const columns = Math.max(1, Math.floor((width + MASONRY_GAP) / (minColumn + MASONRY_GAP)));
+      const nextWidth = Math.max(1, (width - MASONRY_GAP * (columns - 1)) / columns);
+      setMasonryColumnWidth((current) => Math.abs(current - nextWidth) > 1 ? nextWidth : current);
+    };
+
+    updateColumnWidth();
+    const observer = new ResizeObserver(updateColumnWidth);
+    observer.observe(grid);
+    window.addEventListener("resize", updateColumnWidth);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateColumnWidth);
+    };
+  }, []);
 
   const addSelectionToAlbum = useCallback((albumId: string) => {
     const ids = Array.from(selectedIds);
@@ -998,7 +1027,8 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
         .result-masonry {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(clamp(132px, 10vw, 210px), 1fr));
-          align-items: start;
+          grid-auto-rows: 4px;
+          align-items: stretch;
           gap: 3px;
           width: 100%;
           max-width: none;
@@ -1057,10 +1087,10 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
         )}
       </div>
 
-      <div className="result-masonry w-full">
+      <div ref={gridRef} className="result-masonry w-full">
         <AnimatePresence initial={false}>
-          {items.map((item) => {
-                const itemIndex = items.findIndex((candidate) => candidate.id === item.id);
+          {items.map((item, itemIndex) => {
+                const masonryRows = Math.max(18, Math.ceil(((masonryColumnWidth / resultAspectRatioNumber(item)) + MASONRY_GAP) / (MASONRY_ROW_HEIGHT + MASONRY_GAP)));
                 if (item.isFailed) {
                   return <FailedImageResultCard key={item.id} item={item} onDelete={onDelete} />;
                 }
@@ -1076,7 +1106,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
                       "result-card group relative cursor-pointer overflow-hidden rounded-[3px] border border-black/70 bg-black ring-1 transition",
                       isSelected ? "ring-2 ring-pink-400/70" : "ring-white/10",
                     )}
-                    style={{ aspectRatio: resultAspectRatioValue(item) }}
+                    style={{ gridRowEnd: `span ${masonryRows}` }}
                     data-ratio={item.aspect}
                     onClick={() => {
                       if (item.isPending) return;
