@@ -73,7 +73,6 @@ const tools = [
       },
       required: ["prompt"],
     },
-    _meta: IMAGE_TOOL_UI_META,
   },
   {
     name: "generate_storyboard",
@@ -96,7 +95,6 @@ const tools = [
       },
       required: ["prompt"],
     },
-    _meta: IMAGE_TOOL_UI_META,
   },
   {
     name: "generate_video",
@@ -114,7 +112,6 @@ const tools = [
       },
       required: ["prompt"],
     },
-    _meta: VIDEO_TOOL_UI_META,
   },
   {
     name: "show_generations",
