@@ -129,7 +129,7 @@ export default function ConnectPage() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <img
-            src="https://www.saadstudio.app/logo-saad-transparent.png"
+            src="https://www.saadstudio.app/logo-saad-transparent.png?v=3"
             alt="Saad Studio"
             className="w-9 h-9 rounded-xl object-contain flex-shrink-0"
           />

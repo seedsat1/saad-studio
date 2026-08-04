@@ -58,7 +58,7 @@ function AuthorizeContent() {
             <div className="h-px w-9 border-t border-dashed border-white/40" />
             <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/20">
               <Image
-                src="/logo-saad-transparent.png?v=2"
+                src="/logo-saad-transparent.png?v=3"
                 alt="Saad Studio"
                 width={48}
                 height={48}

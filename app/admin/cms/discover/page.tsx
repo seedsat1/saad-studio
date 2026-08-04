@@ -172,7 +172,7 @@ const SEED_FOOTER: FooterData = {
   brandName: "Saad Studio",
   tagline: "The world's most powerful AI creative studio.",
   email: "support@saadstudio.app",
-  logoUrl: "/logo-saad-transparent.png?v=2",
+  logoUrl: "/logo-saad-transparent.png?v=3",
   sections: [
     {
       _id: uid(), title: "Studio",
