@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, type ChangeEvent, type DragEvent, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, type ChangeEvent, type CSSProperties, type DragEvent, type MouseEvent } from "react";
 import { useAuth } from "@clerk/nextjs";
 import {
   Aperture,
@@ -191,6 +191,52 @@ function resultOriginalUrl(item: ResultItem): string {
 
 function resultThumbnailUrl(item: ResultItem): string {
   return item.thumbnailUrl || item.url;
+}
+
+function resultAspectRatioNumber(item: Pick<ResultItem, "width" | "height" | "aspect" | "isFailed">): number {
+  if (item.isFailed) return 16 / 9;
+  if (typeof item.width === "number" && typeof item.height === "number" && item.width > 0 && item.height > 0) {
+    return item.width / item.height;
+  }
+
+  const aspect = String(item.aspect || "").trim().toLowerCase();
+  const ratioMatch = aspect.match(/(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)/);
+  if (ratioMatch) {
+    const width = Number(ratioMatch[1]);
+    const height = Number(ratioMatch[2]);
+    if (width > 0 && height > 0) return width / height;
+  }
+
+  const sizeMatch = aspect.match(/(\d{2,5})\s*[x×]\s*(\d{2,5})/);
+  if (sizeMatch) {
+    const width = Number(sizeMatch[1]);
+    const height = Number(sizeMatch[2]);
+    if (width > 0 && height > 0) return width / height;
+  }
+
+  if (aspect.includes("portrait")) return 9 / 16;
+  if (aspect.includes("landscape")) return 16 / 9;
+  if (aspect.includes("source")) return 1;
+  return 1;
+}
+
+function resultAspectRatioValue(item: Pick<ResultItem, "width" | "height" | "aspect" | "isFailed">): string {
+  const ratio = resultAspectRatioNumber(item);
+  return `${Math.max(0.35, Math.min(3.2, ratio))} / 1`;
+}
+
+function distributeMasonryItems<T extends ResultItem>(items: T[], columnCount: number): T[][] {
+  const safeCount = Math.max(1, columnCount);
+  const columns = Array.from({ length: safeCount }, () => [] as T[]);
+  const heights = Array.from({ length: safeCount }, () => 0);
+
+  for (const item of items) {
+    const shortestIndex = heights.indexOf(Math.min(...heights));
+    columns[shortestIndex].push(item);
+    heights[shortestIndex] += 1 / Math.max(0.35, resultAspectRatioNumber(item));
+  }
+
+  return columns;
 }
 
 function normalizeGenerationError(value?: string | null): string {
@@ -731,7 +777,8 @@ function FailedImageResultCard({ item, onDelete }: { item: ResultItem; onDelete:
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="result-card group relative overflow-hidden rounded-lg border border-white/8 bg-[#202225] ring-1 ring-white/10"
+      className="result-card group relative overflow-hidden rounded-[3px] border border-black/70 bg-[#202225] ring-1 ring-white/10"
+      style={{ aspectRatio: resultAspectRatioValue(item) }}
       data-ratio={item.aspect}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(239,68,68,0.18),transparent_40%),linear-gradient(180deg,rgba(255,255,255,0.03),transparent)]" />
@@ -918,6 +965,30 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
     setSelectionMode(false);
   }, [selectedIds, onBulkDelete]);
 
+  const masonryRef = useRef<HTMLDivElement | null>(null);
+  const [masonryColumnCount, setMasonryColumnCount] = useState(1);
+
+  useEffect(() => {
+    const node = masonryRef.current;
+    if (!node) return;
+
+    const updateColumnCount = () => {
+      const width = node.clientWidth || 0;
+      const minColumnWidth = width >= 1600 ? 210 : width >= 1100 ? 190 : width >= 720 ? 165 : 132;
+      const nextCount = Math.max(1, Math.min(10, Math.floor(width / minColumnWidth)));
+      setMasonryColumnCount(nextCount);
+    };
+
+    updateColumnCount();
+    const observer = new ResizeObserver(updateColumnCount);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const masonryColumns = useMemo(
+    () => distributeMasonryItems(items, masonryColumnCount),
+    [items, masonryColumnCount],
+  );
   const handleBulkDownload = useCallback(async () => {
     const selectedItems = items.filter((item) => selectedIds.has(item.id) && resultOriginalUrl(item) && !item.isPending && !item.isFailed);
     if (selectedItems.length === 0 || isBulkDownloading) return;
@@ -963,39 +1034,33 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
       <style>{`
         .result-masonry {
           display: grid;
-          grid-template-columns: repeat(auto-fill, 240px);
-          justify-content: start;
-          align-content: start;
-          gap: 10px;
+          grid-template-columns: repeat(var(--masonry-columns), minmax(0, 1fr));
+          align-items: start;
+          gap: 3px;
           width: 100%;
           max-width: none;
           margin: 0;
         }
 
+        .result-masonry-column {
+          display: flex;
+          min-width: 0;
+          flex-direction: column;
+          gap: 3px;
+        }
+
         .result-card {
           width: 100%;
-          aspect-ratio: 1 / 1;
+          min-height: 72px;
         }
 
-        @media (max-width: 1280px) {
-          .result-masonry {
-            grid-template-columns: repeat(auto-fill, 210px);
-          }
-        }
-
-        @media (max-width: 860px) {
-          .result-masonry {
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-          }
-        }
-
-        @media (max-width: 480px) {
-          .result-masonry {
-            grid-template-columns: 1fr;
+        @media (max-width: 640px) {
+          .result-masonry,
+          .result-masonry-column {
+            gap: 2px;
           }
         }
       `}</style>
-
       {/* Selection toolbar */}
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <button
@@ -1036,91 +1101,99 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
         )}
       </div>
 
-      <div className="result-masonry w-full">
-        <AnimatePresence>
-          {items.map((item, index) => {
-            if (item.isFailed) {
-              return <FailedImageResultCard key={item.id} item={item} onDelete={onDelete} />;
-            }
-            const isSelected = selectedIds.has(item.id);
-            return (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className={cn(
-                "result-card group relative cursor-pointer overflow-hidden rounded-lg border border-black/80 bg-black ring-1 transition",
-                isSelected ? "ring-2 ring-pink-400/70" : "ring-white/10",
-              )}
-              data-ratio={item.aspect}
-              onClick={() => {
-                if (item.isPending) return;
-                if (selectionMode) { toggleSelected(item.id); return; }
-                onInspect(resultInspectorAsset(item));
-              }}
-            >
-              {item.isPending ? (
-                <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div
+        ref={masonryRef}
+        className="result-masonry w-full"
+        style={{ "--masonry-columns": masonryColumnCount } as CSSProperties}
+      >
+        {masonryColumns.map((column, columnIndex) => (
+          <div key={`masonry-column-${columnIndex}`} className="result-masonry-column">
+            <AnimatePresence initial={false}>
+              {column.map((item) => {
+                const itemIndex = items.findIndex((candidate) => candidate.id === item.id);
+                if (item.isFailed) {
+                  return <FailedImageResultCard key={item.id} item={item} onDelete={onDelete} />;
+                }
+                const isSelected = selectedIds.has(item.id);
+                return (
                   <motion.div
-                    className="absolute inset-0"
-                    style={{ background: "linear-gradient(105deg, transparent 20%, rgba(236,72,153,0.16) 50%, transparent 80%)" }}
-                    animate={{ x: ["-120%", "120%"] }}
-                    transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-                  />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
-                    <div className="rounded-full bg-pink-500/20 px-3 py-1 text-[11px] font-semibold text-pink-300 ring-1 ring-pink-400/30">{t("Generating...")}</div>
-                    <div className="text-[11px] text-zinc-400">{item.model}</div>
-                  </div>
-                </div>
-              ) : (
-                <NextImage
-                  src={resultThumbnailUrl(item)}
-                  alt={item.prompt || "Generated image"}
-                  fill
-                  sizes="(max-width: 640px) 50vw, 240px"
-                  className="block h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
-                  unoptimized={resultThumbnailUrl(item).startsWith("/api/assets/thumbnail")}
-                  priority={index === 0}
-                  loading={index === 0 ? "eager" : "lazy"}
-                  fetchPriority={index === 0 ? "high" : "auto"}
-                  quality={78}
-                />
-              )}
+                    key={item.id}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.18 }}
+                    className={cn(
+                      "result-card group relative cursor-pointer overflow-hidden rounded-[3px] border border-black/70 bg-black ring-1 transition",
+                      isSelected ? "ring-2 ring-pink-400/70" : "ring-white/10",
+                    )}
+                    style={{ aspectRatio: resultAspectRatioValue(item) }}
+                    data-ratio={item.aspect}
+                    onClick={() => {
+                      if (item.isPending) return;
+                      if (selectionMode) { toggleSelected(item.id); return; }
+                      onInspect(resultInspectorAsset(item));
+                    }}
+                  >
+                    {item.isPending ? (
+                      <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+                        <motion.div
+                          className="absolute inset-0"
+                          style={{ background: "linear-gradient(105deg, transparent 20%, rgba(236,72,153,0.16) 50%, transparent 80%)" }}
+                          animate={{ x: ["-120%", "120%"] }}
+                          transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                        />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
+                          <div className="rounded-full bg-pink-500/20 px-3 py-1 text-[11px] font-semibold text-pink-300 ring-1 ring-pink-400/30">{t("Generating...")}</div>
+                          <div className="text-[11px] text-zinc-400">{item.model}</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <NextImage
+                        src={resultThumbnailUrl(item)}
+                        alt={item.prompt || "Generated image"}
+                        fill
+                        sizes="(max-width: 640px) 33vw, (max-width: 1280px) 18vw, 14vw"
+                        className="block h-full w-full object-cover transition duration-300 group-hover:scale-[1.035]"
+                        unoptimized={resultThumbnailUrl(item).startsWith("/api/assets/thumbnail")}
+                        priority={itemIndex === 0}
+                        loading={itemIndex === 0 ? "eager" : "lazy"}
+                        fetchPriority={itemIndex === 0 ? "high" : "auto"}
+                        quality={78}
+                      />
+                    )}
 
-              {/* Selection checkbox */}
-              {!item.isPending && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleSelected(item.id); if (!selectionMode) setSelectionMode(true); }}
-                  className={cn(
-                    "absolute right-2 top-2 z-20 inline-flex h-6 w-6 items-center justify-center rounded-md border backdrop-blur transition",
-                    isSelected
-                      ? "border-pink-400 bg-pink-500 text-white opacity-100"
-                      : "border-white/30 bg-black/60 text-white/80 opacity-0 group-hover:opacity-100",
-                    selectionMode && "opacity-100",
-                  )}
-                  title={isSelected ? t("Unselect") : t("Select")}
-                >
-                  <Check className="h-3.5 w-3.5" />
-                </button>
-              )}
+                    {!item.isPending && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSelected(item.id); if (!selectionMode) setSelectionMode(true); }}
+                        className={cn(
+                          "absolute right-2 top-2 z-20 inline-flex h-6 w-6 items-center justify-center rounded-md border backdrop-blur transition",
+                          isSelected
+                            ? "border-pink-400 bg-pink-500 text-white opacity-100"
+                            : "border-white/30 bg-black/60 text-white/80 opacity-0 group-hover:opacity-100",
+                          selectionMode && "opacity-100",
+                        )}
+                        title={isSelected ? t("Unselect") : t("Select")}
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </button>
+                    )}
 
-              {!item.isPending && !selectionMode ? (
-                <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
-                  <button onClick={(e) => { e.stopPropagation(); onInspect(resultInspectorAsset(item)); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Preview")}><Eye className="h-4 w-4" /></button>
-                  <a href={resultOriginalUrl(item)} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Download")}><Download className="h-4 w-4" /></a>
-                  <button onClick={(e) => { e.stopPropagation(); onUse(item); }} className="flex items-center gap-1 rounded-lg bg-pink-500/80 px-3 py-2 text-xs font-semibold text-white ring-1 ring-pink-300/40 hover:bg-pink-500" title={t("Use as reference image")}><Wand2 className="h-3.5 w-3.5" /> {t("Use")}</button>
-                  <button onClick={(e) => { e.stopPropagation(); onRemix(item); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">{t("Remix")}</button>
-                  <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">{t("Delete")}</button>
-                </div>
-              ) : null}
-            </motion.div>
-            );
-          })}
-        </AnimatePresence>
+                    {!item.isPending && !selectionMode ? (
+                      <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
+                        <button onClick={(e) => { e.stopPropagation(); onInspect(resultInspectorAsset(item)); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Preview")}><Eye className="h-4 w-4" /></button>
+                        <a href={resultOriginalUrl(item)} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Download")}><Download className="h-4 w-4" /></a>
+                        <button onClick={(e) => { e.stopPropagation(); onUse(item); }} className="flex items-center gap-1 rounded-lg bg-pink-500/80 px-3 py-2 text-xs font-semibold text-white ring-1 ring-pink-300/40 hover:bg-pink-500" title={t("Use as reference image")}><Wand2 className="h-3.5 w-3.5" /> {t("Use")}</button>
+                        <button onClick={(e) => { e.stopPropagation(); onRemix(item); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">{t("Remix")}</button>
+                        <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">{t("Delete")}</button>
+                      </div>
+                    ) : null}
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        ))}
       </div>
-
       {hasMore ? (
         <div className="mt-4 flex justify-center">
           <button

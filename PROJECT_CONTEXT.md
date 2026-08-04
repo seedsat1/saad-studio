@@ -10372,3 +10372,15 @@
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check -- app/(dash)/(routes)/video/page.tsx` passed with CRLF warning only.
 - Decision: Keep the original MP4 object-contain behavior, but make the display surface use the same page color so vertical videos do not create black side blocks.
+
+#### Latest task: /image packed masonry gallery layout (2026-08-04)
+
+- Status: Completed. Updated the /image results gallery from fixed square tiles to a responsive packed masonry layout that fills the available center panel without large blank bands.
+- Changes made:
+  - Added aspect-ratio parsing from stored width/height, ratio labels, or resolution strings.
+  - Added ResizeObserver-based column counting so the gallery adapts to the actual available panel width.
+  - Distributed images into the shortest column by expected visual height and applied each card's real aspect ratio instead of forcing 1:1.
+  - Kept thumbnail display behavior for cards and originalUrl behavior for preview/download/reference use.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed.
+- Decision: Use a packed masonry presentation for /image so mixed landscape, portrait, and square generations align tightly across desktop and smaller browser widths without random fixed-square spacing.

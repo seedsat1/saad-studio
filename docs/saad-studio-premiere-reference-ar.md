@@ -2785,3 +2785,10 @@
 
 - `/video` history preview surfaces should use `#050a14` for the outer preview background and the native `<video>` background.
 - This keeps object-contain letterbox/side bands visually unified with the page while preserving the original MP4 aspect ratio and direct playback behavior.
+
+## Image Packed Masonry Gallery Layout (2026-08-04)
+
+- `/image` result cards should use a packed masonry layout, not fixed 1:1 square tiles.
+- The card aspect ratio is derived from stored `width`/`height` first, then from ratio or resolution labels such as `16:9`, `9:16`, or `1024x1024`, with safe fallbacks for old records.
+- The gallery column count should respond to the actual available center-panel width, then distribute items into the shortest column to reduce empty vertical bands while preserving image proportions.
+- Cards still display `thumbnailUrl`/`/api/assets/thumbnail` for performance. Preview, download, remix/reference reuse, and Asset Inspector still use the original full-resolution URL.
