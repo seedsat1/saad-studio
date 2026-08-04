@@ -1023,8 +1023,8 @@ function ratioIconStyle(ratio: string): { width: number; height: number } {
   const [rawW, rawH] = normalized.split(":").map((value) => Number.parseFloat(value));
   const w = Number.isFinite(rawW) && rawW > 0 ? rawW : 1;
   const h = Number.isFinite(rawH) && rawH > 0 ? rawH : 1;
-  const max = 22;
-  const min = 8;
+  const max = 18;
+  const min = 7;
   if (w >= h) return { width: max, height: Math.max(min, Math.round((max * h) / w)) };
   return { width: Math.max(min, Math.round((max * w) / h)), height: max };
 }
@@ -1048,25 +1048,34 @@ function AspectRatioPicker({
   const selectedIcon = ratioIconStyle(selected);
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onBlur={(event) => {
+        const nextFocus = event.relatedTarget as Node | null;
+        if (!nextFocus || !event.currentTarget.contains(nextFocus)) {
+          setOpen(false);
+        }
+      }}
+    >
       <button
         id={id}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((next) => !next)}
-        className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-[13px] font-semibold outline-none transition-colors"
+        className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-[12px] font-semibold outline-none transition-colors"
         style={{
-          background: "rgba(255,255,255,0.04)",
-          border: `1px solid ${hexA(accent, 0.25)}`,
-          color: accent,
+          background: open ? hexA(accent, 0.08) : "rgba(15,23,42,0.62)",
+          border: `1px solid ${open ? hexA(accent, 0.32) : "rgba(148,163,184,0.16)"}`,
+          boxShadow: open ? `0 0 0 1px ${hexA(accent, 0.08)}` : "none",
+          color: "#e5e7eb",
         }}
       >
         <span className="flex items-center gap-2">
-          <span className="flex h-6 w-7 items-center justify-center">
+          <span className="flex h-5 w-6 items-center justify-center">
             <span
               className="rounded-[2px] border-2"
-              style={{ width: selectedIcon.width, height: selectedIcon.height, borderColor: accent }}
+              style={{ width: selectedIcon.width, height: selectedIcon.height, borderColor: open ? hexA(accent, 0.78) : "#cbd5e1" }}
             />
           </span>
           {selected}
@@ -1078,9 +1087,9 @@ function AspectRatioPicker({
         <div
           role="listbox"
           aria-label="Aspect Ratio"
-          className="absolute right-0 top-[calc(100%+8px)] z-[90] w-52 rounded-xl border border-white/10 bg-[#171717] p-2 shadow-2xl shadow-black/50"
+          className="absolute right-0 top-[calc(100%+6px)] z-[90] w-44 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-[#0a1220]/95 p-1.5 shadow-xl shadow-black/40 backdrop-blur-xl"
         >
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {orderedOptions.map((ratio) => {
               const active = selected === ratio;
               const icon = ratioIconStyle(ratio);
@@ -1094,20 +1103,20 @@ function AspectRatioPicker({
                     onChange(ratio);
                     setOpen(false);
                   }}
-                  className="flex h-11 w-full items-center gap-3 rounded-md px-3 text-sm font-semibold transition-colors"
+                  className="flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-[12px] font-semibold transition-colors"
                   style={{
-                    background: active ? "rgba(255,255,255,0.10)" : "transparent",
-                    color: active ? "#ffffff" : "#e5e7eb",
+                    background: active ? hexA(accent, 0.14) : "transparent",
+                    color: active ? "#f8fafc" : "#cbd5e1",
                   }}
                 >
-                  <span className="flex h-6 w-7 items-center justify-center">
+                  <span className="flex h-5 w-6 items-center justify-center">
                     <span
                       className="rounded-[2px] border-2"
-                      style={{ width: icon.width, height: icon.height, borderColor: active ? "#ffffff" : "#d4d4d8" }}
+                      style={{ width: icon.width, height: icon.height, borderColor: active ? hexA(accent, 0.82) : "#94a3b8" }}
                     />
                   </span>
                   <span className="flex-1 text-left">{ratio}</span>
-                  {active && <CheckCircle2 size={14} className="shrink-0" style={{ color: "#d4d4d8" }} />}
+                  {active && <CheckCircle2 size={12} className="shrink-0" style={{ color: hexA(accent, 0.9) }} />}
                 </button>
               );
             })}

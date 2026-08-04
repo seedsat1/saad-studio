@@ -1,3 +1,10 @@
+#### Latest task: Video aspect ratio dropdown visual polish (2026-08-04)
+- Status: Fixed. Polished /video AspectRatioPicker so the dropdown remains vertical but is smaller, less visually loud, and aligned with the dark tool-panel styling.
+- Changes made: Reduced ratio icon size, trigger padding, menu width, row height, and shadow; changed selected/accent color use from full red/orange text to subtle border and active-row highlights; added blur close behavior so the menu dismisses naturally.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check` passed with CRLF warnings only.
+- Decision: Keep one shared vertical dropdown for all model aspect-ratio controls, with options still sourced only from documented model capabilities.
+
 #### Latest task: Video aspect ratio dropdown vertical correction (2026-08-04)
 - Status: Fixed. Corrected /video AspectRatioPicker so the opened dropdown lists ratios vertically, not as a horizontal strip.
 - Changes made: Changed the dropdown content to a compact vertical menu with one row per ratio, icon + label + selected check mark.

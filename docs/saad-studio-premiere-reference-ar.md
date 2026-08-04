@@ -1,3 +1,11 @@
+## Video Aspect Ratio Dropdown Visual Polish (2026-08-04)
+
+- /video aspect-ratio selection uses one compact vertical dropdown shared across model controls.
+- The closed trigger must stay visually consistent with the dark tool panel: neutral text/background, subtle border, and only a restrained model-accent hint.
+- The opened menu should be narrow and compact, with short rows, small ratio icons, bounded height, and dark translucent panel styling.
+- Do not render the ratio selector as a wide horizontal strip, oversized card, or bright model-colored control.
+- Aspect-ratio options remain capability-driven per selected model; no unsupported ratios are added for appearance.
+
 ## Video Aspect Ratio Dropdown Vertical Menu (2026-08-04)
 
 - /video aspect-ratio selection must open downward as a vertical menu.
@@ -8,7 +16,7 @@
 ## Video Aspect Ratio Dropdown UI (2026-08-04)
 
 - /video aspect-ratio selection should use the shared `AspectRatioPicker` instead of native `select` or separate inline button groups.
-- The picker stays collapsed like a dropdown; only the opened dropdown shows the horizontal row of ratio icons.
+- The picker stays collapsed like a dropdown; only the opened dropdown shows a compact vertical list of ratio rows.
 - Ratio option order should be consistent: `16:9`, `3:2`, `4:3`, `5:4`, `1:1`, `4:5`, `3:4`, `2:3`, `9:16`, `21:9`, then provider-specific labels such as `landscape`, `portrait`, or `adaptive`.
 - Do not add unsupported aspect ratios by UI guesswork; display the documented options from the selected model, sorted into the shared visual order.
 
