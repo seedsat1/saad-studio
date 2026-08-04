@@ -1,3 +1,10 @@
+#### Latest task: Video aspect ratio dropdown icon layout (2026-08-04)
+- Status: Fixed. /video aspect-ratio controls now use one shared dropdown-style picker with horizontal ratio icons instead of mixed native selects/buttons.
+- Changes made: Added `AspectRatioPicker` with ordered ratio icons, active-state styling, and horizontal scrolling inside the opened dropdown; replaced the main settings, Kling 3.0 settings, and mobile settings aspect-ratio controls with the shared picker.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed.
+- Decision: Keep options sourced from each model's documented capabilities, but render them in one consistent horizontal dropdown layout.
+
 #### Latest task: Minimax H3 first/default video model wiring (2026-08-04)
 - Status: Fixed. Minimax H3 now appears as the first video model/default Create Video model and routes directly to the official WaveSpeed route `minimax/h3/reference-to-video`.
 - Changes made: Added the H3 registry entry with exact documented reference limits, duration, aspect ratios, and resolution tiers; wired /video validation and payload building for image/video/audio references; mapped backend payload fields to official `reference_images`, `reference_videos`, and `reference_audios`; added WaveSpeed-only routing and credit/pricing support.

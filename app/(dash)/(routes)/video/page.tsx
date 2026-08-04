@@ -1008,6 +1008,115 @@ function targetCanvasSizeForRatio(ratio: string | null | undefined, maxLongSide 
   return { width: maxLongSide, height: maxLongSide };
 }
 
+const ASPECT_RATIO_ORDER = ["16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "21:9", "landscape", "portrait", "adaptive"];
+
+function sortAspectRatios(ratios: string[]): string[] {
+  return [...ratios].sort((a, b) => {
+    const ai = ASPECT_RATIO_ORDER.indexOf(a);
+    const bi = ASPECT_RATIO_ORDER.indexOf(b);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+}
+
+function ratioIconStyle(ratio: string): { width: number; height: number } {
+  const normalized = ratio === "landscape" ? "16:9" : ratio === "portrait" ? "9:16" : ratio;
+  const [rawW, rawH] = normalized.split(":").map((value) => Number.parseFloat(value));
+  const w = Number.isFinite(rawW) && rawW > 0 ? rawW : 1;
+  const h = Number.isFinite(rawH) && rawH > 0 ? rawH : 1;
+  const max = 22;
+  const min = 8;
+  if (w >= h) return { width: max, height: Math.max(min, Math.round((max * h) / w)) };
+  return { width: Math.max(min, Math.round((max * w) / h)), height: max };
+}
+
+function AspectRatioPicker({
+  value,
+  options,
+  onChange,
+  accent,
+  id,
+}: {
+  value: string | null;
+  options: string[];
+  onChange: (value: string) => void;
+  accent: string;
+  id?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const orderedOptions = useMemo(() => sortAspectRatios(options), [options]);
+  const selected = value || orderedOptions[0] || "16:9";
+  const selectedIcon = ratioIconStyle(selected);
+
+  return (
+    <div className="relative">
+      <button
+        id={id}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((next) => !next)}
+        className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-[13px] font-semibold outline-none transition-colors"
+        style={{
+          background: "rgba(255,255,255,0.04)",
+          border: `1px solid ${hexA(accent, 0.25)}`,
+          color: accent,
+        }}
+      >
+        <span className="flex items-center gap-2">
+          <span className="flex h-6 w-7 items-center justify-center">
+            <span
+              className="rounded-[2px] border-2"
+              style={{ width: selectedIcon.width, height: selectedIcon.height, borderColor: accent }}
+            />
+          </span>
+          {selected}
+        </span>
+        <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""}`} style={{ color: "#94a3b8" }} />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          aria-label="Aspect Ratio"
+          className="absolute right-0 top-[calc(100%+8px)] z-[90] max-w-[min(620px,calc(100vw-32px))] overflow-x-auto rounded-xl border border-white/10 bg-[#242424] p-2 shadow-2xl shadow-black/50"
+        >
+          <div className="flex min-w-max items-stretch gap-1">
+            {orderedOptions.map((ratio) => {
+              const active = selected === ratio;
+              const icon = ratioIconStyle(ratio);
+              return (
+                <button
+                  key={ratio}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => {
+                    onChange(ratio);
+                    setOpen(false);
+                  }}
+                  className="flex h-[54px] w-[54px] flex-col items-center justify-center gap-1.5 rounded-md text-[11px] font-medium transition-colors"
+                  style={{
+                    background: active ? "rgba(255,255,255,0.10)" : "transparent",
+                    color: active ? "#ffffff" : "#d4d4d8",
+                  }}
+                >
+                  <span className="flex h-6 w-7 items-center justify-center">
+                    <span
+                      className="rounded-[2px] border-2"
+                      style={{ width: icon.width, height: icon.height, borderColor: active ? "#ffffff" : "#d4d4d8" }}
+                    />
+                  </span>
+                  <span>{ratio}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 async function fileToAspectDataURL(file: File, ratio: string | null | undefined, quality = 0.88): Promise<string> {
   if (!file.type.startsWith("image/")) return fileToDataURL(file);
 
@@ -1998,11 +2107,13 @@ function VideoPageInner() {
     : isVeo31LiteModel
       ? caps.resolutions.filter((value) => value.toLowerCase() !== "4k")
       : caps.resolutions;
-  const effectiveAspectRatios = caps.aspect_ratios.length > 0
-    ? caps.aspect_ratios
-    : caps.sizes.length > 0
-      ? []
-      : ["16:9", "9:16", "1:1", "4:3", "3:4"];
+  const effectiveAspectRatios = sortAspectRatios(
+    caps.aspect_ratios.length > 0
+      ? caps.aspect_ratios
+      : caps.sizes.length > 0
+        ? []
+        : ["16:9", "9:16", "1:1", "4:3", "3:4"]
+  );
 
   useEffect(() => {
     if (!isVeo31Model) return;
@@ -4786,29 +4897,17 @@ function VideoPageInner() {
               </div>
 
               {/* -- Aspect Ratio --------------------------------------------- */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Aspect Ratio</label>
-                <div className="flex gap-1">
-                  {(["16:9", "9:16", "1:1"] as const).map(r => {
-                    const isActive = aspectRatio === r;
-                    return (
-                      <button
-                        key={r}
-                        onClick={() => setAspectRatio(r)}
-                        className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition-all"
-                        style={{
-                          background: isActive ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
-                          border:     isActive ? `1px solid ${hexA(selectedModel.family_color, 0.5)}` : "1px solid rgba(255,255,255,0.06)",
-                          color:      isActive ? selectedModel.family_color : "#a1a1aa",
-                          cursor:     "pointer",
-                        }}
-                      >
-                        {r}
-                      </button>
-                    );
-                  })}
+              {effectiveAspectRatios.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Aspect Ratio</label>
+                  <AspectRatioPicker
+                    value={aspectRatio}
+                    options={effectiveAspectRatios}
+                    onChange={setAspectRatio}
+                    accent={selectedModel.family_color}
+                  />
                 </div>
-              </div>
+              )}
 
               {/* -- Resolution (720p std / 1080p pro / 4K) ------------------- */}
               <div className="flex flex-col gap-2">
@@ -5194,27 +5293,13 @@ function VideoPageInner() {
               <label htmlFor="aspect-ratio-select" className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Aspect Ratio
               </label>
-              <div className="relative">
-                <select
-                  id="aspect-ratio-select"
-                  aria-label={t("Aspect Ratio")}
-                  value={aspectRatio || effectiveAspectRatios[0]}
-                  onChange={e => setAspectRatio(e.target.value)}
-                  className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg text-[13px] outline-none cursor-pointer"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: `1px solid ${hexA(selectedModel.family_color, 0.25)}`,
-                    color: selectedModel.family_color,
-                  }}
-                >
-                  {effectiveAspectRatios.map(r => (
-                    <option key={r} value={r} style={{ background: "#0a1220", color: "#e2e8f0" }}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#94a3b8" }} />
-              </div>
+              <AspectRatioPicker
+                id="aspect-ratio-select"
+                value={aspectRatio}
+                options={effectiveAspectRatios}
+                onChange={setAspectRatio}
+                accent={selectedModel.family_color}
+              />
             </div>
           )}
 
@@ -6126,15 +6211,13 @@ function VideoPageInner() {
                 {/* Aspect ratio */}
                 {effectiveAspectRatios.length > 0 && (
                   <div className="mb-4">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>Aspect Ratio</label>
-                    <div className="flex flex-wrap gap-2">
-                      {effectiveAspectRatios.map(r => (
-                        <button key={r} onClick={() => setAspectRatio(r)}
-                          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                          style={{ background: (aspectRatio || effectiveAspectRatios[0]) === r ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: (aspectRatio || effectiveAspectRatios[0]) === r ? selectedModel.family_color : "#a1a1aa", border: `1px solid ${(aspectRatio || effectiveAspectRatios[0]) === r ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
-                        >{r}</button>
-                      ))}
-                    </div>
+                    <label className="mb-2 block text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Aspect Ratio</label>
+                    <AspectRatioPicker
+                      value={aspectRatio}
+                      options={effectiveAspectRatios}
+                      onChange={setAspectRatio}
+                      accent={selectedModel.family_color}
+                    />
                   </div>
                 )}
 

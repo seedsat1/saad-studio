@@ -1,3 +1,10 @@
+## Video Aspect Ratio Dropdown UI (2026-08-04)
+
+- /video aspect-ratio selection should use the shared `AspectRatioPicker` instead of native `select` or separate inline button groups.
+- The picker stays collapsed like a dropdown; only the opened dropdown shows the horizontal row of ratio icons.
+- Ratio option order should be consistent: `16:9`, `3:2`, `4:3`, `5:4`, `1:1`, `4:5`, `3:4`, `2:3`, `9:16`, `21:9`, then provider-specific labels such as `landscape`, `portrait`, or `adaptive`.
+- Do not add unsupported aspect ratios by UI guesswork; display the documented options from the selected model, sorted into the shared visual order.
+
 ## Minimax H3 Reference-to-Video Contract (2026-08-04)
 
 - /video must show `Minimax H3` as the first/default new model for Create Video.
