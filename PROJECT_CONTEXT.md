@@ -1,12 +1,11 @@
-#### Latest task: Fix explore page masonry layout balance and views increment (2026-08-05)
-- Status: Completed. Corrected unbalanced column heights on the explore page by distributing items to the shortest column based on their aspect ratio height factor. Added activeMediaItem preview useEffect to fetch the GET api which increments views in the database and updates frontend UI states.
+#### Latest task: Revert explore page columns to standard horizontal grid sequence (2026-08-05)
+- Status: Completed. Reverted explore creations layout to a flat array render using a standard CSS Grid. This ensures that items flow strictly in chronological order horizontally (1, 2, 3, 4) from left to right, matching the user's exact specification.
 - Changes made:
-  - Added `aspect_ratio` key to `ShowcaseItem` type in `app/(dash)/(routes)/explore/page.tsx`.
-  - Refactored `columnsData` calculation to use dynamic height factors ("16:9": 0.56, "9:16": 1.77, etc.) and push each item into the shortest column.
-  - Added a `useEffect` hook listening to `activeMediaItem` preview opens, calling GET `/api/showcase/[id]` to increment database view count and updating `items`, `featured`, `trending`, and `activeMediaItem` states instantly.
+  - Removed the `columnCount` hook and `columnsData` calculation from `app/(dash)/(routes)/explore/page.tsx`.
+  - Updated grid container wrapper to render a direct flat map of items under a responsive `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start`.
 - Affected files: `app/(dash)/(routes)/explore/page.tsx`, `PROJECT_CONTEXT.md`.
 - Verification: `npx tsc --noEmit --pretty false` compilation check passed with 0 errors.
-- Decision: Shortest-column distribution keeps masonry grid columns visually balanced at the bottom, eliminating empty spaces. Fetching the GET endpoint on lightbox open makes the views count functional and real.
+- Decision: Standard CSS Grid with flat array mapping ensures 100% accurate horizontal sequencing (1, 2, 3, 4) for all viewport sizes.
 
 #### Latest task: Video aspect ratio dropdown width match correction (2026-08-04)
 - Status: Fixed. Corrected /video AspectRatioPicker so the opened dropdown matches the full trigger width instead of shrinking into a narrow detached menu.
