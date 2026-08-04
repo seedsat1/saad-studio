@@ -295,7 +295,7 @@ function VideoHistoryPreview({
 
   return (
     <div
-      className="relative isolate flex h-full min-h-[320px] items-center justify-center overflow-hidden rounded-[14px] bg-[#202225]"
+      className="relative isolate flex h-full min-h-[320px] items-center justify-center overflow-hidden rounded-[14px] bg-[#050a14]"
       onClick={(event) => event.stopPropagation()}
     >
       <div
@@ -317,7 +317,7 @@ function VideoHistoryPreview({
           onLoadedMetadata={revealFirstFrame}
           onLoadedData={revealFirstFrame}
           onError={() => setVideoFailed(true)}
-          className="absolute inset-0 z-10 h-full w-full bg-black object-contain"
+          className="absolute inset-0 z-10 h-full w-full bg-[#050a14] object-contain"
         />
       ) : (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-6 text-center">
@@ -534,7 +534,7 @@ function VideoHistoryList({
       <div className="video-history-list">
         {(skeletonModels ?? []).map((item, index) => (
           <div key={`pending-${index}`} className="video-history-card overflow-hidden border border-white/5 bg-[#111315] p-2">
-            <div className="video-history-preview relative overflow-hidden rounded-[14px] bg-[#202225]">
+            <div className="video-history-preview relative overflow-hidden rounded-[14px] bg-[#050a14]">
               <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
               <div className="absolute inset-0 flex items-center justify-center">
                 <Loader2 size={28} className="animate-spin text-slate-400" />

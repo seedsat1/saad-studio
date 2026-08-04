@@ -2780,3 +2780,8 @@
 - The confirmation UI should keep the dark rounded product card with `Delete selected generations?`, irreversible-delete description, `Cancel`, and red `Delete` action for destructive flows.
 - Asset deletion for generated media must still go through `DELETE /api/assets`, which performs real storage cleanup before deleting database rows. UI confirmation alone is not deletion.
 - Do not present decorative or unfinished actions in menus. The `/video` three-dots menu should only expose actions backed by concrete behavior today.
+
+## Video Display Surface Color (2026-08-04)
+
+- `/video` history preview surfaces should use `#050a14` for the outer preview background and the native `<video>` background.
+- This keeps object-contain letterbox/side bands visually unified with the page while preserving the original MP4 aspect ratio and direct playback behavior.

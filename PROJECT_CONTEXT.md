@@ -10361,3 +10361,14 @@
   - `npm.cmd run build` passed before the final wording-only title correction; TypeScript passed after the correction.
 - Decision:
   - Avoid relying on destructive-dialog defaults except as a safe fallback. Real delete flows should name the actual object/action being deleted.
+
+#### Latest task: Unify /video display surface color (2026-08-04)
+
+- Status: Completed. Updated the /video history preview display surface to use `#050a14` so the video letterbox/empty display area matches the page background instead of showing harsh black or gray panels.
+- Changes made:
+  - Changed `VideoHistoryPreview` wrapper background from `#202225` to `#050a14`.
+  - Changed the native video element background from black to `#050a14`, so object-contain side bands match the page.
+  - Changed the pending/skeleton preview background from `#202225` to `#050a14`.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check -- app/(dash)/(routes)/video/page.tsx` passed with CRLF warning only.
+- Decision: Keep the original MP4 object-contain behavior, but make the display surface use the same page color so vertical videos do not create black side blocks.
