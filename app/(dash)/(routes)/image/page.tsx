@@ -1129,12 +1129,16 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
                     )}
 
                     {!item.isPending && !selectionMode ? (
-                      <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
-                        <button onClick={(e) => { e.stopPropagation(); onInspect(resultInspectorAsset(item)); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Preview")}><Eye className="h-4 w-4" /></button>
-                        <a href={resultOriginalUrl(item)} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Download")}><Download className="h-4 w-4" /></a>
-                        <button onClick={(e) => { e.stopPropagation(); onUse(item); }} className="flex items-center gap-1 rounded-lg bg-pink-500/80 px-3 py-2 text-xs font-semibold text-white ring-1 ring-pink-300/40 hover:bg-pink-500" title={t("Use as reference image")}><Wand2 className="h-3.5 w-3.5" /> {t("Use")}</button>
-                        <button onClick={(e) => { e.stopPropagation(); onRemix(item); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">{t("Remix")}</button>
-                        <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">{t("Delete")}</button>
+                      <div className="absolute inset-0 bg-black/0 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
+                        <div className="absolute left-2 top-2 z-10 flex gap-1.5">
+                          <button onClick={(e) => { e.stopPropagation(); onInspect(resultInspectorAsset(item)); }} className="rounded-lg bg-black/55 p-2 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70" title={t("Preview")}><Eye className="h-4 w-4" /></button>
+                          <a href={resultOriginalUrl(item)} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-black/55 p-2 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70" title={t("Download")}><Download className="h-4 w-4" /></a>
+                        </div>
+                        <div className="absolute inset-x-2 bottom-2 z-10 flex flex-wrap justify-center gap-1.5">
+                          <button onClick={(e) => { e.stopPropagation(); onUse(item); }} className="inline-flex max-w-full items-center gap-1 rounded-lg bg-pink-500/85 px-2.5 py-1.5 text-[11px] font-semibold text-white ring-1 ring-pink-300/40 hover:bg-pink-500" title={t("Use as reference image")}><Wand2 className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{t("Use")}</span></button>
+                          <button onClick={(e) => { e.stopPropagation(); onRemix(item); }} className="max-w-full rounded-lg bg-black/55 px-2.5 py-1.5 text-[11px] font-semibold text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70">{t("Remix")}</button>
+                          <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="max-w-full rounded-lg bg-black/55 px-2.5 py-1.5 text-[11px] font-semibold text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70">{t("Delete")}</button>
+                        </div>
                       </div>
                     ) : null}
                   </motion.div>

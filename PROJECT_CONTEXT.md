@@ -10427,3 +10427,10 @@
 - Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed; `npm.cmd run build` passed successfully.
 - Decision: Chronological/page append order is more important than column-balanced masonry for `/image`; do not use CSS columns for this gallery because they visually reorder appended items.
+#### Latest task: Fix /image hover action clipping (2026-08-04)
+
+- Status: Completed. Fixed the /image card hover tools being clipped on narrow gallery tiles.
+- Changes made: Split hover actions into a top-left icon row for preview/download and a bottom wrapped command row for Use, Remix, and Delete so controls stay inside each card.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `npm.cmd run build` passed successfully with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
+- Decision: Keep the ordered grid layout, but make hover controls responsive within each tile instead of allowing a single wide action row to overflow.

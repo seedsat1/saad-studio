@@ -2814,3 +2814,8 @@
 - `/image` must preserve visual append order when the user presses Load more: newly fetched images should appear after the existing results, not redistributed into side columns above or between older images.
 - Do not use CSS column masonry for `/image` because it fills top-to-bottom by column and visually reorders DOM items when new pages are appended.
 - Use normal CSS grid auto-fill columns without dense packing so the DOM/page order remains predictable.
+### تحديث واجهة /image - أدوات Hover داخل البطاقات (2026-08-04)
+
+- أدوات بطاقة الصورة في صفحة `/image` يجب أن تبقى داخل حدود البطاقة مهما صغر عرضها.
+- المعاينة والتحميل تظهر كأيقونات صغيرة أعلى يسار البطاقة، وأوامر Use وRemix وDelete تظهر أسفل البطاقة مع التفاف responsive بدلاً من صف واحد قابل للقص.
+- لا يغير هذا السلوك ترتيب الصور أو تحميل المصغرات أو استخدام الأصل عند المعاينة/التحميل.
