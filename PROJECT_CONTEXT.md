@@ -10404,3 +10404,12 @@
   - `git diff --check -- "app/(dash)/(routes)/image/page.tsx"` passed with only the existing CRLF warning.
   - `npm.cmd run build` passed successfully.
 - Decision: Keep source files valid UTF-8 before pushing because Vercel/Next production builds reject non-UTF-8 route source files.
+#### Latest task: Fix /image gallery oversized first card regression (2026-08-04)
+
+- Status: Completed. Corrected the /image result gallery after the prior JavaScript masonry pass allowed a result card to stretch across the whole center panel.
+- Changes made: Removed the ResizeObserver/manual column distribution from `ResultGrid` and switched the gallery to CSS column masonry with bounded card column width, preserved per-image aspect ratios, thumbnails in cards, and originals for preview/download/reference use.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `npm.cmd run build` passed successfully.
+- Decision: /image cards must never expand to a full-width preview inside the gallery; large originals belong only in inspector/preview surfaces.

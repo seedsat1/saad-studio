@@ -2798,3 +2798,10 @@
 - `/video` history rows should use `#050a14` for the preview surface, native video background, row wrapper, and right-side details/tool panel.
 - Do not leave the details panel on the older `#111315` surface when the preview has already moved to `#050a14`.
 - Inner workflow buttons may keep translucent contrast layers, but the base row color should be unified.
+
+## Image Gallery Bounded Masonry Correction (2026-08-04)
+
+- `/image` result gallery must render generated images as bounded masonry cards, not as full-width preview surfaces.
+- The active implementation uses CSS column masonry with a bounded column width so even a single result remains card-sized inside the gallery area.
+- Cards still preserve the derived aspect ratio and use thumbnail sources for display; original full-resolution assets remain reserved for preview, download, remix/reference reuse, and Asset Inspector.
+- Avoid JavaScript-only column measurement for this gallery because a zero/late measured width can make the first card stretch across the entire panel.

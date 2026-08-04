@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, type ChangeEvent, type CSSProperties, type DragEvent, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, type ChangeEvent, type DragEvent, type MouseEvent } from "react";
 import { useAuth } from "@clerk/nextjs";
 import {
   Aperture,
@@ -225,19 +225,6 @@ function resultAspectRatioValue(item: Pick<ResultItem, "width" | "height" | "asp
   return `${Math.max(0.35, Math.min(3.2, ratio))} / 1`;
 }
 
-function distributeMasonryItems<T extends ResultItem>(items: T[], columnCount: number): T[][] {
-  const safeCount = Math.max(1, columnCount);
-  const columns = Array.from({ length: safeCount }, () => [] as T[]);
-  const heights = Array.from({ length: safeCount }, () => 0);
-
-  for (const item of items) {
-    const shortestIndex = heights.indexOf(Math.min(...heights));
-    columns[shortestIndex].push(item);
-    heights[shortestIndex] += 1 / Math.max(0.35, resultAspectRatioNumber(item));
-  }
-
-  return columns;
-}
 
 function normalizeGenerationError(value?: string | null): string {
   const text = String(value || "").trim();
@@ -965,30 +952,6 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
     setSelectionMode(false);
   }, [selectedIds, onBulkDelete]);
 
-  const masonryRef = useRef<HTMLDivElement | null>(null);
-  const [masonryColumnCount, setMasonryColumnCount] = useState(1);
-
-  useEffect(() => {
-    const node = masonryRef.current;
-    if (!node) return;
-
-    const updateColumnCount = () => {
-      const width = node.clientWidth || 0;
-      const minColumnWidth = width >= 1600 ? 210 : width >= 1100 ? 190 : width >= 720 ? 165 : 132;
-      const nextCount = Math.max(1, Math.min(10, Math.floor(width / minColumnWidth)));
-      setMasonryColumnCount(nextCount);
-    };
-
-    updateColumnCount();
-    const observer = new ResizeObserver(updateColumnCount);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  const masonryColumns = useMemo(
-    () => distributeMasonryItems(items, masonryColumnCount),
-    [items, masonryColumnCount],
-  );
   const handleBulkDownload = useCallback(async () => {
     const selectedItems = items.filter((item) => selectedIds.has(item.id) && resultOriginalUrl(item) && !item.isPending && !item.isFailed);
     if (selectedItems.length === 0 || isBulkDownloading) return;
@@ -1033,31 +996,30 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
     <>
       <style>{`
         .result-masonry {
-          display: grid;
-          grid-template-columns: repeat(var(--masonry-columns), minmax(0, 1fr));
-          align-items: start;
-          gap: 3px;
           width: 100%;
           max-width: none;
           margin: 0;
-        }
-
-        .result-masonry-column {
-          display: flex;
-          min-width: 0;
-          flex-direction: column;
-          gap: 3px;
+          column-width: clamp(132px, 10vw, 210px);
+          column-gap: 3px;
         }
 
         .result-card {
+          display: inline-block;
           width: 100%;
           min-height: 72px;
+          margin: 0 0 3px;
+          break-inside: avoid;
+          vertical-align: top;
         }
 
         @media (max-width: 640px) {
-          .result-masonry,
-          .result-masonry-column {
-            gap: 2px;
+          .result-masonry {
+            column-width: 118px;
+            column-gap: 2px;
+          }
+
+          .result-card {
+            margin-bottom: 2px;
           }
         }
       `}</style>
@@ -1101,15 +1063,9 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
         )}
       </div>
 
-      <div
-        ref={masonryRef}
-        className="result-masonry w-full"
-        style={{ "--masonry-columns": masonryColumnCount } as CSSProperties}
-      >
-        {masonryColumns.map((column, columnIndex) => (
-          <div key={`masonry-column-${columnIndex}`} className="result-masonry-column">
-            <AnimatePresence initial={false}>
-              {column.map((item) => {
+      <div className="result-masonry w-full">
+        <AnimatePresence initial={false}>
+          {items.map((item) => {
                 const itemIndex = items.findIndex((candidate) => candidate.id === item.id);
                 if (item.isFailed) {
                   return <FailedImageResultCard key={item.id} item={item} onDelete={onDelete} />;
@@ -1189,10 +1145,8 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
                     ) : null}
                   </motion.div>
                 );
-              })}
-            </AnimatePresence>
-          </div>
-        ))}
+          })}
+        </AnimatePresence>
       </div>
       {hasMore ? (
         <div className="mt-4 flex justify-center">
