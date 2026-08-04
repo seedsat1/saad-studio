@@ -10441,3 +10441,10 @@
 - Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed; `npm.cmd run build` passed successfully with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
 - Decision: Use grid-row-span masonry for /image instead of CSS columns, because it preserves append order while removing large empty row bands from mixed image ratios.
+#### Latest task: /image direct card download fix (2026-08-04)
+
+- Status: Completed. Fixed /image card download action opening the original image URL in the browser instead of downloading directly.
+- Changes made: Added `imageDownloadHref()` and changed the hover download icon to use `/api/download?url=...&filename=...`, which returns `Content-Disposition: attachment`, while keeping preview/inspector behavior on the original URL.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `npm.cmd run build` passed successfully with existing non-blocking Browserslist/Tailwind/dynamic-server warnings.
+- Decision: Direct card downloads should use the same-origin download proxy for external storage URLs because browser `download` is not reliable for cross-origin Backblaze links.

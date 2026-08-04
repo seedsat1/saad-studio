@@ -2824,3 +2824,8 @@
 - `/image` uses a CSS grid masonry approach based on small `grid-auto-rows` and per-card row spans derived from the card's real aspect ratio and current measured column width.
 - This keeps Load more/DOM order predictable while avoiding the large blank row gaps caused by normal fixed-row CSS grid when portrait, square, and landscape images are mixed.
 - Do not revert to CSS columns for this surface because columns visually reorder appended pages top-to-bottom by column.
+## Image Card Direct Download (2026-08-04)
+
+- `/image` card download actions must route through `/api/download?url=...&filename=...` instead of linking directly to external Backblaze/original URLs.
+- This keeps the original full-resolution file as the download source while forcing a browser download via same-origin `Content-Disposition: attachment`.
+- Preview, Asset Inspector, reference reuse, and thumbnails remain separate behaviors and must not be changed by this download path.

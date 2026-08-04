@@ -193,6 +193,11 @@ function resultThumbnailUrl(item: ResultItem): string {
   return item.thumbnailUrl || item.url;
 }
 
+function imageDownloadHref(item: ResultItem): string {
+  const originalUrl = resultOriginalUrl(item);
+  const filename = `saadstudio-image-${item.id}`;
+  return `/api/download?url=${encodeURIComponent(originalUrl)}&filename=${encodeURIComponent(filename)}`;
+}
 function resultAspectRatioNumber(item: Pick<ResultItem, "width" | "height" | "aspect" | "isFailed">): number {
   if (item.isFailed) return 16 / 9;
   if (typeof item.width === "number" && typeof item.height === "number" && item.width > 0 && item.height > 0) {
@@ -1162,7 +1167,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
                       <div className="absolute inset-0 bg-black/0 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
                         <div className="absolute left-2 top-2 z-10 flex gap-1.5">
                           <button onClick={(e) => { e.stopPropagation(); onInspect(resultInspectorAsset(item)); }} className="rounded-lg bg-black/55 p-2 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70" title={t("Preview")}><Eye className="h-4 w-4" /></button>
-                          <a href={resultOriginalUrl(item)} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-black/55 p-2 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70" title={t("Download")}><Download className="h-4 w-4" /></a>
+                          <a href={imageDownloadHref(item)} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-black/55 p-2 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70" title={t("Download")}><Download className="h-4 w-4" /></a>
                         </div>
                         <div className="absolute inset-x-2 bottom-2 z-10 flex flex-wrap justify-center gap-1.5">
                           <button onClick={(e) => { e.stopPropagation(); onUse(item); }} className="inline-flex max-w-full items-center gap-1 rounded-lg bg-pink-500/85 px-2.5 py-1.5 text-[11px] font-semibold text-white ring-1 ring-pink-300/40 hover:bg-pink-500" title={t("Use as reference image")}><Wand2 className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{t("Use")}</span></button>
