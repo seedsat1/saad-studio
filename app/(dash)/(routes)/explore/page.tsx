@@ -1441,6 +1441,30 @@ export default function ExplorePage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Column Count calculations to prevent random layout shifts during CSS columns redistribution
+  const [columnCount, setColumnCount] = useState(1);
+  useEffect(() => {
+    const updateColumns = () => {
+      const width = window.innerWidth;
+      if (width >= 1280) setColumnCount(4);
+      else if (width >= 1024) setColumnCount(3);
+      else if (width >= 640) setColumnCount(2);
+      else setColumnCount(1);
+    };
+    updateColumns();
+    window.addEventListener("resize", updateColumns);
+    return () => window.removeEventListener("resize", updateColumns);
+  }, []);
+
+  const columnsData = useMemo(() => {
+    const list = activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items;
+    const cols: ShowcaseItem[][] = Array.from({ length: columnCount }, () => []);
+    list.forEach((item, index) => {
+      cols[index % columnCount].push(item);
+    });
+    return cols;
+  }, [activeFeed, featured, trending, items, columnCount]);
+
   // Dropdown states
   const [showAspectDropdown, setShowAspectDropdown] = useState(false);
   const [showStyleDropdown, setShowStyleDropdown] = useState(false);
@@ -2024,124 +2048,128 @@ export default function ExplorePage() {
             <p className="text-sm text-zinc-400 font-medium">{t("No creations published yet.")}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
-            {(activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items).map((item) => {
-              const isVideo = item.video_url && 
-                !item.video_url.endsWith(".png") && 
-                !item.video_url.endsWith(".jpg") && 
-                !item.video_url.endsWith(".jpeg") && 
-                !item.video_url.endsWith(".webp") &&
-                !item.video_url.endsWith(".gif");
-              
-              const aspectMap: Record<string, string> = {
-                "16:9": "aspect-[16/9]",
-                "9:16": "aspect-[9/16]",
-                "1:1": "aspect-[1/1]",
-                "4:3": "aspect-[4/3]",
-                "3:4": "aspect-[3/4]",
-              };
-              const aspectClass = aspectMap[(item as any).aspect_ratio || "16:9"] || "aspect-[16/9]";
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {columnsData.map((columnItems, colIndex) => (
+              <div key={colIndex} className="flex flex-col gap-6">
+                {columnItems.map((item) => {
+                  const isVideo = item.video_url && 
+                    !item.video_url.endsWith(".png") && 
+                    !item.video_url.endsWith(".jpg") && 
+                    !item.video_url.endsWith(".jpeg") && 
+                    !item.video_url.endsWith(".webp") &&
+                    !item.video_url.endsWith(".gif");
+                  
+                  const aspectMap: Record<string, string> = {
+                    "16:9": "aspect-[16/9]",
+                    "9:16": "aspect-[9/16]",
+                    "1:1": "aspect-[1/1]",
+                    "4:3": "aspect-[4/3]",
+                    "3:4": "aspect-[3/4]",
+                  };
+                  const aspectClass = aspectMap[(item as any).aspect_ratio || "16:9"] || "aspect-[16/9]";
 
-              return (
-                <motion.article
-                  key={item.id}
-                  layout
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#080b11] shadow-xl hover:border-cyan-400/30 transition-all duration-300 flex flex-col"
-                >
-                  {/* Media Container */}
-                  <div className={cn("relative w-full overflow-hidden bg-slate-950", aspectClass)}>
-                    {isVideo ? (
-                      <PreviewVideo
-                        videoUrl={item.video_url}
-                        posterUrl={item.thumbnail_url}
-                        title={item.title}
-                        shouldPlay={autoplayKey === `creations:${item.id}`}
-                      />
-                    ) : (
-                      <img
-                        src={item.thumbnail_url}
-                        alt={item.title}
-                        className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    )}
-                    {/* Dark gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#02050e] via-transparent to-transparent opacity-90" />
-                    
-                    {/* Hover activation & Click preview trigger */}
-                    <div 
-                      className="absolute inset-0 z-10 cursor-pointer"
-                      onMouseEnter={() => setAutoplayKey(`creations:${item.id}`)}
-                      onMouseLeave={() => setAutoplayKey(null)}
-                      onClick={() => setActiveMediaItem(item)}
-                    />
-
-                    {/* Tags / Model badge */}
-                    <div className="absolute left-3 top-3 z-20 flex flex-wrap gap-1.5 pointer-events-none">
-                      <span className="bg-black/60 border border-white/10 text-[9px] font-black text-cyan-200 px-2 py-0.5 rounded-md uppercase tracking-wider backdrop-blur-md">
-                        {item.model}
-                      </span>
-                    </div>
-
-                    {isVideo && (
-                      <div className="absolute right-3 top-3 z-20 w-8 h-8 rounded-full border border-white/20 bg-black/40 backdrop-blur flex items-center justify-center text-white pointer-events-none">
-                        <Video className="w-3.5 h-3.5" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Card Info & Prompt Copy */}
-                  <div className="p-4 flex flex-col flex-1 justify-between gap-3 bg-[#080b11]">
-                    <div>
-                      <div className="flex items-center justify-between text-[10px] text-zinc-400 font-bold tracking-wider">
-                        <span>{item.provider}</span>
-                        <span>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                      </div>
-                      <h3 className="mt-1 text-base font-extrabold text-white leading-tight group-hover:text-cyan-400 transition-colors">
-                        {item.title}
-                      </h3>
-                      <p className="mt-2 line-clamp-2 text-xs text-zinc-400 bg-white/[0.02] border border-white/5 rounded-lg p-2 font-mono text-right select-all">
-                        {item.prompt}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2.5 border-t border-white/5">
-                      <div className="flex items-center gap-3 text-[11px] text-zinc-400">
-                        <span className="inline-flex items-center gap-1">
-                          <Eye className="w-3.5 h-3.5" />
-                          {item.views}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <Heart className="w-3.5 h-3.5" />
-                          {item.likes}
-                        </span>
-                      </div>
-                      
-                      <button
-                        type="button"
-                        onClick={() => handleCopyPrompt(item.id, item.prompt)}
-                        className="flex items-center gap-1 text-[11px] font-extrabold text-cyan-400 hover:text-cyan-300 transition"
-                      >
-                        {copiedId === item.id ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400">{t("Copied!")}</span>
-                          </>
+                  return (
+                    <motion.article
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#080b11] shadow-xl hover:border-cyan-400/30 transition-all duration-300 flex flex-col"
+                    >
+                      {/* Media Container */}
+                      <div className={cn("relative w-full overflow-hidden bg-slate-950", aspectClass)}>
+                        {isVideo ? (
+                          <PreviewVideo
+                            videoUrl={item.video_url}
+                            posterUrl={item.thumbnail_url}
+                            title={item.title}
+                            shouldPlay={autoplayKey === `creations:${item.id}`}
+                          />
                         ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>{t("Copy Prompt")}</span>
-                          </>
+                          <img
+                            src={item.thumbnail_url}
+                            alt={item.title}
+                            className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
+                            loading="lazy"
+                          />
                         )}
-                      </button>
-                    </div>
-                  </div>
-                </motion.article>
-              );
-            })}
+                        {/* Dark gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#02050e] via-transparent to-transparent opacity-90" />
+                        
+                        {/* Hover activation & Click preview trigger */}
+                        <div 
+                          className="absolute inset-0 z-10 cursor-pointer"
+                          onMouseEnter={() => setAutoplayKey(`creations:${item.id}`)}
+                          onMouseLeave={() => setAutoplayKey(null)}
+                          onClick={() => setActiveMediaItem(item)}
+                        />
+
+                        {/* Tags / Model badge */}
+                        <div className="absolute left-3 top-3 z-20 flex flex-wrap gap-1.5 pointer-events-none">
+                          <span className="bg-black/60 border border-white/10 text-[9px] font-black text-cyan-200 px-2 py-0.5 rounded-md uppercase tracking-wider backdrop-blur-md">
+                            {item.model}
+                          </span>
+                        </div>
+
+                        {isVideo && (
+                          <div className="absolute right-3 top-3 z-20 w-8 h-8 rounded-full border border-white/20 bg-black/40 backdrop-blur flex items-center justify-center text-white pointer-events-none">
+                            <Video className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card Info & Prompt Copy */}
+                      <div className="p-4 flex flex-col flex-1 justify-between gap-3 bg-[#080b11]">
+                        <div>
+                          <div className="flex items-center justify-between text-[10px] text-zinc-400 font-bold tracking-wider">
+                            <span>{item.provider}</span>
+                            <span>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                          </div>
+                          <h3 className="mt-1 text-base font-extrabold text-white leading-tight group-hover:text-cyan-400 transition-colors">
+                            {item.title}
+                          </h3>
+                          <p className="mt-2 line-clamp-2 text-xs text-zinc-400 bg-white/[0.02] border border-white/5 rounded-lg p-2 font-mono text-right select-all">
+                            {item.prompt}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2.5 border-t border-white/5">
+                          <div className="flex items-center gap-3 text-[11px] text-zinc-400">
+                            <span className="inline-flex items-center gap-1">
+                              <Eye className="w-3.5 h-3.5" />
+                              {item.views}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <Heart className="w-3.5 h-3.5" />
+                              {item.likes}
+                            </span>
+                          </div>
+                          
+                          <button
+                            type="button"
+                            onClick={() => handleCopyPrompt(item.id, item.prompt)}
+                            className="flex items-center gap-1 text-[11px] font-extrabold text-cyan-400 hover:text-cyan-300 transition"
+                          >
+                            {copiedId === item.id ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-emerald-400">{t("Copied!")}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>{t("Copy Prompt")}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.article>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         )}
 

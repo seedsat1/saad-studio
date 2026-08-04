@@ -1,11 +1,11 @@
-#### Latest task: Revert explore page columns to standard horizontal grid sequence (2026-08-05)
-- Status: Completed. Reverted explore creations layout to a flat array render using a standard CSS Grid. This ensures that items flow strictly in chronological order horizontally (1, 2, 3, 4) from left to right, matching the user's exact specification.
+#### Latest task: Implement true sequential masonry columns to fix grid gaps (2026-08-05)
+- Status: Completed. Restored the grid using index-based column distribution (`index % columnCount`) without height-sorting. This simultaneously preserves the horizontal reading order (1, 2, 3, 4) and eliminates the large blank row spacing caused by standard CSS Grid row-height constraints.
 - Changes made:
-  - Removed the `columnCount` hook and `columnsData` calculation from `app/(dash)/(routes)/explore/page.tsx`.
-  - Updated grid container wrapper to render a direct flat map of items under a responsive `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start`.
+  - Added back the `columnCount` hook and `columnsData` calculation distributed by index.
+  - Rendered a grid of vertical flexboxes to allow height-independent nesting (true masonry) while preserving strict sequential order horizontally.
 - Affected files: `app/(dash)/(routes)/explore/page.tsx`, `PROJECT_CONTEXT.md`.
 - Verification: `npx tsc --noEmit --pretty false` compilation check passed with 0 errors.
-- Decision: Standard CSS Grid with flat array mapping ensures 100% accurate horizontal sequencing (1, 2, 3, 4) for all viewport sizes.
+- Decision: Sequential masonry columns achieve the perfect aesthetic with zero blank vertical gaps while maintaining correct chronology from left to right.
 
 #### Latest task: Video aspect ratio dropdown width match correction (2026-08-04)
 - Status: Fixed. Corrected /video AspectRatioPicker so the opened dropdown matches the full trigger width instead of shrinking into a narrow detached menu.
