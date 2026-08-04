@@ -516,7 +516,7 @@ export async function getGenerationCost(
 
   if (constitutionId === "minimax_h3") {
     const q = quality?.trim().toLowerCase() ?? "768p";
-    const perSec = q === "2k" ? 2.6 : 1.8;
+    const perSec = q.includes("480") ? 1.8 : q.includes("2k") ? 5.2 : 3.6;
     return parseFloat((perSec * durationSec * numUnits).toFixed(2));
   }
 
@@ -620,7 +620,7 @@ export function getGenerationCostSync(
 
   if (constitutionId === "minimax_h3") {
     const q = quality?.trim().toLowerCase() ?? "768p";
-    const perSec = q === "2k" ? 2.6 : 1.8;
+    const perSec = q.includes("480") ? 1.8 : q.includes("2k") ? 5.2 : 3.6;
     return parseFloat((perSec * durationSec * numUnits).toFixed(2));
   }
 
