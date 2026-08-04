@@ -1244,7 +1244,7 @@ function resolveVideoTool(toolId: string | null): VideoToolId | null {
 }
 
 const TOOL_DEFAULT_MODEL_ID: Record<VideoToolId, string> = {
-  "create-video": "google-gemini-omni-video",
+  "create-video": "minimax-h3-reference-to-video",
   "image-to-video": "kling-v3-turbo",
   "kling-3": "kling-v3.0-pro-t2v",
   "kling-motion": "kling-v3.0-pro-t2v",
@@ -2618,6 +2618,7 @@ function VideoPageInner() {
       payload.prompt = toolPrefix ? `${toolPrefix} ${promptedWithPresets}` : promptedWithPresets;
 
       const isSeedanceV2 = selectedModel.id.startsWith("bytedance-seedance-v2");
+      const isMinimaxH3 = selectedModel.api_route === "minimax/h3/reference-to-video";
       const isKling30Video = isKling30Route(selectedModel.api_route);
       const isKlingElementModel = selectedModel.family === "kling" && caps.has_element_list;
       const isKling30StdImage =
@@ -2635,7 +2636,7 @@ function VideoPageInner() {
         return;
       }
 
-      if (isSeedanceV2) {
+      if (isSeedanceV2 || isMinimaxH3) {
         const refImgs = referenceImages.filter((f) => f.type.startsWith("image/"));
         const refVids = referenceImages.filter((f) => f.type.startsWith("video/"));
         const refAuds = referenceImages.filter((f) => f.type.startsWith("audio/"));
@@ -2655,8 +2656,15 @@ function VideoPageInner() {
 
         if (audioCount > 0 && imageCount === 0 && videoCount === 0) {
           setGenerationError(
-            "موديل Seedance 2.0 لا يدعم إدخال 'نص + صوت' أو 'صوت فقط'. يجب إرفاق صورة مرجعية واحدة أو فيديو واحد على الأقل مع الصوت."
+            isMinimaxH3
+              ? "Minimax H3 does not support audio-only references. Add at least one reference image or video with the audio."
+              : "Seedance 2.0 does not support text+audio or audio-only input. Add at least one reference image or video with the audio."
           );
+          setIsSubmitting(false);
+          return;
+        }
+        if (isMinimaxH3 && imageCount === 0 && videoCount === 0) {
+          setGenerationError("Minimax H3 requires at least one reference image or reference video.");
           setIsSubmitting(false);
           return;
         }
@@ -2684,27 +2692,30 @@ function VideoPageInner() {
         } else if (uploadedImageRefs[1]) {
           payload.end_image = uploadedImageRefs[1];
         }
-      } else if ((isSeedanceV2 && referenceImages.length > 0) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
-        if (isSeedanceV2) {
+      } else if (((isSeedanceV2 || isMinimaxH3) && referenceImages.length > 0) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
+        if (isSeedanceV2 || isMinimaxH3) {
           // Split unified referenceImages by type → 3 separate KIE fields
           const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
           const refVids  = referenceImages.filter(f => f.type.startsWith("video/"));
           const refAuds  = referenceImages.filter(f => f.type.startsWith("audio/"));
           const seedanceImageLimit = Math.max(1, Math.min(9, caps.max_reference_images || 9));
+          const referenceImageLimit = isMinimaxH3 ? Math.max(1, Math.min(9, caps.max_reference_images || 9)) : seedanceImageLimit;
           const explicitStartImage = startFrame
             ? await fileToDataURL(startFrame)
             : linkedStartFrameUrl
               ? linkedStartFrameUrl
               : null;
-          const uploadedImageRefs = await Promise.all(refImgs.slice(0, seedanceImageLimit).map(f => fileToDataURL(f)));
+          const uploadedImageRefs = await Promise.all(refImgs.slice(0, referenceImageLimit).map(f => fileToDataURL(f)));
           const mergedImageRefs = [
             ...(explicitStartImage ? [explicitStartImage] : []),
             ...characterReferenceUrls,
             ...uploadedImageRefs,
-          ].slice(0, seedanceImageLimit);
+          ].slice(0, referenceImageLimit);
           if (mergedImageRefs[0]) {
-            payload.image = mergedImageRefs[0];
-            payload.first_frame_url = mergedImageRefs[0];
+            if (isSeedanceV2) {
+              payload.image = mergedImageRefs[0];
+              payload.first_frame_url = mergedImageRefs[0];
+            }
             payload.reference_image_urls = mergedImageRefs;
           }
           if (refVids.length > 0)
@@ -2712,7 +2723,7 @@ function VideoPageInner() {
           if (refAuds.length > 0)
             payload.reference_audio_urls = await Promise.all(refAuds.slice(0, 3).map(f => fileToDataURL(f)));
           // Also allow end frame alongside Seedance references
-          if (caps.has_end_frame && endFrame) {
+          if (isSeedanceV2 && caps.has_end_frame && endFrame) {
             const explicitEndImage = await fileToDataURL(endFrame);
             payload.last_image = explicitEndImage;
             payload.last_frame_url = explicitEndImage;

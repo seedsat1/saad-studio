@@ -525,6 +525,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
   const isKling30ImageRoute =
     route === "kwaivgi/kling-v3.0-std/image-to-video" ||
     route === "kwaivgi/kling-v3.0-pro/image-to-video";
+  const isMinimaxH3ReferenceRoute = route === "minimax/h3/reference-to-video";
   const isKlingV3TurboImageRoute =
     route === "kwaivgi/kling-v3-turbo-std/image-to-video" ||
     route === "kwaivgi/kling-v3-turbo-pro/image-to-video";
@@ -545,6 +546,41 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
       : [];
     return [...directElements, ...imageElements];
   };
+
+
+  if (isMinimaxH3ReferenceRoute) {
+    const referenceImages = Array.isArray(out.reference_image_urls)
+      ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const referenceVideos = Array.isArray(out.reference_video_urls)
+      ? out.reference_video_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const referenceAudios = Array.isArray(out.reference_audio_urls)
+      ? out.reference_audio_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+
+    if (referenceImages.length === 0 && referenceVideos.length === 0) {
+      throw new ValidationError("Minimax H3 requires at least one reference image or reference video.");
+    }
+    if (referenceAudios.length > 0 && referenceImages.length === 0 && referenceVideos.length === 0) {
+      throw new ValidationError("Minimax H3 reference audio cannot be provided alone.");
+    }
+
+    const exact: Record<string, unknown> = {};
+    if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    else throw new ValidationError("Minimax H3 requires a prompt.");
+    if (referenceImages.length > 0) exact.reference_images = referenceImages.slice(0, 9);
+    if (referenceVideos.length > 0) exact.reference_videos = referenceVideos.slice(0, 3);
+    if (referenceAudios.length > 0) exact.reference_audios = referenceAudios.slice(0, 3);
+    if (typeof out.aspect_ratio === "string" && ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"].includes(out.aspect_ratio)) {
+      exact.aspect_ratio = out.aspect_ratio;
+    }
+    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "768p";
+    exact.resolution = resolution === "2k" ? "2k" : "768p";
+    const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
+    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(5, duration)) : 5;
+    return exact;
+  }
 
   if (isKling30ImageRoute) {
     const referenceImages = Array.isArray(out.reference_image_urls)
@@ -2075,6 +2111,7 @@ export async function POST(req: Request) {
     const isWaveSpeedOnlyModel = 
       modelRoute.startsWith("bytedance/seedance-2.0") ||
       modelRoute.includes("seedance") ||
+      modelRoute === "minimax/h3/reference-to-video" ||
       modelRoute === "kwaivgi/kling-v3.0-std/text-to-video" ||
       modelRoute === "kwaivgi/kling-v3.0-std/image-to-video" ||
       modelRoute === "kwaivgi/kling-v3.0-pro/image-to-video" ||
@@ -2647,37 +2684,26 @@ export async function POST(req: Request) {
         }
       }
 
-      // Resolve reference lists (images, videos, audios)
-      if (Array.isArray(wsInput.reference_image_urls)) {
-        wsInput.reference_image_urls = await Promise.all(
-          wsInput.reference_image_urls.map(async (u) => {
+      // Resolve reference lists (images, videos, audios). WaveSpeed models use both
+      // legacy app keys (*_urls) and exact provider keys for routes such as Minimax H3.
+      const resolveMediaList = async (key: string, assetType: "image" | "video" | "audio", verifyLabel: string) => {
+        const value = wsInput[key];
+        if (!Array.isArray(value)) return;
+        wsInput[key] = await Promise.all(
+          value.map(async (u) => {
             if (typeof u !== "string" || !u.trim()) return "";
-            const resolved = await resolveProviderMediaUrl(u, { userId, assetType: "image" });
-            await verifyPublicMediaUrl(resolved, "wavespeed_ref_image");
+            const resolved = await resolveProviderMediaUrl(u, { userId, assetType });
+            await verifyPublicMediaUrl(resolved, verifyLabel);
             return resolved;
           })
         ).then(items => items.filter(Boolean));
-      }
-      if (Array.isArray(wsInput.reference_video_urls)) {
-        wsInput.reference_video_urls = await Promise.all(
-          wsInput.reference_video_urls.map(async (u) => {
-            if (typeof u !== "string" || !u.trim()) return "";
-            const resolved = await resolveProviderMediaUrl(u, { userId, assetType: "video" });
-            await verifyPublicMediaUrl(resolved, "wavespeed_ref_video");
-            return resolved;
-          })
-        ).then(items => items.filter(Boolean));
-      }
-      if (Array.isArray(wsInput.reference_audio_urls)) {
-        wsInput.reference_audio_urls = await Promise.all(
-          wsInput.reference_audio_urls.map(async (u) => {
-            if (typeof u !== "string" || !u.trim()) return "";
-            const resolved = await resolveProviderMediaUrl(u, { userId, assetType: "audio" });
-            await verifyPublicMediaUrl(resolved, "wavespeed_ref_audio");
-            return resolved;
-          })
-        ).then(items => items.filter(Boolean));
-      }
+      };
+      await resolveMediaList("reference_image_urls", "image", "wavespeed_ref_image");
+      await resolveMediaList("reference_images", "image", "wavespeed_ref_image");
+      await resolveMediaList("reference_video_urls", "video", "wavespeed_ref_video");
+      await resolveMediaList("reference_videos", "video", "wavespeed_ref_video");
+      await resolveMediaList("reference_audio_urls", "audio", "wavespeed_ref_audio");
+      await resolveMediaList("reference_audios", "audio", "wavespeed_ref_audio");
 
       console.log(`[Provider Payload Audit] ---------------------------------------------`);
       console.log(`[Provider Payload Audit] Provider: WaveSpeed`);

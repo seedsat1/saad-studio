@@ -157,6 +157,31 @@ function i2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCap
 
 export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
 
+  // Minimax H3 Reference To Video
+  // Confirmed: https://wavespeed.ai/docs/docs-api/minimax/minimax-h3-reference-to-video
+  {
+    id: "minimax-h3-reference-to-video",
+    name: "Minimax H3",
+    family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
+    badge: "NEW",
+    description: "MiniMax H3 reference-to-video. Requires at least one reference image or video; optional audio with visual reference. Fixed 768p/2K route.",
+    api_route: "minimax/h3/reference-to-video",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      requires_image: true,
+      optional_image: true,
+      optional_video: true,
+      aspect_ratios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      resolutions: ["768p", "2k"],
+      max_reference_images: 9,
+      max_reference_videos: 3,
+      max_reference_video_total_seconds: 15,
+      max_reference_audios: 3,
+      max_reference_audio_total_seconds: 15,
+    }),
+  },
+
   // ╔══════════════════════════════════════════════════════════════════════════
   // ║ Kling V3.0 Text/Image Smart Route
   // ║ Confirmed:
@@ -608,6 +633,6 @@ export function getModelById(id: string): WaveSpeedVideoModel | undefined {
   return VIDEO_MODEL_REGISTRY.find(m => m.id === id);
 }
 
-export const DEFAULT_MODEL = VIDEO_MODEL_REGISTRY[0]; // Kling 3.0
+export const DEFAULT_MODEL = VIDEO_MODEL_REGISTRY[0]; // Minimax H3
 
 

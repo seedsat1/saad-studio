@@ -1,3 +1,10 @@
+#### Latest task: Minimax H3 first/default video model wiring (2026-08-04)
+- Status: Fixed. Minimax H3 now appears as the first video model/default Create Video model and routes directly to the official WaveSpeed route `minimax/h3/reference-to-video`.
+- Changes made: Added the H3 registry entry with exact documented reference limits, duration, aspect ratios, and resolution tiers; wired /video validation and payload building for image/video/audio references; mapped backend payload fields to official `reference_images`, `reference_videos`, and `reference_audios`; added WaveSpeed-only routing and credit/pricing support.
+- Affected files: `lib/video-model-registry.ts`, `app/(dash)/(routes)/video/page.tsx`, `app/api/video/route.ts`, `lib/pricing-models.ts`, `lib/pricing.ts`, `lib/credit-pricing.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: duplicate registry scan returned first=`minimax-h3-reference-to-video` and no duplicates; `npx.cmd tsc --noEmit --pretty false` passed.
+- Decision: H3 is not treated as a random Text/Image route. It is a Reference-to-Video route requiring at least one image or video reference; audio references are allowed only with visual reference input.
+
 #### Latest task: Video Reference Studio model-agnostic tools (2026-08-04)
 - Status: Fixed. Reference Studio presets now act as a model-agnostic prompt-control layer for /video.
 - Changes made: Built-in Character presets are appended to the generation prompt through `withPresetsAppended`; Kling 3.0 single-shot prompt now uses the same preset-enriched prompt as other models; generic `reference_image_urls` are only sent when model capabilities document reference image support, while Seedance keeps its documented image/video/audio reference handling.

@@ -119,6 +119,7 @@ export function invalidatePricingCache(): void {
 
 const MODEL_ALIAS_MAP: Record<string, string> = {
   // ── Video — app/api/generate/video (WaveSpeed route model IDs) ────────────
+  "minimax/h3/reference-to-video":                  "minimax_h3",
   "kling-3.0/video":                              "kling30",
   "kling-3.0/motion-control":                     "kling30_mc",
   "kling/v2-5-turbo-text-to-video-pro":           "kling25t",
@@ -513,6 +514,12 @@ export async function getGenerationCost(
     return baseRate * numUnits;
   }
 
+  if (constitutionId === "minimax_h3") {
+    const q = quality?.trim().toLowerCase() ?? "768p";
+    const perSec = q === "2k" ? 2.6 : 1.8;
+    return parseFloat((perSec * durationSec * numUnits).toFixed(2));
+  }
+
   if (constitutionId === "seedance2mini") {
     const q = quality?.trim().toLowerCase() ?? "720p";
     const perSec15 = ({
@@ -609,6 +616,12 @@ export function getGenerationCostSync(
     const q = quality?.trim().toLowerCase() ?? "1k";
     const baseRate = q === "4k" ? 4.0 : 2.0;
     return baseRate * numUnits;
+  }
+
+  if (constitutionId === "minimax_h3") {
+    const q = quality?.trim().toLowerCase() ?? "768p";
+    const perSec = q === "2k" ? 2.6 : 1.8;
+    return parseFloat((perSec * durationSec * numUnits).toFixed(2));
   }
 
   if (constitutionId === "seedance2mini") {

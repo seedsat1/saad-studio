@@ -15,6 +15,7 @@ const VIDEO_MODEL_BY_ID_MAP = new Map(VIDEO_MODELS.map((m) => [m.id, m]));
 const VIDEO_ROUTE_REGISTRY_MAP = new Map(VIDEO_MODEL_REGISTRY.map((m) => [m.api_route, m]));
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
+  ["minimax/h3/reference-to-video", 9.0],
   ["kwaivgi/kling-v3.0-std/text-to-video", 9.0],
   ["kwaivgi/kling-v3.0-std/image-to-video", 9.0],
   ["kwaivgi/kling-v3.0-pro/image-to-video", 17.5],
@@ -124,6 +125,13 @@ function hasSoundEnabled(payload?: VideoPayload): boolean {
 
 function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number {
   return hasSoundEnabled(payload) ? parseFloat((baseCost * 1.5).toFixed(2)) : baseCost;
+}
+
+function getMinimaxH3Credits(payload?: VideoPayload): number {
+  const duration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const perSecond = quality === "2k" ? 2.6 : 1.8;
+  return parseFloat(Math.max(1, duration * perSecond).toFixed(2));
 }
 
 function getKling3Credits(payload?: VideoPayload): number {
@@ -290,6 +298,9 @@ export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload
 }
 
 export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayload): number {
+  if (modelRoute === "minimax/h3/reference-to-video") {
+    return getMinimaxH3Credits(payload);
+  }
   if (modelRoute === "kwaivgi/kling-v3-turbo-std/image-to-video" || modelRoute === "kwaivgi/kling-v3-turbo-pro/image-to-video") {
     const duration = readDuration(payload, 5);
     const perSecond = modelRoute.includes("-pro/") ? 5.0 : 4.0;

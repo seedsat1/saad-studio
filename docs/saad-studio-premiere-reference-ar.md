@@ -1,3 +1,12 @@
+## Minimax H3 Reference-to-Video Contract (2026-08-04)
+
+- /video must show `Minimax H3` as the first/default new model for Create Video.
+- Official WaveSpeed route: `minimax/h3/reference-to-video`; do not send it through KIE fallback.
+- Required behavior: prompt plus at least one reference image or reference video. Audio references cannot be submitted alone.
+- Reference limits: up to 9 images, up to 3 videos with 15s total intended cap, and up to 3 audio files with 15s total intended cap.
+- Aspect ratios: `21:9`, `16:9`, `4:3`, `1:1`, `3:4`, `9:16`. Duration: integer 5-15 seconds. Resolution tiers: `768p` and `2k`.
+- API payload must use exact provider fields `reference_images`, `reference_videos`, and `reference_audios`; legacy UI fields `reference_image_urls`, `reference_video_urls`, and `reference_audio_urls` are internal only and must be normalized before WaveSpeed submission.
+
 ## Video Reference Studio Prompt Layer (2026-08-04)
 
 - In `/video`, Reference Studio tabs such as Style, Character, Element, Location, Color, Effects, Camera, and Sketch are model-agnostic prompt controls.
