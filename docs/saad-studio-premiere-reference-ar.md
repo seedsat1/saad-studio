@@ -1,3 +1,15 @@
+## Video Aspect Ratio Dropdown Width Match (2026-08-04)
+
+- The opened /video aspect-ratio menu must match the width of the closed trigger/select control.
+- Do not shrink the opened menu into a narrow detached mini menu; compactness applies to row height, icon size, and padding only.
+- Keep the menu vertical, dark, and visually integrated with the settings/tool panel.
+
+## Video Aspect Ratio Dropdown Extra Compact Sizing (2026-08-04)
+
+- /video aspect-ratio dropdown should be compact inside the control width: full trigger width, 2rem rows, small ratio icons, and 11px option text.
+- The menu remains vertical and opens downward; it must not become a wide panel or horizontal strip.
+- Keep model accent as a subtle active-state cue only; the trigger and menu should visually belong to the dark settings/tool surface.
+
 ## Video Aspect Ratio Dropdown Visual Polish (2026-08-04)
 
 - /video aspect-ratio selection uses one compact vertical dropdown shared across model controls.

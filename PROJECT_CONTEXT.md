@@ -1,3 +1,17 @@
+#### Latest task: Video aspect ratio dropdown width match correction (2026-08-04)
+- Status: Fixed. Corrected /video AspectRatioPicker so the opened dropdown matches the full trigger width instead of shrinking into a narrow detached menu.
+- Changes made: Changed the opened menu from fixed narrow width to left/right anchored `w-full` while keeping the compact vertical row sizing and dark tool-panel styling.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check` passed with CRLF warnings only.
+- Decision: Dropdown width must follow the visible select control width; only the internal rows/icons stay compact.
+
+#### Latest task: Video aspect ratio dropdown extra compact sizing (2026-08-04)
+- Status: Fixed. Tightened /video AspectRatioPicker again because the first compact pass was still visually too large.
+- Changes made: Reduced row height, trigger padding/text size, check icon size, and ratio icon scale; kept the vertical dropdown and restrained panel-matching colors while later restoring opened-menu width to match the trigger.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: Pending local TypeScript and diff checks.
+- Decision: The aspect-ratio menu should read as a compact tool dropdown, not a large floating card.
+
 #### Latest task: Video aspect ratio dropdown visual polish (2026-08-04)
 - Status: Fixed. Polished /video AspectRatioPicker so the dropdown remains vertical but is smaller, less visually loud, and aligned with the dark tool-panel styling.
 - Changes made: Reduced ratio icon size, trigger padding, menu width, row height, and shadow; changed selected/accent color use from full red/orange text to subtle border and active-row highlights; added blur close behavior so the menu dismisses naturally.
