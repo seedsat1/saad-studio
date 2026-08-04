@@ -36,5 +36,5 @@
     "constants.ts",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "vitest.config.ts", "test/**", "apps/**", "adobe/**", "seedsat1/**", "scratch/**", "CINEMA STUDIO VS.O/**"]
+  "exclude": ["node_modules", "vitest.config.ts", "test/**", "apps/**", "adobe/**", "seedsat1/**", "scratch/**", "CINEMA STUDIO VS.O/**", "packages/**"]
 }
