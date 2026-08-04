@@ -35,10 +35,26 @@ type ToolContent =
 type ToolResult = {
   content: ToolContent[];
   isError: boolean;
+  structuredContent?: Record<string, unknown>;
 };
 
 const DEFAULT_IMAGE_MODEL = "nano-banana-pro";
 const DEFAULT_VIDEO_MODEL = "kling-3.0/video";
+
+// MCP Apps UI resource URIs — the widgets that Claude renders inline when
+// these tools return. See https://apps.extensions.modelcontextprotocol.io/.
+const IMAGE_VIEW_URI = "ui://saadstudio/image.html";
+const VIDEO_VIEW_URI = "ui://saadstudio/video.html";
+
+const IMAGE_TOOL_UI_META = {
+  ui: { resourceUri: IMAGE_VIEW_URI },
+  "ui/resourceUri": IMAGE_VIEW_URI,
+} as const;
+
+const VIDEO_TOOL_UI_META = {
+  ui: { resourceUri: VIDEO_VIEW_URI },
+  "ui/resourceUri": VIDEO_VIEW_URI,
+} as const;
 
 const tools = [
   {
@@ -57,6 +73,7 @@ const tools = [
       },
       required: ["prompt"],
     },
+    _meta: IMAGE_TOOL_UI_META,
   },
   {
     name: "generate_storyboard",
@@ -79,6 +96,7 @@ const tools = [
       },
       required: ["prompt"],
     },
+    _meta: IMAGE_TOOL_UI_META,
   },
   {
     name: "generate_video",
@@ -96,6 +114,7 @@ const tools = [
       },
       required: ["prompt"],
     },
+    _meta: VIDEO_TOOL_UI_META,
   },
   {
     name: "show_generations",
@@ -151,6 +170,185 @@ const AVAILABLE_MODELS = [
   { id: "bytedance/seedance-v2/text-to-video-mini", kind: "video", label: "Seedance 2.0 Mini", notes: "Cheapest Seedance tier.", badges: ["fast"] },
   { id: "bytedance/seedance-v2/text-to-video", kind: "video", label: "Seedance 2.0", notes: "ByteDance flagship video, accepts reference images + audio.", badges: ["new"] },
 ];
+
+// ── MCP Apps widgets ──────────────────────────────────────────────────────
+// Two inline HTML documents Claude renders as rich cards when generate_image /
+// generate_storyboard / generate_video return. They pull @modelcontextprotocol
+// /ext-apps from unpkg (declared in CSP meta on the resource), read the tool
+// result via app.ontoolresult, and render the image(s) or video with the
+// model + aspect badges plus the prompt.
+
+const IMAGE_WIDGET_HTML = String.raw`<!DOCTYPE html>
+<html>
+<head>
+<meta name="color-scheme" content="light dark">
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; padding: 0; background: transparent; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #e2e8f0; }
+  .card { max-width: 560px; padding: 4px; }
+  .head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(148,163,184,0.15); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.2); }
+  .badge.model { background: rgba(34,211,238,0.15); color: #67e8f9; border-color: rgba(34,211,238,0.3); }
+  .badge.aspect { background: rgba(148,163,184,0.1); }
+  .prompt { margin: 0 0 12px 0; font-size: 13px; line-height: 1.6; color: #94a3b8; max-height: 4.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .grid.multi { grid-template-columns: 1fr 1fr; }
+  .img-wrap { border-radius: 12px; overflow: hidden; background: rgba(15,23,42,0.4); border: 1px solid rgba(148,163,184,0.12); }
+  img { display: block; width: 100%; height: auto; max-height: 640px; object-fit: contain; }
+  .empty { padding: 40px 20px; text-align: center; color: #64748b; font-size: 13px; }
+  @media (prefers-color-scheme: light) {
+    body { color: #0f172a; }
+    .badge { background: rgba(15,23,42,0.06); color: #334155; border-color: rgba(15,23,42,0.1); }
+    .badge.model { background: rgba(6,182,212,0.15); color: #0891b2; border-color: rgba(6,182,212,0.3); }
+    .prompt { color: #64748b; }
+    .img-wrap { background: rgba(15,23,42,0.03); border-color: rgba(15,23,42,0.08); }
+  }
+</style>
+</head>
+<body>
+<div class="card" id="root"><div class="empty">Loading…</div></div>
+<script type="module">
+  import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.4.0/app-with-deps";
+  const app = new App({ name: "Saad Studio · Image", version: "1.0.0" });
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  app.ontoolresult = ({ content, structuredContent }) => {
+    const meta = structuredContent || {};
+    const imageBlocks = (content || []).filter((c) => c && c.type === "image");
+    const urls = Array.isArray(meta.imageUrls) ? meta.imageUrls : (meta.imageUrl ? [meta.imageUrl] : []);
+    const modelLabel = meta.modelLabel || meta.modelId || "Nano Banana Pro";
+    const aspect = meta.aspectRatio || "";
+    const prompt = meta.prompt || "";
+
+    const cards = [];
+    for (let i = 0; i < Math.max(imageBlocks.length, urls.length); i++) {
+      const block = imageBlocks[i];
+      const src = block ? "data:" + (block.mimeType || "image/png") + ";base64," + block.data : urls[i];
+      if (src) cards.push('<div class="img-wrap"><img src="' + esc(src) + '" alt="Generated image ' + (i + 1) + '"></div>');
+    }
+
+    const root = document.getElementById("root");
+    root.innerHTML =
+      '<div class="head">' +
+        '<span class="badge model">' + esc(modelLabel) + '</span>' +
+        (aspect ? '<span class="badge aspect">' + esc(aspect) + '</span>' : '') +
+      '</div>' +
+      (prompt ? '<p class="prompt">' + esc(prompt) + '</p>' : '') +
+      (cards.length
+        ? '<div class="grid' + (cards.length > 1 ? ' multi' : '') + '">' + cards.join('') + '</div>'
+        : '<div class="empty">No image returned.</div>');
+  };
+
+  app.onhostcontextchanged = (ctx) => {
+    if (ctx && ctx.safeAreaInsets) {
+      const s = ctx.safeAreaInsets;
+      document.body.style.padding = s.top + 'px ' + s.right + 'px ' + s.bottom + 'px ' + s.left + 'px';
+    }
+  };
+
+  await app.connect();
+  const ctx = app.getHostContext && app.getHostContext();
+  if (ctx && ctx.safeAreaInsets) {
+    const s = ctx.safeAreaInsets;
+    document.body.style.padding = s.top + 'px ' + s.right + 'px ' + s.bottom + 'px ' + s.left + 'px';
+  }
+</script>
+</body>
+</html>`;
+
+const VIDEO_WIDGET_HTML = String.raw`<!DOCTYPE html>
+<html>
+<head>
+<meta name="color-scheme" content="light dark">
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; padding: 0; background: transparent; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #e2e8f0; }
+  .card { max-width: 560px; padding: 4px; }
+  .head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(148,163,184,0.15); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.2); }
+  .badge.model { background: rgba(217,70,239,0.15); color: #f0abfc; border-color: rgba(217,70,239,0.3); }
+  .prompt { margin: 0 0 12px 0; font-size: 13px; line-height: 1.6; color: #94a3b8; max-height: 4.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+  .video-wrap { border-radius: 12px; overflow: hidden; background: rgba(15,23,42,0.4); border: 1px solid rgba(148,163,184,0.12); }
+  video { display: block; width: 100%; height: auto; max-height: 640px; background: black; }
+  .empty { padding: 40px 20px; text-align: center; color: #64748b; font-size: 13px; }
+  @media (prefers-color-scheme: light) {
+    body { color: #0f172a; }
+    .badge { background: rgba(15,23,42,0.06); color: #334155; border-color: rgba(15,23,42,0.1); }
+    .badge.model { background: rgba(217,70,239,0.15); color: #a21caf; border-color: rgba(217,70,239,0.3); }
+    .prompt { color: #64748b; }
+    .video-wrap { background: rgba(15,23,42,0.03); border-color: rgba(15,23,42,0.08); }
+  }
+</style>
+</head>
+<body>
+<div class="card" id="root"><div class="empty">Loading…</div></div>
+<script type="module">
+  import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.4.0/app-with-deps";
+  const app = new App({ name: "Saad Studio · Video", version: "1.0.0" });
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  app.ontoolresult = ({ structuredContent }) => {
+    const meta = structuredContent || {};
+    const urls = Array.isArray(meta.videoUrls) ? meta.videoUrls : (meta.videoUrl ? [meta.videoUrl] : []);
+    const modelLabel = meta.modelLabel || meta.modelId || "Kling 3.0";
+    const aspect = meta.aspectRatio || "";
+    const durationS = meta.duration ? meta.duration + "s" : "";
+    const prompt = meta.prompt || "";
+    const src = urls[0];
+
+    const root = document.getElementById("root");
+    root.innerHTML =
+      '<div class="head">' +
+        '<span class="badge model">' + esc(modelLabel) + '</span>' +
+        (aspect ? '<span class="badge">' + esc(aspect) + '</span>' : '') +
+        (durationS ? '<span class="badge">' + esc(durationS) + '</span>' : '') +
+      '</div>' +
+      (prompt ? '<p class="prompt">' + esc(prompt) + '</p>' : '') +
+      (src
+        ? '<div class="video-wrap"><video src="' + esc(src) + '" controls playsinline preload="metadata"></video></div>'
+        : '<div class="empty">Video is still rendering. Poll again in a few seconds.</div>');
+  };
+
+  app.onhostcontextchanged = (ctx) => {
+    if (ctx && ctx.safeAreaInsets) {
+      const s = ctx.safeAreaInsets;
+      document.body.style.padding = s.top + 'px ' + s.right + 'px ' + s.bottom + 'px ' + s.left + 'px';
+    }
+  };
+
+  await app.connect();
+</script>
+</body>
+</html>`;
+
+const UI_RESOURCES = [
+  {
+    uri: IMAGE_VIEW_URI,
+    name: "Saad Studio image result",
+    description: "Rich card that displays generated images with the model and aspect ratio.",
+    mimeType: "text/html;profile=mcp-app",
+    text: IMAGE_WIDGET_HTML,
+    _meta: {
+      ui: { csp: { resourceDomains: ["https://unpkg.com"], connectDomains: ["https://unpkg.com"] } },
+    },
+  },
+  {
+    uri: VIDEO_VIEW_URI,
+    name: "Saad Studio video result",
+    description: "Rich card that plays the generated video with the model, aspect ratio, and duration.",
+    mimeType: "text/html;profile=mcp-app",
+    text: VIDEO_WIDGET_HTML,
+    _meta: {
+      ui: { csp: { resourceDomains: ["https://unpkg.com"], connectDomains: ["https://unpkg.com"] } },
+    },
+  },
+];
+
+function findModelLabel(modelId: string): string {
+  return AVAILABLE_MODELS.find((m) => m.id === modelId)?.label ?? modelId;
+}
 
 function withMcpHeaders(response: NextResponse) {
   response.headers.set("Cache-Control", "no-store");
@@ -292,7 +490,11 @@ async function collectInlineImages(urls: string[]): Promise<InlineCollection> {
   return { blocks, diagnostics: { attached, skipped, reasons } };
 }
 
-function toolResultWithImages(value: unknown, collection: InlineCollection): ToolResult {
+function toolResultWithImages(
+  value: unknown,
+  collection: InlineCollection,
+  structuredContent?: Record<string, unknown>,
+): ToolResult {
   const annotated = typeof value === "object" && value !== null
     ? { ...(value as Record<string, unknown>), _inlineImages: collection.diagnostics }
     : { value, _inlineImages: collection.diagnostics };
@@ -302,6 +504,7 @@ function toolResultWithImages(value: unknown, collection: InlineCollection): Too
       { type: "text", text: JSON.stringify(annotated, null, 2) },
     ],
     isError: false,
+    structuredContent,
   };
 }
 
@@ -391,10 +594,21 @@ async function callGenerateImage(
     ? data.imageUrls
     : data.imageUrl ? [data.imageUrl] : [];
   const collection = await collectInlineImages(urls);
+  const structuredContent = {
+    prompt: body.prompt,
+    modelId: body.modelId,
+    modelLabel: findModelLabel(body.modelId),
+    aspectRatio: body.aspectRatio,
+    resolution: body.resolution,
+    imageUrls: urls,
+    imageUrl: urls[0] ?? null,
+    generationId: data.generationId ?? null,
+  };
 
   return toolResultWithImages(
     { status: "completed", modelId: body.modelId, ...data },
     collection,
+    structuredContent,
   );
 }
 
@@ -444,6 +658,17 @@ async function callGenerateStoryboard(
 
   const collection = await collectInlineImages(urls);
 
+  const structuredContent = {
+    prompt: idea,
+    modelId: DEFAULT_IMAGE_MODEL,
+    modelLabel: findModelLabel(DEFAULT_IMAGE_MODEL),
+    aspectRatio,
+    imageUrls: urls,
+    imageUrl: urls[0] ?? null,
+    concepts,
+    generationId: data.generationId ?? null,
+  };
+
   return toolResultWithImages({
     status: "completed",
     idea,
@@ -453,7 +678,7 @@ async function callGenerateStoryboard(
     nextStep:
       "Ask the user to pick a concept (1-N), then call generate_video with imageUrl set to that concept's imageUrl.",
     generationId: data.generationId ?? null,
-  }, collection);
+  }, collection, structuredContent);
 }
 
 async function callGenerateVideo(
@@ -485,7 +710,34 @@ async function callGenerateVideo(
     );
   }
 
-  return toolResult({ status: "completed", modelId: body.modelId, ...(res.data as object) });
+  const videoData = res.data as { videoUrl?: string; videoUrls?: string[]; url?: string; generationId?: string };
+  const videoUrls = Array.isArray(videoData.videoUrls) && videoData.videoUrls.length
+    ? videoData.videoUrls
+    : videoData.videoUrl
+      ? [videoData.videoUrl]
+      : videoData.url
+        ? [videoData.url]
+        : [];
+  const structuredContent = {
+    prompt: body.prompt,
+    modelId: body.modelId,
+    modelLabel: findModelLabel(body.modelId),
+    aspectRatio: body.aspectRatio,
+    duration: body.duration,
+    resolution: body.resolution,
+    videoUrls,
+    videoUrl: videoUrls[0] ?? null,
+    generationId: videoData.generationId ?? null,
+  };
+
+  return {
+    content: [{
+      type: "text",
+      text: JSON.stringify({ status: "completed", modelId: body.modelId, ...(res.data as object) }, null, 2),
+    }],
+    isError: false,
+    structuredContent,
+  };
 }
 
 async function callShowGenerations(
@@ -580,13 +832,38 @@ async function handleRpcPayload(body: JsonRpcRequest, request: Request): Promise
   if (method === "initialize") {
     return rpcPayload(id, {
       protocolVersion: body?.params?.protocolVersion ?? "2024-11-05",
-      capabilities: { tools: { listChanged: false } },
-      serverInfo: { name: "saad-studio-smart-cli", version: "0.2.0" },
+      capabilities: {
+        tools: { listChanged: false },
+        resources: { listChanged: false, subscribe: false },
+      },
+      serverInfo: { name: "saad-studio-smart-cli", version: "0.3.0" },
     });
   }
 
   if (method === "ping") return rpcPayload(id, {});
   if (method === "tools/list") return rpcPayload(id, { tools });
+
+  if (method === "resources/list") {
+    return rpcPayload(id, {
+      resources: UI_RESOURCES.map(({ text: _text, ...rest }) => rest),
+    });
+  }
+
+  if (method === "resources/read") {
+    const uri = typeof body?.params === "object" && body?.params
+      ? (body.params as { uri?: unknown }).uri
+      : undefined;
+    const match = UI_RESOURCES.find((r) => r.uri === uri);
+    if (!match) return rpcErrorPayload(id, -32602, `Unknown resource: ${String(uri ?? "missing")}`);
+    return rpcPayload(id, {
+      contents: [{
+        uri: match.uri,
+        mimeType: match.mimeType,
+        text: match.text,
+        _meta: match._meta,
+      }],
+    });
+  }
 
   if (method === "tools/call") {
     const requestedName = body?.params?.name;
