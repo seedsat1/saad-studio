@@ -1078,9 +1078,9 @@ function AspectRatioPicker({
         <div
           role="listbox"
           aria-label="Aspect Ratio"
-          className="absolute right-0 top-[calc(100%+8px)] z-[90] max-w-[min(620px,calc(100vw-32px))] overflow-x-auto rounded-xl border border-white/10 bg-[#242424] p-2 shadow-2xl shadow-black/50"
+          className="absolute right-0 top-[calc(100%+8px)] z-[90] w-52 rounded-xl border border-white/10 bg-[#171717] p-2 shadow-2xl shadow-black/50"
         >
-          <div className="flex min-w-max items-stretch gap-1">
+          <div className="flex flex-col gap-1">
             {orderedOptions.map((ratio) => {
               const active = selected === ratio;
               const icon = ratioIconStyle(ratio);
@@ -1094,10 +1094,10 @@ function AspectRatioPicker({
                     onChange(ratio);
                     setOpen(false);
                   }}
-                  className="flex h-[54px] w-[54px] flex-col items-center justify-center gap-1.5 rounded-md text-[11px] font-medium transition-colors"
+                  className="flex h-11 w-full items-center gap-3 rounded-md px-3 text-sm font-semibold transition-colors"
                   style={{
                     background: active ? "rgba(255,255,255,0.10)" : "transparent",
-                    color: active ? "#ffffff" : "#d4d4d8",
+                    color: active ? "#ffffff" : "#e5e7eb",
                   }}
                 >
                   <span className="flex h-6 w-7 items-center justify-center">
@@ -1106,7 +1106,8 @@ function AspectRatioPicker({
                       style={{ width: icon.width, height: icon.height, borderColor: active ? "#ffffff" : "#d4d4d8" }}
                     />
                   </span>
-                  <span>{ratio}</span>
+                  <span className="flex-1 text-left">{ratio}</span>
+                  {active && <CheckCircle2 size={14} className="shrink-0" style={{ color: "#d4d4d8" }} />}
                 </button>
               );
             })}

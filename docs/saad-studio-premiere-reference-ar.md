@@ -1,3 +1,10 @@
+## Video Aspect Ratio Dropdown Vertical Menu (2026-08-04)
+
+- /video aspect-ratio selection must open downward as a vertical menu.
+- Each ratio option is one row with a small ratio icon, ratio label, and selected check mark.
+- Do not render aspect-ratio options as a horizontal strip inside the dropdown.
+- Keep options sourced from the selected model capabilities; the UI shape is vertical only.
+
 ## Video Aspect Ratio Dropdown UI (2026-08-04)
 
 - /video aspect-ratio selection should use the shared `AspectRatioPicker` instead of native `select` or separate inline button groups.

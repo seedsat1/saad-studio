@@ -1,3 +1,10 @@
+#### Latest task: Video aspect ratio dropdown vertical correction (2026-08-04)
+- Status: Fixed. Corrected /video AspectRatioPicker so the opened dropdown lists ratios vertically, not as a horizontal strip.
+- Changes made: Changed the dropdown content to a compact vertical menu with one row per ratio, icon + label + selected check mark.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check` passed with CRLF warnings only.
+- Decision: The picker is a real downward dropdown; do not render aspect-ratio options as a horizontal bar.
+
 #### Latest task: Video aspect ratio dropdown icon layout (2026-08-04)
 - Status: Fixed. /video aspect-ratio controls now use one shared dropdown-style picker with horizontal ratio icons instead of mixed native selects/buttons.
 - Changes made: Added `AspectRatioPicker` with ordered ratio icons, active-state styling, and horizontal scrolling inside the opened dropdown; replaced the main settings, Kling 3.0 settings, and mobile settings aspect-ratio controls with the shared picker.
