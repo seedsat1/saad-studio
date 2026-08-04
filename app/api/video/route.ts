@@ -552,9 +552,13 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     const referenceImages = Array.isArray(out.reference_image_urls)
       ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       : [];
-    const referenceVideos = Array.isArray(out.reference_video_urls)
+    const referenceVideosFromList = Array.isArray(out.reference_video_urls)
       ? out.reference_video_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       : [];
+    const referenceVideos = [
+      ...referenceVideosFromList,
+      ...(typeof payload.video === "string" && payload.video.trim() ? [payload.video] : []),
+    ].filter((value, index, list) => list.indexOf(value) === index);
     const referenceAudios = Array.isArray(out.reference_audio_urls)
       ? out.reference_audio_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       : [];

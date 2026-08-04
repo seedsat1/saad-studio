@@ -2692,9 +2692,9 @@ function VideoPageInner() {
         } else if (uploadedImageRefs[1]) {
           payload.end_image = uploadedImageRefs[1];
         }
-      } else if (((isSeedanceV2 || isMinimaxH3) && referenceImages.length > 0) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
+      } else if (((isSeedanceV2 || isMinimaxH3) && (referenceImages.length > 0 || !!startFrame || !!linkedStartFrameUrl || !!endFrame || characterReferenceUrls.length > 0)) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
         if (isSeedanceV2 || isMinimaxH3) {
-          // Split unified referenceImages by type → 3 separate KIE fields
+          // Split unified reference media by type and let the API normalize provider field names.
           const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
           const refVids  = referenceImages.filter(f => f.type.startsWith("video/"));
           const refAuds  = referenceImages.filter(f => f.type.startsWith("audio/"));
@@ -2706,10 +2706,12 @@ function VideoPageInner() {
               ? linkedStartFrameUrl
               : null;
           const uploadedImageRefs = await Promise.all(refImgs.slice(0, referenceImageLimit).map(f => fileToDataURL(f)));
+          const explicitEndImageForReference = isMinimaxH3 && endFrame ? await fileToDataURL(endFrame) : null;
           const mergedImageRefs = [
             ...(explicitStartImage ? [explicitStartImage] : []),
             ...characterReferenceUrls,
             ...uploadedImageRefs,
+            ...(explicitEndImageForReference ? [explicitEndImageForReference] : []),
           ].slice(0, referenceImageLimit);
           if (mergedImageRefs[0]) {
             if (isSeedanceV2) {
