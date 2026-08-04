@@ -2809,3 +2809,8 @@
 
 - `/image` requests 25 image assets for the initial gallery load and each Load more page.
 - `/api/assets` allows and defaults to a maximum page size of 25 assets so the UI request is not clipped below the requested amount.
+## Image Gallery Append Order Contract (2026-08-04)
+
+- `/image` must preserve visual append order when the user presses Load more: newly fetched images should appear after the existing results, not redistributed into side columns above or between older images.
+- Do not use CSS column masonry for `/image` because it fills top-to-bottom by column and visually reorders DOM items when new pages are appended.
+- Use normal CSS grid auto-fill columns without dense packing so the DOM/page order remains predictable.

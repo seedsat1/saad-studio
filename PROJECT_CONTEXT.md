@@ -10420,3 +10420,10 @@
 - Affected files: `app/(dash)/(routes)/image/page.tsx`, `app/api/assets/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed; `npm.cmd run build` passed successfully.
 - Decision: Use 25 visible images per page for the image gallery at the user's request.
+#### Latest task: Preserve /image Load more append order (2026-08-04)
+
+- Status: Completed. Corrected the /image gallery ordering after CSS column masonry caused newly loaded pages to visually appear in side columns instead of after the existing results.
+- Changes made: Replaced CSS column masonry with normal CSS grid `auto-fill` columns and no dense packing, so DOM order is preserved and Load more items append after older items.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `npm.cmd run build` passed successfully.
+- Decision: Chronological/page append order is more important than column-balanced masonry for `/image`; do not use CSS columns for this gallery because they visually reorder appended items.

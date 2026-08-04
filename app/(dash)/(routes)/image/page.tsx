@@ -996,30 +996,24 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
     <>
       <style>{`
         .result-masonry {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(clamp(132px, 10vw, 210px), 1fr));
+          align-items: start;
+          gap: 3px;
           width: 100%;
           max-width: none;
           margin: 0;
-          column-width: clamp(132px, 10vw, 210px);
-          column-gap: 3px;
         }
 
         .result-card {
-          display: inline-block;
           width: 100%;
           min-height: 72px;
-          margin: 0 0 3px;
-          break-inside: avoid;
-          vertical-align: top;
         }
 
         @media (max-width: 640px) {
           .result-masonry {
-            column-width: 118px;
-            column-gap: 2px;
-          }
-
-          .result-card {
-            margin-bottom: 2px;
+            grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+            gap: 2px;
           }
         }
       `}</style>
