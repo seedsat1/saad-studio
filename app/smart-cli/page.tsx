@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentProps } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -17,33 +17,84 @@ import {
   Layers,
   Layers3,
   Link2,
+  MessageCircle,
   PlaySquare,
   ShieldCheck,
+  Sparkles,
+  Terminal,
 } from "lucide-react";
 
 import TopNavbar from "@/components/TopNavbar";
 import { cn } from "@/lib/utils";
 
 const MCP_URL = "https://www.saadstudio.app/api/smart-cli/mcp";
+const SKILLS_INSTALL = "curl -fsSL https://raw.githubusercontent.com/seedsat1/saad-studio/main/packages/skills/install.sh | bash";
 
-// Only Claude is verified end-to-end against the live MCP today.
-const SUPPORTED_CLIENTS = ["Claude"];
+type Step = { title: string; text: string; value: string };
 
-const MCP_STEPS = [
+type ClientTabId = "claude" | "claude-code" | "chatgpt";
+
+interface ClientTab {
+  id: ClientTabId;
+  label: string;
+  icon: typeof MessageCircle;
+  disabled?: boolean;
+  badge?: string;
+  steps: Step[];
+}
+
+const CLIENT_TABS: ClientTab[] = [
   {
-    title: "Open connector settings",
-    text: "In Claude (desktop or web), go to Settings → Connectors → Add custom connector.",
-    value: "Settings -> Connectors -> Add custom connector",
+    id: "claude",
+    label: "Claude",
+    icon: MessageCircle,
+    steps: [
+      {
+        title: "Open connector settings",
+        text: "In Claude (desktop or web), go to Settings → Connectors → Add custom connector.",
+        value: "Settings -> Connectors -> Add custom connector",
+      },
+      {
+        title: "Add Saad Studio",
+        text: "Name the connector Saad Studio and paste this HTTPS URL into the URL field.",
+        value: MCP_URL,
+      },
+      {
+        title: "Ask from chat",
+        text: "After approval, Claude can call the 5 tools listed below using your Saad Studio credits.",
+        value: "Generate a cinematic image of a desert sunset.",
+      },
+    ],
   },
   {
-    title: "Add Saad Studio",
-    text: "Name the connector Saad Studio and paste this HTTPS URL into the URL field.",
-    value: MCP_URL,
+    id: "claude-code",
+    label: "Claude Code",
+    icon: Terminal,
+    steps: [
+      {
+        title: "Install the CLI",
+        text: "One-time install. Works on macOS, Linux, and Windows. Requires Node 18+.",
+        value: "npm i -g @saadstudio/cli",
+      },
+      {
+        title: "Sign in",
+        text: "Opens your browser once, saves a token to ~/.saadstudio/token.json.",
+        value: "saadstudio login",
+      },
+      {
+        title: "Add the skill pack",
+        text: "Teaches Claude Code the UGC pipeline, storyboard flow, and image/video shortcuts.",
+        value: SKILLS_INSTALL,
+      },
+    ],
   },
   {
-    title: "Ask from chat",
-    text: "After approval, Claude can call the 5 tools listed below using your Saad Studio credits.",
-    value: "Generate a cinematic image of a desert sunset.",
+    id: "chatgpt",
+    label: "ChatGPT",
+    icon: Sparkles,
+    disabled: true,
+    badge: "soon",
+    steps: [],
   },
 ];
 
@@ -94,7 +145,7 @@ function CopyBox({ value }: { value: string }) {
   );
 }
 
-function StepCard({ step, index }: { step: { title: string; text: string; value: string }; index: number }) {
+function StepCard({ step, index }: { step: Step; index: number }) {
   return (
     <div className="border-b border-white/10 p-5 md:border-b-0 md:border-r md:last:border-r-0">
       <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white">
@@ -108,6 +159,9 @@ function StepCard({ step, index }: { step: { title: string; text: string; value:
 }
 
 export default function SmartCliPage() {
+  const [activeTab, setActiveTab] = useState<ClientTabId>("claude");
+  const active = CLIENT_TABS.find((tab) => tab.id === activeTab) ?? CLIENT_TABS[0];
+
   return (
     <>
       <TopNavbar />
@@ -131,32 +185,64 @@ export default function SmartCliPage() {
                 Smart CLI
               </div>
               <h1 className="text-balance text-4xl font-black leading-tight tracking-normal md:text-6xl">
-                Connect Saad Studio to Claude
+                Connect Saad Studio to your AI
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-400">
-                Paste the hosted connector URL into Claude. Approve once. Claude can now use 5 Saad Studio tools that spend credits from your account.
+                Same account, same credits, same models. Pick your client below — Claude uses the hosted MCP URL, Claude Code uses the CLI + skill pack.
               </p>
             </div>
 
             <div className="mx-auto max-w-5xl">
               <div className="mb-3 flex flex-wrap items-center gap-3">
-                <div className="inline-flex rounded-full border border-white/10 bg-white/[0.06] p-1">
-                  {SUPPORTED_CLIENTS.map((client) => (
-                    <span
-                      key={client}
-                      className="inline-flex h-10 items-center rounded-full bg-white px-4 text-sm font-semibold text-black"
-                    >
-                      {client}
-                    </span>
-                  ))}
+                <div className="inline-flex flex-wrap rounded-full border border-white/10 bg-white/[0.06] p-1">
+                  {CLIENT_TABS.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = tab.id === activeTab;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => !tab.disabled && setActiveTab(tab.id)}
+                        disabled={tab.disabled}
+                        aria-pressed={isActive}
+                        className={cn(
+                          "inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition",
+                          isActive
+                            ? "bg-white text-black"
+                            : tab.disabled
+                              ? "cursor-not-allowed text-slate-500"
+                              : "text-slate-200 hover:bg-white/10",
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {tab.label}
+                        {tab.badge && (
+                          <span className={cn(
+                            "ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                            isActive ? "bg-black/10 text-black" : "bg-white/10 text-slate-400",
+                          )}>
+                            {tab.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div className="grid overflow-hidden rounded-xl border border-white/10 bg-[#101318] shadow-2xl shadow-black/30 md:grid-cols-3">
-                {MCP_STEPS.map((step, index) => (
-                  <StepCard key={step.title} step={step} index={index} />
-                ))}
-              </div>
+              {active.steps.length > 0 ? (
+                <div className="grid overflow-hidden rounded-xl border border-white/10 bg-[#101318] shadow-2xl shadow-black/30 md:grid-cols-3">
+                  {active.steps.map((step, index) => (
+                    <StepCard key={step.title} step={step} index={index} />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-white/10 bg-[#101318] p-8 text-center shadow-2xl shadow-black/30">
+                  <p className="text-sm text-slate-300">
+                    ChatGPT support is on the way — the same MCP endpoint will plug into the OpenAI Apps SDK once our submission is approved.
+                  </p>
+                </div>
+              )}
 
               <div className="mx-auto mt-4 flex max-w-max items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-sm text-emerald-100">
                 <Link2 className="h-4 w-4" />
