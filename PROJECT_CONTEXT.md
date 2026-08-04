@@ -10392,3 +10392,15 @@
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed.
 - Decision: The whole /video history row surface should share the page display color; inner buttons can keep their subtle translucent contrast.
+
+#### Latest task: Fix failed production build after /image masonry push (2026-08-04)
+
+- Status: Completed. Reproduced the deployment failure locally and fixed the build blocker.
+- Issue found: `next build` failed because `app/(dash)/(routes)/image/page.tsx` was not valid UTF-8 after the previous edit, so Webpack could not read the source file.
+- Changes made: Re-saved `app/(dash)/(routes)/image/page.tsx` as UTF-8 without changing the gallery behavior.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`.
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `git diff --check -- "app/(dash)/(routes)/image/page.tsx"` passed with only the existing CRLF warning.
+  - `npm.cmd run build` passed successfully.
+- Decision: Keep source files valid UTF-8 before pushing because Vercel/Next production builds reject non-UTF-8 route source files.
