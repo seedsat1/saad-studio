@@ -10,18 +10,13 @@ import {
   Clipboard,
   Code2,
   Command,
-  Eye,
   Globe2,
   Image as ImageIcon,
-  Images,
   KeyRound,
   Layers,
   Link2,
   PlaySquare,
   ShieldCheck,
-  UploadCloud,
-  Wand2,
-  Wallet,
 } from "lucide-react";
 
 import TopNavbar from "@/components/TopNavbar";
@@ -45,8 +40,8 @@ const MCP_STEPS = [
   },
   {
     title: "Ask from chat",
-    text: "After approval, Claude can call any of the 9 tools listed below using your Saad Studio credits.",
-    value: "What's my Saad Studio credit balance?",
+    text: "After approval, Claude can call the 3 generation tools listed below using your Saad Studio credits.",
+    value: "Generate a cinematic image of a desert sunset.",
   },
 ];
 
@@ -59,22 +54,6 @@ const TOOL_GROUPS = [
       { icon: ImageIcon, title: "generate_image", text: "Generate an image (Nano Banana Pro by default; other models routed through KIE / Google / OpenAI per project rules)." },
       { icon: Layers, title: "generate_storyboard", text: "Return multiple concept variations from one idea so the user can pick before rendering." },
       { icon: PlaySquare, title: "generate_video", text: "Render a video from a prompt, optionally using a chosen concept as the first frame." },
-    ],
-  },
-  {
-    title: "Read-only",
-    tools: [
-      { icon: Wallet, title: "balance", text: "Return the current Saad Studio credit balance." },
-      { icon: Images, title: "show_generations", text: "List the most recent generated images and videos." },
-      { icon: Clock3, title: "job_status", text: "Look up a single generation by id to get its public URL when ready." },
-    ],
-  },
-  {
-    title: "Post-production (Reap)",
-    tools: [
-      { icon: UploadCloud, title: "r2_upload_url", text: "Hand back a Cloudflare R2 signed PUT URL so the client can upload a source video directly." },
-      { icon: Wand2, title: "reap_run", text: "Start a Reap post-production job: captions, reframe, dubbing, audiogram, transcription, edit-videos." },
-      { icon: Eye, title: "reap_status", text: "Poll a Reap project. On completion the URL is R2-hosted." },
     ],
   },
 ];
@@ -146,7 +125,7 @@ export default function SmartCliPage() {
                 Connect Saad Studio to Claude
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-400">
-                Paste the hosted connector URL into Claude. Approve once. Claude can now use 9 Saad Studio tools that spend credits from your account.
+                Paste the hosted connector URL into Claude. Approve once. Claude can now use 3 Saad Studio generation tools that spend credits from your account.
               </p>
             </div>
 
@@ -287,7 +266,7 @@ export default function SmartCliPage() {
                 What spending looks like
               </div>
               <p className="text-sm leading-6 text-slate-400">
-                Tool calls debit credits from your account the same way the website does. The 9 tools, and only those 9 tools, are exposed — nothing else.
+                Tool calls debit credits from your account the same way the website does. The 3 generation tools, and only those 3 tools, are exposed — nothing else.
               </p>
               <div className="mt-4 grid gap-2 text-sm text-slate-300">
                 <span className="inline-flex items-center gap-2"><Code2 className="h-4 w-4 text-emerald-300" /> structured tool calls only</span>
