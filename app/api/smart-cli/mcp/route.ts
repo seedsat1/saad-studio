@@ -591,21 +591,10 @@ async function callGenerateImage(
     ? data.imageUrls
     : data.imageUrl ? [data.imageUrl] : [];
   const collection = await collectInlineImages(urls);
-  const structuredContent = {
-    prompt: body.prompt,
-    modelId: body.modelId,
-    modelLabel: findModelLabel(body.modelId),
-    aspectRatio: body.aspectRatio,
-    resolution: body.resolution,
-    imageUrls: urls,
-    imageUrl: urls[0] ?? null,
-    generationId: data.generationId ?? null,
-  };
 
   return toolResultWithImages(
     { status: "completed", modelId: body.modelId, ...data },
     collection,
-    structuredContent,
   );
 }
 
@@ -655,17 +644,6 @@ async function callGenerateStoryboard(
 
   const collection = await collectInlineImages(urls);
 
-  const structuredContent = {
-    prompt: idea,
-    modelId: DEFAULT_IMAGE_MODEL,
-    modelLabel: findModelLabel(DEFAULT_IMAGE_MODEL),
-    aspectRatio,
-    imageUrls: urls,
-    imageUrl: urls[0] ?? null,
-    concepts,
-    generationId: data.generationId ?? null,
-  };
-
   return toolResultWithImages({
     status: "completed",
     idea,
@@ -675,7 +653,7 @@ async function callGenerateStoryboard(
     nextStep:
       "Ask the user to pick a concept (1-N), then call generate_video with imageUrl set to that concept's imageUrl.",
     generationId: data.generationId ?? null,
-  }, collection, structuredContent);
+  }, collection);
 }
 
 async function callGenerateVideo(
@@ -707,34 +685,7 @@ async function callGenerateVideo(
     );
   }
 
-  const videoData = res.data as { videoUrl?: string; videoUrls?: string[]; url?: string; generationId?: string };
-  const videoUrls = Array.isArray(videoData.videoUrls) && videoData.videoUrls.length
-    ? videoData.videoUrls
-    : videoData.videoUrl
-      ? [videoData.videoUrl]
-      : videoData.url
-        ? [videoData.url]
-        : [];
-  const structuredContent = {
-    prompt: body.prompt,
-    modelId: body.modelId,
-    modelLabel: findModelLabel(body.modelId),
-    aspectRatio: body.aspectRatio,
-    duration: body.duration,
-    resolution: body.resolution,
-    videoUrls,
-    videoUrl: videoUrls[0] ?? null,
-    generationId: videoData.generationId ?? null,
-  };
-
-  return {
-    content: [{
-      type: "text",
-      text: JSON.stringify({ status: "completed", modelId: body.modelId, ...(res.data as object) }, null, 2),
-    }],
-    isError: false,
-    structuredContent,
-  };
+  return toolResult({ status: "completed", modelId: body.modelId, ...(res.data as object) });
 }
 
 async function callShowGenerations(
