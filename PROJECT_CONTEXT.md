@@ -1,3 +1,16 @@
+#### Latest task: Integrate the Status Bar and Thumbnail Grid dynamically inside the Reference Media Dotted Box (2026-08-08)
+- Status: Completed.
+  - Removed the separate status bar that was rendered beneath the square tiles.
+  - Refactored the `Reference media` dotted upload box:
+    - When empty (`referenceImages.length === 0`), it renders as the default dotted upload box trigger.
+    - When media files are uploaded, the dotted container dynamically renders a compact status bar (with the 6 icons: Image, Video, Audio, Character, Elements, Palette, and Add media text) at the top, and a grid of uploaded media thumbnails underneath.
+    - Thumbnails render with absolute-positioned text tags (`@img1`, `@vid1`, etc.) overlaid at the bottom, and individual hoverable delete (`X`) buttons on each thumbnail.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed cleanly. `git diff --check` passed.
+- Decisions:
+  - Keep the `Reference media` zone as a single unified container that behaves dynamically based on upload state.
+  - Move helper notes to the bottom of the container to keep the sidebar structure neat.
+
 #### Latest task: Revert Reference Tiles to original Style/Character/Add square buttons and separate the 5-icon Status Bar (2026-08-08)
 - Status: Completed.
   - Reverted `components/ReferenceActionTiles.tsx` to ONLY render the original three square buttons (`Style`, `Character`, `Add`) in a 3-column grid.
@@ -7,6 +20,7 @@
 - Decisions:
   - Keep `ReferenceActionTiles` completely original to prevent messing up the user's styling/character/add buttons.
   - Position the status bar directly beneath `ReferenceActionTiles` to replace the old dotted upload zone, fulfilling the mockup design without replacing or altering the square buttons.
+
 
 #### Latest task: Fix Add media button text truncation/ellipsis inside status bar (2026-08-07)
 - Status: Completed. Adjusted the layout geometries inside the 5-icon status bar inside `ReferenceActionTiles` by setting `min-w-[80px]` and `flex-shrink-0` on the `+ Add media` button and adding inline style `whiteSpace: "nowrap"` to ensure the text displays fully on one line without browser truncation.

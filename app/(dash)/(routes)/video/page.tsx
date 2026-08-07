@@ -11,7 +11,7 @@ import {
   X, AlertCircle, Loader2, Upload, CheckCircle2, Settings,
   Play, Download, Trash2, Heart, Copy, MoreHorizontal,
   ExternalLink, RefreshCw, Share2,
-  type LucideIcon, Languages, Volume2, Palette, Plus, AudioLines,
+  type LucideIcon, Languages, Volume2, Palette, Plus, AudioLines, Shapes,
 } from "lucide-react";
 
 import { useLanguage } from "@/lib/use-language";
@@ -3943,140 +3943,6 @@ function VideoPageInner() {
             onClearCharacter={() => setSelectedCharacterPresetId(null)}
             isAr={lang === "ar"}
           />
-
-          {/* Consolidated Reference Status Bar (replacing old Reference Media dotted button) */}
-          {(showReferenceImages || showSimpleKlingRefs) && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-1 rounded-xl bg-black/20 p-1 border border-white/[0.03]">
-                <div className="flex items-center gap-1">
-                  {/* 1. Image Icon Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveStudioTab("uploads");
-                      setShowReferenceStudioModal(true);
-                    }}
-                    className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
-                    title={lang === "ar" ? "الصور المرجعية" : "Reference Images"}
-                  >
-                    <ImageIcon className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("image/")) ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                    <div
-                      className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
-                        referenceImages.some(f => f.type.startsWith("image/"))
-                          ? "bg-cyan-500 shadow-[0_0_8px_#06b6d4]"
-                          : "bg-transparent group-hover:bg-slate-700"
-                      }`}
-                    />
-                  </button>
-
-                  {/* 2. Video Icon Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveStudioTab("uploads");
-                      setShowReferenceStudioModal(true);
-                    }}
-                    className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
-                    title={lang === "ar" ? "الفيديوهات المرجعية" : "Reference Videos"}
-                  >
-                    <Video className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("video/")) ? "text-purple-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                    <div
-                      className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
-                        referenceImages.some(f => f.type.startsWith("video/"))
-                          ? "bg-purple-500 shadow-[0_0_8px_#a855f7]"
-                          : "bg-transparent group-hover:bg-slate-700"
-                      }`}
-                    />
-                  </button>
-
-                  {/* 3. Audio Icon Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveStudioTab("uploads");
-                      setShowReferenceStudioModal(true);
-                    }}
-                    className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
-                    title={lang === "ar" ? "الأصوات المرجعية" : "Reference Audio"}
-                  >
-                    <AudioLines className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("audio/")) ? "text-teal-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                    <div
-                      className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
-                        referenceImages.some(f => f.type.startsWith("audio/"))
-                          ? "bg-teal-500 shadow-[0_0_8px_#14b8a6]"
-                          : "bg-transparent group-hover:bg-slate-700"
-                      }`}
-                    />
-                  </button>
-
-                  {/* 4. Character Icon Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveStudioTab("character");
-                      setShowReferenceStudioModal(true);
-                    }}
-                    className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
-                    title={lang === "ar" ? "شخصية محفوظة" : "Saved Character"}
-                  >
-                    <User className={`w-3.5 h-3.5 transition-all ${selectedCharacterPresetId ? "text-pink-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                    <div
-                      className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
-                        selectedCharacterPresetId
-                          ? "bg-pink-500 shadow-[0_0_8px_#ec4899]"
-                          : "bg-transparent group-hover:bg-slate-700"
-                      }`}
-                    />
-                  </button>
-
-                  {/* 5. Style Icon Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveStudioTab("style");
-                      setShowReferenceStudioModal(true);
-                    }}
-                    className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
-                    title={lang === "ar" ? "مكتبة الأنماط" : "Style Library"}
-                  >
-                    <Palette className={`w-3.5 h-3.5 transition-all ${selectedStyle ? "text-amber-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                    <div
-                      className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
-                        selectedStyle
-                          ? "bg-amber-500 shadow-[0_0_8px_#eab308]"
-                          : "bg-transparent group-hover:bg-slate-700"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="h-5 w-[1px] bg-slate-800/80 mx-0.5 flex-shrink-0" />
-
-                {/* 6. Add Media Button */}
-                <button
-                  type="button"
-                  onClick={() => openMediaPicker("referenceImages")}
-                  className="flex-shrink-0 min-w-[80px] h-[28px] rounded-lg border border-dashed border-slate-700 hover:border-cyan-500/80 bg-cyan-500/5 hover:bg-cyan-500/10 flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer text-cyan-400 hover:text-white"
-                >
-                  <Plus className="w-3 h-3 flex-shrink-0" />
-                  <span className="text-[10px] font-bold tracking-tight" style={{ whiteSpace: "nowrap" }}>{lang === "ar" ? "إضافة وسائط" : "Add media"}</span>
-                </button>
-              </div>
-
-              <input
-                ref={referenceImagesRef}
-                type="file"
-                accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
-                multiple
-                className="hidden"
-                onChange={e => {
-                  const files = Array.from(e.target.files ?? []);
-                  setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
-                  e.target.value = "";
-                }}
-              />
-            </div>
-          )}
           {activeTool === "lipsync" ? (
             <div className="flex-grow flex flex-col gap-5">
               {/* Dynamic Avatar/Lipsync Info */}
@@ -4529,77 +4395,31 @@ function VideoPageInner() {
           {/* -- Omni: Reference images (shown alongside Omni tabs) -------- */}
           {showOmniTabs && (showReferenceImages || showSimpleKlingRefs) && (
             <>
-            <button
-              onClick={() => openMediaPicker("referenceImages")}
-              onDragOver={allowDrop}
-              onDragEnter={(event) => markDropZone(event, "referenceImages")}
-              onDragLeave={(event) => clearDropZone(event, "referenceImages")}
-              onDrop={handleDropReferenceImages}
-              className="relative w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
-              style={{
-                height: 100,
-                borderColor: referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                background:  referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
-              }}
-            >
-              <input
-                ref={referenceImagesRef}
-                type="file"
-                accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
-                multiple
-                className="hidden"
-                onChange={e => {
-                  const files = Array.from(e.target.files ?? []);
-                  setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
-                  e.target.value = "";
-                }}
-              />
-              <span
-                className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
-                style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
-              >
-                {`Max ${showSimpleKlingRefs ? 3 : referenceFileMaxLabel}`}
-              </span>
-              {referenceImages.length > 0 ? (
-                <>
-                  {referencePreviews.length > 0 && (
-                    <div className="absolute inset-0 grid grid-cols-3 gap-1 p-1">
-                      {referencePreviews.slice(0, 3).map((src, i) => {
-                        const fileType = referenceImages[i]?.type ?? "";
-                        if (fileType.startsWith("video/")) return (
-                          <div key={i} className="relative w-full h-full rounded-md opacity-75 overflow-hidden border border-cyan-500/20">
-                            {src ? (
-                              <video src={src} className="w-full h-full object-cover" muted playsInline />
-                            ) : null}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-                              <Film size={14} style={{ color: "#06b6d4" }} />
-                            </div>
-                          </div>
-                        );
-                        if (fileType.startsWith("audio/")) return (
-                          <div key={i} className="w-full h-full rounded-md opacity-75 flex items-center justify-center" style={{ background: "rgba(168,85,247,0.15)" }}>
-                            <Music2 size={14} style={{ color: "#a855f7" }} />
-                          </div>
-                        );
-                        return (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img key={i} src={src} alt={`Reference preview ${i + 1}`} className="w-full h-full object-cover rounded-md opacity-75" />
-                        );
-                      })}
-                    </div>
-                  )}
-                  <span className="absolute bottom-2 left-2 right-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200 text-center leading-tight">
-                    {referenceFileSummary}
-                  </span>
-                  <button
-                    className="absolute top-2 left-2"
-                    onClick={e => { e.stopPropagation(); setReferenceImages([]); }}
-                  >
-                    <X size={11} style={{ color: "#94a3b8" }} />
-                  </button>
-                </>
-              ) : (
-                <>
+              {referenceImages.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => openMediaPicker("referenceImages")}
+                  onDragOver={allowDrop}
+                  onDragEnter={(event) => markDropZone(event, "referenceImages")}
+                  onDragLeave={(event) => clearDropZone(event, "referenceImages")}
+                  onDrop={handleDropReferenceImages}
+                  className="relative w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all bg-[#ffffff05] border-white/10 hover:border-cyan-500/50 hover:bg-cyan-500/[0.02]"
+                  style={{
+                    height: 100,
+                  }}
+                >
+                  <input
+                    ref={referenceImagesRef}
+                    type="file"
+                    accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
+                    multiple
+                    className="hidden"
+                    onChange={e => {
+                      const files = Array.from(e.target.files ?? []);
+                      setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+                      e.target.value = "";
+                    }}
+                  />
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center"
                     style={{ background: "rgba(255,255,255,0.06)" }}
@@ -4609,14 +4429,214 @@ function VideoPageInner() {
                   <span className="text-[11px]" style={{ color: "#94a3b8" }}>
                     {isSeedanceV2Model ? "Reference media" : "Reference images"}
                   </span>
-                </>
+                  {activeDropZone === "referenceImages" && (
+                    <span className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[12px] font-semibold text-cyan-300">
+                      {isSeedanceV2Model ? "Drop media here" : "Drop images here"}
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <div
+                  className="relative w-full rounded-xl border border-dashed border-slate-700/80 bg-black/20 p-2.5 flex flex-col gap-2"
+                >
+                  {/* Row 1: The status bar row */}
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1">
+                      {/* 1. Image Icon Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveStudioTab("uploads");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                        title={lang === "ar" ? "الصور المرجعية" : "Reference Images"}
+                      >
+                        <ImageIcon className={`w-3 h-3 transition-all ${referenceImages.some(f => f.type.startsWith("image/")) ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                        <div
+                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
+                            referenceImages.some(f => f.type.startsWith("image/"))
+                              ? "bg-cyan-500 shadow-[0_0_6px_#06b6d4]"
+                              : "bg-transparent group-hover:bg-slate-700"
+                          }`}
+                        />
+                      </button>
+
+                      {/* 2. Video Icon Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveStudioTab("uploads");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                        title={lang === "ar" ? "الفيديوهات المرجعية" : "Reference Videos"}
+                      >
+                        <Video className={`w-3 h-3 transition-all ${referenceImages.some(f => f.type.startsWith("video/")) ? "text-purple-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                        <div
+                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
+                            referenceImages.some(f => f.type.startsWith("video/"))
+                              ? "bg-purple-500 shadow-[0_0_8px_#a855f7]"
+                              : "bg-transparent group-hover:bg-slate-700"
+                          }`}
+                        />
+                      </button>
+
+                      {/* 3. Audio Icon Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveStudioTab("uploads");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                        title={lang === "ar" ? "الأصوات المرجعية" : "Reference Audio"}
+                      >
+                        <AudioLines className={`w-3 h-3 transition-all ${referenceImages.some(f => f.type.startsWith("audio/")) ? "text-teal-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                        <div
+                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
+                            referenceImages.some(f => f.type.startsWith("audio/"))
+                              ? "bg-teal-500 shadow-[0_0_8px_#14b8a6]"
+                              : "bg-transparent group-hover:bg-slate-700"
+                          }`}
+                        />
+                      </button>
+
+                      {/* 4. Character Icon Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveStudioTab("character");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                        title={lang === "ar" ? "شخصية محفوظة" : "Saved Character"}
+                      >
+                        <User className={`w-3 h-3 transition-all ${selectedCharacterPresetId ? "text-pink-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                        <div
+                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
+                            selectedCharacterPresetId
+                              ? "bg-pink-500 shadow-[0_0_8px_#ec4899]"
+                              : "bg-transparent group-hover:bg-slate-700"
+                          }`}
+                        />
+                      </button>
+
+                      {/* 5. Elements Icon Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveStudioTab("elements");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                        title={lang === "ar" ? "العناصر المرجعية" : "Reference Elements"}
+                      >
+                        <Shapes className={`w-3 h-3 transition-all ${selectedElementId ? "text-purple-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                        <div
+                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
+                            selectedElementId
+                              ? "bg-purple-500 shadow-[0_0_8px_#a855f7]"
+                              : "bg-transparent group-hover:bg-slate-700"
+                          }`}
+                        />
+                      </button>
+
+                      {/* 6. Style Icon Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveStudioTab("style");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                        title={lang === "ar" ? "مكتبة الأنماط" : "Style Library"}
+                      >
+                        <Palette className={`w-3 h-3 transition-all ${selectedStyle ? "text-amber-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                        <div
+                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
+                            selectedStyle
+                              ? "bg-amber-500 shadow-[0_0_8px_#eab308]"
+                              : "bg-transparent group-hover:bg-slate-700"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="h-4 w-[1px] bg-slate-800/80 mx-0.5 flex-shrink-0" />
+
+                    {/* Add Media button inside status bar */}
+                    <button
+                      type="button"
+                      onClick={() => openMediaPicker("referenceImages")}
+                      className="flex-shrink-0 min-w-[70px] h-6 rounded bg-[#121520]/60 hover:bg-[#191d2c]/80 border border-dashed border-slate-700 hover:border-cyan-500/50 flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer text-cyan-400 hover:text-white"
+                    >
+                      <Plus className="w-2.5 h-2.5 flex-shrink-0" />
+                      <span className="text-[9px] font-bold tracking-tight" style={{ whiteSpace: "nowrap" }}>{lang === "ar" ? "إضافة وسائط" : "Add media"}</span>
+                    </button>
+                  </div>
+
+                  {/* Row 2: Thumbnails grid */}
+                  <div className="grid grid-cols-4 gap-1.5 pt-1">
+                    {referencePreviews.map((src, i) => {
+                      const file = referenceImages[i];
+                      if (!file) return null;
+                      const isImage = file.type.startsWith("image/");
+                      const isVideo = file.type.startsWith("video/");
+                      const isAudio = file.type.startsWith("audio/");
+                      const descriptors = getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled);
+                      const desc = descriptors[i];
+                      const tag = desc ? desc.tag : `@ref${i + 1}`;
+
+                      return (
+                        <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-white/5 bg-black/40 group">
+                          {isImage && src && (
+                            <img src={src} alt={file.name} className="w-full h-full object-cover" />
+                          )}
+                          {isVideo && src && (
+                            <video src={src} className="w-full h-full object-cover" muted playsInline />
+                          )}
+                          {isAudio && (
+                            <div className="w-full h-full flex items-center justify-center bg-teal-500/10">
+                              <AudioLines className="w-4 h-4 text-teal-400" />
+                            </div>
+                          )}
+
+                          {/* Tag Overlay at the bottom */}
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/75 py-0.5 text-center text-[8px] font-bold text-slate-300 select-none truncate">
+                            {tag}
+                          </div>
+
+                          {/* Individual Delete Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReferenceImages((prev) => prev.filter((_, idx) => idx !== i));
+                            }}
+                            className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/60 hover:bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <input
+                    ref={referenceImagesRef}
+                    type="file"
+                    accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
+                    multiple
+                    className="hidden"
+                    onChange={e => {
+                      const files = Array.from(e.target.files ?? []);
+                      setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
               )}
-              {activeDropZone === "referenceImages" && (
-                <span className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[12px] font-semibold text-cyan-300">
-                  {isSeedanceV2Model ? "Drop media here" : "Drop images here"}
-                </span>
-              )}
-            </button>
             </>
           )}
 
@@ -4805,59 +4825,13 @@ function VideoPageInner() {
           )}
 
               {(showReferenceImages || showSimpleKlingRefs) && referenceImages.length > 0 && (
-                <div className="flex flex-col gap-2 -mt-3 mb-1">
-                  {/* Horizontal list of uploaded reference media with tags */}
-                  {(() => {
-                    const referenceItems = getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled);
-                    if (referenceItems.length === 0) return null;
-                    return (
-                      <div className="flex flex-wrap gap-2 items-center">
-                        {referenceItems.map((ref) => {
-                          const previewSrc = referencePreviews[ref.originalIndex];
-                          const isImage = ref.kind === "image";
-                          const isVideo = ref.kind === "video";
-                          return (
-                            <div
-                              key={ref.originalIndex}
-                              className="flex items-center gap-2 px-2.5 py-1 rounded-lg"
-                              style={{
-                                background: "rgba(255,255,255,0.03)",
-                                border: "1px solid rgba(255,255,255,0.06)",
-                              }}
-                            >
-                              {isImage && previewSrc ? (
-                                <img
-                                  src={previewSrc}
-                                  alt={ref.tag}
-                                  className="w-8 h-8 rounded object-cover border border-cyan-500/20"
-                                />
-                              ) : isVideo && previewSrc ? (
-                                <video
-                                  src={previewSrc}
-                                  className="w-8 h-8 rounded object-cover border border-cyan-500/20"
-                                  muted
-                                  playsInline
-                                />
-                              ) : (
-                                <span className="flex w-8 h-8 items-center justify-center rounded border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
-                                  {isVideo ? <Film size={15} /> : <Music2 size={15} />}
-                                </span>
-                              )}
-                              <span className="text-[11px] font-semibold text-cyan-400 font-mono">{ref.label}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-                  <p className="text-[10px]" style={{ color: "#a1a1aa" }}>
-                    {showSimpleKlingRefs
-                      ? "Kling uses Elements with @element_name, not @Image prompt tags."
-                      : isSeedanceV2Model
-                        ? getPromptReferenceTagHint(selectedModel)
-                        : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
-                  </p>
-                </div>
+                <p className="text-[10px] -mt-1" style={{ color: "#a1a1aa" }}>
+                  {showSimpleKlingRefs
+                    ? "Kling uses Elements with @element_name, not @Image prompt tags."
+                    : isSeedanceV2Model
+                      ? getPromptReferenceTagHint(selectedModel)
+                      : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
+                </p>
               )}
 
           {/* -- AI Model dropdown ------------------------------------------- */}
