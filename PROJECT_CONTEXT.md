@@ -1,3 +1,12 @@
+#### Latest task: Replace original action tiles with 5-icon status bar and Add media button (2026-08-07)
+- Status: Completed. Implemented the mockup correctly by replacing the `Style`, `Character`, `Add` square tiles with the new 5-icon status bar layout (`Image`, `Video`, `AudioLines`, `User`, `Palette` with colored bottom glow active-indicator bars) and a compact `+ Add media` button.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `components/ReferenceActionTiles.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed.
+- Decisions:
+  - Use exact Lucide icons matching the mockup (Video instead of Film, AudioLines instead of Volume2).
+  - Hide the square action tiles in the video sidebar when reference inputs are enabled, replacing them entirely with the 5-icon row.
+  - Retain the `Start frame` and `End frame` text labels under the empty frame icons.
+
 #### Latest task: Restore default Reference Tiles and add 5-icon Status Bar directly to Video Studio (2026-08-07)
 - Status: Completed. Reverted `ReferenceActionTiles` to the standard layout (Style, Character, Add tiles in 3-column static grid) to prevent design breakdown. Rendered the new consolidated 5-icon status bar layout directly inside the Video page sidebar layout (`VideoPageInner`) under the standard action tiles when reference inputs are enabled.
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `components/ReferenceActionTiles.tsx`, `PROJECT_CONTEXT.md`.
