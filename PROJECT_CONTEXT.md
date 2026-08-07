@@ -10652,3 +10652,11 @@
 - Verification: `npx.cmd tsc --noEmit` passed. `npm.cmd run lint` failed on pre-existing unrelated lint errors in `app/(dash)/(routes)/agent-studio/page.tsx`, `app/(dash)/(routes)/apps/tool/face-swap/page.tsx`, and missing `@typescript-eslint/no-explicit-any` rule references in existing library files; no TypeScript errors remained.
 - Decisions: Keep total generic reference-image caps at 14 for Gemini 3 image models because the current UI does not distinguish object/character/style reference roles; enforce the legacy Gemini 2.5 image path at 3 references. Use Nano Banana 2 as the default because Google documents it as the balanced general-purpose choice.
 - Remaining risk: If Google changes the exact Interactions API response envelope, extraction may need a small adapter update; current extractor supports both Interactions-style output images and legacy `inlineData` candidates.
+
+#### Latest task: /image aspect ratio selector dropdown correction (2026-08-07)
+
+- Status: Completed. Fixed the /image aspect-ratio control that was hiding several documented Nano Banana 2 ratios because the UI used a short local `RATIO_OPTIONS` list.
+- Changes made: Expanded `/image` ratio options to include the full Gemini Flash image ratio set (`1:4`, `1:8`, `4:1`, `4:5`, `5:4`, `8:1`) and replaced the grid of ratio cards with a custom dropdown that shows both the ratio icon and numeric label.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit` passed.
+- Decision: Use a dropdown for the image aspect-ratio picker so large model-specific ratio sets do not crowd or truncate inside the settings panel.

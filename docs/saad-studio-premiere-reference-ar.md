@@ -2887,3 +2887,9 @@
 - Supported aspect ratios: Flash supports the extended ratio set including `1:4`, `1:8`, `4:1`, and `8:1`; Pro and legacy use the standard set; Lite uses its documented standard Lite set.
 - Reference caps in the current generic UI: Gemini 3 image models allow up to 14 total references; legacy Gemini 2.5 image model allows up to 3. Role-specific object/character/style caps are not separately represented in the current UI.
 - Multiple requested images for Gemini image models should be produced with parallel fanout and saved individually, because the provider may not always honor an exact output count in one call.
+
+## Image Aspect Ratio Dropdown Contract (2026-08-07)
+
+- `/image` aspect-ratio selection must be a dropdown when model ratio sets are large.
+- The dropdown must display both the ratio shape/icon and the numeric ratio label for every supported option.
+- The option list must come from the selected model capabilities, but the local render registry must include all documented Nano Banana 2 Flash ratios, including `1:4`, `1:8`, `4:1`, `4:5`, `5:4`, and `8:1`.

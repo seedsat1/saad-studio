@@ -306,12 +306,18 @@ type CharacterReference = {
 
 const RATIO_OPTIONS = [
   { value: "1:1", width: 1024, height: 1024, cls: "ratio-1-1" },
-  { value: "16:9", width: 1920, height: 1080, cls: "ratio-16-9" },
-  { value: "9:16", width: 1080, height: 1920, cls: "ratio-9-16" },
-  { value: "4:3", width: 1440, height: 1080, cls: "ratio-4-3" },
-  { value: "3:4", width: 1080, height: 1440, cls: "ratio-3-4" },
-  { value: "3:2", width: 1620, height: 1080, cls: "ratio-3-2" },
+  { value: "1:4", width: 512, height: 2048, cls: "ratio-1-4" },
+  { value: "1:8", width: 512, height: 4096, cls: "ratio-1-8" },
   { value: "2:3", width: 1080, height: 1620, cls: "ratio-2-3" },
+  { value: "3:2", width: 1620, height: 1080, cls: "ratio-3-2" },
+  { value: "3:4", width: 1080, height: 1440, cls: "ratio-3-4" },
+  { value: "4:1", width: 4096, height: 1024, cls: "ratio-4-1" },
+  { value: "4:3", width: 1440, height: 1080, cls: "ratio-4-3" },
+  { value: "4:5", width: 1080, height: 1350, cls: "ratio-4-5" },
+  { value: "5:4", width: 1350, height: 1080, cls: "ratio-5-4" },
+  { value: "8:1", width: 4096, height: 512, cls: "ratio-8-1" },
+  { value: "9:16", width: 1080, height: 1920, cls: "ratio-9-16" },
+  { value: "16:9", width: 1920, height: 1080, cls: "ratio-16-9" },
   { value: "21:9", width: 2560, height: 1080, cls: "ratio-21-9" },
 ] as const;
 
@@ -1604,6 +1610,7 @@ export default function ImageWorkspacePage() {
   const [compare, setCompare] = useState<{ before: string; after: string } | null>(null);
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+  const [aspectRatioDropdownOpen, setAspectRatioDropdownOpen] = useState(false);
   const [deleteTargetIds, setDeleteTargetIds] = useState<string[]>([]);
   const [deletingImages, setDeletingImages] = useState(false);
 
@@ -1781,6 +1788,10 @@ export default function ImageWorkspacePage() {
   }, [beginGeneration, finishGeneration]);
 
   const selectedRatio = useMemo(() => RATIO_OPTIONS.find((r) => r.value === aspectRatio) || RATIO_OPTIONS[0], [aspectRatio]);
+  const availableRatioOptions = useMemo(
+    () => RATIO_OPTIONS.filter((ratio) => selectedModel.aspectRatios.includes(ratio.value)),
+    [selectedModel.aspectRatios],
+  );
   const createNeedsImage = selectedModel.inputType !== "text-to-image";
   const selectedCharacter = useMemo(
     () => characters.find((character) => character.id === selectedCharacterId) || null,
@@ -2364,12 +2375,51 @@ export default function ImageWorkspacePage() {
 
         {selectedModel.aspectRatios.length ? (
           <SettingsAccordion label="Aspect Ratio" summary={aspectRatio} defaultOpen>
-            <div className="grid grid-cols-3 gap-2">
-              {RATIO_OPTIONS.filter((r) => selectedModel.aspectRatios.includes(r.value)).map((ratio) => (
-                <button key={ratio.value} onClick={() => setAspectRatio(ratio.value)} className={cn("ratio-card", ratio.cls, aspectRatio === ratio.value && "active")}>
-                  <span className="ratio-shape" /><span className="ratio-label">{ratio.value}</span>
-                </button>
-              ))}
+            <div className="relative">
+              <button
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded={aspectRatioDropdownOpen}
+                onClick={() => setAspectRatioDropdownOpen((open) => !open)}
+                className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 hover:border-white/20 focus:outline-none focus:ring-1 focus:ring-pink-500"
+              >
+                <span className="flex items-center gap-3">
+                  <span className={cn("ratio-menu-icon", selectedRatio.cls)}>
+                    <span className="ratio-shape" />
+                  </span>
+                  <span className="font-semibold">{selectedRatio.value}</span>
+                </span>
+                <ChevronDown className={cn("h-4 w-4 text-zinc-400 transition", aspectRatioDropdownOpen && "rotate-180")} />
+              </button>
+
+              {aspectRatioDropdownOpen ? (
+                <div role="listbox" className="absolute left-0 right-0 z-40 mt-2 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-[#080a12] p-1.5 shadow-2xl shadow-black/50">
+                  {availableRatioOptions.map((ratio) => (
+                    <button
+                      key={ratio.value}
+                      type="button"
+                      role="option"
+                      aria-selected={aspectRatio === ratio.value}
+                      onClick={() => {
+                        setAspectRatio(ratio.value);
+                        setAspectRatioDropdownOpen(false);
+                      }}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm text-zinc-300 hover:bg-white/8 hover:text-white",
+                        aspectRatio === ratio.value && "bg-pink-500/10 text-pink-200",
+                      )}
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className={cn("ratio-menu-icon", ratio.cls, aspectRatio === ratio.value && "active")}>
+                          <span className="ratio-shape" />
+                        </span>
+                        <span className="font-semibold">{ratio.value}</span>
+                      </span>
+                      {aspectRatio === ratio.value ? <Check className="h-4 w-4 text-pink-300" /> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </SettingsAccordion>
         ) : null}
@@ -2555,16 +2605,23 @@ export default function ImageWorkspacePage() {
         .ratio-card { width: 64px; height: 64px; border: 2px solid rgba(255,255,255,0.12); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all .2s; background: transparent; color: #7f8aa3; }
         .ratio-card.active { border-color: #ec4899; background: rgba(236,72,153,0.08); color: #ec4899; }
         .ratio-card .ratio-shape { border: 1.5px solid currentColor; border-radius: 2px; }
+        .ratio-menu-icon { width: 42px; height: 34px; display: inline-flex; align-items: center; justify-content: center; color: #94a3b8; }
+        .ratio-menu-icon.active { color: #f9a8d4; }
         .ratio-auto .ratio-shape { width: 28px; height: 28px; border-style: dashed; }
         .ratio-1-1 .ratio-shape { width: 28px; height: 28px; }
-        .ratio-16-9 .ratio-shape { width: 36px; height: 20px; }
-        .ratio-9-16 .ratio-shape { width: 20px; height: 36px; }
-        .ratio-4-3 .ratio-shape { width: 32px; height: 24px; }
-        .ratio-3-4 .ratio-shape { width: 24px; height: 32px; }
-        .ratio-3-2 .ratio-shape { width: 34px; height: 22px; }
+        .ratio-1-4 .ratio-shape { width: 10px; height: 40px; }
+        .ratio-1-8 .ratio-shape { width: 8px; height: 42px; }
         .ratio-2-3 .ratio-shape { width: 22px; height: 34px; }
-        .ratio-21-9 .ratio-shape { width: 42px; height: 18px; }
-        .ratio-label { margin-top: 4px; font-size: 10px; color: inherit; }
+        .ratio-3-2 .ratio-shape { width: 34px; height: 22px; }
+        .ratio-3-4 .ratio-shape { width: 24px; height: 32px; }
+        .ratio-4-1 .ratio-shape { width: 42px; height: 10px; }
+        .ratio-4-3 .ratio-shape { width: 32px; height: 24px; }
+        .ratio-4-5 .ratio-shape { width: 24px; height: 30px; }
+        .ratio-5-4 .ratio-shape { width: 30px; height: 24px; }
+        .ratio-8-1 .ratio-shape { width: 42px; height: 8px; }
+        .ratio-9-16 .ratio-shape { width: 20px; height: 36px; }
+        .ratio-16-9 .ratio-shape { width: 36px; height: 20px; }
+        .ratio-21-9 .ratio-shape { width: 42px; height: 18px; }        .ratio-label { margin-top: 4px; font-size: 10px; color: inherit; }
         .num-selector { display:flex; gap:8px; }
         .num-btn { width:48px; height:40px; border-radius:8px; border:1.5px solid rgba(255,255,255,.12); background:transparent; color:#7f8aa3; font-size:15px; font-weight:600; }
         .num-btn.active { background:#ec4899; border-color:#ec4899; color:#fff; }
