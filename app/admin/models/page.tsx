@@ -23,7 +23,8 @@ import type { DynamicImageModel, DynamicVideoModel } from "@/lib/dynamic-model-l
 
 export default function AdminModelsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"image" | "video">("image");
+  const [activeTab, setActiveTab] = useState<"image" | "video" | "guide">("image");
+  const [selectedFamily, setSelectedFamily] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [imageModels, setImageModels] = useState<DynamicImageModel[]>([]);
   const [videoModels, setVideoModels] = useState<DynamicVideoModel[]>([]);
@@ -285,19 +286,37 @@ export default function AdminModelsPage() {
     } as any);
   };
 
-  const filteredImageModels = imageModels.filter(
-    (m) =>
+  const filteredImageModels = imageModels.filter((m) => {
+    const matchesSearch =
       m.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.group.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      m.group.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    if (selectedFamily === "all") return true;
+    const g = (m.group || "").toLowerCase();
+    if (selectedFamily === "google") return g.includes("google") || g.includes("imagen") || g.includes("banana");
+    if (selectedFamily === "openai") return g.includes("openai") || g.includes("dall");
+    if (selectedFamily === "flux") return g.includes("flux");
+    if (selectedFamily === "custom") return !g.includes("google") && !g.includes("imagen") && !g.includes("banana") && !g.includes("openai") && !g.includes("dall") && !g.includes("flux");
+    return true;
+  });
 
-  const filteredVideoModels = videoModels.filter(
-    (m) =>
+  const filteredVideoModels = videoModels.filter((m) => {
+    const matchesSearch =
       m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.family.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      m.family.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    if (selectedFamily === "all") return true;
+    const f = (m.family || "").toLowerCase();
+    if (selectedFamily === "google") return f.includes("google") || f.includes("veo");
+    if (selectedFamily === "openai") return f.includes("openai") || f.includes("sora");
+    if (selectedFamily === "kling") return f.includes("kling");
+    if (selectedFamily === "bytedance") return f.includes("bytedance") || f.includes("seedance");
+    if (selectedFamily === "wavespeed") return f.includes("wavespeed") || f.includes("seedream");
+    if (selectedFamily === "custom") return f === "custom" || (!f.includes("google") && !f.includes("veo") && !f.includes("openai") && !f.includes("sora") && !f.includes("kling") && !f.includes("bytedance") && !f.includes("seedance") && !f.includes("wavespeed") && !f.includes("seedream"));
+    return true;
+  });
 
   if (loading) {
     return (
@@ -367,6 +386,7 @@ export default function AdminModelsPage() {
           <button
             onClick={() => {
               setActiveTab("image");
+              setSelectedFamily("all");
               cancelEdit();
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
@@ -381,6 +401,7 @@ export default function AdminModelsPage() {
           <button
             onClick={() => {
               setActiveTab("video");
+              setSelectedFamily("all");
               cancelEdit();
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
@@ -391,6 +412,20 @@ export default function AdminModelsPage() {
           >
             <Video className="w-4 h-4" />
             Video Models ({videoModels.length})
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("guide");
+              cancelEdit();
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              activeTab === "guide"
+                ? "bg-violet-600 text-white shadow-md shadow-violet-600/15"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <HelpCircle className="w-4 h-4" />
+            Integration Guide
           </button>
         </div>
 
@@ -406,9 +441,62 @@ export default function AdminModelsPage() {
         </div>
       </div>
 
+      {/* Sub-tabs for families/providers */}
+      {activeTab !== "guide" && (
+        <div className="flex flex-wrap items-center gap-2 mb-6 p-1.5 bg-slate-900/40 rounded-xl border border-slate-800/60 max-w-fit">
+          {activeTab === "image" ? (
+            <>
+              {[
+                { id: "all", label: "All Groups" },
+                { id: "google", label: "Google / Imagen" },
+                { id: "openai", label: "OpenAI / DALL-E" },
+                { id: "flux", label: "FLUX" },
+                { id: "custom", label: "Custom / Other" },
+              ].map((fam) => (
+                <button
+                  key={fam.id}
+                  onClick={() => setSelectedFamily(fam.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                    selectedFamily === fam.id
+                      ? "bg-violet-600/20 text-violet-400 border border-violet-500/40 shadow-sm shadow-violet-500/5"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent"
+                  }`}
+                >
+                  {fam.label}
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              {[
+                { id: "all", label: "All Families" },
+                { id: "google", label: "Google (Veo)" },
+                { id: "openai", label: "OpenAI (Sora)" },
+                { id: "kling", label: "Kling" },
+                { id: "bytedance", label: "ByteDance (Seedance)" },
+                { id: "wavespeed", label: "WaveSpeed" },
+                { id: "custom", label: "Custom / Other" },
+              ].map((fam) => (
+                <button
+                  key={fam.id}
+                  onClick={() => setSelectedFamily(fam.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                    selectedFamily === fam.id
+                      ? "bg-violet-600/20 text-violet-400 border border-violet-500/40 shadow-sm shadow-violet-500/5"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent"
+                  }`}
+                >
+                  {fam.label}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Models Grid/Table */}
       <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl overflow-hidden backdrop-blur-xl">
-        {activeTab === "image" ? (
+        {activeTab === "image" && (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -620,7 +708,8 @@ export default function AdminModelsPage() {
               </tbody>
             </table>
           </div>
-        ) : (
+        )}
+        {activeTab === "video" && (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -895,6 +984,126 @@ export default function AdminModelsPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {activeTab === "guide" && (
+          <div className="p-6 text-left space-y-8">
+            <div>
+              <h2 className="text-xl font-bold bg-gradient-to-r from-violet-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+                API Integration & Mapping Reference
+              </h2>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                This guide documents how dynamic models configured in this registry map to backend routes and frontend controls. Use this reference to verify parameter translation rules without checking source code.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* API Endpoints */}
+              <div className="p-5 rounded-xl border border-slate-800 bg-slate-950/40">
+                <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Backend API Routes
+                </h3>
+                <div className="space-y-3.5 text-xs">
+                  <div>
+                    <span className="font-mono text-violet-400 font-bold">GET /api/models</span>
+                    <p className="text-slate-400 mt-1">Retrieves active models registry for public user generation tools.</p>
+                  </div>
+                  <div>
+                    <span className="font-mono text-violet-400 font-bold">POST /api/video</span>
+                    <p className="text-slate-400 mt-1">Accepts payload with modelRoute, builds provider-specific parameters, and calls upstream APIs.</p>
+                  </div>
+                  <div>
+                    <span className="font-mono text-violet-400 font-bold">POST /api/generate/image</span>
+                    <p className="text-slate-400 mt-1">Handles image generation routing for DALL-E, Imagen, and FLUX models.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Mapping Schema */}
+              <div className="p-5 rounded-xl border border-slate-800 bg-slate-950/40">
+                <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                  Dynamic Capabilities Mapping
+                </h3>
+                <div className="space-y-3.5 text-xs text-slate-400">
+                  <div>
+                    <strong className="text-slate-200 font-semibold">requires_image: true</strong>
+                    <p className="mt-0.5">Locks the tool into Image-To-Video mode. Restricts generation if start frame is missing.</p>
+                  </div>
+                  <div>
+                    <strong className="text-slate-200 font-semibold">max_reference_images &gt; 0</strong>
+                    <p className="mt-0.5">Enables multi-shot reference image uploads on the left workspace panel up to the specified limit.</p>
+                  </div>
+                  <div>
+                    <strong className="text-slate-200 font-semibold">max_reference_videos &gt; 0</strong>
+                    <p className="mt-0.5">Enables video stitching/transitions tools. Sets limit for transition sources.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Provider Integration Protocols */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">
+                Upstream Provider Protocols
+              </h3>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Google Veo Card */}
+                <div className="p-5 rounded-xl border border-slate-800 bg-[#161a22]">
+                  <span className="text-[10px] font-black text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md">GOOGLE / GEMINI</span>
+                  <h4 className="text-sm font-bold text-white mt-3">Veo 3.1 & Imagen 3</h4>
+                  <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                    Uses official Google Gemini Vertex/Generative API. Supports native audio generation (`sound: true`) and high fidelity aspect ratios.
+                  </p>
+                  <div className="mt-4 pt-4 border-t border-slate-800 font-mono text-[10px] text-slate-500 space-y-1">
+                    <div>Route matches: <span className="text-slate-300">google/*</span></div>
+                    <div>Pricing: Flat rate (Image) or Per Second (Video)</div>
+                  </div>
+                </div>
+
+                {/* OpenAI Card */}
+                <div className="p-5 rounded-xl border border-slate-800 bg-[#161a22]">
+                  <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">OPENAI</span>
+                  <h4 className="text-sm font-bold text-white mt-3">Sora & DALL-E 3</h4>
+                  <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                    Uses OpenAI API endpoints. Sora maps characters using `provider_character_id` instead of standard raw reference images.
+                  </p>
+                  <div className="mt-4 pt-4 border-t border-slate-800 font-mono text-[10px] text-slate-500 space-y-1">
+                    <div>Route matches: <span className="text-slate-300">openai/*</span></div>
+                    <div>Pricing: Fixed credits cost per generation</div>
+                  </div>
+                </div>
+
+                {/* WaveSpeed Card */}
+                <div className="p-5 rounded-xl border border-slate-800 bg-[#161a22]">
+                  <span className="text-[10px] font-black text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-md">WAVESPEED</span>
+                  <h4 className="text-sm font-bold text-white mt-3">Kling, Seedance, Seedream</h4>
+                  <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                    Custom high-performance video engine. Supports multi-image storyboard transitions and layered inpainting editing.
+                  </p>
+                  <div className="mt-4 pt-4 border-t border-slate-800 font-mono text-[10px] text-slate-500 space-y-1">
+                    <div>Family matches: <span className="text-slate-300">kling / seedance / wavespeed</span></div>
+                    <div>Pricing: CreditCost multiplier per second</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Developer Extensibility Checklist */}
+            <div className="p-6 rounded-xl border border-amber-500/20 bg-amber-500/5 text-xs text-slate-400 space-y-3">
+              <h4 className="text-sm font-bold text-amber-400 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                Developer Integration Checklist
+              </h4>
+              <ul className="list-disc pl-5 space-y-1.5">
+                <li>Register custom routes in Vertex/OpenAI/WaveSpeed config lists before editing ID.</li>
+                <li>Make sure to click <strong className="text-slate-200">Auto Sync Catalog</strong> after adding a model to sync pricing constitution entries.</li>
+                <li>Verify your upstream credentials (Vertex keys, WaveSpeed tokens) are correctly populated in environment variables before generating.</li>
+              </ul>
+            </div>
           </div>
         )}
       </div>

@@ -1,3 +1,9 @@
+#### Latest task: Group Admin Models by Family and Add Integration Guide (2026-08-07)
+- Status: Completed. Restructured the Admin Models Manager (/admin/models) to group and filter models dynamically by family/provider (Google, OpenAI, Kling, ByteDance, Wavespeed, FLUX). Added a comprehensive "Integration Guide" tab documenting backend routes, dynamic capabilities schema, and provider integration protocols.
+- Affected files: `app/admin/models/page.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: Successful TypeScript compilation (`npx tsc --noEmit` exited with code 0).
+- Decision: Grouping models by provider and embedding a self-contained integration guide ensures site-level management is fully organized and removes the need for developers to refer to external codebase documentation.
+
 #### Latest task: Hide video mode labels from subscriber model selector (2026-08-07)
 - Status: Completed. Removed the visible `/video` selected-model mode chip so subscribers see only the model name, matching the requested clean model cards.
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
