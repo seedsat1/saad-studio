@@ -1,3 +1,13 @@
+#### Latest task: Revert Reference Tiles to original Style/Character/Add square buttons and separate the 5-icon Status Bar (2026-08-08)
+- Status: Completed.
+  - Reverted `components/ReferenceActionTiles.tsx` to ONLY render the original three square buttons (`Style`, `Character`, `Add`) in a 3-column grid.
+  - Rendered the optimized 5-icon status bar row directly inside `app/(dash)/(routes)/video/page.tsx` right below `ReferenceActionTiles` to replace the old dotted `Reference media` upload box.
+- Affected files: `components/ReferenceActionTiles.tsx`, `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed cleanly. `git diff --check` passed.
+- Decisions:
+  - Keep `ReferenceActionTiles` completely original to prevent messing up the user's styling/character/add buttons.
+  - Position the status bar directly beneath `ReferenceActionTiles` to replace the old dotted upload zone, fulfilling the mockup design without replacing or altering the square buttons.
+
 #### Latest task: Fix Add media button text truncation/ellipsis inside status bar (2026-08-07)
 - Status: Completed. Adjusted the layout geometries inside the 5-icon status bar inside `ReferenceActionTiles` by setting `min-w-[80px]` and `flex-shrink-0` on the `+ Add media` button and adding inline style `whiteSpace: "nowrap"` to ensure the text displays fully on one line without browser truncation.
 - Affected files: `components/ReferenceActionTiles.tsx`, `PROJECT_CONTEXT.md`.

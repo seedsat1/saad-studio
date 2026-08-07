@@ -11,7 +11,7 @@ import {
   X, AlertCircle, Loader2, Upload, CheckCircle2, Settings,
   Play, Download, Trash2, Heart, Copy, MoreHorizontal,
   ExternalLink, RefreshCw, Share2,
-  type LucideIcon, Languages, Volume2, Palette, Plus,
+  type LucideIcon, Languages, Volume2, Palette, Plus, AudioLines,
 } from "lucide-react";
 
 import { useLanguage } from "@/lib/use-language";
@@ -3942,11 +3942,141 @@ function VideoPageInner() {
             onClearEffect={() => setSelectedEffectId(null)}
             onClearCharacter={() => setSelectedCharacterPresetId(null)}
             isAr={lang === "ar"}
-            hasImages={referenceImages.some(f => f.type.startsWith("image/"))}
-            hasVideos={referenceImages.some(f => f.type.startsWith("video/"))}
-            hasAudio={referenceImages.some(f => f.type.startsWith("audio/"))}
-            onAddMedia={() => openMediaPicker("referenceImages")}
           />
+
+          {/* Consolidated Reference Status Bar (replacing old Reference Media dotted button) */}
+          {(showReferenceImages || showSimpleKlingRefs) && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-1 rounded-xl bg-black/20 p-1 border border-white/[0.03]">
+                <div className="flex items-center gap-1">
+                  {/* 1. Image Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStudioTab("uploads");
+                      setShowReferenceStudioModal(true);
+                    }}
+                    className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                    title={lang === "ar" ? "الصور المرجعية" : "Reference Images"}
+                  >
+                    <ImageIcon className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("image/")) ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                    <div
+                      className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
+                        referenceImages.some(f => f.type.startsWith("image/"))
+                          ? "bg-cyan-500 shadow-[0_0_8px_#06b6d4]"
+                          : "bg-transparent group-hover:bg-slate-700"
+                      }`}
+                    />
+                  </button>
+
+                  {/* 2. Video Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStudioTab("uploads");
+                      setShowReferenceStudioModal(true);
+                    }}
+                    className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                    title={lang === "ar" ? "الفيديوهات المرجعية" : "Reference Videos"}
+                  >
+                    <Video className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("video/")) ? "text-purple-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                    <div
+                      className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
+                        referenceImages.some(f => f.type.startsWith("video/"))
+                          ? "bg-purple-500 shadow-[0_0_8px_#a855f7]"
+                          : "bg-transparent group-hover:bg-slate-700"
+                      }`}
+                    />
+                  </button>
+
+                  {/* 3. Audio Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStudioTab("uploads");
+                      setShowReferenceStudioModal(true);
+                    }}
+                    className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                    title={lang === "ar" ? "الأصوات المرجعية" : "Reference Audio"}
+                  >
+                    <AudioLines className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("audio/")) ? "text-teal-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                    <div
+                      className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
+                        referenceImages.some(f => f.type.startsWith("audio/"))
+                          ? "bg-teal-500 shadow-[0_0_8px_#14b8a6]"
+                          : "bg-transparent group-hover:bg-slate-700"
+                      }`}
+                    />
+                  </button>
+
+                  {/* 4. Character Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStudioTab("character");
+                      setShowReferenceStudioModal(true);
+                    }}
+                    className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                    title={lang === "ar" ? "شخصية محفوظة" : "Saved Character"}
+                  >
+                    <User className={`w-3.5 h-3.5 transition-all ${selectedCharacterPresetId ? "text-pink-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                    <div
+                      className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
+                        selectedCharacterPresetId
+                          ? "bg-pink-500 shadow-[0_0_8px_#ec4899]"
+                          : "bg-transparent group-hover:bg-slate-700"
+                      }`}
+                    />
+                  </button>
+
+                  {/* 5. Style Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStudioTab("style");
+                      setShowReferenceStudioModal(true);
+                    }}
+                    className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                    title={lang === "ar" ? "مكتبة الأنماط" : "Style Library"}
+                  >
+                    <Palette className={`w-3.5 h-3.5 transition-all ${selectedStyle ? "text-amber-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                    <div
+                      className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
+                        selectedStyle
+                          ? "bg-amber-500 shadow-[0_0_8px_#eab308]"
+                          : "bg-transparent group-hover:bg-slate-700"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="h-5 w-[1px] bg-slate-800/80 mx-0.5 flex-shrink-0" />
+
+                {/* 6. Add Media Button */}
+                <button
+                  type="button"
+                  onClick={() => openMediaPicker("referenceImages")}
+                  className="flex-shrink-0 min-w-[80px] h-[28px] rounded-lg border border-dashed border-slate-700 hover:border-cyan-500/80 bg-cyan-500/5 hover:bg-cyan-500/10 flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer text-cyan-400 hover:text-white"
+                >
+                  <Plus className="w-3 h-3 flex-shrink-0" />
+                  <span className="text-[10px] font-bold tracking-tight" style={{ whiteSpace: "nowrap" }}>{lang === "ar" ? "إضافة وسائط" : "Add media"}</span>
+                </button>
+              </div>
+
+              <input
+                ref={referenceImagesRef}
+                type="file"
+                accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
+                multiple
+                className="hidden"
+                onChange={e => {
+                  const files = Array.from(e.target.files ?? []);
+                  setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          )}
           {activeTool === "lipsync" ? (
             <div className="flex-grow flex flex-col gap-5">
               {/* Dynamic Avatar/Lipsync Info */}
