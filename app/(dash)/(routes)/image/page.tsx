@@ -1865,13 +1865,13 @@ export default function ImageWorkspacePage() {
         return { placeholder: t("Describe what you want to generate..."), button: t("Generate Image - Unlimited"), promptEnabled: true };
       }
       const credits = getImageCreditCost(selectedModel, numImages, selectedQuality);
-      return { placeholder: t("Describe what you want to generate..."), button: t("Generate Image") + " Ã‚Â· " + credits + " " + t("cr"), promptEnabled: true };
+      return { placeholder: t("Describe what you want to generate..."), button: t("Generate Image") + " - " + credits + " " + t("cr"), promptEnabled: true };
     }
-    if (activeTool === "enhance") return { placeholder: t("Enhancement instructions (optional) Ã¢â‚¬â€ e.g. \"cinematic, 8K, sharp\"..."), button: t("Enhance Photo") + " Ã‚Â· 2 " + t("cr"), promptEnabled: true };
-    if (activeTool === "relight") return { placeholder: t("Describe the lighting you want..."), button: t("Relight Image") + " Ã¢Å“Â¦ " + (3 * relightVariations), promptEnabled: true };
-    if (activeTool === "inpaint") return { placeholder: t("Describe what should replace the painted area..."), button: t("Inpaint") + " Ã¢Å“Â¦ " + (3 * inpaintVariations), promptEnabled: true };
-    if (activeTool === "upscale") return { placeholder: t("Upload media to upscale"), button: t("Upscale Image") + " Ã¢Å“Â¦ 2", promptEnabled: false };
-    return { placeholder: t("Upload source face and target above"), button: t("Swap Face") + " Ã¢Å“Â¦ 4", promptEnabled: false };
+    if (activeTool === "enhance") return { placeholder: t("Enhancement instructions (optional) - e.g. \"cinematic, 8K, sharp\"..."), button: t("Enhance Photo") + " - 2 " + t("cr"), promptEnabled: true };
+    if (activeTool === "relight") return { placeholder: t("Describe the lighting you want..."), button: t("Relight Image") + " - " + (3 * relightVariations), promptEnabled: true };
+    if (activeTool === "inpaint") return { placeholder: t("Describe what should replace the painted area..."), button: t("Inpaint") + " - " + (3 * inpaintVariations), promptEnabled: true };
+    if (activeTool === "upscale") return { placeholder: t("Upload media to upscale"), button: t("Upscale Image") + " - 2", promptEnabled: false };
+    return { placeholder: t("Upload source face and target above"), button: t("Swap Face") + " - 4", promptEnabled: false };
   }, [activeTool, inpaintVariations, isAnnualUnlimitedCreate, numImages, relightVariations, selectedModel, selectedQuality]);
 
   useEffect(() => {
