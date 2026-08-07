@@ -1,3 +1,8 @@
+﻿#### Latest task: Diagnose missing production aspect-ratio dropdown update (2026-08-07)
+- Status: Completed as deployment diagnosis. Confirmed the aspect-ratio dropdown commit `7731cbf` exists on both local `HEAD` and `origin/main`; the screenshot still showing the old ratio grid means production is serving an older deployment, not the current code.
+- Affected files: `PROJECT_CONTEXT.md` only.
+- Verification: `git rev-parse HEAD origin/main` matched `7731cbfa2b5494d946261e78e62af7ae40d64e6f`; `npm.cmd run build` completed successfully; direct production deploy attempt with `npx.cmd vercel --prod --yes` failed because the configured Vercel token is invalid.
+- Decision: Treat the remaining issue as a Vercel deployment/auth problem. Refresh/login Vercel credentials or trigger a production redeploy from the Vercel dashboard for project `saad-studio`.
 #### Latest task: Implement Dynamic AI Models Dashboard (2026-08-07)
 - Status: Completed. Designed and implemented a database-driven AI models registry and dynamic price synchronization.
 - Affected files:
