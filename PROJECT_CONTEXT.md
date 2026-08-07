@@ -10623,3 +10623,16 @@
 - Decisions:
   - Restrict the multilingual globe menu to Gemini voices as they support native multilingual generation natively.
   - Cache each preview voice/language pair under its own key to avoid redundant API credit usage.
+
+#### Latest task: Google Nano Banana image model spec alignment (2026-08-07)
+
+- Status: Completed. Aligned active website image-generation paths with Google Gemini image-generation documentation for Nano Banana 2, Nano Banana Pro, Nano Banana 2 Lite, and legacy Nano Banana.
+- Changes made:
+  - Added `lib/google-image-model-specs.ts` as the shared source for upstream Gemini model ids, supported aspect ratios, image-size quality options, default model selection, and reference-image limits.
+  - Set Nano Banana 2 (`gemini-3.1-flash-image`) as the default general image model; Nano Banana Pro now maps only to `gemini-3-pro-image`; Lite maps to `gemini-3.1-flash-lite-image`; legacy Nano Banana maps to `gemini-2.5-flash-image`.
+  - Updated `/api/generate/image`, panel image generation, Google provider dispatch, Smart CLI/MCP, `/image`, `/character`, character generation API, Cinema Flow defaults, annual-unlimited image eligibility, and pricing for model-specific ratios/quality/reference limits.
+  - Switched direct Gemini image calls to the Google Interactions API shape with `response_format.aspect_ratio` and `response_format.image_size`; multi-image output still uses fanout because exact output counts are not guaranteed by the provider.
+- Affected files: `lib/google-image-model-specs.ts`, `lib/image-models.ts`, `lib/providers/google-images.ts`, `app/api/generate/image/route.ts`, `app/api/panel/generate/image/route.ts`, `app/api/smart-cli/mcp/route.ts`, `app/api/characters/[id]/generate/route.ts`, `app/(dash)/(routes)/image/page.tsx`, `app/(dash)/(routes)/character/page.tsx`, `app/(dash)/(routes)/cinema-flow/page.tsx`, `lib/annual-image-unlimited.ts`, `lib/pricing.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit` passed. `npm.cmd run lint` failed on pre-existing unrelated lint errors in `app/(dash)/(routes)/agent-studio/page.tsx`, `app/(dash)/(routes)/apps/tool/face-swap/page.tsx`, and missing `@typescript-eslint/no-explicit-any` rule references in existing library files; no TypeScript errors remained.
+- Decisions: Keep total generic reference-image caps at 14 for Gemini 3 image models because the current UI does not distinguish object/character/style reference roles; enforce the legacy Gemini 2.5 image path at 3 references. Use Nano Banana 2 as the default because Google documents it as the balanced general-purpose choice.
+- Remaining risk: If Google changes the exact Interactions API response envelope, extraction may need a small adapter update; current extractor supports both Interactions-style output images and legacy `inlineData` candidates.

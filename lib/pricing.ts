@@ -1,5 +1,5 @@
-/**
- * lib/pricing.ts — Server-only pricing bridge
+﻿/**
+ * lib/pricing.ts â€” Server-only pricing bridge
  *
  * Single source of truth for all generation credit costs.
  * Loads PricingModel[] from DEFAULT_MODELS (with 60-second in-memory cache).
@@ -12,7 +12,7 @@
 import { DEFAULT_MODELS, KIE_PACKAGES, applyPricingFloor, calcUserCredits, type PricingModel } from "@/lib/pricing-models";
 import prismadb from "@/lib/prismadb";
 
-// ─── In-memory cache ──────────────────────────────────────────────────────────
+// â”€â”€â”€ In-memory cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let _cachedModels: PricingModel[] | null = null;
 let _cacheTime = 0;
@@ -99,7 +99,7 @@ export async function loadModels(): Promise<PricingModel[]> {
       return merged;
     }
   } catch {
-    // DB unavailable — fall back to defaults
+    // DB unavailable â€” fall back to defaults
   }
 
   _cachedModels = DEFAULT_MODELS;
@@ -113,12 +113,12 @@ export function invalidatePricingCache(): void {
   _cacheTime = 0;
 }
 
-// ─── Model alias map ──────────────────────────────────────────────────────────
-// Maps the model IDs used by generation routes → constitution model IDs.
+// â”€â”€â”€ Model alias map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Maps the model IDs used by generation routes â†’ constitution model IDs.
 // Convention: if a route uses "modelId.mode" (like 3D), use that combined key.
 
 const MODEL_ALIAS_MAP: Record<string, string> = {
-  // ── Video — app/api/generate/video (WaveSpeed route model IDs) ────────────
+  // â”€â”€ Video â€” app/api/generate/video (WaveSpeed route model IDs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   "minimax/h3/reference-to-video":                  "minimax_h3",
   "kling-3.0/video":                              "kling30",
   "kling-3.0/motion-control":                     "kling30_mc",
@@ -176,12 +176,12 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "grok-imagine/text-to-video-1-5":               "grok_vid_v15",
   "grok-imagine/image-to-video-1-5":              "grok_vid_v15_i2v",
 
-  // ── Cinema — app/api/video (KIE model routes) ────────────────────────────
+  // â”€â”€ Cinema â€” app/api/video (KIE model routes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   "kwaivgi/kling-v3.0-std/text-to-video":         "kling30",
   "kwaivgi/kling-v3.0-pro/text-to-video":         "kling30",
   "kwaivgi/kling-v3.0-std/image-to-video":        "kling30",
   "kwaivgi/kling-v3.0-pro/image-to-video":        "kling30",
-  // Kling 3.0 Omni / Omni Edit routes removed — KIE has no Omni endpoint.
+  // Kling 3.0 Omni / Omni Edit routes removed â€” KIE has no Omni endpoint.
   "kwaivgi/kling-v3.0-pro/motion-control":        "kling30_mc",
   "minimax/hailuo-2.3/i2v-standard":              "hailuo23f",
   "minimax/hailuo-2.3/i2v-pro":                   "hailuo23",
@@ -202,7 +202,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "x-ai/grok-imagine-video/text-to-video-1-5":    "grok_vid_v15",
   "x-ai/grok-imagine-video/edit-video-1-5":       "grok_vid_v15_i2v",
 
-  // ── 3D — app/api/3d (endpointKey = modelId.mode) ─────────────────────────
+  // â”€â”€ 3D â€” app/api/3d (endpointKey = modelId.mode) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   "tripo3d-2.5.image":        "tripo25",
   "tripo3d-2.5.multiview":    "tripo25",
   "hunyuan3d-3.1.text":       "hunya31",
@@ -213,7 +213,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "meshy-6.text":             "meshy6",
   "meshy-6.image":            "meshy6",
 
-  // ── Music — app/api/music ────────────────────────────────────────────────
+  // â”€â”€ Music â€” app/api/music â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   "wavespeed-ai/ace-step-1.5":              "music_gen",
   "wavespeed-ai/song-generation":           "music_gen",
   "wavespeed-ai/ace-step":                  "music_gen",
@@ -227,7 +227,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "elevenlabs/music":                       "music_gen",
   "elevenlabs/elevenlabs-music":            "music_gen",
 
-  // ── Direct audio model routes — app/api/generate/audio ──────────────────
+  // â”€â”€ Direct audio model routes â€” app/api/generate/audio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   "elevenlabs/multilingual-v2":              "el_v2",
   "elevenlabs/text-to-speech-multilingual-v2":"el_v2",
   "elevenlabs/text-to-dialogue-v3":          "voice_gen",
@@ -244,7 +244,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "kling/ai-avatar-standard":                "lipsync",
   "minimax/voice-clone":                     "voice_clone",
 
-  // ── Audio actions — app/api/generate/audio ───────────────────────────────
+  // â”€â”€ Audio actions â€” app/api/generate/audio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   "audio:tts":           "el_v2",
   "audio:video2audio":   "sfx",
   "audio:music":         "music_gen",
@@ -255,7 +255,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "audio:lip-sync":      "lipsync",
   "audio:voice-cloning": "voice_clone",
 
-  // ── Image models — app/api/generate/image (IMAGE_MODELS catalog IDs) ─────
+  // â”€â”€ Image models â€” app/api/generate/image (IMAGE_MODELS catalog IDs) â”€â”€â”€â”€â”€
   "nano-banana-pro":                    "nano_pro",
   "nano-banana-2":                      "nano2",
   "nano-banana-2-lite":                 "nano2_lite",
@@ -291,7 +291,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "flux-2/max":                         "flux2_pro_t",
   "flux-2":                             "flux2_flex_t",
 
-  // ── Tools — app/api/generate/* (WaveSpeed tool routes) ───────────────────
+  // â”€â”€ Tools â€” app/api/generate/* (WaveSpeed tool routes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   "tool:upscale":                       "tool_upscale",
   "tool:remove-bg":                     "tool_rmbg",
   "tool:face-swap":                     "tool_faceswap",
@@ -308,25 +308,26 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "dall-e-3":                           "dalle3",
 };
 
-// ─── Quality multipliers ──────────────────────────────────────────────────────
+// â”€â”€â”€ Quality multipliers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Applied on top of the base per-second or flat rate for models that expose
 // a quality/resolution/mode selector.  Only models using quality_param:"mode"
 // (Kling, Wan, etc.) or explicit resolution tiers are affected.
-// Values are intentionally modest — "pro" is ~50% more than "std".
+// Values are intentionally modest â€” "pro" is ~50% more than "std".
 
 // Quality / resolution multipliers applied on top of a model's base
 // userCreditsRate when no per-model override is set in
 // IMAGE_MODEL_QUALITY_MULTIPLIER below.
 //
 // Naming mirrors the strings the routes pass through (lowercased):
-//   "1k", "2k", "4k"           — image resolution tiers
-//   "480p", "720p", "1080p"    — video resolution tiers
-//   "std", "pro"               — Kling generation mode
+//   "1k", "2k", "4k"           â€” image resolution tiers
+//   "480p", "720p", "1080p"    â€” video resolution tiers
+//   "std", "pro"               â€” Kling generation mode
 const QUALITY_MULTIPLIER: Record<string, number> = {
   // Kling std/pro mode
   "std":    1.0,
   "pro":    1.5,
   // Image resolution tiers
+  "512px":  0.5,
   "1k":     1.0,
   "1024":   1.0,
   "2k":     1.5,
@@ -422,8 +423,8 @@ const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "nano_pro":                     { "2k": 1.5, "4k": 1.875 },
   "wan/2-7-image-pro":            { "2k": 1.5, "4k": 1.875 },
   "wan_image_pro":                { "2k": 1.5, "4k": 1.875 },
-  "nano-banana-2":                { "2k": 1.5, "4k": 2.25 },
-  "nano2":                        { "2k": 1.5, "4k": 2.25 },
+  "nano-banana-2":                { "512px": 0.5, "2k": 1.5, "4k": 2.25 },
+  "nano2":                        { "512px": 0.5, "2k": 1.5, "4k": 2.25 },
   "nano-banana-2-lite":           { "2k": 1.5, "4k": 2.25 },
   "nano2_lite":                   { "2k": 1.5, "4k": 2.25 },
   "gpt-image-2-text-to-image":    { "medium": 1.5, "high": 1.875 },
@@ -485,7 +486,7 @@ function qualityMultiplierForModel(modelRef: string, quality: string | null | un
   return QUALITY_MULTIPLIER[q] ?? 1.0;
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Returns the credits to charge a user for one generation task.
@@ -494,7 +495,7 @@ function qualityMultiplierForModel(modelRef: string, quality: string | null | un
  * @param durationSec  Duration in seconds; ignored for flat-billing models.
  * @param numUnits   Number of units (e.g. images); multiplies flat-billing cost.
  * @param quality    Optional resolution/mode string (e.g. "pro", "1080p", "std").
- * @returns  Credits to charge (0 = model not found or inactive → caller should reject).
+ * @returns  Credits to charge (0 = model not found or inactive â†’ caller should reject).
  */
 export async function getGenerationCost(
   modelRef: string,

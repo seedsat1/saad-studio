@@ -1,6 +1,13 @@
-// ─── Image Model Definitions ─────────────────────────────────────────────────
+﻿// â”€â”€â”€ Image Model Definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Per-model API parameter configs used by the image workspace UI.
 // Routes: WaveSpeed (seedream/*), PiAPI (flux-2/*), KIE.ai (everything else)
+
+import {
+  GEMINI_FLASH_IMAGE_ASPECT_RATIOS,
+  GEMINI_FLASH_LITE_IMAGE_ASPECT_RATIOS,
+  GEMINI_STANDARD_IMAGE_ASPECT_RATIOS,
+  GOOGLE_IMAGE_UPSTREAM_MODEL_MAP,
+} from "./google-image-model-specs";
 
 export type ImageInputType = "text-to-image" | "image-to-image" | "edit";
 
@@ -10,6 +17,10 @@ export interface ImageModel {
   sublabel: string;
   badge: string;
   group: string;
+  /** Optional provider-native model id. */
+  upstreamModelId?: string;
+  /** Dynamic/admin catalogs can disable models without removing them. */
+  isActive?: boolean;
   inputType: ImageInputType;
   /** Supported aspect ratio strings. Empty array = N/A (inherits from input image). */
   aspectRatios: string[];
@@ -22,11 +33,11 @@ export interface ImageModel {
   /** Quality presets sent as a `quality` param (e.g. GPT Image). */
   qualityParam?: string[];
   /** KIE API input field name for reference images:
-   * - undefined / "image_url" → single: image_url, multi: image_urls (default)
-   * - "image_input" → always array: image_input (Gemini/Nano Banana models)
-   * - "image_urls" → always array: image_urls (Seedream, FLUX.2, Grok I2I, Nano Banana Edit)
-   * - "image_url" → single string: image_url (Qwen image-edit, qwen/image-to-image)
-   * - "input_urls" → always array: input_urls (GPT Image I2I, Wan, Flux-2 I2I)
+   * - undefined / "image_url" â†’ single: image_url, multi: image_urls (default)
+   * - "image_input" â†’ always array: image_input (Gemini/Nano Banana models)
+   * - "image_urls" â†’ always array: image_urls (Seedream, FLUX.2, Grok I2I, Nano Banana Edit)
+   * - "image_url" â†’ single string: image_url (Qwen image-edit, qwen/image-to-image)
+   * - "input_urls" â†’ always array: input_urls (GPT Image I2I, Wan, Flux-2 I2I)
    */
   imageInputField?: "image_url" | "image_input" | "image_urls" | "input_urls";
   /** When true, the route runs N parallel createTasks for models that don't
@@ -75,7 +86,7 @@ export function getImageCreditCost(model: ImageModel, numImages = 1, quality?: s
   return parseFloat(((model.creditCost || 2) * safeUnits * multiplier).toFixed(2));
 }
 
-// ─── All Aspect Options lookup (for the UI toggle buttons) ────────────────────
+// â”€â”€â”€ All Aspect Options lookup (for the UI toggle buttons) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const ALL_ASPECT_OPTIONS = [
   { value: "auto",  label: "Auto",  cls: "w-7 h-7"        },
   { value: "1:1",   label: "1:1",   cls: "w-6 h-6"        },
@@ -88,31 +99,18 @@ export const ALL_ASPECT_OPTIONS = [
   { value: "3:2",   label: "3:2",   cls: "w-7 h-[18px]"   },
 ] as const;
 
-// ─── Image Model Catalog ──────────────────────────────────────────────────────
+// â”€â”€â”€ Image Model Catalog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const IMAGE_MODELS: ImageModel[] = [
-  // ── Google Nano Banana ────────────────────────────────────────────────────
-  {
-    id: "nano-banana-pro",
-    label: "Nano Banana Pro",
-    sublabel: "4K · Ultra Detail",
-    badge: "TOP",
-    group: "Nano Banana",
-    inputType: "text-to-image",
-    aspectRatios: ["1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9"],
-    maxImages: 4,
-    maxRefImages: 14,
-    imageInputField: "image_input",
-    qualityParam: ["1K", "2K", "4K"],
-    creditCost: 2.0,
-  },
+  // â”€â”€ Google Nano Banana â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "nano-banana-2",
     label: "Nano Banana 2",
-    sublabel: "Fast · Sharp",
-    badge: "",
+    sublabel: "Balanced quality, speed, and cost",
+    badge: "DEFAULT",
     group: "Nano Banana",
+    upstreamModelId: GOOGLE_IMAGE_UPSTREAM_MODEL_MAP["nano-banana-2"],
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9"],
+    aspectRatios: GEMINI_FLASH_IMAGE_ASPECT_RATIOS,
     maxImages: 4,
     maxRefImages: 14,
     imageInputField: "image_input",
@@ -120,13 +118,29 @@ export const IMAGE_MODELS: ImageModel[] = [
     creditCost: 2.0,
   },
   {
+    id: "nano-banana-pro",
+    label: "Nano Banana Pro",
+    sublabel: "Professional 4K asset production",
+    badge: "PRO",
+    group: "Nano Banana",
+    upstreamModelId: GOOGLE_IMAGE_UPSTREAM_MODEL_MAP["nano-banana-pro"],
+    inputType: "text-to-image",
+    aspectRatios: GEMINI_STANDARD_IMAGE_ASPECT_RATIOS,
+    maxImages: 4,
+    maxRefImages: 14,
+    imageInputField: "image_input",
+    qualityParam: ["1K", "2K", "4K"],
+    creditCost: 2.0,
+  },
+  {
     id: "nano-banana-2-lite",
     label: "Nano Banana 2 Lite",
-    sublabel: "Ultra Fast · Cost-efficient",
+    sublabel: "Ultra Fast Â· Cost-efficient",
     badge: "NEW",
     group: "Nano Banana",
+    upstreamModelId: GOOGLE_IMAGE_UPSTREAM_MODEL_MAP["nano-banana-2-lite"],
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+    aspectRatios: GEMINI_FLASH_LITE_IMAGE_ASPECT_RATIOS,
     maxImages: 4,
     maxRefImages: 14,
     imageInputField: "image_input",
@@ -136,31 +150,34 @@ export const IMAGE_MODELS: ImageModel[] = [
   {
     id: "google/nano-banana",
     label: "Nano Banana",
-    sublabel: "Google · Standard",
+    sublabel: "Google Â· Standard",
     badge: "",
     group: "Nano Banana",
+    upstreamModelId: GOOGLE_IMAGE_UPSTREAM_MODEL_MAP["google/nano-banana"],
     inputType: "text-to-image",
     // KIE spec: image_size enum (sent as `image_size` not `aspect_ratio`).
-    aspectRatios: ["1:1", "9:16", "16:9", "3:4", "4:3", "3:2", "2:3", "5:4", "4:5", "21:9"],
-    // Spec has no num_images field → batched via parallel createTasks in the route.
+    aspectRatios: GEMINI_STANDARD_IMAGE_ASPECT_RATIOS,
+    // Spec has no num_images field â†’ batched via parallel createTasks in the route.
     maxImages: 4,
-    maxRefImages: 0,
+    maxRefImages: 3,
+    imageInputField: "image_input",
     creditCost: 1.0,
   },
   {
     id: "google/nano-banana-edit",
     label: "Nano Banana Edit",
-    sublabel: "Google · In-painting",
+    sublabel: "Google Â· In-painting",
     badge: "",
     group: "Nano Banana",
+    upstreamModelId: GOOGLE_IMAGE_UPSTREAM_MODEL_MAP["google/nano-banana-edit"],
     inputType: "edit",
     aspectRatios: [],
     maxImages: 1,
-    maxRefImages: 10,
+    maxRefImages: 3,
     imageInputField: "image_urls",
     creditCost: 1.0,
   },
-  // ── Google Imagen 4 ───────────────────────────────────────────────────────
+  // â”€â”€ Google Imagen 4 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "google/imagen4-fast",
     label: "Google Imagen 4 Fast",
@@ -170,7 +187,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
     maxImages: 4,
-    maxRefImages: 0,
+    maxRefImages: 3,
+    imageInputField: "image_input",
     creditCost: 1.0,
   },
   {
@@ -182,7 +200,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
     maxImages: 1,
-    maxRefImages: 0,
+    maxRefImages: 3,
+    imageInputField: "image_input",
     creditCost: 1.0,
   },
   {
@@ -194,10 +213,11 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
     maxImages: 1,
-    maxRefImages: 0,
+    maxRefImages: 3,
+    imageInputField: "image_input",
     creditCost: 1.0,
   },
-  // ── Seedream ──────────────────────────────────────────────────────────────
+  // â”€â”€ Seedream â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "seedream/4.5-text-to-image",
     label: "Seedream 4.5 T2I",
@@ -207,7 +227,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     // KIE spec aspect_ratio enum: 1:1 / 4:3 / 3:4 / 16:9 / 9:16 / 2:3 / 3:2 / 21:9
     aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2", "21:9"],
-    // No num_images in spec → parallel batching in the route.
+    // No num_images in spec â†’ parallel batching in the route.
     maxImages: 4,
     maxRefImages: 0,
     qualityParam: ["basic", "high"],
@@ -295,20 +315,21 @@ export const IMAGE_MODELS: ImageModel[] = [
     qualityParam: ["1K", "2K"],
     creditCost: 1.0,
   },
-  // ── Z-Image ───────────────────────────────────────────────────────────────
+  // â”€â”€ Z-Image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "z-image",
     label: "Z-Image",
-    sublabel: "Consistent · Sharp",
+    sublabel: "Consistent Â· Sharp",
     badge: "",
     group: "Other",
     inputType: "text-to-image",
     aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
     maxImages: 4,
-    maxRefImages: 0,
+    maxRefImages: 3,
+    imageInputField: "image_input",
     creditCost: 1.0,
   },
-  // ── Qwen ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Qwen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "qwen2/text-to-image",
     label: "Qwen Image T2I",
@@ -318,9 +339,10 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     // KIE spec uses `image_size` enum (square_hd / portrait_4_3 / landscape_4_3 / portrait_16_9 / landscape_16_9).
     aspectRatios: ["1:1", "3:4", "4:3", "9:16", "16:9"],
-    // No num_images → parallel batching.
+    // No num_images â†’ parallel batching.
     maxImages: 4,
-    maxRefImages: 0,
+    maxRefImages: 3,
+    imageInputField: "image_input",
     creditCost: 1.0,
   },
   {
@@ -349,17 +371,17 @@ export const IMAGE_MODELS: ImageModel[] = [
     imageInputField: "image_url",
     creditCost: 1.0,
   },
-  // ── Grok Imagine ─────────────────────────────────────────────────────────
+  // â”€â”€ Grok Imagine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "grok-imagine/text-to-image",
     label: "Grok Imagine",
-    sublabel: "Creative · Open",
+    sublabel: "Creative Â· Open",
     badge: "",
     group: "Other",
     inputType: "text-to-image",
     // KIE spec aspect_ratio enum: 2:3 / 3:2 / 1:1 / 16:9 / 9:16
     aspectRatios: ["2:3", "3:2", "1:1", "16:9", "9:16"],
-    // No num_images in spec → parallel batching.
+    // No num_images in spec â†’ parallel batching.
     maxImages: 4,
     maxRefImages: 0,
     // Speed (false) vs Quality (true) maps to enable_pro.
@@ -381,7 +403,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     imageInputField: "image_urls",
     creditCost: 1.0,
   },
-  // ── GPT Image ─────────────────────────────────────────────────────────────
+  // â”€â”€ GPT Image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "gpt-image-2-text-to-image",
     label: "GPT Image 2",
@@ -436,7 +458,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     qualityParam: ["medium", "high"],
     creditCost: 1.0,
   },
-  // ── Wan ───────────────────────────────────────────────────────────────────
+  // â”€â”€ Wan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "wan/2-7-image-pro",
     label: "Wan 2.7 Image Pro",
@@ -453,7 +475,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     wanSequentialMode: true,
     creditCost: 1.0,
   },
-  // ── FLUX.2 (public tiers; server resolves T2I/I2I variants privately) ─────────
+  // â”€â”€ FLUX.2 (public tiers; server resolves T2I/I2I variants privately) â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     id: "flux-2/pro",
     label: "FLUX.2 Pro",
@@ -497,4 +519,3 @@ export const IMAGE_MODELS: ImageModel[] = [
     creditCost: 1.0,
   },
 ];
-

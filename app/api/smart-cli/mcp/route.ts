@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { verifyPanelToken } from "@/lib/panel-auth";
 import { getFallbackUrls } from "@/lib/utils";
@@ -38,10 +38,10 @@ type ToolResult = {
   structuredContent?: Record<string, unknown>;
 };
 
-const DEFAULT_IMAGE_MODEL = "nano-banana-pro";
+const DEFAULT_IMAGE_MODEL = "nano-banana-2";
 const DEFAULT_VIDEO_MODEL = "kling-3.0/video";
 
-// MCP Apps UI resource URIs — the widgets that Claude renders inline when
+// MCP Apps UI resource URIs â€” the widgets that Claude renders inline when
 // these tools return. See https://apps.extensions.modelcontextprotocol.io/.
 const IMAGE_VIEW_URI = "ui://saadstudio/image.html";
 const VIDEO_VIEW_URI = "ui://saadstudio/video.html";
@@ -59,7 +59,7 @@ const VIDEO_TOOL_UI_META = {
 const tools = [
   {
     name: "generate_image",
-    description: "Generate an image through Saad Studio using Nano Banana Pro.",
+    description: "Generate an image through Saad Studio using Nano Banana 2 by default.",
     inputSchema: {
       type: "object",
       properties: {
@@ -147,8 +147,8 @@ const tools = [
 ];
 
 const AVAILABLE_MODELS = [
-  { id: "nano-banana-pro", kind: "image", label: "Nano Banana Pro", notes: "Default. Fast, photoreal, strong prompt adherence.", badges: ["default", "fast"] },
-  { id: "nano-banana-2", kind: "image", label: "Nano Banana 2", notes: "Balanced quality/speed.", badges: [] },
+  { id: "nano-banana-2", kind: "image", label: "Nano Banana 2", notes: "Default. Balanced quality, speed, cost, and prompt adherence.", badges: ["default", "balanced"] },
+  { id: "nano-banana-pro", kind: "image", label: "Nano Banana Pro", notes: "Professional 4K asset production.", badges: ["pro"] },
   { id: "google/nano-banana", kind: "image", label: "Google Nano Banana", notes: "Google Imagen variant.", badges: [] },
   { id: "seedream/5-pro", kind: "image", label: "Seedream 5 Pro", notes: "ByteDance high-fidelity. Accepts reference images for edit mode.", badges: ["pro"] },
   { id: "seedream/5-lite", kind: "image", label: "Seedream 5 Lite", notes: "Cheaper Seedream tier.", badges: [] },
@@ -168,7 +168,7 @@ const AVAILABLE_MODELS = [
   { id: "bytedance/seedance-v2/text-to-video", kind: "video", label: "Seedance 2.0", notes: "ByteDance flagship video, accepts reference images + audio.", badges: ["new"] },
 ];
 
-// ── MCP Apps widgets ──────────────────────────────────────────────────────
+// â”€â”€ MCP Apps widgets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Two inline HTML documents Claude renders as rich cards when generate_image /
 // generate_storyboard / generate_video return. They pull @modelcontextprotocol
 // /ext-apps from unpkg (declared in CSP meta on the resource), read the tool
@@ -203,10 +203,10 @@ const IMAGE_WIDGET_HTML = String.raw`<!DOCTYPE html>
 </style>
 </head>
 <body>
-<div class="card" id="root"><div class="empty">Loading…</div></div>
+<div class="card" id="root"><div class="empty">Loadingâ€¦</div></div>
 <script type="module">
   import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.4.0/app-with-deps";
-  const app = new App({ name: "Saad Studio · Image", version: "1.0.0" });
+  const app = new App({ name: "Saad Studio Â· Image", version: "1.0.0" });
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -214,7 +214,7 @@ const IMAGE_WIDGET_HTML = String.raw`<!DOCTYPE html>
     const meta = structuredContent || {};
     const imageBlocks = (content || []).filter((c) => c && c.type === "image");
     const urls = Array.isArray(meta.imageUrls) ? meta.imageUrls : (meta.imageUrl ? [meta.imageUrl] : []);
-    const modelLabel = meta.modelLabel || meta.modelId || "Nano Banana Pro";
+    const modelLabel = meta.modelLabel || meta.modelId || "Nano Banana 2";
     const aspect = meta.aspectRatio || "";
     const prompt = meta.prompt || "";
 
@@ -279,10 +279,10 @@ const VIDEO_WIDGET_HTML = String.raw`<!DOCTYPE html>
 </style>
 </head>
 <body>
-<div class="card" id="root"><div class="empty">Loading…</div></div>
+<div class="card" id="root"><div class="empty">Loadingâ€¦</div></div>
 <script type="module">
   import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.4.0/app-with-deps";
-  const app = new App({ name: "Saad Studio · Video", version: "1.0.0" });
+  const app = new App({ name: "Saad Studio Â· Video", version: "1.0.0" });
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -421,7 +421,7 @@ type InlineFetchErr = { ok: false; reason: string };
 async function fetchInlineImage(url: string): Promise<InlineFetchOk | InlineFetchErr> {
   // Panel APIs return storage-relative paths ("images/user_xxx/abc.jpg")
   // that fetch() can't parse. getFallbackUrls expands them into the ordered
-  // list of absolute CDN URLs (Backblaze B2 → /api/media → R2). We stop at
+  // list of absolute CDN URLs (Backblaze B2 â†’ /api/media â†’ R2). We stop at
   // the first host that returns bytes so Claude actually gets the image.
   const candidates = getFallbackUrls(url).filter((candidate) =>
     /^https?:\/\//i.test(candidate),

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, type ChangeEvent, type DragEvent, type MouseEvent } from "react";
 import { useAuth } from "@clerk/nextjs";
@@ -32,6 +32,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { IMAGE_MODELS, getImageCreditCost, type ImageModel } from "@/lib/image-models";
+import { DEFAULT_GOOGLE_IMAGE_MODEL_ID, getDefaultImageModel } from "@/lib/google-image-model-specs";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { useAssetStore } from "@/hooks/use-asset-store";
@@ -58,6 +59,7 @@ const ANNUAL_UNLIMITED_IMAGE_MODEL_IDS = new Set([
   "gpt-image-2-image-to-image",
   "nano-banana-2",
   "nano-banana-pro",
+  "nano-banana-2-lite",
 ]);
 const ANNUAL_UNLIMITED_IMAGE_PLAN_IDS = new Set(["pro", "max"]);
 const EXCLUDED_ANNUAL_UNLIMITED_IMAGE_MODEL_IDS = new Set([
@@ -107,6 +109,7 @@ const isHiddenImagePageModel = (model: Pick<ImageModel, "id" | "label">) =>
   HIDDEN_IMAGE_PAGE_MODEL_IDS.has(model.id.toLowerCase()) ||
   HIDDEN_IMAGE_PAGE_MODEL_LABELS.has(model.label.trim().toLowerCase());
 const VISIBLE_IMAGE_MODELS = IMAGE_MODELS.filter((model) => !isHiddenImagePageModel(model));
+const DEFAULT_VISIBLE_IMAGE_MODEL = getDefaultImageModel(VISIBLE_IMAGE_MODELS) ?? IMAGE_MODELS.find((model) => model.id === DEFAULT_GOOGLE_IMAGE_MODEL_ID) ?? IMAGE_MODELS[0];
 
 function isAnnualUnlimitedImageQuality(value?: string | null) {
   const normalized = String(value ?? "1K").trim().toLowerCase();
@@ -212,7 +215,7 @@ function resultAspectRatioNumber(item: Pick<ResultItem, "width" | "height" | "as
     if (width > 0 && height > 0) return width / height;
   }
 
-  const sizeMatch = aspect.match(/(\d{2,5})\s*[x×]\s*(\d{2,5})/);
+  const sizeMatch = aspect.match(/(\d{2,5})\s*[xÃ—]\s*(\d{2,5})/);
   if (sizeMatch) {
     const width = Number(sizeMatch[1]);
     const height = Number(sizeMatch[2]);
@@ -343,7 +346,7 @@ const EDIT_MODELS = IMAGE_MODELS.filter((m) =>
   ].includes(m.id) && !isHiddenImagePageModel(m),
 );
 
-// All models that accept real image inputs (any inputType) â€” includes Nano Banana (up to 14 imgs), edit, and pure img2img
+// All models that accept real image inputs (any inputType) Ã¢â‚¬â€ includes Nano Banana (up to 14 imgs), edit, and pure img2img
 const ENHANCE_MODELS = IMAGE_MODELS.filter(
   (m) => m.imageInputField !== undefined && m.maxRefImages > 0 && !isHiddenImagePageModel(m),
 );
@@ -682,7 +685,7 @@ function SettingsAccordion({ label, summary, children, defaultOpen = false }: { 
   );
 }
 
-/* â”€â”€â”€ Gateway card â€” leads to /image-presets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Gateway card Ã¢â‚¬â€ leads to /image-presets Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 function StyleLibraryGatewayCard() {
   const { t, lang } = useImageTranslation();
   return (
@@ -690,12 +693,12 @@ function StyleLibraryGatewayCard() {
       href="/image-presets"
       className="group relative block overflow-hidden rounded-2xl border border-amber-400/25 bg-black/40 transition-all hover:border-amber-400/55 hover:shadow-xl hover:shadow-amber-500/20"
     >
-      {/* Hero image â€” tall to give the collage room to breathe */}
+      {/* Hero image Ã¢â‚¬â€ tall to give the collage room to breathe */}
       <div className="relative h-44 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/preset/card.webp"
-          alt="Style Library â€” featured styles"
+          alt="Style Library Ã¢â‚¬â€ featured styles"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           fetchPriority="high"
         />
@@ -717,11 +720,11 @@ function StyleLibraryGatewayCard() {
           {t("Style Library")}
         </h3>
         <p className="mt-0.5 text-[11px] leading-5 text-zinc-400">
-          {t("Tap a curated style â€” the prompt, model, and aspect ratio apply instantly.")}
+          {t("Tap a curated style Ã¢â‚¬â€ the prompt, model, and aspect ratio apply instantly.")}
         </p>
         <div className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 group-hover:text-amber-200">
           {t("Browse styles")}
-          <span className="transition-transform group-hover:translate-x-0.5">â†’</span>
+          <span className="transition-transform group-hover:translate-x-0.5">Ã¢â€ â€™</span>
         </div>
       </div>
     </a>
@@ -1207,7 +1210,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
   );
 }
 
-// Album Picker modal â€” shared visual with /gallery
+// Album Picker modal Ã¢â‚¬â€ shared visual with /gallery
 function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Album[]; count: number; onPick: (id: string) => void; onCreate: (name: string) => void; onClose: () => void }) {
   const { t, lang } = useImageTranslation();
   const [newName, setNewName] = useState("");
@@ -1215,7 +1218,7 @@ function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Alb
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1222] p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{lang === "ar" ? "Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø¹Ù†Ø§ØµØ± Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© Ù„Ù„Ø£Ù„Ø¨ÙˆÙ…" : `Add ${count} item(s) to album`}</h3>
+          <h3 className="text-lg font-semibold">{lang === "ar" ? "Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â¹Ã™â€ Ã˜Â§Ã˜ÂµÃ˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â­Ã˜Â¯Ã˜Â¯Ã˜Â© Ã™â€žÃ™â€žÃ˜Â£Ã™â€žÃ˜Â¨Ã™Ë†Ã™â€¦" : `Add ${count} item(s) to album`}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10"><X className="h-4 w-4" /></button>
         </div>
 
@@ -1400,131 +1403,131 @@ function useImageTranslation() {
     },
     ar: {
       // Sidebar Accordion Headers
-      "Model": "Ø§Ù„Ù†Ù…ÙˆØ°Ø¬",
-      "Character Reference": "Ù…Ø±Ø¬Ø¹ Ø§Ù„Ø´Ø®ØµÙŠØ©",
-      "Aspect Ratio": "Ø§Ù„Ø£Ø¨Ø¹Ø§Ø¯",
-      "Number of Images": "Ø¹Ø¯Ø¯ Ø§Ù„ØµÙˆØ±",
-      "Resolution": "Ø§Ù„Ø¯Ù‚Ø©",
-      "Quality": "Ø§Ù„Ø¬ÙˆØ¯Ø©",
+      "Model": "Ã˜Â§Ã™â€žÃ™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬",
+      "Character Reference": "Ã™â€¦Ã˜Â±Ã˜Â¬Ã˜Â¹ Ã˜Â§Ã™â€žÃ˜Â´Ã˜Â®Ã˜ÂµÃ™Å Ã˜Â©",
+      "Aspect Ratio": "Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â¨Ã˜Â¹Ã˜Â§Ã˜Â¯",
+      "Number of Images": "Ã˜Â¹Ã˜Â¯Ã˜Â¯ Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±",
+      "Resolution": "Ã˜Â§Ã™â€žÃ˜Â¯Ã™â€šÃ˜Â©",
+      "Quality": "Ã˜Â§Ã™â€žÃ˜Â¬Ã™Ë†Ã˜Â¯Ã˜Â©",
 
       // Workspace status messages
-      "ENHANCE â€” Photo Restoration": "Ø§Ù„ØªØ­Ø³ÙŠÙ† â€” ØªØ±Ù…ÙŠÙ… Ø§Ù„ØµÙˆØ±",
-      "Upload a photo in the settings panel â†’ click Enhance Photo": "Ø§Ø±ÙØ¹ ØµÙˆØ±Ø© ÙÙŠ Ù„ÙˆØ­Ø© Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª â† Ø§Ø¶ØºØ· Ø¹Ù„Ù‰ Ø²Ø± ØªØ­Ø³ÙŠÙ† Ø§Ù„ØµÙˆØ±Ø©",
-      "Uses true image-to-image AI to preserve identity while improving quality": "ÙŠØ³ØªØ®Ø¯Ù… Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ Ø§Ù„ÙØ¹Ù„ÙŠ (ØµÙˆØ±Ø© Ø¥Ù„Ù‰ ØµÙˆØ±Ø©) Ù„Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Ø§Ù„Ù…Ù„Ø§Ù…Ø­ Ù…Ø¹ ØªØ­Ø³ÙŠÙ† Ø§Ù„Ø¬ÙˆØ¯Ø©",
-      "Upload image and relight": "Ø§Ø±ÙØ¹ ØµÙˆØ±Ø© ÙˆØ§Ø¶Ø¨Ø· Ø§Ù„Ø¥Ø¶Ø§Ø¡Ø©",
-      "Upload media and upscale": "Ø§Ø±ÙØ¹ Ø§Ù„ÙˆØ³Ø§Ø¦Ø· ÙˆÙƒØ¨Ù‘Ø± Ø¯Ù‚ØªÙ‡Ø§",
-      "Upload source and target images": "Ø§Ø±ÙØ¹ Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…ØµØ¯Ø± ÙˆØ§Ù„Ù‡Ø¯Ù Ù„ØªØ¨Ø¯ÙŠÙ„ Ø§Ù„ÙˆØ¬Ù‡",
-      "Start generating to see results.": "Ø§Ø¨Ø¯Ø£ Ø§Ù„ØªÙˆÙ„ÙŠØ¯ Ù„Ø±Ø¤ÙŠØ© Ø§Ù„Ù†ØªØ§Ø¦Ø¬.",
-      "Load more": "ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ø²ÙŠØ¯",
-      "Loading...": "Ø¬Ø§Ø± Ø§Ù„ØªØ­Ù…ÙŠÙ„...",
-      "Upload image to start painting mask.": "Ø§Ø±ÙØ¹ ØµÙˆØ±Ø© Ù„Ù„Ø¨Ø¯Ø¡ ÙÙŠ Ø±Ø³Ù… Ø§Ù„Ù‚Ù†Ø§Ø¹.",
+      "ENHANCE Ã¢â‚¬â€ Photo Restoration": "Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã¢â‚¬â€ Ã˜ÂªÃ˜Â±Ã™â€¦Ã™Å Ã™â€¦ Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±",
+      "Upload a photo in the settings panel Ã¢â€ â€™ click Enhance Photo": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™ÂÃ™Å  Ã™â€žÃ™Ë†Ã˜Â­Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã¢â€ Â Ã˜Â§Ã˜Â¶Ã˜ÂºÃ˜Â· Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â²Ã˜Â± Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©",
+      "Uses true image-to-image AI to preserve identity while improving quality": "Ã™Å Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â°Ã™Æ’Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜Â§Ã˜ÂµÃ˜Â·Ã™â€ Ã˜Â§Ã˜Â¹Ã™Å  Ã˜Â§Ã™â€žÃ™ÂÃ˜Â¹Ã™â€žÃ™Å  (Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã˜Â¥Ã™â€žÃ™â€° Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©) Ã™â€žÃ™â€žÃ˜Â­Ã™ÂÃ˜Â§Ã˜Â¸ Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ™â€¦Ã™â€žÃ˜Â§Ã™â€¦Ã˜Â­ Ã™â€¦Ã˜Â¹ Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã˜Â§Ã™â€žÃ˜Â¬Ã™Ë†Ã˜Â¯Ã˜Â©",
+      "Upload image and relight": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™Ë†Ã˜Â§Ã˜Â¶Ã˜Â¨Ã˜Â· Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â©",
+      "Upload media and upscale": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â³Ã˜Â§Ã˜Â¦Ã˜Â· Ã™Ë†Ã™Æ’Ã˜Â¨Ã™â€˜Ã˜Â± Ã˜Â¯Ã™â€šÃ˜ÂªÃ™â€¡Ã˜Â§",
+      "Upload source and target images": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂµÃ˜Â¯Ã˜Â± Ã™Ë†Ã˜Â§Ã™â€žÃ™â€¡Ã˜Â¯Ã™Â Ã™â€žÃ˜ÂªÃ˜Â¨Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
+      "Start generating to see results.": "Ã˜Â§Ã˜Â¨Ã˜Â¯Ã˜Â£ Ã˜Â§Ã™â€žÃ˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯ Ã™â€žÃ˜Â±Ã˜Â¤Ã™Å Ã˜Â© Ã˜Â§Ã™â€žÃ™â€ Ã˜ÂªÃ˜Â§Ã˜Â¦Ã˜Â¬.",
+      "Load more": "Ã˜ÂªÃ˜Â­Ã™â€¦Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â²Ã™Å Ã˜Â¯",
+      "Loading...": "Ã˜Â¬Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã™â€¦Ã™Å Ã™â€ž...",
+      "Upload image to start painting mask.": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™â€žÃ™â€žÃ˜Â¨Ã˜Â¯Ã˜Â¡ Ã™ÂÃ™Å  Ã˜Â±Ã˜Â³Ã™â€¦ Ã˜Â§Ã™â€žÃ™â€šÃ™â€ Ã˜Â§Ã˜Â¹.",
 
       // Sidebar Right Panel Settings
-      "New from Saad Studio": "Ø¬Ø¯ÙŠØ¯ Ù…Ù† Ø§Ø³ØªÙˆØ¯ÙŠÙˆ Ø³Ø¹Ø¯",
-      "No saved character": "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø´Ø®ØµÙŠØ© Ù…Ø­ÙÙˆØ¸Ø©",
-      "Create a reusable character": "Ø¥Ù†Ø´Ø§Ø¡ Ø´Ø®ØµÙŠØ© Ù‚Ø§Ø¨Ù„Ø© Ù„Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù…",
-      "This model does not accept reference images. Choose an image-to-image model to use this character.": "Ù‡Ø°Ø§ Ø§Ù„Ù†Ù…ÙˆØ°Ø¬ Ù„Ø§ ÙŠÙ‚Ø¨Ù„ ØµÙˆØ±Ø§Ù‹ Ù…Ø±Ø¬Ø¹ÙŠØ©. Ø§Ø®ØªØ± Ù†Ù…ÙˆØ°Ø¬ ØµÙˆØ±Ø© Ø¥Ù„Ù‰ ØµÙˆØ±Ø© Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù… Ù‡Ø°Ù‡ Ø§Ù„Ø´Ø®ØµÙŠØ©.",
-      "Upload image to relight": "Ø§Ø±ÙØ¹ ØµÙˆØ±Ø© Ù„Ø¶Ø¨Ø· Ø§Ù„Ø¥Ø¶Ø§Ø¡Ø©",
-      "Lighting Preset": "Ù‚Ø§Ù„Ø¨ Ø§Ù„Ø¥Ø¶Ø§Ø¡Ø©",
-      "Brightness": "Ø§Ù„Ø³Ø·ÙˆØ¹",
-      "Contrast": "Ø§Ù„ØªØ¨Ø§ÙŠÙ†",
-      "Temperature": "Ø¯Ø±Ø¬Ø© Ø­Ø±Ø§Ø±Ø© Ø§Ù„Ù„ÙˆÙ†",
-      "Shadow Intensity": "Ø´Ø¯Ø© Ø§Ù„Ø¸Ù„Ø§Ù„",
-      "Light Direction": "Ø§ØªØ¬Ø§Ù‡ Ø§Ù„Ø¶ÙˆØ¡",
-      "Number of Variations": "Ø¹Ø¯Ø¯ Ø§Ù„Ù…ØªØºÙŠØ±Ø§Øª",
-      "Edit Model": "Ù†Ù…ÙˆØ°Ø¬ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„",
-      "Brush Size": "Ø­Ø¬Ù… Ø§Ù„ÙØ±Ø´Ø§Ø©",
-      "Enhancement Model": "Ù†Ù…ÙˆØ°Ø¬ Ø§Ù„ØªØ­Ø³ÙŠÙ†",
-      "Input Images": "Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…Ø¯Ø®Ù„Ø©",
-      "Required": "Ù…Ø·Ù„ÙˆØ¨",
-      "Optional": "Ø§Ø®ØªÙŠØ§Ø±ÙŠ",
-      "âœ¦ True Image-to-Image": "âœ¦ ØµÙˆØ±Ø© Ø¥Ù„Ù‰ ØµÙˆØ±Ø© ÙØ¹Ù„ÙŠ",
-      "ENHANCE sends your photo directly as input to the AI â€” preserves identity. Unlike CREATE which uses it as loose inspiration.": "Ø®Ø§ØµÙŠØ© Ø§Ù„ØªØ­Ø³ÙŠÙ† ØªØ±Ø³Ù„ ØµÙˆØ±ØªÙƒ Ù…Ø¨Ø§Ø´Ø±Ø© ÙƒÙ…Ø¯Ø®Ù„ Ù„Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ Ù„Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Ø§Ù„Ù…Ù„Ø§Ù…Ø­ Ø¨Ø¯Ù‚Ø©ØŒ Ø¨Ø®Ù„Ø§Ù Ø®Ø§ØµÙŠØ© Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙŠ ØªØ³ØªØ®Ø¯Ù…Ù‡Ø§ ÙƒÙ…Ø¬Ø±Ø¯ Ø¥Ù„Ù‡Ø§Ù….",
-      "Upload image": "Ø§Ø±ÙØ¹ ØµÙˆØ±Ø©",
-      "Scale Factor": "Ù…Ø¹Ø§Ù…Ù„ Ø§Ù„ØªÙƒØ¨ÙŠØ±",
-      "Denoise": "Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ø¶ÙˆØ¶Ø§Ø¡",
-      "Sharpen": "Ø²ÙŠØ§Ø¯Ø© Ø§Ù„Ø­Ø¯Ø©",
-      "Face Enhancement": "ØªØ­Ø³ÙŠÙ† Ù…Ù„Ø§Ù…Ø­ Ø§Ù„ÙˆØ¬Ù‡",
-      "Color Enhancement": "ØªØ­Ø³ÙŠÙ† Ø§Ù„Ø£Ù„ÙˆØ§Ù†",
-      "Output Format": "ØµÙŠØºØ© Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª",
-      "Source face": "Ø§Ù„ÙˆØ¬Ù‡ Ø§Ù„Ù…ØµØ¯Ø±",
-      "Target image": "Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„Ù‡Ø¯Ù",
-      "Face Blend": "Ø¯Ù…Ø¬ Ø§Ù„ÙˆØ¬Ù‡",
-      "Keep target expression": "Ø§Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ ØªØ¹Ø§Ø¨ÙŠØ± Ø§Ù„ÙˆØ¬Ù‡ Ø§Ù„Ù‡Ø¯Ù",
-      "Match skin tones": "Ù…Ø·Ø§Ø¨Ù‚Ø© Ù„ÙˆÙ† Ø§Ù„Ø¨Ø´Ø±Ø©",
-      "Target Face Index": "Ù…Ø¤Ø´Ø± Ø§Ù„ÙˆØ¬Ù‡ Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù",
+      "New from Saad Studio": "Ã˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯ Ã™â€¦Ã™â€  Ã˜Â§Ã˜Â³Ã˜ÂªÃ™Ë†Ã˜Â¯Ã™Å Ã™Ë† Ã˜Â³Ã˜Â¹Ã˜Â¯",
+      "No saved character": "Ã™â€žÃ˜Â§ Ã˜ÂªÃ™Ë†Ã˜Â¬Ã˜Â¯ Ã˜Â´Ã˜Â®Ã˜ÂµÃ™Å Ã˜Â© Ã™â€¦Ã˜Â­Ã™ÂÃ™Ë†Ã˜Â¸Ã˜Â©",
+      "Create a reusable character": "Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Ã˜Â´Ã˜Â®Ã˜ÂµÃ™Å Ã˜Â© Ã™â€šÃ˜Â§Ã˜Â¨Ã™â€žÃ˜Â© Ã™â€žÃ™â€žÃ˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã˜Â§Ã™â€¦",
+      "This model does not accept reference images. Choose an image-to-image model to use this character.": "Ã™â€¡Ã˜Â°Ã˜Â§ Ã˜Â§Ã™â€žÃ™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬ Ã™â€žÃ˜Â§ Ã™Å Ã™â€šÃ˜Â¨Ã™â€ž Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â§Ã™â€¹ Ã™â€¦Ã˜Â±Ã˜Â¬Ã˜Â¹Ã™Å Ã˜Â©. Ã˜Â§Ã˜Â®Ã˜ÂªÃ˜Â± Ã™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã˜Â¥Ã™â€žÃ™â€° Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™â€žÃ˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã˜Â§Ã™â€¦ Ã™â€¡Ã˜Â°Ã™â€¡ Ã˜Â§Ã™â€žÃ˜Â´Ã˜Â®Ã˜ÂµÃ™Å Ã˜Â©.",
+      "Upload image to relight": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™â€žÃ˜Â¶Ã˜Â¨Ã˜Â· Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â©",
+      "Lighting Preset": "Ã™â€šÃ˜Â§Ã™â€žÃ˜Â¨ Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â©",
+      "Brightness": "Ã˜Â§Ã™â€žÃ˜Â³Ã˜Â·Ã™Ë†Ã˜Â¹",
+      "Contrast": "Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â¨Ã˜Â§Ã™Å Ã™â€ ",
+      "Temperature": "Ã˜Â¯Ã˜Â±Ã˜Â¬Ã˜Â© Ã˜Â­Ã˜Â±Ã˜Â§Ã˜Â±Ã˜Â© Ã˜Â§Ã™â€žÃ™â€žÃ™Ë†Ã™â€ ",
+      "Shadow Intensity": "Ã˜Â´Ã˜Â¯Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¸Ã™â€žÃ˜Â§Ã™â€ž",
+      "Light Direction": "Ã˜Â§Ã˜ÂªÃ˜Â¬Ã˜Â§Ã™â€¡ Ã˜Â§Ã™â€žÃ˜Â¶Ã™Ë†Ã˜Â¡",
+      "Number of Variations": "Ã˜Â¹Ã˜Â¯Ã˜Â¯ Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂªÃ˜ÂºÃ™Å Ã˜Â±Ã˜Â§Ã˜Âª",
+      "Edit Model": "Ã™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â¹Ã˜Â¯Ã™Å Ã™â€ž",
+      "Brush Size": "Ã˜Â­Ã˜Â¬Ã™â€¦ Ã˜Â§Ã™â€žÃ™ÂÃ˜Â±Ã˜Â´Ã˜Â§Ã˜Â©",
+      "Enhancement Model": "Ã™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€ ",
+      "Input Images": "Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¯Ã˜Â®Ã™â€žÃ˜Â©",
+      "Required": "Ã™â€¦Ã˜Â·Ã™â€žÃ™Ë†Ã˜Â¨",
+      "Optional": "Ã˜Â§Ã˜Â®Ã˜ÂªÃ™Å Ã˜Â§Ã˜Â±Ã™Å ",
+      "Ã¢Å“Â¦ True Image-to-Image": "Ã¢Å“Â¦ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã˜Â¥Ã™â€žÃ™â€° Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™ÂÃ˜Â¹Ã™â€žÃ™Å ",
+      "ENHANCE sends your photo directly as input to the AI Ã¢â‚¬â€ preserves identity. Unlike CREATE which uses it as loose inspiration.": "Ã˜Â®Ã˜Â§Ã˜ÂµÃ™Å Ã˜Â© Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã˜ÂªÃ˜Â±Ã˜Â³Ã™â€ž Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜ÂªÃ™Æ’ Ã™â€¦Ã˜Â¨Ã˜Â§Ã˜Â´Ã˜Â±Ã˜Â© Ã™Æ’Ã™â€¦Ã˜Â¯Ã˜Â®Ã™â€ž Ã™â€žÃ™â€žÃ˜Â°Ã™Æ’Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜Â§Ã˜ÂµÃ˜Â·Ã™â€ Ã˜Â§Ã˜Â¹Ã™Å  Ã™â€žÃ™â€žÃ˜Â­Ã™ÂÃ˜Â§Ã˜Â¸ Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ™â€¦Ã™â€žÃ˜Â§Ã™â€¦Ã˜Â­ Ã˜Â¨Ã˜Â¯Ã™â€šÃ˜Â©Ã˜Å’ Ã˜Â¨Ã˜Â®Ã™â€žÃ˜Â§Ã™Â Ã˜Â®Ã˜Â§Ã˜ÂµÃ™Å Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜ÂªÃ™Å  Ã˜ÂªÃ˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦Ã™â€¡Ã˜Â§ Ã™Æ’Ã™â€¦Ã˜Â¬Ã˜Â±Ã˜Â¯ Ã˜Â¥Ã™â€žÃ™â€¡Ã˜Â§Ã™â€¦.",
+      "Upload image": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©",
+      "Scale Factor": "Ã™â€¦Ã˜Â¹Ã˜Â§Ã™â€¦Ã™â€ž Ã˜Â§Ã™â€žÃ˜ÂªÃ™Æ’Ã˜Â¨Ã™Å Ã˜Â±",
+      "Denoise": "Ã˜Â¥Ã˜Â²Ã˜Â§Ã™â€žÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â¶Ã™Ë†Ã˜Â¶Ã˜Â§Ã˜Â¡",
+      "Sharpen": "Ã˜Â²Ã™Å Ã˜Â§Ã˜Â¯Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â¯Ã˜Â©",
+      "Face Enhancement": "Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã™â€¦Ã™â€žÃ˜Â§Ã™â€¦Ã˜Â­ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
+      "Color Enhancement": "Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã˜Â§Ã™â€žÃ˜Â£Ã™â€žÃ™Ë†Ã˜Â§Ã™â€ ",
+      "Output Format": "Ã˜ÂµÃ™Å Ã˜ÂºÃ˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â®Ã˜Â±Ã˜Â¬Ã˜Â§Ã˜Âª",
+      "Source face": "Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡ Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂµÃ˜Â¯Ã˜Â±",
+      "Target image": "Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¡Ã˜Â¯Ã™Â",
+      "Face Blend": "Ã˜Â¯Ã™â€¦Ã˜Â¬ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
+      "Keep target expression": "Ã˜Â§Ã™â€žÃ˜Â­Ã™ÂÃ˜Â§Ã˜Â¸ Ã˜Â¹Ã™â€žÃ™â€° Ã˜ÂªÃ˜Â¹Ã˜Â§Ã˜Â¨Ã™Å Ã˜Â± Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡ Ã˜Â§Ã™â€žÃ™â€¡Ã˜Â¯Ã™Â",
+      "Match skin tones": "Ã™â€¦Ã˜Â·Ã˜Â§Ã˜Â¨Ã™â€šÃ˜Â© Ã™â€žÃ™Ë†Ã™â€  Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â´Ã˜Â±Ã˜Â©",
+      "Target Face Index": "Ã™â€¦Ã˜Â¤Ã˜Â´Ã˜Â± Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜ÂªÃ™â€¡Ã˜Â¯Ã™Â",
 
       // Selection toolbar
-      "Exit selection": "Ø¥Ù„ØºØ§Ø¡ Ø§Ù„ØªØ­Ø¯ÙŠØ¯",
-      "Select": "ØªØ­Ø¯ÙŠØ¯",
-      "Unselect all": "Ø¥Ù„ØºØ§Ø¡ ØªØ­Ø¯ÙŠØ¯ Ø§Ù„ÙƒÙ„",
-      "Select all": "ØªØ­Ø¯ÙŠØ¯ Ø§Ù„ÙƒÙ„",
-      "selected": "Ù…Ø­Ø¯Ø¯",
-      "Preparing ZIP...": "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªØ¬Ù‡ÙŠØ²...",
-      "Download": "ØªØ­Ù…ÙŠÙ„",
-      "Add to album": "Ø¥Ø¶Ø§ÙØ© Ø¥Ù„Ù‰ Ø§Ù„Ø£Ù„Ø¨ÙˆÙ…",
-      "Delete selected": "Ø­Ø°Ù Ø§Ù„Ù…Ø­Ø¯Ø¯",
+      "Exit selection": "Ã˜Â¥Ã™â€žÃ˜ÂºÃ˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â¯",
+      "Select": "Ã˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â¯",
+      "Unselect all": "Ã˜Â¥Ã™â€žÃ˜ÂºÃ˜Â§Ã˜Â¡ Ã˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â¯ Ã˜Â§Ã™â€žÃ™Æ’Ã™â€ž",
+      "Select all": "Ã˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â¯ Ã˜Â§Ã™â€žÃ™Æ’Ã™â€ž",
+      "selected": "Ã™â€¦Ã˜Â­Ã˜Â¯Ã˜Â¯",
+      "Preparing ZIP...": "Ã˜Â¬Ã˜Â§Ã˜Â±Ã™Å  Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â¬Ã™â€¡Ã™Å Ã˜Â²...",
+      "Download": "Ã˜ÂªÃ˜Â­Ã™â€¦Ã™Å Ã™â€ž",
+      "Add to album": "Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã˜Â¥Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ˜Â£Ã™â€žÃ˜Â¨Ã™Ë†Ã™â€¦",
+      "Delete selected": "Ã˜Â­Ã˜Â°Ã™Â Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â­Ã˜Â¯Ã˜Â¯",
 
       // Album Picker Modal
-      "Add {count} item(s) to album": "Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø¹Ù†Ø§ØµØ± Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© Ù„Ù„Ø£Ù„Ø¨ÙˆÙ…",
-      "Create new album": "Ø¥Ù†Ø´Ø§Ø¡ Ø£Ù„Ø¨ÙˆÙ… Ø¬Ø¯ÙŠØ¯",
-      "Album name": "Ø§Ø³Ù… Ø§Ù„Ø£Ù„Ø¨ÙˆÙ…",
-      "Create": "Ø¥Ù†Ø´Ø§Ø¡",
+      "Add {count} item(s) to album": "Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â¹Ã™â€ Ã˜Â§Ã˜ÂµÃ˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â­Ã˜Â¯Ã˜Â¯Ã˜Â© Ã™â€žÃ™â€žÃ˜Â£Ã™â€žÃ˜Â¨Ã™Ë†Ã™â€¦",
+      "Create new album": "Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Ã˜Â£Ã™â€žÃ˜Â¨Ã™Ë†Ã™â€¦ Ã˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯",
+      "Album name": "Ã˜Â§Ã˜Â³Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â£Ã™â€žÃ˜Â¨Ã™Ë†Ã™â€¦",
+      "Create": "Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡",
 
       // Tool buttons
-      "CREATE": "Ø¥Ù†Ø´Ø§Ø¡",
-      "ENHANCE": "ØªØ­Ø³ÙŠÙ†",
-      "RELIGHT": "Ø¥Ø¶Ø§Ø¡Ø©",
-      "INPAINT": "ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø±Ø³Ù…",
-      "UPSCALE": "ØªÙƒØ¨ÙŠØ± Ø§Ù„Ø¯Ù‚Ø©",
-      "FACE SWAP": "ØªØ¨Ø¯ÙŠÙ„ Ø§Ù„ÙˆØ¬Ù‡",
+      "CREATE": "Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡",
+      "ENHANCE": "Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€ ",
+      "RELIGHT": "Ã˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â©",
+      "INPAINT": "Ã˜ÂªÃ˜Â¹Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â±Ã˜Â³Ã™â€¦",
+      "UPSCALE": "Ã˜ÂªÃ™Æ’Ã˜Â¨Ã™Å Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â¯Ã™â€šÃ˜Â©",
+      "FACE SWAP": "Ã˜ÂªÃ˜Â¨Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
 
       // Main UI Controls
-      "Add character": "Ø¥Ø¶Ø§ÙØ© Ø´Ø®ØµÙŠØ©",
-      "Unlimited": "ØºÙŠØ± Ù…Ø­Ø¯ÙˆØ¯",
-      "Drop images here to add as reference": "Ø£ÙÙ„Øª Ø§Ù„ØµÙˆØ± Ù‡Ù†Ø§ Ù„Ø¥Ø¶Ø§ÙØªÙ‡Ø§ ÙƒÙ…Ø±Ø¬Ø¹",
-      "Describe what you want to generate...": "ØµÙ Ù…Ø§ ØªØ±ÙŠØ¯ ØªÙˆÙ„ÙŠØ¯Ù‡...",
-      "Generate Image - Unlimited": "ØªÙˆÙ„ÙŠØ¯ ØµÙˆØ±Ø© - ØºÙŠØ± Ù…Ø­Ø¯ÙˆØ¯",
-      "Generate Image": "ØªÙˆÙ„ÙŠØ¯ ØµÙˆØ±Ø©",
-      "Generate another": "ØªÙˆÙ„ÙŠØ¯ ØµÙˆØ±Ø© Ø£Ø®Ø±Ù‰",
-      "cr": "Ù†Ù‚Ø·Ø©",
-      "Image Settings": "Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„ØµÙˆØ±Ø©",
-      "Enhance Settings": "Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„ØªØ­Ø³ÙŠÙ†",
-      "Relight Settings": "Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø¥Ø¶Ø§Ø¡Ø©",
-      "Inpaint Workspace": "Ù…Ø³Ø§Ø­Ø© ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø±Ø³Ù…",
-      "Inpaint Settings": "Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø±Ø³Ù…",
-      "Upscale Settings": "Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª ØªÙƒØ¨ÙŠØ± Ø§Ù„Ø¯Ù‚Ø©",
-      "Face Swap Settings": "Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª ØªØ¨Ø¯ÙŠÙ„ Ø§Ù„ÙˆØ¬Ù‡",
-      "Settings": "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
-      "Undo": "ØªØ±Ø§Ø¬Ø¹",
-      "Clear Mask": "Ù…Ø³Ø­ Ø§Ù„Ù‚Ù†Ø§Ø¹",
-      "Brush": "Ø§Ù„ÙØ±Ø´Ø§Ø©",
-      "Upload or drag media": "Ø§Ø±ÙØ¹ Ø£Ùˆ Ø§Ø³Ø­Ø¨ Ø§Ù„ÙˆØ³Ø§Ø¦Ø· Ù‡Ù†Ø§",
-      "Upload or drag image": "Ø§Ø±ÙØ¹ Ø£Ùˆ Ø§Ø³Ø­Ø¨ Ø§Ù„ØµÙˆØ±Ø© Ù‡Ù†Ø§",
-      "Drop here": "Ø£ÙÙ„ØªÙ‡ Ù‡Ù†Ø§",
-      "Style Library": "Ù…ÙƒØªØ¨Ø© Ø§Ù„Ø£Ù†Ù…Ø§Ø·",
-      "Tap a curated style â€” the prompt, model, and aspect ratio apply instantly.": "Ø§Ø¶ØºØ· Ø¹Ù„Ù‰ Ù†Ù…Ø· Ù…Ù†Ø³Ù‚ â€” Ø³ÙŠØªÙ… ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ÙˆØµÙ ÙˆØ§Ù„Ù†Ù…ÙˆØ°Ø¬ ÙˆØ§Ù„Ø£Ø¨Ø¹Ø§Ø¯ ÙÙˆØ±Ø§Ù‹.",
-      "Browse styles": "ØªØµÙØ­ Ø§Ù„Ø£Ù†Ù…Ø§Ø·",
-      "New": "Ø¬Ø¯ÙŠØ¯",
-      "18 styles": "18 Ù†Ù…Ø·Ø§Ù‹",
-      "Preview": "Ù…Ø¹Ø§ÙŠÙ†Ø©",
-      "Unselect": "Ø¥Ù„ØºØ§Ø¡ Ø§Ù„ØªØ­Ø¯ÙŠØ¯",
-      "Use": "Ø§Ø³ØªØ®Ø¯Ø§Ù…",
-      "Remix": "Ø±ÙŠÙ…ÙƒØ³",
-      "Delete": "Ø­Ø°Ù",
-      "Enhancement instructions (optional) â€” e.g. \"cinematic, 8K, sharp\"...": "ØªØ¹Ù„ÙŠÙ…Ø§Øª Ø§Ù„ØªØ­Ø³ÙŠÙ† (Ø§Ø®ØªÙŠØ§Ø±ÙŠ) â€” Ù…Ø«Ù„: Ø³ÙŠÙ†Ù…Ø§Ø¦ÙŠØŒ Ø¨Ø¯Ù‚Ø© 8KØŒ Ø­Ø§Ø¯...",
-      "Enhance Photo": "ØªØ­Ø³ÙŠÙ† Ø§Ù„ØµÙˆØ±Ø©",
-      "Describe the lighting you want...": "ØµÙ Ø§Ù„Ø¥Ø¶Ø§Ø¡Ø© Ø§Ù„ØªÙŠ ØªØ±ÙŠØ¯Ù‡Ø§...",
-      "Describe what should replace the painted area...": "ØµÙ Ù…Ø§ ÙŠØ¬Ø¨ Ø£Ù† ÙŠØ­Ù„ Ù…Ø­Ù„ Ø§Ù„Ù…Ù†Ø·Ù‚Ø© Ø§Ù„Ù…Ø±Ø³ÙˆÙ…Ø©...",
-      "Swap Face": "ØªØ¨Ø¯ÙŠÙ„ Ø§Ù„ÙˆØ¬Ù‡",
-      "Search model": "Ø§Ù„Ø¨Ø­Ø« Ø¹Ù† Ù†Ù…ÙˆØ°Ø¬",
+      "Add character": "Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã˜Â´Ã˜Â®Ã˜ÂµÃ™Å Ã˜Â©",
+      "Unlimited": "Ã˜ÂºÃ™Å Ã˜Â± Ã™â€¦Ã˜Â­Ã˜Â¯Ã™Ë†Ã˜Â¯",
+      "Drop images here to add as reference": "Ã˜Â£Ã™ÂÃ™â€žÃ˜Âª Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â± Ã™â€¡Ã™â€ Ã˜Â§ Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜ÂªÃ™â€¡Ã˜Â§ Ã™Æ’Ã™â€¦Ã˜Â±Ã˜Â¬Ã˜Â¹",
+      "Describe what you want to generate...": "Ã˜ÂµÃ™Â Ã™â€¦Ã˜Â§ Ã˜ÂªÃ˜Â±Ã™Å Ã˜Â¯ Ã˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯Ã™â€¡...",
+      "Generate Image - Unlimited": "Ã˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© - Ã˜ÂºÃ™Å Ã˜Â± Ã™â€¦Ã˜Â­Ã˜Â¯Ã™Ë†Ã˜Â¯",
+      "Generate Image": "Ã˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©",
+      "Generate another": "Ã˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã˜Â£Ã˜Â®Ã˜Â±Ã™â€°",
+      "cr": "Ã™â€ Ã™â€šÃ˜Â·Ã˜Â©",
+      "Image Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©",
+      "Enhance Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€ ",
+      "Relight Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â©",
+      "Inpaint Workspace": "Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â­Ã˜Â© Ã˜ÂªÃ˜Â¹Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â±Ã˜Â³Ã™â€¦",
+      "Inpaint Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜ÂªÃ˜Â¹Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â±Ã˜Â³Ã™â€¦",
+      "Upscale Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜ÂªÃ™Æ’Ã˜Â¨Ã™Å Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â¯Ã™â€šÃ˜Â©",
+      "Face Swap Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜ÂªÃ˜Â¨Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
+      "Settings": "Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª",
+      "Undo": "Ã˜ÂªÃ˜Â±Ã˜Â§Ã˜Â¬Ã˜Â¹",
+      "Clear Mask": "Ã™â€¦Ã˜Â³Ã˜Â­ Ã˜Â§Ã™â€žÃ™â€šÃ™â€ Ã˜Â§Ã˜Â¹",
+      "Brush": "Ã˜Â§Ã™â€žÃ™ÂÃ˜Â±Ã˜Â´Ã˜Â§Ã˜Â©",
+      "Upload or drag media": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜Â£Ã™Ë† Ã˜Â§Ã˜Â³Ã˜Â­Ã˜Â¨ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â³Ã˜Â§Ã˜Â¦Ã˜Â· Ã™â€¡Ã™â€ Ã˜Â§",
+      "Upload or drag image": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜Â£Ã™Ë† Ã˜Â§Ã˜Â³Ã˜Â­Ã˜Â¨ Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™â€¡Ã™â€ Ã˜Â§",
+      "Drop here": "Ã˜Â£Ã™ÂÃ™â€žÃ˜ÂªÃ™â€¡ Ã™â€¡Ã™â€ Ã˜Â§",
+      "Style Library": "Ã™â€¦Ã™Æ’Ã˜ÂªÃ˜Â¨Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â£Ã™â€ Ã™â€¦Ã˜Â§Ã˜Â·",
+      "Tap a curated style Ã¢â‚¬â€ the prompt, model, and aspect ratio apply instantly.": "Ã˜Â§Ã˜Â¶Ã˜ÂºÃ˜Â· Ã˜Â¹Ã™â€žÃ™â€° Ã™â€ Ã™â€¦Ã˜Â· Ã™â€¦Ã™â€ Ã˜Â³Ã™â€š Ã¢â‚¬â€ Ã˜Â³Ã™Å Ã˜ÂªÃ™â€¦ Ã˜ÂªÃ˜Â·Ã˜Â¨Ã™Å Ã™â€š Ã˜Â§Ã™â€žÃ™Ë†Ã˜ÂµÃ™Â Ã™Ë†Ã˜Â§Ã™â€žÃ™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬ Ã™Ë†Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â¨Ã˜Â¹Ã˜Â§Ã˜Â¯ Ã™ÂÃ™Ë†Ã˜Â±Ã˜Â§Ã™â€¹.",
+      "Browse styles": "Ã˜ÂªÃ˜ÂµÃ™ÂÃ˜Â­ Ã˜Â§Ã™â€žÃ˜Â£Ã™â€ Ã™â€¦Ã˜Â§Ã˜Â·",
+      "New": "Ã˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯",
+      "18 styles": "18 Ã™â€ Ã™â€¦Ã˜Â·Ã˜Â§Ã™â€¹",
+      "Preview": "Ã™â€¦Ã˜Â¹Ã˜Â§Ã™Å Ã™â€ Ã˜Â©",
+      "Unselect": "Ã˜Â¥Ã™â€žÃ˜ÂºÃ˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â¯",
+      "Use": "Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã˜Â§Ã™â€¦",
+      "Remix": "Ã˜Â±Ã™Å Ã™â€¦Ã™Æ’Ã˜Â³",
+      "Delete": "Ã˜Â­Ã˜Â°Ã™Â",
+      "Enhancement instructions (optional) Ã¢â‚¬â€ e.g. \"cinematic, 8K, sharp\"...": "Ã˜ÂªÃ˜Â¹Ã™â€žÃ™Å Ã™â€¦Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  (Ã˜Â§Ã˜Â®Ã˜ÂªÃ™Å Ã˜Â§Ã˜Â±Ã™Å ) Ã¢â‚¬â€ Ã™â€¦Ã˜Â«Ã™â€ž: Ã˜Â³Ã™Å Ã™â€ Ã™â€¦Ã˜Â§Ã˜Â¦Ã™Å Ã˜Å’ Ã˜Â¨Ã˜Â¯Ã™â€šÃ˜Â© 8KÃ˜Å’ Ã˜Â­Ã˜Â§Ã˜Â¯...",
+      "Enhance Photo": "Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©",
+      "Describe the lighting you want...": "Ã˜ÂµÃ™Â Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â© Ã˜Â§Ã™â€žÃ˜ÂªÃ™Å  Ã˜ÂªÃ˜Â±Ã™Å Ã˜Â¯Ã™â€¡Ã˜Â§...",
+      "Describe what should replace the painted area...": "Ã˜ÂµÃ™Â Ã™â€¦Ã˜Â§ Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜Â£Ã™â€  Ã™Å Ã˜Â­Ã™â€ž Ã™â€¦Ã˜Â­Ã™â€ž Ã˜Â§Ã™â€žÃ™â€¦Ã™â€ Ã˜Â·Ã™â€šÃ˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â±Ã˜Â³Ã™Ë†Ã™â€¦Ã˜Â©...",
+      "Swap Face": "Ã˜ÂªÃ˜Â¨Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
+      "Search model": "Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â­Ã˜Â« Ã˜Â¹Ã™â€  Ã™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬",
       
       // Model families
-      "Cinema Studio": "Ø³ÙŠÙ†Ù…Ø§ Ø§Ø³ØªÙˆØ¯ÙŠÙˆ",
-      "Nano Banana": "Ù†Ø§Ù†Ùˆ Ø¨Ù†Ø§Ù†Ø§",
-      "Seedance": "Ø³ÙŠØ¯Ø§Ù†Ø³",
-      "Kling": "ÙƒÙ„ÙŠÙ†Øº",
-      "GPT Image": "GPT ØµÙˆØ±"
+      "Cinema Studio": "Ã˜Â³Ã™Å Ã™â€ Ã™â€¦Ã˜Â§ Ã˜Â§Ã˜Â³Ã˜ÂªÃ™Ë†Ã˜Â¯Ã™Å Ã™Ë†",
+      "Nano Banana": "Ã™â€ Ã˜Â§Ã™â€ Ã™Ë† Ã˜Â¨Ã™â€ Ã˜Â§Ã™â€ Ã˜Â§",
+      "Seedance": "Ã˜Â³Ã™Å Ã˜Â¯Ã˜Â§Ã™â€ Ã˜Â³",
+      "Kling": "Ã™Æ’Ã™â€žÃ™Å Ã™â€ Ã˜Âº",
+      "GPT Image": "GPT Ã˜ÂµÃ™Ë†Ã˜Â±"
     }
   };
 
@@ -1545,7 +1548,7 @@ export default function ImageWorkspacePage() {
   const { addAsset } = useAssetStore();
 
   const [activeTool, setActiveTool] = useState<ToolId>("create");
-  const [selectedModel, setSelectedModel] = useState<ImageModel>(VISIBLE_IMAGE_MODELS[0] ?? IMAGE_MODELS[0]);
+  const [selectedModel, setSelectedModel] = useState<ImageModel>(DEFAULT_VISIBLE_IMAGE_MODEL);
   const [hasAnnualUnlimitedImages, setHasAnnualUnlimitedImages] = useState(false);
   const [annualUnlimitedEnabled, setAnnualUnlimitedEnabled] = useState(false);
   const [aspectRatio, setAspectRatio] = useState("1:1");
@@ -1631,9 +1634,9 @@ export default function ImageWorkspacePage() {
     const requestedCharacter = searchParams.get("characterId");
     if (requestedCharacter) setSelectedCharacterId(requestedCharacter);
 
-    // â”€â”€ Style Library preset hydration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Style Library preset hydration Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     // When the user clicks a card on /image-presets, we land here with
-    // ?prompt= ?aspect= ?quality= ?preset=â€¦ params. Apply them once.
+    // ?prompt= ?aspect= ?quality= ?preset=Ã¢â‚¬Â¦ params. Apply them once.
     const requestedPrompt = searchParams.get("prompt");
     if (requestedPrompt) setPrompt(requestedPrompt);
 
@@ -1828,13 +1831,13 @@ export default function ImageWorkspacePage() {
         return { placeholder: t("Describe what you want to generate..."), button: t("Generate Image - Unlimited"), promptEnabled: true };
       }
       const credits = getImageCreditCost(selectedModel, numImages, selectedQuality);
-      return { placeholder: t("Describe what you want to generate..."), button: t("Generate Image") + " Â· " + credits + " " + t("cr"), promptEnabled: true };
+      return { placeholder: t("Describe what you want to generate..."), button: t("Generate Image") + " Ã‚Â· " + credits + " " + t("cr"), promptEnabled: true };
     }
-    if (activeTool === "enhance") return { placeholder: t("Enhancement instructions (optional) â€” e.g. \"cinematic, 8K, sharp\"..."), button: t("Enhance Photo") + " Â· 2 " + t("cr"), promptEnabled: true };
-    if (activeTool === "relight") return { placeholder: t("Describe the lighting you want..."), button: t("Relight Image") + " âœ¦ " + (3 * relightVariations), promptEnabled: true };
-    if (activeTool === "inpaint") return { placeholder: t("Describe what should replace the painted area..."), button: t("Inpaint") + " âœ¦ " + (3 * inpaintVariations), promptEnabled: true };
-    if (activeTool === "upscale") return { placeholder: t("Upload media to upscale"), button: t("Upscale Image") + " âœ¦ 2", promptEnabled: false };
-    return { placeholder: t("Upload source face and target above"), button: t("Swap Face") + " âœ¦ 4", promptEnabled: false };
+    if (activeTool === "enhance") return { placeholder: t("Enhancement instructions (optional) Ã¢â‚¬â€ e.g. \"cinematic, 8K, sharp\"..."), button: t("Enhance Photo") + " Ã‚Â· 2 " + t("cr"), promptEnabled: true };
+    if (activeTool === "relight") return { placeholder: t("Describe the lighting you want..."), button: t("Relight Image") + " Ã¢Å“Â¦ " + (3 * relightVariations), promptEnabled: true };
+    if (activeTool === "inpaint") return { placeholder: t("Describe what should replace the painted area..."), button: t("Inpaint") + " Ã¢Å“Â¦ " + (3 * inpaintVariations), promptEnabled: true };
+    if (activeTool === "upscale") return { placeholder: t("Upload media to upscale"), button: t("Upscale Image") + " Ã¢Å“Â¦ 2", promptEnabled: false };
+    return { placeholder: t("Upload source face and target above"), button: t("Swap Face") + " Ã¢Å“Â¦ 4", promptEnabled: false };
   }, [activeTool, inpaintVariations, isAnnualUnlimitedCreate, numImages, relightVariations, selectedModel, selectedQuality]);
 
   useEffect(() => {
@@ -2222,7 +2225,7 @@ export default function ImageWorkspacePage() {
         try {
           const direct = await fetch(resultOriginalUrl(item), { mode: "cors" });
           if (direct.ok) blob = await direct.blob();
-        } catch { /* CORS or network â€” fall through to proxy */ }
+        } catch { /* CORS or network Ã¢â‚¬â€ fall through to proxy */ }
       }
       if (!blob) {
         const proxied = await fetch(`/api/proxy-image?url=${encodeURIComponent(resultOriginalUrl(item))}`);
@@ -2259,8 +2262,8 @@ export default function ImageWorkspacePage() {
       return <div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 text-zinc-400">
         <Zap className="h-10 w-10 text-amber-400/60" />
         <div className="text-center">
-          <p className="text-sm font-semibold text-amber-300">{t("ENHANCE â€” Photo Restoration")}</p>
-          <p className="mt-1 text-xs text-zinc-500">{t("Upload a photo in the settings panel â†’ click Enhance Photo")}</p>
+          <p className="text-sm font-semibold text-amber-300">{t("ENHANCE Ã¢â‚¬â€ Photo Restoration")}</p>
+          <p className="mt-1 text-xs text-zinc-500">{t("Upload a photo in the settings panel Ã¢â€ â€™ click Enhance Photo")}</p>
           <p className="mt-1 text-xs text-zinc-600">{t("Uses true image-to-image AI to preserve identity while improving quality")}</p>
         </div>
       </div>;
@@ -2396,7 +2399,7 @@ export default function ImageWorkspacePage() {
           </SettingsAccordion>
         ) : null}
 
-        {/* â”€â”€ Gateway card â†’ /image-presets â”€â”€ */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Gateway card Ã¢â€ â€™ /image-presets Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <StyleLibraryGatewayCard />
 
       </>;
@@ -2490,8 +2493,8 @@ export default function ImageWorkspacePage() {
         </section>
 
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] leading-relaxed text-amber-200">
-          <strong className="text-amber-300">{t("âœ¦ True Image-to-Image")}</strong><br />
-          {t("ENHANCE sends your photo directly as input to the AI â€” preserves identity. Unlike CREATE which uses it as loose inspiration.")}
+          <strong className="text-amber-300">{t("Ã¢Å“Â¦ True Image-to-Image")}</strong><br />
+          {t("ENHANCE sends your photo directly as input to the AI Ã¢â‚¬â€ preserves identity. Unlike CREATE which uses it as loose inspiration.")}
         </div>
       </>;
     }

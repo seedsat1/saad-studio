@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import {
   InsufficientCreditsError,
@@ -18,6 +18,11 @@ import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "
 import { isDirectProviderModel } from "@/lib/provider-router";
 import { dispatchDirectImage } from "@/lib/providers/dispatch";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
+import {
+  DEFAULT_GOOGLE_IMAGE_MODEL_ID,
+  getGoogleImageUpstreamModel,
+  normalizeGoogleImageSize,
+} from "@/lib/google-image-model-specs";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -209,7 +214,7 @@ async function pollWaveSpeedImageTask(apiKey: string, taskId: string, maxAttempt
   throw new Error("WaveSpeed image generation timed out.");
 }
 
-/** POST /api/panel/generate/image — generates images using website credits + KIE API. */
+/** POST /api/panel/generate/image â€” generates images using website credits + KIE API. */
 export async function POST(req: NextRequest) {
   const token = extractPanelToken(req);
   if (!token) return NextResponse.json({ error: "Missing Authorization header." }, { status: 401 });
@@ -256,7 +261,7 @@ export async function POST(req: NextRequest) {
 
     const {
       prompt,
-      modelId = "nano-banana-pro",
+      modelId = DEFAULT_GOOGLE_IMAGE_MODEL_ID,
       aspectRatio = "1:1",
       resolution = "1K",
       numImages = 1,
@@ -366,9 +371,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── Early dispatch: Google / OpenAI direct adapters.
+    // â”€â”€ Early dispatch: Google / OpenAI direct adapters.
     //    Routes Google models (Nano Banana, Imagen) to the official
-    //    Gemini/Vertex API and OpenAI models (gpt-image, DALL·E) to
+    //    Gemini/Vertex API and OpenAI models (gpt-image, DALLÂ·E) to
     //    OpenAI directly. Everything else falls through to kie.ai.
     if (isDirectProviderModel(modelId)) {
       for (const refUrl of refUrls) {
@@ -433,14 +438,17 @@ export async function POST(req: NextRequest) {
     const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
     if (!kieApiKey) throw new Error("KIE API key not configured on server.");
 
-    const isNanoBanana = ["nano-banana-pro", "nano-banana-2", "nano-banana-2-lite", "google/nano-banana"].includes(kieModelId);
+    const isNanoBanana = ["nano-banana-pro", "nano-banana-2", "nano-banana-2-lite", "google/nano-banana", "google/nano-banana-edit"].includes(kieModelId);
+    const normalizedResolution = isNanoBanana
+      ? normalizeGoogleImageSize(getGoogleImageUpstreamModel(kieModelId) ?? kieModelId, resolution)
+      : resolution;
 
     const input: Record<string, unknown> = {
       prompt: sanitizePrompt(prompt, 5000),
       // Nano Banana uses image_size not aspect_ratio
       ...(isNanoBanana ? { image_size: aspectRatio } : { aspect_ratio: aspectRatio }),
-      resolution,
     };
+    if (normalizedResolution) input.resolution = normalizedResolution;
     if (negativePrompt) input.negative_prompt = negativePrompt;
 
     for (const refUrl of refUrls) {

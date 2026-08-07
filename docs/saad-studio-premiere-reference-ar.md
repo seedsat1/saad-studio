@@ -2866,3 +2866,14 @@
 - `/image` card download actions must route through `/api/download?url=...&filename=...` instead of linking directly to external Backblaze/original URLs.
 - This keeps the original full-resolution file as the download source while forcing a browser download via same-origin `Content-Disposition: attachment`.
 - Preview, Asset Inspector, reference reuse, and thumbnails remain separate behaviors and must not be changed by this download path.
+## Google Nano Banana Image Model Contract (2026-08-07)
+
+- Nano Banana 2 is the default general image model and maps to `gemini-3.1-flash-image`.
+- Nano Banana Pro maps only to `gemini-3-pro-image`; never route it to `gemini-3.1-flash-image`.
+- Nano Banana 2 Lite maps to `gemini-3.1-flash-lite-image`.
+- Legacy Nano Banana maps to `gemini-2.5-flash-image`.
+- Gemini 3 image calls should use the Interactions API-style `response_format` with `aspect_ratio` and, when supported, `image_size`.
+- Supported image sizes: Flash supports `512px`, `1K`, `2K`, `4K`; Pro supports `1K`, `2K`, `4K`; Lite supports `1K`; legacy 2.5 Flash Image does not receive `image_size`.
+- Supported aspect ratios: Flash supports the extended ratio set including `1:4`, `1:8`, `4:1`, and `8:1`; Pro and legacy use the standard set; Lite uses its documented standard Lite set.
+- Reference caps in the current generic UI: Gemini 3 image models allow up to 14 total references; legacy Gemini 2.5 image model allows up to 3. Role-specific object/character/style caps are not separately represented in the current UI.
+- Multiple requested images for Gemini image models should be produced with parallel fanout and saved individually, because the provider may not always honor an exact output count in one call.

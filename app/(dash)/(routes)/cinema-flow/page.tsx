@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, useTransition } from "react";
 import { useUser } from "@clerk/nextjs";
@@ -250,7 +250,7 @@ export default function CinemaFlowPage() {
   const [expandedThinking, setExpandedThinking] = useState<Record<string, boolean>>({});
   const [inputText, setInputText] = useState("");
   const [isAgentTyping, setIsAgentTyping] = useState(false);
-  const [selectedImageModel, setSelectedImageModel] = useState("nano-banana-2-lite");
+  const [selectedImageModel, setSelectedImageModel] = useState("nano-banana-2");
   const [selectedVideoModel, setSelectedVideoModel] = useState("google/gemini-omni-flash");
   const [videoDuration, setVideoDuration] = useState<number>(10);
   const [videoQuality, setVideoQuality] = useState<string>("1080p");
@@ -388,7 +388,7 @@ export default function CinemaFlowPage() {
 
     // 1. Size constraint check (e.g., max 20MB for video files to prevent memory/timeout failures)
     if (file.type.startsWith("video/") && file.size > 20 * 1024 * 1024) {
-      alert("حجم الفيديو المرفوع كبير جداً. الحد الأقصى المسموح به هو 20 ميجابايت لضمان المعالجة السريعة.");
+      alert("Ø­Ø¬Ù… Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„Ù…Ø±ÙÙˆØ¹ ÙƒØ¨ÙŠØ± Ø¬Ø¯Ø§Ù‹. Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ø§Ù„Ù…Ø³Ù…ÙˆØ­ Ø¨Ù‡ Ù‡Ùˆ 20 Ù…ÙŠØ¬Ø§Ø¨Ø§ÙŠØª Ù„Ø¶Ù…Ø§Ù† Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø³Ø±ÙŠØ¹Ø©.");
       return;
     }
 
@@ -407,7 +407,7 @@ export default function CinemaFlowPage() {
         });
 
         if (duration > 10.5) {
-          alert("مدة الفيديو المرفوع أطول من اللازم. الحد الأقصى المسموح به هو 10 ثوانٍ لضمان استقرار التوليد.");
+          alert("Ù…Ø¯Ø© Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„Ù…Ø±ÙÙˆØ¹ Ø£Ø·ÙˆÙ„ Ù…Ù† Ø§Ù„Ù„Ø§Ø²Ù…. Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ø§Ù„Ù…Ø³Ù…ÙˆØ­ Ø¨Ù‡ Ù‡Ùˆ 10 Ø«ÙˆØ§Ù†Ù Ù„Ø¶Ù…Ø§Ù† Ø§Ø³ØªÙ‚Ø±Ø§Ø± Ø§Ù„ØªÙˆÙ„ÙŠØ¯.");
           return;
         }
       } catch (err) {
@@ -589,21 +589,21 @@ export default function CinemaFlowPage() {
   // Suggestion actions
   const handleSuggestionClick = (type: string) => {
     if (type === "option1") {
-      sendChatMessage("أريد وصف صورة أو فيديو لتقوم بإنشائهما لي");
+      sendChatMessage("Ø£Ø±ÙŠØ¯ ÙˆØµÙ ØµÙˆØ±Ø© Ø£Ùˆ ÙÙŠØ¯ÙŠÙˆ Ù„ØªÙ‚ÙˆÙ… Ø¨Ø¥Ù†Ø´Ø§Ø¦Ù‡Ù…Ø§ Ù„ÙŠ");
     } else if (type === "option2") {
-      sendChatMessage("ساعدني في العصف الذهني للشخصيات، المواقع، وبناء عالم إبداعي");
+      sendChatMessage("Ø³Ø§Ø¹Ø¯Ù†ÙŠ ÙÙŠ Ø§Ù„Ø¹ØµÙ Ø§Ù„Ø°Ù‡Ù†ÙŠ Ù„Ù„Ø´Ø®ØµÙŠØ§ØªØŒ Ø§Ù„Ù…ÙˆØ§Ù‚Ø¹ØŒ ÙˆØ¨Ù†Ø§Ø¡ Ø¹Ø§Ù„Ù… Ø¥Ø¨Ø¯Ø§Ø¹ÙŠ");
     } else if (type === "option3") {
-      sendChatMessage("أريد إنشاء قصة مشهداً بمشهد وتخطيطها (Storyboard)");
+      sendChatMessage("Ø£Ø±ÙŠØ¯ Ø¥Ù†Ø´Ø§Ø¡ Ù‚ØµØ© Ù…Ø´Ù‡Ø¯Ø§Ù‹ Ø¨Ù…Ø´Ù‡Ø¯ ÙˆØªØ®Ø·ÙŠØ·Ù‡Ø§ (Storyboard)");
     } else if (type === "option4") {
-      sendChatMessage("كيف يمكنني تنظيم مشروعي في مجموعات إبداعية؟");
+      sendChatMessage("ÙƒÙŠÙ ÙŠÙ…ÙƒÙ†Ù†ÙŠ ØªÙ†Ø¸ÙŠÙ… Ù…Ø´Ø±ÙˆØ¹ÙŠ ÙÙŠ Ù…Ø¬Ù…ÙˆØ¹Ø§Øª Ø¥Ø¨Ø¯Ø§Ø¹ÙŠØ©ØŸ");
     } else if (type === "option5") {
-      sendChatMessage("أريد التعرف على المزيد حول ميزات Cinema Flow");
+      sendChatMessage("Ø£Ø±ÙŠØ¯ Ø§Ù„ØªØ¹Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ù…Ø²ÙŠØ¯ Ø­ÙˆÙ„ Ù…ÙŠØ²Ø§Øª Cinema Flow");
     } else if (type === "brainstorm") {
-      sendChatMessage("ساعدني في العصف الذهني لفكرة إعلان مبتكر وجذاب!");
+      sendChatMessage("Ø³Ø§Ø¹Ø¯Ù†ÙŠ ÙÙŠ Ø§Ù„Ø¹ØµÙ Ø§Ù„Ø°Ù‡Ù†ÙŠ Ù„ÙÙƒØ±Ø© Ø¥Ø¹Ù„Ø§Ù† Ù…Ø¨ØªÙƒØ± ÙˆØ¬Ø°Ø§Ø¨!");
     } else if (type === "started") {
-      sendChatMessage("كيف يمكنني البدء في إنشاء وتعديل وسائط إبداعية هنا؟");
+      sendChatMessage("ÙƒÙŠÙ ÙŠÙ…ÙƒÙ†Ù†ÙŠ Ø§Ù„Ø¨Ø¯Ø¡ ÙÙŠ Ø¥Ù†Ø´Ø§Ø¡ ÙˆØªØ¹Ø¯ÙŠÙ„ ÙˆØ³Ø§Ø¦Ø· Ø¥Ø¨Ø¯Ø§Ø¹ÙŠØ© Ù‡Ù†Ø§ØŸ");
     } else {
-      sendChatMessage("ما هي النماذج والأدوات الإبداعية التي تدعمها في Cinema Flow؟");
+      sendChatMessage("Ù…Ø§ Ù‡ÙŠ Ø§Ù„Ù†Ù…Ø§Ø°Ø¬ ÙˆØ§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ø¥Ø¨Ø¯Ø§Ø¹ÙŠØ© Ø§Ù„ØªÙŠ ØªØ¯Ø¹Ù…Ù‡Ø§ ÙÙŠ Cinema FlowØŸ");
     }
   };
 
@@ -683,7 +683,7 @@ export default function CinemaFlowPage() {
 
       const chatData = await chatRes.json();
       if (!chatRes.ok || !chatData.text) {
-        throw new Error(chatData.error ?? "فشل الاتصال بمساعد السينما الذكي.");
+        throw new Error(chatData.error ?? "ÙØ´Ù„ Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ù…Ø³Ø§Ø¹Ø¯ Ø§Ù„Ø³ÙŠÙ†Ù…Ø§ Ø§Ù„Ø°ÙƒÙŠ.");
       }
 
       const replyText = chatData.text;
@@ -718,7 +718,7 @@ export default function CinemaFlowPage() {
       setChatMessages(prev => [...prev, {
         id: Math.random().toString(),
         sender: "agent",
-        text: `حدث خطأ أثناء معالجة الطلب: ${err.message}`
+        text: `Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø·Ù„Ø¨: ${err.message}`
       }]);
       setIsAgentTyping(false);
     }
@@ -746,7 +746,7 @@ export default function CinemaFlowPage() {
     setChatMessages(prev => [...prev, {
       id: Math.random().toString(),
       sender: "agent",
-      text: "جاري التوليد... يرجى الانتظار.",
+      text: "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªÙˆÙ„ÙŠØ¯... ÙŠØ±Ø¬Ù‰ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±.",
       isGenerating: true
     }]);
 
@@ -840,7 +840,7 @@ export default function CinemaFlowPage() {
         return [...filtered, {
           id: Math.random().toString(),
           sender: "agent",
-          text: "تم التوليد بنجاح! تم حفظ الصورة في معرض أعمالك.",
+          text: "ØªÙ… Ø§Ù„ØªÙˆÙ„ÙŠØ¯ Ø¨Ù†Ø¬Ø§Ø­! ØªÙ… Ø­ÙØ¸ Ø§Ù„ØµÙˆØ±Ø© ÙÙŠ Ù…Ø¹Ø±Ø¶ Ø£Ø¹Ù…Ø§Ù„Ùƒ.",
           assetUrl: imageUrl,
           assetType: "image"
         }];
@@ -909,7 +909,7 @@ export default function CinemaFlowPage() {
     setChatMessages(prev => [...prev, {
       id: Math.random().toString(),
       sender: "agent",
-      text: "جاري التوليد... يرجى الانتظار.",
+      text: "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªÙˆÙ„ÙŠØ¯... ÙŠØ±Ø¬Ù‰ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±.",
       isGenerating: true
     }]);
 
@@ -1018,7 +1018,7 @@ export default function CinemaFlowPage() {
     setChatMessages(prev => [...prev, {
       id: Math.random().toString(),
       sender: "agent",
-      text: "جاري توليد الفيديو والتعليق الصوتي... يرجى الانتظار.",
+      text: "Ø¬Ø§Ø±ÙŠ ØªÙˆÙ„ÙŠØ¯ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ÙˆØ§Ù„ØªØ¹Ù„ÙŠÙ‚ Ø§Ù„ØµÙˆØªÙŠ... ÙŠØ±Ø¬Ù‰ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±.",
       isGenerating: true
     }]);
 
@@ -1146,7 +1146,7 @@ export default function CinemaFlowPage() {
             return [...filtered, {
               id: Math.random().toString(),
               sender: "agent",
-              text: "تم التوليد ودمج التعليق الصوتي بنجاح! تم حفظ الفيديو في معرض أعمالك.",
+              text: "ØªÙ… Ø§Ù„ØªÙˆÙ„ÙŠØ¯ ÙˆØ¯Ù…Ø¬ Ø§Ù„ØªØ¹Ù„ÙŠÙ‚ Ø§Ù„ØµÙˆØªÙŠ Ø¨Ù†Ø¬Ø§Ø­! ØªÙ… Ø­ÙØ¸ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ÙÙŠ Ù…Ø¹Ø±Ø¶ Ø£Ø¹Ù…Ø§Ù„Ùƒ.",
               assetUrl: finalUrl,
               assetType: "video"
             }];
@@ -1213,7 +1213,7 @@ export default function CinemaFlowPage() {
             return [...filtered, {
               id: Math.random().toString(),
               sender: "agent",
-              text: "تم التوليد بنجاح! تم حفظ الفيديو في معرض أعمالك.",
+              text: "ØªÙ… Ø§Ù„ØªÙˆÙ„ÙŠØ¯ Ø¨Ù†Ø¬Ø§Ø­! ØªÙ… Ø­ÙØ¸ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ÙÙŠ Ù…Ø¹Ø±Ø¶ Ø£Ø¹Ù…Ø§Ù„Ùƒ.",
               assetUrl: data.outputs[0],
               assetType: "video"
             }];
@@ -1344,14 +1344,14 @@ export default function CinemaFlowPage() {
               <button 
                 onClick={() => setFilterOpen(!filterOpen)}
                 className={`p-2 rounded-lg border text-zinc-400 hover:text-white hover:bg-white/5 transition-all ${filterOpen ? 'bg-violet-500/20 border-violet-500/40 text-violet-400' : 'bg-white/[0.03] border-white/5'}`}
-                title="تصفية وترتيب المعرض"
+                title="ØªØµÙÙŠØ© ÙˆØªØ±ØªÙŠØ¨ Ø§Ù„Ù…Ø¹Ø±Ø¶"
               >
                 <Sliders size={14} />
               </button>
 
               {filterOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-zinc-900 border border-white/10 rounded-xl p-3 shadow-xl z-20 flex flex-col gap-2.5">
-                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">الترتيب الزمني</div>
+                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Ø§Ù„ØªØ±ØªÙŠØ¨ Ø§Ù„Ø²Ù…Ù†ÙŠ</div>
                   <div className="flex bg-white/[0.03] rounded-lg p-0.5 border border-white/5">
                     <button 
                       onClick={() => {
@@ -1360,7 +1360,7 @@ export default function CinemaFlowPage() {
                       }}
                       className={`flex-1 text-[10px] py-1 rounded-md transition-all ${sortOrder === "newest" ? 'bg-violet-600 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
                     >
-                      الأحدث أولاً
+                      Ø§Ù„Ø£Ø­Ø¯Ø« Ø£ÙˆÙ„Ø§Ù‹
                     </button>
                     <button 
                       onClick={() => {
@@ -1369,11 +1369,11 @@ export default function CinemaFlowPage() {
                       }}
                       className={`flex-1 text-[10px] py-1 rounded-md transition-all ${sortOrder === "oldest" ? 'bg-violet-600 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
                     >
-                      الأقدم أولاً
+                      Ø§Ù„Ø£Ù‚Ø¯Ù… Ø£ÙˆÙ„Ø§Ù‹
                     </button>
                   </div>
 
-                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-1">تصفية حسب النموذج</div>
+                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-1">ØªØµÙÙŠØ© Ø­Ø³Ø¨ Ø§Ù„Ù†Ù…ÙˆØ°Ø¬</div>
                   <select
                     value={filterModel}
                     onChange={(e) => {
@@ -1382,7 +1382,7 @@ export default function CinemaFlowPage() {
                     }}
                     className="w-full bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-[10px] text-zinc-200 focus:outline-none"
                   >
-                    <option value="all">جميع النماذج</option>
+                    <option value="all">Ø¬Ù…ÙŠØ¹ Ø§Ù„Ù†Ù…Ø§Ø°Ø¬</option>
                     <option value="nano-banana">Nano Banana</option>
                     <option value="gemini-omni-flash">Gemini Video</option>
                   </select>
@@ -1394,7 +1394,7 @@ export default function CinemaFlowPage() {
             <button 
               onClick={() => setHelpModalOpen(true)}
               className="p-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-400 hover:text-white hover:bg-white/5"
-              title="دليل مساحة العمل"
+              title="Ø¯Ù„ÙŠÙ„ Ù…Ø³Ø§Ø­Ø© Ø§Ù„Ø¹Ù…Ù„"
             >
               <HelpCircle size={14} />
             </button>
@@ -1403,7 +1403,7 @@ export default function CinemaFlowPage() {
             <button 
               onClick={() => setSettingsModalOpen(true)}
               className="p-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-400 hover:text-white hover:bg-white/5"
-              title="إعدادات مساحة العمل"
+              title="Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ù…Ø³Ø§Ø­Ø© Ø§Ù„Ø¹Ù…Ù„"
             >
               <Settings size={14} />
             </button>
@@ -1654,20 +1654,20 @@ export default function CinemaFlowPage() {
             /* Welcome / Initial suggestions screen in Google style */
             <div className="flex-1 flex flex-col justify-center gap-5 py-6">
               <div>
-                <h2 className="text-base font-bold text-zinc-100">أهلاً {firstName}</h2>
+                <h2 className="text-base font-bold text-zinc-100">Ø£Ù‡Ù„Ø§Ù‹ {firstName}</h2>
                 <p className="text-xs font-medium text-zinc-400 mt-1.5 leading-relaxed">
-                  أنا مساعدك الإبداعي. يمكنني مساعدتك في العصف الذهني، توليد الصور والفيديوهات، وتنظيم مساحتك الإبداعية. من أين نود أن نبدأ؟
+                  Ø£Ù†Ø§ Ù…Ø³Ø§Ø¹Ø¯Ùƒ Ø§Ù„Ø¥Ø¨Ø¯Ø§Ø¹ÙŠ. ÙŠÙ…ÙƒÙ†Ù†ÙŠ Ù…Ø³Ø§Ø¹Ø¯ØªÙƒ ÙÙŠ Ø§Ù„Ø¹ØµÙ Ø§Ù„Ø°Ù‡Ù†ÙŠØŒ ØªÙˆÙ„ÙŠØ¯ Ø§Ù„ØµÙˆØ± ÙˆØ§Ù„ÙÙŠØ¯ÙŠÙˆÙ‡Ø§ØªØŒ ÙˆØªÙ†Ø¸ÙŠÙ… Ù…Ø³Ø§Ø­ØªÙƒ Ø§Ù„Ø¥Ø¨Ø¯Ø§Ø¹ÙŠØ©. Ù…Ù† Ø£ÙŠÙ† Ù†ÙˆØ¯ Ø£Ù† Ù†Ø¨Ø¯Ø£ØŸ
                 </p>
               </div>
 
               {/* Interactive choice options list exactly matching Google's style */}
               <div className="flex flex-col gap-2 mt-2">
                 {[
-                  { id: "option1" as const, text: "وصف صورة أو فيديو وسأقوم بإنشائهما لك" },
-                  { id: "option2" as const, text: "العصف الذهني للشخصيات، المواقع، أو بناء عالم" },
-                  { id: "option3" as const, text: "إنشاء قصة مشهداً بمشهد وتخطيطها (Storyboard)" },
-                  { id: "option4" as const, text: "تنظيم مشروعك في مجموعات" },
-                  { id: "option5" as const, text: "تعرف على المزيد حول ميزات Flow" },
+                  { id: "option1" as const, text: "ÙˆØµÙ ØµÙˆØ±Ø© Ø£Ùˆ ÙÙŠØ¯ÙŠÙˆ ÙˆØ³Ø£Ù‚ÙˆÙ… Ø¨Ø¥Ù†Ø´Ø§Ø¦Ù‡Ù…Ø§ Ù„Ùƒ" },
+                  { id: "option2" as const, text: "Ø§Ù„Ø¹ØµÙ Ø§Ù„Ø°Ù‡Ù†ÙŠ Ù„Ù„Ø´Ø®ØµÙŠØ§ØªØŒ Ø§Ù„Ù…ÙˆØ§Ù‚Ø¹ØŒ Ø£Ùˆ Ø¨Ù†Ø§Ø¡ Ø¹Ø§Ù„Ù…" },
+                  { id: "option3" as const, text: "Ø¥Ù†Ø´Ø§Ø¡ Ù‚ØµØ© Ù…Ø´Ù‡Ø¯Ø§Ù‹ Ø¨Ù…Ø´Ù‡Ø¯ ÙˆØªØ®Ø·ÙŠØ·Ù‡Ø§ (Storyboard)" },
+                  { id: "option4" as const, text: "ØªÙ†Ø¸ÙŠÙ… Ù…Ø´Ø±ÙˆØ¹Ùƒ ÙÙŠ Ù…Ø¬Ù…ÙˆØ¹Ø§Øª" },
+                  { id: "option5" as const, text: "ØªØ¹Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ù…Ø²ÙŠØ¯ Ø­ÙˆÙ„ Ù…ÙŠØ²Ø§Øª Flow" },
                 ].map((opt) => (
                   <button 
                     key={opt.id}
@@ -1708,42 +1708,42 @@ export default function CinemaFlowPage() {
                   )}
 
                   {/* Feedback Action Buttons (Only for Agent messages) */}
-                  {msg.sender === "agent" && msg.text && !msg.text.includes("جاري التوليد") && (
+                  {msg.sender === "agent" && msg.text && !msg.text.includes("Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªÙˆÙ„ÙŠØ¯") && (
                     <div className="flex items-center gap-2.5 mt-0.5 px-1">
                       <button 
                         onClick={() => {
-                          toast({ description: "شكراً لتقييمك الإيجابي!" });
+                          toast({ description: "Ø´ÙƒØ±Ø§Ù‹ Ù„ØªÙ‚ÙŠÙŠÙ…Ùƒ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø¨ÙŠ!" });
                         }}
                         className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition"
-                        title="أعجبني"
+                        title="Ø£Ø¹Ø¬Ø¨Ù†ÙŠ"
                       >
                         <ThumbsUp size={12} />
                       </button>
                       <button 
                         onClick={() => {
-                          toast({ description: "شكراً لتقييمك، سنعمل على تحسين الإجابات!" });
+                          toast({ description: "Ø´ÙƒØ±Ø§Ù‹ Ù„ØªÙ‚ÙŠÙŠÙ…ÙƒØŒ Ø³Ù†Ø¹Ù…Ù„ Ø¹Ù„Ù‰ ØªØ­Ø³ÙŠÙ† Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø§Øª!" });
                         }}
                         className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition"
-                        title="لم يعجبني"
+                        title="Ù„Ù… ÙŠØ¹Ø¬Ø¨Ù†ÙŠ"
                       >
                         <ThumbsDown size={12} />
                       </button>
                       <button 
                         onClick={() => {
                           navigator.clipboard.writeText(msg.text);
-                          toast({ description: "تم نسخ النص بنجاح!" });
+                          toast({ description: "ØªÙ… Ù†Ø³Ø® Ø§Ù„Ù†Øµ Ø¨Ù†Ø¬Ø§Ø­!" });
                         }}
                         className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition"
-                        title="نسخ الإجابة"
+                        title="Ù†Ø³Ø® Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø©"
                       >
                         <Copy size={12} />
                       </button>
                       <button 
                         onClick={() => {
-                          toast({ description: "تم الإبلاغ بنجاح لتصحيح الرد." });
+                          toast({ description: "ØªÙ… Ø§Ù„Ø¥Ø¨Ù„Ø§Øº Ø¨Ù†Ø¬Ø§Ø­ Ù„ØªØµØ­ÙŠØ­ Ø§Ù„Ø±Ø¯." });
                         }}
                         className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition"
-                        title="إبلاغ"
+                        title="Ø¥Ø¨Ù„Ø§Øº"
                       >
                         <Flag size={12} />
                       </button>
@@ -1766,12 +1766,12 @@ export default function CinemaFlowPage() {
                               createdAt: new Date().toISOString()
                             } as any);
                           }}
-                          title="تعيين كصورة مرجعية"
+                          title="ØªØ¹ÙŠÙŠÙ† ÙƒØµÙˆØ±Ø© Ù…Ø±Ø¬Ø¹ÙŠØ©"
                         >
                           <img src={url} alt="Chat attachment reference" className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[9px] font-medium gap-0.5 pointer-events-none">
                             <Sparkles size={10} className="text-violet-400 animate-pulse" />
-                            <span>استخدام</span>
+                            <span>Ø§Ø³ØªØ®Ø¯Ø§Ù…</span>
                           </div>
                         </div>
                       ))}
@@ -1789,7 +1789,7 @@ export default function CinemaFlowPage() {
                             createdAt: new Date().toISOString()
                           } as any);
                         }}
-                        title="تعيين كصورة مرجعية"
+                        title="ØªØ¹ÙŠÙŠÙ† ÙƒØµÙˆØ±Ø© Ù…Ø±Ø¬Ø¹ÙŠØ©"
                       >
                         {msg.assetType === "video" ? (
                           <video src={msg.assetUrl} controls className="w-full h-full object-cover" />
@@ -1799,7 +1799,7 @@ export default function CinemaFlowPage() {
                         {/* Hover overlay indicator */}
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[11px] font-medium gap-1 pointer-events-none">
                           <Sparkles size={12} className="text-violet-400 animate-pulse" />
-                          <span>استخدام كصورة مرجعية</span>
+                          <span>Ø§Ø³ØªØ®Ø¯Ø§Ù… ÙƒØµÙˆØ±Ø© Ù…Ø±Ø¬Ø¹ÙŠØ©</span>
                         </div>
                       </div>
                     )
@@ -1853,9 +1853,9 @@ export default function CinemaFlowPage() {
                   }}
                   className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
                 >
-                  <option value="nano-banana-2-lite">Nano Banana 2 Lite (Fastest)</option>
-                  <option value="nano-banana-2">Nano Banana 2 (4K)</option>
+                  <option value="nano-banana-2">Nano Banana 2 (Default)</option>
                   <option value="nano-banana-pro">Nano Banana Pro</option>
+                  <option value="nano-banana-2-lite">Nano Banana 2 Lite (Fastest)</option>
                 </select>
               </div>
 
@@ -2107,7 +2107,7 @@ export default function CinemaFlowPage() {
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <span className="text-sm font-bold text-zinc-200 flex items-center gap-2">
                   <HelpCircle className="text-violet-400" size={16} />
-                  Workspace Guide — Cinema Flow
+                  Workspace Guide â€” Cinema Flow
                 </span>
                 <button onClick={() => setHelpModalOpen(false)} className="text-zinc-500 hover:text-white">
                   <X size={16} />
@@ -2119,15 +2119,15 @@ export default function CinemaFlowPage() {
                   Welcome to <strong>Cinema Flow</strong>! This is your ultimate AI-driven creative workspace powered by Google.
                 </p>
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px]">
-                  <span className="font-bold text-violet-400">💡 How to Start?</span>
+                  <span className="font-bold text-violet-400">ðŸ’¡ How to Start?</span>
                   <span>Chat with the agent on the right; it will refine prompts and trigger models automatically.</span>
                 </div>
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px]">
-                  <span className="font-bold text-violet-400">🖼️ Image Generation:</span>
+                  <span className="font-bold text-violet-400">ðŸ–¼ï¸ Image Generation:</span>
                   <span>Triggers when you ask for an image, costing 0.40 to 0.60 credits.</span>
                 </div>
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px]">
-                  <span className="font-bold text-violet-400">🎬 Video Generation:</span>
+                  <span className="font-bold text-violet-400">ðŸŽ¬ Video Generation:</span>
                   <span>Triggers when you ask for a video (10s clip) via Gemini Omni Flash, costing 30.0 credits.</span>
                 </div>
               </div>
@@ -2239,7 +2239,7 @@ export default function CinemaFlowPage() {
           )}
         >
           <Sparkles size={16} />
-          <span>الدردشة والتوليد</span>
+          <span>Ø§Ù„Ø¯Ø±Ø¯Ø´Ø© ÙˆØ§Ù„ØªÙˆÙ„ÙŠØ¯</span>
         </button>
         <button
           onClick={() => setMobileView("gallery")}
@@ -2249,7 +2249,7 @@ export default function CinemaFlowPage() {
           )}
         >
           <Grid size={16} />
-          <span>معرض الأعمال</span>
+          <span>Ù…Ø¹Ø±Ø¶ Ø§Ù„Ø£Ø¹Ù…Ø§Ù„</span>
         </button>
       </div>
 

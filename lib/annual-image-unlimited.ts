@@ -1,4 +1,4 @@
-import prismadb from "@/lib/prismadb";
+﻿import prismadb from "@/lib/prismadb";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_DAILY_LIMIT_BY_PLAN: Record<string, number> = {
@@ -33,6 +33,7 @@ export const ANNUAL_UNLIMITED_IMAGE_MODELS = [
   "gpt-image-2-image-to-image",
   "nano-banana-2",
   "nano-banana-pro",
+  "nano-banana-2-lite",
 ] as const;
 
 const ANNUAL_UNLIMITED_IMAGE_MODEL_SET = new Set<string>(ANNUAL_UNLIMITED_IMAGE_MODELS);
@@ -113,7 +114,7 @@ export async function getActiveAnnualPlanId(userId: string): Promise<string | nu
   });
 
   const now = Date.now();
-  // STRICT TIMING: no grace period — expires the instant stripeCurrentPeriodEnd passes.
+  // STRICT TIMING: no grace period â€” expires the instant stripeCurrentPeriodEnd passes.
   const isActive = Boolean(
     subscription?.stripePriceId &&
       subscription?.stripeCurrentPeriodEnd &&

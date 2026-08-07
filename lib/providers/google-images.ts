@@ -1,16 +1,21 @@
-/** Google official image generation adapter.
+﻿/** Google official image generation adapter.
  *
  * Supports:
- *   • Nano Banana (Gemini 2.5 Flash Image) — via @google/genai
- *   • Imagen 4 family (Ultra / standard / Fast) — via @google/genai
+ *   â€¢ Nano Banana (Gemini 2.5 Flash Image) â€” via @google/genai
+ *   â€¢ Imagen 4 family (Ultra / standard / Fast) â€” via @google/genai
  *
  * Auth: reuses the same env keys as gemini-veo.ts so a single Google
- * key powers every Google call. Output: data URLs (base64) — the panel
+ * key powers every Google call. Output: data URLs (base64) â€” the panel
  * route uploads them to R2 and replaces with permanent CDN URLs. */
 
 import { GoogleGenAI } from "@google/genai";
 import type { ImageGenInput, ProviderResult } from "./types";
 import { ProviderError } from "./types";
+import {
+  getGoogleImageUpstreamModel,
+  normalizeGoogleImageAspectRatio,
+  normalizeGoogleImageSize,
+} from "../google-image-model-specs";
 
 const KEY =
   process.env.GOOGLE_API_KEY ||
@@ -26,20 +31,9 @@ function client(): GoogleGenAI {
   return _client;
 }
 
-/** Internal id → upstream Gemini model id. */
-const MODEL_MAP: Record<string, string> = {
-  "nano-banana-pro":      "gemini-3-pro-image",
-  "nano-banana-2":        "gemini-3.1-flash-image",
-  "nano-banana-2-lite":   "gemini-3.1-flash-lite-image",
-  "google/nano-banana":   "gemini-2.5-flash-image",
-  "google/nano-banana-edit": "gemini-2.5-flash-image",
-  "google/imagen4":       "imagen-4.0-generate-001",
-  "google/imagen4-ultra": "imagen-4.0-ultra-generate-001",
-  "google/imagen4-fast":  "imagen-4.0-fast-generate-001",
-};
 
 export async function googleGenerateImage(input: ImageGenInput): Promise<ProviderResult> {
-  const upstream = MODEL_MAP[input.modelId];
+  const upstream = getGoogleImageUpstreamModel(input.modelId);
   if (!upstream) {
     throw new ProviderError("google", "model", `Unknown Google model: ${input.modelId}`);
   }
@@ -49,37 +43,89 @@ export async function googleGenerateImage(input: ImageGenInput): Promise<Provide
     : nanoBananaGenerate(upstream, input);
 }
 
-// ─── Nano Banana (Gemini 2.5 Flash Image) ──────────────────────────────
+// â”€â”€â”€ Nano Banana (Gemini 2.5 Flash Image) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function nanoBananaGenerate(model: string, input: ImageGenInput): Promise<ProviderResult> {
-  const parts: Array<Record<string, unknown>> = [{
-    text: withImageControlHints(input.prompt, input.aspectRatio, input.resolution),
-  }];
-
-  // Image-to-image / edit: attach supported reference images inline.
-  const refUrls = Array.from(new Set([...(input.imageUrls ?? []), ...(input.imageUrl ? [input.imageUrl] : [])]));
-  for (const refUrl of refUrls) {
-    const ref = await fetchAsInlineImage(refUrl);
-    if (ref) parts.unshift(ref);
-  }
-
-  let res;
-  try {
-    res = await client().models.generateContent({
-      model,
-      contents: [{ role: "user", parts }],
-    });
-  } catch (err) {
-    throw new ProviderError("google", "generateContent", (err as Error).message);
-  }
-
-  const urls = extractInlineImageUrls(res);
+  const fanout = clampNum(input.numImages, 1, 4);
+  const results = await Promise.all(
+    Array.from({ length: fanout }, () => nanoBananaGenerateOnce(model, input)),
+  );
+  const urls = results.flat().slice(0, fanout);
   if (!urls.length) {
     throw new ProviderError("google", "result", "Gemini returned no image data");
   }
   return { urls, provider: "google", metadata: { upstream: model } };
 }
 
+async function nanoBananaGenerateOnce(model: string, input: ImageGenInput): Promise<string[]> {
+  if (!KEY) throw new ProviderError("google", "config", "GOOGLE_API_KEY not set");
+  const blocks: Array<Record<string, unknown>> = [{ type: "text", text: input.prompt }];
+
+  const refUrls = Array.from(new Set([...(input.imageUrls ?? []), ...(input.imageUrl ? [input.imageUrl] : [])]));
+  for (const refUrl of refUrls) {
+    const ref = await fetchAsInlineImage(refUrl);
+    if (ref) blocks.push({ type: "image", mime_type: ref.inlineData.mimeType, data: ref.inlineData.data });
+  }
+
+  const aspectRatio = normalizeGoogleImageAspectRatio(model, input.aspectRatio);
+  const imageSize = normalizeGoogleImageSize(model, input.resolution);
+  const responseFormat: Record<string, string> = {
+    type: "image",
+    mime_type: "image/png",
+    aspect_ratio: aspectRatio,
+  };
+  if (imageSize) responseFormat.image_size = imageSize;
+
+  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+    method: "POST",
+    headers: {
+      "x-goog-api-key": KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      input: blocks,
+      response_format: responseFormat,
+    }),
+    signal: AbortSignal.timeout(180_000),
+  });
+
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message = typeof json?.error?.message === "string" ? json.error.message : `Google image generation failed (${res.status})`;
+    throw new ProviderError("google", "interactions", message);
+  }
+
+  return extractInteractionImageUrls(json);
+}
+function extractInteractionImageUrls(res: unknown): string[] {
+  const out: string[] = [];
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    const rec = node as Record<string, unknown>;
+    const image = (rec.output_image ?? rec.outputImage ?? rec.image) as Record<string, unknown> | undefined;
+    const data = image?.data ?? image?.b64_json ?? rec.data;
+    if (typeof data === "string" && data) {
+      const mime = typeof image?.mime_type === "string"
+        ? image.mime_type
+        : typeof image?.mimeType === "string"
+          ? image.mimeType
+          : typeof rec.mime_type === "string"
+            ? rec.mime_type
+            : "image/png";
+      out.push(`data:${mime};base64,${data}`);
+    }
+    for (const key of ["output", "content", "parts", "steps", "response", "result", "data"]) {
+      visit(rec[key]);
+    }
+  };
+  visit(res);
+  return out.length ? out : extractInlineImageUrls(res);
+}
 interface GenAiResponseLike {
   candidates?: Array<{
     content?: { parts?: Array<{ inlineData?: { data?: string; mimeType?: string } }> };
@@ -101,7 +147,7 @@ function extractInlineImageUrls(res: unknown): string[] {
   return out;
 }
 
-// ─── Imagen 4 family ───────────────────────────────────────────────────
+// â”€â”€â”€ Imagen 4 family â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ImagenResponseLike {
   generatedImages?: Array<{ image?: { imageBytes?: string; mimeType?: string } }>;
@@ -139,7 +185,7 @@ async function imagenGenerate(model: string, input: ImageGenInput): Promise<Prov
   return { urls, provider: "google", metadata: { upstream: model } };
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function normalizeAspect(a: string | undefined): string {
   // Imagen accepts: "1:1", "3:4", "4:3", "9:16", "16:9"

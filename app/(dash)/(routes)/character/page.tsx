@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -28,6 +28,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeMediaUrl } from "@/lib/storage";
+import {
+  GEMINI_FLASH_IMAGE_ASPECT_RATIOS,
+  GEMINI_FLASH_LITE_IMAGE_ASPECT_RATIOS,
+  GEMINI_STANDARD_IMAGE_ASPECT_RATIOS,
+} from "@/lib/google-image-model-specs";
 
 type CharacterStateKey = "neutral" | "hero" | "motion" | "editorial" | "emotional";
 
@@ -74,6 +79,8 @@ const CHARACTER_MODELS: Array<{
   provider: string;
   badge: string;
   description: string;
+  aspectRatios: string[];
+  qualities: string[];
 }> = [
   {
     id: "gemini-3.1-flash-image",
@@ -81,6 +88,8 @@ const CHARACTER_MODELS: Array<{
     provider: "Google",
     badge: "RECOMMENDED",
     description: "Balanced speed and high-quality consistent character generation.",
+    aspectRatios: GEMINI_FLASH_IMAGE_ASPECT_RATIOS,
+    qualities: ["512px", "1K", "2K", "4K"],
   },
   {
     id: "gemini-3-pro-image",
@@ -88,6 +97,8 @@ const CHARACTER_MODELS: Array<{
     provider: "Google",
     badge: "PREMIUM",
     description: "Highest level of detail, complex instructions, and brand consistency.",
+    aspectRatios: GEMINI_STANDARD_IMAGE_ASPECT_RATIOS,
+    qualities: ["1K", "2K", "4K"],
   },
   {
     id: "gemini-3.1-flash-lite-image",
@@ -95,11 +106,12 @@ const CHARACTER_MODELS: Array<{
     provider: "Google",
     badge: "FAST",
     description: "Ultra-fast and cost-effective generations.",
+    aspectRatios: GEMINI_FLASH_LITE_IMAGE_ASPECT_RATIOS,
+    qualities: ["1K"],
   },
 ];
 
-const CHARACTER_ASPECT_RATIOS = ["1:1", "4:3", "3:4", "16:9", "9:16"];
-const CHARACTER_QUALITIES = ["1K", "2K", "4K"];
+const MAX_CHARACTER_REFERENCE_IMAGES = 14;
 const CHARACTER_STYLES = ["Auto", "Realistic", "Cinematic", "Editorial", "Anime"];
 const CHARACTER_SPEEDS = ["Quality", "Balanced", "Fast"];
 
@@ -115,60 +127,60 @@ const CHARACTER_TEMPLATES = [
   {
     id: "eccentric",
     name: "The Eccentric",
-    nameAr: "الشخصية الغريبة",
+    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„ØºØ±ÙŠØ¨Ø©",
     desc: "Unforgettable quirky humans. Magnetic scene-stealers with offbeat charm.",
-    descAr: "شخصية فريدة وغريبة الأطوار تلفت الأنظار بكاريزما غير تقليدية.",
-    avatar: "🤪",
+    descAr: "Ø´Ø®ØµÙŠØ© ÙØ±ÙŠØ¯Ø© ÙˆØºØ±ÙŠØ¨Ø© Ø§Ù„Ø£Ø·ÙˆØ§Ø± ØªÙ„ÙØª Ø§Ù„Ø£Ù†Ø¸Ø§Ø± Ø¨ÙƒØ§Ø±ÙŠØ²Ù…Ø§ ØºÙŠØ± ØªÙ‚Ù„ÙŠØ¯ÙŠØ©.",
+    avatar: "ðŸ¤ª",
     gradient: "from-pink-500/20 to-rose-500/20 text-rose-300 border-rose-500/20 hover:border-rose-500/40",
     prompt: "A character portrait of a highly eccentric person, quirky round glasses, colorful clothing, detailed facial expression, creative studio lighting."
   },
   {
     id: "professional",
     name: "The Professional",
-    nameAr: "الشخصية المهنية",
+    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„Ù…Ù‡Ù†ÙŠØ©",
     desc: "Clean cut, well spoken, competent.",
-    descAr: "مظهر أنيق ومهندم، ملامح واثقة وجادة تدل على الكفاءة.",
-    avatar: "💼",
+    descAr: "Ù…Ø¸Ù‡Ø± Ø£Ù†ÙŠÙ‚ ÙˆÙ…Ù‡Ù†Ø¯Ù…ØŒ Ù…Ù„Ø§Ù…Ø­ ÙˆØ§Ø«Ù‚Ø© ÙˆØ¬Ø§Ø¯Ø© ØªØ¯Ù„ Ø¹Ù„Ù‰ Ø§Ù„ÙƒÙØ§Ø¡Ø©.",
+    avatar: "ðŸ’¼",
     gradient: "from-blue-500/20 to-indigo-500/20 text-blue-300 border-blue-500/20 hover:border-blue-500/40",
     prompt: "A professional corporate headshot of a businessperson, clean-cut styling, confident neutral expression, soft office background, natural key light."
   },
   {
     id: "wildcard",
     name: "The Wildcard",
-    nameAr: "الشخصية الحرة",
+    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„Ø­Ø±Ø©",
     desc: "Beyond human, anything can be a character, right?",
-    descAr: "مظهر غير مألوف أو كائن من عالم آخر يتجاوز الحدود التقليدية.",
-    avatar: "🤖",
+    descAr: "Ù…Ø¸Ù‡Ø± ØºÙŠØ± Ù…Ø£Ù„ÙˆÙ Ø£Ùˆ ÙƒØ§Ø¦Ù† Ù…Ù† Ø¹Ø§Ù„Ù… Ø¢Ø®Ø± ÙŠØªØ¬Ø§ÙˆØ² Ø§Ù„Ø­Ø¯ÙˆØ¯ Ø§Ù„ØªÙ‚Ù„ÙŠØ¯ÙŠØ©.",
+    avatar: "ðŸ¤–",
     gradient: "from-purple-500/20 to-violet-500/20 text-violet-300 border-violet-500/20 hover:border-violet-500/40",
     prompt: "A highly stylized creative character, futuristic neon face markings, cyberpunk fashion, cinematic purple and teal highlights."
   },
   {
     id: "familiar",
     name: "The Familiar",
-    nameAr: "الشخصية المألوفة",
+    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„Ù…Ø£Ù„ÙˆÙØ©",
     desc: "Grounded and authentic, a relatable anchor for your story.",
-    descAr: "ملامح دافئة وقريبة من القلب، تعبر عن البساطة والواقعية.",
-    avatar: "👤",
+    descAr: "Ù…Ù„Ø§Ù…Ø­ Ø¯Ø§ÙØ¦Ø© ÙˆÙ‚Ø±ÙŠØ¨Ø© Ù…Ù† Ø§Ù„Ù‚Ù„Ø¨ØŒ ØªØ¹Ø¨Ø± Ø¹Ù† Ø§Ù„Ø¨Ø³Ø§Ø·Ø© ÙˆØ§Ù„ÙˆØ§Ù‚Ø¹ÙŠØ©.",
+    avatar: "ðŸ‘¤",
     gradient: "from-emerald-500/20 to-teal-500/20 text-emerald-300 border-emerald-500/20 hover:border-emerald-500/40",
     prompt: "A warm and friendly portrait of an everyday person, gentle smile, natural daylight, photorealistic detailed features."
   },
   {
     id: "wicked",
     name: "The Wicked",
-    nameAr: "الشخصية الحادة",
+    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„Ø­Ø§Ø¯Ø©",
     desc: "Powerful antagonistic figures that command the screen.",
-    descAr: "ملامح حادة وكاريزما قوية تفرض حضورها بقوة على الشاشة.",
-    avatar: "😈",
+    descAr: "Ù…Ù„Ø§Ù…Ø­ Ø­Ø§Ø¯Ø© ÙˆÙƒØ§Ø±ÙŠØ²Ù…Ø§ Ù‚ÙˆÙŠØ© ØªÙØ±Ø¶ Ø­Ø¶ÙˆØ±Ù‡Ø§ Ø¨Ù‚ÙˆØ© Ø¹Ù„Ù‰ Ø§Ù„Ø´Ø§Ø´Ø©.",
+    avatar: "ðŸ˜ˆ",
     gradient: "from-red-500/20 to-orange-500/20 text-orange-300 border-orange-500/20 hover:border-orange-500/40",
     prompt: "A dramatic portrait of a powerful antagonistic character, sharp eyes, low-key dark lighting, volumetric shadows, intense expression."
   },
   {
     id: "fantastical",
     name: "The Fantastical",
-    nameAr: "الشخصية الخيالية",
+    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„Ø®ÙŠØ§Ù„ÙŠØ©",
     desc: "Ethereal, dreamlike beings fusing the human and the mythical.",
-    descAr: "كائن خيالي أسطوري يدمج بين الملامح البشرية والجمال السحري.",
-    avatar: "🧝‍♀️",
+    descAr: "ÙƒØ§Ø¦Ù† Ø®ÙŠØ§Ù„ÙŠ Ø£Ø³Ø·ÙˆØ±ÙŠ ÙŠØ¯Ù…Ø¬ Ø¨ÙŠÙ† Ø§Ù„Ù…Ù„Ø§Ù…Ø­ Ø§Ù„Ø¨Ø´Ø±ÙŠØ© ÙˆØ§Ù„Ø¬Ù…Ø§Ù„ Ø§Ù„Ø³Ø­Ø±ÙŠ.",
+    avatar: "ðŸ§â€â™€ï¸",
     gradient: "from-cyan-500/20 to-sky-500/20 text-cyan-300 border-cyan-500/20 hover:border-cyan-500/40",
     prompt: "An ethereal portrait of a fantastical elf-like being, glowing silver hair, subtle magical particles, soft dreamlike fantasy lighting."
   }
@@ -302,6 +314,21 @@ export default function CharacterPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
 
+  const selectedCharacterModel = useMemo(() => {
+    return CHARACTER_MODELS.find((model) => model.id === selectedModelId) ?? CHARACTER_MODELS[0];
+  }, [selectedModelId]);
+  const selectedCharacterAspectRatios = selectedCharacterModel.aspectRatios;
+  const selectedCharacterQualities = selectedCharacterModel.qualities;
+
+  useEffect(() => {
+    if (!selectedCharacterAspectRatios.includes(characterAspectRatio)) {
+      setCharacterAspectRatio(selectedCharacterAspectRatios[0] ?? "1:1");
+    }
+    if (!selectedCharacterQualities.includes(characterQuality)) {
+      setCharacterQuality(selectedCharacterQualities[0] ?? "1K");
+    }
+  }, [characterAspectRatio, characterQuality, selectedCharacterAspectRatios, selectedCharacterQualities]);
+
   const canCreate = useMemo(() => refs.length > 0 && !saving, [refs.length, saving]);
   const packagePreview = useMemo(() => buildCharacterPackage({
     name,
@@ -356,17 +383,17 @@ export default function CharacterPage() {
     e.preventDefault();
     setIsDragging(false);
     
-    const files = Array.from(e.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")).slice(0, 24 - refs.length);
+    const files = Array.from(e.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")).slice(0, MAX_CHARACTER_REFERENCE_IMAGES - refs.length);
     if (!files.length) return;
     const mapped = await Promise.all(files.map(async (file) => ({ id: uid("ref"), file, dataUrl: await fileToDataUrl(file) })));
-    setRefs((prev) => [...prev, ...mapped].slice(0, 24));
+    setRefs((prev) => [...prev, ...mapped].slice(0, MAX_CHARACTER_REFERENCE_IMAGES));
   }, [refs.length]);
 
   const onPickImages = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).filter((file) => file.type.startsWith("image/")).slice(0, 24 - refs.length);
+    const files = Array.from(e.target.files || []).filter((file) => file.type.startsWith("image/")).slice(0, MAX_CHARACTER_REFERENCE_IMAGES - refs.length);
     if (!files.length) return;
     const mapped = await Promise.all(files.map(async (file) => ({ id: uid("ref"), file, dataUrl: await fileToDataUrl(file) })));
-    setRefs((prev) => [...prev, ...mapped].slice(0, 24));
+    setRefs((prev) => [...prev, ...mapped].slice(0, MAX_CHARACTER_REFERENCE_IMAGES));
   }, [refs.length]);
 
   const createCharacter = useCallback(async () => {
@@ -486,8 +513,8 @@ export default function CharacterPage() {
   };
 
   const selectedModelName = useMemo(() => {
-    return CHARACTER_MODELS.find(m => m.id === selectedModelId)?.name || "Nano Banana 2";
-  }, [selectedModelId]);
+    return selectedCharacterModel.name;
+  }, [selectedCharacterModel]);
 
   return (
     <div className="h-[calc(100vh-4rem)] w-full overflow-hidden flex flex-col bg-[#05070f] text-white">
@@ -709,7 +736,7 @@ export default function CharacterPage() {
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1.5">Output Aspect Ratio</span>
                       <div className="flex flex-wrap gap-1.5">
-                        {CHARACTER_ASPECT_RATIOS.map((ratio) => (
+                        {selectedCharacterAspectRatios.map((ratio) => (
                           <button
                             key={ratio}
                             onClick={() => setCharacterAspectRatio(ratio)}
@@ -738,7 +765,7 @@ export default function CharacterPage() {
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1.5">Resolution</span>
                       <div className="flex flex-wrap gap-1.5">
-                        {CHARACTER_QUALITIES.map((quality) => (
+                        {selectedCharacterQualities.map((quality) => (
                           <button
                             key={quality}
                             onClick={() => setCharacterQuality(quality)}
@@ -765,7 +792,7 @@ export default function CharacterPage() {
                   className="flex-1 h-12 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] text-xs font-bold transition flex items-center justify-center gap-2 text-zinc-300"
                 >
                   <Upload size={13} />
-                  Upload Face Reference Photos (10-24 recommended)
+                  Upload Face Reference Photos (up to 14)
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickImages} />
               </div>
@@ -778,9 +805,9 @@ export default function CharacterPage() {
                   <span className="text-xs font-bold uppercase tracking-wider text-violet-400">Model Capabilities</span>
                 </div>
                 <div className="text-xs text-zinc-400 leading-relaxed space-y-2">
-                  <p>• <strong>Nano Banana 2</strong> excels at multiple reference image processing and keeping characters consistent across outputs.</p>
-                  <p>• <strong>Nano Banana Pro</strong> is optimal for complex visual textures and custom brand identities.</p>
-                  <p>• Supports uploading up to 14 reference photos to build a stable identity record.</p>
+                  <p>â€¢ <strong>Nano Banana 2</strong> excels at multiple reference image processing and keeping characters consistent across outputs.</p>
+                  <p>â€¢ <strong>Nano Banana Pro</strong> is optimal for complex visual textures and custom brand identities.</p>
+                  <p>â€¢ Supports uploading up to 14 reference photos to build a stable identity record.</p>
                 </div>
               </div>
 
@@ -791,15 +818,15 @@ export default function CharacterPage() {
                 <div className="grid grid-cols-2 gap-3 text-[11px] text-zinc-400">
                   <div className="p-3.5 rounded-xl bg-emerald-500/[0.02] border border-emerald-500/10 space-y-1">
                     <span className="font-bold text-emerald-400 block">Recommended</span>
-                    <p>• Close-up front facing portraits.</p>
-                    <p>• Single subject only.</p>
-                    <p>• Multiple lighting angles.</p>
+                    <p>â€¢ Close-up front facing portraits.</p>
+                    <p>â€¢ Single subject only.</p>
+                    <p>â€¢ Multiple lighting angles.</p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-red-500/[0.02] border border-red-500/10 space-y-1">
                     <span className="font-bold text-red-400 block">Avoid</span>
-                    <p>• Duplicates & group shots.</p>
-                    <p>• Heavy filters & makeup.</p>
-                    <p>• Sunglasses & face coverings.</p>
+                    <p>â€¢ Duplicates & group shots.</p>
+                    <p>â€¢ Heavy filters & makeup.</p>
+                    <p>â€¢ Sunglasses & face coverings.</p>
                   </div>
                 </div>
               </div>

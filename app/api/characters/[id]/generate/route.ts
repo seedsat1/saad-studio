@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { getGenerationCost } from "@/lib/pricing";
@@ -15,13 +15,18 @@ import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } fro
 import { fetchWithTimeout } from "@/lib/http";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { resolveProviderMediaUrl } from "@/lib/media/public-url-resolver";
+import {
+  normalizeGoogleImageAspectRatio,
+  normalizeGoogleImageSize,
+} from "@/lib/google-image-model-specs";
 
 export const maxDuration = 180;
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const WAVESPEED_MODEL = "ideogram-ai/ideogram-character";
-const GOOGLE_GEMINI_CHARACTER_MODEL_ID = "gemini-3-pro-image";
+const GOOGLE_GEMINI_CHARACTER_MODEL_ID = "gemini-3.1-flash-image";
 const LEGACY_GEMINI_OMNI_CHARACTER_MODEL_ID = "gemini-omni-character";
+const MAX_CHARACTER_REFERENCE_IMAGES = 14;
 
 function getGoogleApiKey(): string | null {
   return (
@@ -128,6 +133,7 @@ function sizeToAspectRatio(size: string | null | undefined): string | null {
 
 function normalizeCharacterQuality(input: unknown): string {
   const value = typeof input === "string" ? input.trim().toUpperCase() : "1K";
+  if (value === "512PX") return "512px";
   return ["1K", "2K", "4K"].includes(value) ? value : "1K";
 }
 
@@ -150,7 +156,7 @@ async function resolveCharacterReferenceUrls(input: unknown, userId: string): Pr
     ? input.filter((url: unknown): url is string => typeof url === "string" && url.trim().length > 0)
     : [];
   const resolved: string[] = [];
-  for (const rawRef of rawRefs.slice(0, 24)) {
+  for (const rawRef of rawRefs.slice(0, MAX_CHARACTER_REFERENCE_IMAGES)) {
     try {
       const url = await resolveProviderMediaUrl(normalizeCharacterReferenceInput(rawRef, userId), { userId, assetType: "image" });
       if (isSafePublicHttpUrl(url)) resolved.push(url);
@@ -192,6 +198,35 @@ function extractGoogleInlineImages(value: unknown): Array<{ data: string; mimeTy
   });
 }
 
+function extractGoogleInteractionImages(value: unknown): Array<{ data: string; mimeType: string }> {
+  const out: Array<{ data: string; mimeType: string }> = [];
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    const rec = node as Record<string, unknown>;
+    const outputImage = (rec.output_image ?? rec.outputImage ?? rec.image) as Record<string, unknown> | undefined;
+    const data = outputImage?.data ?? outputImage?.b64_json ?? rec.data;
+    if (typeof data === "string" && data) {
+      const mimeType = typeof outputImage?.mime_type === "string"
+        ? outputImage.mime_type
+        : typeof outputImage?.mimeType === "string"
+          ? outputImage.mimeType
+          : typeof rec.mime_type === "string"
+            ? rec.mime_type
+            : "image/png";
+      out.push({ data, mimeType });
+    }
+    for (const key of ["output", "content", "parts", "steps", "response", "result", "data"]) {
+      visit(rec[key]);
+    }
+  };
+  visit(value);
+  return out.length ? out : extractGoogleInlineImages(value);
+}
+
 async function generateGoogleCharacterImages(params: {
   apiKey: string;
   googleModel: string;
@@ -200,14 +235,22 @@ async function generateGoogleCharacterImages(params: {
   aspectRatio: string;
   quality: string;
 }): Promise<Array<{ buffer: Buffer; mimeType: string }>> {
-  const parts: Array<Record<string, unknown>> = [{ text: sanitizePrompt(params.prompt, 5000) }];
-  for (const ref of params.referenceUrls.slice(0, 8)) {
+  const input: Array<Record<string, unknown>> = [{ type: "text", text: sanitizePrompt(params.prompt, 5000) }];
+  for (const ref of params.referenceUrls.slice(0, MAX_CHARACTER_REFERENCE_IMAGES)) {
     const inline = await imageUrlToInlineData(ref);
-    parts.push({ inline_data: inline });
+    input.push({ type: "image", mime_type: inline.mimeType, data: inline.data });
   }
 
+  const imageSize = normalizeGoogleImageSize(params.googleModel, params.quality);
+  const responseFormat: Record<string, string> = {
+    type: "image",
+    mime_type: "image/png",
+    aspect_ratio: normalizeGoogleImageAspectRatio(params.googleModel, params.aspectRatio),
+  };
+  if (imageSize) responseFormat.image_size = imageSize;
+
   const res = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/${params.googleModel}:generateContent`,
+    "https://generativelanguage.googleapis.com/v1beta/interactions",
     {
       method: "POST",
       headers: {
@@ -215,14 +258,9 @@ async function generateGoogleCharacterImages(params: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: {
-          responseModalities: ["IMAGE"],
-          imageConfig: {
-            aspectRatio: params.aspectRatio || "1:1",
-            imageSize: params.quality,
-          },
-        },
+        model: params.googleModel,
+        input,
+        response_format: responseFormat,
       }),
     },
     120_000,
@@ -234,11 +272,10 @@ async function generateGoogleCharacterImages(params: {
     throw new Error(message);
   }
 
-  const images = extractGoogleInlineImages(json);
+  const images = extractGoogleInteractionImages(json);
   if (!images.length) throw new Error("Google completed but returned no character image.");
   return images.map((image) => ({ buffer: Buffer.from(image.data, "base64"), mimeType: image.mimeType }));
 }
-
 async function uploadGoogleCharacterImages(params: {
   userId: string;
   generationId: string;
@@ -406,7 +443,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       chargedCredits = creditsToCharge;
       chargedUserId = userId;
 
-      const referenceUrls = Array.from(new Set([image, ...refs].filter((url) => isSafePublicHttpUrl(url)))).slice(0, 8);
+      const referenceUrls = Array.from(new Set([image, ...refs].filter((url) => isSafePublicHttpUrl(url)))).slice(0, MAX_CHARACTER_REFERENCE_IMAGES);
       const generatedImages = await generateGoogleCharacterImages({
         apiKey,
         googleModel: modelId,

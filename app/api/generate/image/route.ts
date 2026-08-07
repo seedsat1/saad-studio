@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, recordFreeGeneration, rollbackGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
@@ -11,6 +11,11 @@ import { isStorageConfigured, uploadBufferToStorage } from "@/lib/supabase-stora
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 import { normalizeMediaUrl } from "@/lib/storage";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
+import {
+  getGoogleImageUpstreamModel,
+  normalizeGoogleImageAspectRatio,
+  normalizeGoogleImageSize,
+} from "@/lib/google-image-model-specs";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -19,13 +24,6 @@ const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_TASK_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const IDEMPOTENCY_ROUTE = "generate:image";
-const GOOGLE_IMAGE_MODEL_MAP: Record<string, string> = {
-  "google/nano-banana": "gemini-2.5-flash-image",
-  "google/nano-banana-edit": "gemini-2.5-flash-image",
-  "nano-banana-2": "gemini-3.1-flash-image",
-  "nano-banana-2-lite": "gemini-3.1-flash-lite-image",
-  "nano-banana-pro": "gemini-3-pro-image",
-};
 const OPENAI_IMAGE_MODEL_MAP: Record<string, string> = {
   "gpt-image-2-text-to-image": "gpt-image-2",
   "gpt-image-2-image-to-image": "gpt-image-2",
@@ -184,7 +182,7 @@ function normalizeSeedream5ProResolution(value: unknown): "1k" | "2k" {
 }
 
 function getGoogleImageModel(modelId: string): string | null {
-  return GOOGLE_IMAGE_MODEL_MAP[modelId] ?? null;
+  return getGoogleImageUpstreamModel(modelId);
 }
 
 function getOpenAIImageModel(modelId: string): string | null {
@@ -213,12 +211,6 @@ function normalizeOpenAIImageQuality(value?: string | null): "low" | "medium" | 
   if (normalized === "2k" || normalized === "medium") return "medium";
   if (normalized === "4k" || normalized === "high") return "high";
   return "medium";
-}
-
-function normalizeGoogleImageSize(model: string, requested?: string | null): string | null {
-  if (model === "gemini-2.5-flash-image") return null;
-  const normalized = String(requested ?? "1K").trim().toUpperCase();
-  return ["1K", "2K", "4K"].includes(normalized) ? normalized : "1K";
 }
 
 function dataUrlToInlineData(dataUrl: string): { mimeType: string; data: string } | null {
@@ -326,6 +318,35 @@ async function generateOpenAIImage(params: {
   return images.map((data) => ({ buffer: Buffer.from(data, "base64"), mimeType: "image/png" }));
 }
 
+
+function extractGoogleInteractionImages(value: unknown): Array<{ data: string; mimeType: string }> {
+  const out: Array<{ data: string; mimeType: string }> = [];
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    const rec = node as Record<string, unknown>;
+    const outputImage = (rec.output_image ?? rec.outputImage ?? rec.image) as Record<string, unknown> | undefined;
+    const data = outputImage?.data ?? outputImage?.b64_json ?? rec.data;
+    if (typeof data === "string" && data) {
+      const mimeType = typeof outputImage?.mime_type === "string"
+        ? outputImage.mime_type
+        : typeof outputImage?.mimeType === "string"
+          ? outputImage.mimeType
+          : typeof rec.mime_type === "string"
+            ? rec.mime_type
+            : "image/png";
+      out.push({ data, mimeType });
+    }
+    for (const key of ["output", "content", "parts", "steps", "response", "result", "data"]) {
+      visit(rec[key]);
+    }
+  };
+  visit(value);
+  return out.length ? out : extractGoogleInlineImages(value);
+}
 function extractGoogleInlineImages(value: unknown): Array<{ data: string; mimeType: string }> {
   if (!value || typeof value !== "object") return [];
   const rec = value as Record<string, unknown>;
@@ -343,13 +364,6 @@ function extractGoogleInlineImages(value: unknown): Array<{ data: string; mimeTy
   });
 }
 
-function normalizeGoogleAspectRatio(aspectRatio?: string | null): string {
-  const allowed = new Set(["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]);
-  const normalized = String(aspectRatio ?? "1:1").trim();
-  if (allowed.has(normalized)) return normalized;
-  return "1:1";
-}
-
 async function generateGoogleImage(params: {
   apiKey: string;
   googleModel: string;
@@ -358,54 +372,50 @@ async function generateGoogleImage(params: {
   aspectRatio: string;
   quality?: string | null;
 }): Promise<Array<{ buffer: Buffer; mimeType: string }>> {
-  const parts: Array<Record<string, unknown>> = [{ text: sanitizePrompt(params.prompt, 5000) }];
+  const input: Array<Record<string, unknown>> = [{ type: "text", text: sanitizePrompt(params.prompt, 5000) }];
   for (const ref of params.referenceUrls) {
     const inline = await imageUrlToInlineData(ref);
-    parts.push({ inline_data: inline });
+    input.push({ type: "image", mime_type: inline.mimeType, data: inline.data });
   }
 
-  // Gemini image-gen models accept aspect ratio as a plain string ("1:1",
-  // "16:9", ...) via `imageConfig`. The legacy `responseFormat.image` path
-  // expects protobuf enum values (ASPECT_RATIO_1_1, IMAGE_SIZE_*) and rejects
-  // plain strings with a 400 — so we use the imageConfig path only.
-  const imageConfig: Record<string, string> = { aspectRatio: normalizeGoogleAspectRatio(params.aspectRatio) };
+  const aspectRatio = normalizeGoogleImageAspectRatio(params.googleModel, params.aspectRatio);
   const imageSize = normalizeGoogleImageSize(params.googleModel, params.quality);
-  if (imageSize) imageConfig.imageSize = imageSize;
+  const makeRequest = async (requestedImageSize: string | null) => {
+    const responseFormat: Record<string, string> = {
+      type: "image",
+      mime_type: "image/png",
+      aspect_ratio: aspectRatio,
+    };
+    if (requestedImageSize) responseFormat.image_size = requestedImageSize;
 
-  const makeRequest = async (config: Record<string, string>) => {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${params.googleModel}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "x-goog-api-key": params.apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: {
-            responseModalities: ["IMAGE"],
-            imageConfig: config,
-          },
-        }),
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": params.apiKey,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        model: params.googleModel,
+        input,
+        response_format: responseFormat,
+      }),
+      signal: AbortSignal.timeout(180_000),
+    });
 
     const json = await res.json().catch(() => null);
     if (!res.ok) {
       const message = typeof json?.error?.message === "string" ? json.error.message : `Google image generation failed (${res.status})`;
-      return { success: false, error: message };
+      return { success: false, error: message, json };
     }
     return { success: true, json };
   };
 
-  let attempt = await makeRequest(imageConfig);
+  let attempt = await makeRequest(imageSize);
   if (!attempt.success) {
     const errStr = String(attempt.error || "");
-    if (/image size|resolution|imageConfig/i.test(errStr) && imageSize && imageSize !== "1K") {
+    if (/image size|resolution|response_format|image_size/i.test(errStr) && imageSize && imageSize !== "1K") {
       console.warn(`[generateGoogleImage] Resolution ${imageSize} failed for model ${params.googleModel}. Retrying with 1K...`);
-      const fallbackConfig = { ...imageConfig, imageSize: "1K" };
-      attempt = await makeRequest(fallbackConfig);
+      attempt = await makeRequest("1K");
     }
   }
 
@@ -414,7 +424,7 @@ async function generateGoogleImage(params: {
   }
 
   const json = attempt.json;
-  const images = extractGoogleInlineImages(json);
+  const images = extractGoogleInteractionImages(json);
   if (!images.length) {
     const candidates = json && typeof json === "object" && Array.isArray((json as Record<string, any>).candidates)
       ? (json as Record<string, any>).candidates
@@ -427,7 +437,6 @@ async function generateGoogleImage(params: {
   }
   return images.map((image) => ({ buffer: Buffer.from(image.data, "base64"), mimeType: image.mimeType }));
 }
-
 
 
 async function createKieTask(
@@ -987,7 +996,7 @@ export async function POST(req: NextRequest) {
     //   ratio strings as-is (1:1, 9:16, 16:9, ...).
     // - Qwen2 Image Edit accepts the ratio strings as-is.
     // - Qwen Text-to-Image uses a named enum (square_hd / portrait_4_3 / ...).
-    const NANO_BANANA_IMAGE_SIZE = new Set(["google/nano-banana", "nano-banana/image-to-image"]);
+    const NANO_BANANA_IMAGE_SIZE = new Set(["nano-banana-2", "nano-banana-pro", "nano-banana-2-lite", "google/nano-banana", "google/nano-banana-edit", "nano-banana/image-to-image"]);
     const QWEN_EDIT_IMAGE_SIZE = new Set(["qwen2/image-edit"]);
     const QWEN_T2I_IMAGE_SIZE_ENUM = new Set(["qwen/text-to-image", "qwen2/text-to-image"]);
     // qwen/image-to-image spec has no aspect/image_size field at all.
@@ -1077,12 +1086,12 @@ export async function POST(req: NextRequest) {
       }
 
       // Quality field handling
-      // - "1K"/"2K"/"4K"           → resolution param (Wan, Nano Banana Pro/2)
-      // - "speed"/"quality"        → enable_pro boolean (Grok Imagine T2I)
-      // - "basic"/"high"           → quality param (Seedream)
-      // - other ("medium"/"high")  → quality param (GPT Image)
+      // - "1K"/"2K"/"4K"           â†’ resolution param (Wan, Nano Banana Pro/2)
+      // - "speed"/"quality"        â†’ enable_pro boolean (Grok Imagine T2I)
+      // - "basic"/"high"           â†’ quality param (Seedream)
+      // - other ("medium"/"high")  â†’ quality param (GPT Image)
       const gptImage2Resolution = normalizeGptImage2Resolution();
-      const RESOLUTION_VALUES = ["1K", "2K", "4K"];
+      const RESOLUTION_VALUES = ["512px", "1K", "2K", "4K"];
       if (gptImage2Resolution) {
         input.resolution = gptImage2Resolution;
       } else if (quality && RESOLUTION_VALUES.includes(quality)) {
@@ -1099,8 +1108,8 @@ export async function POST(req: NextRequest) {
     };
 
     // Determine batch strategy:
-    // - native batch models    → 1 call, model returns all images
-    // - non-native + N>1       → fan out N parallel createTasks
+    // - native batch models    â†’ 1 call, model returns all images
+    // - non-native + N>1       â†’ fan out N parallel createTasks
     const useNativeBatch = NATIVE_BATCH_MODELS.has(kieModelId);
     const fanout = useNativeBatch ? 1 : Math.max(1, Math.min(12, numImages));
     const requestedPerCall = useNativeBatch ? numImages : 1;
