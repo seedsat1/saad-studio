@@ -4090,11 +4090,195 @@ function VideoPageInner() {
             <>
 
 
-          {/* -- Motion Control inputs (video + character) ----------------- */}
+          {/* 1. Reference Media Box (Always visible Status Bar with conditional thumbnails) */}
+          {(showReferenceImages || showSimpleKlingRefs) && (
+            <div className="flex flex-col gap-2">
+              {/* The Status Bar Row */}
+              <div className="flex items-center justify-between gap-1 w-full bg-[#080d1a]/35 border border-dashed border-slate-800/85 rounded-2xl p-2.5">
+                <div className="flex items-center gap-1.5">
+                  {/* 1. Image Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStudioTab("uploads");
+                      setShowReferenceStudioModal(true);
+                    }}
+                    className="relative w-9 h-9 rounded-xl bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                    title={lang === "ar" ? "الصور المرجعية" : "Reference Images"}
+                  >
+                    <ImageIcon className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("image/")) ? "text-cyan-400" : "text-slate-400 group-hover:text-slate-350"}`} />
+                    <div
+                      className={`absolute bottom-0 left-2 right-2 h-[2px] rounded-full transition-all ${
+                        referenceImages.some(f => f.type.startsWith("image/"))
+                          ? "bg-cyan-500 shadow-[0_0_6px_#06b6d4]"
+                          : "bg-transparent group-hover:bg-slate-700"
+                      }`}
+                    />
+                  </button>
+
+                  {/* 2. Video Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStudioTab("uploads");
+                      setShowReferenceStudioModal(true);
+                    }}
+                    className="relative w-9 h-9 rounded-xl bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                    title={lang === "ar" ? "الفيديوهات المرجعية" : "Reference Videos"}
+                  >
+                    <Video className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("video/")) ? "text-purple-400" : "text-slate-400 group-hover:text-slate-350"}`} />
+                    <div
+                      className={`absolute bottom-0 left-2 right-2 h-[2px] rounded-full transition-all ${
+                        referenceImages.some(f => f.type.startsWith("video/"))
+                          ? "bg-purple-500 shadow-[0_0_8px_#a855f7]"
+                          : "bg-transparent group-hover:bg-slate-700"
+                      }`}
+                    />
+                  </button>
+
+                  {/* 3. Audio Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStudioTab("uploads");
+                      setShowReferenceStudioModal(true);
+                    }}
+                    className="relative w-9 h-9 rounded-xl bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                    title={lang === "ar" ? "الأصوات المرجعية" : "Reference Audio"}
+                  >
+                    <AudioLines className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("audio/")) ? "text-teal-400" : "text-slate-400 group-hover:text-slate-350"}`} />
+                    <div
+                      className={`absolute bottom-0 left-2 right-2 h-[2px] rounded-full transition-all ${
+                        referenceImages.some(f => f.type.startsWith("audio/"))
+                          ? "bg-teal-500 shadow-[0_0_8px_#14b8a6]"
+                          : "bg-transparent group-hover:bg-slate-700"
+                      }`}
+                    />
+                  </button>
+
+                  {/* 4. Character Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStudioTab("character");
+                      setShowReferenceStudioModal(true);
+                    }}
+                    className="relative w-9 h-9 rounded-xl bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                    title={lang === "ar" ? "شخصية محفوظة" : "Saved Character"}
+                  >
+                    <User className={`w-3.5 h-3.5 transition-all ${selectedCharacterPresetId ? "text-pink-400" : "text-slate-400 group-hover:text-slate-350"}`} />
+                    <div
+                      className={`absolute bottom-0 left-2 right-2 h-[2px] rounded-full transition-all ${
+                        selectedCharacterPresetId
+                          ? "bg-pink-500 shadow-[0_0_8px_#ec4899]"
+                          : "bg-transparent group-hover:bg-slate-700"
+                      }`}
+                    />
+                  </button>
+
+                  {/* 5. Style Icon Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStudioTab("style");
+                      setShowReferenceStudioModal(true);
+                    }}
+                    className="relative w-9 h-9 rounded-xl bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+                    title={lang === "ar" ? "مكتبة الأنماط" : "Style Library"}
+                  >
+                    <Palette className={`w-3.5 h-3.5 transition-all ${selectedStyle ? "text-amber-400" : "text-slate-400 group-hover:text-slate-350"}`} />
+                    <div
+                      className={`absolute bottom-0 left-2 right-2 h-[2px] rounded-full transition-all ${
+                        selectedStyle
+                          ? "bg-amber-500 shadow-[0_0_8px_#eab308]"
+                          : "bg-transparent group-hover:bg-slate-700"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="h-5 w-[1px] bg-slate-800/80 mx-1 flex-shrink-0" />
+
+                <button
+                  type="button"
+                  onClick={() => openMediaPicker("referenceImages")}
+                  className="flex-1 h-8 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/15 border border-dashed border-cyan-500/30 hover:border-cyan-500/50 flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer text-cyan-400 hover:text-white min-w-0"
+                >
+                  <Plus className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="text-[10px] font-bold tracking-tight truncate">{lang === "ar" ? "إضافة وسائط" : "Add media"}</span>
+                </button>
+              </div>
+
+              {/* Row 2: Thumbnails grid (rendered below status bar when files are uploaded) */}
+              {referenceImages.length > 0 && (
+                <div className="grid grid-cols-4 gap-1.5 pt-1 bg-black/20 border border-dashed border-slate-800/80 rounded-xl p-2.5">
+                  {referencePreviews.map((src, i) => {
+                    const file = referenceImages[i];
+                    if (!file) return null;
+                    const isImage = file.type.startsWith("image/");
+                    const isVideo = file.type.startsWith("video/");
+                    const isAudio = file.type.startsWith("audio/");
+                    const descriptors = getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled);
+                    const desc = descriptors[i];
+                    const tag = desc ? desc.tag : `@ref${i + 1}`;
+
+                    return (
+                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-white/5 bg-black/40 group">
+                        {isImage && src && (
+                          <img src={src} alt={file.name} className="w-full h-full object-cover" />
+                        )}
+                        {isVideo && src && (
+                          <video src={src} className="w-full h-full object-cover" muted playsInline />
+                        )}
+                        {isAudio && (
+                          <div className="w-full h-full flex items-center justify-center bg-teal-500/10">
+                            <AudioLines className="w-4 h-4 text-teal-400" />
+                          </div>
+                        )}
+
+                        {/* Tag Overlay at the bottom */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/75 py-0.5 text-center text-[8px] font-bold text-slate-300 select-none truncate">
+                          {tag}
+                        </div>
+
+                        {/* Individual Delete Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReferenceImages((prev) => prev.filter((_, idx) => idx !== i));
+                          }}
+                          className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/60 hover:bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <input
+                ref={referenceImagesRef}
+                type="file"
+                accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
+                multiple
+                className="hidden"
+                onChange={e => {
+                  const files = Array.from(e.target.files ?? []);
+                  setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          )}
+
+          {/* 2. Motion Control inputs (video + character) */}
           {showVideoInput && (
             <div className="flex gap-2">
               {/* Motion reference video */}
               <button
+                type="button"
                 onClick={() => openMediaPicker("motionVideo")}
                 onDragOver={allowDrop}
                 onDragEnter={(event) => markDropZone(event, "motionVideo")}
@@ -4127,6 +4311,7 @@ function VideoPageInner() {
                       />
                     )}
                     <button
+                      type="button"
                       className="absolute top-2 left-2 z-10 rounded-full p-1"
                       style={{ background: "rgba(0,0,0,0.75)" }}
                       onClick={e => { e.stopPropagation(); setMotionVideo(null); }}
@@ -4152,6 +4337,7 @@ function VideoPageInner() {
 
               {/* Character image */}
               <button
+                type="button"
                 onClick={() => openMediaPicker("startFrame")}
                 onDragOver={allowDrop}
                 onDragEnter={(event) => markDropZone(event, "startFrame")}
@@ -4182,6 +4368,7 @@ function VideoPageInner() {
                       />
                     )}
                     <button
+                      type="button"
                       className="absolute top-2 left-2 z-10 rounded-full p-1"
                       style={{ background: "rgba(0,0,0,0.75)" }}
                       onClick={e => { e.stopPropagation(); setStartFrame(null); }}
@@ -4207,10 +4394,9 @@ function VideoPageInner() {
             </div>
           )}
 
-          {/* -- Omni: Elements / Frames tabs ------------------------------- */}
+          {/* 3. Omni Elements / Frames Tabs */}
           {showOmniTabs && (
             <div className="flex flex-col gap-2">
-              {/* Tab switcher */}
               <div
                 className="flex rounded-lg overflow-hidden"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
@@ -4218,6 +4404,7 @@ function VideoPageInner() {
                 {(["elements", "frames"] as const).map(tab => (
                   <button
                     key={tab}
+                    type="button"
                     onClick={() => setOmniTab(tab)}
                     className="flex-1 py-2 text-[12px] font-semibold capitalize transition-all"
                     style={{
@@ -4231,9 +4418,9 @@ function VideoPageInner() {
                 ))}
               </div>
 
-              {/* Elements tab — element reference image */}
               {omniTab === "elements" && (
                 <button
+                  type="button"
                   onClick={() => openMediaPicker("startFrame")}
                   onDragOver={allowDrop}
                   onDragEnter={(event) => markDropZone(event, "startFrame")}
@@ -4264,6 +4451,7 @@ function VideoPageInner() {
                         />
                       )}
                       <button
+                        type="button"
                         className="absolute top-2 left-2 z-10 rounded-full p-1"
                         style={{ background: "rgba(0,0,0,0.75)" }}
                         onClick={e => { e.stopPropagation(); setStartFrame(null); }}
@@ -4283,11 +4471,10 @@ function VideoPageInner() {
                 </button>
               )}
 
-              {/* Frames tab — Start + End frame */}
               {omniTab === "frames" && (
                 <div className="flex gap-2">
-                  {/* Start frame */}
                   <button
+                    type="button"
                     onClick={() => openMediaPicker("startFrame")}
                     onDragOver={allowDrop}
                     onDragEnter={(event) => markDropZone(event, "startFrame")}
@@ -4318,6 +4505,7 @@ function VideoPageInner() {
                           />
                         )}
                         <button
+                          type="button"
                           className="absolute top-2 left-2 z-10 rounded-full p-1"
                           style={{ background: "rgba(0,0,0,0.75)" }}
                           onClick={e => { e.stopPropagation(); setStartFrame(null); }}
@@ -4340,8 +4528,8 @@ function VideoPageInner() {
                     )}
                   </button>
 
-                  {/* End frame */}
                   <button
+                    type="button"
                     onClick={() => openMediaPicker("endFrame")}
                     onDragOver={allowDrop}
                     onDragEnter={(event) => markDropZone(event, "endFrame")}
@@ -4372,6 +4560,7 @@ function VideoPageInner() {
                           />
                         )}
                         <button
+                          type="button"
                           className="absolute top-2 left-2 z-10 rounded-full p-1"
                           style={{ background: "rgba(0,0,0,0.75)" }}
                           onClick={e => { e.stopPropagation(); setEndFrame(null); }}
@@ -4398,324 +4587,18 @@ function VideoPageInner() {
             </div>
           )}
 
-          {/* -- Omni: Reference images (shown alongside Omni tabs) -------- */}
-          {(showReferenceImages || showSimpleKlingRefs) && (
-            <>
-              {referenceImages.length === 0 ? (
-                <button
-                  type="button"
-                  onClick={() => openMediaPicker("referenceImages")}
-                  onDragOver={allowDrop}
-                  onDragEnter={(event) => markDropZone(event, "referenceImages")}
-                  onDragLeave={(event) => clearDropZone(event, "referenceImages")}
-                  onDrop={handleDropReferenceImages}
-                  className="relative w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all bg-[#ffffff05] border-white/10 hover:border-cyan-500/50 hover:bg-cyan-500/[0.02]"
-                  style={{
-                    height: 100,
-                  }}
-                >
-                  <input
-                    ref={referenceImagesRef}
-                    type="file"
-                    accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
-                    multiple
-                    className="hidden"
-                    onChange={e => {
-                      const files = Array.from(e.target.files ?? []);
-                      setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
-                      e.target.value = "";
-                    }}
-                  />
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center"
-                    style={{ background: "rgba(255,255,255,0.06)" }}
-                  >
-                    <ImageIcon size={16} style={{ color: "#94a3b8" }} />
-                  </div>
-                  <span className="text-[11px]" style={{ color: "#94a3b8" }}>
-                    {isSeedanceV2Model ? "Reference media" : "Reference images"}
-                  </span>
-                  {activeDropZone === "referenceImages" && (
-                    <span className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[12px] font-semibold text-cyan-300">
-                      {isSeedanceV2Model ? "Drop media here" : "Drop images here"}
-                    </span>
-                  )}
-                </button>
-              ) : (
-                <div
-                  className="relative w-full rounded-xl border border-dashed border-slate-700/80 bg-black/20 p-2.5 flex flex-col gap-2"
-                >
-                  {/* Row 1: The status bar row */}
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1">
-                      {/* 1. Image Icon Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveStudioTab("uploads");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
-                        title={lang === "ar" ? "الصور المرجعية" : "Reference Images"}
-                      >
-                        <ImageIcon className={`w-3 h-3 transition-all ${referenceImages.some(f => f.type.startsWith("image/")) ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                        <div
-                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
-                            referenceImages.some(f => f.type.startsWith("image/"))
-                              ? "bg-cyan-500 shadow-[0_0_6px_#06b6d4]"
-                              : "bg-transparent group-hover:bg-slate-700"
-                          }`}
-                        />
-                      </button>
-
-                      {/* 2. Video Icon Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveStudioTab("uploads");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
-                        title={lang === "ar" ? "الفيديوهات المرجعية" : "Reference Videos"}
-                      >
-                        <Video className={`w-3 h-3 transition-all ${referenceImages.some(f => f.type.startsWith("video/")) ? "text-purple-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                        <div
-                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
-                            referenceImages.some(f => f.type.startsWith("video/"))
-                              ? "bg-purple-500 shadow-[0_0_8px_#a855f7]"
-                              : "bg-transparent group-hover:bg-slate-700"
-                          }`}
-                        />
-                      </button>
-
-                      {/* 3. Audio Icon Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveStudioTab("uploads");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
-                        title={lang === "ar" ? "الأصوات المرجعية" : "Reference Audio"}
-                      >
-                        <AudioLines className={`w-3 h-3 transition-all ${referenceImages.some(f => f.type.startsWith("audio/")) ? "text-teal-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                        <div
-                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
-                            referenceImages.some(f => f.type.startsWith("audio/"))
-                              ? "bg-teal-500 shadow-[0_0_8px_#14b8a6]"
-                              : "bg-transparent group-hover:bg-slate-700"
-                          }`}
-                        />
-                      </button>
-
-                      {/* 4. Character Icon Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveStudioTab("character");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
-                        title={lang === "ar" ? "شخصية محفوظة" : "Saved Character"}
-                      >
-                        <User className={`w-3 h-3 transition-all ${selectedCharacterPresetId ? "text-pink-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                        <div
-                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
-                            selectedCharacterPresetId
-                              ? "bg-pink-500 shadow-[0_0_8px_#ec4899]"
-                              : "bg-transparent group-hover:bg-slate-700"
-                          }`}
-                        />
-                      </button>
-
-                      {/* 5. Elements Icon Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveStudioTab("elements");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
-                        title={lang === "ar" ? "العناصر المرجعية" : "Reference Elements"}
-                      >
-                        <Shapes className={`w-3 h-3 transition-all ${selectedElementId ? "text-purple-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                        <div
-                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
-                            selectedElementId
-                              ? "bg-purple-500 shadow-[0_0_8px_#a855f7]"
-                              : "bg-transparent group-hover:bg-slate-700"
-                          }`}
-                        />
-                      </button>
-
-                      {/* 6. Style Icon Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveStudioTab("style");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="relative w-6 h-6 rounded bg-[#121520] border border-slate-800/80 flex items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
-                        title={lang === "ar" ? "مكتبة الأنماط" : "Style Library"}
-                      >
-                        <Palette className={`w-3 h-3 transition-all ${selectedStyle ? "text-amber-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                        <div
-                          className={`absolute bottom-0 left-0.5 right-0.5 h-[1px] rounded-full transition-all ${
-                            selectedStyle
-                              ? "bg-amber-500 shadow-[0_0_8px_#eab308]"
-                              : "bg-transparent group-hover:bg-slate-700"
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    <div className="h-4 w-[1px] bg-slate-800/80 mx-0.5 flex-shrink-0" />
-
-                    {/* Add Media button inside status bar */}
-                    <button
-                      type="button"
-                      onClick={() => openMediaPicker("referenceImages")}
-                      className="flex-shrink-0 min-w-[70px] h-6 rounded bg-[#121520]/60 hover:bg-[#191d2c]/80 border border-dashed border-slate-700 hover:border-cyan-500/50 flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer text-cyan-400 hover:text-white"
-                    >
-                      <Plus className="w-2.5 h-2.5 flex-shrink-0" />
-                      <span className="text-[9px] font-bold tracking-tight" style={{ whiteSpace: "nowrap" }}>{lang === "ar" ? "إضافة وسائط" : "Add media"}</span>
-                    </button>
-                  </div>
-
-                  {/* Row 2: Thumbnails grid */}
-                  <div className="grid grid-cols-4 gap-1.5 pt-1">
-                    {referencePreviews.map((src, i) => {
-                      const file = referenceImages[i];
-                      if (!file) return null;
-                      const isImage = file.type.startsWith("image/");
-                      const isVideo = file.type.startsWith("video/");
-                      const isAudio = file.type.startsWith("audio/");
-                      const descriptors = getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled);
-                      const desc = descriptors[i];
-                      const tag = desc ? desc.tag : `@ref${i + 1}`;
-
-                      return (
-                        <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-white/5 bg-black/40 group">
-                          {isImage && src && (
-                            <img src={src} alt={file.name} className="w-full h-full object-cover" />
-                          )}
-                          {isVideo && src && (
-                            <video src={src} className="w-full h-full object-cover" muted playsInline />
-                          )}
-                          {isAudio && (
-                            <div className="w-full h-full flex items-center justify-center bg-teal-500/10">
-                              <AudioLines className="w-4 h-4 text-teal-400" />
-                            </div>
-                          )}
-
-                          {/* Tag Overlay at the bottom */}
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/75 py-0.5 text-center text-[8px] font-bold text-slate-300 select-none truncate">
-                            {tag}
-                          </div>
-
-                          {/* Individual Delete Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setReferenceImages((prev) => prev.filter((_, idx) => idx !== i));
-                            }}
-                            className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/60 hover:bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-                          >
-                            <X className="w-2.5 h-2.5" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <input
-                    ref={referenceImagesRef}
-                    type="file"
-                    accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
-                    multiple
-                    className="hidden"
-                    onChange={e => {
-                      const files = Array.from(e.target.files ?? []);
-                      setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
-                      e.target.value = "";
-                    }}
-                  />
-                </div>
-              )}
-            </>
-          )}
-
-          {/* -- Optional Video Input (for Video-to-Video models like Gemini Omni Flash) -- */}
-          {caps.optional_video && (
-            <div className="flex flex-col gap-1.5">
-              <button
-                onClick={() => openMediaPicker("motionVideo")}
-                onDragOver={allowDrop}
-                onDragEnter={(event) => markDropZone(event, "motionVideo")}
-                onDragLeave={(event) => clearDropZone(event, "motionVideo")}
-                onDrop={(event) => handleDropSingleVideo(event, setMotionVideo)}
-                className="relative w-full h-[70px] rounded-xl border border-dashed transition-all flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-cyan-500 hover:border-cyan-500/50 bg-black/40 hover:bg-cyan-950/10"
-                style={{
-                  borderColor: motionVideo ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.08)",
-                  background:  motionVideo ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
-                }}
-              >
-                <input
-                  ref={motionVideoRef}
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
-                  onChange={e => setMotionVideo(e.target.files?.[0] ?? null)}
-                />
-                {motionVideo ? (
-                  <>
-                    {motionVideoPreview && (
-                      <video
-                        src={motionVideoPreview}
-                        className="absolute inset-0 w-full h-full object-cover rounded-xl"
-                        muted
-                        playsInline
-                        autoPlay
-                        loop
-                      />
-                    )}
-                    <button
-                      className="absolute top-2 left-2 z-10 rounded-full p-1"
-                      style={{ background: "rgba(0,0,0,0.75)" }}
-                      onClick={e => { e.stopPropagation(); setMotionVideo(null); }}
-                    >
-                      <X size={11} style={{ color: "#fff" }} />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Film size={15} className="text-slate-400" />
-                    <span className="text-[10px] font-semibold text-slate-400">Upload Input Video (Optional)</span>
-                    <span className="text-[9px] text-slate-600">MP4, MOV (3-10 seconds)</span>
-                  </>
-                )}
-                {activeDropZone === "motionVideo" && (
-                  <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[12px] font-semibold text-cyan-300">
-                    Drop video here
-                  </span>
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* -- Image inputs (Start / End frame) -------------------------- */}
-          {/* NOTE: Kling 3.0 has its own dedicated FRAMES section below — hide generic here */}
+          {/* 4. Image inputs (Start / End frame) (non-Omni / non-Motion Control) */}
           {!showVideoInput && !showOmniTabs && !isKling30Video && (showImageInput || showEndFrame) && (
             <div className="flex gap-2">
               {showImageInput && (
                 <button
+                  type="button"
                   onClick={() => openMediaPicker("startFrame")}
                   onDragOver={allowDrop}
                   onDragEnter={(event) => markDropZone(event, "startFrame")}
                   onDragLeave={(event) => clearDropZone(event, "startFrame")}
                   onDrop={(event) => handleDropSingleImage(event, setStartFrame)}
-                  className="relative flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
+                  className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
                   style={{
                     height: 100,
                     borderColor: startFrame ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
@@ -4740,6 +4623,7 @@ function VideoPageInner() {
                         />
                       )}
                       <button
+                        type="button"
                         className="absolute top-2 left-2 z-10 rounded-full p-1"
                         style={{ background: "rgba(0,0,0,0.75)" }}
                         onClick={e => { e.stopPropagation(); setStartFrame(null); }}
@@ -4749,13 +4633,16 @@ function VideoPageInner() {
                     </>
                   ) : (
                     <>
+                      <span className="absolute top-1.5 px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[8px] text-slate-400 font-semibold tracking-wider uppercase">
+                        Optional
+                      </span>
                       <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center"
+                        className="w-8 h-8 rounded-full flex items-center justify-center mt-3"
                         style={{ background: "rgba(255,255,255,0.06)" }}
                       >
-                        <ImageIcon size={16} style={{ color: "#94a3b8" }} />
+                        <ImageIcon size={14} style={{ color: "#94a3b8" }} />
                       </div>
-                      <span className="text-[11px]" style={{ color: "#94a3b8" }}>
+                      <span className="text-[10px]" style={{ color: "#94a3b8" }}>
                         {caps.requires_image ? "Upload image *" : "Start frame"}
                       </span>
                     </>
@@ -4770,12 +4657,13 @@ function VideoPageInner() {
 
               {showEndFrame && (
                 <button
+                  type="button"
                   onClick={() => openMediaPicker("endFrame")}
                   onDragOver={allowDrop}
                   onDragEnter={(event) => markDropZone(event, "endFrame")}
                   onDragLeave={(event) => clearDropZone(event, "endFrame")}
                   onDrop={(event) => handleDropSingleImage(event, setEndFrame)}
-                  className="relative flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
+                  className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
                   style={{
                     height: 100,
                     borderColor: endFrame ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
@@ -4800,6 +4688,7 @@ function VideoPageInner() {
                         />
                       )}
                       <button
+                        type="button"
                         className="absolute top-2 left-2 z-10 rounded-full p-1"
                         style={{ background: "rgba(0,0,0,0.75)" }}
                         onClick={e => { e.stopPropagation(); setEndFrame(null); }}
@@ -4809,13 +4698,16 @@ function VideoPageInner() {
                     </>
                   ) : (
                     <>
+                      <span className="absolute top-1.5 px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[8px] text-slate-400 font-semibold tracking-wider uppercase">
+                        Optional
+                      </span>
                       <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center"
+                        className="w-8 h-8 rounded-full flex items-center justify-center mt-3"
                         style={{ background: "rgba(255,255,255,0.06)" }}
                       >
-                        <ImageIcon size={16} style={{ color: "#94a3b8" }} />
+                        <ImageIcon size={14} style={{ color: "#94a3b8" }} />
                       </div>
-                      <span className="text-[11px]" style={{ color: "#94a3b8" }}>End frame</span>
+                      <span className="text-[10px]" style={{ color: "#94a3b8" }}>End frame</span>
                     </>
                   )}
                   {activeDropZone === "endFrame" && (
@@ -4825,22 +4717,58 @@ function VideoPageInner() {
                   )}
                 </button>
               )}
-
-
             </div>
           )}
 
-              {(showReferenceImages || showSimpleKlingRefs) && referenceImages.length > 0 && (
-                <p className="text-[10px] -mt-1" style={{ color: "#a1a1aa" }}>
-                  {showSimpleKlingRefs
-                    ? "Kling uses Elements with @element_name, not @Image prompt tags."
-                    : isSeedanceV2Model
-                      ? getPromptReferenceTagHint(selectedModel)
-                      : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
-                </p>
-              )}
 
-          {/* -- AI Model dropdown ------------------------------------------- */}
+
+          {/* 6. Uploaded reference list tags and Hint Text */}
+          {(showReferenceImages || showSimpleKlingRefs) && referenceImages.length > 0 && (
+            <div className="flex flex-col gap-2 mt-1">
+              <div className="flex flex-wrap gap-2 items-center">
+                {getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled).map((ref) => {
+                  const isImage = ref.kind === "image";
+                  const isVideo = ref.kind === "video";
+                  return (
+                    <div
+                      key={ref.originalIndex}
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border group"
+                      style={{
+                        background: "rgba(6, 182, 212, 0.04)",
+                        borderColor: "rgba(6, 182, 212, 0.2)",
+                      }}
+                    >
+                      {isVideo ? (
+                        <Film size={12} className="text-cyan-400" />
+                      ) : isImage ? (
+                        <ImageIcon size={12} className="text-cyan-400" />
+                      ) : (
+                        <AudioLines size={12} className="text-cyan-400" />
+                      )}
+                      <span className="text-[11px] font-bold text-cyan-400 font-mono">{ref.tag}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReferenceImages((prev) => prev.filter((_, idx) => idx !== ref.originalIndex));
+                        }}
+                        className="text-cyan-500 hover:text-red-400 transition-colors ml-0.5"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] leading-relaxed text-slate-500 mt-0.5">
+                {showSimpleKlingRefs
+                  ? "Kling uses Elements with @element_name, not @Image prompt tags."
+                  : isSeedanceV2Model
+                    ? "Seedance supports @Image1..@Image30, @Video1..@Video10, @Audio1..@Audio10. Audio requires at least one image or video reference."
+                    : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
+              </p>
+            </div>
+          )}          {/* -- AI Model dropdown ------------------------------------------- */}
           {/* -- AI Model dropdown ------------------------------------------- */}
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
