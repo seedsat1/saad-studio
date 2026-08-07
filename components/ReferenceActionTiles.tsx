@@ -61,12 +61,12 @@ export function ReferenceActionTiles({
       </label>
 
       {/* Quick Action Square Tiles Row (Style | Character | Add) */}
-      <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
+      <div className="grid grid-cols-3 gap-2 pb-1">
         {/* 1. Style Tile */}
         <button
           type="button"
           onClick={() => onOpenStudio("style")}
-          className="w-20 h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-indigo-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group flex-shrink-0"
+          className="w-full h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-indigo-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group"
         >
           <Sparkles className="w-5 h-5 text-slate-400 group-hover:text-indigo-400 group-hover:scale-110 transition-all duration-200" />
           <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white">Style</span>
@@ -76,7 +76,7 @@ export function ReferenceActionTiles({
         <button
           type="button"
           onClick={() => onOpenStudio("character")}
-          className="w-20 h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-emerald-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group flex-shrink-0"
+          className="w-full h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-emerald-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group"
         >
           <User className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 group-hover:scale-110 transition-all duration-200" />
           <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white">Character</span>
@@ -86,7 +86,7 @@ export function ReferenceActionTiles({
         <button
           type="button"
           onClick={() => onOpenStudio("uploads")}
-          className="w-20 h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-sky-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group flex-shrink-0"
+          className="w-full h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-sky-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group"
         >
           <Plus className="w-5 h-5 text-slate-400 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-200" />
           <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white">Add</span>

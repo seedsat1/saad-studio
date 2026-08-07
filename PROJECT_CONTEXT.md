@@ -1,3 +1,11 @@
+#### Latest task: Fix ReferenceActionTiles scrolling and width clipping (2026-08-07)
+- Status: Completed. Changed the style buttons container (`Style`, `Character`, `Add`) in the video generation sidebar from an `overflow-x-auto` flex row to a static 3-column CSS Grid (`grid-cols-3`), allowing all three buttons to fit the sidebar width cleanly without clipping or horizontal scrolling.
+- Affected files: `components/ReferenceActionTiles.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed.
+- Decisions:
+  - Replace the flex-based horizontal scroll list in ReferenceActionTiles with a responsive 3-column CSS grid.
+  - Set buttons to width `w-full` instead of fixed `w-20` to let them scale fluidly inside the sidebar columns.
+
 #### Latest task: Remove Optional badge and label text from Start/End frames (2026-08-07)
 - Status: Completed. Cleaned the Start frame and End frame upload buttons by removing the "Optional" badges and the "Start frame" / "End frame" text labels, leaving only the centered Image icon for a cleaner, mockup-matching appearance.
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
