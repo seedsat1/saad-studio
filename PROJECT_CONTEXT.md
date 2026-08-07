@@ -1,3 +1,12 @@
+#### Latest task: Embed subtitle instructions inside the unified reference button box (2026-08-08)
+- Status: Completed.
+  - Refactored the unified reference status bar container from a capsule shape (`rounded-full`) to a rounded rectangle box (`rounded-2xl`) and placed the descriptive subtitles (`Add references / Image, Video or Audio`) directly inside it.
+  - Added a sleek horizontal separator line (`w-full h-[1px] bg-slate-800/60 mt-0.5`) to divide the 5-icon action row and the instructions text.
+  - Retained full drag-and-drop file uploading capability and click action across the entire box container as a single button.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: TypeScript type-check (`npx tsc --noEmit`) completed with exit code 0.
+- Decisions: Keep the entire box as one single interactive button block so it drag-and-drops and clicks as one unit, with internal subtitle labels grouped cleanly.
+
 #### Latest task: Remove other provider names and group headers from the model list (2026-08-08)
 - Status: Completed.
   - Modified `prettyModelName` to dynamically filter out provider/website names (like Wave Speed, WaveSpeed, Google, KIE, KIE.ai, wavespeed.ai) from model names on-the-fly.
