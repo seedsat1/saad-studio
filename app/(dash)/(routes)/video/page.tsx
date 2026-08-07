@@ -1337,6 +1337,28 @@ function getPromptReferenceTagHint(model: WaveSpeedVideoModel): string {
   return `Seedance supports ${joined}. Audio requires at least one image or video reference.`;
 }
 
+function getPromptReferenceDescriptors(files: File[], promptTagsEnabled: boolean) {
+  let imageCount = 0;
+  let videoCount = 0;
+  let audioCount = 0;
+
+  return files.map((file, originalIndex) => {
+    if (file.type.startsWith("video/")) {
+      videoCount++;
+      const tag = `@Video${videoCount}`;
+      return { file, originalIndex, kind: "video" as const, tag, label: promptTagsEnabled ? tag : `Video ${videoCount}` };
+    }
+    if (file.type.startsWith("audio/")) {
+      audioCount++;
+      const tag = `@Audio${audioCount}`;
+      return { file, originalIndex, kind: "audio" as const, tag, label: promptTagsEnabled ? tag : `Audio ${audioCount}` };
+    }
+    imageCount++;
+    const tag = `@Image${imageCount}`;
+    return { file, originalIndex, kind: "image" as const, tag, label: promptTagsEnabled ? tag : `Image ${imageCount}` };
+  });
+}
+
 // -- Constants -----------------------------------------------------------------
 
 const BADGE_STYLE = {
@@ -2019,9 +2041,11 @@ function VideoPageInner() {
       setReferencePreviews([]);
       return;
     }
-    const urls = referenceImages.map((f) => URL.createObjectURL(f));
+    const urls = referenceImages.map((f) => f.type.startsWith("image/") ? URL.createObjectURL(f) : "");
     setReferencePreviews(urls);
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+    return () => urls.forEach((u) => {
+      if (u) URL.revokeObjectURL(u);
+    });
   }, [referenceImages]);
 
   // Generation state
@@ -3641,27 +3665,23 @@ function VideoPageInner() {
           }}
         >
           {/* Top Section inside Card: Reference Badges */}
-          {referenceImages.some((file) => file.type.startsWith("image/")) && (
+          {referenceImages.length > 0 && (
             <div className="flex flex-wrap gap-2 items-center pb-2.5 border-b border-white/[0.06]">
               <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mr-1 flex items-center gap-1">
                 <Sparkles size={11} className="text-cyan-400" /> {promptReferenceTagsEnabled ? t("Click to insert reference:") : "Reference order:"}
               </span>
               {(() => {
-                let imageCount = 0;
-                return referenceImages.map((file, idx) => {
-                  const isImage = file.type.startsWith("image/");
-                  if (!isImage) return null;
-                  imageCount++;
-                  const tag = `@Image${imageCount}`;
-                  const label = promptReferenceTagsEnabled ? tag : `Image ${imageCount}`;
-                  const previewSrc = referencePreviews[idx];
+                return getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled).map((ref) => {
+                  const previewSrc = referencePreviews[ref.originalIndex];
+                  const isImage = ref.kind === "image";
+                  const isVideo = ref.kind === "video";
                   return (
                     <button
-                      key={idx}
+                      key={ref.originalIndex}
                       type="button"
                       disabled={!promptReferenceTagsEnabled}
                       onClick={promptReferenceTagsEnabled ? () => {
-                        setPrompt(prev => prev ? `${prev} ${tag}` : tag);
+                        setPrompt(prev => prev ? `${prev} ${ref.tag}` : ref.tag);
                       } : undefined}
                       className={`flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-semibold shadow-sm ${promptReferenceTagsEnabled ? "transition-all hover:scale-[1.03] active:scale-[0.97]" : "cursor-default"}`}
                       style={{
@@ -3669,16 +3689,20 @@ function VideoPageInner() {
                         border: "1px solid rgba(6, 182, 212, 0.3)",
                         color: "#22d3ee",
                       }}
-                      title={promptReferenceTagsEnabled ? `Click to insert ${tag} into prompt` : "Reference image order sent to the model"}
+                      title={promptReferenceTagsEnabled ? `Click to insert ${ref.tag} into prompt` : "Reference order sent to the model"}
                     >
-                      {previewSrc && (
+                      {isImage && previewSrc ? (
                         <img
                           src={previewSrc}
-                          alt={`Ref ${imageCount}`}
+                          alt={ref.tag}
                           className="w-5 h-5 rounded object-cover border border-cyan-500/30"
                         />
+                      ) : (
+                        <span className="flex w-5 h-5 items-center justify-center rounded border border-cyan-500/30 bg-cyan-500/10">
+                          {isVideo ? <Film size={12} /> : <Music2 size={12} />}
+                        </span>
                       )}
-                      <span className="font-mono text-[10px]">{label}</span>
+                      <span className="font-mono text-[10px]">{ref.label}</span>
                     </button>
                   );
                 });
@@ -4655,34 +4679,37 @@ function VideoPageInner() {
 
               {(showReferenceImages || showSimpleKlingRefs) && referenceImages.length > 0 && (
                 <div className="flex flex-col gap-2 -mt-3 mb-1">
-                  {/* Horizontal list of uploaded images with tags */}
+                  {/* Horizontal list of uploaded reference media with tags */}
                   {(() => {
-                    let imageIdx = 0;
-                    const imageFiles = referenceImages.filter(f => f.type.startsWith("image/"));
-                    if (imageFiles.length === 0) return null;
+                    const referenceItems = getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled);
+                    if (referenceItems.length === 0) return null;
                     return (
                       <div className="flex flex-wrap gap-2 items-center">
-                        {imageFiles.map((file, idx) => {
-                          imageIdx++;
-                          const tag = promptReferenceTagsEnabled ? `@Image${imageIdx}` : `Image ${imageIdx}`;
-                          const previewSrc = referencePreviews[referenceImages.indexOf(file)];
+                        {referenceItems.map((ref) => {
+                          const previewSrc = referencePreviews[ref.originalIndex];
+                          const isImage = ref.kind === "image";
+                          const isVideo = ref.kind === "video";
                           return (
                             <div
-                              key={idx}
+                              key={ref.originalIndex}
                               className="flex items-center gap-2 px-2.5 py-1 rounded-lg"
                               style={{
                                 background: "rgba(255,255,255,0.03)",
                                 border: "1px solid rgba(255,255,255,0.06)",
                               }}
                             >
-                              {previewSrc && (
+                              {isImage && previewSrc ? (
                                 <img
                                   src={previewSrc}
-                                  alt={tag}
+                                  alt={ref.tag}
                                   className="w-8 h-8 rounded object-cover border border-cyan-500/20"
                                 />
+                              ) : (
+                                <span className="flex w-8 h-8 items-center justify-center rounded border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
+                                  {isVideo ? <Film size={15} /> : <Music2 size={15} />}
+                                </span>
                               )}
-                              <span className="text-[11px] font-semibold text-cyan-400 font-mono">{tag}</span>
+                              <span className="text-[11px] font-semibold text-cyan-400 font-mono">{ref.label}</span>
                             </div>
                           );
                         })}

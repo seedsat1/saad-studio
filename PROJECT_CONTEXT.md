@@ -10838,3 +10838,23 @@
   - Seedance 2.5 audio references now require at least one image or video reference on both client and API validation.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
 - Decision: Keep prompt references separate from start/end frame inputs so the visible Seedance 2.5 public model can support Reference To Video without accidentally switching to Image To Video.
+
+#### Latest task: Show Seedance video/audio reference tags in /video UI (2026-08-07)
+- Status: Completed. Fixed `/video` reference media chips so uploaded Seedance video and audio references are displayed and insertable like image references.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - The prompt/reference chip renderer now builds tags for all uploaded reference media: `@ImageN`, `@VideoN`, and `@AudioN`.
+  - Video and audio references render with media icons when they do not have image thumbnails.
+  - Both the composite prompt card and the settings-panel reference list use the same descriptor helper, so a user who uploads one image and one video sees both `@Image1` and `@Video1`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
+- Decision: Reference display must mirror the actual payload-capable media set, not only image files, to avoid making uploaded videos look ignored.
+
+#### Latest task: Stop blob preview errors for Seedance reference videos/audio (2026-08-07)
+- Status: Completed. Fixed `/video` reference preview generation so only image reference files receive browser object URLs.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `referencePreviews` now stores blob URLs only for image files; video and audio reference slots store an empty preview marker and render icon chips instead.
+  - Cleanup revokes only non-empty object URLs.
+  - This prevents `blob:https://www.saadstudio.app/... net::ERR_FILE_NOT_FOUND` errors caused by non-image reference media receiving stale/unneeded blob preview URLs.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
+- Decision: Browser object URLs should be reserved for media that is actually rendered as an image preview; video/audio Seedance references should use stable icons in the selector/chip UI.

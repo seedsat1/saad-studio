@@ -3000,3 +3000,16 @@
 - Auto-routing from the public `Seedance 2.5` row to Image To Video is allowed only when an explicit start-frame/image input is supplied. Reference-only prompts stay on `bytedance/seedance-2.5/text-to-video-turbo`.
 - Audio references cannot be used alone. The UI and API must require at least one image or video reference when audio references are attached.
 - Prompt tag cleanup must support multi-digit tags such as `@Image30`, `@Video10`, and `@Audio10`.
+
+## Seedance 2.5 Reference Chip Display Contract (2026-08-07)
+
+- `/video` reference chips must display every uploaded reference media type supported by the selected model, not image files only.
+- Seedance 2.5 chips map uploaded media to prompt tags by media type: `@ImageN`, `@VideoN`, and `@AudioN`.
+- Video and audio references should render with compact media icons when no image thumbnail exists.
+- The visible chip list must match the request payload capability so uploaded videos do not appear ignored while still being counted in the reference summary.
+
+## Seedance Reference Blob Preview Contract (2026-08-07)
+
+- `/video` should create browser object URLs only for image reference previews.
+- Video and audio Seedance references should render icon chips and empty preview markers, not blob URLs intended for image display.
+- Cleanup must revoke only non-empty object URLs. This avoids stale `blob:https://... net::ERR_FILE_NOT_FOUND` console errors after reference media changes or re-renders.
