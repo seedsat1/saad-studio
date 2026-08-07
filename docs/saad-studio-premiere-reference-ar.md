@@ -3040,3 +3040,11 @@
 - Browser-facing APIs must not return raw storage keys as the primary playable `url`; they should normalize them to a safe media URL such as `/api/media/videos/user/file.mp4` or a configured public CDN/B2 URL.
 - `/api/assets/persist` returns `url` for browser playback and `storageUrl` for the raw stored key/original durable value.
 - `/video` must normalize raw `images/`, `videos/`, `audio/`, `thumbnails/`, or `media/` keys before assigning them to `<video src>` or result media state. This prevents production 404 requests to `/videos/...`.
+
+## WaveSpeed Actual Run Pricing Corrections (2026-08-07)
+
+- Seedance 2.5 720p pricing is based on an actual completed WaveSpeed run for `bytedance/seedance-2.5/text-to-video-turbo`: `$1.368` for `4s`, so the source rate is `$0.342/s`.
+- Seedance 2.5 480p remains `$0.162/s` until a new actual completed 480p run is provided; do not infer a new 480p value from the 720p correction.
+- Minimax H3 pricing is based on an actual completed WaveSpeed run for `minimax/h3/reference-to-video`: `$2` for `5s` at `768p`, so the source rate is `$0.40/s`.
+- The active site conversion for these WaveSpeed video prices is `40 credits/USD`: Seedance 2.5 720p `4s = 54.72 cr`; Minimax H3 768p `5s = 80 cr`.
+- Sound/generate_audio is not an extra charge for the Seedance 2.5 run pricing above.

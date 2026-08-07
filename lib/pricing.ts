@@ -466,14 +466,34 @@ export function qualityMultiplierFor(quality: string | null | undefined): number
 
 
 const SEEDANCE_25_CREDITS_PER_USD = 40;
+const SEEDANCE_25_USD_PER_SECOND = {
+  "480p": 0.162,
+  "720p": 0.342,
+} as const;
+const MINIMAX_H3_CREDITS_PER_USD = 40;
+const MINIMAX_H3_768P_USD_PER_SECOND = 0.4;
+const MINIMAX_H3_768P_CREDITS_PER_SECOND = MINIMAX_H3_768P_USD_PER_SECOND * MINIMAX_H3_CREDITS_PER_USD;
 
 function getSeedance25ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
   const route = (modelRef || "").toLowerCase();
   if (!route.includes("bytedance/seedance-2.5")) return null;
   const q = (quality || "720p").trim().toLowerCase();
   const duration = Math.max(1, Number.isFinite(durationSec) ? durationSec : 5);
-  const usdPerSecond = q.includes("480") ? 0.162 : 0.324;
+  const usdPerSecond = q.includes("480") ? SEEDANCE_25_USD_PER_SECOND["480p"] : SEEDANCE_25_USD_PER_SECOND["720p"];
   return parseFloat((usdPerSecond * duration).toFixed(4));
+}
+
+function getMinimaxH3ProviderUsd(modelRef: string, durationSec: number): number | null {
+  const constitutionId = MODEL_ALIAS_MAP[modelRef] ?? modelRef;
+  if (constitutionId !== "minimax_h3" && modelRef !== "minimax/h3/reference-to-video") return null;
+  const duration = Math.max(1, Number.isFinite(durationSec) ? durationSec : 5);
+  return parseFloat((MINIMAX_H3_768P_USD_PER_SECOND * duration).toFixed(4));
+}
+
+function getMinimaxH3DefaultCredits(modelRef: string, durationSec: number, numUnits: number): number | null {
+  const usd = getMinimaxH3ProviderUsd(modelRef, durationSec);
+  if (usd === null) return null;
+  return parseFloat(Math.max(1, usd * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
 }
 
 function getSeedance25DefaultCredits(modelRef: string, durationSec: number, numUnits: number, quality?: string | null): number | null {
@@ -600,6 +620,9 @@ export async function getGenerationCost(
   const seedance25Credits = getSeedance25DefaultCredits(modelRef, durationSec, numUnits, quality);
   if (seedance25Credits !== null) return seedance25Credits;
 
+  const minimaxH3Credits = getMinimaxH3DefaultCredits(modelRef, durationSec, numUnits);
+  if (minimaxH3Credits !== null) return minimaxH3Credits;
+
   const models = await loadModels();
   const constitutionId = resolveConstitutionId(modelRef, models);
   const model = models.find((m) => m.id === constitutionId && m.isActive);
@@ -614,9 +637,7 @@ export async function getGenerationCost(
   }
 
   if (constitutionId === "minimax_h3") {
-    const q = quality?.trim().toLowerCase() ?? "768p";
-    const perSec = q.includes("480") ? 1.8 : q.includes("2k") ? 5.2 : 3.6;
-    return parseFloat((perSec * durationSec * numUnits).toFixed(2));
+    return parseFloat((MINIMAX_H3_768P_CREDITS_PER_SECOND * durationSec * numUnits).toFixed(2));
   }
 
   if (constitutionId === "seedance2mini") {
@@ -723,6 +744,9 @@ export function getGenerationCostSync(
   const seedance25Credits = getSeedance25DefaultCredits(modelRef, durationSec, numUnits, quality);
   if (seedance25Credits !== null) return seedance25Credits;
 
+  const minimaxH3Credits = getMinimaxH3DefaultCredits(modelRef, durationSec, numUnits);
+  if (minimaxH3Credits !== null) return minimaxH3Credits;
+
   const models = _cachedModels ?? DEFAULT_MODELS;
   const constitutionId = resolveConstitutionId(modelRef, models);
   const model = models.find((m) => m.id === constitutionId && m.isActive);
@@ -737,9 +761,7 @@ export function getGenerationCostSync(
   }
 
   if (constitutionId === "minimax_h3") {
-    const q = quality?.trim().toLowerCase() ?? "768p";
-    const perSec = q.includes("480") ? 1.8 : q.includes("2k") ? 5.2 : 3.6;
-    return parseFloat((perSec * durationSec * numUnits).toFixed(2));
+    return parseFloat((MINIMAX_H3_768P_CREDITS_PER_SECOND * durationSec * numUnits).toFixed(2));
   }
 
   if (constitutionId === "seedance2mini") {
@@ -813,6 +835,11 @@ export function estimateProviderCostSync(
   const seedance25Usd = getSeedance25ProviderUsd(modelRef, durationSec, quality);
   if (seedance25Usd !== null) {
     return { usd: seedance25Usd, source: "actual" };
+  }
+
+  const minimaxH3Usd = getMinimaxH3ProviderUsd(modelRef, durationSec);
+  if (minimaxH3Usd !== null) {
+    return { usd: minimaxH3Usd, source: "actual" };
   }
 
   // 2. BytePlus/Dreamina/Seedance costing

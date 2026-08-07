@@ -1,3 +1,13 @@
+#### Latest task: Update real WaveSpeed run prices for Seedance 2.5 and Minimax H3 (2026-08-07)
+- Status: Completed. Updated generation credit pricing from actual WaveSpeed completed prediction screenshots.
+- Affected files: `lib/credit-pricing.ts`, `lib/pricing.ts`, `lib/pricing-models.ts`, `app/(landing)/(routes)/pricing/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
+- Decisions:
+  - Seedance 2.5 720p source price is now `$0.342/s`, based on `bytedance/seedance-2.5/text-to-video-turbo` completed run costing `$1.368` for `4s` at `720p`.
+  - Seedance 2.5 480p remains `$0.162/s` because no new actual 480p completed run was provided in this task.
+  - Minimax H3 source price is now `$0.40/s`, based on `minimax/h3/reference-to-video` completed run costing `$2` for `5s` at `768p`.
+  - Both updated WaveSpeed prices use the active site conversion of `40 credits/USD`; therefore Seedance 2.5 720p 4s is `54.72 cr`, and Minimax H3 768p 5s is `80 cr`.
+
 #### Latest task: Fix /video large Seedance reference upload 413 (2026-08-07)
 - Status: Completed. Changed `/video` Seedance/Minimax reference media submission so uploaded images/videos/audios are first sent through the site signed media upload flow, then `/api/video` receives small public URLs instead of large base64 JSON bodies. This prevents Vercel `413 FUNCTION_PAYLOAD_TOO_LARGE` before the route can run.
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `app/api/video/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.

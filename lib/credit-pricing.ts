@@ -14,9 +14,15 @@ const VIDEO_MODEL_ID_COST_MAP = new Map(VIDEO_MODELS.map((m) => [m.id, m.creditC
 const VIDEO_MODEL_BY_ID_MAP = new Map(VIDEO_MODELS.map((m) => [m.id, m]));
 const VIDEO_ROUTE_REGISTRY_MAP = new Map(VIDEO_MODEL_REGISTRY.map((m) => [m.api_route, m]));
 const SEEDANCE_25_CREDITS_PER_USD = 40;
+const SEEDANCE_25_USD_PER_SECOND = {
+  "480p": 0.162,
+  "720p": 0.342,
+} as const;
+const MINIMAX_H3_CREDITS_PER_USD = 40;
+const MINIMAX_H3_768P_USD_PER_SECOND = 0.4;
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
-  ["minimax/h3/reference-to-video", 9.0],
+  ["minimax/h3/reference-to-video", 80.0],
   ["kwaivgi/kling-v3.0-std/text-to-video", 9.0],
   ["kwaivgi/kling-v3.0-std/image-to-video", 9.0],
   ["kwaivgi/kling-v3.0-pro/image-to-video", 17.5],
@@ -135,9 +141,7 @@ function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number 
 
 function getMinimaxH3Credits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
-  const quality = readQuality(payload);
-  const perSecond = quality === "2k" ? 2.6 : 1.8;
-  return parseFloat(Math.max(1, duration * perSecond).toFixed(2));
+  return parseFloat(Math.max(1, duration * MINIMAX_H3_768P_USD_PER_SECOND * MINIMAX_H3_CREDITS_PER_USD).toFixed(2));
 }
 
 function getKling3Credits(payload?: VideoPayload): number {
@@ -210,7 +214,7 @@ function getSeedance25TurboCredits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
   const q = quality.includes("480") ? "480p" : "720p";
-  const usdPerSecond = q === "480p" ? 0.162 : 0.324;
+  const usdPerSecond = SEEDANCE_25_USD_PER_SECOND[q];
   return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }
 
@@ -218,10 +222,7 @@ function getSeedance25SpicyCredits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
   const q = quality.includes("480") ? "480p" : "720p";
-  const usdPerSecond = ({
-    "480p": 0.162,
-    "720p": 0.324,
-  } as Record<string, number>)[q];
+  const usdPerSecond = SEEDANCE_25_USD_PER_SECOND[q];
   return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }
 function getSora2Credits(modelRoute: string, payload?: VideoPayload): number {

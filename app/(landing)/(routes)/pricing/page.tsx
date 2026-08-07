@@ -285,7 +285,7 @@ const MODEL_COSTS = {
     { name: "Kling 2.6",        cost: "15+ Credits",  per: "10s Standard",                free: false, color: "text-indigo-400",  bg: "bg-indigo-500/10",  border: "border-indigo-500/20" },
     { name: "Seedance 2.0",     cost: "31 / 116 Credits", per: "4s / 15s at 720p",        free: false, color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
     { name: "Seedance 2.0 Mini", cost: "17 / 64 Credits", per: "4s / 15s at 720p",        free: false, color: "text-teal-400",    bg: "bg-teal-500/10",    border: "border-teal-500/20" },
-    { name: "Minimax H3",       cost: "18+ Credits",  per: "5s 768p",                     free: false, color: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/20" },
+    { name: "Minimax H3",       cost: "80+ Credits",  per: "5s 768p",                     free: false, color: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/20" },
   ],
   image: [
     { name: "Nano Banana Pro",  cost: "2 Credits",    per: "1K / 2K image",               free: false, color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },
