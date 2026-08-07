@@ -961,6 +961,25 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
 
 // ── Derived helpers ───────────────────────────────────────────────────────────
 
+export function getVideoModelDisplayPriority(model: Pick<WaveSpeedVideoModel, "id" | "api_route" | "family">): number {
+  const id = model.id.toLowerCase();
+  const route = model.api_route.toLowerCase();
+  if (id === "bytedance-seedance-v25-t2v-turbo" || route === "bytedance/seedance-2.5/text-to-video-turbo") return 0;
+  if (id === "bytedance-seedance-v25-i2v-turbo" || route === "bytedance/seedance-2.5/image-to-video-turbo") return 1;
+  if (id === "bytedance-seedance-v25-i2v-spicy" || route === "bytedance/seedance-2.5/image-to-video-spicy") return 2;
+  return 100;
+}
+
+export function orderVideoModelsForDisplay<T extends Pick<WaveSpeedVideoModel, "id" | "api_route" | "family">>(models: T[]): T[] {
+  return models
+    .map((model, index) => ({ model, index }))
+    .sort((a, b) => {
+      const priorityDelta = getVideoModelDisplayPriority(a.model) - getVideoModelDisplayPriority(b.model);
+      return priorityDelta !== 0 ? priorityDelta : a.index - b.index;
+    })
+    .map(({ model }) => model);
+}
+
 /** All models grouped by family for the UI dropdown */
 export interface ModelGroup {
   family:       string;
@@ -973,7 +992,7 @@ export function getModelGroups(): ModelGroup[] {
   const map = new Map<string, ModelGroup>();
   const seenModelIds = new Set<string>();
 
-  for (const m of VIDEO_MODEL_REGISTRY) {
+  for (const m of orderVideoModelsForDisplay(VIDEO_MODEL_REGISTRY)) {
     if (seenModelIds.has(m.id)) continue;
     seenModelIds.add(m.id);
 
@@ -994,6 +1013,6 @@ export function getModelById(id: string): WaveSpeedVideoModel | undefined {
   return VIDEO_MODEL_REGISTRY.find(m => m.id === id);
 }
 
-export const DEFAULT_MODEL = VIDEO_MODEL_REGISTRY[0]; // Minimax H3
+export const DEFAULT_MODEL = getModelById("bytedance-seedance-v25-t2v-turbo") ?? VIDEO_MODEL_REGISTRY[0];
 
 

@@ -1,3 +1,10 @@
+#### Latest task: Prioritize Seedance 2.5 first in video model lists (2026-08-07)
+- Status: Completed. Added a centralized video model display ordering helper that places the public Seedance 2.5 row first and makes it the default video model.
+- Affected files: `lib/video-model-registry.ts`, `lib/dynamic-model-loader.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
+- Decisions:
+  - Seedance 2.5 should be the first subscriber-facing video model in `/video`, `/api/models`, `/admin/models`, and dynamic model consumers.
+  - Keep I2V Turbo and Spicy as internal routes after the public Seedance 2.5 row; `/video` still hides those two internal rows from subscribers.
 #### Latest task: Update Seedance 2.5 site-margin pricing conversion (2026-08-07)
 - Status: Completed. Changed Seedance 2.5 user-credit conversion from 20 credits/USD to 40 credits/USD so provider source prices keep margin even against the lowest effective annual plan credit value.
 - Affected files: `lib/credit-pricing.ts`, `lib/pricing.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
@@ -10819,3 +10826,15 @@
   - The same routing is enforced in `/video`, `/api/video`, and `/api/panel/generate/video`.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed.
 - Decision: Match Hex Field's simpler public UX by exposing the model family and keeping specialized provider routes internal. Do not add Seedance 2.5 Extend until exact route specs and prices are available.
+
+#### Latest task: Bind Seedance 2.5 prompt references to model capabilities (2026-08-07)
+- Status: Completed. Fixed Seedance 2.5 reference media handling so `@Image/@Video/@Audio` prompt tags and uploaded reference media are treated as model references, not as implicit start-frame images.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `app/api/video/route.ts`, `app/api/panel/generate/video/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `/video` now renders Seedance prompt tag hints from the selected model capabilities, so Seedance 2.5 shows 30 image references, 10 video references, and 10 audio references instead of stale 9/3/3 text.
+  - Seedance 2.5 auto-routing to image-to-video now happens only when an explicit start frame/image input exists. Reference images remain `reference_image_urls` and route to text/reference generation.
+  - `/api/video` and `/api/panel/generate/video` no longer treat `reference_image_urls` as an image-start signal for Seedance 2.5 route selection.
+  - Prompt reference tags are stripped for image/video/audio numbered tags, including multi-digit tags such as `@Image30`.
+  - Seedance 2.5 audio references now require at least one image or video reference on both client and API validation.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
+- Decision: Keep prompt references separate from start/end frame inputs so the visible Seedance 2.5 public model can support Reference To Video without accidentally switching to Image To Video.

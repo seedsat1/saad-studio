@@ -1327,6 +1327,16 @@ function getReferenceFileMaxLabel(model: WaveSpeedVideoModel): string {
   return `${limits.images}`;
 }
 
+function getPromptReferenceTagHint(model: WaveSpeedVideoModel): string {
+  const limits = getReferenceFileLimits(model);
+  const parts: string[] = [];
+  if (limits.images > 0) parts.push(`@Image1..@Image${limits.images}`);
+  if (limits.videos > 0) parts.push(`@Video1..@Video${limits.videos}`);
+  if (limits.audios > 0) parts.push(`@Audio1..@Audio${limits.audios}`);
+  const joined = parts.length > 0 ? parts.join(", ") : "@Image1";
+  return `Seedance supports ${joined}. Audio requires at least one image or video reference.`;
+}
+
 // -- Constants -----------------------------------------------------------------
 
 const BADGE_STYLE = {
@@ -2642,7 +2652,7 @@ function VideoPageInner() {
       : (isVeo31FixedEightSecond ? 8 : (duration ?? (selectedModel.api_route === "google/gemini-omni-flash" ? 5 : isGoogleVeoModel ? 8 : 5)));
     // NOTE: capturedDuration below also defaults to 8 if duration is null.
     if (selectedModel.api_route.startsWith("bytedance/seedance-2.5")) {
-      const seedance25HasImage = Boolean(startFrame || linkedStartFrameUrl || selectedCharacter?.referenceUrls?.[0] || referenceImages.some((file) => file.type.startsWith("image/")));
+      const seedance25HasImage = Boolean(startFrame || linkedStartFrameUrl);
       const seedance25Route = resolveSeedance25Route(selectedModel.api_route, seedance25HasImage, resolution);
       return getVideoCreditsByRoute(seedance25Route, {
         duration: pricingDuration,
@@ -2903,7 +2913,7 @@ function VideoPageInner() {
           refVids.length + (caps.requires_video && !!motionVideo ? 1 : 0);
         const audioCount = refAuds.length;
 
-        if (!isSeedanceV25 && audioCount > 0 && imageCount === 0 && videoCount === 0) {
+        if (audioCount > 0 && imageCount === 0 && videoCount === 0) {
           setGenerationError(
             isMinimaxH3
               ? "Minimax H3 does not support audio-only references. Add at least one reference image or video with the audio."
@@ -2963,9 +2973,12 @@ function VideoPageInner() {
             ...(explicitEndImageForReference ? [explicitEndImageForReference] : []),
           ].slice(0, referenceImageLimit);
           if (mergedImageRefs[0]) {
-            if (isSeedanceV2) {
+            if (isSeedanceV2 && !selectedModel.api_route.startsWith("bytedance/seedance-2.5")) {
               payload.image = mergedImageRefs[0];
               payload.first_frame_url = mergedImageRefs[0];
+            } else if (isSeedanceV2 && explicitStartImage) {
+              payload.image = explicitStartImage;
+              payload.first_frame_url = explicitStartImage;
             }
             payload.reference_image_urls = mergedImageRefs;
           }
@@ -3274,8 +3287,7 @@ function VideoPageInner() {
         (typeof payload.last_image === "string" && payload.last_image.trim()) ||
         (typeof payload.last_frame_url === "string" && payload.last_frame_url.trim()) ||
         (typeof payload.end_image === "string" && payload.end_image.trim()) ||
-        (Array.isArray(payload.image_urls) && payload.image_urls.some((value) => typeof value === "string" && value.trim())) ||
-        (Array.isArray(payload.reference_image_urls) && payload.reference_image_urls.some((value) => typeof value === "string" && value.trim()))
+        (Array.isArray(payload.image_urls) && payload.image_urls.some((value) => typeof value === "string" && value.trim()))
       );
       let requestModelRoute = selectedModel.api_route;
       if (requestModelRoute.startsWith("bytedance/seedance-2.5")) {
@@ -4681,7 +4693,7 @@ function VideoPageInner() {
                     {showSimpleKlingRefs
                       ? "Kling uses Elements with @element_name, not @Image prompt tags."
                       : isSeedanceV2Model
-                        ? "Seedance supports @Image1..@Image9, @Video1..@Video3, and @Audio1..@Audio3. Audio requires at least one image or video reference."
+                        ? getPromptReferenceTagHint(selectedModel)
                         : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
                   </p>
                 </div>
@@ -6400,7 +6412,7 @@ function VideoPageInner() {
                     )}
                     {isSeedanceV2Model && referenceImages.length > 0 && (
                       <p className="text-[10px] mt-1" style={{ color: "#94a3b8" }}>
-                        @Image1..@Image9, @Video1..@Video3, and @Audio1..@Audio3 follow reference order. Audio cannot be used alone.
+                        {getPromptReferenceTagHint(selectedModel)} Tags follow reference order.
                       </p>
                     )}
                   </div>

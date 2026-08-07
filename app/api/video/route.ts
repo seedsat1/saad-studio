@@ -103,9 +103,7 @@ function payloadHasImageInput(payload: Record<string, unknown>): boolean {
     hasNonEmptyString(payload.last_image) ||
     hasNonEmptyString(payload.end_image) ||
     hasNonEmptyStringList(payload.image_urls) ||
-    hasNonEmptyStringList(payload.imageUrls) ||
-    hasNonEmptyStringList(payload.reference_image_urls) ||
-    hasNonEmptyStringList(payload.referenceImageUrls)
+    hasNonEmptyStringList(payload.imageUrls)
   );
 }
 
@@ -123,7 +121,7 @@ function resolveSeedance25Route(baseRoute: string, payload: Record<string, unkno
 }
 function stripPromptReferenceTags(value: unknown): string {
   if (typeof value !== "string") return "";
-  return value.replace(/@(image|img)[1-9]\b/gi, "").trim();
+  return value.replace(/@(image|img|video|audio)\d+\b/gi, "").trim();
 }
 
 function providerFailureMessage(payload: Record<string, unknown> | null, status: number) {
@@ -855,6 +853,9 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     const exact: Record<string, unknown> = {};
     if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
     else throw new ValidationError("Seedance 2.5 requires a prompt.");
+    if (referenceAudios.length > 0 && referenceImages.length === 0 && referenceVideos.length === 0) {
+      throw new ValidationError("Seedance 2.5 reference audio cannot be provided alone. Add at least one reference image or video.");
+    }
     if (referenceImages.length > 0) exact.reference_images = referenceImages.slice(0, 30);
     if (referenceVideos.length > 0) exact.reference_videos = referenceVideos.slice(0, 10);
     if (referenceAudios.length > 0) exact.reference_audios = referenceAudios.slice(0, 10);

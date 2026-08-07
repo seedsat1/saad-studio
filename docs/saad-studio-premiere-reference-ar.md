@@ -2986,10 +2986,17 @@
 - Do not publish `video-edit`, `video-edit-turbo`, `video-extend`, base text-to-video, or base image-to-video Seedance 2.5 rows without exact specs and prices.
 ## Seedance 2.5 Public Selector Contract (2026-08-07)
 
-- `/video` should expose Seedance 2.5 as a simple subscriber-facing model family instead of listing every provider route as a separate public model.
+- `/video` should expose Seedance 2.5 as the first/default subscriber-facing model family instead of listing every provider route as a separate public model.
 - Internal routes remain available for execution and billing:
   - `bytedance/seedance-2.5/text-to-video-turbo` for prompt/reference generation.
   - `bytedance/seedance-2.5/image-to-video-turbo` when an image/start frame is supplied.
   - `bytedance/seedance-2.5/image-to-video-spicy` when an image/start frame is supplied with `480p` or `4k`.
 - `Seedance 2.5 I2V Turbo` and `Seedance 2.5 Spicy` should be hidden from the public `/video` selector but not removed from the curated registry, admin catalog, API routing, or billing code.
 - Do not publish `Seedance 2.5 Extend` until its exact route, request schema, caps, and prices are available.
+## Seedance 2.5 Reference Tag Contract (2026-08-07)
+
+- Seedance 2.5 prompt reference tags must be derived from the selected model capabilities, not hard-coded UI copy. Current verified caps are `@Image1..@Image30`, `@Video1..@Video10`, and `@Audio1..@Audio10`.
+- Uploaded reference media and `@Image/@Video/@Audio` tags are reference inputs for the text/reference route. They must not be treated as implicit start-frame images.
+- Auto-routing from the public `Seedance 2.5` row to Image To Video is allowed only when an explicit start-frame/image input is supplied. Reference-only prompts stay on `bytedance/seedance-2.5/text-to-video-turbo`.
+- Audio references cannot be used alone. The UI and API must require at least one image or video reference when audio references are attached.
+- Prompt tag cleanup must support multi-digit tags such as `@Image30`, `@Video10`, and `@Audio10`.

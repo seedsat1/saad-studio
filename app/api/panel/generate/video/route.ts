@@ -490,7 +490,7 @@ export async function POST(req: NextRequest) {
       let wavespeedModel = resolveWaveSpeedModelRoute(modelId, { resolution, mode });
       const isSeedance25 = wavespeedModel.startsWith("bytedance/seedance-2.5");
       if (isSeedance25) {
-        wavespeedModel = resolveSeedance25Route(wavespeedModel, Boolean(imageUrl || firstFrameUrl || safeImageUrls.length || safeReferenceImageUrls.length), resolution);
+        wavespeedModel = resolveSeedance25Route(wavespeedModel, Boolean(imageUrl || firstFrameUrl || safeImageUrls.length), resolution);
       }
       const isKling = wavespeedModel.includes("kling");
 

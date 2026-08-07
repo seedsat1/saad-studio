@@ -1,6 +1,6 @@
 import prismadb from "@/lib/prismadb";
 import { IMAGE_MODELS, type ImageModel } from "./image-models";
-import { VIDEO_MODEL_REGISTRY, type WaveSpeedVideoModel } from "./video-model-registry";
+import { VIDEO_MODEL_REGISTRY, orderVideoModelsForDisplay, type WaveSpeedVideoModel } from "./video-model-registry";
 
 export interface DynamicImageModel extends ImageModel {
   isActive?: boolean;
@@ -65,7 +65,7 @@ export function normalizeDynamicVideoModels(models: DynamicVideoModel[]): Dynami
     normalized.push(model);
   }
 
-  return normalized;
+  return orderVideoModelsForDisplay(normalized);
 }
 
 /**
