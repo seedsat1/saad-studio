@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import {
   InsufficientCreditsError,
@@ -12,6 +12,7 @@ import {
 import { applyAnnualUnlimitedImageSlowdown, getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
 import { getGenerationCost } from "@/lib/pricing";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
+import { getDynamicImageModels } from "@/lib/dynamic-model-loader";
 import { sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
@@ -397,10 +398,20 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const dynamicModels = await getDynamicImageModels();
+    const dynamicModel = dynamicModels.find((m) => m.id === modelId && m.isActive !== false);
+
     const { imageModelMap } = getResolvedKieRoutingMaps();
-    const kieModelId = imageModelMap[modelId];
-    if (!kieModelId) {
-      return NextResponse.json({ error: `Unsupported model: ${modelId}` }, { status: 400 });
+    let kieModelId = imageModelMap[modelId];
+    let dynamicImageInputField: string | undefined = undefined;
+
+    if (dynamicModel) {
+      kieModelId = dynamicModel.upstreamModelId || dynamicModel.id;
+      dynamicImageInputField = dynamicModel.imageInputField;
+    } else {
+      if (!kieModelId) {
+        return NextResponse.json({ error: `Unsupported model: ${modelId}` }, { status: 400 });
+      }
     }
 
     const unlimited = useAnnualUnlimited
@@ -457,7 +468,7 @@ export async function POST(req: NextRequest) {
 
     // If reference image URLs are provided, add the correct field per model.
     if (refUrls.length) {
-      const effectiveImageInputField = imageInputField ?? inferImageInputField(kieModelId);
+      const effectiveImageInputField = imageInputField ?? dynamicImageInputField ?? inferImageInputField(kieModelId);
       if (effectiveImageInputField === "image_input" || isNanoBanana) {
         input.image_input = refUrls;
       } else if (effectiveImageInputField === "image_urls") {

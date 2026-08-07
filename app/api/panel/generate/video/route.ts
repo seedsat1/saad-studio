@@ -9,6 +9,7 @@ import {
 } from "@/lib/credit-ledger";
 import { getVideoCreditsByModelId } from "@/lib/credit-pricing";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
+import { getDynamicVideoModels } from "@/lib/dynamic-model-loader";
 import { isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { isDirectProviderModel, getProviderFor } from "@/lib/provider-router";
@@ -346,9 +347,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const dynamicVideoModels = await getDynamicVideoModels();
+    const dynamicVideoModel = dynamicVideoModels.find(
+      (m) => (m.api_route === modelId || m.id === modelId) && m.isActive !== false
+    );
+
     // Validate the model is a known KIE video model
     const { kieVideoModelMap, videoRouteToKieModelMap } = getResolvedKieRoutingMaps();
-    const kieModelId = kieVideoModelMap[modelId] ?? videoRouteToKieModelMap[modelId] ?? modelId; // fallback: use as-is if already a KIE ID
+    let kieModelId = kieVideoModelMap[modelId] ?? videoRouteToKieModelMap[modelId] ?? modelId;
+
+    if (dynamicVideoModel) {
+      kieModelId = dynamicVideoModel.api_route || dynamicVideoModel.id;
+    }
 
     let creditsToCharge: number;
     try {

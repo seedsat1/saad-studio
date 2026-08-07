@@ -10,6 +10,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
+import { getDynamicVideoModels } from "@/lib/dynamic-model-loader";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 import { VIDEO_PROVIDER_BUSY_MESSAGE } from "@/lib/generation-errors";
@@ -2129,17 +2130,33 @@ export async function POST(req: Request) {
       modelRoute === "bytedance/seedream-v5.0-pro/edit" ||
       modelRoute === "gpt-image-2-text-to-image";
 
-    const kieModel = (isDirectGoogleVeo31ProRoute || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);
-    let wavespeedRoute = wavespeedFallbackMap[modelRoute];
+    const dynamicVideoModels = await getDynamicVideoModels();
+    const dynamicVideoModel = dynamicVideoModels.find(
+      (m) => (m.api_route === modelRoute || m.id === modelRoute) && m.isActive !== false
+    );
+
+    let kieModel = (isDirectGoogleVeo31ProRoute || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);
+    let wavespeedRoute: string | undefined = wavespeedFallbackMap[modelRoute];
     if (isWaveSpeedOnlyModel && !wavespeedRoute) {
       wavespeedRoute = modelRoute;
+    }
+
+    if (dynamicVideoModel) {
+      const isWaveSpeed = dynamicVideoModel.family === "hailuo" || dynamicVideoModel.family === "seedance";
+      if (isWaveSpeed) {
+        wavespeedRoute = dynamicVideoModel.api_route;
+        kieModel = undefined;
+      } else {
+        kieModel = resolveKieVideoModel(dynamicVideoModel.api_route) || dynamicVideoModel.id;
+        wavespeedRoute = undefined;
+      }
     }
 
     if (
       modelRoute.includes("kling") ||
       modelRoute.includes("seedance") ||
-      kieModel?.includes("kling") ||
-      kieModel?.includes("seedance")
+      (kieModel && kieModel.includes("kling")) ||
+      (kieModel && kieModel.includes("seedance"))
     ) {
       console.log("[api/video POST] resolved provider model", JSON.stringify({ modelRoute, kieModel, wavespeedRoute }));
     }

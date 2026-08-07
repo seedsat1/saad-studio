@@ -37,16 +37,56 @@ export function useDynamicKieModels(kind?: DynamicKieModel["kind"]): FetchState 
 
     const fetchOnce = async () => {
       try {
-        const url = kind ? `/api/models/dynamic?kind=${kind}` : "/api/models/dynamic";
+        const url = "/api/models";
         const res = await fetch(url, { cache: "no-store" });
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
         if (cancelled) return;
+
+        let mappedModels: DynamicKieModel[] = [];
+        if (kind === "image" && Array.isArray(data.imageModels)) {
+          mappedModels = data.imageModels.map((m: any) => ({
+            id: m.id,
+            label: m.label,
+            family: m.group || "Custom",
+            kind: "image",
+            isNew: m.badge === "NEW",
+          }));
+        } else if (kind === "video" && Array.isArray(data.videoModels)) {
+          mappedModels = data.videoModels.map((m: any) => ({
+            id: m.id,
+            label: m.name,
+            family: m.family || "custom",
+            kind: "video",
+            isNew: m.badge === "NEW",
+          }));
+        } else {
+          const imgs = Array.isArray(data.imageModels)
+            ? data.imageModels.map((m: any) => ({
+                id: m.id,
+                label: m.label,
+                family: m.group || "Custom",
+                kind: "image" as const,
+                isNew: m.badge === "NEW",
+              }))
+            : [];
+          const vids = Array.isArray(data.videoModels)
+            ? data.videoModels.map((m: any) => ({
+                id: m.id,
+                label: m.name,
+                family: m.family || "custom",
+                kind: "video" as const,
+                isNew: m.badge === "NEW",
+              }))
+            : [];
+          mappedModels = [...imgs, ...vids];
+        }
+
         setState({
-          models: Array.isArray(data.models) ? (data.models as DynamicKieModel[]) : [],
+          models: mappedModels,
           loading: false,
           error: null,
-          lastSuccessAt: data.lastSuccessAt ?? null,
+          lastSuccessAt: Date.now(),
         });
       } catch (err) {
         if (cancelled) return;

@@ -1,3 +1,19 @@
+#### Latest task: Implement Dynamic AI Models Dashboard (2026-08-07)
+- Status: Completed. Designed and implemented a database-driven AI models registry and dynamic price synchronization.
+- Affected files:
+  - `lib/dynamic-model-loader.ts` (NEW)
+  - `app/api/admin/models/route.ts` (NEW)
+  - `app/api/models/route.ts` (NEW)
+  - `app/admin/models/page.tsx` (NEW)
+  - `app/admin/page.tsx` (MODIFY)
+  - `app/api/generate/image/route.ts` (MODIFY)
+  - `app/api/video/route.ts` (MODIFY)
+  - `app/api/panel/generate/image/route.ts` (MODIFY)
+  - `app/api/panel/generate/video/route.ts` (MODIFY)
+  - `hooks/use-dynamic-models.ts` (MODIFY)
+- Verification: Successful TypeScript compilation (`npx tsc --noEmit` exited with code 0).
+- Decision: Replaced hardcoded model validations in the core web and CEP panel routes with dynamic database queries using the `PlatformConfig` store, and synced edited costs/active-status directly to `PricingConstitution` database table to keep the billing system automatically in lockstep.
+
 #### Latest task: Upgrade Nano Banana models to stable Gemini 3 IDs & Capabilities (2026-08-07)
 - Status: Completed. Upgraded deprecated `gemini-3-pro-image-preview` to `gemini-3-pro-image` across all API routers, character studio files, pricing configurations, and frontend views. Extended model configurations (aspect ratios, reference image counts) and integrated 512px resolution support.
 - Affected files: `lib/image-models.ts`, `lib/pricing.ts`, `lib/providers/google-images.ts`, `app/api/generate/image/route.ts`, `app/api/characters/[id]/generate/route.ts`, `app/api/admin/subscriber-analytics/[userId]/route.ts`, `app/api/admin/subscriber-analytics/route.ts`, `app/(dash)/(routes)/character/page.tsx`, `app/(dash)/(routes)/cinema-flow/page.tsx`, `PROJECT_CONTEXT.md`.

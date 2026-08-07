@@ -1,6 +1,7 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
+import { getDynamicImageModels } from "@/lib/dynamic-model-loader";
 import { InsufficientCreditsError, recordFreeGeneration, rollbackGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { applyAnnualUnlimitedImageSlowdown, getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
@@ -614,16 +615,33 @@ export async function POST(req: NextRequest) {
     const isWaveSpeedImageModel = Boolean(waveSpeedImageRoute);
     const openAIImageModel = isFluxKontext ? null : getOpenAIImageModel(effectiveModelId);
 
-    const kieModelId = isFluxKontext || isWaveSpeedImageModel ? null : (openAIImageModel ? null : imageModelMap[effectiveModelId]);
-    if (!isFluxKontext && !isWaveSpeedImageModel && !openAIImageModel && !kieModelId) {
-      const supported = Object.keys(imageModelMap).join(", ");
-      return NextResponse.json(
-        { error: `Unsupported modelId: ${effectiveModelId}. Supported: ${supported}` },
-        { status: 400 },
-      );
+    const dynamicModels = await getDynamicImageModels();
+    const dynamicModel = dynamicModels.find(
+      (m) => m.id === effectiveModelId && m.isActive !== false
+    );
+
+    let kieModelId = isFluxKontext || isWaveSpeedImageModel ? null : (openAIImageModel ? null : imageModelMap[effectiveModelId]);
+    let dynamicImageInputField: string | undefined = undefined;
+
+    if (dynamicModel) {
+      const targetId = (dynamicModel as any).upstreamModelId || dynamicModel.id;
+      if (!isFluxKontext && !isWaveSpeedImageModel && !openAIImageModel) {
+        kieModelId = targetId;
+      }
+      dynamicImageInputField = dynamicModel.imageInputField;
+    } else {
+      if (!isFluxKontext && !isWaveSpeedImageModel && !openAIImageModel && !kieModelId) {
+        const supported = Object.keys(imageModelMap).join(", ");
+        return NextResponse.json(
+          { error: `Unsupported modelId: ${effectiveModelId}. Supported: ${supported}` },
+          { status: 400 },
+        );
+      }
     }
 
-    const effectiveImageInputField = kieModelId ? imageInputField ?? inferImageInputField(kieModelId) : undefined;
+    const effectiveImageInputField = kieModelId
+      ? imageInputField ?? dynamicImageInputField ?? inferImageInputField(kieModelId)
+      : undefined;
     const googleImageModel = getGoogleImageModel(effectiveModelId);
     const googleApiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
     if (googleImageModel && !googleApiKey) {

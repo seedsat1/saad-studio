@@ -1124,6 +1124,7 @@ export default function AdminDashboard() {
             { label: "Subscriber Usage Analytics", href: "/admin/subscriber-analytics", icon: TrendingUp },
             { label: "Provider Cost Tracking", href: "/admin/provider-costs", icon: Cpu },
             { label: "Pricing Constitution", href: "/admin/pricing", icon: CreditCard },
+            { label: "AI Models Registry", href: "/admin/models", icon: Layers },
             { label: "Voice Samples Studio", href: "/admin/voice-samples", icon: Music },
             { label: "CMS & Ad Manager", href: "/admin/cms", icon: Layers },
             { label: "Prompt Page CMS", href: "/admin/cms/studio-img", icon: ScrollText },
