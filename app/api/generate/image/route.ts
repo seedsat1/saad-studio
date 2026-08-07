@@ -384,7 +384,7 @@ async function generateGoogleImage(params: {
   const makeRequest = async (requestedImageSize: string | null) => {
     const responseFormat: Record<string, string> = {
       type: "image",
-      mime_type: "image/png",
+      mime_type: "image/jpeg",
       aspect_ratio: aspectRatio,
     };
     if (requestedImageSize) responseFormat.image_size = requestedImageSize;
