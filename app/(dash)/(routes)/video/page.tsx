@@ -4328,6 +4328,7 @@ function VideoPageInner() {
                         <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
                           <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                         </div>
+                        <span className="text-[11px]" style={{ color: "#94a3b8" }}>Start frame</span>
                       </>
                     )}
                     {activeDropZone === "startFrame" && (
@@ -4381,6 +4382,7 @@ function VideoPageInner() {
                         <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
                           <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                         </div>
+                        <span className="text-[11px]" style={{ color: "#94a3b8" }}>End frame</span>
                       </>
                     )}
                     {activeDropZone === "endFrame" && (
@@ -4597,6 +4599,9 @@ function VideoPageInner() {
                       >
                         <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                       </div>
+                      <span className="text-[11px]" style={{ color: "#94a3b8" }}>
+                        {caps.requires_image ? "Upload image *" : "Start frame"}
+                      </span>
                     </>
                   )}
                   {activeDropZone === "startFrame" && (
@@ -4654,6 +4659,7 @@ function VideoPageInner() {
                       >
                         <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                       </div>
+                      <span className="text-[11px]" style={{ color: "#94a3b8" }}>End frame</span>
                     </>
                   )}
                   {activeDropZone === "endFrame" && (
@@ -4999,6 +5005,7 @@ function VideoPageInner() {
                         <div className="rounded-full p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
                           <ImageIcon size={20} style={{ color: "#a1a1aa" }} />
                         </div>
+                        <span className="text-[12px] font-medium" style={{ color: "#94a3b8" }}>Start frame</span>
                       </>
                     )}
                     {activeDropZone === "startFrame" && <span className="absolute inset-0 flex items-center justify-center rounded-2xl bg-cyan-500/15 text-[11px] font-semibold text-cyan-300">Drop here</span>}
@@ -5029,6 +5036,7 @@ function VideoPageInner() {
                           <div className="rounded-full p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
                             <ImageIcon size={20} style={{ color: "#a1a1aa" }} />
                           </div>
+                          <span className="text-[12px] font-medium" style={{ color: "#94a3b8" }}>End frame</span>
                         </>
                       )}
                       {activeDropZone === "endFrame" && <span className="absolute inset-0 flex items-center justify-center rounded-2xl bg-purple-500/15 text-[11px] font-semibold text-purple-300">Drop here</span>}
