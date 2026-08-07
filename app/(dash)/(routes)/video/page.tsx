@@ -4101,85 +4101,92 @@ function VideoPageInner() {
                 onDragEnter={(event) => markDropZone(event, "referenceImages")}
                 onDragLeave={(event) => clearDropZone(event, "referenceImages")}
                 onDrop={handleDropReferenceImages}
-                className="flex items-center justify-between w-full bg-[#070b15] border border-slate-800/80 rounded-full p-1 pl-2.5 pr-1 relative flex-nowrap min-w-0 overflow-hidden hover:bg-[#0c1222] hover:border-slate-700/80 transition-all duration-200 group cursor-pointer"
+                className="flex flex-col gap-2 w-full bg-[#070b15] border border-slate-800/80 rounded-2xl p-2 pb-1.5 relative min-w-0 overflow-hidden hover:bg-[#0c1222] hover:border-slate-700/80 transition-all duration-200 group cursor-pointer"
               >
-                <div className="flex items-center gap-1 flex-shrink-0 min-w-0">
-                  {/* 1. Image Icon Button */}
-                  <div
-                    className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center flex-shrink-0"
-                    title={lang === "ar" ? "الصور المرجعية" : "Reference Images"}
-                  >
-                    <ImageIcon className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("image/")) ? "text-cyan-400" : "text-slate-400"}`} />
-                    {referenceImages.some(f => f.type.startsWith("image/")) && (
-                      <div className="absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full bg-cyan-500 shadow-[0_0_6px_#06b6d4]" />
-                    )}
+                {/* Row 1: The icons and Add media */}
+                <div className="flex items-center justify-between w-full min-w-0 flex-nowrap pl-0.5">
+                  <div className="flex items-center gap-1 flex-shrink-0 min-w-0">
+                    {/* 1. Image Icon Button */}
+                    <div
+                      className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center flex-shrink-0"
+                      title={lang === "ar" ? "الصور المرجعية" : "Reference Images"}
+                    >
+                      <ImageIcon className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("image/")) ? "text-cyan-400" : "text-slate-400"}`} />
+                      {referenceImages.some(f => f.type.startsWith("image/")) && (
+                        <div className="absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full bg-cyan-500 shadow-[0_0_6px_#06b6d4]" />
+                      )}
+                    </div>
+
+                    {/* 2. Video Icon Button */}
+                    <div
+                      className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center flex-shrink-0"
+                      title={lang === "ar" ? "الفيديوهات المرجعية" : "Reference Videos"}
+                    >
+                      <Video className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("video/")) ? "text-purple-400" : "text-slate-400"}`} />
+                      {referenceImages.some(f => f.type.startsWith("video/")) && (
+                        <div className="absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full bg-purple-500 shadow-[0_0_8px_#a855f7]" />
+                      )}
+                    </div>
+
+                    {/* 3. Audio Icon Button */}
+                    <div
+                      className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center flex-shrink-0"
+                      title={lang === "ar" ? "الأصوات المرجعية" : "Reference Audio"}
+                    >
+                      <AudioLines className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("audio/")) ? "text-teal-400" : "text-slate-400"}`} />
+                      {referenceImages.some(f => f.type.startsWith("audio/")) && (
+                        <div className="absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full bg-teal-500 shadow-[0_0_8px_#14b8a6]" />
+                      )}
+                    </div>
+
+                    {/* 4. Character Icon Button */}
+                    <div
+                      className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center flex-shrink-0"
+                      title={lang === "ar" ? "شخصية محفوظة" : "Saved Character"}
+                    >
+                      <User className={`w-3.5 h-3.5 transition-all ${selectedCharacterPresetId ? "text-pink-400" : "text-slate-400"}`} />
+                      {selectedCharacterPresetId && (
+                        <div className="absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full bg-pink-500 shadow-[0_0_8px_#ec4899]" />
+                      )}
+                    </div>
+
+                    {/* 5. Style Icon Button */}
+                    <div
+                      className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center flex-shrink-0"
+                      title={lang === "ar" ? "مكتبة الأنماط" : "Style Library"}
+                    >
+                      <Palette className={`w-3.5 h-3.5 transition-all ${selectedStyle ? "text-amber-400" : "text-slate-400"}`} />
+                      {selectedStyle && (
+                        <div className="absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full bg-amber-500 shadow-[0_0_8px_#eab308]" />
+                      )}
+                    </div>
                   </div>
 
-                  {/* 2. Video Icon Button */}
-                  <div
-                    className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center flex-shrink-0"
-                    title={lang === "ar" ? "الفيديوهات المرجعية" : "Reference Videos"}
-                  >
-                    <Video className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("video/")) ? "text-purple-400" : "text-slate-400"}`} />
-                    {referenceImages.some(f => f.type.startsWith("video/")) && (
-                      <div className="absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full bg-purple-500 shadow-[0_0_8px_#a855f7]" />
-                    )}
-                  </div>
+                  <div className="h-4 w-[1px] bg-slate-800 mx-1 flex-shrink-0" />
 
-                  {/* 3. Audio Icon Button */}
-                  <div
-                    className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center flex-shrink-0"
-                    title={lang === "ar" ? "الأصوات المرجعية" : "Reference Audio"}
-                  >
-                    <AudioLines className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("audio/")) ? "text-teal-400" : "text-slate-400"}`} />
-                    {referenceImages.some(f => f.type.startsWith("audio/")) && (
-                      <div className="absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full bg-teal-500 shadow-[0_0_8px_#14b8a6]" />
-                    )}
-                  </div>
-
-                  {/* 4. Character Icon Button */}
-                  <div
-                    className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center flex-shrink-0"
-                    title={lang === "ar" ? "شخصية محفوظة" : "Saved Character"}
-                  >
-                    <User className={`w-3.5 h-3.5 transition-all ${selectedCharacterPresetId ? "text-pink-400" : "text-slate-400"}`} />
-                    {selectedCharacterPresetId && (
-                      <div className="absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full bg-pink-500 shadow-[0_0_8px_#ec4899]" />
-                    )}
-                  </div>
-
-                  {/* 5. Style Icon Button */}
-                  <div
-                    className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center flex-shrink-0"
-                    title={lang === "ar" ? "مكتبة الأنماط" : "Style Library"}
-                  >
-                    <Palette className={`w-3.5 h-3.5 transition-all ${selectedStyle ? "text-amber-400" : "text-slate-400"}`} />
-                    {selectedStyle && (
-                      <div className="absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full bg-amber-500 shadow-[0_0_8px_#eab308]" />
-                    )}
+                  <div className="flex-shrink-0 h-8 rounded-full bg-[#121624] border border-slate-800 flex items-center justify-center gap-1.5 px-2.5 transition-all duration-200 text-slate-350 group-hover:text-white">
+                    <div className="w-5 h-5 rounded-full border border-dashed border-cyan-500/50 flex items-center justify-center text-cyan-400 group-hover:border-cyan-400 transition-colors">
+                      <Plus className="w-2.5 h-2.5 flex-shrink-0" />
+                    </div>
+                    <span className="text-[10px] font-semibold tracking-tight">Add media</span>
                   </div>
                 </div>
 
-                <div className="h-4 w-[1px] bg-slate-800 mx-1 flex-shrink-0" />
+                {/* Divider Line */}
+                <div className="w-full h-[1px] bg-slate-800/60 mt-0.5" />
 
-                <div className="flex-shrink-0 h-8 rounded-full bg-[#121624] border border-slate-800 flex items-center justify-center gap-1.5 px-2.5 transition-all duration-200 text-slate-350 group-hover:text-white">
-                  <div className="w-5 h-5 rounded-full border border-dashed border-cyan-500/50 flex items-center justify-center text-cyan-400 group-hover:border-cyan-400 transition-colors">
-                    <Plus className="w-2.5 h-2.5 flex-shrink-0" />
-                  </div>
-                  <span className="text-[10px] font-semibold tracking-tight">Add media</span>
+                {/* Row 2: Subtitle text */}
+                <div className="flex flex-col items-center justify-center gap-0.5 w-full select-none pointer-events-none pb-1">
+                  <span className="text-[10px] font-semibold text-slate-400">Add references</span>
+                  <span className="text-[9px] text-slate-500">Image, Video or Audio</span>
                 </div>
 
                 {activeDropZone === "referenceImages" && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-full bg-cyan-500/15 text-[10px] font-bold text-cyan-300 backdrop-blur-[1px] border border-dashed border-cyan-500/30">
+                  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-cyan-500/15 text-[10px] font-bold text-cyan-300 backdrop-blur-[1px] border border-dashed border-cyan-500/30">
                     {lang === "ar" ? "أفلت الوسائط هنا" : "Drop media here"}
                   </div>
                 )}
               </button>
-
-              <div className="flex flex-col items-center justify-center gap-0.5 mt-0.5 select-none pointer-events-none">
-                <span className="text-[10px] font-semibold text-slate-400">Add references</span>
-                <span className="text-[9px] text-slate-500">Image, Video or Audio</span>
-              </div>
 
               {/* Row 2: Thumbnails grid (rendered below status bar when files are uploaded) */}
               {referenceImages.length > 0 && (
