@@ -39,7 +39,7 @@ export function VideoStudio({
 
   const getModelRoute = () => {
     if (selectedModel.includes("Seedance")) return "bytedance/seedance-2.0/text-to-video";
-    if (selectedModel.includes("Google")) return "google/veo-3.1-generate-preview";
+    if (selectedModel.includes("Google")) return "google/veo3.1-text-to-video";
     if (selectedModel.includes("2.6")) return "kwaivgi/kling-v2.6-std/text-to-video";
     return "kwaivgi/kling-v3.0-pro/text-to-video";
   };

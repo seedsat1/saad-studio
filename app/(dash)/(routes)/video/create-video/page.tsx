@@ -49,7 +49,7 @@ function CreateVideoInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const initModelId = searchParams.get("model") ?? "google/gemini-omni-video";
+  const initModelId = searchParams.get("model") ?? "google/gemini-omni-flash";
   const initModel = getModelById(initModelId) ?? getDefaultModel();
   const initImageUrl = searchParams.get("imageUrl") ?? "";
   const initPrompt = searchParams.get("prompt") ?? "";

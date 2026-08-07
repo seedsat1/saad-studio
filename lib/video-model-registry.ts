@@ -115,6 +115,260 @@ export interface WaveSpeedVideoModel {
   route_confirmed: boolean;
 }
 
+export type GoogleVideoRoute =
+  | "google/veo3.1-lite-text-to-video"
+  | "google/veo3.1-fast-text-to-video"
+  | "google/veo3.1-text-to-video"
+  | "google/veo-3.1-generate-preview"
+  | "google/veo3-fast-text-to-video"
+  | "google/veo3-text-to-video"
+  | "google/gemini-omni-flash"
+  | "google/gemini-omni-video";
+
+export type GoogleVideoTier =
+  | "veo31_lite"
+  | "veo31_fast"
+  | "veo31"
+  | "veo3_fast"
+  | "veo3"
+  | "omni_flash";
+
+export type GoogleVideoMode =
+  | "text_to_video"
+  | "image_to_video"
+  | "reference_to_video"
+  | "video_extend"
+  | "video_edit";
+
+export interface GoogleVideoConstraints {
+  route: GoogleVideoRoute;
+  tier: GoogleVideoTier;
+  providerModel: string;
+  aspectRatios: Array<"16:9" | "9:16">;
+  durations: number[];
+  resolutions: Array<"720p" | "1080p" | "4k">;
+  maxReferenceImages: number;
+  maxReferenceVideos: number;
+  supportsStartImage: boolean;
+  supportsEndFrame: boolean;
+  supportsVideoInput: boolean;
+  extensionCapable: boolean;
+  outputCount: 1;
+}
+
+export interface NormalizeGoogleVideoInput {
+  duration?: number | string | null;
+  resolution?: string | null;
+  aspectRatio?: string | null;
+  referenceImageCount?: number;
+  hasVideoInput?: boolean;
+  hasStartImage?: boolean;
+  hasEndImage?: boolean;
+  previousInteractionId?: string | null;
+}
+
+export interface NormalizedGoogleVideoOptions {
+  route: GoogleVideoRoute;
+  tier: GoogleVideoTier;
+  providerModel: string;
+  mode: GoogleVideoMode;
+  duration: number;
+  resolution: "720p" | "1080p" | "4k";
+  aspectRatio: "16:9" | "9:16";
+  maxReferenceImages: number;
+  maxReferenceVideos: number;
+  referenceImageCount: number;
+  hasVideoInput: boolean;
+}
+
+export const GOOGLE_VIDEO_CONSTRAINTS: Record<GoogleVideoRoute, GoogleVideoConstraints> = {
+  "google/veo3.1-lite-text-to-video": {
+    route: "google/veo3.1-lite-text-to-video",
+    tier: "veo31_lite",
+    providerModel: "veo-3.1-lite-generate-preview",
+    aspectRatios: ["16:9", "9:16"],
+    durations: [4, 6, 8],
+    resolutions: ["720p", "1080p"],
+    maxReferenceImages: 0,
+    maxReferenceVideos: 0,
+    supportsStartImage: true,
+    supportsEndFrame: true,
+    supportsVideoInput: false,
+    extensionCapable: false,
+    outputCount: 1,
+  },
+  "google/veo3.1-fast-text-to-video": {
+    route: "google/veo3.1-fast-text-to-video",
+    tier: "veo31_fast",
+    providerModel: "veo-3.1-fast-generate-preview",
+    aspectRatios: ["16:9", "9:16"],
+    durations: [4, 6, 8],
+    resolutions: ["720p", "1080p", "4k"],
+    maxReferenceImages: 3,
+    maxReferenceVideos: 1,
+    supportsStartImage: true,
+    supportsEndFrame: true,
+    supportsVideoInput: true,
+    extensionCapable: true,
+    outputCount: 1,
+  },
+  "google/veo3.1-text-to-video": {
+    route: "google/veo3.1-text-to-video",
+    tier: "veo31",
+    providerModel: "veo-3.1-generate-preview",
+    aspectRatios: ["16:9", "9:16"],
+    durations: [4, 6, 8],
+    resolutions: ["720p", "1080p", "4k"],
+    maxReferenceImages: 3,
+    maxReferenceVideos: 1,
+    supportsStartImage: true,
+    supportsEndFrame: true,
+    supportsVideoInput: true,
+    extensionCapable: true,
+    outputCount: 1,
+  },
+  "google/veo-3.1-generate-preview": {
+    route: "google/veo-3.1-generate-preview",
+    tier: "veo31",
+    providerModel: "veo-3.1-generate-preview",
+    aspectRatios: ["16:9", "9:16"],
+    durations: [4, 6, 8],
+    resolutions: ["720p", "1080p", "4k"],
+    maxReferenceImages: 3,
+    maxReferenceVideos: 1,
+    supportsStartImage: true,
+    supportsEndFrame: true,
+    supportsVideoInput: true,
+    extensionCapable: true,
+    outputCount: 1,
+  },
+  "google/veo3-fast-text-to-video": {
+    route: "google/veo3-fast-text-to-video",
+    tier: "veo3_fast",
+    providerModel: "veo-3.0-fast-generate-001",
+    aspectRatios: ["16:9", "9:16"],
+    durations: [8],
+    resolutions: ["720p", "1080p"],
+    maxReferenceImages: 0,
+    maxReferenceVideos: 0,
+    supportsStartImage: true,
+    supportsEndFrame: true,
+    supportsVideoInput: false,
+    extensionCapable: false,
+    outputCount: 1,
+  },
+  "google/veo3-text-to-video": {
+    route: "google/veo3-text-to-video",
+    tier: "veo3",
+    providerModel: "veo-3.0-generate-001",
+    aspectRatios: ["16:9", "9:16"],
+    durations: [8],
+    resolutions: ["720p", "1080p"],
+    maxReferenceImages: 0,
+    maxReferenceVideos: 0,
+    supportsStartImage: true,
+    supportsEndFrame: true,
+    supportsVideoInput: false,
+    extensionCapable: false,
+    outputCount: 1,
+  },
+  "google/gemini-omni-flash": {
+    route: "google/gemini-omni-flash",
+    tier: "omni_flash",
+    providerModel: "gemini-omni-flash-preview",
+    aspectRatios: ["16:9", "9:16"],
+    durations: [3, 4, 5, 6, 7, 8, 9, 10],
+    resolutions: ["720p"],
+    maxReferenceImages: 3,
+    maxReferenceVideos: 1,
+    supportsStartImage: true,
+    supportsEndFrame: true,
+    supportsVideoInput: true,
+    extensionCapable: false,
+    outputCount: 1,
+  },
+  "google/gemini-omni-video": {
+    route: "google/gemini-omni-video",
+    tier: "omni_flash",
+    providerModel: "gemini-omni-flash-preview",
+    aspectRatios: ["16:9", "9:16"],
+    durations: [3, 4, 5, 6, 7, 8, 9, 10],
+    resolutions: ["720p"],
+    maxReferenceImages: 3,
+    maxReferenceVideos: 1,
+    supportsStartImage: true,
+    supportsEndFrame: true,
+    supportsVideoInput: true,
+    extensionCapable: false,
+    outputCount: 1,
+  },
+};
+
+export function isGoogleVideoRoute(route: string | undefined | null): route is GoogleVideoRoute {
+  return typeof route === "string" && route in GOOGLE_VIDEO_CONSTRAINTS;
+}
+
+export function getGoogleVideoConstraints(route: string): GoogleVideoConstraints | null {
+  return isGoogleVideoRoute(route) ? GOOGLE_VIDEO_CONSTRAINTS[route] : null;
+}
+
+export function normalizeGoogleVideoOptions(route: GoogleVideoRoute, input: NormalizeGoogleVideoInput = {}): NormalizedGoogleVideoOptions {
+  const constraints = GOOGLE_VIDEO_CONSTRAINTS[route];
+  const referenceImageCount = Math.max(0, Math.floor(Number(input.referenceImageCount ?? 0)));
+  const hasVideoInput = input.hasVideoInput === true;
+  const rawAspect = typeof input.aspectRatio === "string" ? input.aspectRatio : "";
+  const aspectRatio = constraints.aspectRatios.includes(rawAspect as "16:9" | "9:16")
+    ? rawAspect as "16:9" | "9:16"
+    : "16:9";
+  const rawResolution = typeof input.resolution === "string" ? input.resolution.toLowerCase() : "";
+  let resolution: "720p" | "1080p" | "4k" =
+    rawResolution === "4k" ? "4k" :
+    rawResolution === "1080p" || rawResolution === "pro" ? "1080p" :
+    "720p";
+  if (!constraints.resolutions.includes(resolution)) {
+    resolution = constraints.resolutions[0];
+  }
+
+  let mode: GoogleVideoMode = "text_to_video";
+  if (hasVideoInput) {
+    mode = constraints.tier === "omni_flash" || input.previousInteractionId ? "video_edit" : "video_extend";
+  } else if (referenceImageCount > 0 && constraints.maxReferenceImages > 0) {
+    mode = "reference_to_video";
+  } else if (input.hasStartImage || input.hasEndImage) {
+    mode = "image_to_video";
+  }
+
+  if (mode === "video_extend") {
+    resolution = "720p";
+  }
+
+  const rawDuration =
+    typeof input.duration === "number" ? input.duration :
+    typeof input.duration === "string" ? Number.parseInt(input.duration, 10) :
+    NaN;
+  let duration = Number.isFinite(rawDuration) ? Math.floor(rawDuration) : constraints.tier === "omni_flash" ? 5 : 8;
+  if (constraints.tier === "omni_flash") {
+    duration = Math.max(3, Math.min(10, duration));
+  } else if (mode === "video_extend" || referenceImageCount > 0 || resolution === "1080p" || resolution === "4k") {
+    duration = 8;
+  } else if (!constraints.durations.includes(duration)) {
+    duration = constraints.durations.includes(8) ? 8 : constraints.durations[0];
+  }
+
+  return {
+    route,
+    tier: constraints.tier,
+    providerModel: constraints.providerModel,
+    mode,
+    duration,
+    resolution,
+    aspectRatio,
+    maxReferenceImages: constraints.maxReferenceImages,
+    maxReferenceVideos: constraints.maxReferenceVideos,
+    referenceImageCount: Math.min(referenceImageCount, constraints.maxReferenceImages),
+    hasVideoInput,
+  };
+}
 // ── Capability helpers ────────────────────────────────────────────────────────
 
 function t2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCapabilities {
@@ -379,7 +633,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Google Veo 3.1 Lite",
     family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
     badge: null,
-    description: "Lightweight, affordable Veo 3.1. Fixed ~8s. Native audio always-on.",
+    description: "Lightweight, affordable Veo 3.1. Durations: 4/6/8s. Native audio always-on. Image and last-frame input only; no referenceImages or extension.",
     api_route: "google/veo3.1-lite-text-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
@@ -388,7 +642,8 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       aspect_ratios: ["16:9", "9:16"],
       durations:     [4, 6, 8],
       resolutions:   ["720p", "1080p"],
-      max_reference_images: 2, // Lite: 1 (animate) or 2 (first+last frames)
+      // Google spec: Lite accepts image / lastFrame, but referenceImages is n/a.
+      max_reference_images: 0,
     }),
   },
   {
@@ -401,6 +656,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
+      optional_video: true,
       has_end_frame:  true,
       // Google spec: 16:9 or 9:16 only. "Auto" is NOT a documented value.
       aspect_ratios: ["16:9", "9:16"],
@@ -422,6 +678,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
+      optional_video: true,
       has_end_frame:  true,
       // Google spec: 16:9 or 9:16 only.
       aspect_ratios: ["16:9", "9:16"],
@@ -431,6 +688,40 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       resolutions:   ["720p", "1080p", "4k"],
       // Google spec: up to 3 reference images for both Fast and Pro variants.
       max_reference_images: 3,
+    }),
+  },
+  {
+    id: "google-veo3-fast-t2v",
+    name: "Google Veo 3 Fast",
+    family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
+    badge: "FAST",
+    description: "Legacy Google Veo 3 Fast. Text/image-to-video with native audio. Fixed 8s in the public selector.",
+    api_route: "google/veo3-fast-text-to-video",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      has_end_frame:  true,
+      aspect_ratios: ["16:9", "9:16"],
+      durations:     [8],
+      resolutions:   ["720p", "1080p"],
+      max_reference_images: 0,
+    }),
+  },
+  {
+    id: "google-veo3-t2v",
+    name: "Google Veo 3",
+    family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
+    badge: null,
+    description: "Legacy Google Veo 3 quality model. Text/image-to-video with native audio. Fixed 8s in the public selector.",
+    api_route: "google/veo3-text-to-video",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      has_end_frame:  true,
+      aspect_ratios: ["16:9", "9:16"],
+      durations:     [8],
+      resolutions:   ["720p", "1080p"],
+      max_reference_images: 0,
     }),
   },
   {

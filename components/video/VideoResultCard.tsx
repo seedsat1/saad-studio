@@ -51,13 +51,13 @@ function useVideoResultCardTranslation() {
   const dict: Record<string, Record<string, string>> = {
     en: {},
     ar: {
-      "Generating...": "جاري التوليد...",
-      "Download": "تحميل",
-      "+5s Extend": "تمديد +5ث",
-      "4K Upscale": "ترقية الدقة لـ 4K",
-      "Remix": "إعادة تصميم",
-      "Delete": "حذف",
-      "LATEST": "الأحدث",
+      "Generating...": "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªÙˆÙ„ÙŠØ¯...",
+      "Download": "ØªØ­Ù…ÙŠÙ„",
+      "+8s Extend": "ØªÙ…Ø¯ÙŠØ¯ +8Ø«",
+      "4K Upscale": "ØªØ±Ù‚ÙŠØ© Ø§Ù„Ø¯Ù‚Ø© Ù„Ù€ 4K",
+      "Remix": "Ø¥Ø¹Ø§Ø¯Ø© ØªØµÙ…ÙŠÙ…",
+      "Delete": "Ø­Ø°Ù",
+      "LATEST": "Ø§Ù„Ø£Ø­Ø¯Ø«",
     }
   };
   const t = (key: string): string => {
@@ -117,7 +117,7 @@ export default function VideoResultCard({
 
   const actions = [
     { icon: <Download className="h-3 w-3" />, label: t("Download"), onClick: (e: React.MouseEvent) => e.stopPropagation() },
-    { icon: <Plus className="h-3 w-3" />,     label: t("+5s Extend"), onClick: (e: React.MouseEvent) => e.stopPropagation() },
+    { icon: <Plus className="h-3 w-3" />,     label: t("+8s Extend"), onClick: (e: React.MouseEvent) => e.stopPropagation() },
     { icon: <ArrowUp className="h-3 w-3" />,  label: t("4K Upscale"), onClick: (e: React.MouseEvent) => e.stopPropagation() },
     { icon: <RefreshCw className="h-3 w-3" />,label: t("Remix"),      onClick: (e: React.MouseEvent) => e.stopPropagation() },
     { icon: <Trash2 className="h-3 w-3" />,   label: t("Delete"),     onClick: (e: React.MouseEvent) => { e.stopPropagation(); onDelete?.(result.id); } },
@@ -145,7 +145,7 @@ export default function VideoResultCard({
         </div>
       )}
 
-      {/* Model pill — top-left (not hero) */}
+      {/* Model pill â€” top-left (not hero) */}
       {!isHero && (
         <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: result.familyColor }} />
@@ -162,7 +162,7 @@ export default function VideoResultCard({
         </div>
       )}
 
-      {/* Duration pill — top-right (not hero) */}
+      {/* Duration pill â€” top-right (not hero) */}
       {!isHero && (
         <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
           <span className="text-[9px] text-white/70">{result.duration}s</span>

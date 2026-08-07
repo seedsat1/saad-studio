@@ -24,6 +24,9 @@ import {
   WaveSpeedVideoModel,
   getModelGroups,
   DEFAULT_MODEL,
+  getGoogleVideoConstraints,
+  isGoogleVideoRoute,
+  normalizeGoogleVideoOptions,
 } from "@/lib/video-model-registry";
 import { getGenerationCostSync } from "@/lib/pricing";
 import { useAssetStore } from "@/hooks/use-asset-store";
@@ -1195,6 +1198,25 @@ function prettyModelName(name: string): string {
   return name.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\s+/g, " ").trim();
 }
 
+type VideoModeLabel = "Text To Video" | "Image To Video" | "Reference To Video" | "Video Extend" | "Video Edit" | "Video To Video";
+
+function getActiveVideoModeLabel(model: WaveSpeedVideoModel, input: {
+  hasStartFrame: boolean;
+  hasEndFrame: boolean;
+  hasMotionVideo: boolean;
+  referenceImageCount: number;
+}): VideoModeLabel {
+  const route = model.api_route;
+  const isGoogle = route.startsWith("google/");
+  if (input.hasMotionVideo) {
+    if (route === "google/gemini-omni-flash") return "Video Edit";
+    if (isGoogle && (route.includes("veo3.1") || route.includes("veo-3.1"))) return "Video Extend";
+    return "Video To Video";
+  }
+  if (input.referenceImageCount > 0 && model.capabilities.max_reference_images > 0) return "Reference To Video";
+  if (input.hasStartFrame || input.hasEndFrame) return "Image To Video";
+  return "Text To Video";
+}
 function splitShotDurations(totalDuration: number, shotCount: number): number[] {
   if (shotCount <= 0 || totalDuration <= 0) return [];
   const base = Math.floor(totalDuration / shotCount);
@@ -2144,32 +2166,57 @@ function VideoPageInner() {
     selectedModel.api_route === "google/veo-3.1-generate-preview" ||
     selectedModel.api_route === "google/gemini-omni-video" ||
     selectedModel.api_route === "google/gemini-omni-flash";
+  const isLegacyGoogleVeo3Model =
+    selectedModel.api_route === "google/veo3-fast-text-to-video" ||
+    selectedModel.api_route === "google/veo3-text-to-video";
+  const isGoogleVeoModel = isVeo31Model || isLegacyGoogleVeo3Model;
+  const googleConstraints = getGoogleVideoConstraints(selectedModel.api_route);
+  const normalizedGoogle = googleConstraints && isGoogleVideoRoute(selectedModel.api_route)
+    ? normalizeGoogleVideoOptions(selectedModel.api_route, {
+        duration,
+        resolution,
+        aspectRatio,
+        referenceImageCount: referenceImages.filter((file) => file.type.startsWith("image/")).length,
+        hasVideoInput: Boolean(motionVideo),
+        hasStartImage: Boolean(startFrame || linkedStartFrameUrl),
+        hasEndImage: Boolean(endFrame),
+      })
+    : null;
   const isVeo31LiteModel = selectedModel.api_route === "google/veo3.1-lite-text-to-video";
   const isVeo31FastModel = selectedModel.api_route === "google/veo3.1-fast-text-to-video";
+  const isVeo31ExtensionCapableModel = Boolean(googleConstraints?.extensionCapable);
+  const isGoogleVeoExtensionInput = isVeo31ExtensionCapableModel && Boolean(motionVideo);
   const hasVeo31ReferenceInput = isVeo31Model && (
     Boolean(startFrame) ||
     Boolean(linkedStartFrameUrl) ||
     Boolean(endFrame) ||
-    referenceImages.length > 0
+    referenceImages.length > 0 ||
+    isGoogleVeoExtensionInput
   );
-  const isVeo31HighResolution = isVeo31Model && ["1080p", "4k"].includes((resolution ?? "").toLowerCase());
-  const isVeo31FixedEightSecond = isVeo31Model && selectedModel.api_route !== "google/gemini-omni-flash" && (hasVeo31ReferenceInput || isVeo31HighResolution);
-  const durationChoices = isSoraModel ? [4, 8, 12] : isVeo31FixedEightSecond ? [8] : caps.durations;
+  const isGoogleVeoHighResolution = isGoogleVeoModel && ["1080p", "4k"].includes((resolution ?? "").toLowerCase());
+  const isVeo31FixedEightSecond = isVeo31Model && selectedModel.api_route !== "google/gemini-omni-flash" && (hasVeo31ReferenceInput || isGoogleVeoHighResolution);
+  const durationChoices = isSoraModel ? [4, 8, 12] : normalizedGoogle ? (isVeo31FixedEightSecond ? [8] : googleConstraints?.durations ?? caps.durations) : isVeo31FixedEightSecond ? [8] : caps.durations;
   const resolutionChoices = isSoraModel
     ? []
-    : isVeo31LiteModel
-      ? caps.resolutions.filter((value) => value.toLowerCase() !== "4k")
-      : caps.resolutions;
+    : normalizedGoogle
+      ? (isGoogleVeoExtensionInput ? ["720p"] : googleConstraints?.resolutions ?? caps.resolutions)
+      : isGoogleVeoExtensionInput
+        ? ["720p"]
+        : isVeo31LiteModel
+          ? caps.resolutions.filter((value) => value.toLowerCase() !== "4k")
+          : caps.resolutions;
   const effectiveAspectRatios = sortAspectRatios(
-    caps.aspect_ratios.length > 0
-      ? caps.aspect_ratios
-      : caps.sizes.length > 0
-        ? []
-        : ["16:9", "9:16", "1:1", "4:3", "3:4"]
+    isLegacyGoogleVeo3Model && resolution?.toLowerCase() === "1080p"
+      ? ["16:9"]
+      : caps.aspect_ratios.length > 0
+        ? caps.aspect_ratios
+        : caps.sizes.length > 0
+          ? []
+          : ["16:9", "9:16", "1:1", "4:3", "3:4"]
   );
 
   useEffect(() => {
-    if (!isVeo31Model) return;
+    if (!isGoogleVeoModel) return;
 
     if (aspectRatio !== "16:9" && aspectRatio !== "9:16") {
       setAspectRatio("16:9");
@@ -2177,6 +2224,8 @@ function VideoPageInner() {
 
     if (isVeo31LiteModel && resolution?.toLowerCase() === "4k") {
       setResolution("720p");
+    } else if (isLegacyGoogleVeo3Model && resolution?.toLowerCase() === "1080p" && aspectRatio === "9:16") {
+      setAspectRatio("16:9");
     } else if (resolutionChoices.length > 0 && resolution && !resolutionChoices.includes(resolution)) {
       setResolution(resolutionChoices[0]);
     }
@@ -2193,8 +2242,10 @@ function VideoPageInner() {
     caps.durations,
     duration,
     isVeo31FixedEightSecond,
+    isGoogleVeoModel,
+    isLegacyGoogleVeo3Model,
+    isGoogleVeoExtensionInput,
     isVeo31LiteModel,
-    isVeo31Model,
     resolution,
     resolutionChoices,
     sound,
@@ -2558,6 +2609,13 @@ function VideoPageInner() {
     selectedModel.api_route === "bytedance/seedance-v2/text-to-video-fast" ||
     selectedModel.api_route.startsWith("bytedance/seedance-2.0");
 
+  const activeVideoModeLabel = getActiveVideoModeLabel(selectedModel, {
+    hasStartFrame: Boolean(startFrame || linkedStartFrameUrl || selectedCharacter?.referenceUrls?.[0]),
+    hasEndFrame: Boolean(endFrame),
+    hasMotionVideo: Boolean(motionVideo),
+    referenceImageCount: referenceImages.filter((file) => file.type.startsWith("image/")).length,
+  });
+
   const estimatedCredits = (() => {
     if (activeTool === "lipsync") {
       return 17;
@@ -2565,7 +2623,7 @@ function VideoPageInner() {
     const isMotionControl = selectedModel.api_route === "kwaivgi/kling-v3.0-pro/motion-control";
     const pricingDuration = isMotionControl
       ? (motionVideoDuration ? Math.round(motionVideoDuration) : 5)
-      : (isVeo31FixedEightSecond ? 8 : (duration ?? (isVeo31Model ? 8 : 5)));
+      : (isVeo31FixedEightSecond ? 8 : (duration ?? (selectedModel.api_route === "google/gemini-omni-flash" ? 5 : isGoogleVeoModel ? 8 : 5)));
     // NOTE: capturedDuration below also defaults to 8 if duration is null.
     const base = getGenerationCostSync(
       selectedModel.api_route,
@@ -2928,6 +2986,7 @@ function VideoPageInner() {
             ? "FIRST_AND_LAST_FRAMES_2_VIDEO"
             : "TEXT_2_VIDEO";
       }
+      payload.video_mode_label = activeVideoModeLabel;
 
       // Size / Aspect ratio
       if (caps.sizes.length > 0 && size) {
@@ -3271,7 +3330,7 @@ function VideoPageInner() {
         ? (aspectRatio ?? "16:9")
         : (aspectRatio ?? (size ? sizeToRatio(size) : "16:9"));
       // Veo 3.1 accepts 4/6/8 — honor the user's choice (fallback to 8).
-      const capturedDuration = isVeo31Model ? (isVeo31FixedEightSecond ? 8 : (duration ?? 8)) : duration;
+      const capturedDuration = isGoogleVeoModel ? (isVeo31FixedEightSecond ? 8 : (duration ?? (selectedModel.api_route === "google/gemini-omni-flash" ? 5 : 8))) : duration;
       persistVideoEditContext(data.taskId, {
         modelRoute: requestModelRoute,
         modelName: selectedModel.name,
@@ -3310,12 +3369,12 @@ function VideoPageInner() {
       setIsSubmitting(false);
     }
   }, [
-    activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isVeo31Model, isVeo31FastModel, isVeo31FixedEightSecond,
+    activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isVeo31Model, isGoogleVeoModel, isVeo31FastModel, isVeo31FixedEightSecond,
     startFrame, linkedStartFrameUrl, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId, selectedPalette, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
-    estimatedCredits, getSafeErrorMessage, guardGeneration,
+    estimatedCredits, activeVideoModeLabel, getSafeErrorMessage, guardGeneration,
   ]);
 
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
@@ -4615,7 +4674,7 @@ function VideoPageInner() {
                     style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
                   >
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedModel.family_color }} />
-                    <span className="flex-1 text-[13px]" style={{ color: "#e2e8f0" }}>{prettyModelName(selectedModel.name)}</span>
+                    <span className="flex-1 truncate text-[13px]" style={{ color: "#e2e8f0" }}>{prettyModelName(selectedModel.name)}</span>
                     {bStyle && (
                       <span
                         className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"

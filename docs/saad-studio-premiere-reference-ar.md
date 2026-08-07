@@ -1,3 +1,15 @@
+## Google Official Video Pricing And Mode Contract (2026-08-07)
+
+- Google official documentation is the authority for Gemini Omni Flash and Veo video generation. KIE catalog data must not define prices for direct Google video routes.
+- Gemini Omni Flash (`gemini-omni-flash-preview`) is the default Google video/editing engine for multimodal text, image, reference, and video-edit workflows. It supports `text_to_video`, `image_to_video`, `reference_to_video`, and `edit` task labels through the Interactions API.
+- Veo 3.1 remains the Google path for scene/video extension, last-frame control, reference images, 4/6/8 second generation, and 720p/1080p/4K output according to tier support.
+- User credit conversion for Google video uses official provider USD cost * 1.5 margin / 0.05 USD per user credit.
+- Current official Google video user-credit floors:
+  - Gemini Omni Flash: 3 credits/sec at effective 0.10 USD/sec 720p.
+  - Veo 3.1 Lite: 1.5 credits/sec 720p, 2.4 credits/sec 1080p; no 4K in UI.
+  - Veo 3.1 Fast and Veo 3 Fast: 3 credits/sec 720p, 3.6 credits/sec 1080p, 9 credits/sec 4K.
+  - Veo 3.1 and Veo 3: 12 credits/sec 720p/1080p, 18 credits/sec 4K for Veo 3.1.
+- `/video` must show only the selected model name to subscribers. Text To Video, Image To Video, Reference To Video, Video Extend, and Video Edit are hidden internal routing/audit modes only; API audit payloads may persist the mode and resolved Google provider model.
 ## إدارة وتحديث موديلات الذكاء الاصطناعي ديناميكياً من لوحة التحكم (2026-08-07)
 
 - **نظرة عامة:** تم تحويل معمارية الموديلات في الموقع من القوائم الثابتة (Hardcoded Static Arrays) إلى نظام سجل الموديلات البرمجي القائم على قاعدة البيانات (Database-Driven Model Registry)، مما يسمح بتبديل الموديلات وتعديل الأسعار والمسارات فورياً دون الحاجة لإعادة نشر المشروع (Redeployment).
@@ -2905,3 +2917,55 @@
 - The option list must come from the selected model capabilities, but the local render registry must include all documented Nano Banana 2 Flash ratios, including `1:4`, `1:8`, `4:1`, `4:5`, `5:4`, and `8:1`.
 - The closed trigger and every opened option must render a visible ratio shape using deterministic dimensions from the ratio data, not an empty CSS-only placeholder. The option order must be deterministic rather than appearing random.
 - In `/image`, the opened aspect-ratio list must render in normal layout flow inside the settings accordion, not as an absolutely positioned panel clipped by the accordion animation container.
+
+## Official Model Registry Normalization Contract (2026-08-07)
+
+- `/api/models` and `/api/admin/models` must normalize image/video model lists from the curated official registries before returning or saving dynamic configuration.
+- For images, the authoritative curated source is `IMAGE_MODELS`; for videos, it is `VIDEO_MODEL_REGISTRY`.
+- Admin edits may preserve mutable fields such as `isActive` and `creditCost` by model id, but must not preserve stale guessed provider rows as official models.
+- Block stale preview image ids such as `google/gemini-3.1-flash-image-preview`, `gemini-3.1-flash-image-preview`, and `gemini-3-pro-image-preview`; they must not appear in `/admin/models` or public dropdowns.
+- `/admin/models` Sync Official Catalog means normalize to verified official catalog rows and synchronize pricing. It must not insert guessed "Auto-synced from KIE" model rows.
+- Direct Google Veo requests in `/api/video` must resolve the correct provider tier from the selected route: Pro, Fast, Lite, or Omni. Fast/Lite requests must not be logged or sent as Pro.
+## Google Veo Dropdown Catalog Contract (2026-08-07)
+
+- The Google Veo model group in `/video`, `/api/models`, and `/admin/models` should expose these curated rows in order: `Google Veo 3.1 Lite`, `Google Veo 3.1 Fast`, `Google Veo 3.1`, `Google Veo 3 Fast`, and `Google Veo 3`.
+- These rows must come from `VIDEO_MODEL_REGISTRY`, not from guessed KIE auto-sync labels.
+- `Google Veo 3 Fast` routes to direct Google model `veo-3.0-fast-generate-001`; `Google Veo 3` routes to direct Google model `veo-3.0-generate-001`.
+- Legacy Veo 3 rows are text-to-video only in the public selector, capped at `1080p`, and shown with fixed `8s` duration.
+## Google Veo Capability Correction (2026-08-07)
+
+- Veo 3.1 and Veo 3.1 Fast support text-to-video, image-to-video, first/last-frame generation, and up to 3 `referenceImages`. They support 720p, 1080p, and 4k; 1080p/4k and reference-image requests force 8 seconds.
+- Veo 3.1 Lite supports text-to-video, image-to-video, and first/last-frame generation with 720p or 1080p. It must not expose generic `referenceImages`, 4k, or video extension.
+- Legacy Veo 3 and Veo 3 Fast support text-to-video and image-to-video, generate fixed 8-second output, and must not expose `referenceImages` or extension. In this catalog, 1080p is constrained to 16:9.
+- UI and API code must keep start/end frame inputs separate from reference-image inputs so the panel does not advertise unsupported reference counts.
+
+## Google Video Capability Lock (2026-08-07)
+
+- The subscriber-facing `/video` selector shows model names only. Automatic Google modes remain hidden in request/audit metadata.
+- Current Google video constraints used by UI and API:
+  - `Google Veo 3.1 Lite`: 4/6/8s, `16:9` or `9:16`, `720p`/`1080p`, image or last-frame input only, `referenceImages=0`, video input/reference videos not supported.
+  - `Google Veo 3.1 Fast`: 4/6/8s, `16:9` or `9:16`, `720p`/`1080p`/`4k`, up to 3 reference images, one video input for extension only. Extension forces 8s and 720p.
+  - `Google Veo 3.1`: 4/6/8s, `16:9` or `9:16`, `720p`/`1080p`/`4k`, up to 3 reference images, one video input for extension only. Extension forces 8s and 720p.
+  - `Google Veo 3 Fast`: fixed 8s, `16:9` or `9:16`, `720p`/`1080p`, image/last-frame input, no generic reference images, no video input. In this catalog, 1080p is constrained to `16:9`.
+  - `Google Veo 3`: fixed 8s, `16:9` or `9:16`, `720p`/`1080p`, image/last-frame input, no generic reference images, no video input. In this catalog, 1080p is constrained to `16:9`.
+  - `Gemini Omni Flash`: 3-10s, `16:9` or `9:16`, `720p`, up to 3 reference images, one video input for edit.
+- Google direct video cost must be charged after final normalized duration/resolution so forced 8s extension requests are not billed as shorter requests.
+
+## Google Video Cross-Page Enforcement (2026-08-07)
+
+- Google video constraints are enforced in the central `/api/video` path and in the direct Google provider adapter `lib/providers/google-video.ts` used by panel/direct dispatch.
+- The standalone cinematic generator `/api/cinematic-video/generate` also enforces the same core rules: Lite has no generic referenceImages or video extension; Fast/Pro allow extension with 720p and 8s.
+- Specialized UI pages that show Google video pricing or model choices must not invent local values. `cinematic-video` display rates mirror the official credit floors, and `draw-to-video` routes its Veo option to `google/veo3.1-text-to-video` instead of the old Gemini Omni Video alias.
+
+## Official Google Image/Video Cross-Page Contract (2026-08-07)
+
+- Google official documentation is the authority for Nano Banana image models and Gemini/Veo video models. Do not use guessed KIE catalog values for direct Google model ids, prices, ratios, quality, duration, reference limits, or output count.
+- Nano Banana image mapping remains: Nano Banana 2 Lite -> `gemini-3.1-flash-lite-image`, Nano Banana 2 -> `gemini-3.1-flash-image`, Nano Banana Pro -> `gemini-3-pro-image`, legacy Nano Banana -> `gemini-2.5-flash-image`.
+- Google video routes use the central `GOOGLE_VIDEO_CONSTRAINTS` registry for UI controls, direct provider dispatch, quote APIs, and final billing.
+- Google video public rows: `Google Veo 3.1 Lite`, `Google Veo 3.1 Fast`, `Google Veo 3.1`, `Google Veo 3 Fast`, `Google Veo 3`, plus `Google Gemini Omni` where a multimodal/editing page needs it.
+- Google video direct constraints:
+  - Veo 3.1 Lite: `16:9`/`9:16`, 4/6/8s, `720p`/`1080p`, image/last-frame only, no generic reference images, no video input/extension, output count 1.
+  - Veo 3.1 Fast and Veo 3.1: `16:9`/`9:16`, 4/6/8s, `720p`/`1080p`/`4k`, up to 3 reference images, one video input for extension, output count 1. Reference/video/high-resolution requests normalize to 8s; extension normalizes to 720p.
+  - Veo 3 Fast and Veo 3: fixed 8s, `16:9`/`9:16`, `720p`/`1080p`, image/last-frame only, no generic reference images or extension, output count 1.
+  - Gemini Omni Flash: `16:9`/`9:16`, 3-10s, `720p`, up to 3 reference images, one video input for editing, output count 1.
+- KIE fallback maps must not include direct Google video routes by default. Google direct routes should go through the official Google adapter or fail clearly if Google credentials are unavailable.

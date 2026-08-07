@@ -15,14 +15,17 @@ import {
   type VeoResolution,
 } from "../gemini-veo";
 import type { VideoGenInput, ProviderResult } from "./types";
+import { isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 import { ProviderError } from "./types";
 
-/** Internal modelId → Veo tier. */
+/** Internal modelId â†’ Veo tier. */
 const TIER_MAP: Record<string, VeoTier> = {
   "google/veo3.1-text-to-video":      "pro",
   "google/veo3.1-fast-text-to-video": "fast",
   "google/veo3.1-lite-text-to-video": "lite",
   "google/gemini-omni-flash":         "omni_flash",
+  "google/veo3-fast-text-to-video":    "legacy_fast",
+  "google/veo3-text-to-video":         "legacy",
   "google/gemini-omni-video":          "omni_flash",
   "gemini-omni-video":                 "omni_flash",
   "veo3":      "pro",
@@ -41,7 +44,7 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
     input.aspect === "16:9" ? "16:9" :
     undefined;
 
-  const resolution: VeoResolution | undefined =
+  let resolution: VeoResolution | undefined =
     input.quality === "4k" || input.quality === "4K" ? "4k" :
     input.quality === "1080p" || input.quality === "1080P" ? "1080p" :
     input.quality === "720p" || input.quality === "720P" ? "720p" :
@@ -56,18 +59,42 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
   const requestedType = input.generationType;
   const sourceVideoUrl = input.videoUrl ?? input.videoUrls?.[0] ?? input.referenceVideoUrls?.[0];
 
+  const isVeo31ExtensionTier = tier === "fast" || tier === "pro";
+  const hasSourceVideo = typeof sourceVideoUrl === "string" && sourceVideoUrl.trim().length > 0;
   const autoType =
     requestedType ||
     (
-      explicitImages.length >= 3 && tier === "fast"
+      explicitImages.length >= 3 && isVeo31ExtensionTier
         ? "REFERENCE_2_VIDEO"
         : (startImageUrl || endImageUrl)
           ? "FIRST_AND_LAST_FRAMES_2_VIDEO"
           : "TEXT_2_VIDEO"
     );
 
-  if (autoType === "REFERENCE_2_VIDEO" && tier !== "fast") {
-    throw new ProviderError("google", "generationType", "REFERENCE_2_VIDEO is supported only for Veo Fast.");
+  if (autoType === "REFERENCE_2_VIDEO" && !isVeo31ExtensionTier) {
+    throw new ProviderError("google", "generationType", "REFERENCE_2_VIDEO is supported only for Veo 3.1 Fast/Pro.");
+  }
+  if ((tier === "lite" || input.modelId === "veo3_lite") && explicitImages.length > 2) {
+    throw new ProviderError("google", "referenceImages", "Veo 3.1 Lite supports start/end frames only, not generic referenceImages.");
+  }
+  if (hasSourceVideo && !(tier === "omni_flash" || isVeo31ExtensionTier)) {
+    throw new ProviderError("google", "video", "This Google model does not support video input.");
+  }
+  const normalizedGoogle = isGoogleVideoRoute(input.modelId)
+    ? normalizeGoogleVideoOptions(input.modelId, {
+        duration: input.durationSec,
+        resolution,
+        aspectRatio: aspect,
+        referenceImageCount: explicitImages.length,
+        hasVideoInput: hasSourceVideo,
+        hasStartImage: Boolean(startImageUrl),
+        hasEndImage: Boolean(endImageUrl),
+      })
+    : null;
+  if (normalizedGoogle) {
+    resolution = normalizedGoogle.resolution;
+  } else if (hasSourceVideo && isVeo31ExtensionTier) {
+    resolution = "720p";
   }
 
   const image = autoType === "TEXT_2_VIDEO" || !startImageUrl ? undefined : await urlToImageInput(startImageUrl);
@@ -80,7 +107,7 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
       ? await Promise.all(explicitImages.slice(0, 3).map((url) => urlToImageInput(url)))
       : undefined;
   const video =
-    tier === "omni_flash" && sourceVideoUrl
+    (tier === "omni_flash" || isVeo31ExtensionTier) && sourceVideoUrl
       ? await urlToVideoInput(sourceVideoUrl)
       : undefined;
 
@@ -91,7 +118,7 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
       prompt: input.prompt,
       aspectRatio: aspect,
       resolution,
-      durationSeconds: clampDuration(input.durationSec),
+      durationSeconds: normalizedGoogle?.duration ?? clampGoogleDuration(input.durationSec, resolution, Boolean(referenceImages?.length), Boolean(video), tier),
       ...(image ? { image } : {}),
       ...(lastFrame ? { lastFrame } : {}),
       ...(referenceImages?.length ? { referenceImages } : {}),
@@ -128,7 +155,7 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
           metadata: { tier, videoUri: res.videoUri, contentType: dl.contentType },
         };
       } catch (err) {
-        // If download fails, still return the raw URI — the route can try
+        // If download fails, still return the raw URI â€” the route can try
         // a key-appended fetch as a fallback.
         return {
           urls: [res.videoUri],
@@ -141,8 +168,19 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
   throw new ProviderError("google", "poll", "Veo timed out after 6 minutes");
 }
 
-function clampDuration(d: number | undefined): number | undefined {
-  if (!d) return undefined;
-  // Veo accepts 4-8 seconds.
-  return Math.max(4, Math.min(8, Math.round(d)));
+function clampGoogleDuration(
+  value: number | undefined,
+  resolution?: VeoResolution,
+  hasReferences = false,
+  hasVideo = false,
+  tier?: VeoTier,
+): number {
+  if (tier === "omni_flash") {
+    const n = Math.round(Number(value));
+    return Number.isFinite(n) ? Math.max(3, Math.min(10, n)) : 5;
+  }
+  if (hasReferences || hasVideo || resolution === "1080p" || resolution === "4k") return 8;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 8;
+  return n === 4 || n === 6 || n === 8 ? n : 8;
 }

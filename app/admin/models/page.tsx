@@ -147,7 +147,7 @@ export default function AdminModelsPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to trigger sync");
-      setSuccess(`Successfully synchronized! Added ${data.newlyAddedCount} new models.`);
+      setSuccess(`Official catalog synchronized. Added ${data.newlyAddedCount} curated models and removed stale preview entries.`);
       setTimeout(() => setSuccess(null), 5000);
 
       // Reload registry
@@ -156,7 +156,7 @@ export default function AdminModelsPage() {
       if (reloadData.imageModels) setImageModels(reloadData.imageModels);
       if (reloadData.videoModels) setVideoModels(reloadData.videoModels);
     } catch (err: any) {
-      setError(err.message || "Failed to synchronize with KIE API catalog.");
+      setError(err.message || "Failed to synchronize the official models catalog.");
     } finally {
       setIsSyncing(false);
     }
@@ -317,7 +317,7 @@ export default function AdminModelsPage() {
             AI Models Registry Manager
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            Dynamic database-driven model control center. Manage statuses, prices, aspect ratios, and upstream routes in real-time.
+            Official model registry control center. Manage statuses, prices, aspect ratios, and verified upstream routes without guessed catalog rows.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -334,7 +334,7 @@ export default function AdminModelsPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 active:scale-95 disabled:opacity-50 transition-all duration-200"
           >
             <RotateCcw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
-            {isSyncing ? "Syncing..." : "Auto Sync Catalog"}
+            {isSyncing ? "Syncing..." : "Sync Official Catalog"}
           </button>
           <button
             onClick={handleSaveAll}

@@ -1,6 +1,6 @@
 import { IMAGE_MODELS, getImageCreditCost } from "@/lib/image-models";
 import { VIDEO_MODELS } from "@/lib/video-models";
-import { VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
+import { VIDEO_MODEL_REGISTRY, isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 
 type VideoPayload = Record<string, unknown>;
 type ImagePricingOptions = {
@@ -48,10 +48,12 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["openai/sora-2/text-to-video-pro", 20.48],
   ["openai/sora-2-pro/text-to-video", 20.48],
   ["openai/sora-2-pro/text-to-video-pro", 20.48],
-  ["google/veo3.1-lite-text-to-video", 13.68],
-  ["google/veo3.1-fast-text-to-video", 13.68],
-  ["google/veo3.1-text-to-video", 42.56],
-  ["google/veo-3.1-generate-preview", 42.56],
+  ["google/veo3.1-lite-text-to-video", 12.0],
+  ["google/veo3.1-fast-text-to-video", 24.0],
+  ["google/veo3.1-text-to-video", 96.0],
+  ["google/veo-3.1-generate-preview", 96.0],
+  ["google/veo3-fast-text-to-video", 24.0],
+  ["google/veo3-text-to-video", 96.0],
   ["google/gemini-omni-video", 30.0],
   ["google/gemini-omni-flash", 30.0],
   ["bytedance/seedance-2.0/text-to-video", 40],
@@ -212,24 +214,33 @@ function getGrokCredits(payload?: VideoPayload): number {
 }
 
 function getVeo31Credits(modelRoute: string, payload?: VideoPayload): number {
-  const duration = readDuration(payload, 8);
-  const quality = readQuality(payload);
-  const is4k = quality === "4k";
+  if (!isGoogleVideoRoute(modelRoute)) return 0;
 
-  if (modelRoute === "google/veo3.1-lite-text-to-video") {
-    const base = duration * 1.71;
-    return parseFloat(Math.max(1, is4k ? base * 3.285714 : base).toFixed(2));
+  const referenceCount = Array.isArray(payload?.reference_image_urls)
+    ? payload.reference_image_urls.length
+    : Array.isArray(payload?.referenceImageUrls)
+      ? payload.referenceImageUrls.length
+      : 0;
+  const normalized = normalizeGoogleVideoOptions(modelRoute, {
+    duration: payload?.duration as number | string | undefined,
+    resolution: readQuality(payload),
+    aspectRatio: typeof payload?.aspect_ratio === "string" ? payload.aspect_ratio : typeof payload?.aspectRatio === "string" ? payload.aspectRatio : undefined,
+    referenceImageCount: referenceCount,
+    hasVideoInput: Boolean(payload?.video_url || payload?.videoUrl || payload?.video),
+    hasStartImage: Boolean(payload?.image_url || payload?.imageUrl || payload?.image || payload?.first_frame_url),
+    hasEndImage: Boolean(payload?.last_frame_url || payload?.lastFrameUrl || payload?.last_image || payload?.end_image),
+  });
+
+  let usdPerSecond = 0.40;
+  if (normalized.tier === "veo31_lite") {
+    usdPerSecond = normalized.resolution === "1080p" ? 0.08 : 0.05;
+  } else if (normalized.tier === "veo31_fast" || normalized.tier === "veo3_fast") {
+    usdPerSecond = normalized.resolution === "4k" ? 0.30 : normalized.resolution === "1080p" ? 0.12 : 0.10;
+  } else if (normalized.tier === "veo31") {
+    usdPerSecond = normalized.resolution === "4k" ? 0.60 : 0.40;
   }
 
-  if (modelRoute === "google/veo3.1-fast-text-to-video") {
-    const base = duration * 1.71;
-    return parseFloat(Math.max(1, is4k ? base * 3 : base).toFixed(2));
-  }
-
-  let cost = duration * 5.32;
-  if (quality.includes("1080")) cost *= 1.3;
-  if (is4k) cost *= 1.8;
-  return parseFloat(Math.max(1, cost).toFixed(2));
+  return parseFloat(Math.max(1, usdPerSecond * normalized.duration * 30).toFixed(2));
 }
 
 function getGeminiOmniFlashCredits(payload?: VideoPayload): number {
@@ -353,7 +364,9 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
     modelRoute === "google/veo3.1-fast-text-to-video" ||
     modelRoute === "google/veo3.1-text-to-video" ||
     modelRoute === "google/veo-3.1-generate-preview" ||
-    modelRoute === "google/gemini-omni-video"
+    modelRoute === "google/gemini-omni-video" ||
+    modelRoute === "google/veo3-fast-text-to-video" ||
+    modelRoute === "google/veo3-text-to-video"
   ) {
     return applySoundMultiplier(getVeo31Credits(modelRoute, payload), payload);
   }

@@ -15,6 +15,7 @@ import prismadb from "@/lib/prismadb";
 import { isDirectProviderModel, getProviderFor } from "@/lib/provider-router";
 import { dispatchDirectVideo } from "@/lib/providers/dispatch";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
+import { isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -315,8 +316,6 @@ export async function POST(req: NextRequest) {
     const provider = getProviderFor(modelId);
     const shouldGoDirect = isDirectProviderModel(modelId)
       && provider !== "openai"
-      && modelId !== "google/gemini-omni-flash"
-      && modelId !== "google/gemini-omni-video"
       && !(provider === "byteplus" && hasImageOrAvatar);
 
     if (shouldGoDirect) {
@@ -324,9 +323,9 @@ export async function POST(req: NextRequest) {
         userId,
         modelId,
         prompt,
-        aspect: aspectRatio,
-        durationSec: duration,
-        quality: resolution,
+        aspect: isGoogleVideoRoute(modelId) ? normalizeGoogleVideoOptions(modelId, { duration, resolution, aspectRatio, referenceImageCount: safeReferenceImageUrls.length, hasVideoInput: Boolean(videoUrl || safeVideoUrls.length), hasStartImage: Boolean(firstFrameUrl || imageUrl || safeImageUrls.length), hasEndImage: Boolean(lastFrameUrl) }).aspectRatio : aspectRatio,
+        durationSec: isGoogleVideoRoute(modelId) ? normalizeGoogleVideoOptions(modelId, { duration, resolution, aspectRatio, referenceImageCount: safeReferenceImageUrls.length, hasVideoInput: Boolean(videoUrl || safeVideoUrls.length), hasStartImage: Boolean(firstFrameUrl || imageUrl || safeImageUrls.length), hasEndImage: Boolean(lastFrameUrl) }).duration : duration,
+        quality: isGoogleVideoRoute(modelId) ? normalizeGoogleVideoOptions(modelId, { duration, resolution, aspectRatio, referenceImageCount: safeReferenceImageUrls.length, hasVideoInput: Boolean(videoUrl || safeVideoUrls.length), hasStartImage: Boolean(firstFrameUrl || imageUrl || safeImageUrls.length), hasEndImage: Boolean(lastFrameUrl) }).resolution : resolution,
         imageUrl,
         imageUrls: safeImageUrls,
         videoUrl,
@@ -362,7 +361,8 @@ export async function POST(req: NextRequest) {
 
     let creditsToCharge: number;
     try {
-      creditsToCharge = getVideoCreditsByModelId(kieModelId, { duration, resolution });
+      const normalizedGoogleForCost = isGoogleVideoRoute(modelId) ? normalizeGoogleVideoOptions(modelId, { duration, resolution, aspectRatio, referenceImageCount: safeReferenceImageUrls.length, hasVideoInput: Boolean(videoUrl || safeVideoUrls.length), hasStartImage: Boolean(firstFrameUrl || imageUrl || safeImageUrls.length), hasEndImage: Boolean(lastFrameUrl) }) : null;
+      creditsToCharge = getVideoCreditsByModelId(kieModelId, { duration: normalizedGoogleForCost?.duration ?? duration, resolution: normalizedGoogleForCost?.resolution ?? resolution });
       if (!creditsToCharge || creditsToCharge <= 0) creditsToCharge = 12;
     } catch {
       creditsToCharge = 12; // fallback: 12 credits

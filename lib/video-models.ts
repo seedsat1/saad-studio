@@ -32,19 +32,20 @@ export interface VideoModelFamily {
 
 export const VIDEO_MODELS: VideoModel[] = [
   {
-    id: "google/gemini-omni-video",
-    name: "Gemini Omni Video",
-    family: "Google Gemini",
-    familyColor: "#22c55e",
+    id: "google/veo3.1-text-to-video",
+    name: "Google Veo 3.1",
+    family: "Google Veo",
+    familyColor: "#3b82f6",
     inputType: "text-to-video",
-    accepts: ["start-frame", "end-frame", "reference-image"],
+    accepts: ["start-frame", "end-frame", "reference-image", "video"],
+    maxImages: 3,
     aspectRatios: ["16:9", "9:16"],
     durations: [4, 6, 8],
     resolutions: ["720p", "1080p", "4k"],
     badge: "TOP",
-    creditCost: 42.56,
+    creditCost: 96.0,
     maxDuration: 8,
-    description: "Direct Google video generation with image guidance",
+    description: "Official Google Veo 3.1 direct video generation with image, reference, and extension support",
   },
   {
     id: "google/gemini-omni-flash",
@@ -61,7 +62,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     maxDuration: 10,
     description: "Ultra-fast direct Google video generation & editing",
   },
-  // ── KLING ──
+  // â”€â”€ KLING â”€â”€
   {
     id: "kling-3.0/video",
     name: "Kling 3.0",
@@ -134,7 +135,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     description: "Fast turbo image to video generation",
   },
 
-  // ── HAILUO ──
+  // â”€â”€ HAILUO â”€â”€
   {
     id: "hailuo/2-3-image-to-video-pro",
     name: "Hailuo 2.3 I2V Pro",
@@ -205,7 +206,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     description: "Standard text to video, fast & affordable",
   },
 
-  // ── SORA ──
+  // â”€â”€ SORA â”€â”€
   {
     id: "sora-2-image-to-video",
     name: "Sora 2 I2V",
@@ -259,7 +260,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     description: "Pro quality cinematic text to video",
   },
 
-  // ── RUNWAY ──
+  // â”€â”€ RUNWAY â”€â”€
   {
     id: "runwayml/gen4-aleph",
     name: "Gen4 Aleph",
@@ -287,7 +288,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     description: "Fast high-quality image to video",
   },
 
-  // ── WAVESPEED ──
+  // â”€â”€ WAVESPEED â”€â”€
   {
     id: "wavespeed-ai/cinematic-video-generator",
     name: "Cinematic Video Generator",
@@ -304,7 +305,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     description: "Hollywood-style T2V or I2V with up to 4 reference images",
   },
 
-  // ── GROK ──
+  // â”€â”€ GROK â”€â”€
   {
     id: "grok-imagine/text-to-video",
     name: "Grok Imagine T2V",
@@ -336,7 +337,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     description: "Image to video with intelligent camera work",
   },
 
-  // ── BYTEDANCE ──
+  // â”€â”€ BYTEDANCE â”€â”€
   {
     id: "bytedance/seedance-1.5-pro",
     name: "Seedance 1.5 Pro",
@@ -473,7 +474,7 @@ export function getModelFamilies(): VideoModelFamily[] {
 }
 
 export function getDefaultModel(): VideoModel {
-  return VIDEO_MODELS.find((m) => m.id === "google/gemini-omni-video")!;
+  return VIDEO_MODELS.find((m) => m.id === "google/gemini-omni-flash")!;
 }
 
 export function getModelsByFamily(family: string): VideoModel[] {

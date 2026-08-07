@@ -125,6 +125,14 @@ export async function POST(req: Request) {
     const refImageCount = Array.isArray(raw.referenceImageUrls)
       ? raw.referenceImageUrls.filter((u) => typeof u === "string" && u.trim()).length
       : 0;
+    if (tier === "lite" && refImageCount > 0) {
+      return NextResponse.json(
+        {
+          error: "Veo 3.1 Lite supports start/end frames only, not generic referenceImages.",
+        },
+        { status: 400 },
+      );
+    }
     const requiresEightSeconds =
       refImageCount > 0 ||
       !!raw.extendVideoUrl ||
@@ -139,7 +147,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Video extension is not available on Veo 3.1 Lite. Choose Standard or Ultra.",
+            "Video extension is not available on Veo 3.1 Lite. Choose Veo 3.1 Fast or Veo 3.1.",
         },
         { status: 400 },
       );

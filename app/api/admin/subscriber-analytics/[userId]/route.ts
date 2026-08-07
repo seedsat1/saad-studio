@@ -46,7 +46,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "google/veo3.1-lite-text-to-video": "veo31_lite",
   "google/veo3.1-fast-text-to-video": "veo31_fast",
   "google/veo3.1-text-to-video": "veo31",
-  "google/veo-3.1-generate-preview": "gemini_omni_video",
+  "google/veo-3.1-generate-preview": "veo31",
   "google/gemini-omni-video": "gemini_omni_video",
   "google/gemini-omni-flash": "gemini_omni_flash",
   "bytedance/seedance-v2/text-to-video-fast": "seedance2f",

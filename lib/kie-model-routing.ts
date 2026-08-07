@@ -36,7 +36,7 @@ export const BASE_KIE_IMAGE_MODEL_MAP: Record<string, string> = {
 export const BASE_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   "kwaivgi/kling-v3.0-std/text-to-video": "kling-3.0/video",
   "kwaivgi/kling-v3.0-pro/text-to-video": "kling-3.0/video",
-  // NOTE: kwaivgi/kling-video-o3-pro/* routes removed — KIE has no Omni endpoint yet.
+  // NOTE: kwaivgi/kling-video-o3-pro/* routes removed â€” KIE has no Omni endpoint yet.
   "kwaivgi/kling-v3.0-pro/motion-control": "kling-3.0/motion-control",
   "kling/v2-5-turbo-text-to-video-pro": "kling/v2-5-turbo-text-to-video-pro",
   "kling/v2-5-turbo-image-to-video-pro": "kling/v2-5-turbo-image-to-video-pro",
@@ -47,18 +47,11 @@ export const BASE_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   "openai/sora-2/text-to-video": "sora-2-text-to-video",
   "openai/sora-2/image-to-video": "sora-2-image-to-video",
   "openai/sora-2/text-to-video-pro": "sora-2-pro-text-to-video",
-  // NOTE: Veo 3.1 uses dedicated /api/v1/veo/generate endpoint (NOT /jobs/createTask).
-  // The KIE "model" value below is the enum string passed in /veo/generate body.
-  "google/veo3.1-lite-text-to-video": "veo3_lite",
-  "google/veo3.1-fast-text-to-video": "veo3_fast",
-  "google/veo3.1-text-to-video": "veo3",
   "bytedance/seedance-v2/text-to-video-fast": "bytedance/seedance-2-fast",
   "bytedance/seedance-v2/text-to-video": "bytedance/seedance-2",
   "bytedance/seedance-v2/text-to-video-mini": "bytedance/seedance-2-mini",
   "x-ai/grok-imagine-video/text-to-video": "grok-imagine/text-to-video",
   "x-ai/grok-imagine-video/edit-video": "grok-imagine/image-to-video",
-  "google/gemini-omni-flash": "gemini-omni-video",
-  "google/gemini-omni-video": "gemini-omni-video",
 };
 
 export const BASE_KIE_VIDEO_MODEL_MAP: Record<string, string> = {
@@ -73,19 +66,15 @@ export const BASE_KIE_VIDEO_MODEL_MAP: Record<string, string> = {
   "sora-2-text-to-video": "sora-2-text-to-video",
   "sora-2-image-to-video": "sora-2-image-to-video",
   "sora-2-pro-text-to-video": "sora-2-pro-text-to-video",
-  "google/veo3.1-lite-text-to-video": "veo3_lite",
-  "google/veo3.1-fast-text-to-video": "veo3_fast",
-  "google/veo3.1-text-to-video": "veo3",
   "bytedance/seedance-2": "bytedance/seedance-2",
   "bytedance/seedance-2-fast": "bytedance/seedance-2-fast",
   "bytedance/seedance-2-mini": "bytedance/seedance-2-mini",
   "grok-imagine/text-to-video": "grok-imagine/text-to-video",
   "grok-imagine/image-to-video": "grok-imagine/image-to-video",
-  "gemini-omni-video": "gemini-omni-video",
 };
 
 export const WAVESPEED_VIDEO_FALLBACK_MAP: Record<string, string> = {
-  // Kling 2.5 Turbo I2V Pro removed — now routed to KIE "kling/v2-5-turbo-image-to-video-pro"
+  // Kling 2.5 Turbo I2V Pro removed â€” now routed to KIE "kling/v2-5-turbo-image-to-video-pro"
   // (was incorrectly aliased to WaveSpeed std endpoint).
   "hailuo/02-text-to-video-pro": "minimax/hailuo-02/t2v-pro",
   "hailuo/02-image-to-video-pro": "minimax/hailuo-02/i2v-pro",

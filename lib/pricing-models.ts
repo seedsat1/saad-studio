@@ -97,16 +97,17 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"sora2",         name:"Sora 2",                  notes:"10s max",      type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:20.0,  waveUsd:0,     userCreditsRate:3.41,  maxDuration:10,   isActive:true  },
   { id:"sora2_i2v",     name:"Sora 2 I2V",              notes:"img2vid",      type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:22.0,  waveUsd:0,     userCreditsRate:3.75,  maxDuration:10,   isActive:true  },
   { id:"sora2_pro",     name:"Sora 2 Pro",              notes:"15s max",      type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:30.0,  waveUsd:0,     userCreditsRate:5.12,  maxDuration:15,   isActive:true  },
-  { id:"veo31_lite",    name:"Google Veo 3.1 Lite",     notes:"fast",         type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:10.0,  waveUsd:0,     userCreditsRate:1.71,  maxDuration:8,    isActive:true  },
-  { id:"veo31_fast",    name:"Google Veo 3.1 Fast",     notes:"8s",           type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:10.0,  waveUsd:0,     userCreditsRate:1.71,  maxDuration:8,    isActive:true  },
-  { id:"veo31",         name:"Google Veo 3.1",          notes:"HQ 8s",        type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:31.25, waveUsd:0,     userCreditsRate:5.32,  maxDuration:8,    isActive:true  },
-  // ── CINEMA via Gemini API (direct Google) ───────────────────────────────────
-  { id:"veo31_gem_lite", name:"Veo 3.1 Lite (Gemini)",  notes:"direct API",   type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:8.0,   waveUsd:0,     userCreditsRate:1.71,  maxDuration:8,    isActive:true  },
-  { id:"veo31_gem_fast", name:"Veo 3.1 Fast (Gemini)",  notes:"direct API",   type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:8.0,   waveUsd:0,     userCreditsRate:1.71,  maxDuration:8,    isActive:true  },
-  { id:"veo31_gem",      name:"Veo 3.1 Pro (Gemini)",   notes:"direct API",   type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:25.0,  waveUsd:0,     userCreditsRate:5.32,  maxDuration:8,    isActive:true  },
-  { id:"gemini_omni_video", name:"Gemini Omni Video",    notes:"direct Google", type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:25.0,  waveUsd:0,     userCreditsRate:5.32,  maxDuration:8,    isActive:false  },
-  { id:"gemini_omni_flash", name:"Gemini Omni Flash",    notes:"direct Google", type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:20.0,  waveUsd:0,     userCreditsRate:3.0,   maxDuration:10,   isActive:true   },
-  // ── IMAGE — flat via KIE ────────────────────────────────────────────────────
+  { id:"veo31_lite",    name:"Google Veo 3.1 Lite",     notes:"Google official 0.05 USD/s 720p, 0.08 USD/s 1080p", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:1.5, maxDuration:8, isActive:true },
+  { id:"veo31_fast",    name:"Google Veo 3.1 Fast",     notes:"Google official 0.10 USD/s 720p, 0.12 USD/s 1080p, 0.30 USD/s 4K", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:3.0, maxDuration:8, isActive:true },
+  { id:"veo31",         name:"Google Veo 3.1",          notes:"Google official 0.40 USD/s 720p/1080p, 0.60 USD/s 4K", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:12.0, maxDuration:8, isActive:true },
+  { id:"veo3_fast",     name:"Google Veo 3 Fast",       notes:"Google official legacy fast", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:3.0, maxDuration:8, isActive:true },
+  { id:"veo3",          name:"Google Veo 3",            notes:"Google official legacy standard", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:12.0, maxDuration:8, isActive:true },
+  // Direct Google Gemini API rows. Exact per-resolution USD rates are enforced in lib/pricing.ts.
+  { id:"veo31_gem_lite", name:"Veo 3.1 Lite (Gemini)",  notes:"direct Google official", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:1.5, maxDuration:8, isActive:true },
+  { id:"veo31_gem_fast", name:"Veo 3.1 Fast (Gemini)",  notes:"direct Google official", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:3.0, maxDuration:8, isActive:true },
+  { id:"veo31_gem",      name:"Veo 3.1 Pro (Gemini)",   notes:"direct Google official", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:12.0, maxDuration:8, isActive:true },
+  { id:"gemini_omni_video", name:"Gemini Omni Video",    notes:"replaced by Gemini Omni Flash", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:3.0, maxDuration:10, isActive:false },
+  { id:"gemini_omni_flash", name:"Gemini Omni Flash",    notes:"Google official effective 0.10 USD/s 720p", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:3.0, maxDuration:10, isActive:true },
   { id:"nano_pro",      name:"Nano Banana Pro",         notes:"4K I2I",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:18,    waveUsd:0,     userCreditsRate:2.0,   maxDuration:null, isActive:true  },
   { id:"nano2",         name:"Nano Banana 2",           notes:"T2I",          type:"image",  provider:"kie",       billing:"flat",    kieCredits:3.5,   waveUsd:0,     userCreditsRate:2.0,   maxDuration:null, isActive:true  },
   { id:"nano2_lite",    name:"Nano Banana 2 Lite",      notes:"T2I Lite",     type:"image",  provider:"kie",       billing:"flat",    kieCredits:2.5,   waveUsd:0,     userCreditsRate:1.0,   maxDuration:null, isActive:true  },
@@ -182,7 +183,7 @@ export function calcUserCredits(model: PricingModel, durationSec: number): numbe
 }
 
 const DEFAULT_MODEL_BY_ID = new Map(DEFAULT_MODELS.map((model) => [model.id, model]));
-const CODE_LOCKED_MODEL_IDS = new Set(["seedance2", "seedance2f", "seedance2mini", "minimax_h3", "gemini_omni_video", "gemini_omni_flash", "nano2_lite"]);
+const CODE_LOCKED_MODEL_IDS = new Set(["seedance2", "seedance2f", "seedance2mini", "minimax_h3", "veo31_lite", "veo31_fast", "veo31", "veo31_gem_lite", "veo31_gem_fast", "veo31_gem", "veo3_fast", "veo3", "gemini_omni_video", "gemini_omni_flash", "nano2_lite"]);
 
 /**
  * DB rows may be older than the code reference. Keep admin overrides that raise

@@ -11,10 +11,11 @@ import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { getDynamicVideoModels } from "@/lib/dynamic-model-loader";
+import { getGoogleVideoConstraints, isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 import { VIDEO_PROVIDER_BUSY_MESSAGE } from "@/lib/generation-errors";
-import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput, urlToVideoInput, type VeoImageInput, type VeoVideoInput, type VeoOperationHandle, type VeoResolution } from "@/lib/gemini-veo";
+import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput, urlToVideoInput, type VeoImageInput, type VeoVideoInput, type VeoOperationHandle, type VeoResolution, type VeoTier } from "@/lib/gemini-veo";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { fetchBytePlusTask } from "@/lib/providers/byteplus-reconcile";
 import { normalizeMediaUrl } from "@/lib/r2-storage";
@@ -33,6 +34,11 @@ const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const { videoRouteToKieModelMap, wavespeedFallbackMap } = getResolvedKieRoutingMaps();
 const IDEMPOTENCY_ROUTE = "generate:video";
 const GOOGLE_VEO31_PRO_ROUTE = "google/veo-3.1-generate-preview";
+const GOOGLE_VEO31_FAST_ROUTE = "google/veo3.1-fast-text-to-video";
+const GOOGLE_VEO31_LITE_ROUTE = "google/veo3.1-lite-text-to-video";
+const GOOGLE_VEO31_ROUTE = "google/veo3.1-text-to-video";
+const GOOGLE_VEO3_FAST_ROUTE = "google/veo3-fast-text-to-video";
+const GOOGLE_VEO3_ROUTE = "google/veo3-text-to-video";
 const LEGACY_GEMINI_OMNI_VIDEO_ROUTE = "google/gemini-omni-video";
 const BYTEPLUS_ARK_BASE = (process.env.BYTEPLUS_ARK_BASE_URL || "https://ark.ap-southeast.bytepluses.com/api/v3").replace(/\/+$/, "");
 const BYTEPLUS_CONTENT_TASKS_URL = `${BYTEPLUS_ARK_BASE}/contents/generations/tasks`;
@@ -61,6 +67,23 @@ function resolveKieVideoModel(modelRoute: string): string | undefined {
   return LOCKED_VIDEO_ROUTE_TO_KIE_MODEL[modelRoute] ?? videoRouteToKieModelMap[modelRoute];
 }
 
+type GoogleVideoModeLabel = "Text To Video" | "Image To Video" | "Reference To Video" | "Video Extend" | "Video Edit";
+
+function resolveGoogleVideoModeLabel(input: {
+  modelRoute: string;
+  hasVideo: boolean;
+  hasStartImage: boolean;
+  hasEndImage: boolean;
+  referenceCount: number;
+  hasPreviousInteraction: boolean;
+}): GoogleVideoModeLabel {
+  if (input.hasVideo) {
+    return (input.modelRoute === "google/gemini-omni-flash" || input.modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE || input.hasPreviousInteraction) ? "Video Edit" : "Video Extend";
+  }
+  if (input.referenceCount > 0) return "Reference To Video";
+  if (input.hasStartImage || input.hasEndImage) return "Image To Video";
+  return "Text To Video";
+}
 function hasNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -450,7 +473,7 @@ function normalizeGeminiResolution(value: unknown): VeoResolution {
 }
 
 function normalizeGeminiDuration(value: unknown, resolution: VeoResolution, hasReferences: boolean, modelRoute?: string): number {
-  if (modelRoute === "google/gemini-omni-flash") {
+  if (modelRoute === "google/gemini-omni-flash" || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE) {
     const raw = typeof value === "number" ? value : typeof value === "string" ? Number.parseInt(value, 10) : 5;
     return raw >= 3 && raw <= 10 ? raw : 5;
   }
@@ -459,6 +482,23 @@ function normalizeGeminiDuration(value: unknown, resolution: VeoResolution, hasR
   return raw === 4 || raw === 6 || raw === 8 ? raw : 8;
 }
 
+function resolveGoogleVeoTier(modelRoute: string): VeoTier {
+  if (modelRoute === "google/gemini-omni-flash" || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE) return "omni_flash";
+  if (modelRoute === GOOGLE_VEO31_FAST_ROUTE) return "fast";
+  if (modelRoute === GOOGLE_VEO31_LITE_ROUTE) return "lite";
+  if (modelRoute === GOOGLE_VEO3_FAST_ROUTE) return "legacy_fast";
+  if (modelRoute === GOOGLE_VEO3_ROUTE) return "legacy";
+  return "pro";
+}
+
+function resolveGoogleVeoProviderModel(modelRoute: string): string {
+  if (modelRoute === GOOGLE_VEO31_FAST_ROUTE) return "veo-3.1-fast-generate-preview";
+  if (modelRoute === GOOGLE_VEO31_LITE_ROUTE) return "veo-3.1-lite-generate-preview";
+  if (modelRoute === GOOGLE_VEO3_FAST_ROUTE) return "veo-3.0-fast-generate-001";
+  if (modelRoute === GOOGLE_VEO3_ROUTE) return "veo-3.0-generate-001";
+  if (modelRoute === "google/gemini-omni-flash" || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE) return "gemini-omni-flash-preview";
+  return "veo-3.1-generate-preview";
+}
 function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (typeof payload.prompt === "string") out.prompt = payload.prompt;
@@ -835,7 +875,7 @@ async function uploadDataUrlToKie(value: string): Promise<string> {
   if (!parsed) return value;
 
   // CRITICAL: Use a unique filename per upload. If two uploads share the same
-  // filename, KIE may dedupe and return the same URL for both — which silently
+  // filename, KIE may dedupe and return the same URL for both - which silently
   // collapses image_urls=[first,last] to image_urls=[same,same] and breaks
   // first/last-frame video generation.
   const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -900,12 +940,12 @@ async function resolveMediaInInput(input: Record<string, unknown>, userId: strin
         const urlsOnly = uploaded.filter((u): u is string => typeof u === "string");
         const uniqueUrls = new Set(urlsOnly);
         console.log(
-          `[API/video] image_urls resolved → ${urlsOnly.length} items, ${uniqueUrls.size} unique URLs`,
+          `[API/video] image_urls resolved -> ${urlsOnly.length} items, ${uniqueUrls.size} unique URLs`,
           urlsOnly.map((u, i) => `[${i}] ${u.slice(0, 80)}`),
         );
         if (uniqueUrls.size < urlsOnly.length) {
           console.warn(
-            "[API/video] ⚠ KIE resolved duplicate URLs for distinct frames — first/last frame transition will not work!",
+            "[API/video] Warning: KIE resolved duplicate URLs for distinct frames - first/last frame transition will not work!",
           );
         }
       }
@@ -1356,7 +1396,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Seedance 2.0 / 2.0 Fast — KIE flat input shape ───────────────────────
+  // -- Seedance 2.0 / 2.0 Fast - KIE flat input shape ---
   // Spec (docs.kie.ai/market/bytedance/seedance-2 + seedance-2-fast):
   //   prompt (REQUIRED, 3-20000)
   //   first_frame_url, last_frame_url, reference_image_urls (max 9)
@@ -1393,8 +1433,8 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
       delete out.reference_image_urls;
     }
 
-    // Reference videos: max 3, total duration ≤15s (validated client-side)
-    // KIE field name in spec has a trailing space: 'reference_video_urls ' — using
+    // Reference videos: max 3, total duration <=15s (validated client-side)
+    // KIE field name in spec has a trailing space: 'reference_video_urls ' - using
     // the trimmed name; if KIE rejects, switch to the spec literal.
     if (referenceVideos.length > 0) {
       out.reference_video_urls = referenceVideos.slice(0, 3);
@@ -1402,7 +1442,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
       delete out.reference_video_urls;
     }
 
-    // Reference audios: max 3, total duration ≤15s
+    // Reference audios: max 3, total duration <=15s
     if (referenceAudios.length > 0) {
       out.reference_audio_urls = referenceAudios.slice(0, 3);
     } else {
@@ -1433,7 +1473,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
       : (rawRes === "480p" ? "480p" : rawRes === "1080p" ? "1080p" : "720p");
     out.resolution = validRes;
 
-    // aspect_ratio is REQUIRED per spec — default to 16:9 if missing
+    // aspect_ratio is REQUIRED per spec - default to 16:9 if missing
     const allowedAR = new Set(["1:1", "4:3", "3:4", "16:9", "9:16", "21:9", "adaptive"]);
     if (typeof out.aspect_ratio !== "string" || !allowedAR.has(out.aspect_ratio)) {
       out.aspect_ratio = "16:9";
@@ -1450,7 +1490,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Hailuo 2.3 — strict whitelist; image_url (singular string), 10s+1080P unsupported ──
+  // -- Hailuo 2.3 - strict whitelist; image_url (singular string), 10s+1080P unsupported --
   // KIE accepts ONLY: prompt, image_url, duration ("6"|"10"), resolution ("768P"|"1080P"), nsfw_checker
   if (model === "hailuo/2-3-image-to-video-standard" || model === "hailuo/2-3-image-to-video-pro") {
     const out: Record<string, unknown> = {};
@@ -1463,9 +1503,9 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     // Resolution: must be "768P" or "1080P"
     const resRaw = typeof input.resolution === "string" ? input.resolution.toUpperCase() : "768P";
     let resStr: "768P" | "1080P" = resRaw === "1080P" ? "1080P" : "768P";
-    // ENFORCE: 10s NOT supported with 1080P → downgrade resolution to 768P
+    // ENFORCE: 10s NOT supported with 1080P -> downgrade resolution to 768P
     if (durStr === "10" && resStr === "1080P") {
-      console.warn("[hailuo-2.3] 10s + 1080P not supported by KIE — downgrading resolution to 768P");
+      console.warn("[hailuo-2.3] 10s + 1080P not supported by KIE - downgrading resolution to 768P");
       resStr = "768P";
     }
     out.duration = durStr;
@@ -1474,7 +1514,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Kling V3 Turbo (T2V + I2V) — KIE input shape ────────────────
+  // -- Kling V3 Turbo (T2V + I2V) - KIE input shape ---
   if (
     model === "kling/v3-turbo-text-to-video" ||
     model === "kling/v3-turbo-image-to-video"
@@ -1512,7 +1552,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Kling 2.5 Turbo Pro (T2V + I2V) — KIE flat input shape ────────────────
+  // -- Kling 2.5 Turbo Pro (T2V + I2V) - KIE flat input shape ---
   // T2V: { prompt, duration ('5'|'10'), aspect_ratio, negative_prompt?, cfg_scale? }
   // I2V: { prompt, image_url, duration ('5'|'10'), negative_prompt?, cfg_scale? }
   if (
@@ -1541,7 +1581,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Sora 2 — confirmed against KIE OpenAPI spec ──
+  // -- Sora 2 - confirmed against KIE OpenAPI spec --
   // T2V:     prompt (req), aspect_ratio ("portrait"|"landscape"), n_frames ("10"|"15"),
   //          remove_watermark, character_id_list, upload_method ("s3"|"oss", REQUIRED, default s3)
   // I2V:     adds image_urls (array, maxItems 1, REQUIRED)
@@ -1562,7 +1602,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     if (Array.isArray(input.character_id_list) && input.character_id_list.length > 0) {
       out.character_id_list = input.character_id_list.slice(0, 5);
     }
-    // upload_method: REQUIRED — default to s3
+    // upload_method: REQUIRED - default to s3
     out.upload_method = (input.upload_method === "oss") ? "oss" : "s3";
     // I2V: image_urls (array of 1, REQUIRED)
     if (model === "sora-2-image-to-video") {
@@ -1576,7 +1616,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Grok Imagine T2V/I2V ──
+  // -- Grok Imagine T2V/I2V --
   // Confirmed: https://docs.kie.ai/market/grok-imagine/text-to-video
   //            https://docs.kie.ai/market/grok-imagine/image-to-video
   // T2V duration is NUMBER 6-30; I2V duration is STRING (per OpenAPI).
@@ -1624,18 +1664,18 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
         // image_urls: prefer references, fall back to startImage. Cap at 7.
         if (referenceImages.length > 0) out.image_urls = referenceImages.slice(0, 7);
         else if (startImage) out.image_urls = [startImage];
-        // Spicy mode is NOT available with external images — downgrade to normal
+        // Spicy mode is NOT available with external images - downgrade to normal
         if (out.mode === "spicy" && Array.isArray(out.image_urls) && out.image_urls.length > 0) {
           console.warn("[grok-imagine] Spicy mode unavailable with external images, downgrading to normal");
           out.mode = "normal";
         }
       }
     }
-    // T2V: ignore any image inputs — endpoint does not accept them
+    // T2V: ignore any image inputs - endpoint does not accept them
     return out;
   }
 
-  // ── Veo 3.1 — dedicated /api/v1/veo/generate endpoint with camelCase fields ──
+  // -- Veo 3.1 - dedicated /api/v1/veo/generate endpoint with camelCase fields --
   // Confirmed: https://docs.kie.ai/veo3-api/generate-veo-3-video
   // - model enum: veo3 | veo3_fast | veo3_lite (passed as `model` field, NOT in URL)
   // - imageUrls: camelCase array (1 image = animate-around / 2 images = first+last frame
@@ -1694,7 +1734,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Kling 3.0 Motion Control — KIE flat input shape ──────────────────────
+  // -- Kling 3.0 Motion Control - KIE flat input shape ---
   // Required: input_urls (1 image), video_urls (1 video). Optional: prompt,
   // mode ("std"|"pro"), character_orientation ("video"|"image"),
   // background_source ("input_video"|"input_image"). NO duration/aspect_ratio.
@@ -1704,7 +1744,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     if (startImage) out.input_urls = [startImage];
     if (motionVideo) out.video_urls = [motionVideo];
 
-    // resolution ("720p"|"1080p") → mode ("720p"|"1080p")
+    // resolution ("720p"|"1080p") -> mode ("720p"|"1080p")
     const res = typeof input.resolution === "string" ? input.resolution.toLowerCase() : "";
     if (res.includes("1080")) {
       out.mode = "1080p";
@@ -1712,13 +1752,13 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
       out.mode = "720p";
     }
 
-    // orientation ("video"|"image") → character_orientation
+    // orientation ("video"|"image") -> character_orientation
     if (input.orientation === "video" || input.orientation === "image") {
       out.character_orientation = input.orientation;
     }
 
-    // scene_control_mode toggle → background_source
-    // toggle ON → use image background; OFF (default) → use video background
+    // scene_control_mode toggle -> background_source
+    // toggle ON -> use image background; OFF (default) -> use video background
     if (input.scene_control_mode === true) {
       out.background_source = "input_image";
     } else if (input.scene_control_mode === false) {
@@ -1728,7 +1768,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Gemini Omni Video — KIE flat input shape ──────────────────────────────
+  // -- Gemini Omni Video - KIE flat input shape ---
   if (model === "gemini-omni-video") {
     const out: Record<string, unknown> = {};
     out.prompt = typeof input.prompt === "string" ? input.prompt : "";
@@ -2110,7 +2150,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE || modelRoute === "google/gemini-omni-flash";
+    const isDirectGoogleVeo31Route = isGoogleVideoRoute(modelRoute);
     
     // WaveSpeed Models Checklist Bypass
     const isWaveSpeedOnlyModel = 
@@ -2135,7 +2175,7 @@ export async function POST(req: Request) {
       (m) => (m.api_route === modelRoute || m.id === modelRoute) && m.isActive !== false
     );
 
-    let kieModel = (isDirectGoogleVeo31ProRoute || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);
+    let kieModel = (isDirectGoogleVeo31Route || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);
     let wavespeedRoute: string | undefined = wavespeedFallbackMap[modelRoute];
     if (isWaveSpeedOnlyModel && !wavespeedRoute) {
       wavespeedRoute = modelRoute;
@@ -2161,17 +2201,15 @@ export async function POST(req: Request) {
       console.log("[api/video POST] resolved provider model", JSON.stringify({ modelRoute, kieModel, wavespeedRoute }));
     }
 
-    if (!isDirectGoogleVeo31ProRoute && !kieModel && !wavespeedRoute) {
+    if (!isDirectGoogleVeo31Route && !kieModel && !wavespeedRoute) {
       return NextResponse.json(
         { error: `No model mapping for route: ${modelRoute}` },
         { status: 400 },
       );
     }
 
-    const isVeoModelRoute =
-      modelRoute.startsWith("google/") ||
-      isDirectGoogleVeo31ProRoute;
-    if (isVeoModelRoute) {
+    const isVeoModelRoute = isGoogleVideoRoute(modelRoute);
+    if (isGoogleVideoRoute(modelRoute)) {
       const requestedResolution =
         typeof payload.resolution === "string"
           ? payload.resolution.toLowerCase()
@@ -2199,6 +2237,27 @@ export async function POST(req: Request) {
       payload.aspect_ratio = safeAspect;
       payload.aspectRatio = safeAspect;
 
+      const isLegacyGoogleVeo3Route = modelRoute === GOOGLE_VEO3_FAST_ROUTE || modelRoute === GOOGLE_VEO3_ROUTE;
+      if (isLegacyGoogleVeo3Route && requestedResolution === "4k") {
+        return NextResponse.json(
+          {
+            error: "Legacy Google Veo 3 does not support 4K in the official public catalog. Choose 720p or 1080p.",
+            publicError: "Google Veo 3 supports 720p or 1080p in this catalog.",
+          },
+          { status: 400 },
+        );
+      }
+
+      if (isLegacyGoogleVeo3Route && requestedResolution === "1080p" && safeAspect === "9:16") {
+        return NextResponse.json(
+          {
+            error: "Legacy Google Veo 3 1080p supports 16:9 only. Choose 16:9 or use 720p for portrait.",
+            publicError: "Google Veo 3 1080p supports 16:9 only.",
+          },
+          { status: 400 },
+        );
+      }
+
       if (typeof payload.resolution !== "string" && typeof payload.quality !== "string") {
         payload.resolution = "720p";
       }
@@ -2206,6 +2265,19 @@ export async function POST(req: Request) {
       const referenceUrls = Array.isArray(payload.reference_image_urls)
         ? payload.reference_image_urls.filter((value): value is string => typeof value === "string")
         : [];
+      const supportsGoogleReferenceImages =
+        modelRoute === GOOGLE_VEO31_PRO_ROUTE ||
+        modelRoute === GOOGLE_VEO31_ROUTE ||
+        modelRoute === GOOGLE_VEO31_FAST_ROUTE;
+      if (referenceUrls.length > 0 && !supportsGoogleReferenceImages) {
+        return NextResponse.json(
+          {
+            error: "This Google Veo model does not support referenceImages. Use a start image / last frame instead, or choose Veo 3.1 / Veo 3.1 Fast.",
+            publicError: "This Veo model does not support reference images.",
+          },
+          { status: 400 },
+        );
+      }
       const hasReferenceInput =
         referenceUrls.length > 0 ||
         typeof payload.image === "string" ||
@@ -2226,12 +2298,13 @@ export async function POST(req: Request) {
       modelRoute === "bytedance/seedance-v2/text-to-video" ||
       modelRoute === "bytedance/seedance-v2/text-to-video-fast" ||
       modelRoute.startsWith("bytedance/seedance-2.0");
+    const defaultDurationForCost = (modelRoute === "google/gemini-omni-flash" || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE) ? 5 : (isVeoModelRoute ? 8 : 5);
     const durationForCost =
       typeof payload.duration === "number"
         ? payload.duration
         : typeof payload.duration === "string"
-          ? Number.parseInt(payload.duration, 10) || (isVeoModelRoute ? 8 : 5)
-          : (isVeoModelRoute ? 8 : 5);
+          ? Number.parseInt(payload.duration, 10) || defaultDurationForCost
+          : defaultDurationForCost;
     const qualityForCost =
       (typeof payload.mode === "string" ? payload.mode : null) ||
       (typeof payload.resolution === "string" ? payload.resolution : null) ||
@@ -2274,7 +2347,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── Official Seedance 2.0 path (BytePlus ModelArk, no KIE) ───────────────
+    // Official Seedance 2.0 path (BytePlus ModelArk, no KIE)
     const hasImageOrAvatar = payloadHasImageInput(payload);
 
     if (isOfficialSeedance2Route(modelRoute) && !hasImageOrAvatar) {
@@ -2333,7 +2406,7 @@ export async function POST(req: Request) {
       chargedCredits = creditsToCharge;
       chargedUserId = userId;
 
-      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+      console.log(`[Provider Payload Audit] ---`);
       console.log(`[Provider Payload Audit] Generation ID: ${generationId}`);
       console.log(`[Provider Payload Audit] Provider: BytePlus`);
       console.log(`[Provider Payload Audit] Model: ${arkModel}`);
@@ -2342,7 +2415,7 @@ export async function POST(req: Request) {
       console.log(`[Provider Payload Audit] BYTEPLUS_IMAGE_PREPROCESS_MODE: ${getBytePlusImagePreprocessMode()}`);
       console.log(`[Provider Payload Audit] Image References:`, JSON.stringify(arkImageAuditDetails, null, 2));
       console.log(`[Provider Payload Audit] Sanitized Payload:`, JSON.stringify(sanitizedArkPayload, null, 2));
-      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+      console.log(`[Provider Payload Audit] ---`);
 
       await attachIdempotencyGeneration({
         userId,
@@ -2476,8 +2549,8 @@ export async function POST(req: Request) {
       return NextResponse.json(responseJson);
     }
 
-    // ── Direct Google Gemini video path (no KIE, no WaveSpeed) ───────────────
-    if (isVeoModelRoute) {
+    // Direct Google Gemini video path (no KIE, no WaveSpeed)
+    if (isGoogleVideoRoute(modelRoute)) {
       const prompt = typeof payload.prompt === "string" ? sanitizePrompt(stripPromptReferenceTags(payload.prompt), 5000) : "";
       if (!prompt) {
         return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
@@ -2531,22 +2604,78 @@ export async function POST(req: Request) {
         await verifyPublicMediaUrl(url, "google_reference_image");
       }
 
-      const hasGoogleReferences =
+      const isGoogleVeo31ExtensionRoute =
+        modelRoute === GOOGLE_VEO31_FAST_ROUTE ||
+        modelRoute === GOOGLE_VEO31_ROUTE ||
+        modelRoute === GOOGLE_VEO31_PRO_ROUTE;
+      const supportsGoogleVideoInput =
+        (modelRoute === "google/gemini-omni-flash" || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE) ||
+        isGoogleVeo31ExtensionRoute;
+
+      if (resolvedStartVideo && !supportsGoogleVideoInput) {
+        return NextResponse.json(
+          {
+            error: "This Google video model does not support video input. Use Gemini Omni Flash for video edit or Veo 3.1 Fast/Pro for video extension.",
+            publicError: "This model does not support video input.",
+          },
+          { status: 400 },
+        );
+      }
+
+      const hasGoogleForcedEightSecondInput =
         Boolean(resolvedStartImage) ||
         Boolean(resolvedEndImage) ||
-        resolvedReferenceSources.length > 0;
+        resolvedReferenceSources.length > 0 ||
+        (Boolean(resolvedStartVideo) && modelRoute !== "google/gemini-omni-flash" && modelRoute !== LEGACY_GEMINI_OMNI_VIDEO_ROUTE);
 
-      const aspectRatio = payload.aspect_ratio === "9:16" || payload.aspectRatio === "9:16" ? "9:16" : "16:9";
-      const resolution = normalizeGeminiResolution(payload.resolution ?? payload.quality ?? payload.mode);
-      const durationSeconds = normalizeGeminiDuration(payload.duration, resolution, hasGoogleReferences, modelRoute);
+      const normalizedGoogle = normalizeGoogleVideoOptions(modelRoute, {
+        duration: payload.duration as number | string | undefined,
+        resolution: typeof payload.resolution === "string" ? payload.resolution : typeof payload.quality === "string" ? payload.quality : typeof payload.mode === "string" ? payload.mode : undefined,
+        aspectRatio: typeof payload.aspect_ratio === "string" ? payload.aspect_ratio : typeof payload.aspectRatio === "string" ? payload.aspectRatio : undefined,
+        referenceImageCount: resolvedReferenceSources.length,
+        hasVideoInput: Boolean(resolvedStartVideo),
+        hasStartImage: Boolean(resolvedStartImage),
+        hasEndImage: Boolean(resolvedEndImage),
+        previousInteractionId: typeof payload.previousTaskId === "string" ? payload.previousTaskId : undefined,
+      });
+      const aspectRatio = normalizedGoogle.aspectRatio;
+      const resolution = normalizedGoogle.resolution;
+      const durationSeconds = normalizedGoogle.duration;
+      if (resolvedStartVideo && isGoogleVeo31ExtensionRoute && resolution !== "720p") {
+        return NextResponse.json(
+          {
+            error: "Google Veo 3.1 video extension supports 720p only. Choose 720p or remove the input video.",
+            publicError: "Video Extend on Veo 3.1 supports 720p only.",
+          },
+          { status: 400 },
+        );
+      }
+      const googleCreditsToCharge = await getGenerationCost(modelRoute, durationSeconds, 1, resolution);
+      if (googleCreditsToCharge <= 0) {
+        return NextResponse.json({ error: "Invalid model cost configuration" }, { status: 400 });
+      }
       const negativePrompt =
         typeof payload.negative_prompt === "string" && payload.negative_prompt.trim()
           ? sanitizePrompt(payload.negative_prompt, 1000)
           : undefined;
+      const previousTaskId = typeof payload.previousTaskId === "string" ? payload.previousTaskId : undefined;
+      const googleVideoModeLabel = resolveGoogleVideoModeLabel({
+        modelRoute,
+        hasVideo: Boolean(resolvedStartVideo),
+        hasStartImage: Boolean(resolvedStartImage),
+        hasEndImage: Boolean(resolvedEndImage),
+        referenceCount: resolvedReferenceSources.length,
+        hasPreviousInteraction: Boolean(previousTaskId),
+      });
+      const googleAuditPayload = {
+        ...payload,
+        google_video_mode: googleVideoModeLabel,
+        google_video_provider_model: resolveGoogleVeoProviderModel(modelRoute),
+      };
 
-      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+      console.log(`[Provider Payload Audit] ---`);
       console.log(`[Provider Payload Audit] Provider: Google Veo`);
-      console.log(`[Provider Payload Audit] Model: veo-3.1-generate-preview`);
+      console.log(`[Provider Payload Audit] Model: ${resolveGoogleVeoProviderModel(modelRoute)}`);
       console.log(`[Provider Payload Audit] Route: ${modelRoute}`);
       console.log(`[Provider Payload Audit] Payload details:`, JSON.stringify({
         prompt,
@@ -2557,14 +2686,15 @@ export async function POST(req: Request) {
         startImage: resolvedStartImage,
         endImage: resolvedEndImage,
         referenceSources: resolvedReferenceSources,
+        mode: googleVideoModeLabel,
       }, null, 2));
-      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+      console.log(`[Provider Payload Audit] ---`);
 
       const googleCostEst = estimateProviderCostSync(modelRoute, durationSeconds, resolution);
 
       const charge = await spendCredits({
         userId,
-        credits: creditsToCharge,
+        credits: googleCreditsToCharge,
         prompt,
         assetType: "VIDEO",
         modelUsed: modelRoute,
@@ -2573,13 +2703,13 @@ export async function POST(req: Request) {
         aspectRatio: aspectRatio,
         quality: String(payload.quality || payload.mode || ""),
         providerName: "Google",
-        providerModel: isDirectGoogleVeo31ProRoute ? "veo-3.1-generate-preview" : modelRoute,
+        providerModel: resolveGoogleVeoProviderModel(modelRoute),
         providerCostUsd: googleCostEst.usd,
         providerCostSource: googleCostEst.source,
-        requestPayload: payload,
+        requestPayload: googleAuditPayload,
       });
       generationId = charge.generationId;
-      chargedCredits = creditsToCharge;
+      chargedCredits = googleCreditsToCharge;
       chargedUserId = userId;
       await attachIdempotencyGeneration({
         userId,
@@ -2597,7 +2727,6 @@ export async function POST(req: Request) {
         sourceToGoogleVideoInput(resolvedStartVideo),
       ]);
 
-      const previousTaskId = typeof payload.previousTaskId === "string" ? payload.previousTaskId : undefined;
       let previousInteractionId: string | undefined;
       const previousHandle = await resolveGeminiInteractionHandleFromTask(userId, previousTaskId);
       if (previousHandle?.name) {
@@ -2606,7 +2735,7 @@ export async function POST(req: Request) {
 
       let opHandle: VeoOperationHandle;
       try {
-        const tier = modelRoute === "google/gemini-omni-flash" ? "omni_flash" : "pro";
+        const tier = resolveGoogleVeoTier(modelRoute);
         opHandle = await startVeoGeneration({
           tier,
           prompt,
@@ -2631,7 +2760,7 @@ export async function POST(req: Request) {
         let publicError = VIDEO_PROVIDER_BUSY_MESSAGE;
 
         if (/safety|policy|violat|censor|moderation|sensitive|block|flagged|nsfw/i.test(rawError)) {
-          publicError = "فشل التوليد لأن الصورة المرفقة أو الوصف ينتهك سياسات الأمان والمحتوى الخاصة بمزود الخدمة.";
+          publicError = "Generation failed because the attached media or prompt violates the provider content policy.";
         }
 
         const responseJson = {
@@ -2639,7 +2768,7 @@ export async function POST(req: Request) {
           error: rawError,
           publicError,
           code: "provider_submit_failed",
-          providerModel: "veo-3.1-generate-preview",
+          providerModel: resolveGoogleVeoProviderModel(modelRoute),
           modelRoute,
         };
         await completeIdempotency({
@@ -2672,7 +2801,7 @@ export async function POST(req: Request) {
       return NextResponse.json(responseJson);
     }
 
-    // ── WaveSpeed path ────────────────────────────────────────────────────────
+    // WaveSpeed path
     if (wavespeedRoute && !kieModel) {
       const wavespeedKey = process.env.WAVESPEED_API_KEY;
       if (!wavespeedKey) {
@@ -2726,12 +2855,12 @@ export async function POST(req: Request) {
       await resolveMediaList("reference_audio_urls", "audio", "wavespeed_ref_audio");
       await resolveMediaList("reference_audios", "audio", "wavespeed_ref_audio");
 
-      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+      console.log(`[Provider Payload Audit] ---`);
       console.log(`[Provider Payload Audit] Provider: WaveSpeed`);
       console.log(`[Provider Payload Audit] Model: ${wavespeedRoute}`);
       console.log(`[Provider Payload Audit] Route: ${modelRoute}`);
       console.log(`[Provider Payload Audit] Payload:`, JSON.stringify(wsInput, null, 2));
-      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+      console.log(`[Provider Payload Audit] ---`);
 
       const wsCostEst = estimateProviderCostSync(modelRoute, durationForCost, qualityForCost);
 
@@ -2810,7 +2939,7 @@ export async function POST(req: Request) {
       return NextResponse.json(responseJson);
     }
 
-    // ── KIE path ──────────────────────────────────────────────────────────────
+    // KIE path
     const kieKey = getKieKeyFromEnv();
     if (!kieKey) {
       return NextResponse.json(
@@ -2822,7 +2951,7 @@ export async function POST(req: Request) {
     const normalizedInput = normalizeInputForKie(payload);
     const resolvedInput = await resolveMediaInInput(normalizedInput, userId);
 
-    // ── KIE 3.0 payload diagnostic log ───────────────────────────────────
+    // KIE 3.0 payload diagnostic log
     if (kieModel === "kling-3.0/video") {
       const rawImageUrls = Array.isArray(normalizedInput.image_urls)
         ? (normalizedInput.image_urls as unknown[]).map((u, i) =>
@@ -2841,7 +2970,7 @@ export async function POST(req: Request) {
         : null;
     const kieInput = mapToKieInput(kieModel!, resolvedInput);
 
-    // ── Post-map log ─────────────────────────────────────────────────────
+    // Post-map log
     if (kieModel === "kling-3.0/video") {
       const mapped = kieInput as Record<string, unknown>;
       console.log("[API/video] Kling 3.0 kieInput snapshot:", JSON.stringify({
@@ -2896,7 +3025,7 @@ export async function POST(req: Request) {
 
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://example.com"}/api/callback`;
 
-    // ── Veo 3.1 uses a dedicated endpoint with a flat top-level body ──────
+    // Veo 3.1 uses a dedicated endpoint with a flat top-level body.
     // (see https://docs.kie.ai/veo3-api/generate-veo-3-video). NOT /jobs/createTask.
     const isVeoModel = kieModel === "veo3" || kieModel === "veo3_fast" || kieModel === "veo3_lite";
     const createEndpoint = isVeoModel ? `${KIE_BASE}/veo/generate` : `${KIE_BASE}/jobs/createTask`;
@@ -2904,12 +3033,12 @@ export async function POST(req: Request) {
       ? { ...(kieInput as Record<string, unknown>), callBackUrl: callbackUrl }
       : { model: kieModel, callBackUrl: callbackUrl, input: kieInput };
 
-    console.log(`[Provider Payload Audit] ---------------------------------------------`);
+    console.log(`[Provider Payload Audit] ---`);
     console.log(`[Provider Payload Audit] Provider: KIE.ai`);
     console.log(`[Provider Payload Audit] Model: ${kieModel}`);
     console.log(`[Provider Payload Audit] Route: ${modelRoute}`);
     console.log(`[Provider Payload Audit] Payload:`, JSON.stringify(createBody, null, 2));
-    console.log(`[Provider Payload Audit] ---------------------------------------------`);
+    console.log(`[Provider Payload Audit] ---`);
 
     try {
       const fs = require("fs");
@@ -2986,7 +3115,7 @@ export async function POST(req: Request) {
       let publicError = `Debug: ${rawError} | Payload: ${JSON.stringify(createBody).slice(0, 300)}`;
 
       if (/safety|policy|violat|censor|moderation|sensitive|block|flagged|nsfw/i.test(rawError)) {
-        publicError = "فشل التوليد لأن الصورة المرفقة أو الوصف ينتهك سياسات الأمان والمحتوى الخاصة بمزود الخدمة.";
+        publicError = "Generation failed because the attached media or prompt violates the provider content policy.";
       }
 
       const responseJson = {
@@ -3227,7 +3356,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ taskId: requestedTaskId, status: "completed", outputs: [normalizeMediaUrl(publicUrl) || publicUrl], error: null });
     }
 
-    // ── WaveSpeed polling ────────────────────────────────────────────────────
+    // -- WaveSpeed polling ---
     if (taskId.startsWith("ark:")) {
       const arkTaskId = taskId.slice(4);
       const arkKey = getArkApiKeyFromEnv();
@@ -3368,7 +3497,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ taskId, status: wsStatus, outputs: wsOutputs.map(url => normalizeMediaUrl(url) || url), error: wsError });
     }
 
-    // ── Veo 3.1 polling (dedicated endpoint /api/v1/veo/record-info) ─────────
+    // Veo 3.1 polling (dedicated endpoint /api/v1/veo/record-info).
     // Confirmed: https://docs.kie.ai/veo3-api/get-veo-3-video-details
     // successFlag: 0=generating, 1=success, 2=failed, 3=generation_failed
     if (taskId.startsWith("veo:") || taskId.startsWith("veo1080:") || taskId.startsWith("veo4k:")) {
@@ -3449,7 +3578,7 @@ export async function GET(req: Request) {
         }
       }
 
-      // DB sync (best-effort) — note generation row stores prefixed taskId via setGenerationTaskMarker
+      // DB sync (best-effort): generation row stores prefixed taskId via setGenerationTaskMarker.
       try {
         const linkedGeneration = await prismadb.generation.findFirst({
           where: { userId, mediaUrl: { startsWith: `task:${taskId}` } },
@@ -3472,7 +3601,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ taskId, status: veoStatus, outputs: veoOutputs.map(url => normalizeMediaUrl(url) || url), error: veoError });
     }
 
-    // ── KIE polling ──────────────────────────────────────────────────────────
+    // -- KIE polling ---
     const kieKey = getKieKeyFromEnv();
     if (!kieKey) {
       return NextResponse.json({ error: "KIE provider is not configured.", code: "kie_key_missing" }, { status: 503 });
@@ -3497,7 +3626,7 @@ export async function GET(req: Request) {
     // KIE uses code: 200 for success, but fallback: if HTTP is OK and data exists, treat as success
     const kieCodeOk = pollJson?.code == null || pollJson.code === 200 || pollJson.code === 0;
     if (pollRes.status === 404) {
-      // Task not found in KIE — may have been cleaned up; treat as completed if DB has result
+      // Task not found in KIE; may have been cleaned up. Treat as completed if DB has result.
       return NextResponse.json(
         { taskId, status: "failed", outputs: [], error: "Task not found" },
         { status: 200 },

@@ -40,6 +40,8 @@ export const VEO_MODELS = {
   lite: "veo-3.1-lite-generate-preview",
   fast: "veo-3.1-fast-generate-preview",
   pro:  "veo-3.1-generate-preview",
+  legacy_fast: "veo-3.0-fast-generate-001",
+  legacy: "veo-3.0-generate-001",
   omni_flash: "gemini-omni-flash-preview",
 } as const;
 
@@ -49,6 +51,8 @@ export const PRICING_ID: Record<VeoTier, string> = {
   lite: "veo31_gem_lite",
   fast: "veo31_gem_fast",
   pro:  "veo31_gem",
+  legacy_fast: "veo3_fast",
+  legacy: "veo3",
   omni_flash: "gemini_omni_flash",
 };
 

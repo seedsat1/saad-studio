@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { verifyPanelToken } from "@/lib/panel-auth";
 import { getFallbackUrls } from "@/lib/utils";
@@ -41,7 +41,7 @@ type ToolResult = {
 const DEFAULT_IMAGE_MODEL = "nano-banana-2";
 const DEFAULT_VIDEO_MODEL = "kling-3.0/video";
 
-// MCP Apps UI resource URIs â€” the widgets that Claude renders inline when
+// MCP Apps UI resource URIs — the widgets that Claude renders inline when
 // these tools return. See https://apps.extensions.modelcontextprotocol.io/.
 const IMAGE_VIEW_URI = "ui://saadstudio/image.html";
 const VIDEO_VIEW_URI = "ui://saadstudio/video.html";
@@ -162,13 +162,15 @@ const AVAILABLE_MODELS = [
   { id: "google/veo3.1-lite-text-to-video", kind: "video", label: "Google Veo 3.1 Lite", notes: "Lightweight Veo tier." },
   { id: "google/veo3.1-fast-text-to-video", kind: "video", label: "Google Veo 3.1 Fast", notes: "Faster Veo 3.1.", badges: ["fast"] },
   { id: "google/veo3.1-text-to-video", kind: "video", label: "Google Veo 3.1", notes: "Google flagship video, native audio.", badges: ["new"] },
-  { id: "google/gemini-omni-flash", kind: "video", label: "Google Gemini Omni", notes: "Gemini Omni video generation.", badges: ["new"] },
+  { id: "google/veo3-fast-text-to-video", kind: "video", label: "Google Veo 3 Fast", notes: "Legacy Veo 3 Fast. Fixed 8s, 720p/1080p.", badges: ["fast"] },
+  { id: "google/veo3-text-to-video", kind: "video", label: "Google Veo 3", notes: "Legacy Veo 3. Fixed 8s, 720p/1080p.", badges: [] },
+  { id: "google/gemini-omni-flash", kind: "video", label: "Google Gemini Omni", notes: "Gemini Omni video generation/editing. 720p, 3-10s.", badges: ["new"] },
   { id: "bytedance/seedance-v2/text-to-video-fast", kind: "video", label: "Seedance 2.0 Turbo", notes: "Fastest Seedance tier.", badges: ["fast"] },
   { id: "bytedance/seedance-v2/text-to-video-mini", kind: "video", label: "Seedance 2.0 Mini", notes: "Cheapest Seedance tier.", badges: ["fast"] },
   { id: "bytedance/seedance-v2/text-to-video", kind: "video", label: "Seedance 2.0", notes: "ByteDance flagship video, accepts reference images + audio.", badges: ["new"] },
 ];
 
-// â”€â”€ MCP Apps widgets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── MCP Apps widgets ──────────────────────────────────────────────────────
 // Two inline HTML documents Claude renders as rich cards when generate_image /
 // generate_storyboard / generate_video return. They pull @modelcontextprotocol
 // /ext-apps from unpkg (declared in CSP meta on the resource), read the tool
@@ -203,10 +205,10 @@ const IMAGE_WIDGET_HTML = String.raw`<!DOCTYPE html>
 </style>
 </head>
 <body>
-<div class="card" id="root"><div class="empty">Loadingâ€¦</div></div>
+<div class="card" id="root"><div class="empty">Loading…</div></div>
 <script type="module">
   import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.4.0/app-with-deps";
-  const app = new App({ name: "Saad Studio Â· Image", version: "1.0.0" });
+  const app = new App({ name: "Saad Studio · Image", version: "1.0.0" });
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -279,10 +281,10 @@ const VIDEO_WIDGET_HTML = String.raw`<!DOCTYPE html>
 </style>
 </head>
 <body>
-<div class="card" id="root"><div class="empty">Loadingâ€¦</div></div>
+<div class="card" id="root"><div class="empty">Loading…</div></div>
 <script type="module">
   import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.4.0/app-with-deps";
-  const app = new App({ name: "Saad Studio Â· Video", version: "1.0.0" });
+  const app = new App({ name: "Saad Studio · Video", version: "1.0.0" });
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -421,7 +423,7 @@ type InlineFetchErr = { ok: false; reason: string };
 async function fetchInlineImage(url: string): Promise<InlineFetchOk | InlineFetchErr> {
   // Panel APIs return storage-relative paths ("images/user_xxx/abc.jpg")
   // that fetch() can't parse. getFallbackUrls expands them into the ordered
-  // list of absolute CDN URLs (Backblaze B2 â†’ /api/media â†’ R2). We stop at
+  // list of absolute CDN URLs (Backblaze B2 → /api/media → R2). We stop at
   // the first host that returns bytes so Claude actually gets the image.
   const candidates = getFallbackUrls(url).filter((candidate) =>
     /^https?:\/\//i.test(candidate),

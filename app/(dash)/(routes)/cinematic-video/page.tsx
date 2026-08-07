@@ -131,7 +131,7 @@ const TIERS: TierDef[] = [
     id: "lite",
     name: "Veo 3.1 Lite",
     tagline: "Fast drafts · low cost",
-    rate: 1.71,
+    rate: 1.5,
     icon: Zap,
     accent: "from-sky-400 to-cyan-500",
   },
@@ -139,7 +139,7 @@ const TIERS: TierDef[] = [
     id: "fast",
     name: "Veo 3.1 Fast",
     tagline: "Balanced quality · 8s",
-    rate: 1.71,
+    rate: 3.0,
     badge: "POPULAR",
     icon: Film,
     accent: "from-violet-400 to-fuchsia-500",
@@ -148,7 +148,7 @@ const TIERS: TierDef[] = [
     id: "pro",
     name: "Veo 3.1 Pro",
     tagline: "Hero shots · native audio",
-    rate: 5.32,
+    rate: 12.0,
     badge: "TOP",
     icon: Crown,
     accent: "from-amber-300 to-orange-500",
@@ -156,11 +156,15 @@ const TIERS: TierDef[] = [
 ];
 
 function veoResolutionMultiplier(tier: Tier, resolution: Resolution): number {
-  if (resolution === "1080p") return 1.3;
+  if (resolution === "1080p") {
+    if (tier === "lite") return 1.6;
+    if (tier === "fast") return 1.2;
+    return 1.0;
+  }
   if (resolution === "4k") {
-    if (tier === "lite") return 3.285714;
+    if (tier === "lite") return 0;
     if (tier === "fast") return 3.0;
-    return 1.8;
+    return 1.5;
   }
   return 1.0;
 }

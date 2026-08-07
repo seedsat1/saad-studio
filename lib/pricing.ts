@@ -1,4 +1,4 @@
-﻿/**
+/**
  * lib/pricing.ts â€” Server-only pricing bridge
  *
  * Single source of truth for all generation credit costs.
@@ -11,6 +11,7 @@
 
 import { DEFAULT_MODELS, KIE_PACKAGES, applyPricingFloor, calcUserCredits, type PricingModel } from "@/lib/pricing-models";
 import prismadb from "@/lib/prismadb";
+import { isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 
 // â”€â”€â”€ In-memory cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -193,7 +194,9 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "google/veo3.1-lite-text-to-video":             "veo31_lite",
   "google/veo3.1-fast-text-to-video":             "veo31_fast",
   "google/veo3.1-text-to-video":                  "veo31",
-  "google/veo-3.1-generate-preview":              "gemini_omni_video",
+  "google/veo-3.1-generate-preview":              "veo31",
+  "google/veo3-fast-text-to-video":                "veo3_fast",
+  "google/veo3-text-to-video":                     "veo3",
   "google/gemini-omni-video":                     "gemini_omni_video",
   "google/gemini-omni-flash":                     "gemini_omni_flash",
   "bytedance/dreamina-v3.0/text-to-video-720p":   "seedance2",
@@ -340,6 +343,70 @@ const QUALITY_MULTIPLIER: Record<string, number> = {
   "1080p":  1.3,
 };
 
+const USER_CREDIT_USD = 0.05;
+const GOOGLE_VIDEO_MARGIN = 1.5;
+type GoogleVideoBillingKey = "veo31_lite" | "veo31_fast" | "veo31" | "veo3_fast" | "veo3" | "omni_flash";
+
+function normalizeGoogleVideoQuality(quality: string | null | undefined): "720p" | "1080p" | "4k" {
+  const q = quality?.trim().toLowerCase() ?? "";
+  if (q.includes("4k")) return "4k";
+  if (q.includes("1080")) return "1080p";
+  return "720p";
+}
+
+function resolveGoogleVideoBillingKey(modelRef: string): GoogleVideoBillingKey | null {
+  const key = (modelRef || "").trim().toLowerCase();
+  if (!key) return null;
+  if (key === "google/gemini-omni-flash" || key === "gemini_omni_flash") return "omni_flash";
+  if (key === "google/veo3.1-lite-text-to-video" || key === "google/veo-3.1-lite-generate-preview" || key === "veo31_lite" || key === "veo31_gem_lite") return "veo31_lite";
+  if (key === "google/veo3.1-fast-text-to-video" || key === "google/veo-3.1-fast-generate-preview" || key === "veo31_fast" || key === "veo31_gem_fast") return "veo31_fast";
+  if (key === "google/veo3.1-text-to-video" || key === "google/veo-3.1-generate-preview" || key === "veo31" || key === "veo31_gem") return "veo31";
+  if (key === "google/veo3-fast-text-to-video" || key === "veo3_fast") return "veo3_fast";
+  if (key === "google/veo3-text-to-video" || key === "veo3") return "veo3";
+  return null;
+}
+
+function getGoogleVideoUsdPerSecond(modelRef: string, quality: string | null | undefined): number | null {
+  const billingKey = resolveGoogleVideoBillingKey(modelRef);
+  if (!billingKey) return null;
+  const q = normalizeGoogleVideoQuality(quality);
+  if (billingKey === "omni_flash") return 0.10;
+  if (billingKey === "veo31_lite") return q === "1080p" || q === "4k" ? 0.08 : 0.05;
+  if (billingKey === "veo31_fast" || billingKey === "veo3_fast") {
+    if (q === "4k") return 0.30;
+    if (q === "1080p") return 0.12;
+    return 0.10;
+  }
+  if (billingKey === "veo31") return q === "4k" ? 0.60 : 0.40;
+  if (billingKey === "veo3") return 0.40;
+  return null;
+}
+
+function getGoogleVideoCredits(modelRef: string, durationSec: number, numUnits: number, quality: string | null | undefined): number | null {
+  const route = isGoogleVideoRoute(modelRef) ? modelRef : null;
+  const normalized = route
+    ? normalizeGoogleVideoOptions(route, { duration: durationSec, resolution: quality })
+    : null;
+  const billingQuality = normalized?.resolution ?? quality;
+  const usdPerSecond = getGoogleVideoUsdPerSecond(modelRef, billingQuality);
+  if (usdPerSecond === null) return null;
+  const safeDuration = normalized?.duration ?? Math.max(1, Number.isFinite(durationSec) ? durationSec : 8);
+  const safeUnits = Math.max(1, Math.floor(Number.isFinite(numUnits) ? numUnits : 1));
+  const credits = (usdPerSecond * safeDuration * safeUnits * GOOGLE_VIDEO_MARGIN) / USER_CREDIT_USD;
+  return parseFloat(Math.max(1, credits).toFixed(2));
+}
+
+function getGoogleVideoProviderUsd(modelRef: string, durationSec: number, quality: string | null | undefined): number | null {
+  const route = isGoogleVideoRoute(modelRef) ? modelRef : null;
+  const normalized = route
+    ? normalizeGoogleVideoOptions(route, { duration: durationSec, resolution: quality })
+    : null;
+  const billingQuality = normalized?.resolution ?? quality;
+  const usdPerSecond = getGoogleVideoUsdPerSecond(modelRef, billingQuality);
+  if (usdPerSecond === null) return null;
+  const safeDuration = normalized?.duration ?? Math.max(1, Number.isFinite(durationSec) ? durationSec : 8);
+  return parseFloat((usdPerSecond * safeDuration).toFixed(4));
+}
 export interface GenerationCostQuote {
   modelRef: string;
   constitutionId: string;
@@ -409,6 +476,10 @@ function isVeo31ModelRef(modelRef: string): boolean {
     modelRef === "veo31_gem_fast" ||
     modelRef === "veo31_gem" ||
     modelRef === "google/veo-3.1-generate-preview" ||
+    modelRef === "google/veo3-fast-text-to-video" ||
+    modelRef === "google/veo3-text-to-video" ||
+    modelRef === "veo3_fast" ||
+    modelRef === "veo3" ||
     modelRef === "google/gemini-omni-video" ||
     modelRef === "gemini_omni_video"
   );
@@ -503,6 +574,9 @@ export async function getGenerationCost(
   numUnits = 1,
   quality?: string | null,
 ): Promise<number> {
+  const googleVideoCredits = getGoogleVideoCredits(modelRef, durationSec, numUnits, quality);
+  if (googleVideoCredits !== null) return googleVideoCredits;
+
   const models = await loadModels();
   const constitutionId = resolveConstitutionId(modelRef, models);
   const model = models.find((m) => m.id === constitutionId && m.isActive);
@@ -568,6 +642,19 @@ export async function getGenerationCostQuote(
   numUnits = 1,
   quality?: string | null,
 ): Promise<GenerationCostQuote | null> {
+  const googleVideoCredits = getGoogleVideoCredits(modelRef, durationSec, numUnits, quality);
+  if (googleVideoCredits !== null) {
+    return {
+      modelRef,
+      constitutionId: resolveGoogleVideoBillingKey(modelRef) ?? modelRef,
+      provider: "kie",
+      sourceCredits: parseFloat((googleVideoCredits / GOOGLE_VIDEO_MARGIN).toFixed(2)),
+      marginPercent: 50,
+      finalCredits: Math.max(1, Math.ceil(googleVideoCredits)),
+      qualityMultiplier: 1,
+    };
+  }
+
   const models = await loadModels();
   const constitutionId = resolveConstitutionId(modelRef, models);
   const model = models.find((m) => m.id === constitutionId && m.isActive);
@@ -607,6 +694,9 @@ export function getGenerationCostSync(
   numUnits = 1,
   quality?: string | null,
 ): number {
+  const googleVideoCredits = getGoogleVideoCredits(modelRef, durationSec, numUnits, quality);
+  if (googleVideoCredits !== null) return googleVideoCredits;
+
   const models = _cachedModels ?? DEFAULT_MODELS;
   const constitutionId = resolveConstitutionId(modelRef, models);
   const model = models.find((m) => m.id === constitutionId && m.isActive);
@@ -687,6 +777,11 @@ export function estimateProviderCostSync(
     }
     const durationMin = durationSec / 60;
     return { usd: parseFloat((durationMin * ratePerMin).toFixed(4)), source: "estimated" };
+  }
+
+  const googleVideoUsd = getGoogleVideoProviderUsd(modelRef, durationSec, quality);
+  if (googleVideoUsd !== null) {
+    return { usd: googleVideoUsd, source: "actual" };
   }
 
   // 2. BytePlus/Dreamina/Seedance costing

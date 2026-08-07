@@ -86,13 +86,13 @@ const EDIT_MODELS: EditModel[] = [
 
 const VIDEO_MODELS: StudioModel[] = [
   {
-    id: "google/gemini-omni-video",
+    id: "google/veo3.1-text-to-video",
     name: "Google Veo 3.1",
     family: "Google",
     description: "High-quality cinematic video generation",
     color: "#4285f4",
     badge: "TOP",
-    durations: [8],
+    durations: [4, 6, 8],
     resolutions: ["720p", "1080p", "4k"],
     aspects: ["16:9", "9:16"],
     audio: true,

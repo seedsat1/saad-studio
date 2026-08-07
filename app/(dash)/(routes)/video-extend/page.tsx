@@ -25,7 +25,7 @@ import { useGenerationGate } from "@/hooks/use-generation-gate";
 type AspectRatio = "16:9" | "9:16";
 type ExtendPasses = 1 | 2 | 3 | 4;
 const SECONDS_PER_PASS = 8;
-const CREDITS_PER_SECOND = 1.71;
+const CREDITS_PER_SECOND = 3.0;
 const POLL_INTERVAL_MS = 10_000;
 const MAX_STATUS_ATTEMPTS = 180;
 const WARNING_FAILURE_THRESHOLD = 8;
@@ -321,10 +321,10 @@ function VideoExtendPageInner() {
   const requiredCredits = Math.ceil(CREDITS_PER_SECOND * SECONDS_PER_PASS * extendPasses);
 
   const durationOptions = [
-    { label: "+5s", passes: 1 as ExtendPasses, displaySecs: 5 },
-    { label: "+10s", passes: 2 as ExtendPasses, displaySecs: 10 },
-    { label: "+15s", passes: 3 as ExtendPasses, displaySecs: 15 },
-    { label: "+20s", passes: 4 as ExtendPasses, displaySecs: 20 },
+    { label: "+8s", passes: 1 as ExtendPasses, displaySecs: 8 },
+    { label: "+16s", passes: 2 as ExtendPasses, displaySecs: 16 },
+    { label: "+24s", passes: 3 as ExtendPasses, displaySecs: 24 },
+    { label: "+32s", passes: 4 as ExtendPasses, displaySecs: 32 },
   ];
 
   // Handle frame and thumbnail updates
