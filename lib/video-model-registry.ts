@@ -744,6 +744,76 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
   },
 
   // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ Bytedance Seedance 2.5
+  // ║ Confirmed from WaveSpeed model pages provided with the task:
+  // ║ - text-to-video-turbo: prompt, reference_images 0..30,
+  // ║   reference_videos 0..10 (<=30s total), reference_audios 0..10 (<=30s total),
+  // ║   aspect_ratio 16:9|9:16|4:3|3:4|1:1|21:9, resolution 720p|1080p,
+  // ║   duration 4..30, generate_audio default true.
+  // ║ - image-to-video-turbo: prompt + image, optional last_image,
+  // ║   same ratios, resolution 720p|1080p, duration 4..30, generate_audio.
+  // ║ - image-to-video-spicy: image required, optional prompt/last_image/seed,
+  // ║   resolution 480p|720p|1080p|4k, duration 4..30, generate_audio.
+  // ╚══════════════════════════════════════════════════════════════════════════
+  {
+    id: "bytedance-seedance-v25-t2v-turbo",
+    name: "Seedance 2.5",
+    family: "seedance", family_label: "Seedance", family_color: "#10b981",
+    badge: "NEW",
+    description: "Bytedance Seedance 2.5 Turbo - 720p/1080p, 4-30s, up to 30 images + 10 videos + 10 audios on text/reference generation.",
+    api_route: "bytedance/seedance-2.5/text-to-video-turbo",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      optional_video: true,
+      has_end_frame: true,
+      aspect_ratios: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"],
+      durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+      resolutions: ["720p", "1080p"],
+      max_reference_images: 30,
+      max_reference_videos: 10,
+      max_reference_video_total_seconds: 30,
+      max_reference_audios: 10,
+      max_reference_audio_total_seconds: 30,
+      has_sound: true,
+      sound_param: "generate_audio",
+    }),
+  },
+  {
+    id: "bytedance-seedance-v25-i2v-turbo",
+    name: "Seedance 2.5 I2V Turbo",
+    family: "seedance", family_label: "Seedance", family_color: "#10b981",
+    badge: "FAST",
+    description: "Bytedance Seedance 2.5 Image-to-Video Turbo - start image, optional last image, 720p/1080p, 4-30s, native audio.",
+    api_route: "bytedance/seedance-2.5/image-to-video-turbo",
+    route_confirmed: true,
+    capabilities: i2vCaps({
+      has_end_frame: true,
+      aspect_ratios: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"],
+      durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+      resolutions: ["720p", "1080p"],
+      has_sound: true,
+      sound_param: "generate_audio",
+    }),
+  },
+  {
+    id: "bytedance-seedance-v25-i2v-spicy",
+    name: "Seedance 2.5 Spicy",
+    family: "seedance", family_label: "Seedance", family_color: "#10b981",
+    badge: "PRO",
+    description: "Bytedance Seedance 2.5 Image-to-Video Spicy - image required, optional last image, 480p/720p/1080p/4K, 4-30s, native audio.",
+    api_route: "bytedance/seedance-2.5/image-to-video-spicy",
+    route_confirmed: true,
+    capabilities: i2vCaps({
+      has_end_frame: true,
+      aspect_ratios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+      durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+      resolutions: ["480p", "720p", "1080p", "4k"],
+      has_seed: true,
+      has_sound: true,
+      sound_param: "generate_audio",
+    }),
+  },
   // ║ Bytedance Seedance 2.0
   // ╚══════════════════════════════════════════════════════════════════════════
   {

@@ -2969,3 +2969,18 @@
   - Veo 3 Fast and Veo 3: fixed 8s, `16:9`/`9:16`, `720p`/`1080p`, image/last-frame only, no generic reference images or extension, output count 1.
   - Gemini Omni Flash: `16:9`/`9:16`, 3-10s, `720p`, up to 3 reference images, one video input for editing, output count 1.
 - KIE fallback maps must not include direct Google video routes by default. Google direct routes should go through the official Google adapter or fail clearly if Google credentials are unavailable.
+## Bytedance Seedance 2.5 Video Contract (2026-08-07)
+
+- Seedance 2.5 public rows must come from the curated `VIDEO_MODEL_REGISTRY`, not guessed auto-sync/KIE rows.
+- Current verified WaveSpeed routes:
+  - `bytedance/seedance-2.5/text-to-video-turbo`: prompt required; 4-30s; `720p`/`1080p`; ratios `16:9`, `9:16`, `4:3`, `3:4`, `1:1`, `21:9`; references: 30 images, 10 videos, 10 audios; video/audio reference total caps are 30 seconds each; `generate_audio` defaults true.
+  - `bytedance/seedance-2.5/image-to-video-turbo`: prompt + image; optional `last_image`; 4-30s; `720p`/`1080p`; same ratio set; `generate_audio` defaults true.
+  - `bytedance/seedance-2.5/image-to-video-spicy`: image required; prompt/last_image/seed optional; 4-30s; `480p`, `720p`, `1080p`, `4k`; ratios `21:9`, `16:9`, `4:3`, `1:1`, `3:4`, `9:16`; `generate_audio` defaults true.
+- Subscriber-facing UI should show simple model names. Internal routing may select Text Turbo or Image Turbo automatically based on whether an image/start frame is present.
+- Seedance 2.5 must not be normalized to Seedance 2.0 and must not fall back to KIE. It is a WaveSpeed route unless a future direct-provider adapter is explicitly added.
+- Pricing source separation:
+  - Turbo prices come from the attached WaveSpeed text pages: 720p no reference video $0.20/s, 1080p no reference video $0.21/s, 720p with reference video $0.38/s, 1080p with reference video $0.39/s.
+  - Spicy source prices come from provider UI screenshots: 480p $0.162/s, 720p $0.324/s, 1080p $0.81/s, 4k $1.62/s.
+  - User credits for Seedance 2.5 use the requested 20 credits/USD conversion until the business owner sets a different Saad Studio sale price in admin.
+  - Generate Audio/sound does not affect Seedance 2.5 price; billing uses duration and resolution only.
+- Do not publish `video-edit`, `video-edit-turbo`, `video-extend`, base text-to-video, or base image-to-video Seedance 2.5 rows without exact specs and prices.

@@ -29,6 +29,7 @@ import {
   normalizeGoogleVideoOptions,
 } from "@/lib/video-model-registry";
 import { getGenerationCostSync } from "@/lib/pricing";
+import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { getFallbackUrls } from "@/lib/utils";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
@@ -1260,7 +1261,7 @@ function compactKlingSingleShotPrompt(value: string, maxChars = 2400): string {
 }
 
 function isSeedanceV2VideoModel(model: WaveSpeedVideoModel): boolean {
-  return model.id.startsWith("bytedance-seedance-v2");
+  return model.id.startsWith("bytedance-seedance-v2") || model.id.startsWith("bytedance-seedance-v25");
 }
 
 function isKling30Route(route: string): boolean {
@@ -1268,7 +1269,7 @@ function isKling30Route(route: string): boolean {
 }
 
 function supportsPromptReferenceTags(model: WaveSpeedVideoModel): boolean {
-  return model.id.startsWith("bytedance-seedance-v2");
+  return model.id.startsWith("bytedance-seedance-v2") || model.id.startsWith("bytedance-seedance-v25");
 }
 
 function getReferenceFileLimits(model: WaveSpeedVideoModel) {
@@ -2607,7 +2608,8 @@ function VideoPageInner() {
     selectedModel.api_route === "bytedance/dreamina-v3.0/text-to-video-720p" ||
     selectedModel.api_route === "bytedance/seedance-v2/text-to-video" ||
     selectedModel.api_route === "bytedance/seedance-v2/text-to-video-fast" ||
-    selectedModel.api_route.startsWith("bytedance/seedance-2.0");
+    selectedModel.api_route.startsWith("bytedance/seedance-2.0") ||
+    selectedModel.api_route.startsWith("bytedance/seedance-2.5");
 
   const activeVideoModeLabel = getActiveVideoModeLabel(selectedModel, {
     hasStartFrame: Boolean(startFrame || linkedStartFrameUrl || selectedCharacter?.referenceUrls?.[0]),
@@ -2625,6 +2627,18 @@ function VideoPageInner() {
       ? (motionVideoDuration ? Math.round(motionVideoDuration) : 5)
       : (isVeo31FixedEightSecond ? 8 : (duration ?? (selectedModel.api_route === "google/gemini-omni-flash" ? 5 : isGoogleVeoModel ? 8 : 5)));
     // NOTE: capturedDuration below also defaults to 8 if duration is null.
+    if (selectedModel.api_route.startsWith("bytedance/seedance-2.5")) {
+      const seedance25HasImage = Boolean(startFrame || linkedStartFrameUrl || selectedCharacter?.referenceUrls?.[0] || referenceImages.some((file) => file.type.startsWith("image/")));
+      const seedance25Route = selectedModel.api_route === "bytedance/seedance-2.5/text-to-video-turbo" && seedance25HasImage
+        ? "bytedance/seedance-2.5/image-to-video-turbo"
+        : selectedModel.api_route;
+      return getVideoCreditsByRoute(seedance25Route, {
+        duration: pricingDuration,
+        resolution: resolution ?? "720p",
+        generate_audio: sound,
+        reference_video_urls: referenceImages.filter((file) => file.type.startsWith("video/")).map((_, index) => `video-${index}`),
+      });
+    }
     const base = getGenerationCostSync(
       selectedModel.api_route,
       pricingDuration,
@@ -2839,7 +2853,8 @@ function VideoPageInner() {
       });
       payload.prompt = toolPrefix ? `${toolPrefix} ${promptedWithPresets}` : promptedWithPresets;
 
-      const isSeedanceV2 = selectedModel.id.startsWith("bytedance-seedance-v2");
+      const isSeedanceV25 = selectedModel.id.startsWith("bytedance-seedance-v25");
+      const isSeedanceV2 = selectedModel.id.startsWith("bytedance-seedance-v2") || isSeedanceV25;
       const isMinimaxH3 = selectedModel.api_route === "minimax/h3/reference-to-video";
       const isKling30Video = isKling30Route(selectedModel.api_route);
       const isKlingElementModel = selectedModel.family === "kling" && caps.has_element_list;
@@ -2876,11 +2891,11 @@ function VideoPageInner() {
           refVids.length + (caps.requires_video && !!motionVideo ? 1 : 0);
         const audioCount = refAuds.length;
 
-        if (audioCount > 0 && imageCount === 0 && videoCount === 0) {
+        if (!isSeedanceV25 && audioCount > 0 && imageCount === 0 && videoCount === 0) {
           setGenerationError(
             isMinimaxH3
               ? "Minimax H3 does not support audio-only references. Add at least one reference image or video with the audio."
-              : "Seedance 2.0 does not support text+audio or audio-only input. Add at least one reference image or video with the audio."
+              : "Seedance requires at least one reference image or video when audio references are attached."
           );
           setIsSubmitting(false);
           return;
@@ -2920,7 +2935,7 @@ function VideoPageInner() {
           const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
           const refVids  = referenceImages.filter(f => f.type.startsWith("video/"));
           const refAuds  = referenceImages.filter(f => f.type.startsWith("audio/"));
-          const seedanceImageLimit = Math.max(1, Math.min(9, caps.max_reference_images || 9));
+          const seedanceImageLimit = Math.max(1, caps.max_reference_images || 9);
           const referenceImageLimit = isMinimaxH3 ? Math.max(1, Math.min(9, caps.max_reference_images || 9)) : seedanceImageLimit;
           const explicitStartImage = startFrame
             ? await fileToDataURL(startFrame)
@@ -2943,9 +2958,9 @@ function VideoPageInner() {
             payload.reference_image_urls = mergedImageRefs;
           }
           if (refVids.length > 0)
-            payload.reference_video_urls = await Promise.all(refVids.slice(0, 3).map(f => fileToDataURL(f)));
+            payload.reference_video_urls = await Promise.all(refVids.slice(0, Math.max(0, caps.max_reference_videos || 3)).map(f => fileToDataURL(f)));
           if (refAuds.length > 0)
-            payload.reference_audio_urls = await Promise.all(refAuds.slice(0, 3).map(f => fileToDataURL(f)));
+            payload.reference_audio_urls = await Promise.all(refAuds.slice(0, Math.max(0, caps.max_reference_audios || 3)).map(f => fileToDataURL(f)));
           // Also allow end frame alongside Seedance references
           if (isSeedanceV2 && caps.has_end_frame && endFrame) {
             const explicitEndImage = await fileToDataURL(endFrame);
@@ -3251,7 +3266,11 @@ function VideoPageInner() {
         (Array.isArray(payload.reference_image_urls) && payload.reference_image_urls.some((value) => typeof value === "string" && value.trim()))
       );
       let requestModelRoute = selectedModel.api_route;
-      if (requestModelRoute.includes("seedance")) {
+      if (requestModelRoute.startsWith("bytedance/seedance-2.5")) {
+        if (requestModelRoute === "bytedance/seedance-2.5/text-to-video-turbo" && payloadHasImageInput) {
+          requestModelRoute = "bytedance/seedance-2.5/image-to-video-turbo";
+        }
+      } else if (requestModelRoute.includes("seedance")) {
         if (requestModelRoute.includes("mini")) {
           requestModelRoute = payloadHasImageInput
             ? "bytedance/seedance-2.0-mini/image-to-video"
@@ -3421,7 +3440,7 @@ function VideoPageInner() {
   const canAddMoreShots = multiPrompts.length < maxShotsAllowed;
   const hasMainPrompt = prompt.trim().length > 0;
   const hasMultiPrompt = multiPrompts.some((s) => s.trim().length > 0);
-  const isSeedanceV2Model = selectedModel.id.startsWith("bytedance-seedance-v2");
+  const isSeedanceV2Model = isSeedanceV2VideoModel(selectedModel);
   const referenceFileSummary = getReferenceFileSummary(referenceImages, selectedModel);
   const referenceFileMaxLabel = getReferenceFileMaxLabel(selectedModel);
   const promptReferenceTagsEnabled = supportsPromptReferenceTags(selectedModel);

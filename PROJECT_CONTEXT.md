@@ -10784,3 +10784,20 @@
   - Public subscribers see model names only; mode labels remain hidden internal routing/audit metadata.
   - Keep legacy `google/gemini-omni-video` only as an internal compatibility alias to `google/gemini-omni-flash`, not as a public/default model row.
 - Remaining step: Deploy/redeploy production so the verified code reaches `saadstudio.app`.
+#### Latest task: Add documented Bytedance Seedance 2.5 video models (2026-08-07)
+- Status: Completed. Added the documented WaveSpeed Seedance 2.5 entries and prevented them from falling back to Seedance 2.0 or KIE routing.
+- Source used: attached WaveSpeed model pages plus provider UI screenshots supplied by the user for Seedance 2.5 Spicy source prices.
+- Affected files: `lib/video-model-registry.ts`, `lib/credit-pricing.ts`, `lib/pricing.ts`, `app/api/video/route.ts`, `app/(dash)/(routes)/video/page.tsx`, `app/api/panel/generate/video/route.ts`, `app/api/smart-cli/mcp/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Public `/video`, `/api/models`, `/admin/models`, canvas pickers, and Smart CLI now receive Seedance 2.5 from the central `VIDEO_MODEL_REGISTRY`/model lists.
+  - `/video` shows `Seedance 2.5` as the main subscriber-facing row and auto-routes prompt-only/reference-media requests to `text-to-video-turbo`; image-start requests route to `image-to-video-turbo`.
+  - Seedance 2.5 Text Turbo allows 4-30s, 720p/1080p, ratios `16:9`, `9:16`, `4:3`, `3:4`, `1:1`, `21:9`, and reference caps 30 images + 10 videos + 10 audios with 30s total caps for video/audio references.
+  - Seedance 2.5 Image Turbo supports image + optional last image, 4-30s, 720p/1080p, same documented ratios, and native `generate_audio`.
+  - Seedance 2.5 Spicy supports image + optional last image, 4-30s, 480p/720p/1080p/4k, documented ratios, `seed`, and native `generate_audio`.
+- Pricing decisions:
+  - Turbo 720p without reference video: $0.20/s => 4 credits/s. Turbo 1080p without reference video: $0.21/s => 4.2 credits/s.
+  - Turbo with reference video: 720p $0.38/s => 7.6 credits/s; 1080p $0.39/s => 7.8 credits/s.
+  - Spicy source prices from provider UI screenshots: 480p $0.162/s => 3.24 credits/s, 720p $0.324/s => 6.48 credits/s, 1080p $0.81/s => 16.2 credits/s, 4k $1.62/s => 32.4 credits/s. Generate Audio/sound does not affect price; pricing is duration + resolution only. Seedance 2.5 uses the requested 20 credits/USD conversion.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed after audio-neutral pricing and 20 credits/USD conversion update. `git diff --check` passed with Git config/CRLF warnings only.
+- Decision: Do not add the screenshot-only `video-edit`, `video-edit-turbo`, `video-extend`, base text-to-video, or base image-to-video routes until their exact attached/model-page specs and pricing are available; this avoids guessed limits or hidden prices.
+- Remaining step: Deploy/redeploy production so `saadstudio.app` receives the updated model catalog and routing.

@@ -73,6 +73,7 @@ const tools = [
       },
       required: ["prompt"],
     },
+    _meta: IMAGE_TOOL_UI_META,
   },
   {
     name: "generate_storyboard",
@@ -95,6 +96,7 @@ const tools = [
       },
       required: ["prompt"],
     },
+    _meta: IMAGE_TOOL_UI_META,
   },
   {
     name: "generate_video",
@@ -112,6 +114,7 @@ const tools = [
       },
       required: ["prompt"],
     },
+    _meta: VIDEO_TOOL_UI_META,
   },
   {
     name: "show_generations",
@@ -165,6 +168,9 @@ const AVAILABLE_MODELS = [
   { id: "google/veo3-fast-text-to-video", kind: "video", label: "Google Veo 3 Fast", notes: "Legacy Veo 3 Fast. Fixed 8s, 720p/1080p.", badges: ["fast"] },
   { id: "google/veo3-text-to-video", kind: "video", label: "Google Veo 3", notes: "Legacy Veo 3. Fixed 8s, 720p/1080p.", badges: [] },
   { id: "google/gemini-omni-flash", kind: "video", label: "Google Gemini Omni", notes: "Gemini Omni video generation/editing. 720p, 3-10s.", badges: ["new"] },
+  { id: "bytedance/seedance-2.5/text-to-video-turbo", kind: "video", label: "Seedance 2.5", notes: "720p/1080p, 4-30s, up to 30 image + 10 video + 10 audio references.", badges: ["new"] },
+  { id: "bytedance/seedance-2.5/image-to-video-turbo", kind: "video", label: "Seedance 2.5 I2V Turbo", notes: "Image-to-video, optional last image, 720p/1080p, 4-30s.", badges: ["fast"] },
+  { id: "bytedance/seedance-2.5/image-to-video-spicy", kind: "video", label: "Seedance 2.5 Spicy", notes: "Image-to-video, 480p/720p/1080p/4K, 4-30s.", badges: ["pro"] },
   { id: "bytedance/seedance-v2/text-to-video-fast", kind: "video", label: "Seedance 2.0 Turbo", notes: "Fastest Seedance tier.", badges: ["fast"] },
   { id: "bytedance/seedance-v2/text-to-video-mini", kind: "video", label: "Seedance 2.0 Mini", notes: "Cheapest Seedance tier.", badges: ["fast"] },
   { id: "bytedance/seedance-v2/text-to-video", kind: "video", label: "Seedance 2.0", notes: "ByteDance flagship video, accepts reference images + audio.", badges: ["new"] },
@@ -207,7 +213,7 @@ const IMAGE_WIDGET_HTML = String.raw`<!DOCTYPE html>
 <body>
 <div class="card" id="root"><div class="empty">Loading…</div></div>
 <script type="module">
-  import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.4.0/app-with-deps";
+  import { App } from "https://www.saadstudio.app/mcp-ext-apps-0.4.0.js";
   const app = new App({ name: "Saad Studio · Image", version: "1.0.0" });
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -283,7 +289,7 @@ const VIDEO_WIDGET_HTML = String.raw`<!DOCTYPE html>
 <body>
 <div class="card" id="root"><div class="empty">Loading…</div></div>
 <script type="module">
-  import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.4.0/app-with-deps";
+  import { App } from "https://www.saadstudio.app/mcp-ext-apps-0.4.0.js";
   const app = new App({ name: "Saad Studio · Video", version: "1.0.0" });
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -330,7 +336,7 @@ const UI_RESOURCES = [
     mimeType: "text/html;profile=mcp-app",
     text: IMAGE_WIDGET_HTML,
     _meta: {
-      ui: { csp: { resourceDomains: ["https://unpkg.com"], connectDomains: ["https://unpkg.com"] } },
+      ui: { csp: { resourceDomains: ["https://www.saadstudio.app"], connectDomains: ["https://www.saadstudio.app"] } },
     },
   },
   {
@@ -340,13 +346,29 @@ const UI_RESOURCES = [
     mimeType: "text/html;profile=mcp-app",
     text: VIDEO_WIDGET_HTML,
     _meta: {
-      ui: { csp: { resourceDomains: ["https://unpkg.com"], connectDomains: ["https://unpkg.com"] } },
+      ui: { csp: { resourceDomains: ["https://www.saadstudio.app"], connectDomains: ["https://www.saadstudio.app"] } },
     },
   },
 ];
 
 function findModelLabel(modelId: string): string {
   return AVAILABLE_MODELS.find((m) => m.id === modelId)?.label ?? modelId;
+}
+
+// Panel APIs return storage-relative paths ("images/user_xxx/abc.jpg").
+// The widget renders them inside a sandboxed iframe, so relative paths
+// resolve against the iframe origin (not saadstudio.app) and 404. Convert
+// to the first absolute CDN URL from our storage fallback chain.
+function toAbsoluteMediaUrl(url: string | undefined | null): string | null {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  const candidates = getFallbackUrls(url).filter((u) => /^https?:\/\//i.test(u));
+  return candidates[0] ?? null;
+}
+
+function toAbsoluteMediaUrls(urls: string[] | undefined | null): string[] {
+  if (!Array.isArray(urls)) return [];
+  return urls.map(toAbsoluteMediaUrl).filter((u): u is string => Boolean(u));
 }
 
 function withMcpHeaders(response: NextResponse) {
@@ -592,12 +614,32 @@ async function callGenerateImage(
   const urls = Array.isArray(data.imageUrls) && data.imageUrls.length
     ? data.imageUrls
     : data.imageUrl ? [data.imageUrl] : [];
+  const absoluteUrls = toAbsoluteMediaUrls(urls);
   const collection = await collectInlineImages(urls);
 
-  return toolResultWithImages(
-    { status: "completed", modelId: body.modelId, ...data },
-    collection,
-  );
+  const structuredContent = {
+    prompt: body.prompt,
+    modelId: body.modelId,
+    modelLabel: findModelLabel(body.modelId),
+    aspectRatio: body.aspectRatio,
+    resolution: body.resolution,
+    imageUrls: absoluteUrls,
+    imageUrl: absoluteUrls[0] ?? null,
+    generationId: data.generationId ?? null,
+  };
+
+  const fallbackText = absoluteUrls[0]
+    ? `Done — here's the image:\n${absoluteUrls[0]}`
+    : `Done — generated via ${findModelLabel(body.modelId)}.`;
+
+  return {
+    content: [
+      ...collection.blocks,
+      { type: "text", text: fallbackText },
+    ],
+    isError: false,
+    structuredContent,
+  };
 }
 
 async function callGenerateStoryboard(
@@ -637,8 +679,9 @@ async function callGenerateStoryboard(
 
   const data = res.data as { imageUrls?: string[]; imageUrl?: string; generationId?: string };
   const urls = Array.isArray(data.imageUrls) ? data.imageUrls : data.imageUrl ? [data.imageUrl] : [];
+  const absoluteUrls = toAbsoluteMediaUrls(urls);
 
-  const concepts = urls.map((url, index) => ({
+  const concepts = absoluteUrls.map((url, index) => ({
     conceptId: `${index + 1}`,
     imageUrl: url,
     label: `Concept ${index + 1}`,
@@ -646,16 +689,29 @@ async function callGenerateStoryboard(
 
   const collection = await collectInlineImages(urls);
 
-  return toolResultWithImages({
-    status: "completed",
-    idea,
-    style: style || null,
+  const structuredContent = {
+    prompt: idea,
+    modelId: DEFAULT_IMAGE_MODEL,
+    modelLabel: findModelLabel(DEFAULT_IMAGE_MODEL),
     aspectRatio,
+    imageUrls: absoluteUrls,
+    imageUrl: absoluteUrls[0] ?? null,
     concepts,
-    nextStep:
-      "Ask the user to pick a concept (1-N), then call generate_video with imageUrl set to that concept's imageUrl.",
     generationId: data.generationId ?? null,
-  }, collection);
+  };
+
+  const fallbackText = absoluteUrls.length
+    ? `Done — ${absoluteUrls.length} concept${absoluteUrls.length > 1 ? "s" : ""} ready:\n${absoluteUrls.map((u, i) => `  ${i + 1}. ${u}`).join("\n")}\n\nAsk which concept to animate, then call generate_video with imageUrl set to that URL.`
+    : `Storyboard job accepted but no URLs yet.`;
+
+  return {
+    content: [
+      ...collection.blocks,
+      { type: "text", text: fallbackText },
+    ],
+    isError: false,
+    structuredContent,
+  };
 }
 
 async function callGenerateVideo(
@@ -687,7 +743,37 @@ async function callGenerateVideo(
     );
   }
 
-  return toolResult({ status: "completed", modelId: body.modelId, ...(res.data as object) });
+  const videoData = res.data as { videoUrl?: string; videoUrls?: string[]; url?: string; generationId?: string };
+  const rawVideoUrls = Array.isArray(videoData.videoUrls) && videoData.videoUrls.length
+    ? videoData.videoUrls
+    : videoData.videoUrl
+      ? [videoData.videoUrl]
+      : videoData.url
+        ? [videoData.url]
+        : [];
+  const absoluteVideoUrls = toAbsoluteMediaUrls(rawVideoUrls);
+
+  const structuredContent = {
+    prompt: body.prompt,
+    modelId: body.modelId,
+    modelLabel: findModelLabel(body.modelId),
+    aspectRatio: body.aspectRatio,
+    duration: body.duration,
+    resolution: body.resolution,
+    videoUrls: absoluteVideoUrls,
+    videoUrl: absoluteVideoUrls[0] ?? null,
+    generationId: videoData.generationId ?? null,
+  };
+
+  const fallbackText = absoluteVideoUrls[0]
+    ? `Done — here's the video:\n${absoluteVideoUrls[0]}`
+    : `Video job accepted via ${findModelLabel(body.modelId)}. May still be processing.`;
+
+  return {
+    content: [{ type: "text", text: fallbackText }],
+    isError: false,
+    structuredContent,
+  };
 }
 
 async function callShowGenerations(

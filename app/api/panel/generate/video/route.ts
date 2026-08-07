@@ -362,7 +362,12 @@ export async function POST(req: NextRequest) {
     let creditsToCharge: number;
     try {
       const normalizedGoogleForCost = isGoogleVideoRoute(modelId) ? normalizeGoogleVideoOptions(modelId, { duration, resolution, aspectRatio, referenceImageCount: safeReferenceImageUrls.length, hasVideoInput: Boolean(videoUrl || safeVideoUrls.length), hasStartImage: Boolean(firstFrameUrl || imageUrl || safeImageUrls.length), hasEndImage: Boolean(lastFrameUrl) }) : null;
-      creditsToCharge = getVideoCreditsByModelId(kieModelId, { duration: normalizedGoogleForCost?.duration ?? duration, resolution: normalizedGoogleForCost?.resolution ?? resolution });
+      creditsToCharge = getVideoCreditsByModelId(kieModelId, {
+        duration: normalizedGoogleForCost?.duration ?? duration,
+        resolution: normalizedGoogleForCost?.resolution ?? resolution,
+        generate_audio: enableAudio === true,
+        reference_video_urls: safeReferenceVideoUrls.length ? safeReferenceVideoUrls : videoUrl ? [videoUrl] : [],
+      });
       if (!creditsToCharge || creditsToCharge <= 0) creditsToCharge = 12;
     } catch {
       creditsToCharge = 12; // fallback: 12 credits
@@ -383,7 +388,8 @@ export async function POST(req: NextRequest) {
     generationId = spent.generationId;
 
     const isGoogle = modelId.includes("google") || modelId.includes("veo") || modelId.includes("gemini");
-    const isSeedance2 = (modelId.includes("seedance") || modelId.includes("bytedance")) && (modelId.includes("v2") || modelId.includes("-2"));
+    const isSeedance25 = modelId.startsWith("bytedance/seedance-2.5") || kieModelId.startsWith("bytedance/seedance-2.5");
+    const isSeedance2 = !isSeedance25 && (modelId.includes("seedance") || modelId.includes("bytedance")) && (modelId.includes("v2") || modelId.includes("-2"));
     const isKlingModel = modelId.includes("kling") || kieModelId.includes("kling");
 
     if (isGoogle || isSeedance2 || isKlingModel) {
@@ -469,7 +475,11 @@ export async function POST(req: NextRequest) {
       const wavespeedKey = process.env.WAVESPEED_API_KEY;
       if (!wavespeedKey) throw new Error("WaveSpeed API key not configured on server.");
 
-      const wavespeedModel = resolveWaveSpeedModelRoute(modelId, { resolution, mode });
+      let wavespeedModel = resolveWaveSpeedModelRoute(modelId, { resolution, mode });
+      const isSeedance25 = wavespeedModel.startsWith("bytedance/seedance-2.5");
+      if (isSeedance25 && wavespeedModel === "bytedance/seedance-2.5/text-to-video-turbo" && (imageUrl || firstFrameUrl || safeImageUrls.length || safeReferenceImageUrls.length)) {
+        wavespeedModel = "bytedance/seedance-2.5/image-to-video-turbo";
+      }
       const isKling = wavespeedModel.includes("kling");
 
       const isGrokEdit = wavespeedModel === "x-ai/grok-imagine-video/edit-video"
@@ -479,6 +489,25 @@ export async function POST(req: NextRequest) {
         duration: isKling || isGrokEdit ? String(duration) : duration,
         aspect_ratio: aspectRatio,
       };
+      if (isSeedance25) {
+        const normalizedDuration = Math.max(4, Math.min(30, Number(duration) || 5));
+        const normalizedResolution = String(resolution || "720p").toLowerCase();
+        payload.duration = normalizedDuration;
+        payload.generate_audio = enableAudio !== false;
+        payload.resolution = wavespeedModel.endsWith("image-to-video-spicy")
+          ? (["480p", "720p", "1080p", "4k"].includes(normalizedResolution) ? normalizedResolution : "720p")
+          : (normalizedResolution === "1080p" ? "1080p" : "720p");
+        if (wavespeedModel.endsWith("text-to-video-turbo")) {
+          if (safeReferenceImageUrls.length) payload.reference_images = safeReferenceImageUrls.slice(0, 30);
+          if (safeReferenceVideoUrls.length || videoUrl) payload.reference_videos = (safeReferenceVideoUrls.length ? safeReferenceVideoUrls : [videoUrl].filter(Boolean)).slice(0, 10);
+          if (safeReferenceAudioUrls.length || safeAudioUrls.length) payload.reference_audios = (safeReferenceAudioUrls.length ? safeReferenceAudioUrls : safeAudioUrls).slice(0, 10);
+        } else {
+          const startFrameUrl = firstFrameUrl ?? imageUrl ?? safeImageUrls[0] ?? safeReferenceImageUrls[0];
+          const endFrameUrl = lastFrameUrl ?? safeImageUrls[1] ?? safeReferenceImageUrls[1];
+          if (startFrameUrl) payload.image = startFrameUrl;
+          if (endFrameUrl) payload.last_image = endFrameUrl;
+        }
+      }
       if (typeof mode === "string" && mode.trim() && isKling) {
         payload.mode = mode.trim();
       }

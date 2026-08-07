@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, type ChangeEvent, type DragEvent, type MouseEvent } from "react";
 import { useAuth } from "@clerk/nextjs";
@@ -33,6 +33,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { IMAGE_MODELS, getImageCreditCost, type ImageModel } from "@/lib/image-models";
 import { DEFAULT_GOOGLE_IMAGE_MODEL_ID, getDefaultImageModel } from "@/lib/google-image-model-specs";
+import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { useAssetStore } from "@/hooks/use-asset-store";
@@ -473,7 +474,7 @@ function CountSelector({ label, value, onChange }: { label: string; value: numbe
   );
 }
 
-function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect: (m: ImageModel) => void }) {
+function ModelDropdown({ selected, onSelect, models }: { selected: ImageModel; onSelect: (m: ImageModel) => void; models: ImageModel[] }) {
   const { t, lang } = useImageTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -482,15 +483,15 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
   const grouped = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = q
-      ? VISIBLE_IMAGE_MODELS.filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || m.group.toLowerCase().includes(q))
-      : VISIBLE_IMAGE_MODELS;
+      ? models.filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || m.group.toLowerCase().includes(q))
+      : models;
     const map = new Map<string, ImageModel[]>();
     for (const model of list) {
       if (!map.has(model.group)) map.set(model.group, []);
       map.get(model.group)?.push(model);
     }
     return Array.from(map.entries());
-  }, [query]);
+  }, [query, models]);
 
   const handleToggle = () => {
     if (!open && buttonRef.current) {
@@ -1506,7 +1507,7 @@ function useImageTranslation() {
       "Describe what should replace the painted area...": "Ã˜ÂµÃ™Â Ã™â€¦Ã˜Â§ Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜Â£Ã™â€  Ã™Å Ã˜Â­Ã™â€ž Ã™â€¦Ã˜Â­Ã™â€ž Ã˜Â§Ã™â€žÃ™â€¦Ã™â€ Ã˜Â·Ã™â€šÃ˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â±Ã˜Â³Ã™Ë†Ã™â€¦Ã˜Â©...",
       "Swap Face": "Ã˜ÂªÃ˜Â¨Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
       "Search model": "Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â­Ã˜Â« Ã˜Â¹Ã™â€  Ã™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬",
-      
+
       // Model families
       "Cinema Studio": "Ã˜Â³Ã™Å Ã™â€ Ã™â€¦Ã˜Â§ Ã˜Â§Ã˜Â³Ã˜ÂªÃ™Ë†Ã˜Â¯Ã™Å Ã™Ë†",
       "Nano Banana": "Ã™â€ Ã˜Â§Ã™â€ Ã™Ë† Ã˜Â¨Ã™â€ Ã˜Â§Ã™â€ Ã˜Â§",
@@ -1531,6 +1532,29 @@ export default function ImageWorkspacePage() {
   const searchParams = useSearchParams();
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const { addAsset } = useAssetStore();
+
+  const { imageModels: rawImageModels } = useFullDynamicModels();
+
+  const visibleImageModels = useMemo(() => {
+    const list = rawImageModels.length > 0 ? rawImageModels : IMAGE_MODELS;
+    return list.filter((model) => !isHiddenImagePageModel(model) && model.isActive !== false);
+  }, [rawImageModels]);
+
+  const editModels = useMemo(() => {
+    const list = rawImageModels.length > 0 ? rawImageModels : IMAGE_MODELS;
+    return list.filter((m) =>
+      [
+        "google/nano-banana-edit",
+        "gpt-image-2-image-to-image",
+        "gpt-image/1.5-image-to-image",
+      ].includes(m.id) && !isHiddenImagePageModel(m) && m.isActive !== false
+    );
+  }, [rawImageModels]);
+
+  const enhanceModels = useMemo(() => {
+    const list = rawImageModels.length > 0 ? rawImageModels : IMAGE_MODELS;
+    return list.filter((m) => m.imageInputField !== undefined && m.maxRefImages > 0 && !isHiddenImagePageModel(m) && m.isActive !== false);
+  }, [rawImageModels]);
 
   const [activeTool, setActiveTool] = useState<ToolId>("create");
   const [selectedModel, setSelectedModel] = useState<ImageModel>(DEFAULT_VISIBLE_IMAGE_MODEL);
@@ -1593,6 +1617,26 @@ export default function ImageWorkspacePage() {
   const [deleteTargetIds, setDeleteTargetIds] = useState<string[]>([]);
   const [deletingImages, setDeletingImages] = useState(false);
 
+  useEffect(() => {
+    if (rawImageModels.length > 0) {
+      const existsSelected = visibleImageModels.find((m) => m.id === selectedModel.id);
+      if (!existsSelected && visibleImageModels.length > 0) {
+        const def = getDefaultImageModel(visibleImageModels) ?? visibleImageModels.find((model) => model.id === DEFAULT_GOOGLE_IMAGE_MODEL_ID) ?? visibleImageModels[0];
+        if (def) setSelectedModel(def);
+      }
+
+      const existsInpaint = editModels.find((m) => m.id === inpaintModelId);
+      if (!existsInpaint && editModels.length > 0) {
+        setInpaintModelId(editModels[0].id);
+      }
+
+      const existsEnhance = enhanceModels.find((m) => m.id === enhanceModelId);
+      if (!existsEnhance && enhanceModels.length > 0) {
+        setEnhanceModelId(enhanceModels[0].id);
+      }
+    }
+  }, [rawImageModels, visibleImageModels, editModels, enhanceModels, selectedModel.id, inpaintModelId, enhanceModelId]);
+
   const [showReferenceStudioModal, setShowReferenceStudioModal] = useState(false);
   const [activeStudioTab, setActiveStudioTab] = useState("style");
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
@@ -1613,7 +1657,7 @@ export default function ImageWorkspacePage() {
 
     const requestedModel = searchParams.get("model");
     if (requestedModel) {
-      const model = VISIBLE_IMAGE_MODELS.find((m) => m.id === requestedModel);
+      const model = visibleImageModels.find((m) => m.id === requestedModel);
       if (model) setSelectedModel(model);
     }
 
@@ -1850,7 +1894,7 @@ export default function ImageWorkspacePage() {
       if (isAnnualUnlimitedCreate) return 0;
       return getImageCreditCost(selectedModel, numImages, selectedQuality);
     }
-    if (activeTool === "enhance") return ENHANCE_MODELS.find((m) => m.id === enhanceModelId)?.creditCost ?? 2;
+    if (activeTool === "enhance") return enhanceModels.find((m) => m.id === enhanceModelId)?.creditCost ?? 2;
     if (activeTool === "relight") return 3 * relightVariations;
     if (activeTool === "inpaint") return 3 * inpaintVariations;
     if (activeTool === "upscale") return 2;
@@ -2077,7 +2121,7 @@ export default function ImageWorkspacePage() {
 
   const generateEnhance = useCallback(async () => {
     if (!enhanceFiles.length) throw new Error("Upload at least one image first");
-    const enhanceModel = ENHANCE_MODELS.find((m) => m.id === enhanceModelId) ?? ENHANCE_MODELS[0];
+    const enhanceModel = enhanceModels.find((m) => m.id === enhanceModelId) ?? enhanceModels[0];
     if (!enhanceModel) throw new Error("No enhancement model available");
     const maxRef = enhanceModel.maxRefImages;
     const filesToSend = enhanceFiles.slice(0, maxRef > 0 ? maxRef : 1);
@@ -2121,7 +2165,7 @@ export default function ImageWorkspacePage() {
       return;
     }
     const pendingCount = activeTool === "create" ? numImages : activeTool === "relight" ? relightVariations : activeTool === "inpaint" ? inpaintVariations : 1;
-    const pendingModel = activeTool === "create" ? selectedModel.label : activeTool === "enhance" ? (ENHANCE_MODELS.find((m) => m.id === enhanceModelId)?.label ?? enhanceModelId) : activeTool === "relight" ? "Seedream 4.5 Edit" : activeTool === "inpaint" ? inpaintModelId : activeTool === "upscale" ? "Upscaler" : "Face Swap";
+    const pendingModel = activeTool === "create" ? selectedModel.label : activeTool === "enhance" ? (enhanceModels.find((m) => m.id === enhanceModelId)?.label ?? enhanceModelId) : activeTool === "relight" ? "Seedream 4.5 Edit" : activeTool === "inpaint" ? inpaintModelId : activeTool === "upscale" ? "Upscaler" : "Face Swap";
     const pendingAspect = activeTool === "create" ? aspectRatio : "source";
     const pendingPrompt = prompt || t("Generating...");
     const placeholders: ResultItem[] = Array.from({ length: pendingCount }, () => ({
@@ -2229,8 +2273,8 @@ export default function ImageWorkspacePage() {
       const acceptsRefs = selectedModel.imageInputField !== undefined && selectedModel.maxRefImages > 0;
       const targetModel = acceptsRefs
         ? selectedModel
-        : (VISIBLE_IMAGE_MODELS.find((m) => m.id === "google/nano-banana-edit")
-            ?? VISIBLE_IMAGE_MODELS.find((m) => m.imageInputField !== undefined && m.maxRefImages > 0)
+        : (visibleImageModels.find((m) => m.id === "google/nano-banana-edit")
+            ?? visibleImageModels.find((m) => m.imageInputField !== undefined && m.maxRefImages > 0)
             ?? selectedModel);
 
       if (targetModel.id !== selectedModel.id) setSelectedModel(targetModel);
@@ -2293,7 +2337,7 @@ export default function ImageWorkspacePage() {
               {t("New from Saad Studio")}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {IMAGE_MODELS.filter((m) => m.id === "gpt-image-2-text-to-image").map((m) => (
+              {visibleImageModels.filter((m) => m.id === "gpt-image-2-text-to-image").map((m) => (
                 <button
                   key={m.id}
                   type="button"
@@ -2305,7 +2349,7 @@ export default function ImageWorkspacePage() {
               ))}
             </div>
           </div>
-          <ModelDropdown selected={selectedModel} onSelect={setSelectedModel} />
+          <ModelDropdown selected={selectedModel} onSelect={setSelectedModel} models={visibleImageModels} />
         </SettingsAccordion>
 
         <SettingsAccordion label="Character Reference" summary={selectedCharacter?.name || "None"} defaultOpen={Boolean(selectedCharacter)}>
@@ -2449,14 +2493,14 @@ export default function ImageWorkspacePage() {
 
     if (activeTool === "inpaint") {
       return <>
-        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">Edit Model</p><select aria-label={t("Edit model selection")} value={inpaintModelId} onChange={(e) => setInpaintModelId(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100">{EDIT_MODELS.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}</select></section>
+        <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">Edit Model</p><select aria-label={t("Edit model selection")} value={inpaintModelId} onChange={(e) => setInpaintModelId(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100">{editModels.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}</select></section>
         <CountSelector label="Number of Variations" value={inpaintVariations} onChange={setInpaintVariations} />
         <SliderField label="Brush Size" value={brushSize} onChange={setBrushSize} min={5} max={100} />
       </>;
     }
 
     if (activeTool === "enhance") {
-      const currentEnhanceModel = ENHANCE_MODELS.find((m) => m.id === enhanceModelId) ?? ENHANCE_MODELS[0];
+      const currentEnhanceModel = enhanceModels.find((m) => m.id === enhanceModelId) ?? enhanceModels[0];
       const maxSlots = currentEnhanceModel?.maxRefImages ?? 1;
       return <>
         <section className="space-y-2">
@@ -2467,7 +2511,7 @@ export default function ImageWorkspacePage() {
             onChange={(e) => { setEnhanceModelId(e.target.value); setEnhanceFiles([]); }}
             className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500"
           >
-            {ENHANCE_MODELS.map((model) => (
+            {enhanceModels.map((model) => (
               <option key={model.id} value={model.id}>{model.label} (max {model.maxRefImages} img)</option>
             ))}
           </select>

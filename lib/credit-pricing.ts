@@ -60,6 +60,9 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["bytedance/seedance-2.0/image-to-video", 40],
   ["bytedance/seedance-2.0/text-to-video-turbo", 27],
   ["bytedance/seedance-2.0/image-to-video-turbo", 27],
+  ["bytedance/seedance-2.5/text-to-video-turbo", 20],
+  ["bytedance/seedance-2.5/image-to-video-turbo", 20],
+  ["bytedance/seedance-2.5/image-to-video-spicy", 32.4],
   ["bytedance/seedance-v2/text-to-video-fast", 27],
   ["bytedance/seedance-v2/text-to-video", 40],
   ["x-ai/grok-imagine-video/text-to-video", 9.24],
@@ -194,6 +197,39 @@ function getSeedance2Credits(payload?: VideoPayload, variant: "hq" | "fast" = "h
   return parseFloat(Math.max(1, cost).toFixed(2));
 }
 
+
+function hasNonEmptyArray(payload: VideoPayload | undefined, keys: string[]): boolean {
+  return keys.some((key) => {
+    const value = payload?.[key];
+    return Array.isArray(value) && value.some((item) => typeof item === "string" && item.trim().length > 0);
+  });
+}
+
+function getSeedance25TurboCredits(payload?: VideoPayload): number {
+  const duration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const is1080 = quality.includes("1080");
+  const hasReferenceVideo = hasNonEmptyArray(payload, ["reference_video_urls", "reference_videos", "video_urls"])
+    || (typeof payload?.video_url === "string" && payload.video_url.trim().length > 0)
+    || (typeof payload?.video === "string" && payload.video.trim().length > 0);
+  const usdPerSecond = hasReferenceVideo
+    ? (is1080 ? 0.39 : 0.38)
+    : (is1080 ? 0.21 : 0.20);
+  return parseFloat(Math.max(1, usdPerSecond * duration * 20).toFixed(2));
+}
+
+function getSeedance25SpicyCredits(payload?: VideoPayload): number {
+  const duration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const q = quality.includes("4k") ? "4k" : quality.includes("1080") ? "1080p" : quality.includes("480") ? "480p" : "720p";
+  const usdPerSecond = ({
+    "480p": 0.162,
+    "720p": 0.324,
+    "1080p": 0.81,
+    "4k": 1.62,
+  } as Record<string, number>)[q];
+  return parseFloat(Math.max(1, usdPerSecond * duration * 20).toFixed(2));
+}
 function getSora2Credits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 4);
   const isPro = modelRoute.includes("text-to-video-pro") || modelRoute.includes("sora-2-pro");
@@ -281,6 +317,8 @@ export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload
   if (modelId === "kling-3.0/motion-control") return applySoundMultiplier(getKlingMotionCredits(payload), payload);
   if (modelId === "bytedance/seedance-2") return getSeedance2Credits(payload, "hq");
   if (modelId === "bytedance/seedance-2-fast") return getSeedance2Credits(payload, "fast");
+  if (modelId === "bytedance/seedance-2.5/text-to-video-turbo" || modelId === "bytedance/seedance-2.5/image-to-video-turbo") return getSeedance25TurboCredits(payload);
+  if (modelId === "bytedance/seedance-2.5/image-to-video-spicy") return getSeedance25SpicyCredits(payload);
   if (modelId === "google/gemini-omni-flash" || modelId === "google/gemini-omni-video") {
     return applySoundMultiplier(getGeminiOmniFlashCredits(payload), payload);
   }
@@ -358,6 +396,12 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
   }
   if (modelRoute === "bytedance/seedance-v2/text-to-video-fast") {
     return getSeedance2Credits(payload, "fast");
+  }
+  if (modelRoute === "bytedance/seedance-2.5/text-to-video-turbo" || modelRoute === "bytedance/seedance-2.5/image-to-video-turbo") {
+    return getSeedance25TurboCredits(payload);
+  }
+  if (modelRoute === "bytedance/seedance-2.5/image-to-video-spicy") {
+    return getSeedance25SpicyCredits(payload);
   }
   if (
     modelRoute === "google/veo3.1-lite-text-to-video" ||

@@ -5,6 +5,7 @@ import sharp from "sharp";
 export const maxDuration = 90;
 export const dynamic = "force-dynamic";
 import { getGenerationCost, estimateProviderCostSync } from "@/lib/pricing";
+import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
@@ -560,6 +561,9 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
 
   out.enable_web_search = payload.enable_web_search !== undefined ? !!payload.enable_web_search : false;
 
+  const isSeedance25TextTurboRoute = route === "bytedance/seedance-2.5/text-to-video-turbo";
+  const isSeedance25TurboImageRoute = route === "bytedance/seedance-2.5/image-to-video-turbo";
+  const isSeedance25SpicyImageRoute = route === "bytedance/seedance-2.5/image-to-video-spicy";
   const isSeedanceBaseImageRoute = route === "bytedance/seedance-2.0/image-to-video";
   const isSeedanceTurboImageRoute = route === "bytedance/seedance-2.0/image-to-video-turbo";
   const isSeedanceMiniImageRoute = route === "bytedance/seedance-2.0-mini/image-to-video";
@@ -572,7 +576,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     route === "kwaivgi/kling-v3-turbo-pro/image-to-video";
   const isKlingO3Route = typeof route === "string" && route.startsWith("kwaivgi/kling-video-o3-");
   const isKling26Route = typeof route === "string" && route.startsWith("kwaivgi/kling-v2.6-");
-  const hasAudio = isSeedanceBaseImageRoute || route?.includes("seedance-2.0-mini") || isSeedanceTurboImageRoute
+  const hasAudio = isSeedance25TextTurboRoute || isSeedance25TurboImageRoute || isSeedance25SpicyImageRoute || isSeedanceBaseImageRoute || route?.includes("seedance-2.0-mini") || isSeedanceTurboImageRoute
     ? payload.generate_audio !== false
     : payload.sound === true || payload.generate_audio === true;
   out.generate_audio = hasAudio;
@@ -826,6 +830,64 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     return exact;
   }
 
+  if (isSeedance25TextTurboRoute) {
+    const referenceImages = Array.isArray(out.reference_image_urls)
+      ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const referenceVideos = Array.isArray(out.reference_video_urls)
+      ? out.reference_video_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const referenceAudios = Array.isArray(out.reference_audio_urls)
+      ? out.reference_audio_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const exact: Record<string, unknown> = {};
+    if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    else throw new ValidationError("Seedance 2.5 requires a prompt.");
+    if (referenceImages.length > 0) exact.reference_images = referenceImages.slice(0, 30);
+    if (referenceVideos.length > 0) exact.reference_videos = referenceVideos.slice(0, 10);
+    if (referenceAudios.length > 0) exact.reference_audios = referenceAudios.slice(0, 10);
+    if (typeof out.aspect_ratio === "string" && ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"].includes(out.aspect_ratio)) {
+      exact.aspect_ratio = out.aspect_ratio;
+    }
+    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "720p";
+    exact.resolution = resolution === "1080p" ? "1080p" : "720p";
+    const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
+    exact.duration = Number.isFinite(duration) ? Math.min(30, Math.max(4, duration)) : 5;
+    exact.generate_audio = out.generate_audio !== false;
+    return exact;
+  }
+
+  if (isSeedance25TurboImageRoute || isSeedance25SpicyImageRoute) {
+    const referenceImages = Array.isArray(out.reference_image_urls)
+      ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const startImage =
+      (typeof out.image === "string" ? out.image : null) ||
+      (typeof out.image_url === "string" ? out.image_url : null) ||
+      referenceImages[0] ||
+      null;
+    const finalImage =
+      (typeof out.last_image === "string" ? out.last_image : null) ||
+      (typeof out.end_image === "string" ? out.end_image : null) ||
+      referenceImages[1] ||
+      null;
+    const exact: Record<string, unknown> = {};
+    if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    if (startImage) exact.image = startImage;
+    else throw new ValidationError("Seedance 2.5 Image-to-Video requires an image.");
+    if (finalImage) exact.last_image = finalImage;
+    if (typeof out.aspect_ratio === "string" && ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"].includes(out.aspect_ratio)) {
+      exact.aspect_ratio = out.aspect_ratio;
+    }
+    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "720p";
+    const allowedResolutions = isSeedance25SpicyImageRoute ? ["480p", "720p", "1080p", "4k"] : ["720p", "1080p"];
+    exact.resolution = allowedResolutions.includes(resolution) ? resolution : "720p";
+    const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
+    exact.duration = Number.isFinite(duration) ? Math.min(30, Math.max(4, duration)) : 5;
+    if (isSeedance25SpicyImageRoute && typeof payload.seed === "number" && Number.isFinite(payload.seed)) exact.seed = payload.seed;
+    exact.generate_audio = out.generate_audio !== false;
+    return exact;
+  }
   if (isSeedanceBaseImageRoute || isSeedanceMiniImageRoute || isSeedanceTurboImageRoute) {
     const referenceImages = Array.isArray(out.reference_image_urls)
       ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
@@ -2062,7 +2124,11 @@ export async function POST(req: Request) {
       payload.reference_audio_urls.some((value) => typeof value === "string" && value.trim().length > 0);
 
     // Canonical Route Normalization & Auto-routing between Text-to-Video and Image-to-Video
-    if (modelRoute.includes("seedance")) {
+    if (modelRoute.startsWith("bytedance/seedance-2.5")) {
+      if (modelRoute === "bytedance/seedance-2.5/text-to-video-turbo" && hasImage) {
+        modelRoute = "bytedance/seedance-2.5/image-to-video-turbo";
+      }
+    } else if (modelRoute.includes("seedance")) {
       const hasSeedanceReferenceMedia = hasImage || hasSeedanceReferenceVideo || hasSeedanceReferenceAudio;
       if (modelRoute.includes("mini")) {
         modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0-mini/image-to-video" : "bytedance/seedance-2.0-mini/text-to-video";
@@ -2310,7 +2376,9 @@ export async function POST(req: Request) {
       (typeof payload.resolution === "string" ? payload.resolution : null) ||
       (typeof payload.quality === "string" ? payload.quality : null);
     const soundEnabled = payload.sound === true || payload.generate_audio === true;
-    const baseCost = await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost).catch(() => 0);
+    const baseCost = modelRoute.startsWith("bytedance/seedance-2.5")
+      ? getVideoCreditsByRoute(modelRoute, payload)
+      : await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost).catch(() => 0);
     const creditsToCharge = baseCost;
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });
@@ -2819,6 +2887,9 @@ export async function POST(req: Request) {
       }
       if (wavespeedRoute?.startsWith("kwaivgi/kling-video-o3-") && wavespeedRoute.endsWith("/image-to-video") && typeof wsInput.image !== "string") {
         return NextResponse.json({ error: "Kling O3 Image-to-Video requires an image reference." }, { status: 400 });
+      }
+      if ((wavespeedRoute === "bytedance/seedance-2.5/image-to-video-turbo" || wavespeedRoute === "bytedance/seedance-2.5/image-to-video-spicy") && typeof wsInput.image !== "string") {
+        return NextResponse.json({ error: "Seedance 2.5 Image-to-Video requires an image reference." }, { status: 400 });
       }
       if (wavespeedRoute?.startsWith("kwaivgi/kling-v2.6-") && wavespeedRoute.endsWith("/image-to-video") && typeof wsInput.image !== "string") {
         return NextResponse.json({ error: "Kling 2.6 Image-to-Video requires an image reference." }, { status: 400 });
