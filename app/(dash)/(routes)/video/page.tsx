@@ -4600,11 +4600,8 @@ function VideoPageInner() {
                     </>
                   ) : (
                     <>
-                      <span className="absolute top-1.5 px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[8px] text-slate-400 font-semibold tracking-wider uppercase">
-                        Optional
-                      </span>
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center mt-3"
+                        className="w-8 h-8 rounded-full flex items-center justify-center"
                         style={{ background: "rgba(255,255,255,0.06)" }}
                       >
                         <ImageIcon size={14} style={{ color: "#94a3b8" }} />
@@ -4665,11 +4662,8 @@ function VideoPageInner() {
                     </>
                   ) : (
                     <>
-                      <span className="absolute top-1.5 px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[8px] text-slate-400 font-semibold tracking-wider uppercase">
-                        Optional
-                      </span>
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center mt-3"
+                        className="w-8 h-8 rounded-full flex items-center justify-center"
                         style={{ background: "rgba(255,255,255,0.06)" }}
                       >
                         <ImageIcon size={14} style={{ color: "#94a3b8" }} />
