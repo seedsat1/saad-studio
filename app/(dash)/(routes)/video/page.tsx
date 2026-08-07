@@ -4324,7 +4324,6 @@ function VideoPageInner() {
                         <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
                           <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                         </div>
-                        <span className="text-[11px]" style={{ color: "#94a3b8" }}>Start frame</span>
                       </>
                     )}
                     {activeDropZone === "startFrame" && (
@@ -4355,12 +4354,6 @@ function VideoPageInner() {
                       className="hidden"
                       onChange={e => setEndFrame(e.target.files?.[0] ?? null)}
                     />
-                    <span
-                      className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
-                      style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
-                    >
-                      Optional
-                    </span>
                     {endFrame ? (
                       <>
                         {endFramePreview && (
@@ -4384,7 +4377,6 @@ function VideoPageInner() {
                         <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
                           <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                         </div>
-                        <span className="text-[11px]" style={{ color: "#94a3b8" }}>End frame</span>
                       </>
                     )}
                     {activeDropZone === "endFrame" && (
@@ -4575,14 +4567,6 @@ function VideoPageInner() {
                     className="hidden"
                     onChange={e => setStartFrame(e.target.files?.[0] ?? null)}
                   />
-                  {!caps.requires_image && (
-                    <span
-                      className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
-                      style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
-                    >
-                      Optional
-                    </span>
-                  )}
                   {startFrame ? (
                     <>
                       {startFramePreview && (
@@ -4609,9 +4593,6 @@ function VideoPageInner() {
                       >
                         <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                       </div>
-                      <span className="text-[11px]" style={{ color: "#94a3b8" }}>
-                        {caps.requires_image ? "Upload image *" : "Start frame"}
-                      </span>
                     </>
                   )}
                   {activeDropZone === "startFrame" && (
@@ -4643,12 +4624,6 @@ function VideoPageInner() {
                     className="hidden"
                     onChange={e => setEndFrame(e.target.files?.[0] ?? null)}
                   />
-                  <span
-                    className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
-                    style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
-                  >
-                    Optional
-                  </span>
                   {endFrame ? (
                     <>
                       {endFramePreview && (
@@ -4675,7 +4650,6 @@ function VideoPageInner() {
                       >
                         <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                       </div>
-                      <span className="text-[11px]" style={{ color: "#94a3b8" }}>End frame</span>
                     </>
                   )}
                   {activeDropZone === "endFrame" && (
@@ -5087,7 +5061,6 @@ function VideoPageInner() {
                     }}
                   >
                     <input ref={startFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setStartFrame(e.target.files?.[0] ?? null)} />
-                    <span className="absolute top-2 right-2 text-[9px] px-1.5 py-0.5 rounded-md z-10" style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.08)" }}>Optional</span>
                     {startFrame ? (
                       <>
                         {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8, background: "#000" }} />}
@@ -5098,7 +5071,6 @@ function VideoPageInner() {
                         <div className="rounded-full p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
                           <ImageIcon size={20} style={{ color: "#a1a1aa" }} />
                         </div>
-                        <span className="text-[12px] font-medium" style={{ color: "#94a3b8" }}>Start frame</span>
                       </>
                     )}
                     {activeDropZone === "startFrame" && <span className="absolute inset-0 flex items-center justify-center rounded-2xl bg-cyan-500/15 text-[11px] font-semibold text-cyan-300">Drop here</span>}
@@ -5119,7 +5091,6 @@ function VideoPageInner() {
                       }}
                     >
                       <input ref={endFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setEndFrame(e.target.files?.[0] ?? null)} />
-                      <span className="absolute top-2 right-2 text-[9px] px-1.5 py-0.5 rounded-md z-10" style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.08)" }}>Optional</span>
                       {endFrame ? (
                         <>
                           {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8, background: "#000" }} />}
@@ -5130,7 +5101,6 @@ function VideoPageInner() {
                           <div className="rounded-full p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
                             <ImageIcon size={20} style={{ color: "#a1a1aa" }} />
                           </div>
-                          <span className="text-[12px] font-medium" style={{ color: "#94a3b8" }}>End frame</span>
                         </>
                       )}
                       {activeDropZone === "endFrame" && <span className="absolute inset-0 flex items-center justify-center rounded-2xl bg-purple-500/15 text-[11px] font-semibold text-purple-300">Drop here</span>}

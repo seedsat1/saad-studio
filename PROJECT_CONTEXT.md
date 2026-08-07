@@ -1,3 +1,10 @@
+#### Latest task: Remove Optional badge and label text from Start/End frames (2026-08-07)
+- Status: Completed. Cleaned the Start frame and End frame upload buttons by removing the "Optional" badges and the "Start frame" / "End frame" text labels, leaving only the centered Image icon for a cleaner, mockup-matching appearance.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed.
+- Decisions:
+  - Remove all occurrences of optional badges and text label spans from Start frame and End frame buttons across Omni, Non-Kling, and Kling 3.0 UI sections.
+
 #### Latest task: Add video reference thumbnail previews in /video (2026-08-07)
 - Status: Completed. Enabled video reference thumbnail previews in the generation UI by generating object URLs for video files and rendering them with a <video> element.
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
