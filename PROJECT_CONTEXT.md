@@ -1,3 +1,11 @@
+#### Latest task: Fix Add media button text truncation/ellipsis inside status bar (2026-08-07)
+- Status: Completed. Adjusted the layout geometries inside the 5-icon status bar inside `ReferenceActionTiles` by setting `min-w-[80px]` and `flex-shrink-0` on the `+ Add media` button and adding inline style `whiteSpace: "nowrap"` to ensure the text displays fully on one line without browser truncation.
+- Affected files: `components/ReferenceActionTiles.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed.
+- Decisions:
+  - Avoid using Tailwind's `whitespace-nowrap` if Next.js compiler caching prevents updates; instead, use standard React inline style `whiteSpace: "nowrap"` for absolute safety.
+  - Set a minimum width of `80px` and prevent shrinkage on the `+ Add media` button to make sure it always has enough space to render the text.
+
 #### Latest task: Replace original action tiles with 5-icon status bar and Add media button (2026-08-07)
 - Status: Completed. Implemented the mockup correctly by replacing the `Style`, `Character`, `Add` square tiles with the new 5-icon status bar layout (`Image`, `Video`, `AudioLines`, `User`, `Palette` with colored bottom glow active-indicator bars) and a compact `+ Add media` button.
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `components/ReferenceActionTiles.tsx`, `PROJECT_CONTEXT.md`.

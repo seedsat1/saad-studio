@@ -68,18 +68,18 @@ export function ReferenceActionTiles({
         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
           {isAr ? "المراجع والمظهر الفني" : "REFERENCES & STYLING"}
         </label>
-        <div className="flex items-center justify-between gap-1.5 rounded-xl bg-black/20 p-1.5 border border-white/[0.03]">
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-between gap-1 rounded-xl bg-black/20 p-1 border border-white/[0.03]">
+          <div className="flex items-center gap-1">
             {/* 1. Image Icon Button */}
             <button
               type="button"
               onClick={() => onOpenStudio("uploads")}
-              className="relative w-[32px] h-[32px] rounded-lg bg-[#121520] border border-slate-800 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+              className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
               title={isAr ? "الصور المرجعية" : "Reference Images"}
             >
-              <ImageIcon className={`w-4 h-4 transition-all ${hasImages ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+              <ImageIcon className={`w-3.5 h-3.5 transition-all ${hasImages ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-400"}`} />
               <div
-                className={`absolute bottom-0 left-1 right-1 h-[2px] rounded-full transition-all ${
+                className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
                   hasImages
                     ? "bg-cyan-500 shadow-[0_0_8px_#06b6d4]"
                     : "bg-transparent group-hover:bg-slate-700"
@@ -91,12 +91,12 @@ export function ReferenceActionTiles({
             <button
               type="button"
               onClick={() => onOpenStudio("uploads")}
-              className="relative w-[32px] h-[32px] rounded-lg bg-[#121520] border border-slate-800 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+              className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
               title={isAr ? "الفيديوهات المرجعية" : "Reference Videos"}
             >
-              <Video className={`w-4 h-4 transition-all ${hasVideos ? "text-purple-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+              <Video className={`w-3.5 h-3.5 transition-all ${hasVideos ? "text-purple-400" : "text-slate-500 group-hover:text-slate-400"}`} />
               <div
-                className={`absolute bottom-0 left-1 right-1 h-[2px] rounded-full transition-all ${
+                className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
                   hasVideos
                     ? "bg-purple-500 shadow-[0_0_8px_#a855f7]"
                     : "bg-transparent group-hover:bg-slate-700"
@@ -108,12 +108,12 @@ export function ReferenceActionTiles({
             <button
               type="button"
               onClick={() => onOpenStudio("uploads")}
-              className="relative w-[32px] h-[32px] rounded-lg bg-[#121520] border border-slate-800 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+              className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
               title={isAr ? "الأصوات المرجعية" : "Reference Audio"}
             >
-              <AudioLines className={`w-4 h-4 transition-all ${hasAudio ? "text-teal-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+              <AudioLines className={`w-3.5 h-3.5 transition-all ${hasAudio ? "text-teal-400" : "text-slate-500 group-hover:text-slate-400"}`} />
               <div
-                className={`absolute bottom-0 left-1 right-1 h-[2px] rounded-full transition-all ${
+                className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
                   hasAudio
                     ? "bg-teal-500 shadow-[0_0_8px_#14b8a6]"
                     : "bg-transparent group-hover:bg-slate-700"
@@ -125,12 +125,12 @@ export function ReferenceActionTiles({
             <button
               type="button"
               onClick={() => onOpenStudio("character")}
-              className="relative w-[32px] h-[32px] rounded-lg bg-[#121520] border border-slate-800 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+              className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
               title={isAr ? "شخصية محفوظة" : "Saved Character"}
             >
-              <User className={`w-4 h-4 transition-all ${activeCharacter ? "text-pink-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+              <User className={`w-3.5 h-3.5 transition-all ${activeCharacter ? "text-pink-400" : "text-slate-500 group-hover:text-slate-400"}`} />
               <div
-                className={`absolute bottom-0 left-1 right-1 h-[2px] rounded-full transition-all ${
+                className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
                   activeCharacter
                     ? "bg-pink-500 shadow-[0_0_8px_#ec4899]"
                     : "bg-transparent group-hover:bg-slate-700"
@@ -142,12 +142,12 @@ export function ReferenceActionTiles({
             <button
               type="button"
               onClick={() => onOpenStudio("style")}
-              className="relative w-[32px] h-[32px] rounded-lg bg-[#121520] border border-slate-800 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
+              className="relative w-[28px] h-[28px] rounded-lg bg-[#121520] border border-slate-800/80 flex flex-col items-center justify-center transition-all duration-200 hover:bg-[#191d2c] group cursor-pointer"
               title={isAr ? "مكتبة الأنماط" : "Style Library"}
             >
-              <Palette className={`w-4 h-4 transition-all ${activeStyle ? "text-amber-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+              <Palette className={`w-3.5 h-3.5 transition-all ${activeStyle ? "text-amber-400" : "text-slate-500 group-hover:text-slate-400"}`} />
               <div
-                className={`absolute bottom-0 left-1 right-1 h-[2px] rounded-full transition-all ${
+                className={`absolute bottom-0 left-0.5 right-0.5 h-[1.5px] rounded-full transition-all ${
                   activeStyle
                     ? "bg-amber-500 shadow-[0_0_8px_#eab308]"
                     : "bg-transparent group-hover:bg-slate-700"
@@ -156,16 +156,16 @@ export function ReferenceActionTiles({
             </button>
           </div>
 
-          <div className="h-6 w-[1px] bg-slate-800/80 mx-1 flex-shrink-0" />
+          <div className="h-5 w-[1px] bg-slate-800/80 mx-0.5 flex-shrink-0" />
 
           {/* 6. Add Media Button */}
           <button
             type="button"
             onClick={onAddMedia}
-            className="flex-1 h-[32px] rounded-lg border border-dashed border-slate-700 hover:border-cyan-500/80 bg-cyan-500/5 hover:bg-cyan-500/10 flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer text-cyan-400 hover:text-white min-w-0"
+            className="flex-shrink-0 min-w-[80px] h-[28px] rounded-lg border border-dashed border-slate-700 hover:border-cyan-500/80 bg-cyan-500/5 hover:bg-cyan-500/10 flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer text-cyan-400 hover:text-white"
           >
-            <Plus className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="text-[10px] font-bold tracking-tight truncate">{isAr ? "إضافة وسائط" : "Add media"}</span>
+            <Plus className="w-3 h-3 flex-shrink-0" />
+            <span className="text-[10px] font-bold tracking-tight" style={{ whiteSpace: "nowrap" }}>{isAr ? "إضافة وسائط" : "Add media"}</span>
           </button>
         </div>
 
