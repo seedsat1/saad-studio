@@ -4176,6 +4176,11 @@ function VideoPageInner() {
                 )}
               </button>
 
+              <div className="flex flex-col items-center justify-center gap-0.5 mt-0.5 select-none pointer-events-none">
+                <span className="text-[10px] font-semibold text-slate-400">Add references</span>
+                <span className="text-[9px] text-slate-500">Image, Video or Audio</span>
+              </div>
+
               {/* Row 2: Thumbnails grid (rendered below status bar when files are uploaded) */}
               {referenceImages.length > 0 && (
                 <div className="grid grid-cols-4 gap-1.5 pt-1 bg-black/20 border border-dashed border-slate-800/80 rounded-xl p-2.5">
