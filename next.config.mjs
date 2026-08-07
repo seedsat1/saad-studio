@@ -152,6 +152,12 @@ const nextConfig = {
         port: "",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        protocol: "https",
+        hostname: "d2h7xmz5gqybh9.cloudfront.net",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
   async headers() {
