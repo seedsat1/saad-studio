@@ -66,7 +66,7 @@ type LocalRefImage = {
   dataUrl: string;
 };
 
-type CharacterModelId = "gemini-3.1-flash-image" | "gemini-3-pro-image-preview" | "gemini-3.1-flash-lite-image";
+type CharacterModelId = "gemini-3.1-flash-image" | "gemini-3-pro-image" | "gemini-3.1-flash-lite-image";
 
 const CHARACTER_MODELS: Array<{
   id: CharacterModelId;
@@ -83,7 +83,7 @@ const CHARACTER_MODELS: Array<{
     description: "Balanced speed and high-quality consistent character generation.",
   },
   {
-    id: "gemini-3-pro-image-preview",
+    id: "gemini-3-pro-image",
     name: "Nano Banana Pro",
     provider: "Google",
     badge: "PREMIUM",

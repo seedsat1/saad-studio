@@ -41,8 +41,9 @@ const KIE_AI_AVATAR_PRO_MODEL = "kling/ai-avatar-pro";
 const KIE_SEEDANCE_2_MODEL = "bytedance/seedance-2";
 const KIE_SEEDANCE_2_FAST_MODEL = "bytedance/seedance-2-fast";
 const GEMINI_OMNI_AUDIO_ALIAS = "gemini-omni-audio";
-const GOOGLE_GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
+const GOOGLE_GEMINI_TTS_MODEL = "gemini-3.1-flash-live-preview";
 const GOOGLE_GEMINI_TTS_MODELS = new Set([
+  "gemini-3.1-flash-live-preview",
   "gemini-3.1-flash-tts-preview",
   "gemini-2.5-flash-preview-tts",
   "gemini-2.5-pro-preview-tts",

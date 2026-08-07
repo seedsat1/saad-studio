@@ -601,7 +601,7 @@ function LipsyncStudioPageInner() {
             actionType: "tts",
             text: ttsText.trim(),
             voice: ttsVoice,
-            model: "gemini-3.1-flash-tts-preview",
+            model: "gemini-3.1-flash-live-preview",
           }),
         });
         const ttsJson = await ttsRes.json().catch(() => ({}));

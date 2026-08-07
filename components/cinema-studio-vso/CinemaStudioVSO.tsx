@@ -668,7 +668,7 @@ const buildAspectRatioOptions = (model: WaveSpeedVideoModel) => {
 };
 
 const ELEVENLABS_TTS_MODEL = "elevenlabs/multilingual-v2";
-const GOOGLE_TTS_MODEL = "gemini-3.1-flash-tts-preview";
+const GOOGLE_TTS_MODEL = "gemini-3.1-flash-live-preview";
 const GOOGLE_TTS_VOICES = [
   ["Zephyr", "Bright"],
   ["Puck", "Upbeat"],

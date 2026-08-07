@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
     const prompt = `اقرأ النص التالي بالعربية بصوت واضح وطبيعي ومناسب للجمهور العربي:\n\nمرحباً، هذا نموذج لمعاينة خامة الصوت الاصطناعي في سعد ستوديو.`;
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-live-preview:generateContent`,
       {
         method: "POST",
         headers: {

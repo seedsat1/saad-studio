@@ -83,17 +83,49 @@ const GOOGLE_GEMINI_TTS_VOICE_DETAILS: Record<string, { arabicName: string; gend
   Sulafat: { arabicName: "سولافات", gender: "أنثوي" },
 };
 
+const LANGUAGE_PROMPTS: Record<string, string> = {
+  ar: "مرحباً، أنا {voice}، صوت {gender} من سعد ستوديو.",
+  en: "Hello, I am {voice}, a {gender} voice from Saad Studio.",
+  es: "Hola, soy {voice}, una voz {gender} de Saad Studio.",
+  pt: "Olá, eu sou {voice}, uma voz {gender} do Saad Studio.",
+  hi: "नमस्ते, मैं {voice} हूँ, साਦ स्टूडियो की एक {gender} आवाज़।",
+  ru: "Привет, я {voice}, {gender} голос из Saad Studio.",
+  fr: "Bonjour, je suis {voice}, une voix {gender} de Saad Studio.",
+  de: "Hallo, ich bin {voice}, eine {gender} Stimme aus dem Saad Studio.",
+  ko: "안녕하세요, 저는 사드 스튜디오의 {gender} 목소리 {voice}입니다.",
+  tr: "Merhaba, ben {voice}, Saad Studio'dan bir {gender} ses.",
+  it: "Ciao, sono {voice}, una voce {gender} di Saad Studio."
+};
+
+const LANGUAGE_GENDERS: Record<string, { male: string; female: string }> = {
+  ar: { male: "رجالي", female: "أنثوي" },
+  en: { male: "male", female: "female" },
+  es: { male: "masculina", female: "femenina" },
+  pt: { male: "masculina", female: "femenina" },
+  hi: { male: "पुरुष", female: "महिला" },
+  ru: { male: "мужской", female: "женский" },
+  fr: { male: "masculine", female: "féminine" },
+  de: { male: "männliche", female: "weibliche" },
+  ko: { male: "남성", female: "여성" },
+  tr: { male: "erkek", female: "kadın" },
+  it: { male: "maschile", female: "femminile" }
+};
+
 export async function GET(req: NextRequest) {
   try {
     const voiceParam = req.nextUrl.searchParams.get("voice") || "Sulafat";
+    const langParam = req.nextUrl.searchParams.get("lang") || "ar";
     const rawName = String(voiceParam).replace(/^gemini:/i, "").trim();
     const exactVoice = Array.from(GOOGLE_GEMINI_TTS_VOICES).find(
       (v) => v.toLowerCase() === rawName.toLowerCase()
     ) || "Sulafat";
 
+    const exactLang = LANGUAGE_PROMPTS[langParam.toLowerCase()] ? langParam.toLowerCase() : "ar";
+    const registryKey = `${exactVoice}_${exactLang}`;
+
     // 1. Check persistent registry
     const registry = getRegistry();
-    const storedUrl = registry[exactVoice];
+    const storedUrl = registry[registryKey] || (exactLang === "ar" ? registry[exactVoice] : undefined);
     if (storedUrl) {
       const targetUrl = (storedUrl.startsWith("http") || storedUrl.startsWith("/"))
         ? storedUrl
@@ -110,10 +142,14 @@ export async function GET(req: NextRequest) {
 
     if (apiKey) {
       const details = GOOGLE_GEMINI_TTS_VOICE_DETAILS[exactVoice] || { arabicName: exactVoice, gender: "أنثوي" };
-      const prompt = `مرحباً، أنا ${details.arabicName}، صوت ${details.gender} من سعد ستوديو.`;
+      const isFemale = details.gender === "أنثوي";
+      const genderStr = LANGUAGE_GENDERS[exactLang][isFemale ? "female" : "male"];
+      const template = LANGUAGE_PROMPTS[exactLang];
+      const voiceLabel = exactLang === "ar" ? details.arabicName : exactVoice;
+      const prompt = template.replace("{voice}", voiceLabel).replace("{gender}", genderStr);
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-live-preview:generateContent`,
         {
           method: "POST",
           headers: {
@@ -146,12 +182,12 @@ export async function GET(req: NextRequest) {
             contentType: "audio/wav",
             userId: "admin_previews",
             assetType: "audio",
-            generationId: `voice_sample_${exactVoice.toLowerCase()}`,
-            fileName: `sample_${exactVoice.toLowerCase()}.wav`,
+            generationId: `voice_sample_${exactVoice.toLowerCase()}_${exactLang}`,
+            fileName: `sample_${exactVoice.toLowerCase()}_${exactLang}.wav`,
           });
 
           if (uploadedUrl) {
-            registry[exactVoice] = uploadedUrl;
+            registry[registryKey] = uploadedUrl;
             saveRegistry(registry);
 
             const targetUrl = (uploadedUrl.startsWith("http") || uploadedUrl.startsWith("/"))

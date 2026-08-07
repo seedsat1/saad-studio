@@ -724,7 +724,7 @@ export default function AudioPage() {
   const progress = currentTrack ? (audioDuration > 0 ? currentTime / audioDuration : 0) : 0;
 
   return (
-    <div className="flex flex-col min-h-screen bg-black">
+    <div className="flex flex-col h-[calc(100vh-58px)] overflow-hidden bg-black">
       {/* Real HTML5 Audio Player */}
       {currentTrack?.audioUrl && (
         <audio
@@ -787,17 +787,17 @@ export default function AudioPage() {
         <div className="w-10 sm:w-20" /> {/* Spacer */}
       </div>
 
-      <div className="flex-1">
+      <div className="flex-1 min-h-0 flex flex-col">
         {suiteTab === "sound-studio" ? (
           <iframe
             src="/stude/sound.html?embed=1"
-            className="w-full border-0"
-            style={{ height: "calc(100vh - 58px)", display: "block" }}
+            className="flex-1 w-full border-0"
+            style={{ display: "block" }}
             title="Audio Studio"
             allow="microphone *; autoplay *"
           />
         ) : suiteTab === "library" ? (
-          <div className="min-h-screen bg-[#060b13] text-slate-100 p-6" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
+          <div className="flex-1 overflow-y-auto min-h-0 bg-[#060b13] text-slate-100 p-6" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
             <div className="max-w-[1400px] mx-auto space-y-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -964,7 +964,7 @@ export default function AudioPage() {
             </div>
           </div>
         ) : (
-          <div className="min-h-screen bg-[#060b13] text-zinc-100" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
+          <div className="flex-1 overflow-y-auto min-h-0 bg-[#060b13] text-zinc-100" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
 
             {/* ══ HEADER ════════════════════════════════════════════════════════════ */}
             <header className="relative z-10 bg-[#060b13] border-b border-[#0d1b2e]">

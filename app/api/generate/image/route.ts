@@ -24,7 +24,7 @@ const GOOGLE_IMAGE_MODEL_MAP: Record<string, string> = {
   "google/nano-banana-edit": "gemini-2.5-flash-image",
   "nano-banana-2": "gemini-3.1-flash-image",
   "nano-banana-2-lite": "gemini-3.1-flash-lite-image",
-  "nano-banana-pro": "gemini-3-pro-image-preview",
+  "nano-banana-pro": "gemini-3-pro-image",
 };
 const OPENAI_IMAGE_MODEL_MAP: Record<string, string> = {
   "gpt-image-2-text-to-image": "gpt-image-2",

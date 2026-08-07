@@ -44,6 +44,7 @@ export interface ImageModel {
 }
 
 const IMAGE_QUALITY_CREDIT_MULTIPLIER: Record<string, number> = {
+  "512px": 0.5,
   "1k": 1.0,
   "1024": 1.0,
   "2k": 1.5,
@@ -54,7 +55,7 @@ const IMAGE_QUALITY_CREDIT_MULTIPLIER: Record<string, number> = {
 const IMAGE_MODEL_QUALITY_CREDIT_MULTIPLIER: Record<string, Record<string, number>> = {
   "nano-banana-pro": { "2k": 1.5, "4k": 1.875 },
   "wan/2-7-image-pro": { "2k": 1.5, "4k": 1.875 },
-  "nano-banana-2": { "2k": 1.5, "4k": 2.25 },
+  "nano-banana-2": { "512px": 0.5, "2k": 1.5, "4k": 2.25 },
   "nano-banana-2-lite": { "2k": 1.5, "4k": 2.25 },
   "gpt-image-2-text-to-image": { "medium": 1.5, "high": 1.875 },
   "gpt-image-2-image-to-image": { "medium": 1.5, "high": 1.875 },
@@ -97,9 +98,9 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "TOP",
     group: "Nano Banana",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9"],
+    aspectRatios: ["1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9"],
     maxImages: 4,
-    maxRefImages: 8,
+    maxRefImages: 14,
     imageInputField: "image_input",
     qualityParam: ["1K", "2K", "4K"],
     creditCost: 2.0,
@@ -111,11 +112,11 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Nano Banana",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+    aspectRatios: ["1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9"],
     maxImages: 4,
     maxRefImages: 14,
     imageInputField: "image_input",
-    qualityParam: ["1K", "2K", "4K"],
+    qualityParam: ["512px", "1K", "2K", "4K"],
     creditCost: 2.0,
   },
   {

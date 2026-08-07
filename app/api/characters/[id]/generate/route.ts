@@ -20,7 +20,7 @@ export const maxDuration = 180;
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const WAVESPEED_MODEL = "ideogram-ai/ideogram-character";
-const GOOGLE_GEMINI_CHARACTER_MODEL_ID = "gemini-3-pro-image-preview";
+const GOOGLE_GEMINI_CHARACTER_MODEL_ID = "gemini-3-pro-image";
 const LEGACY_GEMINI_OMNI_CHARACTER_MODEL_ID = "gemini-omni-character";
 
 function getGoogleApiKey(): string | null {
@@ -376,7 +376,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const isGoogleGeminiCharacterModel = [
-      "gemini-3-pro-image-preview",
       "gemini-3-pro-image",
       "gemini-3.1-flash-image",
       "gemini-3.1-flash-lite-image",

@@ -784,7 +784,7 @@ export default function CinemaFlowPage() {
           body: JSON.stringify({
             prompt: finalPrompt,
             size: "1024*1024",
-            modelId: "gemini-3-pro-image-preview",
+            modelId: "gemini-3-pro-image",
             aspect_ratio: aspectRatio,
             quality: "1K",
             style: "Auto",
