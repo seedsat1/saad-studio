@@ -31,7 +31,7 @@ function resolveSeedance25Route(baseRoute: string, hasImageInput: boolean, selec
   if (!hasImageInput) return baseRoute;
 
   const normalizedResolution = String(selectedResolution || "").trim().toLowerCase();
-  if (normalizedResolution === "480p" || normalizedResolution === "4k") {
+  if (normalizedResolution === "480p") {
     return "bytedance/seedance-2.5/image-to-video-spicy";
   }
 
@@ -506,9 +506,7 @@ export async function POST(req: NextRequest) {
         const normalizedResolution = String(resolution || "720p").toLowerCase();
         payload.duration = normalizedDuration;
         payload.generate_audio = enableAudio !== false;
-        payload.resolution = wavespeedModel.endsWith("image-to-video-spicy")
-          ? (["480p", "720p", "1080p", "4k"].includes(normalizedResolution) ? normalizedResolution : "720p")
-          : (normalizedResolution === "1080p" ? "1080p" : "720p");
+        payload.resolution = ["480p", "720p"].includes(normalizedResolution) ? normalizedResolution : "720p";
         if (wavespeedModel.endsWith("text-to-video-turbo")) {
           if (safeReferenceImageUrls.length) payload.reference_images = safeReferenceImageUrls.slice(0, 30);
           if (safeReferenceVideoUrls.length || videoUrl) payload.reference_videos = (safeReferenceVideoUrls.length ? safeReferenceVideoUrls : [videoUrl].filter(Boolean)).slice(0, 10);

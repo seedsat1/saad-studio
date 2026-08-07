@@ -10815,9 +10815,9 @@
 - Behavior:
   - Public `/video`, `/api/models`, `/admin/models`, canvas pickers, and Smart CLI now receive Seedance 2.5 from the central `VIDEO_MODEL_REGISTRY`/model lists.
   - `/video` shows `Seedance 2.5` as the main subscriber-facing row and auto-routes prompt-only/reference-media requests to `text-to-video-turbo`; image-start requests route to `image-to-video-turbo`.
-  - Seedance 2.5 Text Turbo allows 4-30s, 720p/1080p, ratios `16:9`, `9:16`, `4:3`, `3:4`, `1:1`, `21:9`, and reference caps 30 images + 10 videos + 10 audios with 30s total caps for video/audio references.
-  - Seedance 2.5 Image Turbo supports image + optional last image, 4-30s, 720p/1080p, same documented ratios, and native `generate_audio`.
-  - Seedance 2.5 Spicy supports image + optional last image, 4-30s, 480p/720p/1080p/4k, documented ratios, `seed`, and native `generate_audio`.
+  - Seedance 2.5 Text Turbo currently exposes 4-30s, 480p/720p, ratios `16:9`, `9:16`, `4:3`, `3:4`, `1:1`, `21:9`, and reference caps 30 images + 10 videos + 10 audios with 30s total caps for video/audio references.
+  - Seedance 2.5 Image Turbo currently supports image + optional last image, 4-30s, 480p/720p, same documented ratios, and native `generate_audio`.
+  - Seedance 2.5 Spicy currently supports image + optional last image, 4-30s, 480p/720p, documented ratios, `seed`, and native `generate_audio`.
 - Pricing decisions:
   - Turbo 720p without reference video: $0.20/s => 4 credits/s. Turbo 1080p without reference video: $0.21/s => 4.2 credits/s.
   - Turbo with reference video: 720p $0.38/s => 7.6 credits/s; 1080p $0.39/s => 7.8 credits/s.
@@ -10867,3 +10867,15 @@
   - This prevents `blob:https://www.saadstudio.app/... net::ERR_FILE_NOT_FOUND` errors caused by non-image reference media receiving stale/unneeded blob preview URLs.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
 - Decision: Browser object URLs should be reserved for media that is actually rendered as an image preview; video/audio Seedance references should use stable icons in the selector/chip UI.
+
+#### Latest task: Correct Seedance 2.5 public quality options to 480p/720p (2026-08-07)
+- Status: Completed. Updated the central Seedance 2.5 model registry, backend request normalization, panel route normalization, Smart CLI catalog text, and Seedance 2.5 pricing helpers so the current public quality set is `480p` then `720p`.
+- Source used: latest user-supplied provider UI screenshot showing the Seedance 2.5 quality dropdown with only `480p` and `720p`.
+- Affected files: `lib/video-model-registry.ts`, `app/api/video/route.ts`, `app/api/panel/generate/video/route.ts`, `app/api/smart-cli/mcp/route.ts`, `lib/credit-pricing.ts`, `lib/pricing.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Public Seedance 2.5 capabilities now expose only `480p` and `720p`, in that order.
+  - API and panel payload normalization allow only `480p`/`720p`; stale `1080p` or `4k` requests fall back to `720p`.
+  - Image/start-frame requests with `480p` still route internally to `bytedance/seedance-2.5/image-to-video-spicy`; `720p` image/start-frame requests route to `image-to-video-turbo`; reference-only prompt requests stay on `text-to-video-turbo`.
+  - Seedance 2.5 credit helpers now price the visible choices from the user-provided source table only: `480p = $0.162/s`, `720p = $0.324/s`, multiplied by 40 credits/USD. Generate Audio remains included and does not change price.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only. Search found no remaining active app/lib Seedance 2.5 `1080p`/`4k` references.
+- Decision: Remove subscriber-facing `1080p/4K` for Seedance 2.5 because the latest supplied provider UI contradicts the earlier catalog assumptions.

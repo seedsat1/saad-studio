@@ -209,25 +209,18 @@ function hasNonEmptyArray(payload: VideoPayload | undefined, keys: string[]): bo
 function getSeedance25TurboCredits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
-  const is1080 = quality.includes("1080");
-  const hasReferenceVideo = hasNonEmptyArray(payload, ["reference_video_urls", "reference_videos", "video_urls"])
-    || (typeof payload?.video_url === "string" && payload.video_url.trim().length > 0)
-    || (typeof payload?.video === "string" && payload.video.trim().length > 0);
-  const usdPerSecond = hasReferenceVideo
-    ? (is1080 ? 0.39 : 0.38)
-    : (is1080 ? 0.21 : 0.20);
+  const q = quality.includes("480") ? "480p" : "720p";
+  const usdPerSecond = q === "480p" ? 0.162 : 0.324;
   return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }
 
 function getSeedance25SpicyCredits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
-  const q = quality.includes("4k") ? "4k" : quality.includes("1080") ? "1080p" : quality.includes("480") ? "480p" : "720p";
+  const q = quality.includes("480") ? "480p" : "720p";
   const usdPerSecond = ({
     "480p": 0.162,
     "720p": 0.324,
-    "1080p": 0.81,
-    "4k": 1.62,
   } as Record<string, number>)[q];
   return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }

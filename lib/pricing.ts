@@ -472,11 +472,7 @@ function getSeedance25ProviderUsd(modelRef: string, durationSec: number, quality
   if (!route.includes("bytedance/seedance-2.5")) return null;
   const q = (quality || "720p").trim().toLowerCase();
   const duration = Math.max(1, Number.isFinite(durationSec) ? durationSec : 5);
-  if (route.includes("image-to-video-spicy")) {
-    const usdPerSecond = q.includes("4k") ? 1.62 : q.includes("1080") ? 0.81 : q.includes("480") ? 0.162 : 0.324;
-    return parseFloat((usdPerSecond * duration).toFixed(4));
-  }
-  const usdPerSecond = q.includes("1080") ? 0.21 : 0.20;
+  const usdPerSecond = q.includes("480") ? 0.162 : 0.324;
   return parseFloat((usdPerSecond * duration).toFixed(4));
 }
 
@@ -541,9 +537,9 @@ const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "bytedance/seedance-2-fast":                  { "720p": 1.0, "1080p": 0.75 / 0.70 },
   "bytedance/seedance-2.0/text-to-video-turbo": { "720p": 1.0, "1080p": 0.75 / 0.70 },
   "bytedance/seedance-2.0/image-to-video-turbo": { "720p": 1.0, "1080p": 0.75 / 0.70 },
-  "bytedance/seedance-2.5/text-to-video-turbo": { "720p": 1.0, "1080p": 1.05 },
-  "bytedance/seedance-2.5/image-to-video-turbo": { "720p": 1.0, "1080p": 1.05 },
-  "bytedance/seedance-2.5/image-to-video-spicy": { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-2.5/text-to-video-turbo": { "480p": 0.5, "720p": 1.0 },
+  "bytedance/seedance-2.5/image-to-video-turbo": { "480p": 0.5, "720p": 1.0 },
+  "bytedance/seedance-2.5/image-to-video-spicy": { "480p": 0.5, "720p": 1.0 },
   "bytedance/seedance-2-mini":                  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "bytedance/seedance-2.0-mini/text-to-video":  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "bytedance/seedance-2.0-mini/image-to-video": { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
