@@ -4094,8 +4094,8 @@ function VideoPageInner() {
           {(showReferenceImages || showSimpleKlingRefs) && (
             <div className="flex flex-col gap-2">
               {/* The Status Bar Row */}
-              <div className="flex items-center justify-between gap-1 w-full bg-[#070b15] border border-slate-800/80 rounded-full p-1.5 pl-3 pr-1.5 relative">
-                <div className="flex items-center gap-1.5">
+              <div className="flex items-center justify-between w-full bg-[#070b15] border border-slate-800/80 rounded-full p-1 pl-2.5 pr-1 relative flex-nowrap min-w-0 overflow-hidden">
+                <div className="flex items-center gap-1 flex-shrink-0 min-w-0">
                   {/* 1. Image Icon Button */}
                   <button
                     type="button"
@@ -4103,12 +4103,12 @@ function VideoPageInner() {
                       setActiveStudioTab("uploads");
                       setShowReferenceStudioModal(true);
                     }}
-                    className="relative w-10 h-10 rounded-2xl bg-[#111524] border border-slate-800 flex items-center justify-center transition-all duration-200 hover:bg-[#181d32] group cursor-pointer"
+                    className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center transition-all duration-200 hover:bg-[#181d32] group cursor-pointer flex-shrink-0"
                     title={lang === "ar" ? "الصور المرجعية" : "Reference Images"}
                   >
-                    <ImageIcon className={`w-4 h-4 transition-all ${referenceImages.some(f => f.type.startsWith("image/")) ? "text-cyan-400" : "text-slate-400 group-hover:text-slate-350"}`} />
+                    <ImageIcon className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("image/")) ? "text-cyan-400" : "text-slate-400 group-hover:text-slate-350"}`} />
                     <div
-                      className={`absolute bottom-0.5 left-2.5 right-2.5 h-[2.5px] rounded-full transition-all ${
+                      className={`absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full transition-all ${
                         referenceImages.some(f => f.type.startsWith("image/"))
                           ? "bg-cyan-500 shadow-[0_0_6px_#06b6d4]"
                           : "bg-transparent group-hover:bg-slate-700"
@@ -4123,12 +4123,12 @@ function VideoPageInner() {
                       setActiveStudioTab("uploads");
                       setShowReferenceStudioModal(true);
                     }}
-                    className="relative w-10 h-10 rounded-2xl bg-[#111524] border border-slate-800 flex items-center justify-center transition-all duration-200 hover:bg-[#181d32] group cursor-pointer"
+                    className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center transition-all duration-200 hover:bg-[#181d32] group cursor-pointer flex-shrink-0"
                     title={lang === "ar" ? "الفيديوهات المرجعية" : "Reference Videos"}
                   >
-                    <Video className={`w-4 h-4 transition-all ${referenceImages.some(f => f.type.startsWith("video/")) ? "text-purple-400" : "text-slate-400 group-hover:text-slate-350"}`} />
+                    <Video className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("video/")) ? "text-purple-400" : "text-slate-400 group-hover:text-slate-350"}`} />
                     <div
-                      className={`absolute bottom-0.5 left-2.5 right-2.5 h-[2.5px] rounded-full transition-all ${
+                      className={`absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full transition-all ${
                         referenceImages.some(f => f.type.startsWith("video/"))
                           ? "bg-purple-500 shadow-[0_0_8px_#a855f7]"
                           : "bg-transparent group-hover:bg-slate-700"
@@ -4143,12 +4143,12 @@ function VideoPageInner() {
                       setActiveStudioTab("uploads");
                       setShowReferenceStudioModal(true);
                     }}
-                    className="relative w-10 h-10 rounded-2xl bg-[#111524] border border-slate-800 flex items-center justify-center transition-all duration-200 hover:bg-[#181d32] group cursor-pointer"
+                    className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center transition-all duration-200 hover:bg-[#181d32] group cursor-pointer flex-shrink-0"
                     title={lang === "ar" ? "الأصوات المرجعية" : "Reference Audio"}
                   >
-                    <AudioLines className={`w-4 h-4 transition-all ${referenceImages.some(f => f.type.startsWith("audio/")) ? "text-teal-400" : "text-slate-400 group-hover:text-slate-350"}`} />
+                    <AudioLines className={`w-3.5 h-3.5 transition-all ${referenceImages.some(f => f.type.startsWith("audio/")) ? "text-teal-400" : "text-slate-400 group-hover:text-slate-350"}`} />
                     <div
-                      className={`absolute bottom-0.5 left-2.5 right-2.5 h-[2.5px] rounded-full transition-all ${
+                      className={`absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full transition-all ${
                         referenceImages.some(f => f.type.startsWith("audio/"))
                           ? "bg-teal-500 shadow-[0_0_8px_#14b8a6]"
                           : "bg-transparent group-hover:bg-slate-700"
@@ -4163,12 +4163,12 @@ function VideoPageInner() {
                       setActiveStudioTab("character");
                       setShowReferenceStudioModal(true);
                     }}
-                    className="relative w-10 h-10 rounded-2xl bg-[#111524] border border-slate-800 flex items-center justify-center transition-all duration-200 hover:bg-[#181d32] group cursor-pointer"
+                    className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center transition-all duration-200 hover:bg-[#181d32] group cursor-pointer flex-shrink-0"
                     title={lang === "ar" ? "شخصية محفوظة" : "Saved Character"}
                   >
-                    <User className={`w-4 h-4 transition-all ${selectedCharacterPresetId ? "text-pink-400" : "text-slate-400 group-hover:text-slate-350"}`} />
+                    <User className={`w-3.5 h-3.5 transition-all ${selectedCharacterPresetId ? "text-pink-400" : "text-slate-400 group-hover:text-slate-350"}`} />
                     <div
-                      className={`absolute bottom-0.5 left-2.5 right-2.5 h-[2.5px] rounded-full transition-all ${
+                      className={`absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full transition-all ${
                         selectedCharacterPresetId
                           ? "bg-pink-500 shadow-[0_0_8px_#ec4899]"
                           : "bg-transparent group-hover:bg-slate-700"
@@ -4183,12 +4183,12 @@ function VideoPageInner() {
                       setActiveStudioTab("style");
                       setShowReferenceStudioModal(true);
                     }}
-                    className="relative w-10 h-10 rounded-2xl bg-[#111524] border border-slate-800 flex items-center justify-center transition-all duration-200 hover:bg-[#181d32] group cursor-pointer"
+                    className="relative w-8 h-8 rounded-xl bg-[#111524] border border-slate-800 flex items-center justify-center transition-all duration-200 hover:bg-[#181d32] group cursor-pointer flex-shrink-0"
                     title={lang === "ar" ? "مكتبة الأنماط" : "Style Library"}
                   >
-                    <Palette className={`w-4 h-4 transition-all ${selectedStyle ? "text-amber-400" : "text-slate-400 group-hover:text-slate-350"}`} />
+                    <Palette className={`w-3.5 h-3.5 transition-all ${selectedStyle ? "text-amber-400" : "text-slate-400 group-hover:text-slate-350"}`} />
                     <div
-                      className={`absolute bottom-0.5 left-2.5 right-2.5 h-[2.5px] rounded-full transition-all ${
+                      className={`absolute bottom-0.5 left-2 right-2 h-[2px] rounded-full transition-all ${
                         selectedStyle
                           ? "bg-amber-500 shadow-[0_0_8px_#eab308]"
                           : "bg-transparent group-hover:bg-slate-700"
@@ -4197,17 +4197,17 @@ function VideoPageInner() {
                   </button>
                 </div>
 
-                <div className="h-5 w-[1px] bg-slate-800 mx-1.5 flex-shrink-0" />
+                <div className="h-4 w-[1px] bg-slate-800 mx-1 flex-shrink-0" />
 
                 <button
                   type="button"
                   onClick={() => openMediaPicker("referenceImages")}
-                  className="flex-shrink-0 h-10 rounded-full bg-[#121624] border border-slate-800 hover:bg-[#181d2f] hover:border-slate-700/80 flex items-center justify-center gap-2 px-4 transition-all duration-200 cursor-pointer text-slate-350 hover:text-white"
+                  className="flex-shrink-0 h-8 rounded-full bg-[#121624] border border-slate-800 hover:bg-[#181d2f] hover:border-slate-700/80 flex items-center justify-center gap-1.5 px-2.5 transition-all duration-200 cursor-pointer text-slate-350 hover:text-white"
                 >
-                  <div className="w-5.5 h-5.5 rounded-full border border-dashed border-cyan-500/50 flex items-center justify-center text-cyan-400">
-                    <Plus className="w-3 h-3 flex-shrink-0" />
+                  <div className="w-5 h-5 rounded-full border border-dashed border-cyan-500/50 flex items-center justify-center text-cyan-400">
+                    <Plus className="w-2.5 h-2.5 flex-shrink-0" />
                   </div>
-                  <span className="text-[11px] font-semibold tracking-tight">{lang === "ar" ? "إضافة وسائط" : "Add media"}</span>
+                  <span className="text-[10px] font-semibold tracking-tight">Add media</span>
                 </button>
               </div>
 
