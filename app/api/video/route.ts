@@ -2890,6 +2890,7 @@ export async function POST(req: Request) {
         );
       }
       const wsInput = mapToWavespeedInput(payload, wavespeedRoute);
+      wsInput.enable_base64_output = false;
       if ((wavespeedRoute === "kwaivgi/kling-v3.0-std/image-to-video" || wavespeedRoute === "kwaivgi/kling-v3.0-pro/image-to-video") && typeof wsInput.image !== "string") {
         return NextResponse.json({ error: "Kling 3.0 Image-to-Video requires an image reference." }, { status: 400 });
       }

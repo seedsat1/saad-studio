@@ -996,6 +996,77 @@ async function fileToDataURL(file: File, maxPx = 1920, quality = 0.85): Promise<
   });
 }
 
+function inferVideoUploadMimeType(file: File): string {
+  if (file.type && file.type !== "application/octet-stream") return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const byExt: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    webm: "video/webm",
+    mkv: "video/x-matroska",
+    mp3: "audio/mpeg",
+    m4a: "audio/mp4",
+    wav: "audio/wav",
+    ogg: "audio/ogg",
+    aac: "audio/aac",
+  };
+  return (ext && byExt[ext]) || file.type || "application/octet-stream";
+}
+
+async function readVideoUploadError(response: Response, fallback = "Failed to upload media."): Promise<string> {
+  try {
+    const data = await response.json();
+    return typeof data?.error === "string" ? data.error : fallback;
+  } catch {
+    try {
+      const text = await response.text();
+      return text || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+}
+
+async function uploadVideoRequestFile(file: File): Promise<string> {
+  const fileType = inferVideoUploadMimeType(file);
+  const signRes = await fetch("/api/media/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name || `video-reference-${Date.now()}`,
+      fileType,
+    }),
+  });
+
+  if (!signRes.ok) {
+    throw new Error(await readVideoUploadError(signRes));
+  }
+
+  const signData = await signRes.json();
+  const signedUrl = signData?.signedUrl;
+  const publicUrl = signData?.publicUrl;
+  if (!signedUrl || !publicUrl) {
+    throw new Error("Failed to receive signed upload URL.");
+  }
+
+  const uploadRes = await fetch(signedUrl, {
+    method: "PUT",
+    headers: { "Content-Type": fileType },
+    body: file,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error(await readVideoUploadError(uploadRes));
+  }
+
+  return String(publicUrl);
+}
+
 function aspectRatioToNumbers(ratio: string | null | undefined): { w: number; h: number } {
   if (ratio === "9:16") return { w: 9, h: 16 };
   if (ratio === "1:1") return { w: 1, h: 1 };
@@ -2984,12 +3055,12 @@ function VideoPageInner() {
           const seedanceImageLimit = Math.max(1, caps.max_reference_images || 9);
           const referenceImageLimit = isMinimaxH3 ? Math.max(1, Math.min(9, caps.max_reference_images || 9)) : seedanceImageLimit;
           const explicitStartImage = startFrame
-            ? await fileToDataURL(startFrame)
+            ? await uploadVideoRequestFile(startFrame)
             : linkedStartFrameUrl
               ? linkedStartFrameUrl
               : null;
-          const uploadedImageRefs = await Promise.all(refImgs.slice(0, referenceImageLimit).map(f => fileToDataURL(f)));
-          const explicitEndImageForReference = isMinimaxH3 && endFrame ? await fileToDataURL(endFrame) : null;
+          const uploadedImageRefs = await Promise.all(refImgs.slice(0, referenceImageLimit).map(f => uploadVideoRequestFile(f)));
+          const explicitEndImageForReference = isMinimaxH3 && endFrame ? await uploadVideoRequestFile(endFrame) : null;
           const mergedImageRefs = [
             ...(explicitStartImage ? [explicitStartImage] : []),
             ...characterReferenceUrls,
@@ -3007,12 +3078,12 @@ function VideoPageInner() {
             payload.reference_image_urls = mergedImageRefs;
           }
           if (refVids.length > 0)
-            payload.reference_video_urls = await Promise.all(refVids.slice(0, Math.max(0, caps.max_reference_videos || 3)).map(f => fileToDataURL(f)));
+            payload.reference_video_urls = await Promise.all(refVids.slice(0, Math.max(0, caps.max_reference_videos || 3)).map(f => uploadVideoRequestFile(f)));
           if (refAuds.length > 0)
-            payload.reference_audio_urls = await Promise.all(refAuds.slice(0, Math.max(0, caps.max_reference_audios || 3)).map(f => fileToDataURL(f)));
+            payload.reference_audio_urls = await Promise.all(refAuds.slice(0, Math.max(0, caps.max_reference_audios || 3)).map(f => uploadVideoRequestFile(f)));
           // Also allow end frame alongside Seedance references
           if (isSeedanceV2 && caps.has_end_frame && endFrame) {
-            const explicitEndImage = await fileToDataURL(endFrame);
+            const explicitEndImage = await uploadVideoRequestFile(endFrame);
             payload.last_image = explicitEndImage;
             payload.last_frame_url = explicitEndImage;
           }
@@ -3021,12 +3092,14 @@ function VideoPageInner() {
           payload.reference_image_urls = [...characterReferenceUrls, ...uploadedRefs].slice(0, Math.max(1, caps.max_reference_images || 1));
         }
       } else if ((caps.requires_image || caps.optional_image) && startFrame) {
-        payload[isSeedanceV2 ? "first_frame_url" : "image"] = await fileToDataURL(startFrame);
+        payload[isSeedanceV2 ? "first_frame_url" : "image"] = isSeedanceV2
+          ? await uploadVideoRequestFile(startFrame)
+          : await fileToDataURL(startFrame);
       } else if ((caps.requires_image || caps.optional_image) && characterSupport.mode === "image_reference" && selectedCharacter?.referenceUrls?.[0]) {
         payload[isSeedanceV2 ? "first_frame_url" : "image"] = selectedCharacter.referenceUrls[0];
       }
       if ((caps.requires_video || caps.optional_video) && motionVideo) {
-        payload.video = await fileToDataURL(motionVideo);
+        payload.video = await uploadVideoRequestFile(motionVideo);
       }
       if (caps.has_end_frame && endFrame && referenceImages.length === 0) {
         const endKey = isSeedanceV2
@@ -3034,7 +3107,9 @@ function VideoPageInner() {
           : selectedModel.api_route.startsWith("wavespeed-ai/wan")
             ? "last_image"
             : "end_image";
-        payload[endKey] = await fileToDataURL(endFrame);
+        payload[endKey] = isSeedanceV2
+          ? await uploadVideoRequestFile(endFrame)
+          : await fileToDataURL(endFrame);
       }
 
       if (isVeo31Model) {

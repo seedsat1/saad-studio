@@ -1,3 +1,12 @@
+#### Latest task: Fix /video large Seedance reference upload 413 (2026-08-07)
+- Status: Completed. Changed `/video` Seedance/Minimax reference media submission so uploaded images/videos/audios are first sent through the site signed media upload flow, then `/api/video` receives small public URLs instead of large base64 JSON bodies. This prevents Vercel `413 FUNCTION_PAYLOAD_TOO_LARGE` before the route can run.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `app/api/video/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
+- Decisions:
+  - Do not send Seedance reference videos/audio as data URLs inside `/api/video` JSON.
+  - Use signed site storage upload from the browser, keep provider secrets server-side, and pass public media URLs to WaveSpeed.
+  - Force WaveSpeed video requests to `enable_base64_output: false` so generated outputs stay URL-based and payloads remain small.
+
 #### Latest task: Prioritize Seedance 2.5 first in video model lists (2026-08-07)
 - Status: Completed. Added a centralized video model display ordering helper that places the public Seedance 2.5 row first and makes it the default video model.
 - Affected files: `lib/video-model-registry.ts`, `lib/dynamic-model-loader.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.

@@ -3013,3 +3013,10 @@
 - `/video` should create browser object URLs only for image reference previews.
 - Video and audio Seedance references should render icon chips and empty preview markers, not blob URLs intended for image display.
 - Cleanup must revoke only non-empty object URLs. This avoids stale `blob:https://... net::ERR_FILE_NOT_FOUND` console errors after reference media changes or re-renders.
+
+## Seedance/WaveSpeed Large Media Upload Contract (2026-08-07)
+
+- `/video` must not send uploaded Seedance reference videos or audio as `data:`/base64 values inside the `/api/video` JSON body, because production serverless payload limits reject large requests before route code runs.
+- Subscriber uploads for Seedance 2.5 and Minimax H3 references should use the site signed media upload flow first, then pass the returned public URL in `reference_images`, `reference_videos`, and `reference_audios` provider fields.
+- WaveSpeed API credentials stay server-side only. The browser uploads to Saad Studio storage, not directly to WaveSpeed with a bearer key.
+- WaveSpeed video requests should keep `enable_base64_output` false so provider results return CDN URLs rather than large base64 response bodies.
