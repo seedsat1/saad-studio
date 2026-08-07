@@ -1,3 +1,12 @@
+#### Latest task: Replace large Reference Media button with 5-icon status bar and Add media button (2026-08-07)
+- Status: Completed. Implemented the mockup design by replacing the large, dotted `Reference media` button in the sidebar with a gorgeous, premium row containing 5 status icon buttons (`Image`, `Video`, `Audio`, `Character`, `Style` with matching color-glowing bottom active-indicator bars) and a compact `+ Add media` button.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `components/ReferenceActionTiles.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed.
+- Decisions:
+  - Add optional state indicator props (`hasImages`, `hasVideos`, `hasAudio`, `onAddMedia`) to `ReferenceActionTiles` to keep it backward-compatible.
+  - Remove the large dotted Reference media button block in the sidebar while keeping the hidden file input inside the DOM to handle the click trigger programmatically.
+  - Implement a premium visual dashboard using colored glow effects at the bottom of the icons to indicate active references.
+
 #### Latest task: Fix ReferenceActionTiles scrolling and width clipping (2026-08-07)
 - Status: Completed. Changed the style buttons container (`Style`, `Character`, `Add`) in the video generation sidebar from an `overflow-x-auto` flex row to a static 3-column CSS Grid (`grid-cols-3`), allowing all three buttons to fit the sidebar width cleanly without clipping or horizontal scrolling.
 - Affected files: `components/ReferenceActionTiles.tsx`, `PROJECT_CONTEXT.md`.

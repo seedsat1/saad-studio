@@ -3942,6 +3942,10 @@ function VideoPageInner() {
             onClearEffect={() => setSelectedEffectId(null)}
             onClearCharacter={() => setSelectedCharacterPresetId(null)}
             isAr={lang === "ar"}
+            hasImages={referenceImages.some(f => f.type.startsWith("image/"))}
+            hasVideos={referenceImages.some(f => f.type.startsWith("video/"))}
+            hasAudio={referenceImages.some(f => f.type.startsWith("audio/"))}
+            onAddMedia={() => openMediaPicker("referenceImages")}
           />
           {activeTool === "lipsync" ? (
             <div className="flex-grow flex flex-col gap-5">
@@ -4661,94 +4665,18 @@ function VideoPageInner() {
               )}
 
               {(showReferenceImages || showSimpleKlingRefs) && (
-                <button
-                  onClick={() => openMediaPicker("referenceImages")}
-                  onDragOver={allowDrop}
-                  onDragEnter={(event) => markDropZone(event, "referenceImages")}
-                  onDragLeave={(event) => clearDropZone(event, "referenceImages")}
-                  onDrop={handleDropReferenceImages}
-                  className="relative flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
-                  style={{
-                    height: 100,
-                    borderColor: referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                    background:  referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
+                <input
+                  ref={referenceImagesRef}
+                  type="file"
+                  accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
+                  multiple
+                  className="hidden"
+                  onChange={e => {
+                    const files = Array.from(e.target.files ?? []);
+                    setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+                    e.target.value = "";
                   }}
-                >
-                  <input
-                    ref={referenceImagesRef}
-                    type="file"
-                    accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
-                    multiple
-                    className="hidden"
-                    onChange={e => {
-                      const files = Array.from(e.target.files ?? []);
-                      setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
-                      e.target.value = "";
-                    }}
-                  />
-                  <span
-                    className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
-                    style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
-                  >
-                    {`Max ${showSimpleKlingRefs ? 3 : referenceFileMaxLabel}`}
-                  </span>
-                  {referenceImages.length > 0 ? (
-                    <>
-                      {referencePreviews.length > 0 && (
-                        <div className="absolute inset-0 grid grid-cols-2 gap-1 p-1">
-                          {referencePreviews.slice(0, 4).map((src, i) => {
-                            const fileType = referenceImages[i]?.type ?? "";
-                            if (fileType.startsWith("video/")) return (
-                              <div key={i} className="relative w-full h-full rounded-md opacity-75 overflow-hidden border border-cyan-500/20">
-                                {src ? (
-                                  <video src={src} className="w-full h-full object-cover" muted playsInline />
-                                ) : null}
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-                                  <Film size={14} style={{ color: "#06b6d4" }} />
-                                </div>
-                              </div>
-                            );
-                            if (fileType.startsWith("audio/")) return (
-                              <div key={i} className="w-full h-full rounded-md opacity-75 flex items-center justify-center" style={{ background: "rgba(168,85,247,0.15)" }}>
-                                <Music2 size={14} style={{ color: "#a855f7" }} />
-                              </div>
-                            );
-                            return (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img key={i} src={src} alt={`Reference preview ${i + 1}`} className="w-full h-full object-cover rounded-md opacity-75" />
-                            );
-                          })}
-                        </div>
-                      )}
-                      <span className="absolute bottom-2 left-2 right-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200 text-center leading-tight">
-                        {referenceFileSummary}
-                      </span>
-                      <button
-                        className="absolute top-2 left-2"
-                        onClick={e => { e.stopPropagation(); setReferenceImages([]); }}
-                      >
-                        <X size={11} style={{ color: "#94a3b8" }} />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center"
-                        style={{ background: "rgba(255,255,255,0.06)" }}
-                      >
-                        <ImageIcon size={16} style={{ color: "#94a3b8" }} />
-                      </div>
-                      <span className="text-[11px]" style={{ color: "#94a3b8" }}>
-                        {isSeedanceV2Model ? "Reference media" : "Reference images"}
-                      </span>
-                    </>
-                  )}
-                  {activeDropZone === "referenceImages" && (
-                    <span className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[12px] font-semibold text-cyan-300">
-                      {isSeedanceV2Model ? "Drop media here" : "Drop images here"}
-                    </span>
-                  )}
-                </button>
+                />
               )}
             </div>
           )}
