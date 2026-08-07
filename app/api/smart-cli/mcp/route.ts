@@ -38,7 +38,7 @@ type ToolResult = {
   structuredContent?: Record<string, unknown>;
 };
 
-const DEFAULT_IMAGE_MODEL = "nano-banana-2";
+const DEFAULT_IMAGE_MODEL = "nano-banana-pro";
 const DEFAULT_VIDEO_MODEL = "kling-3.0/video";
 
 // MCP Apps UI resource URIs — the widgets that Claude renders inline when
@@ -59,7 +59,7 @@ const VIDEO_TOOL_UI_META = {
 const tools = [
   {
     name: "generate_image",
-    description: "Generate an image through Saad Studio using Nano Banana 2 by default.",
+    description: "Generate an image through Saad Studio using Nano Banana Pro by default.",
     inputSchema: {
       type: "object",
       properties: {
@@ -147,8 +147,8 @@ const tools = [
 ];
 
 const AVAILABLE_MODELS = [
-  { id: "nano-banana-2", kind: "image", label: "Nano Banana 2", notes: "Default. Balanced quality, speed, cost, and prompt adherence.", badges: ["default", "balanced"] },
-  { id: "nano-banana-pro", kind: "image", label: "Nano Banana Pro", notes: "Professional 4K asset production.", badges: ["pro"] },
+  { id: "nano-banana-pro", kind: "image", label: "Nano Banana Pro", notes: "Default. Professional 4K asset production.", badges: ["default", "pro"] },
+  { id: "nano-banana-2", kind: "image", label: "Nano Banana 2", notes: "Balanced quality, speed, cost, and prompt adherence.", badges: ["balanced"] },
   { id: "google/nano-banana", kind: "image", label: "Google Nano Banana", notes: "Google Imagen variant.", badges: [] },
   { id: "seedream/5-pro", kind: "image", label: "Seedream 5 Pro", notes: "ByteDance high-fidelity. Accepts reference images for edit mode.", badges: ["pro"] },
   { id: "seedream/5-lite", kind: "image", label: "Seedream 5 Lite", notes: "Cheaper Seedream tier.", badges: [] },
@@ -219,7 +219,7 @@ const IMAGE_WIDGET_HTML = String.raw`<!DOCTYPE html>
     const meta = structuredContent || {};
     const imageBlocks = (content || []).filter((c) => c && c.type === "image");
     const urls = Array.isArray(meta.imageUrls) ? meta.imageUrls : (meta.imageUrl ? [meta.imageUrl] : []);
-    const modelLabel = meta.modelLabel || meta.modelId || "Nano Banana 2";
+    const modelLabel = meta.modelLabel || meta.modelId || "Nano Banana Pro";
     const aspect = meta.aspectRatio || "";
     const prompt = meta.prompt || "";
 
