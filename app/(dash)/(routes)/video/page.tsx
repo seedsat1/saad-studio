@@ -1267,7 +1267,13 @@ function sizeLabel(size: string): string {
 }
 
 function prettyModelName(name: string): string {
-  return name.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\s+/g, " ").trim();
+  let cleaned = name
+    .replace(/\s*\((?:Wave\s*Speed|WaveSpeed|Google|KIE|KIE\.ai|wavespeed\.ai|Luma|Runway|Minimax)\)/gi, "")
+    .replace(/\b(?:Wave\s*Speed|WaveSpeed|Google|KIE|KIE\.ai|wavespeed\.ai)\b/gi, "")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned;
 }
 
 type VideoModeLabel = "Text To Video" | "Image To Video" | "Reference To Video" | "Video Extend" | "Video Edit" | "Video To Video";
@@ -4884,18 +4890,11 @@ function VideoPageInner() {
                           maxHeight: 320,
                         }}
                       >
-                        {dynamicModelGroups.map(g => (
-                          <div key={g.family}>
-                            <div className="flex items-center gap-2 px-3 pt-3 pb-1 select-none">
-                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: g.family_color }} />
-                              <span
-                                className="text-[10px] font-bold uppercase tracking-widest"
-                                style={{ color: g.family_color, opacity: 0.85 }}
-                              >
-                                {g.family_label}
-                              </span>
-                              <div className="flex-1 h-px" style={{ background: hexA(g.family_color, 0.2) }} />
-                            </div>
+                        {dynamicModelGroups.map((g, gIdx) => (
+                          <div key={g.family} className={gIdx === 0 ? "pt-1.5" : ""}>
+                            {gIdx > 0 && (
+                              <div className="mx-3 my-1.5 border-t border-slate-800/80" />
+                            )}
                             {g.models.map((m: any) => {
                               const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
                               return (

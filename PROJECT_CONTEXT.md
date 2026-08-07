@@ -1,9 +1,18 @@
+#### Latest task: Remove other provider names and group headers from the model list (2026-08-08)
+- Status: Completed.
+  - Modified `prettyModelName` to dynamically filter out provider/website names (like Wave Speed, WaveSpeed, Google, KIE, KIE.ai, wavespeed.ai) from model names on-the-fly.
+  - Removed the `WAVESPEED`, `GOOGLE`, etc. group header labels from the model selection dropdown list, replacing them with clean line dividers to keep the interface completely rebranded and focused on model functionality.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed cleanly.
+- Decisions: Strip external provider names from model names and remove group headers.
+
 #### Latest task: Fix missing Reference Media box for non-Omni models (2026-08-08)
 - Status: Completed.
   - Removed `showOmniTabs` constraint from the Reference Media box container condition. Now, the Reference Media container renders correctly for any model that supports reference media (such as Kling O3, Kling 3.0, Minimax H3, Seedance V2) regardless of whether `has_omni_tabs` is active.
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed cleanly.
 - Decisions: Remove `showOmniTabs` restriction on reference images container.
+
 
 #### Latest task: Integrate the Status Bar and Thumbnail Grid dynamically inside the Reference Media Dotted Box (2026-08-08)
 - Status: Completed.
