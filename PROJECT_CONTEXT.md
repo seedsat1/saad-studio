@@ -1,3 +1,10 @@
+#### Latest task: Fix missing Reference Media box for non-Omni models (2026-08-08)
+- Status: Completed.
+  - Removed `showOmniTabs` constraint from the Reference Media box container condition. Now, the Reference Media container renders correctly for any model that supports reference media (such as Kling O3, Kling 3.0, Minimax H3, Seedance V2) regardless of whether `has_omni_tabs` is active.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed cleanly.
+- Decisions: Remove `showOmniTabs` restriction on reference images container.
+
 #### Latest task: Integrate the Status Bar and Thumbnail Grid dynamically inside the Reference Media Dotted Box (2026-08-08)
 - Status: Completed.
   - Removed the separate status bar that was rendered beneath the square tiles.
@@ -10,6 +17,7 @@
 - Decisions:
   - Keep the `Reference media` zone as a single unified container that behaves dynamically based on upload state.
   - Move helper notes to the bottom of the container to keep the sidebar structure neat.
+
 
 #### Latest task: Revert Reference Tiles to original Style/Character/Add square buttons and separate the 5-icon Status Bar (2026-08-08)
 - Status: Completed.

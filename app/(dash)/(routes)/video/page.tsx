@@ -4393,7 +4393,7 @@ function VideoPageInner() {
           )}
 
           {/* -- Omni: Reference images (shown alongside Omni tabs) -------- */}
-          {showOmniTabs && (showReferenceImages || showSimpleKlingRefs) && (
+          {(showReferenceImages || showSimpleKlingRefs) && (
             <>
               {referenceImages.length === 0 ? (
                 <button
