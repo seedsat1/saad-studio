@@ -1,4 +1,26 @@
-﻿#### Latest task: Fix /image aspect-ratio dropdown closed icon and deterministic order (2026-08-07)
+#### Latest task: Dynamic Models Registry Integration across Video Studios (2026-08-07)
+- Status: Completed. Integrated the database-driven dynamic models registry across Video Studio (/video), Transitions Studio (/apps/tool/transitions), Cinematic Styles (/apps/tool/cinematic-styles), and Hook Studio (/hook-studio). Added a selectable Model Engine selector on Cinematic Styles and configured all dropdowns/settings to load dynamically from /api/models.
+- Affected files:
+  - `hooks/use-dynamic-models.ts` (MODIFY)
+  - `app/(dash)/(routes)/video/page.tsx` (MODIFY)
+  - `app/(dash)/(routes)/apps/tool/transitions/page.tsx` (MODIFY)
+  - `app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx` (MODIFY)
+  - `app/(dash)/(routes)/hook-studio/page.tsx` (MODIFY)
+  - `PROJECT_CONTEXT.md` (MODIFY)
+- Verification: Successful TypeScript compilation (`npx tsc --noEmit` exited with code 0).
+- Decision: Completely decoupled all video studio tools and dropdowns from static file-based model configuration fallbacks, enabling admin models dashboard adjustments to propagate globally in real-time.
+
+#### Latest task: Stop /image model dropdown from mixing guessed dynamic models (2026-08-07)
+- Status: Completed. Removed dynamic `/api/models` image-model injection from the public `/image` model dropdown so unknown/auto-synced entries such as mixed Google/OpenAI labels no longer appear above the official Nano Banana catalog.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `git diff --check -- "app/(dash)/(routes)/image/page.tsx"` passed with CRLF warning only. Full `npx.cmd tsc --noEmit --pretty false` is currently blocked by an unrelated existing error in `app/(dash)/(routes)/video/page.tsx(4664,43)` from another dirty file.
+- Decision: The `/image` dropdown must use the curated `IMAGE_MODELS` catalog only. Dynamically synced model rows may be managed in admin/catalog systems but must not be converted into public generation models with guessed ratios, costs, reference limits, or labels.
+#### Latest task: Fix /image aspect-ratio dropdown interaction clipping (2026-08-07)
+- Status: Completed. Fixed the /image aspect-ratio dropdown not appearing/working by rendering the opened list in normal layout flow instead of absolutely positioning it inside the animated SettingsAccordion.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check -- "app/(dash)/(routes)/image/page.tsx"` passed with CRLF warning only.
+- Decision: Dropdown menus inside `SettingsAccordion` must not rely on absolute positioning when the accordion content uses `overflow-hidden`, because the menu can be clipped and look non-functional.
+#### Latest task: Fix /image aspect-ratio dropdown closed icon and deterministic order (2026-08-07)
 - Status: Completed. Fixed the /image aspect-ratio dropdown so the closed trigger and opened menu show visible ratio shape icons with numeric labels instead of an empty icon space/number-only display.
 - Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check -- "app/(dash)/(routes)/image/page.tsx"` passed with CRLF warning only.

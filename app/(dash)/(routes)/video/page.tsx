@@ -16,6 +16,7 @@ import {
 
 import { useLanguage } from "@/lib/use-language";
 import { useAuth } from "@clerk/nextjs";
+import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 
 import type { MediaItem } from "@/components/MediaGrid";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
@@ -1622,11 +1623,55 @@ function VideoPageInner() {
   const { t, lang } = useVideoTranslation();
   const searchParams = useSearchParams();
   const [activeTool,    setActiveTool]    = useState<VideoToolId>("create-video");
+
+  const { videoModels: dynamicVideoList, loading: dynamicLoading } = useFullDynamicModels();
+
+  const dynamicModelGroups = useMemo(() => {
+    if (!dynamicVideoList || dynamicVideoList.length === 0) {
+      return MODEL_GROUPS;
+    }
+    const map = new Map<string, any>();
+    const seenModelIds = new Set<string>();
+
+    const activeList = dynamicVideoList.filter((m) => m.isActive !== false && !HIDDEN_VIDEO_PAGE_MODEL_IDS.has(m.id));
+
+    for (const m of activeList) {
+      if (seenModelIds.has(m.id)) continue;
+      seenModelIds.add(m.id);
+
+      const fam = m.family || "other";
+      if (!map.has(fam)) {
+        map.set(fam, {
+          family: fam,
+          family_label: m.family_label || (fam.charAt(0).toUpperCase() + fam.slice(1)),
+          family_color: m.family_color || "#7c3aed",
+          models: [],
+        });
+      }
+      map.get(fam)!.models.push(m);
+    }
+    return Array.from(map.values());
+  }, [dynamicVideoList]);
+
+  const allModels = useMemo(() => {
+    return dynamicModelGroups.flatMap((group) => group.models);
+  }, [dynamicModelGroups]);
+
+  const defaultModel = useMemo(() => {
+    return allModels[0] || DEFAULT_MODEL;
+  }, [allModels]);
+
   const [selectedModel, setSelectedModel] = useState<WaveSpeedVideoModel>(DEFAULT_MODEL);
   const [modelOpen,     setModelOpen]     = useState(false);
   const [characters, setCharacters] = useState<CharacterReference[]>([]);
   const [selectedCharacterId, setSelectedCharacterId] = useState("");
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (allModels.length > 0 && selectedModel.id === DEFAULT_MODEL.id) {
+      setSelectedModel(allModels[0]);
+    }
+  }, [allModels, selectedModel]);
 
   useEffect(() => {
     let requestedTool = resolveVideoTool(searchParams.get("tool"));
@@ -1638,7 +1683,6 @@ function VideoPageInner() {
 
     const requestedModel = searchParams.get("model");
     if (requestedModel) {
-      const allModels = MODEL_GROUPS.flatMap((group) => group.models);
       const matched = allModels.find((model) => model.api_route === requestedModel || model.id === requestedModel);
       if (matched) {
         setSelectedModel(matched);
@@ -1652,7 +1696,7 @@ function VideoPageInner() {
 
     const requestedCharacter = searchParams.get("characterId");
     if (requestedCharacter) setSelectedCharacterId(requestedCharacter);
-  }, [searchParams]);
+  }, [searchParams, allModels]);
 
   useEffect(() => {
     if (isAuthLoaded && !isSignedIn) return;
@@ -1950,7 +1994,6 @@ function VideoPageInner() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
-  const allModels = useMemo(() => MODEL_GROUPS.flatMap((group) => group.models), []);
 
   const mapAssetToMediaItem = useCallback((asset: any): MediaItem | null => {
     const isFailed = Boolean(asset?.isFailed || String(asset?.status || "").toLowerCase() === "failed");
@@ -4606,7 +4649,7 @@ function VideoPageInner() {
                           maxHeight: 320,
                         }}
                       >
-                        {MODEL_GROUPS.map(g => (
+                        {dynamicModelGroups.map(g => (
                           <div key={g.family}>
                             <div className="flex items-center gap-2 px-3 pt-3 pb-1 select-none">
                               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: g.family_color }} />
@@ -4618,7 +4661,7 @@ function VideoPageInner() {
                               </span>
                               <div className="flex-1 h-px" style={{ background: hexA(g.family_color, 0.2) }} />
                             </div>
-                            {g.models.map(m => {
+                            {g.models.map((m: any) => {
                               const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
                               return (
                                 <button

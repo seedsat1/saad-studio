@@ -39,7 +39,6 @@ import { useAssetStore } from "@/hooks/use-asset-store";
 import { useSearchParams } from "next/navigation";
 import NextImage from "next/image";
 import { useLanguage } from "@/lib/use-language";
-import { useDynamicKieModels } from "@/hooks/use-dynamic-models";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
@@ -103,8 +102,6 @@ const HIDDEN_IMAGE_PAGE_MODEL_LABELS = new Set([
   "seedream 5 lite i2i",
   "z-image",
 ]);
-const isBlockedDynamicImageModel = (id: string, label: string) =>
-  id.includes("kling-" + "image-o1") || label === "kling 01 image";
 const isHiddenImagePageModel = (model: Pick<ImageModel, "id" | "label">) =>
   HIDDEN_IMAGE_PAGE_MODEL_IDS.has(model.id.toLowerCase()) ||
   HIDDEN_IMAGE_PAGE_MODEL_LABELS.has(model.label.trim().toLowerCase());
@@ -482,48 +479,18 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
   const [query, setQuery] = useState("");
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
-  const { models: dynamicModels } = useDynamicKieModels("image");
-
   const grouped = useMemo(() => {
-    const knownIds = new Set(IMAGE_MODELS.map((m) => m.id.toLowerCase()));
-    // Convert detected KIE models into ImageModel stubs so the dropdown can render them.
-    const dynamicAsImage: ImageModel[] = dynamicModels
-      .filter((dm) => {
-        const id = dm.id.toLowerCase();
-        const label = dm.label.toLowerCase();
-        return !knownIds.has(id) &&
-          !id.startsWith("flux-2/") &&
-          !isBlockedDynamicImageModel(id, label) &&
-          !isHiddenImagePageModel({ id, label });
-      })
-      .map((dm) => {
-        const isEdit = /(edit|image-to-image|i2i|inpaint)/i.test(dm.id);
-        return {
-          id: dm.id,
-          label: dm.label,
-          sublabel: dm.family,
-          badge: dm.isNew ? "NEW" : "AUTO",
-          group: "New from Saad Studio",
-          inputType: isEdit ? "image-to-image" : "text-to-image",
-          aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
-          maxImages: 1,
-          maxRefImages: isEdit ? 1 : 0,
-          creditCost: 5,
-        } as ImageModel;
-      });
-
-    const all = [...dynamicAsImage, ...VISIBLE_IMAGE_MODELS];
     const q = query.trim().toLowerCase();
     const list = q
-      ? all.filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || m.group.toLowerCase().includes(q))
-      : all;
+      ? VISIBLE_IMAGE_MODELS.filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || m.group.toLowerCase().includes(q))
+      : VISIBLE_IMAGE_MODELS;
     const map = new Map<string, ImageModel[]>();
     for (const model of list) {
       if (!map.has(model.group)) map.set(model.group, []);
       map.get(model.group)?.push(model);
     }
     return Array.from(map.entries());
-  }, [query, dynamicModels]);
+  }, [query]);
 
   const handleToggle = () => {
     if (!open && buttonRef.current) {
@@ -2387,7 +2354,7 @@ export default function ImageWorkspacePage() {
 
         {selectedModel.aspectRatios.length ? (
           <SettingsAccordion label="Aspect Ratio" summary={aspectRatio} defaultOpen>
-            <div className="relative">
+            <div>
               <button
                 type="button"
                 aria-haspopup="listbox"
@@ -2405,7 +2372,7 @@ export default function ImageWorkspacePage() {
               </button>
 
               {aspectRatioDropdownOpen ? (
-                <div role="listbox" className="absolute left-0 right-0 z-40 mt-2 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-[#080a12] p-1.5 shadow-2xl shadow-black/50">
+                <div role="listbox" className="mt-2 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-[#080a12] p-1.5 shadow-2xl shadow-black/50">
                   {availableRatioOptions.map((ratio) => (
                     <button
                       key={ratio.value}

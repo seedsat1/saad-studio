@@ -1,10 +1,15 @@
-﻿## إدارة وتحديث موديلات الذكاء الاصطناعي ديناميكياً من لوحة التحكم (2026-08-07)
+## إدارة وتحديث موديلات الذكاء الاصطناعي ديناميكياً من لوحة التحكم (2026-08-07)
 
 - **نظرة عامة:** تم تحويل معمارية الموديلات في الموقع من القوائم الثابتة (Hardcoded Static Arrays) إلى نظام سجل الموديلات البرمجي القائم على قاعدة البيانات (Database-Driven Model Registry)، مما يسمح بتبديل الموديلات وتعديل الأسعار والمسارات فورياً دون الحاجة لإعادة نشر المشروع (Redeployment).
 - **التكامل البرمجي والتشغيل:**
   1. *لوحة الإدارة (`/admin/models`):* توفر واجهة احترافية لإدارة وتعديل خصائص موديلات الصور والفيديو (تعديل الأسعار والاسم ونسب الأبعاد وحالة النشاط ومسار الاستدعاء البرمجي Upstream ID).
   2. *المزامنة مع جدول التسعير (`PricingConstitution`):* عند حفظ أي تعديل في لوحة التحكم، يقوم النظام تلقائياً بتحديث سجل الموديل المعني في جدول التسعير `PricingConstitution` وتطهير الكاش (`invalidatePricingCache()`) لضمان سريان التكلفة الجديدة على عمليات الخصم وحساب الفواتير فوراً.
   3. *مسارات التوليد العامة والخاصة باللوحة (Web & CEP Panel Routes):* تم تعديل ملفات معالجة الطلبات (`/api/generate/image` و `/api/video` و `/api/panel/generate/image` و `/api/panel/generate/video`) لتقوم بقراءة وتدقيق الموديلات المطلوبة من قاعدة البيانات بدلاً من الاعتماد المطلق على الخرائط الثابتة.
+  4. *واجهات التوليد وصناعة المحتوى:* تم ربط جميع صفحات التوليد ديناميكياً بالكامل باستخدام خطاف `useFullDynamicModels`:
+     - **استوديو الفيديو الرئيسية (`/video`):** يتم تجميع الموديلات ديناميكياً في مجموعات وتغذية قائمة الاختيار وعرض الخصائص والمحددات وفقاً لبيانات قاعدة البيانات المحدثة.
+     - **أداة انتقالات المشاهد (`/apps/tool/transitions`):** تستعلم الموديلات الفعالة وتوفر تلقائياً الخيارات والمحددات المتوافقة مع Kling و Seedance و Wavespeed.
+     - **الأنماط السينمائية (`/apps/tool/cinematic-styles`):** تم استبدال خيار المحرك الثابت بقائمة منسدلة تمكن المستخدم من اختيار أي موديل فيديو فعال لتوليد أسلوبه الفني، وحساب التكلفة والمسارات ديناميكياً.
+     - **استوديو الهوكات القصير (`/hook-studio`):** يتم بناء خيارات التوليد ومحددات الزمن والجودة والأبعاد ديناميكياً بالكامل طبقاً لخصائص الموديلات المحدثة.
 - **التأثير على إضافة أدوبي بريمير (CEP Extension):**
   - لا تحتاج الإضافة لأي تعديل برمجى؛ فالخادم يقوم تلقائياً بقبول أي موديل مضاف أو معدل في لوحة التحكم ومطابقته برمجياً مع التكلفة النشطة ديناميكياً، مع إتاحة الحقل المخصص لمدخلات الصور (`imageInputField`) للموديلات المخصصة.
 
@@ -2876,6 +2881,11 @@
 - `/image` card download actions must route through `/api/download?url=...&filename=...` instead of linking directly to external Backblaze/original URLs.
 - This keeps the original full-resolution file as the download source while forcing a browser download via same-origin `Content-Disposition: attachment`.
 - Preview, Asset Inspector, reference reuse, and thumbnails remain separate behaviors and must not be changed by this download path.
+## Image Model Dropdown Catalog Contract (2026-08-07)
+
+- `/image` model dropdown must render only curated entries from `IMAGE_MODELS` after the page visibility filters.
+- Do not inject `/api/models` or auto-synced catalog rows into the public `/image` dropdown as temporary `ImageModel` stubs, because that guesses aspect ratios, credit cost, input type, reference limits, and labels.
+- Dynamic/auto-synced providers belong in admin/catalog management until they have a curated `IMAGE_MODELS` entry with verified capabilities.
 ## Google Nano Banana Image Model Contract (2026-08-07)
 
 - Nano Banana 2 is the default general image model and maps to `gemini-3.1-flash-image`.
@@ -2894,3 +2904,4 @@
 - The dropdown must display both the ratio shape/icon and the numeric ratio label for every supported option.
 - The option list must come from the selected model capabilities, but the local render registry must include all documented Nano Banana 2 Flash ratios, including `1:4`, `1:8`, `4:1`, `4:5`, `5:4`, and `8:1`.
 - The closed trigger and every opened option must render a visible ratio shape using deterministic dimensions from the ratio data, not an empty CSS-only placeholder. The option order must be deterministic rather than appearing random.
+- In `/image`, the opened aspect-ratio list must render in normal layout flow inside the settings accordion, not as an absolutely positioned panel clipped by the accordion animation container.

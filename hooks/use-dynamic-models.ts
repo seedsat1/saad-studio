@@ -105,3 +105,54 @@ export function useDynamicKieModels(kind?: DynamicKieModel["kind"]): FetchState 
 
   return state;
 }
+
+export type FullFetchState = {
+  imageModels: any[];
+  videoModels: any[];
+  loading: boolean;
+  error: string | null;
+};
+
+export function useFullDynamicModels(): FullFetchState {
+  const [state, setState] = useState<FullFetchState>({
+    imageModels: [],
+    videoModels: [],
+    loading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchOnce = async () => {
+      try {
+        const res = await fetch("/api/models", { cache: "no-store" });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+        if (cancelled) return;
+
+        setState({
+          imageModels: Array.isArray(data.imageModels) ? data.imageModels : [],
+          videoModels: Array.isArray(data.videoModels) ? data.videoModels : [],
+          loading: false,
+          error: null,
+        });
+      } catch (err) {
+        if (cancelled) return;
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error: err instanceof Error ? err.message : "Failed to load",
+        }));
+      }
+    };
+
+    void fetchOnce();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return state;
+}

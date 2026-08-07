@@ -37,12 +37,13 @@ import {
 import { cn, getFallbackUrls } from "@/lib/utils";
 import { usePageLayout } from "@/lib/use-page-layout";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { normalizeMediaUrl } from "@/lib/storage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type InputType = "image" | "video";
-type TransitionModelId = "kling-3.0/video" | "bytedance/seedance-2-mini";
+type TransitionModelId = string;
 
 type ClientSafePreset = {
   id: string;
@@ -1015,6 +1016,31 @@ export default function TransitionsStudioPage() {
     enhance: true,
   });
 
+  const { videoModels: dynamicVideoList } = useFullDynamicModels();
+
+  const dynamicTransitionModels = useMemo(() => {
+    const active = (dynamicVideoList || []).filter((m) => m.isActive !== false);
+    const filtered = active.filter((m) => {
+      const f = (m.family || "").toLowerCase();
+      return f === "kling" || f === "seedance" || f === "wavespeed";
+    });
+
+    if (filtered.length === 0) {
+      return TRANSITION_MODELS;
+    }
+
+    return filtered.map((m) => ({
+      id: m.id,
+      label: m.name,
+    }));
+  }, [dynamicVideoList]);
+
+  useEffect(() => {
+    if (dynamicTransitionModels.length > 0 && !dynamicTransitionModels.some((m) => m.id === selectedModelId)) {
+      setSelectedModelId(dynamicTransitionModels[0].id);
+    }
+  }, [dynamicTransitionModels, selectedModelId]);
+
   // UI
   const [presets, setPresets] = useState<ClientSafePreset[]>([]);
   const [presetsLoading, setPresetsLoading] = useState(true);
@@ -1561,8 +1587,8 @@ export default function TransitionsStudioPage() {
           <span className="hidden md:inline">Model:</span>
           <CompactSelect
             value={selectedModelId}
-            options={TRANSITION_MODELS.map((m) => m.id)}
-            getLabel={(id) => TRANSITION_MODELS.find((m) => m.id === id)?.label ?? id}
+            options={dynamicTransitionModels.map((m) => m.id)}
+            getLabel={(id) => dynamicTransitionModels.find((m) => m.id === id)?.label ?? id}
             onChange={(modelId) => {
               setSelectedModelId(modelId as TransitionModelId);
               markDirty();

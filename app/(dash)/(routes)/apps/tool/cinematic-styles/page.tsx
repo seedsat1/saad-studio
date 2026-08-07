@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRESETS, type LocalEffectId, type PresetId, type Preset } from "@/lib/cinematic-presets";
+import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { normalizeMediaUrl } from "@/lib/storage";
 
 type FpsMode = "4" | "8" | "10" | "12" | "24" | "manual";
@@ -528,6 +529,22 @@ export default function CinematicStylesPage() {
   const [sourceDuration, setSourceDuration] = useState<number | null>(null);
   const [selectedPresetId, setSelectedPresetId] = useState<PresetId>("layer-mixed-media");
   const [providerMode] = useState<ProviderMode>("kie");
+
+  const { videoModels: dynamicVideoList } = useFullDynamicModels();
+
+  const activeVideoModels = useMemo(() => {
+    return (dynamicVideoList || []).filter((m) => m.isActive !== false);
+  }, [dynamicVideoList]);
+
+  const [selectedModelId, setSelectedModelId] = useState<string>("");
+
+  useEffect(() => {
+    if (activeVideoModels.length > 0 && !selectedModelId) {
+      const klingOrByd = activeVideoModels.find((m) => m.id.includes("kling") || m.id.includes("bytedance") || m.id.includes("wavespeed"));
+      setSelectedModelId(klingOrByd?.id || activeVideoModels[0]?.id || "");
+    }
+  }, [activeVideoModels, selectedModelId]);
+
   const [activeTab, setActiveTab] = useState<ActiveTab>("presets");
   const [fpsMode, setFpsMode] = useState<FpsMode>("24");
   const [manualFps, setManualFps] = useState(16);
@@ -908,12 +925,16 @@ export default function CinematicStylesPage() {
       sourceVideo.load();
 
       const prompt = buildStylePrompt(selectedPreset, colors, effectiveFps, resolution);
-      const modelRoute = getModelRoute(providerMode);
-      const providerResolution = resolutionToProviderValue(resolution, providerMode);
-      const providerQualityForPricing = getProviderQualityForPricing(resolution, providerMode);
-      const outputDuration = Math.max(providerMode === "wavespeed" ? 4 : 5, Math.min(10, Math.round(duration)));
+      const modelObj = activeVideoModels.find((m) => m.id === selectedModelId);
+      const modelRoute = modelObj?.api_route || selectedModelId || getModelRoute(providerMode);
+      const isWaveSpeedModel = modelObj?.provider === "wavespeed" || modelRoute.includes("bytedance") || modelRoute.includes("hailuo") || modelRoute.includes("seedance") || modelRoute.includes("kling");
+      const effectiveProviderMode: ProviderMode = isWaveSpeedModel ? "wavespeed" : "kie";
+
+      const providerResolution = resolutionToProviderValue(resolution, effectiveProviderMode);
+      const providerQualityForPricing = getProviderQualityForPricing(resolution, effectiveProviderMode);
+      const outputDuration = Math.max(effectiveProviderMode === "wavespeed" ? 4 : 5, Math.min(10, Math.round(duration)));
       const basePayload: Record<string, unknown> =
-        providerMode === "wavespeed"
+        effectiveProviderMode === "wavespeed"
           ? {
               prompt,
               duration: outputDuration,
@@ -1147,9 +1168,13 @@ export default function CinematicStylesPage() {
           </button>
 
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="col-span-2 rounded-lg border border-white/8 bg-[#171b22] p-4">
-              <p className="text-xs font-medium text-slate-400">Engine</p>
-              <p className="mt-1 text-sm font-black text-white">Saad Cloud</p>
+            <div className="col-span-2">
+              <SelectMenu<string>
+                value={selectedModelId}
+                label="Model Engine"
+                options={activeVideoModels.map((m) => ({ value: m.id, label: m.name }))}
+                onChange={setSelectedModelId}
+              />
             </div>
             <SelectMenu<FpsMode>
               value={fpsMode}

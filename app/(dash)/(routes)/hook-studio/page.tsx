@@ -2,7 +2,7 @@
 
 
 
-import React, { useState, useRef, useEffect, DragEvent } from "react";
+import React, { useState, useRef, useEffect, useMemo, DragEvent } from "react";
 import {
   Sparkles,
   Bot,
@@ -52,6 +52,7 @@ import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { useLanguage } from "@/lib/use-language";
 import { useUser } from "@clerk/nextjs";
+import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { getGenerationCostSync } from "@/lib/pricing";
 
 import { getFallbackUrls } from "@/lib/utils";
@@ -338,8 +339,42 @@ export default function HookStudioPage() {
   const isAr = lang === "ar";
   const { user } = useUser();
 
+  const { videoModels: dynamicVideoList } = useFullDynamicModels();
+
+  const dynamicHookVideoModels = useMemo(() => {
+    const active = (dynamicVideoList || []).filter((m: any) => m.isActive !== false);
+    if (active.length === 0) {
+      return HOOK_VIDEO_MODELS;
+    }
+    return active.map((m: any) => ({
+      id: m.id,
+      name: m.name,
+      apiRoute: m.api_route || m.apiRoute,
+      provider: m.provider,
+      badge: m.badge,
+      description: m.description,
+      maxRefImages: m.capabilities?.max_reference_images ?? 1,
+      maxRefVideos: m.capabilities?.max_reference_videos ?? 0,
+      maxRefVideoSeconds: m.capabilities?.max_reference_video_total_seconds ?? 0,
+      maxRefAudios: m.capabilities?.max_reference_audios ?? 0,
+      maxRefAudioSeconds: m.capabilities?.max_reference_audio_total_seconds ?? 0,
+      durations: m.capabilities?.durations || [5, 10],
+      aspectRatios: m.capabilities?.aspect_ratios || ["16:9"],
+      qualityModes: m.capabilities?.resolutions || ["720p"],
+      supportsScript: true,
+      creditCost: m.creditCost || 10,
+    }));
+  }, [dynamicVideoList]);
+
   // Sidebar Configuration States
   const [selectedVideoModel, setSelectedVideoModel] = useState("seedance-2.0-pro");
+
+  useEffect(() => {
+    if (dynamicHookVideoModels.length > 0 && !dynamicHookVideoModels.some((m) => m.id === selectedVideoModel)) {
+      setSelectedVideoModel(dynamicHookVideoModels[0].id);
+    }
+  }, [dynamicHookVideoModels, selectedVideoModel]);
+
   const [selectedThinkingModel, setSelectedThinkingModel] = useState("kimi-k3-pro");
   const [selectedDuration, setSelectedDuration] = useState("15s");
   const [selectedRatio, setSelectedRatio] = useState("16:9");
@@ -476,7 +511,7 @@ export default function HookStudioPage() {
   };
 
   const activeVideoModelObj =
-    HOOK_VIDEO_MODELS.find((m) => m.id === selectedVideoModel) || HOOK_VIDEO_MODELS[0];
+    dynamicHookVideoModels.find((m: any) => m.id === selectedVideoModel) || dynamicHookVideoModels[0];
   const activeGenreObj =
     HOOK_GENRES.find((g) => g.id === selectedGenre) || HOOK_GENRES[0];
   const isImageModel = activeVideoModelObj.durations[0] === 0;
@@ -1664,7 +1699,7 @@ export default function HookStudioPage() {
             onChange={(e) => {
               const val = e.target.value;
               setSelectedVideoModel(val);
-              const targetModel = HOOK_VIDEO_MODELS.find((m) => m.id === val);
+              const targetModel = dynamicHookVideoModels.find((m: any) => m.id === val);
               if (targetModel) {
                 if (targetModel.durations.length > 0) {
                   setSelectedDuration(`${targetModel.durations[0]}s`);
@@ -1679,7 +1714,7 @@ export default function HookStudioPage() {
             }}
             className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-semibold cursor-pointer"
           >
-            {HOOK_VIDEO_MODELS.map((m) => (
+            {dynamicHookVideoModels.map((m: any) => (
               <option key={m.id} value={m.id}>
                 {m.name}
               </option>
@@ -1724,7 +1759,7 @@ export default function HookStudioPage() {
                 onChange={(e) => setSelectedDuration(e.target.value)}
                 className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
-                {activeVideoModelObj.durations.map((d) => (
+                {activeVideoModelObj.durations.map((d: any) => (
                   <option key={d} value={`${d}s`}>
                     {d}s
                   </option>
@@ -1743,7 +1778,7 @@ export default function HookStudioPage() {
                 onChange={(e) => setSelectedRatio(e.target.value)}
                 className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
-                {activeVideoModelObj.aspectRatios.map((r) => (
+                {activeVideoModelObj.aspectRatios.map((r: any) => (
                   <option key={r} value={r}>
                     {r}
                   </option>
@@ -1762,7 +1797,7 @@ export default function HookStudioPage() {
                 onChange={(e) => setSelectedQuality(e.target.value)}
                 className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
-                {activeVideoModelObj.qualityModes.map((q) => (
+                {activeVideoModelObj.qualityModes.map((q: any) => (
                   <option key={q} value={q}>
                     {q}
                   </option>
