@@ -305,21 +305,33 @@ type CharacterReference = {
 };
 
 const RATIO_OPTIONS = [
+  { value: "16:9", width: 1920, height: 1080, cls: "ratio-16-9" },
+  { value: "3:2", width: 1620, height: 1080, cls: "ratio-3-2" },
+  { value: "4:3", width: 1440, height: 1080, cls: "ratio-4-3" },
+  { value: "5:4", width: 1350, height: 1080, cls: "ratio-5-4" },
   { value: "1:1", width: 1024, height: 1024, cls: "ratio-1-1" },
+  { value: "4:5", width: 1080, height: 1350, cls: "ratio-4-5" },
+  { value: "3:4", width: 1080, height: 1440, cls: "ratio-3-4" },
+  { value: "2:3", width: 1080, height: 1620, cls: "ratio-2-3" },
+  { value: "9:16", width: 1080, height: 1920, cls: "ratio-9-16" },
+  { value: "21:9", width: 2560, height: 1080, cls: "ratio-21-9" },
+  { value: "4:1", width: 4096, height: 1024, cls: "ratio-4-1" },
+  { value: "8:1", width: 4096, height: 512, cls: "ratio-8-1" },
   { value: "1:4", width: 512, height: 2048, cls: "ratio-1-4" },
   { value: "1:8", width: 512, height: 4096, cls: "ratio-1-8" },
-  { value: "2:3", width: 1080, height: 1620, cls: "ratio-2-3" },
-  { value: "3:2", width: 1620, height: 1080, cls: "ratio-3-2" },
-  { value: "3:4", width: 1080, height: 1440, cls: "ratio-3-4" },
-  { value: "4:1", width: 4096, height: 1024, cls: "ratio-4-1" },
-  { value: "4:3", width: 1440, height: 1080, cls: "ratio-4-3" },
-  { value: "4:5", width: 1080, height: 1350, cls: "ratio-4-5" },
-  { value: "5:4", width: 1350, height: 1080, cls: "ratio-5-4" },
-  { value: "8:1", width: 4096, height: 512, cls: "ratio-8-1" },
-  { value: "9:16", width: 1080, height: 1920, cls: "ratio-9-16" },
-  { value: "16:9", width: 1920, height: 1080, cls: "ratio-16-9" },
-  { value: "21:9", width: 2560, height: 1080, cls: "ratio-21-9" },
 ] as const;
+
+type RatioOption = (typeof RATIO_OPTIONS)[number];
+
+function ratioIconStyle(ratio: RatioOption) {
+  const maxWidth = 38;
+  const maxHeight = 34;
+  const scale = Math.min(maxWidth / ratio.width, maxHeight / ratio.height);
+  return {
+    width: Math.max(6, Math.round(ratio.width * scale)),
+    height: Math.max(6, Math.round(ratio.height * scale)),
+  };
+}
 
 const LIGHTING_PRESETS = [
   { id: "studio", name: "Studio Light", prompt: "Professional studio lighting setup, three-point lighting" },
@@ -2384,8 +2396,8 @@ export default function ImageWorkspacePage() {
                 className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 hover:border-white/20 focus:outline-none focus:ring-1 focus:ring-pink-500"
               >
                 <span className="flex items-center gap-3">
-                  <span className={cn("ratio-menu-icon", selectedRatio.cls)}>
-                    <span className="ratio-shape" />
+                  <span className="ratio-menu-icon" aria-hidden="true">
+                    <span className="ratio-shape" style={ratioIconStyle(selectedRatio)} />
                   </span>
                   <span className="font-semibold">{selectedRatio.value}</span>
                 </span>
@@ -2410,8 +2422,8 @@ export default function ImageWorkspacePage() {
                       )}
                     >
                       <span className="flex items-center gap-3">
-                        <span className={cn("ratio-menu-icon", ratio.cls, aspectRatio === ratio.value && "active")}>
-                          <span className="ratio-shape" />
+                        <span className={cn("ratio-menu-icon", aspectRatio === ratio.value && "active")} aria-hidden="true">
+                          <span className="ratio-shape" style={ratioIconStyle(ratio)} />
                         </span>
                         <span className="font-semibold">{ratio.value}</span>
                       </span>
@@ -2605,7 +2617,8 @@ export default function ImageWorkspacePage() {
         .ratio-card { width: 64px; height: 64px; border: 2px solid rgba(255,255,255,0.12); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all .2s; background: transparent; color: #7f8aa3; }
         .ratio-card.active { border-color: #ec4899; background: rgba(236,72,153,0.08); color: #ec4899; }
         .ratio-card .ratio-shape { border: 1.5px solid currentColor; border-radius: 2px; }
-        .ratio-menu-icon { width: 42px; height: 34px; display: inline-flex; align-items: center; justify-content: center; color: #94a3b8; }
+        .ratio-menu-icon { width: 42px; height: 34px; display: inline-flex; align-items: center; justify-content: center; color: #94a3b8; flex: 0 0 42px; }
+        .ratio-menu-icon .ratio-shape { display: block; border: 1.5px solid currentColor; border-radius: 2px; }
         .ratio-menu-icon.active { color: #f9a8d4; }
         .ratio-auto .ratio-shape { width: 28px; height: 28px; border-style: dashed; }
         .ratio-1-1 .ratio-shape { width: 28px; height: 28px; }

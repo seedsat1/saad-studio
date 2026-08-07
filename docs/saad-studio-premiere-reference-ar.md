@@ -1,4 +1,4 @@
-## إدارة وتحديث موديلات الذكاء الاصطناعي ديناميكياً من لوحة التحكم (2026-08-07)
+﻿## إدارة وتحديث موديلات الذكاء الاصطناعي ديناميكياً من لوحة التحكم (2026-08-07)
 
 - **نظرة عامة:** تم تحويل معمارية الموديلات في الموقع من القوائم الثابتة (Hardcoded Static Arrays) إلى نظام سجل الموديلات البرمجي القائم على قاعدة البيانات (Database-Driven Model Registry)، مما يسمح بتبديل الموديلات وتعديل الأسعار والمسارات فورياً دون الحاجة لإعادة نشر المشروع (Redeployment).
 - **التكامل البرمجي والتشغيل:**
@@ -2893,3 +2893,4 @@
 - `/image` aspect-ratio selection must be a dropdown when model ratio sets are large.
 - The dropdown must display both the ratio shape/icon and the numeric ratio label for every supported option.
 - The option list must come from the selected model capabilities, but the local render registry must include all documented Nano Banana 2 Flash ratios, including `1:4`, `1:8`, `4:1`, `4:5`, `5:4`, and `8:1`.
+- The closed trigger and every opened option must render a visible ratio shape using deterministic dimensions from the ratio data, not an empty CSS-only placeholder. The option order must be deterministic rather than appearing random.

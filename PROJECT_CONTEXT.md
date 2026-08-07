@@ -1,4 +1,9 @@
-﻿#### Latest task: Diagnose missing production aspect-ratio dropdown update (2026-08-07)
+﻿#### Latest task: Fix /image aspect-ratio dropdown closed icon and deterministic order (2026-08-07)
+- Status: Completed. Fixed the /image aspect-ratio dropdown so the closed trigger and opened menu show visible ratio shape icons with numeric labels instead of an empty icon space/number-only display.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check -- "app/(dash)/(routes)/image/page.tsx"` passed with CRLF warning only.
+- Decision: Render ratio icon dimensions from the ratio data directly and keep the option order deterministic: landscape, square, portrait, then ultra-wide/tall ratios.
+#### Latest task: Diagnose missing production aspect-ratio dropdown update (2026-08-07)
 - Status: Completed as deployment diagnosis. Confirmed the aspect-ratio dropdown commit `7731cbf` exists on both local `HEAD` and `origin/main`; the screenshot still showing the old ratio grid means production is serving an older deployment, not the current code.
 - Affected files: `PROJECT_CONTEXT.md` only.
 - Verification: `git rev-parse HEAD origin/main` matched `7731cbfa2b5494d946261e78e62af7ae40d64e6f`; `npm.cmd run build` completed successfully; direct production deploy attempt with `npx.cmd vercel --prod --yes` failed because the configured Vercel token is invalid.
