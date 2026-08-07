@@ -109,6 +109,18 @@ function payloadHasImageInput(payload: Record<string, unknown>): boolean {
   );
 }
 
+function resolveSeedance25Route(baseRoute: string, payload: Record<string, unknown>): string {
+  if (!baseRoute.startsWith("bytedance/seedance-2.5")) return baseRoute;
+  if (baseRoute !== "bytedance/seedance-2.5/text-to-video-turbo") return baseRoute;
+  if (!payloadHasImageInput(payload)) return baseRoute;
+
+  const requestedResolution = String(payload.resolution ?? payload.quality ?? payload.mode ?? "").trim().toLowerCase();
+  if (requestedResolution === "480p" || requestedResolution === "4k") {
+    return "bytedance/seedance-2.5/image-to-video-spicy";
+  }
+
+  return "bytedance/seedance-2.5/image-to-video-turbo";
+}
 function stripPromptReferenceTags(value: unknown): string {
   if (typeof value !== "string") return "";
   return value.replace(/@(image|img)[1-9]\b/gi, "").trim();
@@ -2125,9 +2137,7 @@ export async function POST(req: Request) {
 
     // Canonical Route Normalization & Auto-routing between Text-to-Video and Image-to-Video
     if (modelRoute.startsWith("bytedance/seedance-2.5")) {
-      if (modelRoute === "bytedance/seedance-2.5/text-to-video-turbo" && hasImage) {
-        modelRoute = "bytedance/seedance-2.5/image-to-video-turbo";
-      }
+      modelRoute = resolveSeedance25Route(modelRoute, payload);
     } else if (modelRoute.includes("seedance")) {
       const hasSeedanceReferenceMedia = hasImage || hasSeedanceReferenceVideo || hasSeedanceReferenceAudio;
       if (modelRoute.includes("mini")) {

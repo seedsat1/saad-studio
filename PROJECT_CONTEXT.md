@@ -1,3 +1,11 @@
+#### Latest task: Update Seedance 2.5 site-margin pricing conversion (2026-08-07)
+- Status: Completed. Changed Seedance 2.5 user-credit conversion from 20 credits/USD to 40 credits/USD so provider source prices keep margin even against the lowest effective annual plan credit value.
+- Affected files: `lib/credit-pricing.ts`, `lib/pricing.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
+- Decisions:
+  - Seedance 2.5 billing uses verified provider USD source prices multiplied by 40 credits/USD.
+  - Generate Audio/sound remains excluded from Seedance 2.5 billing; only duration, resolution, route, and input mode affect the price.
+  - Keep public selector routing unchanged: subscribers see `Seedance 2.5`, while I2V Turbo/Spicy remain internal routes.
 #### Latest task: Group Admin Models by Family and Add Integration Guide (2026-08-07)
 - Status: Completed. Restructured the Admin Models Manager (/admin/models) to group and filter models dynamically by family/provider (Google, OpenAI, Kling, ByteDance, Wavespeed, FLUX). Added a comprehensive "Integration Guide" tab documenting backend routes, dynamic capabilities schema, and provider integration protocols.
 - Affected files: `app/admin/models/page.tsx`, `PROJECT_CONTEXT.md`.
@@ -10797,7 +10805,17 @@
 - Pricing decisions:
   - Turbo 720p without reference video: $0.20/s => 4 credits/s. Turbo 1080p without reference video: $0.21/s => 4.2 credits/s.
   - Turbo with reference video: 720p $0.38/s => 7.6 credits/s; 1080p $0.39/s => 7.8 credits/s.
-  - Spicy source prices from provider UI screenshots: 480p $0.162/s => 3.24 credits/s, 720p $0.324/s => 6.48 credits/s, 1080p $0.81/s => 16.2 credits/s, 4k $1.62/s => 32.4 credits/s. Generate Audio/sound does not affect price; pricing is duration + resolution only. Seedance 2.5 uses the requested 20 credits/USD conversion.
-- Verification: `npx.cmd tsc --noEmit --pretty false` passed after audio-neutral pricing and 20 credits/USD conversion update. `git diff --check` passed with Git config/CRLF warnings only.
+  - Spicy source prices from provider UI screenshots: 480p $0.162/s, 720p $0.324/s, 1080p $0.81/s, 4k $1.62/s. Generate Audio/sound does not affect price; pricing is duration + resolution only. Seedance 2.5 now uses 40 credits/USD to protect the cheapest annual plan economics with an approximate 20% margin.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed after audio-neutral pricing and 40 credits/USD conversion update. `git diff --check` passed with Git config/CRLF warnings only.
 - Decision: Do not add the screenshot-only `video-edit`, `video-edit-turbo`, `video-extend`, base text-to-video, or base image-to-video routes until their exact attached/model-page specs and pricing are available; this avoids guessed limits or hidden prices.
 - Remaining step: Deploy/redeploy production so `saadstudio.app` receives the updated model catalog and routing.
+#### Latest task: Simplify public Seedance 2.5 selector like Hex Field (2026-08-07)
+- Status: Completed. Hid the internal Seedance 2.5 I2V Turbo and Spicy rows from the subscriber-facing `/video` model selector while preserving them as backend/API routes.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `app/api/video/route.ts`, `app/api/panel/generate/video/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Subscribers see a simpler `Seedance 2.5` public model instead of separate I2V Turbo and Spicy rows.
+  - If the visible Seedance 2.5 route receives an image/start frame, runtime auto-routes to `bytedance/seedance-2.5/image-to-video-turbo`.
+  - If it receives an image/start frame with `480p` or `4k`, runtime auto-routes to `bytedance/seedance-2.5/image-to-video-spicy`.
+  - The same routing is enforced in `/video`, `/api/video`, and `/api/panel/generate/video`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed.
+- Decision: Match Hex Field's simpler public UX by exposing the model family and keeping specialized provider routes internal. Do not add Seedance 2.5 Extend until exact route specs and prices are available.

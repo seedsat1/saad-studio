@@ -25,6 +25,18 @@ const KIE_QUERY_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
 
 type KieApiJson = { code?: number; msg?: string; data?: { taskId?: string; state?: string; resultJson?: string; failMsg?: string; failCode?: string } };
 
+function resolveSeedance25Route(baseRoute: string, hasImageInput: boolean, selectedResolution?: string | null): string {
+  if (!baseRoute.startsWith("bytedance/seedance-2.5")) return baseRoute;
+  if (baseRoute !== "bytedance/seedance-2.5/text-to-video-turbo") return baseRoute;
+  if (!hasImageInput) return baseRoute;
+
+  const normalizedResolution = String(selectedResolution || "").trim().toLowerCase();
+  if (normalizedResolution === "480p" || normalizedResolution === "4k") {
+    return "bytedance/seedance-2.5/image-to-video-spicy";
+  }
+
+  return "bytedance/seedance-2.5/image-to-video-turbo";
+}
 function sanitizePublicUrlList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((url): url is string => typeof url === "string" && isSafePublicHttpUrl(url));
@@ -477,8 +489,8 @@ export async function POST(req: NextRequest) {
 
       let wavespeedModel = resolveWaveSpeedModelRoute(modelId, { resolution, mode });
       const isSeedance25 = wavespeedModel.startsWith("bytedance/seedance-2.5");
-      if (isSeedance25 && wavespeedModel === "bytedance/seedance-2.5/text-to-video-turbo" && (imageUrl || firstFrameUrl || safeImageUrls.length || safeReferenceImageUrls.length)) {
-        wavespeedModel = "bytedance/seedance-2.5/image-to-video-turbo";
+      if (isSeedance25) {
+        wavespeedModel = resolveSeedance25Route(wavespeedModel, Boolean(imageUrl || firstFrameUrl || safeImageUrls.length || safeReferenceImageUrls.length), resolution);
       }
       const isKling = wavespeedModel.includes("kling");
 

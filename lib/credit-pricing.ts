@@ -13,6 +13,7 @@ const IMAGE_MODEL_MAP = new Map(IMAGE_MODELS.map((m) => [m.id, m]));
 const VIDEO_MODEL_ID_COST_MAP = new Map(VIDEO_MODELS.map((m) => [m.id, m.creditCost]));
 const VIDEO_MODEL_BY_ID_MAP = new Map(VIDEO_MODELS.map((m) => [m.id, m]));
 const VIDEO_ROUTE_REGISTRY_MAP = new Map(VIDEO_MODEL_REGISTRY.map((m) => [m.api_route, m]));
+const SEEDANCE_25_CREDITS_PER_USD = 40;
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["minimax/h3/reference-to-video", 9.0],
@@ -60,9 +61,9 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["bytedance/seedance-2.0/image-to-video", 40],
   ["bytedance/seedance-2.0/text-to-video-turbo", 27],
   ["bytedance/seedance-2.0/image-to-video-turbo", 27],
-  ["bytedance/seedance-2.5/text-to-video-turbo", 20],
-  ["bytedance/seedance-2.5/image-to-video-turbo", 20],
-  ["bytedance/seedance-2.5/image-to-video-spicy", 32.4],
+  ["bytedance/seedance-2.5/text-to-video-turbo", 40],
+  ["bytedance/seedance-2.5/image-to-video-turbo", 40],
+  ["bytedance/seedance-2.5/image-to-video-spicy", 64.8],
   ["bytedance/seedance-v2/text-to-video-fast", 27],
   ["bytedance/seedance-v2/text-to-video", 40],
   ["x-ai/grok-imagine-video/text-to-video", 9.24],
@@ -215,7 +216,7 @@ function getSeedance25TurboCredits(payload?: VideoPayload): number {
   const usdPerSecond = hasReferenceVideo
     ? (is1080 ? 0.39 : 0.38)
     : (is1080 ? 0.21 : 0.20);
-  return parseFloat(Math.max(1, usdPerSecond * duration * 20).toFixed(2));
+  return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }
 
 function getSeedance25SpicyCredits(payload?: VideoPayload): number {
@@ -228,7 +229,7 @@ function getSeedance25SpicyCredits(payload?: VideoPayload): number {
     "1080p": 0.81,
     "4k": 1.62,
   } as Record<string, number>)[q];
-  return parseFloat(Math.max(1, usdPerSecond * duration * 20).toFixed(2));
+  return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }
 function getSora2Credits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 4);

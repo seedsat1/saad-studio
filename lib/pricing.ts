@@ -465,6 +465,8 @@ export function qualityMultiplierFor(quality: string | null | undefined): number
 }
 
 
+const SEEDANCE_25_CREDITS_PER_USD = 40;
+
 function getSeedance25ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
   const route = (modelRef || "").toLowerCase();
   if (!route.includes("bytedance/seedance-2.5")) return null;
@@ -481,7 +483,7 @@ function getSeedance25ProviderUsd(modelRef: string, durationSec: number, quality
 function getSeedance25DefaultCredits(modelRef: string, durationSec: number, numUnits: number, quality?: string | null): number | null {
   const usd = getSeedance25ProviderUsd(modelRef, durationSec, quality);
   if (usd === null) return null;
-  return parseFloat(Math.max(1, usd * 20 * numUnits).toFixed(2));
+  return parseFloat(Math.max(1, usd * SEEDANCE_25_CREDITS_PER_USD * numUnits).toFixed(2));
 }
 function isVeo31ModelRef(modelRef: string): boolean {
   return (

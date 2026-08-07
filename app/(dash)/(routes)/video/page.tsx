@@ -1512,8 +1512,22 @@ const HIDDEN_VIDEO_PAGE_MODEL_IDS = new Set([
   "openai-sora-2-i2v",
   "xai-grok-imagine-t2v",
   "xai-grok-imagine-edit",
+  "bytedance-seedance-v25-i2v-turbo",
+  "bytedance-seedance-v25-i2v-spicy",
 ]);
 
+function resolveSeedance25Route(baseRoute: string, hasImageInput: boolean, selectedResolution?: string | null): string {
+  if (!baseRoute.startsWith("bytedance/seedance-2.5")) return baseRoute;
+  if (baseRoute !== "bytedance/seedance-2.5/text-to-video-turbo") return baseRoute;
+  if (!hasImageInput) return baseRoute;
+
+  const normalizedResolution = String(selectedResolution || "").trim().toLowerCase();
+  if (normalizedResolution === "480p" || normalizedResolution === "4k") {
+    return "bytedance/seedance-2.5/image-to-video-spicy";
+  }
+
+  return "bytedance/seedance-2.5/image-to-video-turbo";
+}
 const MODEL_GROUPS = getModelGroups()
   .map((group) => ({
     ...group,
@@ -2629,9 +2643,7 @@ function VideoPageInner() {
     // NOTE: capturedDuration below also defaults to 8 if duration is null.
     if (selectedModel.api_route.startsWith("bytedance/seedance-2.5")) {
       const seedance25HasImage = Boolean(startFrame || linkedStartFrameUrl || selectedCharacter?.referenceUrls?.[0] || referenceImages.some((file) => file.type.startsWith("image/")));
-      const seedance25Route = selectedModel.api_route === "bytedance/seedance-2.5/text-to-video-turbo" && seedance25HasImage
-        ? "bytedance/seedance-2.5/image-to-video-turbo"
-        : selectedModel.api_route;
+      const seedance25Route = resolveSeedance25Route(selectedModel.api_route, seedance25HasImage, resolution);
       return getVideoCreditsByRoute(seedance25Route, {
         duration: pricingDuration,
         resolution: resolution ?? "720p",
@@ -3267,9 +3279,7 @@ function VideoPageInner() {
       );
       let requestModelRoute = selectedModel.api_route;
       if (requestModelRoute.startsWith("bytedance/seedance-2.5")) {
-        if (requestModelRoute === "bytedance/seedance-2.5/text-to-video-turbo" && payloadHasImageInput) {
-          requestModelRoute = "bytedance/seedance-2.5/image-to-video-turbo";
-        }
+        requestModelRoute = resolveSeedance25Route(requestModelRoute, payloadHasImageInput, resolution);
       } else if (requestModelRoute.includes("seedance")) {
         if (requestModelRoute.includes("mini")) {
           requestModelRoute = payloadHasImageInput
