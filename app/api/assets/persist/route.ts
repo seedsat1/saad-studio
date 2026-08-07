@@ -15,11 +15,17 @@ import { scheduleImageThumbnailGeneration } from "@/lib/image-thumbnails";
 import { scheduleVideoPosterGeneration } from "@/lib/video-posters";
 import {
   isStoredAssetUrl,
+  normalizeMediaUrl,
   uploadUrlToStorage,
   isStorageConfigured,
 } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
+
+function browserMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return normalizeMediaUrl(url) || url;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,13 +45,14 @@ export async function POST(req: NextRequest) {
       }
 
       if (isStoredAssetUrl(mediaUrl)) {
-        return NextResponse.json({ persisted: true, url: mediaUrl, skipped: true });
+        return NextResponse.json({ persisted: true, url: browserMediaUrl(mediaUrl), storageUrl: mediaUrl, skipped: true });
       }
 
       if (!isStorageConfigured()) {
         return NextResponse.json({
           persisted: false,
-          url: mediaUrl,
+          url: browserMediaUrl(mediaUrl),
+          storageUrl: mediaUrl,
           reason: "Storage not configured",
         });
       }
@@ -59,7 +66,8 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         persisted: Boolean(permanentUrl),
-        url: permanentUrl || mediaUrl,
+        url: browserMediaUrl(permanentUrl || mediaUrl),
+        storageUrl: permanentUrl || mediaUrl,
         skipped: !permanentUrl,
         reason: permanentUrl ? undefined : "Upload to storage failed - original URL kept",
       });
@@ -91,7 +99,8 @@ export async function POST(req: NextRequest) {
       if (isStoredImage) scheduleImageThumbnailGeneration(generation.id, "persist-existing-image");
       return NextResponse.json({
         persisted: true,
-        url: urlToPersist,
+        url: browserMediaUrl(urlToPersist),
+        storageUrl: urlToPersist,
         skipped: true,
         thumbnailUrl: isStoredImage ? `/api/assets/thumbnail?id=${encodeURIComponent(generation.id)}` : undefined,
         posterUrl: generation.posterUrl ?? undefined,
@@ -103,7 +112,8 @@ export async function POST(req: NextRequest) {
     if (!isStorageConfigured()) {
       return NextResponse.json({
         persisted: false,
-        url: urlToPersist,
+        url: browserMediaUrl(urlToPersist),
+        storageUrl: urlToPersist,
         reason: "Storage not configured",
       });
     }
@@ -120,7 +130,8 @@ export async function POST(req: NextRequest) {
       // Non-fatal — keep original URL, return warning
       return NextResponse.json({
         persisted: false,
-        url: urlToPersist,
+        url: browserMediaUrl(urlToPersist),
+        storageUrl: urlToPersist,
         reason: "Upload to storage failed — original URL kept",
       });
     }
@@ -139,7 +150,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       persisted: true,
-      url: permanentUrl,
+      url: browserMediaUrl(permanentUrl),
+      storageUrl: permanentUrl,
       thumbnailUrl: isImage ? `/api/assets/thumbnail?id=${encodeURIComponent(generationId)}` : undefined,
       posterStatus: isVideo ? "pending" : undefined,
     });

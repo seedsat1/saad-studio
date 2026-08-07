@@ -10888,3 +10888,13 @@
   - The Seedance tool shortcut also opens the same public Seedance 2.5 row instead of older Seedance 2.0.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
 - Decision: Keep the registry `DEFAULT_MODEL` and the page tool default aligned so UI initialization cannot override Seedance 2.5 with another model.
+
+#### Latest task: Fix raw persisted video storage keys causing /videos 404 (2026-08-07)
+- Status: Completed. Fixed `/api/assets/persist` and `/video` result handling so raw storage keys such as `videos/user.../persisted-....mp4` are not returned or used directly as browser video sources.
+- Affected files: `app/api/assets/persist/route.ts`, `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `/api/assets/persist` now returns `url` as a browser-safe normalized media URL and also includes `storageUrl` for the raw stored key/original value.
+  - `/video` normalizes any raw storage key from assets, generation status, or persist responses to `/api/media/...` before assigning it to a video result source.
+  - Existing DB rows with raw storage keys still load correctly through `/api/assets`, while immediate post-generation UI updates no longer request `/videos/...` from the app root.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
+- Decision: Do not change `putObjectToStorage` globally because some admin upload paths intentionally expect a raw key and build `/api/media/${key}` themselves.

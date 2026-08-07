@@ -3033,3 +3033,10 @@
 - Opening `/video` without query parameters should select the public `Seedance 2.5` row (`bytedance-seedance-v25-t2v-turbo`) by default.
 - The page tool default mapping must not override the registry default with Minimax, Google, Kling, or old Seedance 2.0 on first render.
 - The Seedance shortcut/tool should also select the public Seedance 2.5 row unless the user explicitly chooses another model.
+
+## Persisted Video Browser URL Contract (2026-08-07)
+
+- Storage helpers may return raw keys such as `videos/user/file.mp4` for internal cleanup/admin flows.
+- Browser-facing APIs must not return raw storage keys as the primary playable `url`; they should normalize them to a safe media URL such as `/api/media/videos/user/file.mp4` or a configured public CDN/B2 URL.
+- `/api/assets/persist` returns `url` for browser playback and `storageUrl` for the raw stored key/original durable value.
+- `/video` must normalize raw `images/`, `videos/`, `audio/`, `thumbnails/`, or `media/` keys before assigning them to `<video src>` or result media state. This prevents production 404 requests to `/videos/...`.

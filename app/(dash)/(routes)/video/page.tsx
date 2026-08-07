@@ -1756,6 +1756,16 @@ function normalizeCharacterTag(name: string): string {
   return cleaned || "character";
 }
 
+function normalizeBrowserMediaUrl(url: string | null | undefined): string {
+  const value = String(url || "").trim();
+  if (!value) return "";
+  if (/^(https?:|data:|blob:|\/api\/media\/|\/)/i.test(value)) return value;
+  if (/^(images|videos|audio|thumbnails|media)\//i.test(value)) {
+    return `/api/media/${value.replace(/^\/+/, "")}`;
+  }
+  return value;
+}
+
 // -- Main Component -------------------------------------------------------------
 
 function VideoPageInner() {
@@ -2139,7 +2149,7 @@ function VideoPageInner() {
 
   const mapAssetToMediaItem = useCallback((asset: any): MediaItem | null => {
     const isFailed = Boolean(asset?.isFailed || String(asset?.status || "").toLowerCase() === "failed");
-    const originalUrl = asset?.originalUrl || asset?.url;
+    const originalUrl = normalizeBrowserMediaUrl(asset?.originalUrl || asset?.url);
     if (!originalUrl && !isFailed) return null;
     const model = allModels.find((m) => m.api_route === asset.model || m.name === asset.model);
     const durationValue = typeof asset.duration === "number" && Number.isFinite(asset.duration)
@@ -2150,7 +2160,7 @@ function VideoPageInner() {
     return {
       id: String(asset.id),
       type: "video",
-      src: isFailed ? `failed:${asset.id}` : String(originalUrl),
+      src: isFailed ? `failed:${asset.id}` : originalUrl,
       poster: typeof asset.posterUrl === "string" ? asset.posterUrl : undefined,
       posterStatus: typeof asset.posterStatus === "string" ? asset.posterStatus : undefined,
       model: model?.name ?? (asset.model || "Video"),
@@ -2628,7 +2638,7 @@ function VideoPageInner() {
           }
           completedTaskRefs.current.add(taskId);
 
-          const videoUrl = data.outputs[0];
+          const videoUrl = normalizeBrowserMediaUrl(data.outputs[0]);
           const durableBaseUrl = process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_B2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
           const isDurableUrl =
             !!videoUrl &&
@@ -2662,7 +2672,7 @@ function VideoPageInner() {
             })
               .then((persistRes) => persistRes.ok ? persistRes.json() : null)
               .then((persistJson) => {
-                const durableUrl = typeof persistJson?.url === "string" ? persistJson.url : "";
+                const durableUrl = normalizeBrowserMediaUrl(persistJson?.url);
                 if (!durableUrl) return;
                 setResults((prev) =>
                   prev.map((item) =>
@@ -2875,7 +2885,7 @@ function VideoPageInner() {
           throw new Error(lipsyncJson.error || "Generation failed on server.");
         }
 
-        let finalVideoUrl = lipsyncJson.videoUrl;
+        let finalVideoUrl = normalizeBrowserMediaUrl(lipsyncJson.videoUrl);
 
         // 4. Persist to DB / durable storage
         const durableBaseUrl = process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_B2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
@@ -2893,7 +2903,7 @@ function VideoPageInner() {
             });
             if (persistRes.ok) {
               const persistJson = await persistRes.json();
-              if (persistJson?.url) finalVideoUrl = persistJson.url;
+              if (persistJson?.url) finalVideoUrl = normalizeBrowserMediaUrl(persistJson.url);
             }
           } catch (e) {
             console.error("Persist failed", e);
