@@ -1,3 +1,11 @@
+#### Latest task: Add video reference thumbnail previews in /video (2026-08-07)
+- Status: Completed. Enabled video reference thumbnail previews in the generation UI by generating object URLs for video files and rendering them with a <video> element.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed.
+- Decisions:
+  - Generate object URLs for video files in addition to images.
+  - Render <video> tags with `muted playsInline` to display the first frame of the video as a thumbnail preview in the prompt reference chip buttons, dropzone preview grids, and uploaded list items.
+
 #### Latest task: Update real WaveSpeed run prices for Seedance 2.5 and Minimax H3 (2026-08-07)
 - Status: Completed. Updated generation credit pricing from actual WaveSpeed completed prediction screenshots.
 - Affected files: `lib/credit-pricing.ts`, `lib/pricing.ts`, `lib/pricing-models.ts`, `app/(landing)/(routes)/pricing/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.

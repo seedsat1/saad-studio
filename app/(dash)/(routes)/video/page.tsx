@@ -2122,7 +2122,7 @@ function VideoPageInner() {
       setReferencePreviews([]);
       return;
     }
-    const urls = referenceImages.map((f) => f.type.startsWith("image/") ? URL.createObjectURL(f) : "");
+    const urls = referenceImages.map((f) => f.type.startsWith("image/") || f.type.startsWith("video/") ? URL.createObjectURL(f) : "");
     setReferencePreviews(urls);
     return () => urls.forEach((u) => {
       if (u) URL.revokeObjectURL(u);
@@ -3782,6 +3782,13 @@ function VideoPageInner() {
                           alt={ref.tag}
                           className="w-5 h-5 rounded object-cover border border-cyan-500/30"
                         />
+                      ) : isVideo && previewSrc ? (
+                        <video
+                          src={previewSrc}
+                          className="w-5 h-5 rounded object-cover border border-cyan-500/30"
+                          muted
+                          playsInline
+                        />
                       ) : (
                         <span className="flex w-5 h-5 items-center justify-center rounded border border-cyan-500/30 bg-cyan-500/10">
                           {isVideo ? <Film size={12} /> : <Music2 size={12} />}
@@ -4432,8 +4439,13 @@ function VideoPageInner() {
                       {referencePreviews.slice(0, 3).map((src, i) => {
                         const fileType = referenceImages[i]?.type ?? "";
                         if (fileType.startsWith("video/")) return (
-                          <div key={i} className="w-full h-full rounded-md opacity-75 flex items-center justify-center" style={{ background: "rgba(6,182,212,0.15)" }}>
-                            <Film size={14} style={{ color: "#06b6d4" }} />
+                          <div key={i} className="relative w-full h-full rounded-md opacity-75 overflow-hidden border border-cyan-500/20">
+                            {src ? (
+                              <video src={src} className="w-full h-full object-cover" muted playsInline />
+                            ) : null}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+                              <Film size={14} style={{ color: "#06b6d4" }} />
+                            </div>
                           </div>
                         );
                         if (fileType.startsWith("audio/")) return (
@@ -4713,8 +4725,13 @@ function VideoPageInner() {
                           {referencePreviews.slice(0, 4).map((src, i) => {
                             const fileType = referenceImages[i]?.type ?? "";
                             if (fileType.startsWith("video/")) return (
-                              <div key={i} className="w-full h-full rounded-md opacity-75 flex items-center justify-center" style={{ background: "rgba(6,182,212,0.15)" }}>
-                                <Film size={14} style={{ color: "#06b6d4" }} />
+                              <div key={i} className="relative w-full h-full rounded-md opacity-75 overflow-hidden border border-cyan-500/20">
+                                {src ? (
+                                  <video src={src} className="w-full h-full object-cover" muted playsInline />
+                                ) : null}
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+                                  <Film size={14} style={{ color: "#06b6d4" }} />
+                                </div>
                               </div>
                             );
                             if (fileType.startsWith("audio/")) return (
@@ -4788,6 +4805,13 @@ function VideoPageInner() {
                                   src={previewSrc}
                                   alt={ref.tag}
                                   className="w-8 h-8 rounded object-cover border border-cyan-500/20"
+                                />
+                              ) : isVideo && previewSrc ? (
+                                <video
+                                  src={previewSrc}
+                                  className="w-8 h-8 rounded object-cover border border-cyan-500/20"
+                                  muted
+                                  playsInline
                                 />
                               ) : (
                                 <span className="flex w-8 h-8 items-center justify-center rounded border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
