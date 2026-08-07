@@ -114,6 +114,8 @@ export default function AdminModelsPage() {
       });
   }, [router]);
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const handleSaveAll = async () => {
     setIsSaving(true);
     setError(null);
@@ -132,6 +134,31 @@ export default function AdminModelsPage() {
       setError(err.message || "An unexpected error occurred.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAutoSync = async () => {
+    setIsSyncing(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/admin/models", {
+        method: "PUT",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to trigger sync");
+      setSuccess(`Successfully synchronized! Added ${data.newlyAddedCount} new models.`);
+      setTimeout(() => setSuccess(null), 5000);
+
+      // Reload registry
+      const reloadRes = await fetch("/api/admin/models");
+      const reloadData = await reloadRes.json();
+      if (reloadData.imageModels) setImageModels(reloadData.imageModels);
+      if (reloadData.videoModels) setVideoModels(reloadData.videoModels);
+    } catch (err: any) {
+      setError(err.message || "Failed to synchronize with KIE API catalog.");
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -300,6 +327,14 @@ export default function AdminModelsPage() {
           >
             <Plus className="w-4 h-4" />
             Add Custom Model
+          </button>
+          <button
+            onClick={handleAutoSync}
+            disabled={isSyncing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 active:scale-95 disabled:opacity-50 transition-all duration-200"
+          >
+            <RotateCcw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
+            {isSyncing ? "Syncing..." : "Auto Sync Catalog"}
           </button>
           <button
             onClick={handleSaveAll}
