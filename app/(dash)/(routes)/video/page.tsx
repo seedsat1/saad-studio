@@ -4093,10 +4093,14 @@ function VideoPageInner() {
           {/* 1. Reference Media Box (Always visible Status Bar with conditional thumbnails) */}
           {(showReferenceImages || showSimpleKlingRefs) && (
             <div className="flex flex-col gap-2">
-              {/* The Status Bar Row - Clickable as a single unified button */}
+              {/* The Status Bar Row - Clickable as a single unified button with drag and drop */}
               <button
                 type="button"
                 onClick={() => openMediaPicker("referenceImages")}
+                onDragOver={allowDrop}
+                onDragEnter={(event) => markDropZone(event, "referenceImages")}
+                onDragLeave={(event) => clearDropZone(event, "referenceImages")}
+                onDrop={handleDropReferenceImages}
                 className="flex items-center justify-between w-full bg-[#070b15] border border-slate-800/80 rounded-full p-1 pl-2.5 pr-1 relative flex-nowrap min-w-0 overflow-hidden hover:bg-[#0c1222] hover:border-slate-700/80 transition-all duration-200 group cursor-pointer"
               >
                 <div className="flex items-center gap-1 flex-shrink-0 min-w-0">
@@ -4164,6 +4168,12 @@ function VideoPageInner() {
                   </div>
                   <span className="text-[10px] font-semibold tracking-tight">Add media</span>
                 </div>
+
+                {activeDropZone === "referenceImages" && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-full bg-cyan-500/15 text-[10px] font-bold text-cyan-300 backdrop-blur-[1px] border border-dashed border-cyan-500/30">
+                    {lang === "ar" ? "أفلت الوسائط هنا" : "Drop media here"}
+                  </div>
+                )}
               </button>
 
               {/* Row 2: Thumbnails grid (rendered below status bar when files are uploaded) */}
