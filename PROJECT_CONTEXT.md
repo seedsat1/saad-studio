@@ -1,3 +1,11 @@
+#### Latest task: Restore default Reference Tiles and add 5-icon Status Bar directly to Video Studio (2026-08-07)
+- Status: Completed. Reverted `ReferenceActionTiles` to the standard layout (Style, Character, Add tiles in 3-column static grid) to prevent design breakdown. Rendered the new consolidated 5-icon status bar layout directly inside the Video page sidebar layout (`VideoPageInner`) under the standard action tiles when reference inputs are enabled.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `components/ReferenceActionTiles.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed.
+- Decisions:
+  - Keep `ReferenceActionTiles` simple and backwards-compatible with its original square style buttons.
+  - Implement the sleek 5-icon status bar + compact `+ Add media` button inside `app/(dash)/(routes)/video/page.tsx` directly to preserve the complete mockup screen correctly.
+
 #### Latest task: Restore Start frame and End frame labels inside empty frame buttons (2026-08-07)
 - Status: Completed. Restored the text labels `Start frame` and `End frame` underneath the image icons inside all empty frame slot buttons (Omni frames, non-Kling frames, and Kling 3.0 frames) while keeping the `Optional` labels removed.
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
