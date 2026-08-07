@@ -3027,3 +3027,9 @@
 - Seedance 2.5 API normalization must clamp stale/invalid resolution values to `720p`.
 - Seedance 2.5 pricing must use the user-supplied source table for the visible quality set: `480p = $0.162/s`, `720p = $0.324/s`, then multiply by 40 credits/USD. Audio generation is included and must not add cost.
 - The public `Seedance 2.5` row may still route internally to Text Turbo, Image Turbo, or Spicy based on prompt/reference/start-frame inputs, but all subscriber-visible quality controls remain `480p`/`720p`.
+
+## Seedance 2.5 Page Default Contract (2026-08-07)
+
+- Opening `/video` without query parameters should select the public `Seedance 2.5` row (`bytedance-seedance-v25-t2v-turbo`) by default.
+- The page tool default mapping must not override the registry default with Minimax, Google, Kling, or old Seedance 2.0 on first render.
+- The Seedance shortcut/tool should also select the public Seedance 2.5 row unless the user explicitly chooses another model.

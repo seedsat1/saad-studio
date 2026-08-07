@@ -1490,11 +1490,11 @@ function resolveVideoTool(toolId: string | null): VideoToolId | null {
 }
 
 const TOOL_DEFAULT_MODEL_ID: Record<VideoToolId, string> = {
-  "create-video": "minimax-h3-reference-to-video",
+  "create-video": "bytedance-seedance-v25-t2v-turbo",
   "image-to-video": "kling-v3-turbo",
   "kling-3": "kling-v3.0-pro-t2v",
   "kling-motion": "kling-v3.0-pro-t2v",
-  "seedance-2": "bytedance-seedance-v2-t2v",
+  "seedance-2": "bytedance-seedance-v25-t2v-turbo",
   "veo-fast": "google-veo3.1-fast-t2v",
   "hailuo-i2v": "minimax-hailuo-2.3-i2v-fast",
   "lipsync": "kling-ai-avatar-pro",

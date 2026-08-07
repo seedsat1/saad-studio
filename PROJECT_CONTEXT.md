@@ -10879,3 +10879,12 @@
   - Seedance 2.5 credit helpers now price the visible choices from the user-provided source table only: `480p = $0.162/s`, `720p = $0.324/s`, multiplied by 40 credits/USD. Generate Audio remains included and does not change price.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only. Search found no remaining active app/lib Seedance 2.5 `1080p`/`4k` references.
 - Decision: Remove subscriber-facing `1080p/4K` for Seedance 2.5 because the latest supplied provider UI contradicts the earlier catalog assumptions.
+
+#### Latest task: Make Seedance 2.5 the actual /video opening default (2026-08-07)
+- Status: Completed. Updated the `/video` tool default mapping so the initial `create-video` tool selects the public `Seedance 2.5` model instead of Minimax H3.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Opening `/video` with no query params now resolves the selected model to `bytedance-seedance-v25-t2v-turbo`.
+  - The Seedance tool shortcut also opens the same public Seedance 2.5 row instead of older Seedance 2.0.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
+- Decision: Keep the registry `DEFAULT_MODEL` and the page tool default aligned so UI initialization cannot override Seedance 2.5 with another model.
