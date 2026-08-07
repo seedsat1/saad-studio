@@ -69,9 +69,11 @@ async function nanoBananaGenerateOnce(model: string, input: ImageGenInput): Prom
 
   const aspectRatio = normalizeGoogleImageAspectRatio(model, input.aspectRatio);
   const imageSize = normalizeGoogleImageSize(model, input.resolution);
+  // Google's /v1beta/interactions endpoint currently only accepts image/jpeg
+  // for response_format.mime_type — image/png returns "not supported" 400.
   const responseFormat: Record<string, string> = {
     type: "image",
-    mime_type: "image/png",
+    mime_type: "image/jpeg",
     aspect_ratio: aspectRatio,
   };
   if (imageSize) responseFormat.image_size = imageSize;
