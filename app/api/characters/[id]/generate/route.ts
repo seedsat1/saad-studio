@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { getGenerationCost } from "@/lib/pricing";
@@ -244,7 +244,7 @@ async function generateGoogleCharacterImages(params: {
   const imageSize = normalizeGoogleImageSize(params.googleModel, params.quality);
   const responseFormat: Record<string, string> = {
     type: "image",
-    mime_type: "image/png",
+    mime_type: "image/jpeg",
     aspect_ratio: normalizeGoogleImageAspectRatio(params.googleModel, params.aspectRatio),
   };
   if (imageSize) responseFormat.image_size = imageSize;
