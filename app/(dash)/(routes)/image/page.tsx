@@ -2449,11 +2449,7 @@ export default function ImageWorkspacePage() {
         ) : null}
 
         {selectedModel.maxImages > 1 ? (
-          <SettingsAccordion
-            label={selectedModel.seedreamSequentialMode ? "Number of Images (max_images)" : "Number of Images"}
-            summary={String(numImages)}
-            defaultOpen
-          >
+          <SettingsAccordion label="Number of Images" summary={String(numImages)} defaultOpen>
             <div className="num-selector">
               {(selectedModel.maxImages > 4 ? [1, 2, 4, 8, 15] : [1, 2, 3, 4])
                 .filter((n) => n <= selectedModel.maxImages)
@@ -2461,9 +2457,9 @@ export default function ImageWorkspacePage() {
                   <button key={n} onClick={() => setNumImages(Math.min(n, selectedModel.maxImages))} className={cn("num-btn", numImages === n && "active")}>{n}</button>
                 ))}
             </div>
-            {selectedModel.seedreamSequentialMode ? (
+            {selectedModel.maxImages > 4 && numImages > 1 ? (
               <p className="mt-2 rounded-lg border border-amber-400/20 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200">
-                {t("Sequential models require the prompt to include the count (e.g. \"3 images. First,... Second,... Third,...\"). Start with 2–4 for stability.")}
+                {t("For consistent multi-image results, include the count in your prompt (e.g. \"3 images. First,... Second,... Third,...\"). Start with 2–4 for stability.")}
               </p>
             ) : null}
           </SettingsAccordion>

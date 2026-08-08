@@ -50,12 +50,9 @@ export interface ImageModel {
   /** Wan 2.7 Image Pro can output up to 12 images via `enable_sequential: true`.
    * When true, the UI shows a sequential-mode toggle. */
   wanSequentialMode?: boolean;
-  /** Seedream Lite Sequential variants map the UI's `numImages` to the API's
-   * `max_images` param (1..15) and expect the prompt itself to mention the count.
-   * When true, the UI keeps the num-images slider but hints the prompt convention. */
-  seedreamSequentialMode?: boolean;
   /** Seedream Lite uses a `size` pixel-dim string (e.g. "2048*2048") instead of a
-   * `quality` tier. When true, the route sends `size` derived from qualityParam. */
+   * `quality` tier. When true, the route sends `size` derived from qualityParam.
+   * Sequential mode auto-activates on the server when numImages > 1. */
   seedreamLiteSize?: boolean;
   /** Display credit cost (UI only). */
   creditCost: number;
@@ -283,105 +280,43 @@ export const IMAGE_MODELS: ImageModel[] = [
     qualityParam: ["basic", "high"],
     creditCost: 1.0,
   },
-  // Seedream 5.0 Lite — WaveSpeed direct (bytedance/seedream-v5.0-lite/*).
-  // These are separate from the KIE-routed seedream/5-lite-{text,image}-to-image
-  // above, which target the older wrapper. New generations should prefer these.
+  // Seedream 5.0 Lite — one smart wrapper (WaveSpeed direct).
+  // The server routes to the correct endpoint based on runtime state:
+  //   • no refs + 1 image  → bytedance/seedream-v5.0-lite            (base T2I)
+  //   • no refs + N images → bytedance/seedream-v5.0-lite/sequential (multi T2I, identity lock)
+  //   • refs   + 1 image   → bytedance/seedream-v5.0-lite/edit       (single-image edit)
+  //   • refs   + N images  → bytedance/seedream-v5.0-lite/edit-sequential (multi edit, identity lock)
+  // One entry in the UI, four capabilities behind — mirrors the seedream/5-pro pattern.
   {
     id: "seedream/5-lite",
     label: "Seedream 5.0 Lite",
-    sublabel: "Fast text-to-image · up to 4K",
+    sublabel: "Fast · up to 15 images · edits with refs",
     badge: "NEW",
     group: "Seedream",
     inputType: "text-to-image",
     aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
-    maxImages: 1,
-    maxRefImages: 0,
-    qualityParam: ["2K", "4K"],
-    seedreamLiteSize: true,
-    creditCost: 1.5,
-  },
-  {
-    id: "seedream/5-lite-edit",
-    label: "Seedream 5.0 Lite Edit",
-    sublabel: "Single-image edit with references",
-    badge: "NEW",
-    group: "Seedream",
-    inputType: "image-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
-    maxImages: 1,
+    maxImages: 15,
     maxRefImages: 10,
     imageInputField: "image_urls",
     qualityParam: ["2K", "4K"],
     seedreamLiteSize: true,
     creditCost: 1.5,
   },
-  {
-    id: "seedream/5-lite-sequential",
-    label: "Seedream 5.0 Lite Sequential",
-    sublabel: "Multi-image T2I with character continuity",
-    badge: "NEW",
-    group: "Seedream",
-    inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
-    maxImages: 15,
-    maxRefImages: 0,
-    qualityParam: ["2K", "4K"],
-    seedreamLiteSize: true,
-    seedreamSequentialMode: true,
-    creditCost: 1.5,
-  },
-  {
-    id: "seedream/5-lite-edit-sequential",
-    label: "Seedream 5.0 Lite Edit Sequential",
-    sublabel: "Multi-image edit · identity locked",
-    badge: "NEW",
-    group: "Seedream",
-    inputType: "image-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
-    maxImages: 15,
-    maxRefImages: 10,
-    imageInputField: "image_urls",
-    qualityParam: ["2K", "4K"],
-    seedreamLiteSize: true,
-    seedreamSequentialMode: true,
-    creditCost: 1.5,
-  },
+  // Seedream 5.0 Pro — one smart wrapper. The server routes at runtime:
+  //   • no refs → bytedance/seedream-v5.0-pro       (base T2I)
+  //   • refs   → bytedance/seedream-v5.0-pro/edit   (up to 10 references, identity/style guidance)
+  // The T2I/I2I split entries (seedream/5-pro-text-to-image / -image-to-image) still resolve
+  // server-side for backward compatibility with any persisted generations, but are hidden
+  // from the UI catalog — the user picks Seedream 5.0 Pro once and it does the right thing.
   {
     id: "seedream/5-pro",
     label: "Seedream 5.0 Pro",
-    sublabel: "Intelligent Visual Reasoning",
+    sublabel: "Pro-quality · auto-edits with refs",
     badge: "PRO",
     group: "Seedream",
     inputType: "text-to-image",
     aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2"],
-    maxImages: 4,
-    maxRefImages: 10,
-    imageInputField: "image_urls",
-    qualityParam: ["1K", "2K"],
-    creditCost: 1.0,
-  },
-  {
-    id: "seedream/5-pro-text-to-image",
-    label: "Seedream 5.0 Pro T2I",
-    sublabel: "Text to image",
-    badge: "PRO",
-    group: "Seedream",
-    inputType: "text-to-image",
-    aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2"],
-    maxImages: 4,
-    maxRefImages: 0,
-    qualityParam: ["1K", "2K"],
-    creditCost: 1.0,
-  },
-  {
-    id: "seedream/5-pro-image-to-image",
-    label: "Seedream 5.0 Pro I2I",
-    sublabel: "Image to image",
-    badge: "PRO",
-    group: "Seedream",
-    inputType: "image-to-image",
-    aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2"],
-    maxImages: 4,
+    maxImages: 1,
     maxRefImages: 10,
     imageInputField: "image_urls",
     qualityParam: ["1K", "2K"],

@@ -177,25 +177,39 @@ function resolveSeedream5ProWaveSpeedRoute(modelId: string): string | null {
   return null;
 }
 
-function resolveSeedream5LiteWaveSpeedRoute(modelId: string): string | null {
+function resolveSeedream5LiteWaveSpeedRoute(
+  modelId: string,
+  hasReferenceImages: boolean,
+  numImages: number,
+): string | null {
   const normalized = modelId.toLowerCase();
-  if (normalized === "seedream/5-lite" || normalized === "bytedance/seedream-v5.0-lite") {
-    return "bytedance/seedream-v5.0-lite";
+  const isLiteAlias =
+    normalized === "seedream/5-lite" ||
+    normalized === "bytedance/seedream-v5.0-lite" ||
+    normalized === "bytedance/seedream-v5.0-lite/edit" ||
+    normalized === "bytedance/seedream-v5.0-lite/sequential" ||
+    normalized === "bytedance/seedream-v5.0-lite/edit-sequential";
+  if (!isLiteAlias) return null;
+  const wantsMulti = numImages > 1;
+  if (hasReferenceImages) {
+    return wantsMulti
+      ? "bytedance/seedream-v5.0-lite/edit-sequential"
+      : "bytedance/seedream-v5.0-lite/edit";
   }
-  if (normalized === "seedream/5-lite-edit" || normalized === "bytedance/seedream-v5.0-lite/edit") {
-    return "bytedance/seedream-v5.0-lite/edit";
-  }
-  if (normalized === "seedream/5-lite-sequential" || normalized === "bytedance/seedream-v5.0-lite/sequential") {
-    return "bytedance/seedream-v5.0-lite/sequential";
-  }
-  if (normalized === "seedream/5-lite-edit-sequential" || normalized === "bytedance/seedream-v5.0-lite/edit-sequential") {
-    return "bytedance/seedream-v5.0-lite/edit-sequential";
-  }
-  return null;
+  return wantsMulti
+    ? "bytedance/seedream-v5.0-lite/sequential"
+    : "bytedance/seedream-v5.0-lite";
 }
 
-function resolveWaveSpeedImageRoute(modelId: string): string | null {
-  return resolveSeedream5ProWaveSpeedRoute(modelId) ?? resolveSeedream5LiteWaveSpeedRoute(modelId);
+function resolveWaveSpeedImageRoute(
+  modelId: string,
+  hasReferenceImages: boolean,
+  numImages: number,
+): string | null {
+  return (
+    resolveSeedream5ProWaveSpeedRoute(modelId) ??
+    resolveSeedream5LiteWaveSpeedRoute(modelId, hasReferenceImages, numImages)
+  );
 }
 
 function normalizeSeedream5ProResolution(value: unknown): "1k" | "2k" {
@@ -640,7 +654,7 @@ export async function POST(req: NextRequest) {
     let effectiveModelId = isFluxKontext ? modelId : resolveFlux2Variant(modelId, hasReferenceImages, quality);
     effectiveModelId = resolveSeedream5ProVariant(effectiveModelId, hasReferenceImages);
     const { imageModelMap } = getResolvedKieRoutingMaps();
-    const waveSpeedImageRoute = resolveWaveSpeedImageRoute(effectiveModelId);
+    const waveSpeedImageRoute = resolveWaveSpeedImageRoute(effectiveModelId, hasReferenceImages, Number(numImages) || 1);
     const isWaveSpeedImageModel = Boolean(waveSpeedImageRoute);
     const openAIImageModel = isFluxKontext ? null : getOpenAIImageModel(effectiveModelId);
 

@@ -220,7 +220,17 @@ export async function GET(req: NextRequest) {
       const payload = context.generationRequestSnapshot?.requestPayload as any;
       const referenceImageUrls = collectStringArray(
         payload,
-        ["reference_image_urls", "referenceImageUrls", "image_urls", "imageUrls"],
+        ["reference_image_urls", "referenceImageUrls", "image_urls", "imageUrls", "reference_images", "referenceImages"],
+        9,
+      );
+      const referenceVideoUrls = collectStringArray(
+        payload,
+        ["reference_video_urls", "referenceVideoUrls", "video_urls", "videoUrls", "reference_videos", "referenceVideos"],
+        3,
+      );
+      const referenceAudioUrls = collectStringArray(
+        payload,
+        ["reference_audio_urls", "referenceAudioUrls", "audio_urls", "audioUrls", "reference_audios", "referenceAudios"],
         3,
       );
 
@@ -233,9 +243,11 @@ export async function GET(req: NextRequest) {
         aspectRatio: context.generationRequestSnapshot?.aspectRatio ?? payload?.aspect_ratio ?? payload?.aspectRatio ?? undefined,
         resolution: context.generationRequestSnapshot?.resolution ?? undefined,
         quality: context.generationRequestSnapshot?.quality ?? payload?.quality ?? payload?.mode ?? undefined,
-        startImageUrl: firstString(payload, ["first_frame_url", "firstFrameUrl", "image", "image_url", "imageUrl"]) ?? undefined,
-        endImageUrl: firstString(payload, ["last_frame_url", "lastFrameUrl", "end_image", "endImage", "last_image", "lastImage"]) ?? undefined,
+        startImageUrl: firstString(payload, ["first_frame_url", "firstFrameUrl", "image", "image_url", "imageUrl", "startFrame"]) ?? undefined,
+        endImageUrl: firstString(payload, ["last_frame_url", "lastFrameUrl", "end_image", "endImage", "last_image", "lastImage", "endFrame"]) ?? undefined,
         referenceImageUrls,
+        referenceVideoUrls,
+        referenceAudioUrls,
       });
     }
 

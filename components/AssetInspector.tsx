@@ -901,6 +901,61 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<{ message: string; ok: boolean } | null>(null);
+
+  const [detailedContext, setDetailedContext] = useState<{
+    startImageUrl?: string;
+    endImageUrl?: string;
+    referenceImageUrls?: string[];
+    referenceVideoUrls?: string[];
+    referenceAudioUrls?: string[];
+  } | null>(null);
+  const [loadingContext, setLoadingContext] = useState(false);
+
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxType, setLightboxType] = useState<"image" | "video" | "audio" | null>(null);
+
+  useEffect(() => {
+    const assetId = asset.id || asset.providerRequestId;
+    if (!assetId) return;
+
+    setLoadingContext(true);
+    setDetailedContext(null);
+
+    fetch(`/api/assets?contextId=${encodeURIComponent(assetId)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load asset details");
+        return res.json();
+      })
+      .then((data) => {
+        setDetailedContext({
+          startImageUrl: data.startImageUrl,
+          endImageUrl: data.endImageUrl,
+          referenceImageUrls: data.referenceImageUrls,
+          referenceVideoUrls: data.referenceVideoUrls,
+          referenceAudioUrls: data.referenceAudioUrls,
+        });
+      })
+      .catch((err) => {
+        console.error("[AssetInspector] Error loading context details:", err);
+      })
+      .finally(() => {
+        setLoadingContext(false);
+      });
+  }, [asset.id, asset.providerRequestId]);
+
+  const refImages = Array.from(new Set(detailedContext?.referenceImageUrls || []))
+    .filter(url => url !== detailedContext?.startImageUrl && url !== detailedContext?.endImageUrl);
+  const hasStartImage = !!detailedContext?.startImageUrl;
+  const hasEndImage = !!detailedContext?.endImageUrl;
+  const refVideos = Array.from(new Set(detailedContext?.referenceVideoUrls || []));
+  const refAudios = Array.from(new Set(detailedContext?.referenceAudioUrls || []));
+
+  const totalRefsCount =
+    (hasStartImage ? 1 : 0) +
+    (hasEndImage ? 1 : 0) +
+    refImages.length +
+    refVideos.length +
+    refAudios.length;
   const promptText =
     asset.prompt ??
     "A cinematic ultra-detailed shot, volumetric lighting, photorealistic render, 8K resolution, dramatic shadows.";
@@ -1217,6 +1272,82 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
               </div>
             </InspectorSection>
 
+            {/* ── Section: Reference Input ── */}
+            {loadingContext ? (
+              <InspectorSection title="Reference Input" icon={Layers}>
+                <div className="flex items-center gap-2 py-1">
+                  <div className="h-10 w-10 rounded-lg bg-white/5 animate-pulse" />
+                  <div className="h-10 w-10 rounded-lg bg-white/5 animate-pulse" />
+                  <div className="flex-1 space-y-1">
+                    <div className="h-3 w-20 rounded bg-white/5 animate-pulse" />
+                    <div className="h-2 w-28 rounded bg-white/5 animate-pulse" />
+                  </div>
+                </div>
+              </InspectorSection>
+            ) : totalRefsCount > 0 ? (
+              <InspectorSection title={`Reference Input (${totalRefsCount})`} icon={Layers} defaultOpen>
+                <div className="grid grid-cols-4 gap-2 pt-1">
+                  {/* Start Frame */}
+                  {hasStartImage && (
+                    <ReferenceThumbnail
+                      url={detailedContext!.startImageUrl!}
+                      label="Start frame"
+                      type="image"
+                      onPreview={() => { setLightboxUrl(detailedContext!.startImageUrl!); setLightboxType("image"); }}
+                      onDownload={() => downloadAsset(detailedContext!.startImageUrl!, ".jpg")}
+                    />
+                  )}
+
+                  {/* End Frame */}
+                  {hasEndImage && (
+                    <ReferenceThumbnail
+                      url={detailedContext!.endImageUrl!}
+                      label="End frame"
+                      type="image"
+                      onPreview={() => { setLightboxUrl(detailedContext!.endImageUrl!); setLightboxType("image"); }}
+                      onDownload={() => downloadAsset(detailedContext!.endImageUrl!, ".jpg")}
+                    />
+                  )}
+
+                  {/* Reference Images */}
+                  {refImages.map((url, i) => (
+                    <ReferenceThumbnail
+                      key={`ref-img-${i}`}
+                      url={url}
+                      label={`Image ${i + 1}`}
+                      type="image"
+                      onPreview={() => { setLightboxUrl(url); setLightboxType("image"); }}
+                      onDownload={() => downloadAsset(url, ".jpg")}
+                    />
+                  ))}
+
+                  {/* Reference Videos */}
+                  {refVideos.map((url, i) => (
+                    <ReferenceThumbnail
+                      key={`ref-vid-${i}`}
+                      url={url}
+                      label={`Video ${i + 1}`}
+                      type="video"
+                      onPreview={() => { setLightboxUrl(url); setLightboxType("video"); }}
+                      onDownload={() => downloadAsset(url, ".mp4")}
+                    />
+                  ))}
+
+                  {/* Reference Audios */}
+                  {refAudios.map((url, i) => (
+                    <ReferenceThumbnail
+                      key={`ref-aud-${i}`}
+                      url={url}
+                      label={`Audio ${i + 1}`}
+                      type="audio"
+                      onPreview={() => { setLightboxUrl(url); setLightboxType("audio"); }}
+                      onDownload={() => downloadAsset(url, ".mp3")}
+                    />
+                  ))}
+                </div>
+              </InspectorSection>
+            ) : null}
+
             {/* ── Section 2: Model Info */}
             <InspectorSection title="Model Info" icon={Cpu}>
               <div className="space-y-2">
@@ -1350,6 +1481,132 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
           </div>
         </div>
       </motion.div>
+
+      {/* Lightbox Media Overlay Modal */}
+      <AnimatePresence>
+        {lightboxUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4"
+            onClick={() => setLightboxUrl(null)}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setLightboxUrl(null)}
+              className="absolute top-4 right-4 z-50 rounded-full p-2 bg-white/10 hover:bg-white/20 text-white transition"
+            >
+              <Minimize2 className="h-5 w-5" />
+            </button>
+
+            {/* Download button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                downloadAsset(lightboxUrl, lightboxType === "video" ? ".mp4" : lightboxType === "audio" ? ".mp3" : ".jpg");
+              }}
+              className="absolute top-4 right-16 z-50 rounded-full p-2 bg-white/10 hover:bg-white/20 text-white transition flex items-center gap-1.5 px-3 py-2 text-xs font-semibold"
+            >
+              <Download className="h-4 w-4" /> Download
+            </button>
+
+            {/* Media wrapper */}
+            <div className="relative max-w-full max-h-[85vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
+              {lightboxType === "image" && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={lightboxUrl}
+                  alt="Reference Preview"
+                  className="max-h-[85vh] max-w-full object-contain rounded-lg shadow-2xl border border-white/5"
+                />
+              )}
+              {lightboxType === "video" && (
+                <video
+                  src={lightboxUrl}
+                  controls
+                  autoPlay
+                  className="max-h-[85vh] max-w-full object-contain rounded-lg shadow-2xl border border-white/5"
+                />
+              )}
+              {lightboxType === "audio" && (
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col items-center gap-4 w-80">
+                  <Music className="h-12 w-12 text-emerald-400 animate-pulse" />
+                  <audio src={lightboxUrl} controls className="w-full" />
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── ReferenceThumbnail helper component ─────────────────────────────────────────
+
+function ReferenceThumbnail({
+  url,
+  label,
+  type,
+  onPreview,
+  onDownload,
+}: {
+  url: string;
+  label: string;
+  type: "image" | "video" | "audio";
+  onPreview: () => void;
+  onDownload: () => void;
+}) {
+  return (
+    <div className="group relative flex flex-col gap-1 w-full aspect-square rounded-xl bg-white/[0.02] border border-white/[0.05] overflow-hidden transition hover:bg-white/[0.04] hover:border-white/10">
+      {/* Thumbnail visual */}
+      {type === "image" && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={url}
+          alt={label}
+          className="w-full h-full object-cover select-none"
+        />
+      )}
+      {type === "video" && (
+        <video
+          src={url}
+          muted
+          playsInline
+          className="w-full h-full object-cover select-none"
+        />
+      )}
+      {type === "audio" && (
+        <div className="w-full h-full flex items-center justify-center bg-slate-900/50">
+          <Music className="h-5 w-5 text-emerald-400/70" />
+        </div>
+      )}
+
+      {/* Overlay type icon */}
+      <div className="absolute top-1 left-1 rounded bg-black/60 px-1 py-0.5 text-[7px] font-semibold text-zinc-300 uppercase tracking-wider">
+        {label}
+      </div>
+
+      {/* Hover Action Overlays */}
+      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity duration-200">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onPreview(); }}
+          className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-all transform scale-90 group-hover:scale-100 duration-200"
+          title="Preview full size"
+        >
+          <ZoomIn className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDownload(); }}
+          className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-all transform scale-90 group-hover:scale-100 duration-200"
+          title="Download reference file"
+        >
+          <Download className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
