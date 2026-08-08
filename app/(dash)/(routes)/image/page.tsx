@@ -43,6 +43,7 @@ import { useLanguage } from "@/lib/use-language";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
+import { HOOK_CHARACTERS } from "@/lib/hook-studio-config";
 
 type ToolId = "create" | "relight" | "inpaint" | "upscale" | "face-swap" | "enhance";
 
@@ -2836,11 +2837,28 @@ export default function ImageWorkspacePage() {
             setSelectedEffectId(id);
             setShowReferenceStudioModal(false);
           }}
-          selectedCharacterId={selectedCharacterPresetId}
+          selectedCharacterId={selectedCharacterId || selectedCharacterPresetId}
           onSelectCharacter={(id) => {
-            setSelectedCharacterPresetId(id);
+            if (!id) {
+              setSelectedCharacterPresetId(null);
+              setSelectedCharacterId("");
+            } else if (HOOK_CHARACTERS.some((h) => h.id === id)) {
+              // Built-in 3D preset — prompt-only path via withPresetsAppended.
+              setSelectedCharacterPresetId(id);
+              setSelectedCharacterId("");
+            } else {
+              // User character — activate the full Character Package flow.
+              setSelectedCharacterId(id);
+              setSelectedCharacterPresetId(null);
+              // Auto-switch to a reference-capable model so the character actually influences the output.
+              if (selectedModel.maxRefImages <= 0) {
+                const compatible = visibleImageModels.find((m) => m.maxRefImages > 0);
+                if (compatible) setSelectedModel(compatible);
+              }
+            }
             setShowReferenceStudioModal(false);
           }}
+          useCharacterPackage={true}
           selectedSketchId={selectedSketchId}
           onSelectSketch={(id) => {
             setSelectedSketchId(id);

@@ -36,6 +36,7 @@ import { NewModelsBanner } from "@/components/NewModelsBanner";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
+import { HOOK_CHARACTERS } from "@/lib/hook-studio-config";
 
 // -- Utilities -----------------------------------------------------------------
 
@@ -6623,11 +6624,21 @@ function VideoPageInner() {
           setSelectedEffectId(id);
           setShowReferenceStudioModal(false);
         }}
-        selectedCharacterId={selectedCharacterPresetId}
+        selectedCharacterId={selectedCharacterId || selectedCharacterPresetId}
         onSelectCharacter={(id) => {
-          setSelectedCharacterPresetId(id);
+          if (!id) {
+            setSelectedCharacterPresetId(null);
+            setSelectedCharacterId("");
+          } else if (HOOK_CHARACTERS.some((h) => h.id === id)) {
+            setSelectedCharacterPresetId(id);
+            setSelectedCharacterId("");
+          } else {
+            setSelectedCharacterId(id);
+            setSelectedCharacterPresetId(null);
+          }
           setShowReferenceStudioModal(false);
         }}
+        useCharacterPackage={true}
         selectedSketchId={selectedSketchId}
         onSelectSketch={(id) => {
           setSelectedSketchId(id);

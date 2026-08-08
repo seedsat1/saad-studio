@@ -60,6 +60,8 @@ export interface ReferenceStudioModalProps {
   onSelectSketch?: (id: string | null) => void;
   onSelectPalette?: (palette: { id: string; name: string; colors: string[] } | null) => void;
   onAttachFile?: (file: { id: string; url: string; name: string; type: "image" | "video" }) => void;
+  /** When true, clicking a user-owned character will NOT attach its cover here — the caller uses the Character Package flow (all referenceUrls attached at generation time). Prevents double-refs. */
+  useCharacterPackage?: boolean;
   isAr?: boolean;
 }
 
@@ -179,6 +181,7 @@ export function ReferenceStudioModal({
   onSelectSketch,
   onSelectPalette,
   onAttachFile,
+  useCharacterPackage = false,
   isAr = true,
 }: ReferenceStudioModalProps) {
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
@@ -1453,7 +1456,9 @@ export function ReferenceStudioModal({
                       key={uc.id}
                       onClick={() => {
                         onSelectCharacter?.(isSelected ? null : uc.id);
-                        if (!isSelected && cover && onAttachFile) {
+                        // When the caller uses Character Package, it attaches all referenceUrls
+                        // at generation time — so don't attach the cover here to avoid a duplicate.
+                        if (!isSelected && cover && onAttachFile && !useCharacterPackage) {
                           onAttachFile({
                             id: `char-${uc.id}`,
                             url: cover,
