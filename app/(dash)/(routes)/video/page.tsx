@@ -12,6 +12,7 @@ import {
   Play, Download, Trash2, Heart, Copy, MoreHorizontal,
   ExternalLink, RefreshCw, Share2,
   type LucideIcon, Languages, Volume2, Palette, Plus, AudioLines, Shapes,
+  ZoomIn, Music,
 } from "lucide-react";
 
 import { useLanguage } from "@/lib/use-language";
@@ -271,6 +272,236 @@ function VideoHoverTools({
     </div>
   );
 }
+
+// ── VideoCardReferences helper component ─────────────────────────────────────────
+
+function VideoCardReferences({ assetId }: { assetId: string }) {
+  const [references, setReferences] = useState<{
+    startImageUrl?: string;
+    endImageUrl?: string;
+    referenceImageUrls?: string[];
+    referenceVideoUrls?: string[];
+    referenceAudioUrls?: string[];
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxType, setLightboxType] = useState<"image" | "video" | "audio" | null>(null);
+
+  useEffect(() => {
+    if (!assetId) return;
+    setLoading(true);
+    fetch(`/api/assets?contextId=${encodeURIComponent(assetId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setReferences({
+          startImageUrl: data.startImageUrl,
+          endImageUrl: data.endImageUrl,
+          referenceImageUrls: data.referenceImageUrls,
+          referenceVideoUrls: data.referenceVideoUrls,
+          referenceAudioUrls: data.referenceAudioUrls,
+        });
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [assetId]);
+
+  if (loading) {
+    return (
+      <div className="mt-4 flex items-center gap-1.5 animate-pulse">
+        <div className="h-8 w-8 rounded bg-white/5" />
+        <div className="h-8 w-8 rounded bg-white/5" />
+        <div className="h-3 w-16 rounded bg-white/5" />
+      </div>
+    );
+  }
+
+  const refImages = Array.from(new Set(references?.referenceImageUrls || []))
+    .filter(url => url !== references?.startImageUrl && url !== references?.endImageUrl);
+  const hasStart = !!references?.startImageUrl;
+  const hasEnd = !!references?.endImageUrl;
+  const refVideos = Array.from(new Set(references?.referenceVideoUrls || []));
+  const refAudios = Array.from(new Set(references?.referenceAudioUrls || []));
+
+  const totalCount =
+    (hasStart ? 1 : 0) +
+    (hasEnd ? 1 : 0) +
+    refImages.length +
+    refVideos.length +
+    refAudios.length;
+
+  if (totalCount === 0) return null;
+
+  const downloadAsset = async (url: string, ext: string) => {
+    try {
+      const downloadUrl = `/api/download?url=${encodeURIComponent(url)}&filename=ref-${assetId}${ext}`;
+      const res = await fetch(downloadUrl);
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `ref-${assetId}${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      window.open(url, "_blank");
+    }
+  };
+
+  return (
+    <div className="mt-4 border-t border-white/5 pt-3">
+      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+        References ({totalCount})
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {hasStart && (
+          <ReferenceMiniItem
+            url={references!.startImageUrl!}
+            type="image"
+            label="Start"
+            onPreview={() => { setLightboxUrl(references!.startImageUrl!); setLightboxType("image"); }}
+            onDownload={() => downloadAsset(references!.startImageUrl!, ".jpg")}
+          />
+        )}
+        {hasEnd && (
+          <ReferenceMiniItem
+            url={references!.endImageUrl!}
+            type="image"
+            label="End"
+            onPreview={() => { setLightboxUrl(references!.endImageUrl!); setLightboxType("image"); }}
+            onDownload={() => downloadAsset(references!.endImageUrl!, ".jpg")}
+          />
+        )}
+        {refImages.map((url, i) => (
+          <ReferenceMiniItem
+            key={`img-${i}`}
+            url={url}
+            type="image"
+            label={`Image ${i + 1}`}
+            onPreview={() => { setLightboxUrl(url); setLightboxType("image"); }}
+            onDownload={() => downloadAsset(url, ".jpg")}
+          />
+        ))}
+        {refVideos.map((url, i) => (
+          <ReferenceMiniItem
+            key={`vid-${i}`}
+            url={url}
+            type="video"
+            label={`Video ${i + 1}`}
+            onPreview={() => { setLightboxUrl(url); setLightboxType("video"); }}
+            onDownload={() => downloadAsset(url, ".mp4")}
+          />
+        ))}
+        {refAudios.map((url, i) => (
+          <ReferenceMiniItem
+            key={`aud-${i}`}
+            url={url}
+            type="audio"
+            label={`Audio ${i + 1}`}
+            onPreview={() => { setLightboxUrl(url); setLightboxType("audio"); }}
+            onDownload={() => downloadAsset(url, ".mp3")}
+          />
+        ))}
+      </div>
+
+      {/* Lightbox for Mini Reference preview */}
+      <AnimatePresence>
+        {lightboxUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-4"
+            onClick={(e) => { e.stopPropagation(); setLightboxUrl(null); }}
+          >
+            <button
+              onClick={() => setLightboxUrl(null)}
+              className="absolute top-4 right-4 z-50 rounded-full p-2 bg-white/10 hover:bg-white/20 text-white transition animate-none"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                downloadAsset(lightboxUrl, lightboxType === "video" ? ".mp4" : lightboxType === "audio" ? ".mp3" : ".jpg");
+              }}
+              className="absolute top-4 right-16 z-50 rounded-full p-2 bg-white/10 hover:bg-white/20 text-white transition flex items-center gap-1.5 px-3 py-2 text-xs font-semibold"
+            >
+              <Download className="h-4 w-4" /> Download
+            </button>
+
+            <div className="relative max-w-full max-h-[85vh] flex items-center justify-center animate-none" onClick={e => e.stopPropagation()}>
+              {lightboxType === "image" && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={lightboxUrl} alt="Preview" className="max-h-[85vh] max-w-full object-contain rounded-lg shadow-2xl border border-white/5" />
+              )}
+              {lightboxType === "video" && (
+                <video src={lightboxUrl} controls autoPlay className="max-h-[85vh] max-w-full object-contain rounded-lg shadow-2xl border border-white/5" />
+              )}
+              {lightboxType === "audio" && (
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col items-center gap-4 w-80">
+                  <Music className="h-12 w-12 text-emerald-400 animate-pulse" />
+                  <audio src={lightboxUrl} controls className="w-full" />
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ReferenceMiniItem({
+  url,
+  type,
+  label,
+  onPreview,
+  onDownload,
+}: {
+  url: string;
+  type: "image" | "video" | "audio";
+  label: string;
+  onPreview: () => void;
+  onDownload: () => void;
+}) {
+  return (
+    <div className="group relative h-9 w-9 rounded-lg border border-white/10 bg-white/[0.02] overflow-hidden transition hover:border-white/20 cursor-pointer">
+      {type === "image" && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={url} alt={label} className="h-full w-full object-cover" />
+      )}
+      {type === "video" && (
+        <video src={url} muted playsInline className="h-full w-full object-cover" />
+      )}
+      {type === "audio" && (
+        <div className="h-full w-full flex items-center justify-center bg-slate-900">
+          <Music className="h-3 w-3 text-emerald-400" />
+        </div>
+      )}
+
+      {/* Hover action overlay */}
+      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 transition-opacity duration-150">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onPreview(); }}
+          className="p-0.5 rounded bg-white/20 text-white hover:bg-white/30"
+          title="View"
+        >
+          <ZoomIn size={10} />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDownload(); }}
+          className="p-0.5 rounded bg-white/20 text-white hover:bg-white/30"
+          title="Download"
+        >
+          <Download size={10} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function VideoHistoryPreview({
   item,
   index,
@@ -587,6 +818,7 @@ function VideoHistoryList({
                     <Copy size={14} />
                     Copy Prompt
                   </button>
+                  <VideoCardReferences assetId={item.id} />
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   <span className="rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-bold text-slate-300 ring-1 ring-white/5">{item.ratio}</span>
