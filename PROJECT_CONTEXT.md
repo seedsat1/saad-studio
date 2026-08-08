@@ -1,3 +1,13 @@
+#### Latest task: Implement Reference input preview, count, and download inside AssetInspector (2026-08-08)
+- Status: Completed.
+  - Updated `/api/assets` context GET endpoint inside `app/api/assets/route.ts` to parse and extract `startImageUrl`, `endImageUrl`, `referenceImageUrls` (limit increased to 9), `referenceVideoUrls`, and `referenceAudioUrls` from the original request JSON payload snapshot.
+  - Added states, a fetch handler, and render logic to `components/AssetInspector.tsx` to query `/api/assets` dynamically on mount based on the asset ID.
+  - Rendered a clean **Reference Input** section underneath Prompt Details showing square thumbnails of all uploaded reference media with clear type labels.
+  - Added hover action buttons on thumbnails to preview in a full-screen lightbox modal and download the original file directly.
+- Affected files: `app/api/assets/route.ts`, `components/AssetInspector.tsx`, `PROJECT_CONTEXT.md`.
+- Verification: TypeScript type-check (`npx tsc --noEmit`) completed with exit code 0.
+- Decisions: Query the database snapshot dynamically when the Asset Inspector opens, ensuring full access to original uploaded files.
+
 #### Latest task: Answer user query regarding Magnific AI 3D Scene & videoMotion3d (2026-08-08)
 - Status: Completed.
   - Researched and analyzed Magnific AI's 3D Scene and videoMotion3d camera motion features.
