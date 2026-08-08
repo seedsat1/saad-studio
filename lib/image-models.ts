@@ -50,6 +50,13 @@ export interface ImageModel {
   /** Wan 2.7 Image Pro can output up to 12 images via `enable_sequential: true`.
    * When true, the UI shows a sequential-mode toggle. */
   wanSequentialMode?: boolean;
+  /** Seedream Lite Sequential variants map the UI's `numImages` to the API's
+   * `max_images` param (1..15) and expect the prompt itself to mention the count.
+   * When true, the UI keeps the num-images slider but hints the prompt convention. */
+  seedreamSequentialMode?: boolean;
+  /** Seedream Lite uses a `size` pixel-dim string (e.g. "2048*2048") instead of a
+   * `quality` tier. When true, the route sends `size` derived from qualityParam. */
+  seedreamLiteSize?: boolean;
   /** Display credit cost (UI only). */
   creditCost: number;
 }
@@ -275,6 +282,69 @@ export const IMAGE_MODELS: ImageModel[] = [
     imageInputField: "image_urls",
     qualityParam: ["basic", "high"],
     creditCost: 1.0,
+  },
+  // Seedream 5.0 Lite — WaveSpeed direct (bytedance/seedream-v5.0-lite/*).
+  // These are separate from the KIE-routed seedream/5-lite-{text,image}-to-image
+  // above, which target the older wrapper. New generations should prefer these.
+  {
+    id: "seedream/5-lite",
+    label: "Seedream 5.0 Lite",
+    sublabel: "Fast text-to-image · up to 4K",
+    badge: "NEW",
+    group: "Seedream",
+    inputType: "text-to-image",
+    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
+    maxImages: 1,
+    maxRefImages: 0,
+    qualityParam: ["2K", "4K"],
+    seedreamLiteSize: true,
+    creditCost: 1.5,
+  },
+  {
+    id: "seedream/5-lite-edit",
+    label: "Seedream 5.0 Lite Edit",
+    sublabel: "Single-image edit with references",
+    badge: "NEW",
+    group: "Seedream",
+    inputType: "image-to-image",
+    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
+    maxImages: 1,
+    maxRefImages: 10,
+    imageInputField: "image_urls",
+    qualityParam: ["2K", "4K"],
+    seedreamLiteSize: true,
+    creditCost: 1.5,
+  },
+  {
+    id: "seedream/5-lite-sequential",
+    label: "Seedream 5.0 Lite Sequential",
+    sublabel: "Multi-image T2I with character continuity",
+    badge: "NEW",
+    group: "Seedream",
+    inputType: "text-to-image",
+    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
+    maxImages: 15,
+    maxRefImages: 0,
+    qualityParam: ["2K", "4K"],
+    seedreamLiteSize: true,
+    seedreamSequentialMode: true,
+    creditCost: 1.5,
+  },
+  {
+    id: "seedream/5-lite-edit-sequential",
+    label: "Seedream 5.0 Lite Edit Sequential",
+    sublabel: "Multi-image edit · identity locked",
+    badge: "NEW",
+    group: "Seedream",
+    inputType: "image-to-image",
+    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
+    maxImages: 15,
+    maxRefImages: 10,
+    imageInputField: "image_urls",
+    qualityParam: ["2K", "4K"],
+    seedreamLiteSize: true,
+    seedreamSequentialMode: true,
+    creditCost: 1.5,
   },
   {
     id: "seedream/5-pro",

@@ -1881,17 +1881,6 @@ export default function ImageWorkspacePage() {
     if (qualityOptions.length && !qualityOptions.includes(quality)) setQuality(qualityOptions[0]);
   }, [selectedModel, numImages, aspectRatio, quality, qualityOptions]);
 
-  // Guardrail: whenever a Character Package is active but the selected model can't accept
-  // reference images, auto-switch to a ref-capable model so the character actually influences
-  // the output (instead of the model silently dropping the refs and generating text-to-image).
-  useEffect(() => {
-    if (activeTool !== "create") return;
-    if (!selectedCharacter) return;
-    if (selectedModel.maxRefImages > 0) return;
-    const compatible = visibleImageModels.find((m) => m.maxRefImages > 0);
-    if (compatible && compatible.id !== selectedModel.id) setSelectedModel(compatible);
-  }, [activeTool, selectedCharacter, selectedModel, visibleImageModels]);
-
   const canGenerate = useMemo(() => {
     if (activeTool === "create") return Boolean(prompt.trim()) && (!createNeedsImage || referenceFiles.length > 0 || Boolean(selectedCharacter));
     if (activeTool === "relight") return Boolean(relightFile && prompt.trim());
@@ -2460,12 +2449,23 @@ export default function ImageWorkspacePage() {
         ) : null}
 
         {selectedModel.maxImages > 1 ? (
-          <SettingsAccordion label="Number of Images" summary={String(numImages)} defaultOpen>
+          <SettingsAccordion
+            label={selectedModel.seedreamSequentialMode ? "Number of Images (max_images)" : "Number of Images"}
+            summary={String(numImages)}
+            defaultOpen
+          >
             <div className="num-selector">
-              {[1, 2, 3, 4].map((n) => (
-                <button key={n} onClick={() => setNumImages(Math.min(n, selectedModel.maxImages))} className={cn("num-btn", numImages === n && "active")} disabled={n > selectedModel.maxImages}>{n}</button>
-              ))}
+              {(selectedModel.maxImages > 4 ? [1, 2, 4, 8, 15] : [1, 2, 3, 4])
+                .filter((n) => n <= selectedModel.maxImages)
+                .map((n) => (
+                  <button key={n} onClick={() => setNumImages(Math.min(n, selectedModel.maxImages))} className={cn("num-btn", numImages === n && "active")}>{n}</button>
+                ))}
             </div>
+            {selectedModel.seedreamSequentialMode ? (
+              <p className="mt-2 rounded-lg border border-amber-400/20 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200">
+                {t("Sequential models require the prompt to include the count (e.g. \"3 images. First,... Second,... Third,...\"). Start with 2–4 for stability.")}
+              </p>
+            ) : null}
           </SettingsAccordion>
         ) : null}
 

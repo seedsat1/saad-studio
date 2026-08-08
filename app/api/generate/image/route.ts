@@ -177,9 +177,38 @@ function resolveSeedream5ProWaveSpeedRoute(modelId: string): string | null {
   return null;
 }
 
+function resolveSeedream5LiteWaveSpeedRoute(modelId: string): string | null {
+  const normalized = modelId.toLowerCase();
+  if (normalized === "seedream/5-lite" || normalized === "bytedance/seedream-v5.0-lite") {
+    return "bytedance/seedream-v5.0-lite";
+  }
+  if (normalized === "seedream/5-lite-edit" || normalized === "bytedance/seedream-v5.0-lite/edit") {
+    return "bytedance/seedream-v5.0-lite/edit";
+  }
+  if (normalized === "seedream/5-lite-sequential" || normalized === "bytedance/seedream-v5.0-lite/sequential") {
+    return "bytedance/seedream-v5.0-lite/sequential";
+  }
+  if (normalized === "seedream/5-lite-edit-sequential" || normalized === "bytedance/seedream-v5.0-lite/edit-sequential") {
+    return "bytedance/seedream-v5.0-lite/edit-sequential";
+  }
+  return null;
+}
+
+function resolveWaveSpeedImageRoute(modelId: string): string | null {
+  return resolveSeedream5ProWaveSpeedRoute(modelId) ?? resolveSeedream5LiteWaveSpeedRoute(modelId);
+}
+
 function normalizeSeedream5ProResolution(value: unknown): "1k" | "2k" {
   const normalized = String(value ?? "1k").trim().toLowerCase();
   return normalized.includes("2") ? "2k" : "1k";
+}
+
+// Seedream Lite uses a `size` param in the form "W*H" (pixels, range 1440..8192).
+// Map the UI quality tier ("2K" / "4K") to a square pixel size.
+function normalizeSeedream5LiteSize(value: unknown): string {
+  const normalized = String(value ?? "2K").trim().toLowerCase();
+  if (normalized.includes("4")) return "4096*4096";
+  return "2048*2048";
 }
 
 function getGoogleImageModel(modelId: string): string | null {
@@ -611,7 +640,7 @@ export async function POST(req: NextRequest) {
     let effectiveModelId = isFluxKontext ? modelId : resolveFlux2Variant(modelId, hasReferenceImages, quality);
     effectiveModelId = resolveSeedream5ProVariant(effectiveModelId, hasReferenceImages);
     const { imageModelMap } = getResolvedKieRoutingMaps();
-    const waveSpeedImageRoute = resolveSeedream5ProWaveSpeedRoute(effectiveModelId);
+    const waveSpeedImageRoute = resolveWaveSpeedImageRoute(effectiveModelId);
     const isWaveSpeedImageModel = Boolean(waveSpeedImageRoute);
     const openAIImageModel = isFluxKontext ? null : getOpenAIImageModel(effectiveModelId);
 
@@ -695,6 +724,16 @@ export async function POST(req: NextRequest) {
     if (waveSpeedImageRoute === "bytedance/seedream-v5.0-pro/edit" && resolvedRefs.length === 0) {
       return NextResponse.json(
         { error: "Seedream 5.0 Pro Edit requires at least one reference image." },
+        { status: 400 },
+      );
+    }
+    if (
+      (waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/edit"
+        || waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/edit-sequential")
+      && resolvedRefs.length === 0
+    ) {
+      return NextResponse.json(
+        { error: "Seedream 5.0 Lite Edit requires at least one reference image." },
         { status: 400 },
       );
     }
@@ -934,17 +973,39 @@ export async function POST(req: NextRequest) {
         throw new Error("WAVESPEED_API_KEY is not configured on the server.");
       }
 
+      const isLiteRoute = waveSpeedImageRoute.startsWith("bytedance/seedream-v5.0-lite");
+      const isSequentialRoute =
+        waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/sequential"
+        || waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/edit-sequential";
+      const isEditRoute =
+        waveSpeedImageRoute === "bytedance/seedream-v5.0-pro/edit"
+        || waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/edit"
+        || waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/edit-sequential";
+
       const waveSpeedInput: Record<string, unknown> = {
         prompt: sanitizePrompt(prompt, 5000),
-        aspect_ratio: aspectRatio === "auto" ? undefined : aspectRatio,
-        resolution: normalizeSeedream5ProResolution(quality ?? resolution ?? imageSize),
         output_format: "jpeg",
         enable_base64_output: false,
         enable_sync_mode: false,
       };
-      if (waveSpeedImageRoute.endsWith("/edit")) {
+
+      if (isLiteRoute) {
+        // Lite family uses `size` in "W*H" pixel form, not aspect_ratio / resolution.
+        waveSpeedInput.size = normalizeSeedream5LiteSize(quality ?? resolution ?? imageSize);
+      } else {
+        waveSpeedInput.aspect_ratio = aspectRatio === "auto" ? undefined : aspectRatio;
+        waveSpeedInput.resolution = normalizeSeedream5ProResolution(quality ?? resolution ?? imageSize);
+      }
+
+      if (isSequentialRoute) {
+        const requested = Math.max(1, Math.min(15, Math.ceil(Number(numImages) || 1)));
+        waveSpeedInput.max_images = requested;
+      }
+
+      if (isEditRoute) {
         waveSpeedInput.images = resolvedRefs.slice(0, 10);
       }
+
       Object.keys(waveSpeedInput).forEach((key) => {
         if (waveSpeedInput[key] === undefined) delete waveSpeedInput[key];
       });
