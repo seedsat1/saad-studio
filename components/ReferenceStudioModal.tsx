@@ -33,6 +33,11 @@ import {
   HOOK_CHARACTERS,
   HOOK_SKETCHES,
 } from "@/lib/hook-studio-config";
+import {
+  registerUserElement,
+  registerUserElements,
+  unregisterUserElement,
+} from "@/lib/user-element-registry";
 
 export interface ReferenceStudioModalProps {
   isOpen: boolean;
@@ -302,7 +307,9 @@ export function ReferenceStudioModal({
       if (res.ok) {
         const data = await res.json().catch(() => null);
         if (Array.isArray(data?.elements)) {
-          setUserElements(data.elements as UserElementRecord[]);
+          const rows = data.elements as UserElementRecord[];
+          setUserElements(rows);
+          registerUserElements(rows.map((r) => ({ id: r.id, name: r.name, description: r.description })));
         }
       }
     } catch (err) {
@@ -523,15 +530,21 @@ export function ReferenceStudioModal({
       }
       const created = data.element as UserElementRecord;
       setUserElements((prev) => [created, ...prev]);
+      registerUserElement({ id: created.id, name: created.name, description: created.description });
       setNewElemName("");
       setNewElemPreviews([]);
       onSelectElement?.(created.id);
-      if (created.coverUrl && onAttachFile) {
-        onAttachFile({
-          id: `elem-${created.id}`,
-          url: created.coverUrl,
-          name: created.name,
-          type: "image",
+      const createdRefs = (created.referenceUrls && created.referenceUrls.length > 0)
+        ? created.referenceUrls
+        : (created.coverUrl ? [created.coverUrl] : []);
+      if (onAttachFile) {
+        createdRefs.forEach((url, idx) => {
+          onAttachFile({
+            id: `elem-${created.id}-${idx}`,
+            url,
+            name: createdRefs.length > 1 ? `${created.name} (${idx + 1}/${createdRefs.length})` : created.name,
+            type: "image",
+          });
         });
       }
     } catch (err: any) {
@@ -588,6 +601,7 @@ export function ReferenceStudioModal({
         if (selectedCharacterId === id) onSelectCharacter?.(null);
       } else if (kind === "elements") {
         setUserElements((prev) => prev.filter((e) => e.id !== id));
+        unregisterUserElement(id);
         if (selectedElementId === id) onSelectElement?.(null);
       } else if (kind === "locations") {
         setUserLocations((prev) => prev.filter((l) => l.id !== id));
@@ -1331,17 +1345,22 @@ export function ReferenceStudioModal({
                 {userElements.map((ue) => {
                   const isSelected = selectedElementId === ue.id;
                   const cover = ue.coverUrl || ue.referenceUrls?.[0] || "";
+                  const refs = (ue.referenceUrls && ue.referenceUrls.length > 0)
+                    ? ue.referenceUrls
+                    : (cover ? [cover] : []);
                   return (
                     <div
                       key={ue.id}
                       onClick={() => {
                         onSelectElement?.(isSelected ? null : ue.id);
-                        if (!isSelected && cover && onAttachFile) {
-                          onAttachFile({
-                            id: `elem-${ue.id}`,
-                            url: cover,
-                            name: ue.name,
-                            type: "image",
+                        if (!isSelected && onAttachFile) {
+                          refs.forEach((url, idx) => {
+                            onAttachFile({
+                              id: `elem-${ue.id}-${idx}`,
+                              url,
+                              name: refs.length > 1 ? `${ue.name} (${idx + 1}/${refs.length})` : ue.name,
+                              type: "image",
+                            });
                           });
                         }
                       }}

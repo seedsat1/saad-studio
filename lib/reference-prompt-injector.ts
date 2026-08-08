@@ -19,6 +19,7 @@ import {
   HOOK_CHARACTERS,
   HOOK_SKETCHES,
 } from "./hook-studio-config";
+import { getUserElement } from "./user-element-registry";
 
 export interface PresetSelections {
   selectedStyleId?: string | null;
@@ -77,7 +78,16 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
 
   if (sel.selectedElementId) {
     const el = HOOK_ELEMENTS.find((x) => x.id === sel.selectedElementId);
-    if (el?.promptDescription) parts.push(`Element (${el.tag}): ${el.promptDescription}`);
+    if (el?.promptDescription) {
+      parts.push(`Element (${el.tag}): ${el.promptDescription}`);
+    } else {
+      const ue = getUserElement(sel.selectedElementId);
+      if (ue && (ue.description || ue.name)) {
+        const label = ue.name ? `@${ue.name.replace(/\s+/g, "").toLowerCase()}` : "custom";
+        const body = ue.description || `preserve the exact appearance, colors, and proportions of "${ue.name}" as shown in the reference photos`;
+        parts.push(`Element (${label}): ${body}. Keep this product/prop visually identical to the attached references.`);
+      }
+    }
   }
 
   if (sel.selectedPalette && Array.isArray(sel.selectedPalette.colors) && sel.selectedPalette.colors.length >= 2) {
