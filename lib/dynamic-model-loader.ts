@@ -15,6 +15,8 @@ const BLOCKED_DYNAMIC_IMAGE_IDS = new Set([
   "google/gemini-3.1-flash-image-preview",
   "gemini-3.1-flash-image-preview",
   "gemini-3-pro-image-preview",
+  "openai/dall-e-3",
+  "dalle3",
 ]);
 
 const BLOCKED_DYNAMIC_VIDEO_IDS = new Set([

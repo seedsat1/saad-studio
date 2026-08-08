@@ -144,7 +144,7 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"tool_faceswap", name:"Face Swap",               notes:"pro",          type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.02,  userCreditsRate:0.8,  maxDuration:null, isActive:true  },
   { id:"tool_instant_character", name:"Instant Character", notes:"$0.10/run", type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.10,  userCreditsRate:3.9,  maxDuration:null, isActive:true  },
   { id:"gemini_omni_character", name:"Gemini Omni Character", notes:"direct Google", type:"image", provider:"kie", billing:"flat",    kieCredits:0,     waveUsd:0,     userCreditsRate:3.9,  maxDuration:null, isActive:true  },
-  { id:"dalle3",        name:"DALL-E 3",                notes:"legacy",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:5,     waveUsd:0,     userCreditsRate:0.86,  maxDuration:null, isActive:true  },
+  { id:"dalle3",        name:"DALL-E 3",                notes:"legacy",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:5,     waveUsd:0,     userCreditsRate:0.86,  maxDuration:null, isActive:false  },
   { id:"tool_watermark_remover", name:"Video Watermark Remover", notes:"remove logos/text", type:"video", provider:"wavespeed", billing:"per_sec", kieCredits:0, waveUsd:0.01, userCreditsRate:0.4, maxDuration:600, isActive:true },
 ];
 

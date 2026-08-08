@@ -1881,6 +1881,17 @@ export default function ImageWorkspacePage() {
     if (qualityOptions.length && !qualityOptions.includes(quality)) setQuality(qualityOptions[0]);
   }, [selectedModel, numImages, aspectRatio, quality, qualityOptions]);
 
+  // Guardrail: whenever a Character Package is active but the selected model can't accept
+  // reference images, auto-switch to a ref-capable model so the character actually influences
+  // the output (instead of the model silently dropping the refs and generating text-to-image).
+  useEffect(() => {
+    if (activeTool !== "create") return;
+    if (!selectedCharacter) return;
+    if (selectedModel.maxRefImages > 0) return;
+    const compatible = visibleImageModels.find((m) => m.maxRefImages > 0);
+    if (compatible && compatible.id !== selectedModel.id) setSelectedModel(compatible);
+  }, [activeTool, selectedCharacter, selectedModel, visibleImageModels]);
+
   const canGenerate = useMemo(() => {
     if (activeTool === "create") return Boolean(prompt.trim()) && (!createNeedsImage || referenceFiles.length > 0 || Boolean(selectedCharacter));
     if (activeTool === "relight") return Boolean(relightFile && prompt.trim());

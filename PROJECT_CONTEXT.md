@@ -1,3 +1,12 @@
+#### Latest task: Deactivate and remove DALL-E 3 model (2026-08-08)
+- Status: Completed.
+  - Added `openai/dall-e-3` and `dalle3` to the `BLOCKED_DYNAMIC_IMAGE_IDS` set in `lib/dynamic-model-loader.ts` to filter them out of dynamic image models.
+  - Set `isActive: false` for `dalle3` in `lib/pricing-models.ts`.
+  - Executed database script to deactivate `dalle3` in the `PricingConstitution` table and clear it from the `dynamic_image_models` PlatformConfig entry.
+- Affected files: `lib/dynamic-model-loader.ts`, `lib/pricing-models.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: TypeScript type-check (`npx tsc --noEmit`) completed with exit code 0.
+- Decisions: Filter out DALL-E 3 dynamically from all UI selector lists and registry files.
+
 #### Latest task: Complete Dynamic Central Registry Integration Across All Tools (2026-08-08)
 - Status: Completed.
   - Added default model entries for `google/lyria-3-clip/music` and `google/lyria-3-pro/music` inside `lib/pricing-models.ts`.

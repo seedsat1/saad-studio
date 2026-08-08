@@ -77,13 +77,15 @@ const IMAGE_MODEL_QUALITY_CREDIT_MULTIPLIER: Record<string, Record<string, numbe
   "seedream/5-pro-image-to-image": { "1k": 1.0, "2k": 2.0 },
 };
 
-export function getImageCreditCost(model: ImageModel, numImages = 1, quality?: string | null): number {
+export function getImageCreditCost(_model: ImageModel, numImages = 1, quality?: string | null): number {
+  // MUST stay in sync with the server-side rule in `lib/pricing.ts` (getGenerationCost):
+  //   All non-utility image models cost 2 credits at 1k/2k and 4 credits at 4k, per image.
+  // The per-model / per-quality multiplier tables above are legacy display data that no
+  // longer reflect what the server actually charges — do not reintroduce them here.
   const safeUnits = Math.max(1, Math.ceil(Number(numImages) || 1));
-  const qualityKey = quality?.trim().toLowerCase() ?? "";
-  const multiplier = IMAGE_MODEL_QUALITY_CREDIT_MULTIPLIER[model.id]?.[qualityKey]
-    ?? IMAGE_QUALITY_CREDIT_MULTIPLIER[qualityKey]
-    ?? 1;
-  return parseFloat(((model.creditCost || 2) * safeUnits * multiplier).toFixed(2));
+  const q = quality?.trim().toLowerCase() ?? "1k";
+  const baseRate = q === "4k" ? 4.0 : 2.0;
+  return parseFloat((baseRate * safeUnits).toFixed(2));
 }
 
 // â”€â”€â”€ All Aspect Options lookup (for the UI toggle buttons) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
