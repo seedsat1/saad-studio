@@ -34,10 +34,10 @@ import {
   HOOK_SKETCHES,
 } from "@/lib/hook-studio-config";
 import {
-  registerUserElement,
-  registerUserElements,
-  unregisterUserElement,
-} from "@/lib/user-element-registry";
+  registerUserAsset,
+  registerUserAssets,
+  unregisterUserAsset,
+} from "@/lib/user-asset-registry";
 
 export interface ReferenceStudioModalProps {
   isOpen: boolean;
@@ -87,6 +87,8 @@ interface UserCharacterRecord {
 
 interface UserElementRecord extends UserCharacterRecord {}
 interface UserLocationRecord extends UserCharacterRecord {}
+interface UserEffectRecord extends UserCharacterRecord {}
+interface UserCameraRecord extends UserCharacterRecord {}
 
 interface UserPaletteRecord {
   id: string;
@@ -216,6 +218,26 @@ export function ReferenceStudioModal({
   const [createLocError, setCreateLocError] = useState<string | null>(null);
   const newLocFileInputRef = useRef<HTMLInputElement>(null);
 
+  // User-owned effects (from /api/effects, backed by UserEffect table)
+  const [userEffects, setUserEffects] = useState<UserEffectRecord[]>([]);
+  const [isLoadingUserEffs, setIsLoadingUserEffs] = useState(false);
+  const [newEffName, setNewEffName] = useState("");
+  const [newEffDescription, setNewEffDescription] = useState("");
+  const [newEffPreviews, setNewEffPreviews] = useState<Array<{ dataUrl: string; name: string }>>([]);
+  const [isSavingEff, setIsSavingEff] = useState(false);
+  const [createEffError, setCreateEffError] = useState<string | null>(null);
+  const newEffFileInputRef = useRef<HTMLInputElement>(null);
+
+  // User-owned cameras (from /api/cameras, backed by UserCamera table)
+  const [userCameras, setUserCameras] = useState<UserCameraRecord[]>([]);
+  const [isLoadingUserCams, setIsLoadingUserCams] = useState(false);
+  const [newCamName, setNewCamName] = useState("");
+  const [newCamDescription, setNewCamDescription] = useState("");
+  const [newCamPreviews, setNewCamPreviews] = useState<Array<{ dataUrl: string; name: string }>>([]);
+  const [isSavingCam, setIsSavingCam] = useState(false);
+  const [createCamError, setCreateCamError] = useState<string | null>(null);
+  const newCamFileInputRef = useRef<HTMLInputElement>(null);
+
   // User-owned color palettes (from /api/palettes, backed by UserPalette table)
   const [userPalettes, setUserPalettes] = useState<UserPaletteRecord[]>([]);
   const [isLoadingUserPals, setIsLoadingUserPals] = useState(false);
@@ -309,7 +331,7 @@ export function ReferenceStudioModal({
         if (Array.isArray(data?.elements)) {
           const rows = data.elements as UserElementRecord[];
           setUserElements(rows);
-          registerUserElements(rows.map((r) => ({ id: r.id, name: r.name, description: r.description })));
+          registerUserAssets("element", rows.map((r) => ({ id: r.id, name: r.name, description: r.description })));
         }
       }
     } catch (err) {
@@ -332,7 +354,9 @@ export function ReferenceStudioModal({
       if (res.ok) {
         const data = await res.json().catch(() => null);
         if (Array.isArray(data?.locations)) {
-          setUserLocations(data.locations as UserLocationRecord[]);
+          const rows = data.locations as UserLocationRecord[];
+          setUserLocations(rows);
+          registerUserAssets("location", rows.map((r) => ({ id: r.id, name: r.name, description: r.description })));
         }
       }
     } catch (err) {
@@ -345,6 +369,56 @@ export function ReferenceStudioModal({
   useEffect(() => {
     if (isOpen && activeTab === "location" && (!isAuthLoaded || isSignedIn)) {
       fetchUserLocations();
+    }
+  }, [isOpen, activeTab, isAuthLoaded, isSignedIn]);
+
+  const fetchUserEffects = async () => {
+    setIsLoadingUserEffs(true);
+    try {
+      const res = await fetch("/api/effects", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (Array.isArray(data?.effects)) {
+          const rows = data.effects as UserEffectRecord[];
+          setUserEffects(rows);
+          registerUserAssets("effect", rows.map((r) => ({ id: r.id, name: r.name, description: r.description })));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch user effects:", err);
+    } finally {
+      setIsLoadingUserEffs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && activeTab === "effects" && (!isAuthLoaded || isSignedIn)) {
+      fetchUserEffects();
+    }
+  }, [isOpen, activeTab, isAuthLoaded, isSignedIn]);
+
+  const fetchUserCameras = async () => {
+    setIsLoadingUserCams(true);
+    try {
+      const res = await fetch("/api/cameras", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (Array.isArray(data?.cameras)) {
+          const rows = data.cameras as UserCameraRecord[];
+          setUserCameras(rows);
+          registerUserAssets("camera", rows.map((r) => ({ id: r.id, name: r.name, description: r.description })));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch user cameras:", err);
+    } finally {
+      setIsLoadingUserCams(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && activeTab === "camera" && (!isAuthLoaded || isSignedIn)) {
+      fetchUserCameras();
     }
   }, [isOpen, activeTab, isAuthLoaded, isSignedIn]);
 
@@ -469,21 +543,167 @@ export function ReferenceStudioModal({
       }
       const created = data.location as UserLocationRecord;
       setUserLocations((prev) => [created, ...prev]);
+      registerUserAsset("location", { id: created.id, name: created.name, description: created.description });
       setNewLocName("");
       setNewLocPreviews([]);
       onSelectLocation?.(created.id);
-      if (created.coverUrl && onAttachFile) {
-        onAttachFile({
-          id: `loc-${created.id}`,
-          url: created.coverUrl,
-          name: created.name,
-          type: "image",
+      const createdRefs = (created.referenceUrls && created.referenceUrls.length > 0)
+        ? created.referenceUrls
+        : (created.coverUrl ? [created.coverUrl] : []);
+      if (onAttachFile) {
+        createdRefs.forEach((url, idx) => {
+          onAttachFile({
+            id: `loc-${created.id}-${idx}`,
+            url,
+            name: createdRefs.length > 1 ? `${created.name} (${idx + 1}/${createdRefs.length})` : created.name,
+            type: "image",
+          });
         });
       }
     } catch (err: any) {
       setCreateLocError(err?.message || (isAr ? "فشل الحفظ" : "Save failed"));
     } finally {
       setIsSavingLoc(false);
+    }
+  };
+
+  const handleNewEffFilesSelected = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return;
+    const list = Array.from(files).slice(0, 8);
+    const previews: Array<{ dataUrl: string; name: string }> = [];
+    for (const f of list) {
+      if (!f.type.startsWith("image/")) continue;
+      if (f.size > 8 * 1024 * 1024) {
+        setCreateEffError(isAr ? "الحد الأقصى لكل صورة 8MB" : "Max 8MB per image");
+        continue;
+      }
+      try {
+        const dataUrl = await readFileAsDataUrl(f);
+        previews.push({ dataUrl, name: f.name });
+      } catch {}
+    }
+    setNewEffPreviews((prev) => [...prev, ...previews].slice(0, 8));
+  };
+
+  const submitNewEffect = async () => {
+    if (isSavingEff) return;
+    setCreateEffError(null);
+    const name = newEffName.trim().slice(0, 80) || (isAr ? "إفكت بلا اسم" : "Untitled Effect");
+    const description = newEffDescription.trim().slice(0, 1200);
+    if (newEffPreviews.length === 0) {
+      setCreateEffError(isAr ? "أرفع صورة مرجعية واحدة على الأقل" : "Upload at least one reference image");
+      return;
+    }
+    setIsSavingEff(true);
+    try {
+      const res = await fetch("/api/effects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          description,
+          images: newEffPreviews.map((p) => ({ dataUrl: p.dataUrl, name: p.name })),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.effect) {
+        setCreateEffError(String(data?.error || (isAr ? "فشل الحفظ" : "Save failed")));
+        return;
+      }
+      const created = data.effect as UserEffectRecord;
+      setUserEffects((prev) => [created, ...prev]);
+      registerUserAsset("effect", { id: created.id, name: created.name, description: created.description });
+      setNewEffName("");
+      setNewEffDescription("");
+      setNewEffPreviews([]);
+      onSelectEffect?.(created.id);
+      const createdRefs = (created.referenceUrls && created.referenceUrls.length > 0)
+        ? created.referenceUrls
+        : (created.coverUrl ? [created.coverUrl] : []);
+      if (onAttachFile) {
+        createdRefs.forEach((url, idx) => {
+          onAttachFile({
+            id: `eff-${created.id}-${idx}`,
+            url,
+            name: createdRefs.length > 1 ? `${created.name} (${idx + 1}/${createdRefs.length})` : created.name,
+            type: "image",
+          });
+        });
+      }
+    } catch (err: any) {
+      setCreateEffError(err?.message || (isAr ? "فشل الحفظ" : "Save failed"));
+    } finally {
+      setIsSavingEff(false);
+    }
+  };
+
+  const handleNewCamFilesSelected = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return;
+    const list = Array.from(files).slice(0, 8);
+    const previews: Array<{ dataUrl: string; name: string }> = [];
+    for (const f of list) {
+      if (!f.type.startsWith("image/")) continue;
+      if (f.size > 8 * 1024 * 1024) {
+        setCreateCamError(isAr ? "الحد الأقصى لكل صورة 8MB" : "Max 8MB per image");
+        continue;
+      }
+      try {
+        const dataUrl = await readFileAsDataUrl(f);
+        previews.push({ dataUrl, name: f.name });
+      } catch {}
+    }
+    setNewCamPreviews((prev) => [...prev, ...previews].slice(0, 8));
+  };
+
+  const submitNewCamera = async () => {
+    if (isSavingCam) return;
+    setCreateCamError(null);
+    const name = newCamName.trim().slice(0, 80) || (isAr ? "لقطة بلا اسم" : "Untitled Camera");
+    const description = newCamDescription.trim().slice(0, 1200);
+    if (newCamPreviews.length === 0) {
+      setCreateCamError(isAr ? "أرفع صورة مرجعية واحدة على الأقل" : "Upload at least one reference image");
+      return;
+    }
+    setIsSavingCam(true);
+    try {
+      const res = await fetch("/api/cameras", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          description,
+          images: newCamPreviews.map((p) => ({ dataUrl: p.dataUrl, name: p.name })),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.camera) {
+        setCreateCamError(String(data?.error || (isAr ? "فشل الحفظ" : "Save failed")));
+        return;
+      }
+      const created = data.camera as UserCameraRecord;
+      setUserCameras((prev) => [created, ...prev]);
+      registerUserAsset("camera", { id: created.id, name: created.name, description: created.description });
+      setNewCamName("");
+      setNewCamDescription("");
+      setNewCamPreviews([]);
+      onSelectCamera?.(created.id);
+      const createdRefs = (created.referenceUrls && created.referenceUrls.length > 0)
+        ? created.referenceUrls
+        : (created.coverUrl ? [created.coverUrl] : []);
+      if (onAttachFile) {
+        createdRefs.forEach((url, idx) => {
+          onAttachFile({
+            id: `cam-${created.id}-${idx}`,
+            url,
+            name: createdRefs.length > 1 ? `${created.name} (${idx + 1}/${createdRefs.length})` : created.name,
+            type: "image",
+          });
+        });
+      }
+    } catch (err: any) {
+      setCreateCamError(err?.message || (isAr ? "فشل الحفظ" : "Save failed"));
+    } finally {
+      setIsSavingCam(false);
     }
   };
 
@@ -530,7 +750,7 @@ export function ReferenceStudioModal({
       }
       const created = data.element as UserElementRecord;
       setUserElements((prev) => [created, ...prev]);
-      registerUserElement({ id: created.id, name: created.name, description: created.description });
+      registerUserAsset("element", { id: created.id, name: created.name, description: created.description });
       setNewElemName("");
       setNewElemPreviews([]);
       onSelectElement?.(created.id);
@@ -580,11 +800,13 @@ export function ReferenceStudioModal({
     setNewCharPreviews((prev) => [...prev, ...previews].slice(0, 8));
   };
 
-  const deleteUserAsset = async (kind: "characters" | "elements" | "locations" | "palettes", id: string) => {
+  const deleteUserAsset = async (kind: "characters" | "elements" | "locations" | "effects" | "cameras" | "palettes", id: string) => {
     const labels = {
       characters: isAr ? "هذا الكاركتر" : "this character",
       elements: isAr ? "هذا العنصر" : "this element",
       locations: isAr ? "هذا الموقع" : "this location",
+      effects: isAr ? "هذا الإفكت" : "this effect",
+      cameras: isAr ? "هذه اللقطة" : "this camera",
       palettes: isAr ? "هذه اللوحة" : "this palette",
     };
     const ok = await confirmAction({ title: "Delete reference?", description: (isAr ? `حذف ${labels[kind]}؟ لا يمكن التراجع.` : `Delete ${labels[kind]}? This cannot be undone.`), confirmLabel: "Delete", destructive: true });
@@ -601,11 +823,20 @@ export function ReferenceStudioModal({
         if (selectedCharacterId === id) onSelectCharacter?.(null);
       } else if (kind === "elements") {
         setUserElements((prev) => prev.filter((e) => e.id !== id));
-        unregisterUserElement(id);
+        unregisterUserAsset("element", id);
         if (selectedElementId === id) onSelectElement?.(null);
       } else if (kind === "locations") {
         setUserLocations((prev) => prev.filter((l) => l.id !== id));
+        unregisterUserAsset("location", id);
         if (selectedLocationId === id) onSelectLocation?.(null);
+      } else if (kind === "effects") {
+        setUserEffects((prev) => prev.filter((e) => e.id !== id));
+        unregisterUserAsset("effect", id);
+        if (selectedEffectId === id) onSelectEffect?.(null);
+      } else if (kind === "cameras") {
+        setUserCameras((prev) => prev.filter((c) => c.id !== id));
+        unregisterUserAsset("camera", id);
+        if (selectedCameraId === id) onSelectCamera?.(null);
       } else if (kind === "palettes") {
         setUserPalettes((prev) => prev.filter((p) => p.id !== id));
         if (selectedPaletteId === id) setSelectedPaletteId(null);
@@ -1478,17 +1709,22 @@ export function ReferenceStudioModal({
                 {userLocations.map((ul) => {
                   const isSelected = selectedLocationId === ul.id;
                   const cover = ul.coverUrl || ul.referenceUrls?.[0] || "";
+                  const refs = (ul.referenceUrls && ul.referenceUrls.length > 0)
+                    ? ul.referenceUrls
+                    : (cover ? [cover] : []);
                   return (
                     <div
                       key={ul.id}
                       onClick={() => {
                         onSelectLocation?.(isSelected ? null : ul.id);
-                        if (!isSelected && cover && onAttachFile) {
-                          onAttachFile({
-                            id: `loc-${ul.id}`,
-                            url: cover,
-                            name: ul.name,
-                            type: "image",
+                        if (!isSelected && onAttachFile) {
+                          refs.forEach((url, idx) => {
+                            onAttachFile({
+                              id: `loc-${ul.id}-${idx}`,
+                              url,
+                              name: refs.length > 1 ? `${ul.name} (${idx + 1}/${refs.length})` : ul.name,
+                              type: "image",
+                            });
                           });
                         }
                       }}
@@ -1602,6 +1838,80 @@ export function ReferenceStudioModal({
             {/* Camera Tab */}
             {activeTab === "camera" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {/* User's own cameras from /api/cameras */}
+                {userCameras.map((uc) => {
+                  const isSelected = selectedCameraId === uc.id;
+                  const cover = uc.coverUrl || uc.referenceUrls?.[0] || "";
+                  const refs = (uc.referenceUrls && uc.referenceUrls.length > 0)
+                    ? uc.referenceUrls
+                    : (cover ? [cover] : []);
+                  return (
+                    <div
+                      key={uc.id}
+                      onClick={() => {
+                        onSelectCamera?.(isSelected ? null : uc.id);
+                        if (!isSelected && onAttachFile) {
+                          refs.forEach((url, idx) => {
+                            onAttachFile({
+                              id: `cam-${uc.id}-${idx}`,
+                              url,
+                              name: refs.length > 1 ? `${uc.name} (${idx + 1}/${refs.length})` : uc.name,
+                              type: "image",
+                            });
+                          });
+                        }
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/10"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                      }`}
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+                        {cover ? (
+                          <img
+                            src={cover}
+                            alt={uc.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-600">
+                            <Camera className="w-8 h-8" />
+                          </div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-amber-600/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow z-10">
+                          {isAr ? "لقطة خاصة" : "My Camera"}
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-amber-500 text-white rounded-full p-1 shadow">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); deleteUserAsset("cameras", uc.id); }}
+                          className="absolute bottom-2 right-2 bg-black/70 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                          title={isAr ? "حذف اللقطة" : "Delete camera"}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-slate-200 truncate">{uc.name}</div>
+                        <div className="text-[10px] text-amber-400 font-medium truncate mt-0.5">
+                          {uc.referenceUrls?.length || 1} {isAr ? "مرجع" : "ref"}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {isLoadingUserCams && userCameras.length === 0 && (
+                  <div className="aspect-[4/3] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-400">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                )}
+
                 {renderCustomCategoryItems("camera", "amber", (id) => onSelectCamera?.(id), (id) => selectedCameraId === id)}
                 {HOOK_CAMERAS.filter((cam) => {
                   const search = searchQuery.toLowerCase();
@@ -1655,6 +1965,80 @@ export function ReferenceStudioModal({
             {/* Effects Tab */}
             {activeTab === "effects" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {/* User's own effects from /api/effects */}
+                {userEffects.map((ue) => {
+                  const isSelected = selectedEffectId === ue.id;
+                  const cover = ue.coverUrl || ue.referenceUrls?.[0] || "";
+                  const refs = (ue.referenceUrls && ue.referenceUrls.length > 0)
+                    ? ue.referenceUrls
+                    : (cover ? [cover] : []);
+                  return (
+                    <div
+                      key={ue.id}
+                      onClick={() => {
+                        onSelectEffect?.(isSelected ? null : ue.id);
+                        if (!isSelected && onAttachFile) {
+                          refs.forEach((url, idx) => {
+                            onAttachFile({
+                              id: `eff-${ue.id}-${idx}`,
+                              url,
+                              name: refs.length > 1 ? `${ue.name} (${idx + 1}/${refs.length})` : ue.name,
+                              type: "image",
+                            });
+                          });
+                        }
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-pink-500 ring-2 ring-pink-500/20 bg-pink-500/10"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                      }`}
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+                        {cover ? (
+                          <img
+                            src={cover}
+                            alt={ue.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-600">
+                            <Wand2 className="w-8 h-8" />
+                          </div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-pink-600/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow z-10">
+                          {isAr ? "إفكت خاص" : "My Effect"}
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-pink-500 text-white rounded-full p-1 shadow">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); deleteUserAsset("effects", ue.id); }}
+                          className="absolute bottom-2 right-2 bg-black/70 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                          title={isAr ? "حذف الإفكت" : "Delete effect"}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-slate-200 truncate">{ue.name}</div>
+                        <div className="text-[10px] text-pink-400 font-medium truncate mt-0.5">
+                          {ue.referenceUrls?.length || 1} {isAr ? "مرجع" : "ref"}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {isLoadingUserEffs && userEffects.length === 0 && (
+                  <div className="aspect-[4/3] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-400">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                )}
+
                 {renderCustomCategoryItems("effects", "pink", (id) => onSelectEffect?.(id), (id) => selectedEffectId === id)}
                 {HOOK_EFFECTS.filter((eff) => {
                   const matchCat = activeCategory === "all" || eff.category === activeCategory;
@@ -2359,6 +2743,276 @@ export function ReferenceStudioModal({
                 >
                   <Camera className="w-4 h-4 text-slate-400" />
                   <span>{isAr ? "التقاط صورة" : "Take photo"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  {isAr ? "إغلاق الاستوديو" : "Close Studio"}
+                </button>
+              </div>
+            </>
+          ) : activeTab === "effects" ? (
+            <>
+              <div className="space-y-4 overflow-y-auto pr-1">
+                <div>
+                  <span className="text-[10px] font-bold text-pink-400 uppercase tracking-widest block">
+                    {isAr ? "إنشاء إفكت جديد" : "Create New Effect"}
+                  </span>
+                  <p className="text-xs text-slate-400 leading-relaxed mt-1">
+                    {isAr
+                      ? "ارفع صور تعبّر عن اللوك (تدريج ألوان، إضاءة، مود). سيُحفظ في مكتبتك وتُرفَق صوره + وصفه كمرجع بصري ونصي في التوليدات."
+                      : "Upload photos that capture the look (color grade, lighting, mood). Saved to your library and used as both visual and prompt reference in generations."}
+                  </p>
+                </div>
+
+                <input
+                  type="file"
+                  ref={newEffFileInputRef}
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleNewEffFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {isAr ? "الاسم" : "Name"}
+                  </label>
+                  <input
+                    type="text"
+                    value={newEffName}
+                    onChange={(e) => setNewEffName(e.target.value)}
+                    placeholder={isAr ? "مثال: لوك سينمائي دافئ" : "e.g. warm cinematic look"}
+                    maxLength={80}
+                    className="w-full bg-[#121624] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-pink-500 transition-all"
+                    disabled={isSavingEff}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {isAr ? "وصف اللوك (اختياري)" : "Look description (optional)"}
+                  </label>
+                  <textarea
+                    value={newEffDescription}
+                    onChange={(e) => setNewEffDescription(e.target.value)}
+                    placeholder={isAr ? "مثال: ظلال تيل، هايلايت دافئ، جرين على البشرة، تباين متوسط" : "e.g. teal shadows, warm highlights, film grain, medium contrast"}
+                    maxLength={1200}
+                    rows={3}
+                    className="w-full bg-[#121624] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-pink-500 transition-all resize-none"
+                    disabled={isSavingEff}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {isAr ? "الصور المرجعية" : "Reference photos"}
+                  </label>
+                  <div
+                    onClick={() => !isSavingEff && newEffFileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => {
+                      e.preventDefault(); e.stopPropagation();
+                      if (!isSavingEff && e.dataTransfer?.files) handleNewEffFilesSelected(e.dataTransfer.files);
+                    }}
+                    className="border-2 border-dashed border-slate-800 hover:border-pink-500/80 rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] group"
+                  >
+                    <div className="w-11 h-11 rounded-2xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 mb-2 group-hover:scale-110 transition-transform">
+                      <UploadCloud className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-200 block mb-0.5">
+                      {isAr ? "اسحب صور هنا" : "Drop photos here"}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block">
+                      PNG, JPG, WEBP · {isAr ? "حتى 8 صور · 8MB/صورة" : "up to 8 · 8MB each"}
+                    </span>
+                  </div>
+
+                  {newEffPreviews.length > 0 && (
+                    <div className="grid grid-cols-4 gap-1.5 mt-2">
+                      {newEffPreviews.map((p, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
+                          <img src={p.dataUrl} alt={p.name} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setNewEffPreviews((prev) => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-600 text-white rounded-full p-0.5"
+                            disabled={isSavingEff}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {createEffError && (
+                  <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+                    {createEffError}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 pt-4">
+                <button
+                  type="button"
+                  onClick={submitNewEffect}
+                  disabled={isSavingEff || newEffPreviews.length === 0}
+                  className="w-full bg-pink-600 hover:bg-pink-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-pink-500/20"
+                >
+                  {isSavingEff ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{isAr ? "جاري الحفظ…" : "Saving…"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>{isAr ? "حفظ الإفكت" : "Save Effect"}</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  {isAr ? "إغلاق الاستوديو" : "Close Studio"}
+                </button>
+              </div>
+            </>
+          ) : activeTab === "camera" ? (
+            <>
+              <div className="space-y-4 overflow-y-auto pr-1">
+                <div>
+                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest block">
+                    {isAr ? "إنشاء لقطة جديدة" : "Create New Camera"}
+                  </span>
+                  <p className="text-xs text-slate-400 leading-relaxed mt-1">
+                    {isAr
+                      ? "ارفع صور تعبّر عن نوع اللقطة (الزاوية، الإطار، البُعد البؤري). سيُحفظ في مكتبتك وتُرفَق صوره + وصفه كمرجع بصري ونصي في التوليدات."
+                      : "Upload photos that capture the shot type (angle, framing, focal length). Saved to your library and used as both visual and prompt reference in generations."}
+                  </p>
+                </div>
+
+                <input
+                  type="file"
+                  ref={newCamFileInputRef}
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleNewCamFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {isAr ? "الاسم" : "Name"}
+                  </label>
+                  <input
+                    type="text"
+                    value={newCamName}
+                    onChange={(e) => setNewCamName(e.target.value)}
+                    placeholder={isAr ? "مثال: لقطة درون علوية بعدسة عريضة" : "e.g. top-down drone shot, wide lens"}
+                    maxLength={80}
+                    className="w-full bg-[#121624] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-all"
+                    disabled={isSavingCam}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {isAr ? "وصف اللقطة (اختياري)" : "Shot description (optional)"}
+                  </label>
+                  <textarea
+                    value={newCamDescription}
+                    onChange={(e) => setNewCamDescription(e.target.value)}
+                    placeholder={isAr ? "مثال: زاوية منخفضة، عدسة 35mm، تكوين متمركز، مسافة قريبة" : "e.g. low angle, 35mm lens, centered composition, close distance"}
+                    maxLength={1200}
+                    rows={3}
+                    className="w-full bg-[#121624] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-all resize-none"
+                    disabled={isSavingCam}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {isAr ? "الصور المرجعية" : "Reference photos"}
+                  </label>
+                  <div
+                    onClick={() => !isSavingCam && newCamFileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => {
+                      e.preventDefault(); e.stopPropagation();
+                      if (!isSavingCam && e.dataTransfer?.files) handleNewCamFilesSelected(e.dataTransfer.files);
+                    }}
+                    className="border-2 border-dashed border-slate-800 hover:border-amber-500/80 rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] group"
+                  >
+                    <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-2 group-hover:scale-110 transition-transform">
+                      <UploadCloud className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-200 block mb-0.5">
+                      {isAr ? "اسحب صور هنا" : "Drop photos here"}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block">
+                      PNG, JPG, WEBP · {isAr ? "حتى 8 صور · 8MB/صورة" : "up to 8 · 8MB each"}
+                    </span>
+                  </div>
+
+                  {newCamPreviews.length > 0 && (
+                    <div className="grid grid-cols-4 gap-1.5 mt-2">
+                      {newCamPreviews.map((p, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
+                          <img src={p.dataUrl} alt={p.name} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setNewCamPreviews((prev) => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-600 text-white rounded-full p-0.5"
+                            disabled={isSavingCam}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {createCamError && (
+                  <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+                    {createCamError}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 pt-4">
+                <button
+                  type="button"
+                  onClick={submitNewCamera}
+                  disabled={isSavingCam || newCamPreviews.length === 0}
+                  className="w-full bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-amber-500/20"
+                >
+                  {isSavingCam ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{isAr ? "جاري الحفظ…" : "Saving…"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>{isAr ? "حفظ اللقطة" : "Save Camera"}</span>
+                    </>
+                  )}
                 </button>
 
                 <button

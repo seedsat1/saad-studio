@@ -1,3 +1,10 @@
+## توحيد التسعير والموديلات عبر المرجع المركزي الموحد (2026-08-08)
+
+- تم توحيد مرجع الموديلات المركزي (Central Model Registry) بالكامل كـ Single Source of Truth لجميع استوديوهات الموقع (الصور، الفيديو، الصوت/الموسيقى) ومحركات حساب الكريديت والتسعير.
+- تم تحديث استوديو الصوت والموسيقى (`app/(dash)/(routes)/audio/page.tsx`) ليقوم بجلب موديلات الموسيقى النشطة (Google Lyria) ديناميكياً من قاعدة البيانات عبر endpoint الموديلات الموحد (`/api/models`) والخطاف `useFullDynamicModels`.
+- تم إلغاء كافة مصفوفات الموديلات الثابتة والـ Hardcoded في حاسب الكريديت لعمليات المونتاج (`lib/credit-pricing.ts`) لتعتمد كلياً على فحص الكاش المركزي وقيم الكريديت الديناميكية عبر `getGenerationCostSync` المستوردة من `lib/pricing.ts`.
+- يضمن هذا التغيير انعكاس أي تعديل لأسعار أو نشاط الموديلات من لوحة تحكم الإدارة (Admin Dashboard) فوراً على عمليات الحساب والخصم والتحقق عبر جميع مسارات الـ API بدون الحاجة لإعادة نشر التطبيق.
+
 ## Google Official Video Pricing And Mode Contract (2026-08-07)
 
 - Google official documentation is the authority for Gemini Omni Flash and Veo video generation. KIE catalog data must not define prices for direct Google video routes.
@@ -2981,7 +2988,7 @@
 - Pricing source separation:
   - Turbo prices come from the attached WaveSpeed text pages: 720p no reference video $0.20/s, 1080p no reference video $0.21/s, 720p with reference video $0.38/s, 1080p with reference video $0.39/s.
   - Spicy source prices come from provider UI screenshots: 480p $0.162/s, 720p $0.324/s, 1080p $0.81/s, 4k $1.62/s.
-  - User credits for Seedance 2.5 use verified provider USD source price � 40 credits/USD. This protects the lowest effective annual plan credit value with an approximate 20% margin.
+  - User credits for Seedance 2.5 use verified provider USD source price � 40 credits/USD. This protects the lowest effective annual plan credit value with an approximate 20% margin.
   - Generate Audio/sound does not affect Seedance 2.5 price; billing uses duration and resolution only.
 - Do not publish `video-edit`, `video-edit-turbo`, `video-extend`, base text-to-video, or base image-to-video Seedance 2.5 rows without exact specs and prices.
 ## Seedance 2.5 Public Selector Contract (2026-08-07)

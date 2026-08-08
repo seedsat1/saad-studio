@@ -19,7 +19,7 @@ import {
   HOOK_CHARACTERS,
   HOOK_SKETCHES,
 } from "./hook-studio-config";
-import { getUserElement } from "./user-element-registry";
+import { getUserAsset, type UserAssetKind } from "./user-asset-registry";
 
 export interface PresetSelections {
   selectedStyleId?: string | null;
@@ -45,6 +45,20 @@ export interface PresetSelections {
 export function buildPresetPromptSuffix(sel: PresetSelections): string {
   const parts: string[] = [];
 
+  const pushUserAssetFallback = (
+    kind: UserAssetKind,
+    id: string,
+    prefix: "Element" | "Location" | "Effect" | "Camera",
+    defaultBody: (name: string) => string,
+    tail: string,
+  ) => {
+    const ua = getUserAsset(kind, id);
+    if (!ua || (!ua.description && !ua.name)) return;
+    const label = ua.name ? `@${ua.name.replace(/\s+/g, "").toLowerCase()}` : "custom";
+    const body = ua.description || defaultBody(ua.name);
+    parts.push(`${prefix} (${label}): ${body}. ${tail}`);
+  };
+
   if (sel.selectedStyleId) {
     const s = HOOK_STYLES.find((x) => x.id === sel.selectedStyleId);
     if (s?.systemPromptAddon) parts.push(`Style: ${s.systemPromptAddon}`);
@@ -53,7 +67,17 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
   if (sel.selectedEffectId) {
     const e = HOOK_EFFECTS.find((x) => x.id === sel.selectedEffectId);
     const addon = e?.systemPromptAddon || e?.promptDescription;
-    if (addon) parts.push(`Effect (${e?.tag ?? ""}): ${addon}`);
+    if (addon) {
+      parts.push(`Effect (${e?.tag ?? ""}): ${addon}`);
+    } else {
+      pushUserAssetFallback(
+        "effect",
+        sel.selectedEffectId,
+        "Effect",
+        (name) => `apply the "${name}" look — match the color grade, lighting quality, and overall mood shown in the reference photos`,
+        "Reproduce the same aesthetic tone, contrast, and finish as the attached references without altering subject or composition.",
+      );
+    }
   }
 
   if (sel.selectedCharacterId) {
@@ -63,7 +87,17 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
 
   if (sel.selectedCameraId) {
     const c = HOOK_CAMERAS.find((x) => x.id === sel.selectedCameraId);
-    if (c?.promptDescription) parts.push(`Camera (${c.tag}): ${c.promptDescription}`);
+    if (c?.promptDescription) {
+      parts.push(`Camera (${c.tag}): ${c.promptDescription}`);
+    } else {
+      pushUserAssetFallback(
+        "camera",
+        sel.selectedCameraId,
+        "Camera",
+        (name) => `frame the shot as "${name}" — match the camera angle, focal length, distance, and composition shown in the reference photos`,
+        "Replicate the same shot type, perspective, and framing as the attached references while keeping subject and scene from the base prompt.",
+      );
+    }
   }
 
   if (sel.selectedSketchId) {
@@ -73,7 +107,17 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
 
   if (sel.selectedLocationId) {
     const l = HOOK_LOCATIONS.find((x) => x.id === sel.selectedLocationId);
-    if (l?.promptDescription) parts.push(`Location (${l.tag}): ${l.promptDescription}`);
+    if (l?.promptDescription) {
+      parts.push(`Location (${l.tag}): ${l.promptDescription}`);
+    } else {
+      pushUserAssetFallback(
+        "location",
+        sel.selectedLocationId,
+        "Location",
+        (name) => `set the scene at "${name}" as shown in the reference photos`,
+        "Match the environment, lighting, textures, and spatial layout of the attached references.",
+      );
+    }
   }
 
   if (sel.selectedElementId) {
@@ -81,12 +125,13 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
     if (el?.promptDescription) {
       parts.push(`Element (${el.tag}): ${el.promptDescription}`);
     } else {
-      const ue = getUserElement(sel.selectedElementId);
-      if (ue && (ue.description || ue.name)) {
-        const label = ue.name ? `@${ue.name.replace(/\s+/g, "").toLowerCase()}` : "custom";
-        const body = ue.description || `preserve the exact appearance, colors, and proportions of "${ue.name}" as shown in the reference photos`;
-        parts.push(`Element (${label}): ${body}. Keep this product/prop visually identical to the attached references.`);
-      }
+      pushUserAssetFallback(
+        "element",
+        sel.selectedElementId,
+        "Element",
+        (name) => `preserve the exact appearance, colors, and proportions of "${name}" as shown in the reference photos`,
+        "Keep this product/prop visually identical to the attached references.",
+      );
     }
   }
 

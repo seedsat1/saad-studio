@@ -15,6 +15,7 @@ import { useProModal } from "@/hooks/use-pro-modal";
 import { useToast } from "@/components/ui/use-toast";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useLanguage } from "@/lib/use-language";
+import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -454,7 +455,8 @@ export default function AudioPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Settings
-  const [selectedModel, setSelectedModel] = useState<"clip" | "pro">("pro");
+  const { audioModels: rawAudioModels } = useFullDynamicModels();
+  const [selectedModel, setSelectedModel] = useState<string>("google/lyria-3-pro/music");
   const [genre, setGenre] = useState("Cinematic");
   const [mood, setMood] = useState("Epic");
   const [bpm, setBpm] = useState(120);
@@ -621,7 +623,7 @@ export default function AudioPage() {
 
       const payload = {
         prompt: finalPrompt,
-        model: selectedModel === "pro" ? "google/lyria-3-pro/music" : "google/lyria-3-clip/music",
+        model: selectedModel,
         lyrics: customLyrics || undefined,
         style: [genre, mood].filter(Boolean).join(", "),
         genre,
@@ -651,7 +653,7 @@ export default function AudioPage() {
         genre,
         mood,
         duration: dur,
-        model: selectedModel === "pro" ? "Google Lyria Pro" : "Google Lyria",
+        model: selectedModel === "google/lyria-3-pro/music" ? "Google Lyria Pro" : selectedModel === "google/lyria-3-clip/music" ? "Google Lyria" : selectedModel,
         timestamp: new Date(),
         waveform: generateWaveform(),
         liked: false,
@@ -1559,27 +1561,67 @@ export default function AudioPage() {
                       <div>
                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">{t("Model")}</label>
                         <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { id: "clip" as const, name: "Fast", full: "Google Lyria", desc: "Google · Fast Preview" },
-                            { id: "pro" as const, name: "Pro", full: "Google Lyria Pro", desc: "Google · Pro Preview" },
-                          ].map(m => (
-                            <button
-                              key={m.id}
-                              onClick={() => setSelectedModel(m.id)}
-                              className={cn(
-                                "p-3 rounded-2xl border text-left transition-all duration-150",
-                                selectedModel === m.id
-                                  ? "border-cyan-500 bg-cyan-950/20 shadow-sm"
-                                  : "border-[#0d1b2e] hover:border-cyan-500/30 hover:bg-[#090f1b]/50"
-                              )}
-                            >
-                              <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-xs font-bold text-zinc-100">{t(m.name)}</span>
-                                {selectedModel === m.id && <div className="h-2 w-2 rounded-full bg-cyan-500" />}
-                              </div>
-                              <span className="text-[10px] text-zinc-400 leading-snug block">{t(m.desc)}</span>
-                            </button>
-                          ))}
+                          {(rawAudioModels && rawAudioModels.length > 0
+                            ? rawAudioModels.filter(m => m.id.includes("music") || m.id === "music_gen")
+                            : []
+                          ).length > 0
+                            ? rawAudioModels
+                                .filter(m => m.id.includes("music") || m.id === "music_gen")
+                                .map(m => {
+                                  let displayName = m.name;
+                                  let displayDesc = m.desc || "";
+                                  if (m.id === "google/lyria-3-pro/music") {
+                                    displayName = "Pro";
+                                    displayDesc = "Google · Pro Preview";
+                                  } else if (m.id === "google/lyria-3-clip/music") {
+                                    displayName = "Fast";
+                                    displayDesc = "Google · Fast Preview";
+                                  }
+                                  return {
+                                    id: m.id,
+                                    name: displayName,
+                                    desc: displayDesc,
+                                  };
+                                })
+                                .map(m => (
+                                  <button
+                                    key={m.id}
+                                    onClick={() => setSelectedModel(m.id)}
+                                    className={cn(
+                                      "p-3 rounded-2xl border text-left transition-all duration-150",
+                                      selectedModel === m.id
+                                        ? "border-cyan-500 bg-cyan-950/20 shadow-sm"
+                                        : "border-[#0d1b2e] hover:border-cyan-500/30 hover:bg-[#090f1b]/50"
+                                    )}
+                                  >
+                                    <div className="flex items-center justify-between mb-0.5">
+                                      <span className="text-xs font-bold text-zinc-100">{t(m.name)}</span>
+                                      {selectedModel === m.id && <div className="h-2 w-2 rounded-full bg-cyan-500" />}
+                                    </div>
+                                    <span className="text-[10px] text-zinc-400 leading-snug block">{t(m.desc)}</span>
+                                  </button>
+                                ))
+                            : [
+                                { id: "google/lyria-3-clip/music", name: "Fast", desc: "Google · Fast Preview" },
+                                { id: "google/lyria-3-pro/music", name: "Pro", desc: "Google · Pro Preview" },
+                              ].map(m => (
+                                <button
+                                  key={m.id}
+                                  onClick={() => setSelectedModel(m.id)}
+                                  className={cn(
+                                    "p-3 rounded-2xl border text-left transition-all duration-150",
+                                    selectedModel === m.id
+                                      ? "border-cyan-500 bg-cyan-950/20 shadow-sm"
+                                      : "border-[#0d1b2e] hover:border-cyan-500/30 hover:bg-[#090f1b]/50"
+                                  )}
+                                >
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className="text-xs font-bold text-zinc-100">{t(m.name)}</span>
+                                    {selectedModel === m.id && <div className="h-2 w-2 rounded-full bg-cyan-500" />}
+                                  </div>
+                                  <span className="text-[10px] text-zinc-400 leading-snug block">{t(m.desc)}</span>
+                                </button>
+                              ))}
                         </div>
                       </div>
 

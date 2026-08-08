@@ -1,3 +1,14 @@
+#### Latest task: Complete Dynamic Central Registry Integration Across All Tools (2026-08-08)
+- Status: Completed.
+  - Added default model entries for `google/lyria-3-clip/music` and `google/lyria-3-pro/music` inside `lib/pricing-models.ts`.
+  - Updated `/api/models/route.ts` to fetch and return active `audioModels` from the registry.
+  - Refactored `useFullDynamicModels` hook inside `hooks/use-dynamic-models.ts` to parse and return `audioModels` response payload.
+  - Refactored the Audio Studio page `app/(dash)/(routes)/audio/page.tsx` to dynamically load, select, and render active music models from the central database registry via `/api/models`.
+  - Updated all pricing/credit calculation functions in `lib/credit-pricing.ts` (`getVideoCreditsByModelId`, `getVideoCreditsByRoute`, `getMusicCredits`, `getImageCredits`, `get3DCredits`, and `getAudioActionCredits`) to check `getGenerationCostSync` from `lib/pricing.ts` first, falling back to legacy rules only if returned cost is `0`.
+- Affected files: `lib/pricing-models.ts`, `app/api/models/route.ts`, `hooks/use-dynamic-models.ts`, `app/(dash)/(routes)/audio/page.tsx`, `lib/credit-pricing.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: TypeScript type-check (`npx tsc --noEmit`) completed with exit code 0.
+- Decisions: Map model IDs dynamically to resolve from the database cache, maintaining proper fallbacks for graceful degradation during page initialization.
+
 #### Latest task: Embed subtitle instructions inside the unified reference button box (2026-08-08)
 - Status: Completed.
   - Refactored the unified reference status bar container from a capsule shape (`rounded-full`) to a rounded rectangle box (`rounded-2xl`) and placed the descriptive subtitles (`Add references / Image, Video or Audio`) directly inside it.

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getDynamicImageModels, getDynamicVideoModels } from "@/lib/dynamic-model-loader";
+import { loadModels } from "@/lib/pricing";
 
 export async function GET() {
   try {
@@ -16,10 +17,30 @@ export async function GET() {
     const activeImageModels = imageModels.filter((m) => m.isActive !== false);
     const activeVideoModels = videoModels.filter((m) => m.isActive !== false);
 
+    const allModels = await loadModels();
+    const activeAudioModels = allModels
+      .filter((m) => m.type === "audio" && m.isActive !== false)
+      .map((m) => {
+        let desc = m.notes || "";
+        if (m.id === "google/lyria-3-pro/music") {
+          desc = "Google · Pro Preview";
+        } else if (m.id === "google/lyria-3-clip/music") {
+          desc = "Google · Fast Preview";
+        }
+        return {
+          id: m.id,
+          name: m.name,
+          desc: desc,
+          creditCost: m.userCreditsRate,
+          isActive: m.isActive,
+        };
+      });
+
     return NextResponse.json({
       ok: true,
       imageModels: activeImageModels,
       videoModels: activeVideoModels,
+      audioModels: activeAudioModels,
     });
   } catch (err) {
     console.error("[public-models] GET error:", err);

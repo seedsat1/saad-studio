@@ -138,20 +138,6 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"flux2_flex_i",  name:"FLUX.2 Flex I2I",         notes:"hidden",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:2,     waveUsd:0,     userCreditsRate:1.0,   maxDuration:null, isActive:true  },
   // ── AUDIO — flat via KIE ────────────────────────────────────────────────────
   { id:"el_v2",         name:"ElevenLabs V2",           notes:"29 langs",     type:"audio",  provider:"kie",       billing:"flat",    kieCredits:16,    waveUsd:0,     userCreditsRate:2.73,  maxDuration:null, isActive:true  },
-  { id:"el_v3",         name:"ElevenLabs V3",           notes:"70+ langs",    type:"audio",  provider:"kie",       billing:"flat",    kieCredits:20,    waveUsd:0,     userCreditsRate:3.41,  maxDuration:null, isActive:true  },
-  { id:"voice_gen",     name:"Voice Generator",         notes:"TTS",          type:"audio",  provider:"kie",       billing:"flat",    kieCredits:12,    waveUsd:0,     userCreditsRate:2.05,  maxDuration:null, isActive:true  },
-  { id:"voice_clone",   name:"Voice Cloning",           notes:"clone",        type:"audio",  provider:"kie",       billing:"flat",    kieCredits:20,    waveUsd:0,     userCreditsRate:3.41,  maxDuration:null, isActive:true  },
-  { id:"voice_chg",     name:"Voice Changer",           notes:"S2S",          type:"audio",  provider:"kie",       billing:"flat",    kieCredits:14,    waveUsd:0,     userCreditsRate:2.39,  maxDuration:null, isActive:true  },
-  { id:"dubbing",       name:"Dubbing",                 notes:"multi-lang",   type:"audio",  provider:"kie",       billing:"flat",    kieCredits:24,    waveUsd:0,     userCreditsRate:4.09,  maxDuration:null, isActive:true  },
-  { id:"sfx",           name:"Sound Effect",            notes:"SFX",          type:"audio",  provider:"kie",       billing:"flat",    kieCredits:8,     waveUsd:0,     userCreditsRate:1.37,  maxDuration:null, isActive:true  },
-  { id:"music_gen",     name:"Music Generator",         notes:"full song",    type:"audio",  provider:"kie",       billing:"flat",    kieCredits:20,    waveUsd:0,     userCreditsRate:3.41,  maxDuration:null, isActive:true  },
-  { id:"lipsync",       name:"Lip Sync",                notes:"audio-driven", type:"audio",  provider:"kie",       billing:"flat",    kieCredits:30,    waveUsd:0,     userCreditsRate:5.12,  maxDuration:null, isActive:true  },
-  { id:"gemini_omni_audio", name:"Gemini Omni Audio",   notes:"Gemini 3.1 TTS", type:"audio", provider:"kie",      billing:"flat",    kieCredits:0,     waveUsd:0,     userCreditsRate:2.05,  maxDuration:null, isActive:true  },
-  // ── 3D — flat via WaveSpeed ─────────────────────────────────────────────────
-  { id:"tripo25",       name:"Tripo3D 2.5",             notes:"$0.10/run",    type:"3d",     provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.100, userCreditsRate:3.9,  maxDuration:null, isActive:true  },
-  { id:"hunya31",       name:"Hunyuan3D 3.1",           notes:"$0.023/run",   type:"3d",     provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.023, userCreditsRate:1.0,  maxDuration:null, isActive:true  },
-  { id:"hunya3",        name:"Hunyuan3D 3",             notes:"$0.375/run",   type:"3d",     provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.375, userCreditsRate:11.3, maxDuration:null, isActive:false },
-  { id:"meshy6",        name:"Meshy 6",                 notes:"$0.20/run",    type:"3d",     provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.200, userCreditsRate:7.8,  maxDuration:null, isActive:true  },
   // ── TOOLS — flat via WaveSpeed ──────────────────────────────────────────────
   { id:"tool_upscale",  name:"Video/Image Upscale",     notes:"4K/8K",        type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.03,  userCreditsRate:1.2,  maxDuration:null, isActive:true  },
   { id:"tool_rmbg",     name:"Remove Background",       notes:"RMBG-2.0",     type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.01,  userCreditsRate:0.4,  maxDuration:null, isActive:true  },

@@ -1,6 +1,7 @@
 import { IMAGE_MODELS, getImageCreditCost } from "@/lib/image-models";
 import { VIDEO_MODELS } from "@/lib/video-models";
 import { VIDEO_MODEL_REGISTRY, isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
+import { getGenerationCostSync } from "@/lib/pricing";
 
 type VideoPayload = Record<string, unknown>;
 type ImagePricingOptions = {
@@ -104,8 +105,18 @@ const THREE_D_COST_MAP = new Map<string, number>([
   ["hyper3d-rodin-2.image", 40],
 ]);
 
+function shouldApplySound(modelRef: string): boolean {
+  const ref = modelRef.toLowerCase();
+  if (ref.includes("seedance") || ref.includes("dreamina") || ref.includes("minimax/h3") || ref.includes("minimax_h3")) {
+    return false;
+  }
+  return true;
+}
+
 export function getImageCredits(modelId: string, numImages = 1, options?: ImagePricingOptions): number {
   const count = Number.isFinite(numImages) ? Math.max(1, Math.floor(numImages)) : 1;
+  const dbCost = getGenerationCostSync(modelId, 0, count, options?.quality ?? options?.resolution ?? options?.imageSize);
+  if (dbCost > 0) return dbCost;
   const model = IMAGE_MODEL_MAP.get(modelId);
   if (!model) return 0;
   return getImageCreditCost(model, count, options?.quality ?? options?.resolution ?? options?.imageSize);
@@ -304,6 +315,13 @@ function applyGenericRouteDynamics(modelRoute: string, baseCost: number, payload
 }
 
 export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload): number {
+  const duration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const dbCost = getGenerationCostSync(modelId, duration, 1, quality);
+  if (dbCost > 0) {
+    return shouldApplySound(modelId) ? applySoundMultiplier(dbCost, payload) : dbCost;
+  }
+
   if (modelId === "kling-v3-turbo") {
     const duration = readDuration(payload, 5);
     return applySoundMultiplier(parseFloat((duration * (5 / 3)).toFixed(2)), payload);
@@ -342,6 +360,13 @@ export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload
 }
 
 export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayload): number {
+  const duration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const dbCost = getGenerationCostSync(modelRoute, duration, 1, quality);
+  if (dbCost > 0) {
+    return shouldApplySound(modelRoute) ? applySoundMultiplier(dbCost, payload) : dbCost;
+  }
+
   if (modelRoute === "minimax/h3/reference-to-video") {
     return getMinimaxH3Credits(payload);
   }
@@ -437,17 +462,27 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
 }
 
 export function getMusicCredits(modelId: string, duration?: number): number {
-  const base = MUSIC_MODEL_BASE_COST.get(modelId) ?? 10;
   const safeDuration = duration && duration > 0 ? duration : 30;
+  const dbCost = getGenerationCostSync(modelId, safeDuration, 1);
+  if (dbCost > 0) return dbCost;
+
+  const base = MUSIC_MODEL_BASE_COST.get(modelId) ?? 10;
   const durationMultiplier = Math.max(1, Math.ceil(safeDuration / 30));
   return base * durationMultiplier;
 }
 
 export function get3DCredits(modelId: string, mode: string): number {
-  return THREE_D_COST_MAP.get(`${modelId}.${mode}`) ?? 0;
+  const combinedKey = `${modelId}.${mode}`;
+  const dbCost = getGenerationCostSync(combinedKey, 0, 1);
+  if (dbCost > 0) return dbCost;
+
+  return THREE_D_COST_MAP.get(combinedKey) ?? 0;
 }
 
 export function getAudioActionCredits(actionType: "tts" | "video2audio" | "music" | "voice-changer" | "dubbing" | "lip-sync" | "voice-cloning"): number {
+  const dbCost = getGenerationCostSync(`audio:${actionType}`, 0, 1);
+  if (dbCost > 0) return dbCost;
+
   if (actionType === "tts") return 4;
   if (actionType === "video2audio") return 8;
   if (actionType === "dubbing") return 8;

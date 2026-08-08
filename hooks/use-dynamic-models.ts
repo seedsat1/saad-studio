@@ -109,6 +109,7 @@ export function useDynamicKieModels(kind?: DynamicKieModel["kind"]): FetchState 
 export type FullFetchState = {
   imageModels: any[];
   videoModels: any[];
+  audioModels: any[];
   loading: boolean;
   error: string | null;
 };
@@ -117,6 +118,7 @@ export function useFullDynamicModels(): FullFetchState {
   const [state, setState] = useState<FullFetchState>({
     imageModels: [],
     videoModels: [],
+    audioModels: [],
     loading: true,
     error: null,
   });
@@ -134,6 +136,7 @@ export function useFullDynamicModels(): FullFetchState {
         setState({
           imageModels: Array.isArray(data.imageModels) ? data.imageModels : [],
           videoModels: Array.isArray(data.videoModels) ? data.videoModels : [],
+          audioModels: Array.isArray(data.audioModels) ? data.audioModels : [],
           loading: false,
           error: null,
         });
