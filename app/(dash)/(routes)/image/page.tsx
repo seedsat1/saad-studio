@@ -185,6 +185,7 @@ type ResultItem = {
   isFailed?: boolean;
   failureReason?: string;
   creditsRefunded?: boolean;
+  providerRequestId?: string;
 };
 
 function resultOriginalUrl(item: ResultItem): string {
@@ -197,6 +198,7 @@ function resultThumbnailUrl(item: ResultItem): string {
 
 function imageDownloadHref(item: ResultItem): string {
   const originalUrl = resultOriginalUrl(item);
+  if (!originalUrl) return "#";
   const filename = `saadstudio-image-${item.id}`;
   return `/api/download?url=${encodeURIComponent(originalUrl)}&filename=${encodeURIComponent(filename)}`;
 }
@@ -268,17 +270,20 @@ function mapAssetToResultItem(asset: any, fallback?: Partial<ResultItem>): Resul
     isFailed,
     failureReason: typeof asset?.failureReason === "string" ? asset.failureReason : fallback?.failureReason,
     creditsRefunded: Boolean(asset?.creditsRefunded || fallback?.creditsRefunded),
+    providerRequestId: asset?.providerRequestId || fallback?.providerRequestId,
   };
 }
 
 function resultInspectorAsset(item: ResultItem): Asset {
   return {
+    id: item.id,
     type: "image",
     url: resultOriginalUrl(item),
     prompt: item.prompt,
     model: item.model,
     title: "Generated image",
     resolution: item.aspect,
+    providerRequestId: item.providerRequestId,
   };
 }
 
