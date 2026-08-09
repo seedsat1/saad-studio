@@ -4,8 +4,9 @@
   - Added states, a fetch handler, and render logic to `components/AssetInspector.tsx` to query `/api/assets` dynamically on mount based on the asset ID.
   - Rendered a clean **Reference Input** section underneath Prompt Details inside the Asset Inspector modal showing square thumbnails of all uploaded reference media with clear type labels.
   - Implemented `VideoCardReferences` helper inside `app/(dash)/(routes)/video/page.tsx` to display reference input media thumbnails and counts directly inside the right side panel (`video-history-side`) for each video item in the user's gallery history list.
+  - Fixed Image Studio page `app/(dash)/(routes)/image/page.tsx` mapping by passing database `id` and `providerRequestId` fields inside `resultInspectorAsset` return block so that the Asset Inspector can resolve the referenced assets.
   - Added hover action buttons on both components to preview reference media in a full-screen lightbox modal and download the original files directly.
-- Affected files: `app/api/assets/route.ts`, `components/AssetInspector.tsx`, `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Affected files: `app/api/assets/route.ts`, `components/AssetInspector.tsx`, `app/(dash)/(routes)/video/page.tsx`, `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`.
 - Verification: TypeScript type-check (`npx tsc --noEmit`) completed with exit code 0.
 - Decisions: Query the database snapshot dynamically and independently for each item to display references in both the full Asset Inspector modal and the video gallery history side panel.
 
