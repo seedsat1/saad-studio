@@ -392,7 +392,7 @@ export default function StyleSnapPage() {
                   transition={{ delay: i * 0.02, duration: 0.3 }}
                   className="group relative cursor-pointer overflow-hidden rounded-xl"
                   style={{ aspectRatio: "1/1", border: "1px solid rgba(148,163,184,0.06)" }}
-                  onClick={() => setInspectorAsset({ type: "image", url: item.url, title: "Character Gen", prompt: item.prompt, model: "Character Gen" })}
+                  onClick={() => setInspectorAsset({ id: item.id, type: "image", url: item.url, title: "Character Gen", prompt: item.prompt, model: "Character Gen" })}
                 >
                   <img src={item.url} alt={item.prompt} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   <div className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center" style={{ background: "rgba(2,6,23,0.6)" }}>

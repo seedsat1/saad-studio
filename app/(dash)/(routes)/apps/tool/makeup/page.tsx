@@ -340,12 +340,12 @@ export default function MakeupPage() {
                     transition={{ delay: i * 0.03, duration: 0.3 }}
                     className="group relative cursor-pointer overflow-hidden rounded-xl"
                     style={{ aspectRatio: "1 / 1", border: "1px solid rgba(148,163,184,0.06)" }}
-                    onClick={() => setInspectorAsset({ type: "image", url: item.url, title: "AI Makeup", prompt: item.prompt, model: "AI Makeup" })}
+                    onClick={() => setInspectorAsset({ id: item.id, type: "image", url: item.url, title: "AI Makeup", prompt: item.prompt, model: "AI Makeup" })}
                   >
                     <img src={item.url} alt={item.prompt} className="h-full w-full object-cover transition-all duration-500 group-hover:scale-[1.06]" />
                     <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(6,12,24,0.5) 100%)" }} />
                     <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/50 group-hover:opacity-100">
-                      <button onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url: item.url, title: "AI Makeup", prompt: item.prompt, model: "AI Makeup" }); }} className="rounded-lg p-1.5 text-white" style={{ background: "rgba(15,26,53,0.8)", backdropFilter: "blur(12px)", border: "1px solid rgba(148,163,184,0.1)" }}><Eye className="h-3.5 w-3.5" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); setInspectorAsset({ id: item.id, type: "image", url: item.url, title: "AI Makeup", prompt: item.prompt, model: "AI Makeup" }); }} className="rounded-lg p-1.5 text-white" style={{ background: "rgba(15,26,53,0.8)", backdropFilter: "blur(12px)", border: "1px solid rgba(148,163,184,0.1)" }}><Eye className="h-3.5 w-3.5" /></button>
                       <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-lg p-1.5 text-white" style={{ background: "rgba(15,26,53,0.8)", backdropFilter: "blur(12px)", border: "1px solid rgba(148,163,184,0.1)" }}><Download className="h-3.5 w-3.5" /></a>
                     </div>
                   </motion.div>
