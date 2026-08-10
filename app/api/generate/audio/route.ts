@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost, getGenerationCostQuote } from "@/lib/pricing";
+import { getAudioActionCredits } from "@/lib/credit-pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
@@ -304,6 +305,23 @@ async function buildAudioChargeQuote(actionType: AudioRequestBody["actionType"],
         finalCredits: Math.ceil(legacy),
       },
     };
+  }
+
+  if (actionType === "tts") {
+    const fallback = getAudioActionCredits(actionType);
+    if (Number.isFinite(fallback) && fallback > 0) {
+      return {
+        chargeModelRef,
+        durationSec,
+        quote: {
+          actionType,
+          modelRef: chargeModelRef,
+          sourceCredits: fallback,
+          marginPercent: 0,
+          finalCredits: Math.ceil(fallback),
+        },
+      };
+    }
   }
 
   return { chargeModelRef, durationSec, quote: null };

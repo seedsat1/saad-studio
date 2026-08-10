@@ -1,6 +1,15 @@
+#### Latest task: Fix Sound Studio TTS 400 from missing pricing quote (2026-08-11)
+- Status: Completed.
+  - Updated `/api/generate/audio` so `actionType="tts"` falls back to the existing legacy audio credit helper when the dynamic quote and legacy model quote are missing.
+  - This prevents production TTS generation from returning `400 Bad Request` with `No credit configuration...` for valid Gemini/ElevenLabs TTS requests when the pricing registry/cache is incomplete.
+- Affected files: `app/api/generate/audio/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit` passed.
+- Errors discovered: Sound Studio static embed could still hit `/api/generate/audio` 400 after the model/media fixes because the API treated a missing quote as a hard validation failure.
+- Decisions: Reuse `getAudioActionCredits("tts")` as a route-local billing safety net instead of allowing a valid provider request to fail before generation.
+
 #### Latest task: Commit and push Sound Studio audio fixes (2026-08-11)
-- Status: In progress.
-  - Preparing the verified legacy Supabase audio playback fixes, Sound Studio static page fixes, and Gemini TTS model corrections for Git commit and push per user request.
+- Status: Completed.
+  - Prepared and pushed the verified legacy Supabase audio playback fixes, Sound Studio static page fixes, and Gemini TTS model corrections for Git commit and push per user request.
 - Affected files: Git staging/commit/push task for the current working tree.
 - Verification: Prior `npx.cmd tsc --noEmit --pretty false` and `git diff --check` passed before this commit task.
 - Decisions: Follow the user's explicit `git add .`, `git commit -m "update"`, and `git push` request.
