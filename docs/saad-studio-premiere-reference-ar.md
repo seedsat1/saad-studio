@@ -3,6 +3,8 @@
 - Voice sample generation must call Google's TTS-capable model `gemini-3.1-flash-tts-preview`; legacy `gemini-3.1-flash-live-preview` may be accepted only as an input alias and normalized before provider dispatch.
 - `/api/voice-sample` should prefer cached stored samples, generate missing samples on demand when a Google API key is configured, and return the generated WAV directly if storage persistence fails after a successful provider response.
 - Browser-facing playback and downloads for Saad Studio media must pass old Supabase/R2/B2/raw storage URLs through the media fallback resolver so playable sources can fall back to B2, `/api/media/...`, and legacy R2 instead of requesting stale Supabase hosts directly.
+- Legacy Supabase media URLs must prioritize `/api/media/...` for browser playback, and direct `<audio>`/`new Audio(...)` call sites should use `getFallbackUrls(...)[0]` so old saved audio never requests the deprecated Supabase host from the client.
+- Standalone static Sound Studio pages (`stude/sound*.html` and `public/stude/sound*.html`) must mirror the same contract locally: stored Supabase/R2/B2 URLs convert to `/api/media/...`, and Gemini TTS defaults to `gemini-3.1-flash-tts-preview`.
 - Cinema Studio voice preview and voice-clone audio controls must normalize generated `audioUrl` values before creating `Audio` elements or rendering `<audio>` tags.
 ## تعطيل وإزالة موديل DALL-E 3 من الواجهات والتسعير (2026-08-08)
 

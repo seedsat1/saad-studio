@@ -1,3 +1,28 @@
+#### Latest task: Commit and push Sound Studio audio fixes (2026-08-11)
+- Status: In progress.
+  - Preparing the verified legacy Supabase audio playback fixes, Sound Studio static page fixes, and Gemini TTS model corrections for Git commit and push per user request.
+- Affected files: Git staging/commit/push task for the current working tree.
+- Verification: Prior `npx.cmd tsc --noEmit --pretty false` and `git diff --check` passed before this commit task.
+- Decisions: Follow the user's explicit `git add .`, `git commit -m "update"`, and `git push` request.
+
+#### Latest task: Fix static Sound Studio legacy Supabase playback and Gemini TTS model (2026-08-11)
+- Status: Completed.
+  - Updated the standalone `sound.html` and `sound-preview.html` copies under both `stude/` and `public/stude/` so old Supabase/R2/B2 Saad Studio media URLs are treated as local stored media and converted to `/api/media/...` before `Audio` playback or provider submission.
+  - Changed the embedded Sound Studio Gemini default TTS model from `gemini-3.1-flash-live-preview` to `gemini-3.1-flash-tts-preview` so static voice generation no longer sends the stale live-preview model to `/api/generate/audio`.
+- Affected files: `stude/sound.html`, `stude/sound-preview.html`, `public/stude/sound.html`, `public/stude/sound-preview.html`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: Confirmed the reported Supabase audio URL maps to `/api/media/audio/user_3CMgl0E1u3OcgATvBIZR3rByAXo/1777846506182_u4y76f.mp3`; `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check` passed with only Git/global ignore and CRLF warnings.
+- Errors discovered: The embedded static Sound Studio script still sent browser playback to raw legacy Supabase hosts and used the stale Gemini live-preview TTS id, causing `ERR_NAME_NOT_RESOLVED` plus `/api/generate/audio` 400 failures from `sound.html?embed=1`.
+- Decisions: Keep the static studio page self-contained but mirror the app-wide media fallback and Gemini TTS contract inside its own script.
+
+#### Latest task: Block raw legacy Supabase audio playback in remaining UI surfaces (2026-08-11)
+- Status: Completed.
+  - Changed `getFallbackUrls` so legacy Supabase media URLs prioritize `/api/media/...` for browser playback, letting the server resolve current B2 or legacy R2 storage instead of the browser requesting dead Supabase hosts.
+  - Updated remaining direct audio players/previews in Asset Inspector, Canvas, admin previews, admin voice samples, Gallery, Video reference lightbox, and generic App Tool audio output to normalize URLs before playback.
+- Affected files: `lib/utils.ts`, `components/AssetInspector.tsx`, `components/canvas/CanvasNode.tsx`, `app/admin/page.tsx`, `app/admin/voice-samples/page.tsx`, `app/(dash)/(routes)/video/page.tsx`, `app/(dash)/(routes)/gallery/page.tsx`, `app/(dash)/(routes)/apps/tool/[slug]/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with only existing Git/global ignore and CRLF warnings.
+- Errors discovered: Some UI surfaces still rendered stored audio URLs directly, so old `*.supabase.co/storage/v1/object/public/audio/...` values could reach the browser and fail with `ERR_NAME_NOT_RESOLVED`.
+- Decisions: Treat legacy Supabase URLs as internal media keys at the browser edge and route playback through centralized fallback instead of requiring asset regeneration.
+
 #### Latest task: Commit and push audio playback fixes (2026-08-11)
 - Status: Completed.
   - Prepared the previously verified audio playback, Gemini voice sample, and storage URL fallback fixes for Git commit and push per user request.

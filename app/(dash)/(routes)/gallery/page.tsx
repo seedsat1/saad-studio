@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, ImageIcon, Video, Music, Box, FileText, Trash2, Download, RefreshCw, X, ChevronLeft, ChevronRight, Copy, Check, ExternalLink, FolderPlus, Folder, CheckSquare, Square, ListChecks } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getFallbackUrls } from "@/lib/utils";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 
 type AssetType = "image" | "video" | "audio" | "3d" | "text";
@@ -434,7 +434,11 @@ export default function GalleryPage() {
               ) : lightboxAsset.type === "audio" && lightboxAsset.url ? (
                 <div className="w-full max-w-xl rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-8">
                   <Music className="h-12 w-12 text-emerald-300" />
-                  <audio src={lightboxAsset.originalUrl || lightboxAsset.url} controls className="mt-6 w-full" />
+                  <audio
+                    src={getFallbackUrls(lightboxAsset.originalUrl || lightboxAsset.url)[0] || lightboxAsset.originalUrl || lightboxAsset.url}
+                    controls
+                    className="mt-6 w-full"
+                  />
                 </div>
               ) : lightboxAsset.type === "text" ? (
                 <div className="w-full max-w-2xl rounded-2xl border border-violet-400/20 bg-violet-500/10 p-6">

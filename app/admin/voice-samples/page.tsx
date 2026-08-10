@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Mic, Sparkles, RefreshCw, Play, Pause, CheckCircle2, AlertCircle, Volume2, Shield } from "lucide-react";
+import { getFallbackUrls } from "@/lib/utils";
 
 interface VoiceItem {
   id: string;
@@ -49,7 +50,8 @@ export default function AdminVoiceSamplesPage() {
     }
 
     audioObj?.pause();
-    const newAudio = new Audio(voice.sampleUrl);
+    const previewUrl = getFallbackUrls(voice.sampleUrl)[0] || voice.sampleUrl;
+    const newAudio = new Audio(previewUrl);
     newAudio.onended = () => setPlayingVoice(null);
     newAudio.onerror = () => {
       setPlayingVoice(null);

@@ -14,6 +14,7 @@ import {
 } from "./canvas-types";
 import { useCanvasActions } from "./canvas-context";
 import { VIDEO_MODEL_REGISTRY, type WaveSpeedVideoModel } from "@/lib/video-model-registry";
+import { getFallbackUrls } from "@/lib/utils";
 
 // ─── Model definitions ────────────────────────────────────────────────────────
 interface ModelDef {
@@ -1103,7 +1104,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
               <div style={{ opacity: 0.5, display: "flex" }}><NodeTypeIcon type={data.nodeType} size={44} color={cfg.accentColor} strokeWidth={1.4} /></div>
               <div style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500 }}>Audio ready</div>
               <audio
-                src={data.outputAudioUrl}
+                src={getFallbackUrls(data.outputAudioUrl)[0] || data.outputAudioUrl}
                 controls
                 className="nodrag nowheel"
                 onMouseDown={SP}

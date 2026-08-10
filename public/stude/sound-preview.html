@@ -1413,7 +1413,7 @@ body{
 <script>
 const _vmActiveLangs={};
 const GEMINI_TTS_MODELS=[
-  {id:'gemini-3.1-flash-live-preview',label:'Gemini 3.1 Flash'},
+  {id:'gemini-3.1-flash-tts-preview',label:'Gemini 3.1 Flash'},
   {id:'gemini-2.5-flash-preview-tts',label:'Gemini 2.5 Flash'},
   {id:'gemini-2.5-pro-preview-tts',label:'Gemini 2.5 Pro'}
 ];
@@ -2267,7 +2267,7 @@ function studioMediaUrl(raw){
   if(!source||source.startsWith('data:')||source.startsWith('blob:'))return source;
   const fromApi=source.indexOf('/api/media/');
   if(fromApi>=0)return source.slice(fromApi);
-  const sameOrigin=source.startsWith('/')||source.indexOf(location.origin)===0||/saadstudio\.app/i.test(source);
+  const sameOrigin=source.startsWith('/')||source.indexOf(location.origin)===0||/(saadstudio\.app|supabase\.co|supabase\.in|backblazeb2\.com|r2\.dev)/i.test(source);
   const stored=/\/?(images|videos|audio|thumbnails|media)\/(.+)$/i.exec(source.replace(/^https?:\/\/[^/]+/i,''));
   if(stored&&sameOrigin)return '/api/media/'+stored[1]+'/'+stored[2].replace(/^\/+/,'');
   if(!/^https?:\/\//i.test(source)){

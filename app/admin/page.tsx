@@ -50,7 +50,7 @@ import {
   FileText,
   Calendar,
 } from "lucide-react";
-import { SITE_CREATION_DATE } from "@/lib/utils";
+import { getFallbackUrls, SITE_CREATION_DATE } from "@/lib/utils";
 
 
 // ─── MOCK DATA ──────────────────────────────────────────────────────────────
@@ -2729,7 +2729,7 @@ export default function AdminDashboard() {
                   </div>
                 ) : isAudioGenerationPreview ? (
                   <div className="w-full h-full flex items-center justify-center p-6">
-                    <audio src={generationPreview.url} controls className="w-full max-w-2xl" />
+                    <audio src={getFallbackUrls(generationPreview.url)[0] || generationPreview.url} controls className="w-full max-w-2xl" />
                   </div>
                 ) : (
                   <div className="w-full h-full overflow-auto p-3 flex items-start justify-center">

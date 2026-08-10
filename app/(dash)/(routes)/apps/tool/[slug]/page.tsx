@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, Loader2, Upload } from "lucide-react";
 import { APP_TOOL_BY_ID, getAppToolAction } from "@/lib/apps-data";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { getFallbackUrls } from "@/lib/utils";
 
 type ToolAction = ReturnType<typeof getAppToolAction>;
 
@@ -367,7 +368,7 @@ export default function AppToolRuntimePage({
 
             {outputUrl && action === "audio" && (
               <div className="space-y-3">
-                <audio src={outputUrl} controls className="w-full" />
+                <audio src={getFallbackUrls(outputUrl)[0] || outputUrl} controls className="w-full" />
                 <a
                   href={outputUrl}
                   target="_blank"

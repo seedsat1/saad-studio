@@ -998,7 +998,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
 
   const handleAction = useCallback(async (label: string) => {
     setActionStatus(null);
-    const url = effectiveUrl;
+    const url = asset.type === "audio" && effectiveUrl ? getFallbackUrls(effectiveUrl)[0] || effectiveUrl : effectiveUrl;
 
     switch (label) {
       // ── IMAGE ─────────────────────────────────────────────────────────────
@@ -1532,7 +1532,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
               {lightboxType === "audio" && (
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col items-center gap-4 w-80">
                   <Music className="h-12 w-12 text-emerald-400 animate-pulse" />
-                  <audio src={lightboxUrl} controls className="w-full" />
+                  <audio src={getFallbackUrls(lightboxUrl)[0] || lightboxUrl} controls className="w-full" />
                 </div>
               )}
             </div>

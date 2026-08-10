@@ -38,10 +38,12 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
   }
 
   // 3. If it is an unrelated external URL, return as-is to bypass R2/B2 fallback timeouts
+  let sourceHost = "";
   if (url.startsWith("http://") || url.startsWith("https://")) {
     try {
       const parsed = new URL(url);
       const host = parsed.host.toLowerCase();
+      sourceHost = host;
       const isOurStorage =
         host.includes("r2.dev") ||
         host.includes("backblazeb2.com") ||
@@ -64,6 +66,8 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
   }
 
   const fallbacks: string[] = [];
+  const apiMediaUrl = `/api/media/${mediaPath}`;
+  const isLegacySupabaseUrl = sourceHost.includes("supabase.co") || sourceHost.includes("supabase.in");
 
   const directB2Url = "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com";
 
@@ -78,6 +82,12 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
 
   if (!publicBaseUrl || publicBaseUrl.includes(".r2.dev") || publicBaseUrl.includes("media.saadstudio.app")) {
     publicBaseUrl = "https://f003.backblazeb2.com/file/saadstudio-storage";
+  }
+
+  if (!_isDownload && isLegacySupabaseUrl) {
+    // Legacy Supabase URLs may no longer resolve in the browser; proxy first and
+    // let /api/media choose the current B2 or legacy R2 provider.
+    fallbacks.push(apiMediaUrl);
   }
 
   if (_isDownload) {
@@ -96,7 +106,7 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
 
   // 2. /api/media (Emergency Fallback - Proxy)
   // Safe for all assets (including videos) because /api/media streams directly rather than buffering in memory.
-  fallbacks.push(`/api/media/${mediaPath}`);
+  fallbacks.push(apiMediaUrl);
 
   // 3. Cloudflare R2 (Old Storage - Direct)
   const rawR2Url = "https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev";
