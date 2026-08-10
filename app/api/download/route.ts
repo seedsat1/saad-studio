@@ -70,9 +70,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const urlsToTry = (targetUrl.startsWith("http://") || targetUrl.startsWith("https://"))
-      ? [targetUrl]
-      : getFallbackUrls(targetUrl, true);
+    const urlsToTry = getFallbackUrls(targetUrl, true);
 
     let res: Response | null = null;
     let finalTargetUrl = targetUrl;

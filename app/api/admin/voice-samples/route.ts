@@ -5,6 +5,17 @@ import { getRegistry, saveRegistry } from "@/lib/voice-registry";
 
 export const runtime = "nodejs";
 
+const GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
+
+function toBrowserMediaUrl(value: string): string {
+  if (value.startsWith("/")) return value;
+
+  const match = value.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/([^?#]+)/i);
+  if (!match) return value;
+
+  return `/api/media/${match[1]}/${match[2]}`;
+}
+
 const GOOGLE_GEMINI_TTS_VOICES = [
   ["Zephyr", "Bright", "female"],
   ["Puck", "Upbeat", "male"],
@@ -82,7 +93,7 @@ export async function GET() {
     const voices = GOOGLE_GEMINI_TTS_VOICES.map(([name, tone, gender]) => {
       const storedUrl = registry[name];
       const sampleUrl = storedUrl
-        ? (storedUrl.startsWith("http") || storedUrl.startsWith("/") ? storedUrl : `/api/media/${storedUrl}`)
+        ? toBrowserMediaUrl(storedUrl)
         : `/api/voice-sample?voice=${encodeURIComponent(name)}`;
 
       return {
@@ -126,7 +137,7 @@ export async function POST(req: NextRequest) {
     const prompt = `اقرأ النص التالي بالعربية بصوت واضح وطبيعي ومناسب للجمهور العربي:\n\nمرحباً، هذا نموذج لمعاينة خامة الصوت الاصطناعي في سعد ستوديو.`;
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-live-preview:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent`,
       {
         method: "POST",
         headers: {
@@ -177,7 +188,7 @@ export async function POST(req: NextRequest) {
     }
 
     const finalSampleUrl = uploadedUrl
-      ? (uploadedUrl.startsWith("http") || uploadedUrl.startsWith("/") ? uploadedUrl : `/api/media/${uploadedUrl}`)
+      ? toBrowserMediaUrl(uploadedUrl)
       : `/api/voice-sample?voice=${encodeURIComponent(voiceId)}`;
 
     return NextResponse.json({

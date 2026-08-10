@@ -12,6 +12,8 @@ const GOOGLE_GEMINI_TTS_VOICES = new Set([
 import { getRegistry, saveRegistry } from "@/lib/voice-registry";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
+const GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
+
 function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitsPerSample = 16): Buffer {
   const byteRate = (sampleRate * channels * bitsPerSample) / 8;
   const blockAlign = (channels * bitsPerSample) / 8;
@@ -48,6 +50,28 @@ function extractGeminiAudio(value: unknown): { data: string; mimeType: string } 
     }
   }
   return null;
+}
+
+function toBrowserMediaUrl(value: string): string {
+  if (value.startsWith("/")) return value;
+
+  const match = value.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/([^?#]+)/i);
+  if (!match) return value;
+
+  const mediaPath = `${match[1]}/${match[2]}`;
+  return `/api/media/${mediaPath}`;
+}
+
+function wavResponse(buffer: Buffer): NextResponse {
+  return new NextResponse(new Uint8Array(buffer), {
+    status: 200,
+    headers: {
+      "Content-Type": "audio/wav",
+      "Content-Length": String(buffer.length),
+      "Cache-Control": "public, max-age=86400",
+      "Accept-Ranges": "bytes",
+    },
+  });
 }
 
 const GOOGLE_GEMINI_TTS_VOICE_DETAILS: Record<string, { arabicName: string; gender: "أنثوي" | "رجالي" }> = {
@@ -127,9 +151,7 @@ export async function GET(req: NextRequest) {
     const registry = getRegistry();
     const storedUrl = registry[registryKey] || (exactLang === "ar" ? registry[exactVoice] : undefined);
     if (storedUrl) {
-      const targetUrl = (storedUrl.startsWith("http") || storedUrl.startsWith("/"))
-        ? storedUrl
-        : `/api/media/${storedUrl}`;
+      const targetUrl = toBrowserMediaUrl(storedUrl);
       return NextResponse.redirect(new URL(targetUrl, req.url));
     }
 
@@ -149,7 +171,7 @@ export async function GET(req: NextRequest) {
       const prompt = template.replace("{voice}", voiceLabel).replace("{gender}", genderStr);
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-live-preview:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent`,
         {
           method: "POST",
           headers: {
@@ -190,11 +212,11 @@ export async function GET(req: NextRequest) {
             registry[registryKey] = uploadedUrl;
             saveRegistry(registry);
 
-            const targetUrl = (uploadedUrl.startsWith("http") || uploadedUrl.startsWith("/"))
-              ? uploadedUrl
-              : `/api/media/${uploadedUrl}`;
+            const targetUrl = toBrowserMediaUrl(uploadedUrl);
             return NextResponse.redirect(new URL(targetUrl, req.url));
           }
+
+          return wavResponse(buffer);
         }
       }
     }
@@ -202,13 +224,11 @@ export async function GET(req: NextRequest) {
     // 3. Fallback to Sulafat's pre-rendered URL
     const fallbackUrl = registry["Sulafat"] || Object.values(registry)[0];
     if (fallbackUrl) {
-      const targetUrl = (fallbackUrl.startsWith("http") || fallbackUrl.startsWith("/"))
-        ? fallbackUrl
-        : `/api/media/${fallbackUrl}`;
+      const targetUrl = toBrowserMediaUrl(fallbackUrl);
       return NextResponse.redirect(new URL(targetUrl, req.url));
     }
 
-    return new NextResponse("Voice sample not pre-rendered by admin yet.", { status: 404 });
+    return new NextResponse("Voice sample generation is not configured on the server.", { status: 503 });
   } catch (error: any) {
     return new NextResponse(error?.message || "Internal server error", { status: 500 });
   }

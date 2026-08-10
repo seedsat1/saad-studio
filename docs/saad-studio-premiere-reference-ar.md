@@ -1,3 +1,9 @@
+## Audio Playback and Gemini Voice Sample Contract (2026-08-11)
+
+- Voice sample generation must call Google's TTS-capable model `gemini-3.1-flash-tts-preview`; legacy `gemini-3.1-flash-live-preview` may be accepted only as an input alias and normalized before provider dispatch.
+- `/api/voice-sample` should prefer cached stored samples, generate missing samples on demand when a Google API key is configured, and return the generated WAV directly if storage persistence fails after a successful provider response.
+- Browser-facing playback and downloads for Saad Studio media must pass old Supabase/R2/B2/raw storage URLs through the media fallback resolver so playable sources can fall back to B2, `/api/media/...`, and legacy R2 instead of requesting stale Supabase hosts directly.
+- Cinema Studio voice preview and voice-clone audio controls must normalize generated `audioUrl` values before creating `Audio` elements or rendering `<audio>` tags.
 ## تعطيل وإزالة موديل DALL-E 3 من الواجهات والتسعير (2026-08-08)
 
 - تم إدراج موديلات `openai/dall-e-3` و `dalle3` ضمن مصفوفة الموديلات المحجوبة `BLOCKED_DYNAMIC_IMAGE_IDS` في ملف الـ loader (`lib/dynamic-model-loader.ts`).

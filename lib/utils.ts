@@ -26,7 +26,18 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
     return [url];
   }
 
-  // 3. If it is an external URL, return as-is to bypass R2/B2 fallback timeouts
+  let mediaPath = "";
+  const apiMediaIndex = url.indexOf("/api/media/");
+  if (apiMediaIndex !== -1) {
+    mediaPath = url.slice(apiMediaIndex + "/api/media/".length);
+  } else {
+    const match = url.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/([^?#]+)/i);
+    if (match) {
+      mediaPath = `${match[1]}/${match[2]}`;
+    }
+  }
+
+  // 3. If it is an unrelated external URL, return as-is to bypass R2/B2 fallback timeouts
   if (url.startsWith("http://") || url.startsWith("https://")) {
     try {
       const parsed = new URL(url);
@@ -45,17 +56,6 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
       }
     } catch (e) {
       // ignore
-    }
-  }
-  
-  let mediaPath = "";
-  const apiMediaIndex = url.indexOf("/api/media/");
-  if (apiMediaIndex !== -1) {
-    mediaPath = url.slice(apiMediaIndex + "/api/media/".length);
-  } else {
-    const match = url.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/(.+)/i);
-    if (match) {
-      mediaPath = `${match[1]}/${match[2]}`;
     }
   }
 

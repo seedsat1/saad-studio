@@ -1,3 +1,23 @@
+#### Latest task: Commit and push audio playback fixes (2026-08-11)
+- Status: Completed.
+  - Prepared the previously verified audio playback, Gemini voice sample, and storage URL fallback fixes for Git commit and push per user request.
+- Affected files: Git staging/commit/push task for the current working tree.
+- Verification: Prior `npx.cmd tsc --noEmit --pretty false` and `git diff --check` passed before committing.
+- Decisions: Follow the user's explicit `git add .`, `git commit -m "update"`, and `git push` request.
+
+#### Latest task: Fix audio playback, voice samples, and legacy storage URLs (2026-08-11)
+- Status: Completed.
+  - Corrected Gemini TTS sample generation from the old `gemini-3.1-flash-live-preview` route to the official `gemini-3.1-flash-tts-preview` route in both public and admin voice sample APIs.
+  - Kept the old Gemini live-preview model id as an accepted alias in `/api/generate/audio`, but now resolves it to the working TTS preview model before calling Google.
+  - Hardened `/api/voice-sample` so generated WAV audio can be returned directly if storage persistence fails, avoiding broken 404 sample playback after a successful provider response.
+  - Normalized stored voice sample URLs and old Supabase public-object URLs to `/api/media/...` before browser playback where applicable.
+  - Updated `/api/download` to run all URLs through the media fallback resolver, so old Saad Studio storage URLs do not bypass B2/R2/proxy fallback.
+  - Updated Cinema Studio voice preview/cloning playback to use the same fallback URL resolver before constructing `Audio` elements or rendering `<audio controls>`.
+- Affected files: `app/api/voice-sample/route.ts`, `app/api/admin/voice-samples/route.ts`, `app/api/generate/audio/route.ts`, `app/api/download/route.ts`, `lib/utils.ts`, `components/cinema-studio-vso/CinemaStudioVSO.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed.
+- Errors discovered: Production console showed old Supabase audio URLs failing with `ERR_NAME_NOT_RESOLVED`, and voice sample requests returning 404 because the sample generator used the wrong Gemini TTS model/fallback behavior.
+- Decisions: Use Google's current TTS preview model for voice previews and keep legacy storage URLs browser-safe through centralized media fallback instead of asking users to regenerate old audio assets.
+
 #### Latest task: Implement Reference input preview, count, and download inside AssetInspector and Video History side panel (2026-08-08)
 - Status: Completed.
   - Updated `/api/assets` context GET endpoint inside `app/api/assets/route.ts` to parse and extract `startImageUrl`, `endImageUrl`, `referenceImageUrls` (limit increased to 9), `referenceVideoUrls`, and `referenceAudioUrls` from the original request JSON payload snapshot.

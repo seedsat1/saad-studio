@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { VIDEO_MODEL_REGISTRY, type WaveSpeedVideoModel } from "@/lib/video-model-registry";
 import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
+import { getFallbackUrls } from "@/lib/utils";
 // NOTE: getVideoCreditsByRoute is kept only as an offline fallback when
 // the /api/pricing/quote round-trip hasn't completed yet. The displayed
 // "Est. X credits" value is sourced from the server so it matches what
@@ -1433,8 +1434,9 @@ export default function App() {
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.audioUrl) throw new Error(payload?.error || "Voice preview failed");
-      setGeneratedAudioUrl(payload.audioUrl);
-      const audio = new Audio(payload.audioUrl);
+      const audioUrl = getFallbackUrls(payload.audioUrl)[0] || payload.audioUrl;
+      setGeneratedAudioUrl(audioUrl);
+      const audio = new Audio(audioUrl);
       voicePreviewRef.current = audio;
       audio.onended = () => setIsPreviewingVoice(false);
       await audio.play();
@@ -1470,7 +1472,7 @@ export default function App() {
       if (!response.ok || !payload?.voiceId) throw new Error(payload?.error || "Voice cloning failed");
 
       const label = `Cloned Voice - ${payload.voiceName || currentActor.name}`;
-      const audioUrl = typeof payload.audioUrl === "string" ? payload.audioUrl : null;
+      const audioUrl = typeof payload.audioUrl === "string" ? getFallbackUrls(payload.audioUrl)[0] || payload.audioUrl : null;
       setCastingActors((prev) =>
         prev.map((actor) =>
           actor.id === currentActor.id
@@ -4231,7 +4233,11 @@ export default function App() {
                             />
                           </label>
                           {(((currentActor as any)?.voiceSampleUrl || clonedVoiceAudioUrl)) && (
-                            <audio controls src={(currentActor as any)?.voiceSampleUrl || clonedVoiceAudioUrl || undefined} className="w-full h-9" />
+                            <audio
+                              controls
+                              src={getFallbackUrls((currentActor as any)?.voiceSampleUrl || clonedVoiceAudioUrl)[0] || undefined}
+                              className="w-full h-9"
+                            />
                           )}
                         </div>
                       </div>
