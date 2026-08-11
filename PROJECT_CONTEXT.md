@@ -1,3 +1,12 @@
+#### Latest task: Restore Hook Studio existing models while keeping Seedance 2.5 added (2026-08-12)
+- Status: Completed.
+  - Removed the Hook Studio filter that incorrectly hid existing `Seedance 2.0` model rows from the video model dropdown.
+  - Kept `Seedance 2.5` injected as the first/default Hook Studio model and kept its fallback config so generation resolves the v2.5 id.
+- Affected files: `app/(dash)/(routes)/hook-studio/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `rg` confirmed the legacy Seedance 2.0 filter is gone; `rg` confirmed Hook Studio config contains both `Seedance 2.5` and existing `Seedance 2.0` rows; `git diff --check` passed with CRLF warnings only.
+- Errors discovered: The previous fix went beyond the user's request by hiding existing `Seedance 2.0` models; the correct behavior is additive only.
+- Decisions: Preserve the full existing model list and only add/dedupe `Seedance 2.5` at the top.
+
 #### Latest task: Push Hook Studio Seedance 2.5 visibility fix after production still showed 2.0 (2026-08-11)
 - Status: Completed.
   - Confirmed the local Hook Studio page no longer contains `Seedance 2.0` labels and includes `Seedance 2.5` as the default model.
@@ -10,12 +19,12 @@
 #### Latest task: Force Hook Studio dropdown to show Seedance 2.5 instead of legacy Seedance 2.0 (2026-08-11)
 - Status: Completed.
   - Added the official `Seedance 2.5` Hook Studio fallback row to `HOOK_VIDEO_MODELS` so the frontend and `/api/hook-studio/generate` both resolve the same v2.5 model id.
-  - Updated `/hook-studio` to inject the official `Seedance 2.5` registry row as the first/default dropdown option and filter legacy `Seedance 2.0` rows from the subscriber-facing model menu.
+  - Updated `/hook-studio` to inject the official `Seedance 2.5` registry row as the first/default dropdown option. Superseded by the 2026-08-12 correction: existing `Seedance 2.0` rows must remain visible.
   - Updated Hook Studio recommendation copy from Seedance 2.0 to Seedance 2.5.
 - Affected files: `app/(dash)/(routes)/hook-studio/page.tsx`, `lib/hook-studio-config.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
-- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `rg` confirmed no `Seedance 2.0` or `seedance-2.0-pro` labels remain in `app/(dash)/(routes)/hook-studio/page.tsx`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed for that change; superseded by the 2026-08-12 correction that restores `Seedance 2.0` rows.
 - Errors discovered: Hook Studio could still show dynamic or fallback Seedance 2.0 rows, and submitting the new v2.5 id could fall back to the old first `HOOK_VIDEO_MODELS` entry if the API config did not include v2.5.
-- Decisions: Keep old Seedance 2.0 config available for backend compatibility, but hide it from the Hook Studio subscriber dropdown and make v2.5 the explicit default.
+- Decisions: Superseded by the 2026-08-12 correction: keep old Seedance 2.0 config and keep those rows visible in the Hook Studio subscriber dropdown while making v2.5 the explicit default.
 
 #### Latest task: Commit and push Hook Studio selector/reference verification updates (2026-08-11)
 - Status: Completed.

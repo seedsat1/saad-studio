@@ -374,17 +374,6 @@ const SEEDANCE_25_HOOK_MODEL = SEEDANCE_25_REGISTRY_MODEL
     }
   : null;
 
-const isLegacySeedance20HookModel = (model: any) => {
-  const id = String(model?.id || "");
-  const name = String(model?.name || "");
-  const route = String(model?.api_route || model?.apiRoute || "");
-  return (
-    /^seedance-2\.0/i.test(id) ||
-    /seedance-v2|seedance-2\.0/i.test(route) ||
-    /seedance\s*2\.0/i.test(name)
-  );
-};
-
 export default function HookStudioPage() {
   const { lang } = useLanguage();
   const isAr = lang === "ar";
@@ -395,9 +384,7 @@ export default function HookStudioPage() {
   const dynamicHookVideoModels = useMemo(() => {
     const active = (dynamicVideoList || []).filter((m: any) => m.isActive !== false);
     const sourceModels = active.length > 0 ? active : HOOK_VIDEO_MODELS;
-    const mappedModels = sourceModels
-      .filter((m: any) => !isLegacySeedance20HookModel(m))
-      .map((m: any) => ({
+    const mappedModels = sourceModels.map((m: any) => ({
         ...m,
         id: m.id,
         name: cleanHookVideoModelName(m.name || m.id),
