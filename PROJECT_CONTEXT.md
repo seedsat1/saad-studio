@@ -1,3 +1,22 @@
+#### Latest task: Push Hook Studio Seedance 2.5 visibility fix after production still showed 2.0 (2026-08-11)
+- Status: Completed.
+  - Confirmed the local Hook Studio page no longer contains `Seedance 2.0` labels and includes `Seedance 2.5` as the default model.
+  - Prepared the unpushed local fix for Git commit and push so production deployment can pick it up.
+- Affected files: Git staging/commit/push task for `app/(dash)/(routes)/hook-studio/page.tsx`, `lib/hook-studio-config.ts`, `PROJECT_CONTEXT.md`, and `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `rg` confirmed `Seedance 2.5` local entries and no `Seedance 2.0` labels in the Hook Studio page; prior `npx.cmd tsc --noEmit --pretty false` passed for the same code change.
+- Errors discovered: The user's screenshot was from a build/state that did not yet include the local v2.5 fix.
+- Decisions: Push the verified local fix so the hosted app can redeploy with Seedance 2.5 visible.
+
+#### Latest task: Force Hook Studio dropdown to show Seedance 2.5 instead of legacy Seedance 2.0 (2026-08-11)
+- Status: Completed.
+  - Added the official `Seedance 2.5` Hook Studio fallback row to `HOOK_VIDEO_MODELS` so the frontend and `/api/hook-studio/generate` both resolve the same v2.5 model id.
+  - Updated `/hook-studio` to inject the official `Seedance 2.5` registry row as the first/default dropdown option and filter legacy `Seedance 2.0` rows from the subscriber-facing model menu.
+  - Updated Hook Studio recommendation copy from Seedance 2.0 to Seedance 2.5.
+- Affected files: `app/(dash)/(routes)/hook-studio/page.tsx`, `lib/hook-studio-config.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `rg` confirmed no `Seedance 2.0` or `seedance-2.0-pro` labels remain in `app/(dash)/(routes)/hook-studio/page.tsx`.
+- Errors discovered: Hook Studio could still show dynamic or fallback Seedance 2.0 rows, and submitting the new v2.5 id could fall back to the old first `HOOK_VIDEO_MODELS` entry if the API config did not include v2.5.
+- Decisions: Keep old Seedance 2.0 config available for backend compatibility, but hide it from the Hook Studio subscriber dropdown and make v2.5 the explicit default.
+
 #### Latest task: Commit and push Hook Studio selector/reference verification updates (2026-08-11)
 - Status: Completed.
   - Prepared the current Hook Studio model selector display change, reference documentation update, and verification memory notes for Git commit and push per user request.

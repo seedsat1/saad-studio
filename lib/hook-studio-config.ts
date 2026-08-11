@@ -177,6 +177,24 @@ export const HOOK_GENRES: HookGenrePreset[] = [
 
 export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
   {
+    id: "bytedance-seedance-v25-t2v-turbo",
+    name: "Seedance 2.5",
+    apiRoute: "bytedance/seedance-2.5/text-to-video-turbo",
+    provider: "wavespeed",
+    badge: "NEW",
+    description: "Bytedance Seedance 2.5 Turbo - 480p/720p, 4-30s, up to 30 images + 10 videos + 10 audios on text/reference generation.",
+    maxRefImages: 30,
+    maxRefVideos: 10,
+    maxRefVideoSeconds: 30,
+    maxRefAudios: 10,
+    maxRefAudioSeconds: 30,
+    durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+    aspectRatios: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"],
+    qualityModes: ["480p", "720p"],
+    supportsScript: true,
+    creditCost: 10,
+  },
+  {
     id: "seedance-2.0-pro",
     name: "Seedance 2.0",
     apiRoute: "bytedance/seedance-2.0/text-to-video",
@@ -1550,4 +1568,3 @@ export const HOOK_SKETCHES: HookSketchPreset[] = [
     promptDescription: "Cyan blue background architectural draft blueprint line drawing."
   }
 ];
-

@@ -55,6 +55,7 @@ import { useLanguage } from "@/lib/use-language";
 import { useUser } from "@clerk/nextjs";
 import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { getGenerationCostSync } from "@/lib/pricing";
+import { VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
 
 import { getFallbackUrls } from "@/lib/utils";
 
@@ -348,6 +349,42 @@ const getHookVideoModelBadge = (model: any) => {
   return model?.badge;
 };
 
+const SEEDANCE_25_REGISTRY_MODEL = VIDEO_MODEL_REGISTRY.find(
+  (m: any) => m.id === "bytedance-seedance-v25-t2v-turbo"
+) as any;
+
+const SEEDANCE_25_HOOK_MODEL = SEEDANCE_25_REGISTRY_MODEL
+  ? {
+      id: SEEDANCE_25_REGISTRY_MODEL.id,
+      name: SEEDANCE_25_REGISTRY_MODEL.name,
+      apiRoute: SEEDANCE_25_REGISTRY_MODEL.api_route,
+      provider: SEEDANCE_25_REGISTRY_MODEL.provider,
+      badge: "NEW",
+      description: SEEDANCE_25_REGISTRY_MODEL.description,
+      maxRefImages: SEEDANCE_25_REGISTRY_MODEL.capabilities?.max_reference_images ?? 30,
+      maxRefVideos: SEEDANCE_25_REGISTRY_MODEL.capabilities?.max_reference_videos ?? 10,
+      maxRefVideoSeconds: SEEDANCE_25_REGISTRY_MODEL.capabilities?.max_reference_video_total_seconds ?? 30,
+      maxRefAudios: SEEDANCE_25_REGISTRY_MODEL.capabilities?.max_reference_audios ?? 10,
+      maxRefAudioSeconds: SEEDANCE_25_REGISTRY_MODEL.capabilities?.max_reference_audio_total_seconds ?? 30,
+      durations: SEEDANCE_25_REGISTRY_MODEL.capabilities?.durations || [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+      aspectRatios: SEEDANCE_25_REGISTRY_MODEL.capabilities?.aspect_ratios || ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"],
+      qualityModes: SEEDANCE_25_REGISTRY_MODEL.capabilities?.resolutions || ["480p", "720p"],
+      supportsScript: true,
+      creditCost: SEEDANCE_25_REGISTRY_MODEL.creditCost || 10,
+    }
+  : null;
+
+const isLegacySeedance20HookModel = (model: any) => {
+  const id = String(model?.id || "");
+  const name = String(model?.name || "");
+  const route = String(model?.api_route || model?.apiRoute || "");
+  return (
+    /^seedance-2\.0/i.test(id) ||
+    /seedance-v2|seedance-2\.0/i.test(route) ||
+    /seedance\s*2\.0/i.test(name)
+  );
+};
+
 export default function HookStudioPage() {
   const { lang } = useLanguage();
   const isAr = lang === "ar";
@@ -357,35 +394,37 @@ export default function HookStudioPage() {
 
   const dynamicHookVideoModels = useMemo(() => {
     const active = (dynamicVideoList || []).filter((m: any) => m.isActive !== false);
-    if (active.length === 0) {
-      return HOOK_VIDEO_MODELS.map((m: any) => ({
+    const sourceModels = active.length > 0 ? active : HOOK_VIDEO_MODELS;
+    const mappedModels = sourceModels
+      .filter((m: any) => !isLegacySeedance20HookModel(m))
+      .map((m: any) => ({
         ...m,
-        name: cleanHookVideoModelName(m.name),
+        id: m.id,
+        name: cleanHookVideoModelName(m.name || m.id),
+        apiRoute: m.api_route || m.apiRoute,
+        provider: m.provider,
         badge: getHookVideoModelBadge(m),
+        description: m.description,
+        maxRefImages: m.capabilities?.max_reference_images ?? m.maxRefImages ?? 1,
+        maxRefVideos: m.capabilities?.max_reference_videos ?? m.maxRefVideos ?? 0,
+        maxRefVideoSeconds: m.capabilities?.max_reference_video_total_seconds ?? m.maxRefVideoSeconds ?? 0,
+        maxRefAudios: m.capabilities?.max_reference_audios ?? m.maxRefAudios ?? 0,
+        maxRefAudioSeconds: m.capabilities?.max_reference_audio_total_seconds ?? m.maxRefAudioSeconds ?? 0,
+        durations: m.capabilities?.durations || m.durations || [5, 10],
+        aspectRatios: m.capabilities?.aspect_ratios || m.aspectRatios || ["16:9"],
+        qualityModes: m.capabilities?.resolutions || m.qualityModes || ["720p"],
+        supportsScript: true,
+        creditCost: m.creditCost || 10,
       }));
-    }
-    return active.map((m: any) => ({
-      id: m.id,
-      name: cleanHookVideoModelName(m.name || m.id),
-      apiRoute: m.api_route || m.apiRoute,
-      provider: m.provider,
-      badge: getHookVideoModelBadge(m),
-      description: m.description,
-      maxRefImages: m.capabilities?.max_reference_images ?? 1,
-      maxRefVideos: m.capabilities?.max_reference_videos ?? 0,
-      maxRefVideoSeconds: m.capabilities?.max_reference_video_total_seconds ?? 0,
-      maxRefAudios: m.capabilities?.max_reference_audios ?? 0,
-      maxRefAudioSeconds: m.capabilities?.max_reference_audio_total_seconds ?? 0,
-      durations: m.capabilities?.durations || [5, 10],
-      aspectRatios: m.capabilities?.aspect_ratios || ["16:9"],
-      qualityModes: m.capabilities?.resolutions || ["720p"],
-      supportsScript: true,
-      creditCost: m.creditCost || 10,
-    }));
+    if (!SEEDANCE_25_HOOK_MODEL) return mappedModels;
+    return [
+      SEEDANCE_25_HOOK_MODEL,
+      ...mappedModels.filter((m: any) => m.id !== SEEDANCE_25_HOOK_MODEL.id),
+    ];
   }, [dynamicVideoList]);
 
   // Sidebar Configuration States
-  const [selectedVideoModel, setSelectedVideoModel] = useState("seedance-2.0-pro");
+  const [selectedVideoModel, setSelectedVideoModel] = useState("bytedance-seedance-v25-t2v-turbo");
   const [isVideoModelMenuOpen, setIsVideoModelMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -511,8 +550,8 @@ export default function HookStudioPage() {
         ],
         videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
         modelRecommendation: isAr
-          ? "نوصي باستخدام Seedance 2.0 للحصول على معالجة سينمائية متعددة المراجع وثبات مذهل للألوان والتحكم بالمنتجات."
-          : "We recommend using Seedance 2.0 for cinematic multi-reference processing and stunning color and product consistency.",
+          ? "نوصي باستخدام Seedance 2.5 للحصول على معالجة سينمائية متعددة المراجع وثبات مذهل للألوان والتحكم بالمنتجات."
+          : "We recommend using Seedance 2.5 for cinematic multi-reference processing and stunning color and product consistency.",
       },
     },
   ]);
@@ -534,13 +573,13 @@ export default function HookStudioPage() {
     
     if (genre === "cinematic" || lowercaseText.includes("سينمائي") || lowercaseText.includes("epic")) {
       return isAr
-        ? "نوصي باستخدام Seedance 2.0 للحصول على معالجة سينمائية متعددة المراجع وثبات مذهل للألوان."
-        : "We recommend using Seedance 2.0 for cinematic multi-reference processing and stunning color consistency.";
+        ? "نوصي باستخدام Seedance 2.5 للحصول على معالجة سينمائية متعددة المراجع وثبات مذهل للألوان."
+        : "We recommend using Seedance 2.5 for cinematic multi-reference processing and stunning color consistency.";
     }
     
     return isAr
-      ? "نوصي باستخدام Seedance 2.0 كخيار متوازن وممتاز للمشاهد الحوارية والقصصية العامة."
-      : "We recommend using Seedance 2.0 as a balanced and excellent choice for narrative and general scenes.";
+      ? "نوصي باستخدام Seedance 2.5 كخيار متوازن وممتاز للمشاهد الحوارية والقصصية العامة."
+      : "We recommend using Seedance 2.5 as a balanced and excellent choice for narrative and general scenes.";
   };
 
   const activeVideoModelObj =

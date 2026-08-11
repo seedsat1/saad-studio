@@ -3,6 +3,7 @@
 - `/hook-studio` must not expose provider branding such as `WaveSpeed` in subscriber-facing model selector labels; display cleanup is UI-only and must preserve provider routes, IDs, pricing, and backend dispatch.
 - The Hook Studio video model selector uses a custom dropdown rather than native `<select>` so badges can render inside the selected row and option list.
 - Dynamic `Seedance 2.5` model rows should show a `NEW` badge in Hook Studio even when the registry payload does not provide one.
+- Hook Studio must inject the official `Seedance 2.5` row from `VIDEO_MODEL_REGISTRY` as the first/default video model and filter legacy `Seedance 2.0` rows from the subscriber-facing Hook Studio dropdown. `HOOK_VIDEO_MODELS` must still include the `Seedance 2.5` row so `/api/hook-studio/generate` resolves the submitted model id without falling back to old Seedance 2.0 config.
 
 ## Audio Playback and Gemini Voice Sample Contract (2026-08-11)
 
