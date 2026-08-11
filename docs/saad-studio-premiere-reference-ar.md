@@ -1,3 +1,9 @@
+## Hook Studio Model Selector Display Contract (2026-08-11)
+
+- `/hook-studio` must not expose provider branding such as `WaveSpeed` in subscriber-facing model selector labels; display cleanup is UI-only and must preserve provider routes, IDs, pricing, and backend dispatch.
+- The Hook Studio video model selector uses a custom dropdown rather than native `<select>` so badges can render inside the selected row and option list.
+- Dynamic `Seedance 2.5` model rows should show a `NEW` badge in Hook Studio even when the registry payload does not provide one.
+
 ## Audio Playback and Gemini Voice Sample Contract (2026-08-11)
 
 - Voice sample generation must call Google's TTS-capable model `gemini-3.1-flash-tts-preview`; legacy `gemini-3.1-flash-live-preview` may be accepted only as an input alias and normalized before provider dispatch.

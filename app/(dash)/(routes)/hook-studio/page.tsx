@@ -35,6 +35,7 @@ import {
   Wand2,
   FileImage,
   Camera,
+  ChevronDown,
 } from "lucide-react";
 import {
   LLM_BRAIN_MODELS,
@@ -334,6 +335,19 @@ const isAdvisoryHookStudioMessage = (value: string, hasAttachments: boolean) => 
   return asksForAdvice && hasCampaignContext && !asksForImmediateGeneration;
 };
 
+const cleanHookVideoModelName = (value: string) =>
+  String(value || "")
+    .replace(/\bwavespeed\.ai\b/gi, "")
+    .replace(/\bwave\s*speed\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getHookVideoModelBadge = (model: any) => {
+  const name = String(model?.name || "");
+  if (/seedance\s*2\.5/i.test(name)) return "NEW";
+  return model?.badge;
+};
+
 export default function HookStudioPage() {
   const { lang } = useLanguage();
   const isAr = lang === "ar";
@@ -344,14 +358,18 @@ export default function HookStudioPage() {
   const dynamicHookVideoModels = useMemo(() => {
     const active = (dynamicVideoList || []).filter((m: any) => m.isActive !== false);
     if (active.length === 0) {
-      return HOOK_VIDEO_MODELS;
+      return HOOK_VIDEO_MODELS.map((m: any) => ({
+        ...m,
+        name: cleanHookVideoModelName(m.name),
+        badge: getHookVideoModelBadge(m),
+      }));
     }
     return active.map((m: any) => ({
       id: m.id,
-      name: m.name,
+      name: cleanHookVideoModelName(m.name || m.id),
       apiRoute: m.api_route || m.apiRoute,
       provider: m.provider,
-      badge: m.badge,
+      badge: getHookVideoModelBadge(m),
       description: m.description,
       maxRefImages: m.capabilities?.max_reference_images ?? 1,
       maxRefVideos: m.capabilities?.max_reference_videos ?? 0,
@@ -368,12 +386,27 @@ export default function HookStudioPage() {
 
   // Sidebar Configuration States
   const [selectedVideoModel, setSelectedVideoModel] = useState("seedance-2.0-pro");
+  const [isVideoModelMenuOpen, setIsVideoModelMenuOpen] = useState(false);
 
   useEffect(() => {
     if (dynamicHookVideoModels.length > 0 && !dynamicHookVideoModels.some((m) => m.id === selectedVideoModel)) {
       setSelectedVideoModel(dynamicHookVideoModels[0].id);
     }
   }, [dynamicHookVideoModels, selectedVideoModel]);
+
+  const applyVideoModelSelection = (model: any) => {
+    setSelectedVideoModel(model.id);
+    setIsVideoModelMenuOpen(false);
+    if (model.durations.length > 0) {
+      setSelectedDuration(`${model.durations[0]}s`);
+    }
+    if (model.aspectRatios.length > 0) {
+      setSelectedRatio(model.aspectRatios[0]);
+    }
+    if (model.qualityModes.length > 0) {
+      setSelectedQuality(model.qualityModes[0]);
+    }
+  };
 
   const [selectedThinkingModel, setSelectedThinkingModel] = useState("kimi-k3-pro");
   const [selectedDuration, setSelectedDuration] = useState("15s");
@@ -1693,33 +1726,53 @@ export default function HookStudioPage() {
           <label htmlFor="video-model-select" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
             {t.videoModel}
           </label>
-          <select
-            id="video-model-select"
-            value={selectedVideoModel}
-            onChange={(e) => {
-              const val = e.target.value;
-              setSelectedVideoModel(val);
-              const targetModel = dynamicHookVideoModels.find((m: any) => m.id === val);
-              if (targetModel) {
-                if (targetModel.durations.length > 0) {
-                  setSelectedDuration(`${targetModel.durations[0]}s`);
-                }
-                if (targetModel.aspectRatios.length > 0) {
-                  setSelectedRatio(targetModel.aspectRatios[0]);
-                }
-                if (targetModel.qualityModes.length > 0) {
-                  setSelectedQuality(targetModel.qualityModes[0]);
-                }
-              }
-            }}
-            className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-semibold cursor-pointer"
-          >
-            {dynamicHookVideoModels.map((m: any) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
+          <div className="relative" id="video-model-select">
+            <button
+              type="button"
+              onClick={() => setIsVideoModelMenuOpen((open) => !open)}
+              onBlur={() => window.setTimeout(() => setIsVideoModelMenuOpen(false), 120)}
+              className="w-full min-h-[42px] bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-semibold cursor-pointer flex items-center justify-between gap-3"
+            >
+              <span className="min-w-0 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                <span className="truncate">{activeVideoModelObj.name}</span>
+              </span>
+              <span className="flex items-center gap-2 flex-shrink-0">
+                {activeVideoModelObj.badge && (
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-[9px] font-black text-emerald-300 border border-emerald-400/20">
+                    {activeVideoModelObj.badge}
+                  </span>
+                )}
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${isVideoModelMenuOpen ? "rotate-180" : ""}`} />
+              </span>
+            </button>
+
+            {isVideoModelMenuOpen && (
+              <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-slate-700 bg-[#11141e] shadow-2xl shadow-black/40">
+                {dynamicHookVideoModels.map((m: any) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyVideoModelSelection(m)}
+                    className={`w-full px-3 py-2.5 text-left text-xs font-semibold flex items-center justify-between gap-3 transition ${
+                      selectedVideoModel === m.id ? "bg-slate-800 text-white" : "text-slate-200 hover:bg-slate-800/70"
+                    }`}
+                  >
+                    <span className="min-w-0 flex items-center gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${selectedVideoModel === m.id ? "bg-emerald-400" : "bg-slate-600"}`} />
+                      <span className="truncate">{m.name}</span>
+                    </span>
+                    {m.badge && (
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-[9px] font-black text-emerald-300 border border-emerald-400/20">
+                        {m.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Section: Thinking Model */}

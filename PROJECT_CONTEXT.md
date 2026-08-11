@@ -1,3 +1,29 @@
+#### Latest task: Commit and push Hook Studio selector/reference verification updates (2026-08-11)
+- Status: Completed.
+  - Prepared the current Hook Studio model selector display change, reference documentation update, and verification memory notes for Git commit and push per user request.
+- Affected files: Git staging/commit/push task for the current working tree.
+- Verification: `git status --short` reviewed before staging; implementation verification was completed in the previous Hook Studio task.
+- Decisions: Follow the user's explicit `git add .`, `git commit -m "update"`, and `git push` request.
+
+#### Latest task: Verify Hook Studio Seedance 2.5 controls and reference support (2026-08-11)
+- Status: Completed.
+  - Verified local Hook Studio implementation for the screenshot controls: Seedance 2.5 exposes 4-30s durations, 480p/720p qualities, 16:9/9:16/4:3/3:4/1:1/21:9 aspect ratios, and native audio via `generate_audio`.
+  - Verified reference support is wired from UI attachments through the Hook Studio API as image, video, and audio reference URL arrays.
+- Affected files: `PROJECT_CONTEXT.md` only for memory.
+- Verification: Source inspection of `lib/video-model-registry.ts`, `app/(dash)/(routes)/hook-studio/page.tsx`, and `app/api/hook-studio/generate/route.ts`.
+- Errors discovered: Duration, aspect ratio, quality, and native audio controls still render as native select/checkbox styling, so their visual style may not exactly match the supplied custom-dropdown/toggle screenshots.
+- Decisions: Treat this as a verification-only task; no product behavior changes were made.
+
+#### Latest task: Clean Hook Studio model selector provider names and show Seedance 2.5 NEW badge (2026-08-11)
+- Status: Completed.
+  - Updated `/hook-studio` video model selector to display provider-clean model names, so `WaveSpeed Motion FX` and `WaveSpeed Cinematic FX` appear as `Motion FX` and `Cinematic FX`.
+  - Replaced the native video model `<select>` with a compact custom dropdown so model badges can render inside the selected row and option list.
+  - Added a deterministic `NEW` badge for `Seedance 2.5` entries from the dynamic model registry.
+- Affected files: `app/(dash)/(routes)/hook-studio/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed.
+- Errors discovered: Native `<select>` options could not render the requested badge UI, and provider names from dynamic/fallback model rows were visible to subscribers in Hook Studio.
+- Decisions: Clean display names at the Hook Studio UI layer only, preserving provider IDs/routes for backend generation and billing.
+
 #### Latest task: Show Sound Studio credit quote and refresh balance after audio generation (2026-08-11)
 - Status: Completed.
   - Updated both static Sound Studio pages to show the current audio generation credit quote beside the prompt character count.
