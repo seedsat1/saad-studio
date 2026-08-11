@@ -1,3 +1,13 @@
+#### Latest task: Show Sound Studio credit quote and refresh balance after audio generation (2026-08-11)
+- Status: Completed.
+  - Updated both static Sound Studio pages to show the current audio generation credit quote beside the prompt character count.
+  - Added quote refresh when prompt text, mode, selected voice, language, Gemini model, clone selection, or speed changes.
+  - After successful Voice/Music/SFX generation, the page now reads the server `chargedCredits`, refreshes `/api/editor/credits`, and dispatches `saad-credits-updated` to the current window and same-origin parent so the top navbar balance updates immediately.
+- Affected files: `public/stude/sound.html`, `stude/sound.html`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: Extracted inline scripts from both HTML files and checked them with `new Function(...)`; `npx.cmd tsc --noEmit` passed.
+- Errors discovered: The Sound Studio static embed used the paid `/api/generate/audio` route, but did not display a quote or refresh the visible account balance after a successful generation, making it look like generation had no price or no credit deduction.
+- Decisions: Use the same `/api/generate/audio` GET quote path and POST `chargedCredits` response as the UI source of truth, instead of hard-coding a local price.
+
 #### Latest task: Fix Sound Studio TTS 400 from missing pricing quote (2026-08-11)
 - Status: Completed.
   - Updated `/api/generate/audio` so `actionType="tts"` falls back to the existing legacy audio credit helper when the dynamic quote and legacy model quote are missing.

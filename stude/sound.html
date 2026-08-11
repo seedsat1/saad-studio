@@ -180,6 +180,19 @@ body{
   justify-content:space-between;
   align-items:center;
 }
+.prompt-meter{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.credit-cost-label{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  color:#f5cf77;
+  font-family:'JetBrains Mono',monospace;
+  white-space:nowrap;
+}
 
 /* Voice Selection list */
 .voice-list-embedded{
@@ -1222,7 +1235,10 @@ body{
       <div class="panel prompt-panel">
         <div class="panel-header-gold">
           <span>PROMPT</span>
-          <span class="char-count-label" id="charCount">0 ch</span>
+          <span class="prompt-meter">
+            <span class="credit-cost-label" id="creditCost">-- cr</span>
+            <span class="char-count-label" id="charCount">0 ch</span>
+          </span>
         </div>
         <div class="prompt-editor-wrap">
           <textarea class="prompt-textarea-gold" id="promptInput" placeholder="Generate high-quality voiceovers from your text with natural cadence and tone..." oninput="autoGrow(this)"></textarea>
@@ -1871,7 +1887,7 @@ function selectVmVoice(id,name,lang,accent,emoji,color,gender){
     if(customIdInput&&!customIdInput.value.startsWith('custom_'))customIdInput.value='';
     if(cloneBar&&!customIdInput?.value.startsWith('custom_'))cloneBar.style.display='none';
   }
-  renderVmGrid();setTimeout(closeVoiceModal,200);
+  renderVmGrid();scheduleAudioQuote();setTimeout(closeVoiceModal,200);
 }
 
 function openCloneSection(){
@@ -2071,7 +2087,7 @@ async function cloneAndSaveVoice(){
   }catch(err){setStatus('Failed: '+err.message,'err');}
   finally{if(prog)setTimeout(()=>{prog.style.display='none';},2000);if(btn){btn.disabled=false;btn.style.opacity='1';}}
 }
-function clearActiveClone(){document.getElementById('customVoiceId').value='';document.getElementById('activeCloneBar').style.display='none';}
+function clearActiveClone(){document.getElementById('customVoiceId').value='';document.getElementById('activeCloneBar').style.display='none';scheduleAudioQuote();}
 
 /* EMBEDDED DAW STATE & INTEGRATION */
 let _embeddedQueue = [
@@ -2119,6 +2135,7 @@ function updateSpeedFromSlider(slider) {
   else if (val >= 90 && val <= 110) text = 'Slow ---|--- Fast';
   else text = 'Slow -----|- Fast';
   document.getElementById('speedVal').textContent = text;
+  scheduleAudioQuote();
 }
 
 function selectSysLang(val, label, el) {
@@ -2130,6 +2147,7 @@ function selectSysLang(val, label, el) {
     optLang.innerHTML = label;
     optLang.classList.toggle('active', !!val);
   }
+  scheduleAudioQuote();
 }
 
 function selectSysFormat(format, el) {
@@ -2221,6 +2239,8 @@ function setAudioVolume(slider) {
 
 /* MODE + PROMPT */
 let currentMode='voice';
+var _audioQuoteTimer=null;
+var _audioQuoteKey='';
 const placeholders={voice:'Generate high-quality voiceovers from your text with natural cadence and tone...',music:'Describe the music you want to generate...',sfx:'Describe the sound effect...'};
 function setMode(btn,skipClear){
   document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
@@ -2232,18 +2252,27 @@ function setMode(btn,skipClear){
   document.getElementById('voiceSelectionCard').style.display=showVoice?'':'none';
   document.getElementById('musicOptions').style.display=currentMode==='music'?'':'none';
   document.getElementById('sfxOptions').style.display=currentMode==='sfx'?'':'none';
+  scheduleAudioQuote();
 }
 function setPrompt(text,mode){
   const inp=document.getElementById('promptInput');inp.value=text;autoGrow(inp);inp.focus();
   if(mode){const btn=document.querySelector(`[data-mode="${mode}"]`);if(btn)setMode(btn,true);}
+  updatePromptMeters();
 }
 function autoGrow(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,150)+'px';}
-document.getElementById('promptInput').addEventListener('input',function(){document.getElementById('charCount').textContent=this.value.length+' ch';});
+document.getElementById('promptInput').addEventListener('input',updatePromptMeters);
+function updatePromptMeters(){
+  const input=document.getElementById('promptInput');
+  const text=input?.value||'';
+  document.getElementById('charCount').textContent=text.length+' ch';
+  scheduleAudioQuote();
+}
 function cycleLang(btn){
   const s=[{val:'',label:'Auto'},{val:'ar',label:'Arabic'},{val:'en',label:'English'}];
   const cur=btn.childNodes[1]?.textContent?.trim()||'Auto';
   const i=s.findIndex(x=>x.label===cur);const n=s[(i+1)%s.length];
   btn.childNodes[1].textContent=n.label;btn.classList.toggle('active',!!n.val);
+  scheduleAudioQuote();
 }
 function cycleSpeed(btn){
   const speeds=['0.7x','0.8x','0.9x','1.0x','1.1x','1.2x','1.5x'];
@@ -2253,8 +2282,85 @@ function cycleSpeed(btn){
 function cycleGeminiModel(btn){
   _geminiTtsModelIndex=(_geminiTtsModelIndex+1)%GEMINI_TTS_MODELS.length;
   btn.childNodes[1].textContent=GEMINI_TTS_MODELS[_geminiTtsModelIndex].label;
+  scheduleAudioQuote();
 }
 function getGeminiTtsModel(){return GEMINI_TTS_MODELS[_geminiTtsModelIndex]?.id||GEMINI_TTS_MODELS[0].id;}
+function setCreditCostLabel(text,tone){
+  const el=document.getElementById('creditCost');
+  if(!el)return;
+  el.textContent=text;
+  el.style.color=tone==='err'?'var(--rose)':tone==='muted'?'var(--text-sec)':'#f5cf77';
+}
+function buildAudioQuoteParams(text){
+  const params=new URLSearchParams();
+  if(currentMode==='voice'){
+    const customId=(document.getElementById('customVoiceId')?.value||'').trim();
+    if(customId.startsWith('custom_')||customId.startsWith('sample_')){
+      params.set('actionType','voice-cloning');
+      params.set('text',text);
+      return params;
+    }
+    const voiceId=_vmSelectedId||'21m00Tcm4TlvDq8ikWAM';
+    params.set('actionType','tts');
+    params.set('text',text);
+    params.set('model',isGeminiVoiceId(voiceId)?getGeminiTtsModel():'elevenlabs/text-to-speech-multilingual-v2');
+    return params;
+  }
+  if(currentMode==='music'){
+    params.set('actionType','music');
+    params.set('model','elevenlabs/music');
+    params.set('musicDuration','30');
+    return params;
+  }
+  params.set('actionType','music');
+  params.set('model','elevenlabs/sound-effect-v2');
+  params.set('musicDuration','5');
+  return params;
+}
+function scheduleAudioQuote(){
+  clearTimeout(_audioQuoteTimer);
+  _audioQuoteTimer=setTimeout(refreshAudioQuote,350);
+}
+async function refreshAudioQuote(){
+  const text=(document.getElementById('promptInput')?.value||'').trim();
+  if(!text){_audioQuoteKey='';setCreditCostLabel('-- cr','muted');return;}
+  const params=buildAudioQuoteParams(text);
+  const key=currentMode+'|'+params.toString();
+  if(key===_audioQuoteKey)return;
+  _audioQuoteKey=key;
+  setCreditCostLabel('...', 'muted');
+  try{
+    const res=await fetch('/api/generate/audio?'+params.toString(),{cache:'no-store'});
+    const json=await res.json().catch(()=>null);
+    const credits=Number(json?.finalCredits);
+    if(!res.ok||!Number.isFinite(credits)||credits<=0)throw new Error(json?.error||'No quote');
+    setCreditCostLabel(Math.ceil(credits)+' cr');
+  }catch(_err){
+    setCreditCostLabel('-- cr','err');
+  }
+}
+function notifyCreditBalance(balance){
+  if(!Number.isFinite(balance))return;
+  const detail={balance:Math.max(0,Math.floor(balance))};
+  try{window.dispatchEvent(new CustomEvent('saad-credits-updated',{detail}));}catch(_err){}
+  try{if(window.parent&&window.parent!==window)window.parent.dispatchEvent(new window.parent.CustomEvent('saad-credits-updated',{detail}));}catch(_err){}
+}
+async function refreshCreditBalance(){
+  try{
+    const res=await fetch('/api/editor/credits',{cache:'no-store'});
+    const json=await res.json().catch(()=>null);
+    const balance=Number(json?.balance??json?.credits);
+    notifyCreditBalance(balance);
+  }catch(_err){}
+}
+function applyGenerationCharge(json){
+  const charged=Number(json?.chargedCredits);
+  if(Number.isFinite(charged)&&charged>0){
+    setCreditCostLabel(Math.ceil(charged)+' cr');
+    setStatus(`Charged ${Math.ceil(charged)} credits. Refreshing balance...`,'ok');
+  }
+  refreshCreditBalance();
+}
 function cycleFormat(btn){const f=['MP3','WAV','OGG'];const i=f.indexOf(btn.textContent.trim());btn.textContent=f[(i+1)%f.length];}
 function chipSel(el,g){g.querySelectorAll('.chip').forEach(c=>c.classList.remove('a'));el.classList.add('a');}
 function slUpdate(inp,valId,fillId){const v=+inp.value,mn=+inp.min,mx=+inp.max;const el=document.getElementById(valId);if(el)el.textContent=v;const f=document.getElementById(fillId);if(f)f.style.width=((v-mn)/(mx-mn)*100)+'%';}
@@ -2469,6 +2575,7 @@ async function generateVoice(text){
       const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[samplePublicUrl],cloneName})});
       const json=await res.json();
       if(!res.ok)throw new Error(json?.error||json?.message||`Clone error (${res.status})`);
+      applyGenerationCharge(json);
       url=studioMediaUrl(json?.audioUrl||json?.url||'');
     } else if(customId.startsWith('sample_')){
       /* --- Saved clone voice: use stored sampleUrl --- */
@@ -2479,6 +2586,7 @@ async function generateVoice(text){
       const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[sampleUrl],cloneName:entry?.name||'Custom Voice'})});
       const json=await res.json();
       if(!res.ok)throw new Error(json?.error||json?.message||`Clone error (${res.status})`);
+      applyGenerationCharge(json);
       url=studioMediaUrl(json?.audioUrl||json?.url||'');
     } else {
       /* --- Catalog voice: Gemini Google TTS for Gemini voices, otherwise KIE ElevenLabs --- */
@@ -2491,6 +2599,7 @@ async function generateVoice(text){
       const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const json=await res.json();
       if(!res.ok)throw new Error(json?.error||json?.message||`Voice API error (${res.status})`);
+      applyGenerationCharge(json);
       url=studioMediaUrl(json?.audioUrl||json?.url||'');
     }
     if(!url)throw new Error('No audio URL returned');
@@ -2513,6 +2622,7 @@ async function generateMusic(text){
     const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'music',prompt,model:'elevenlabs/music',musicDuration:30,force_instrumental:true,output_format:'mp3_high_quality'})});
     const json=await res.json();
     if(!res.ok)throw new Error(json?.error||json?.message||`Music API error (${res.status})`);
+    applyGenerationCharge(json);
     const url=studioMediaUrl(json?.url||json?.data?.url||json?.audioUrl||'');
     if(!url)throw new Error('No audio URL returned');
     const dur=await getAudioDuration(url)||30;
@@ -2530,6 +2640,7 @@ async function generateSfx(text){
     const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'music',prompt:text,model:'elevenlabs/sound-effect-v2',musicDuration:5,force_instrumental:false})});
     const json=await res.json();
     if(!res.ok)throw new Error(json?.error||json?.message||`SFX API error (${res.status})`);
+    applyGenerationCharge(json);
     const url=studioMediaUrl(json?.audioUrl||json?.url||'');
     if(!url)throw new Error('No audio URL returned');
     const dur=await getAudioDuration(url)||5;
