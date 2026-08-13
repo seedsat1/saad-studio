@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { FIXED_TOOL_CREDITS } from "@/lib/credit-pricing";
+import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl } from "@/lib/security";
 
-const KIE_BASE_URL = "https://api.kie.ai/api/v1";
-const KIE_REMOVE_BG_MODEL = "recraft/remove-background";
+const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
+const WAVESPEED_REMOVE_BG_MODEL = "wavespeed-ai/image-background-remover";
 
-interface KieJobResponse {
+interface WaveSpeedResponse {
   code?: number;
-  msg?: string;
   message?: string;
+  msg?: string;
   data?: Record<string, unknown>;
 }
 
-function getKieKey(): string {
-  const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
-  if (!key) throw new Error("KIE_API_KEY is not configured.");
+function getWaveSpeedKey(): string {
+  const key = process.env.WAVESPEED_API_KEY;
+  if (!key) throw new Error("WAVESPEED_API_KEY is not configured.");
   return key;
 }
 
@@ -37,7 +37,7 @@ function extractOutputs(input: unknown): string[] {
   }
   if (typeof input === "object") {
     const rec = input as Record<string, unknown>;
-    const candidates = [rec.resultUrls, rec.outputs, rec.urls, rec.images, rec.result, rec.imageUrl, rec.url, rec.output];
+    const candidates = [rec.outputs, rec.resultUrls, rec.urls, rec.images, rec.result, rec.imageUrl, rec.url, rec.output];
     for (const candidate of candidates) {
       const out = extractOutputs(candidate);
       if (out.length) return out;
@@ -52,66 +52,63 @@ function parseBase64DataUrl(raw: string) {
   const mime = match[1];
   const fileData = match[2];
   const ext = mime.split("/")[1]?.replace("jpeg", "jpg") || "png";
-  return { fileData, ext };
+  return { mime, fileData, ext };
 }
 
-async function uploadDataUrlToKie(imageDataUrl: string, apiKey: string): Promise<string> {
+async function uploadDataUrlToWaveSpeed(imageDataUrl: string, apiKey: string): Promise<string> {
   const parsed = parseBase64DataUrl(imageDataUrl);
   if (!parsed) return imageDataUrl;
 
+  const buffer = Buffer.from(parsed.fileData, "base64");
+  const formData = new FormData();
+  formData.append("file", new Blob([new Uint8Array(buffer)], { type: parsed.mime }), `remove-bg-input.${parsed.ext}`);
+
   const uploadRes = await fetchWithTimeout(
-    `${KIE_BASE_URL}/files/upload/base64`,
+    `${WAVESPEED_BASE_URL}/media/upload/binary`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        fileData: parsed.fileData,
-        fileName: `remove-bg-input.${parsed.ext}`,
-      }),
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: formData,
     },
     30_000,
   );
 
-  const uploadJson = (await uploadRes.json().catch(() => null)) as KieJobResponse | null;
+  const uploadJson = (await uploadRes.json().catch(() => null)) as WaveSpeedResponse | null;
   const url =
-    (uploadJson?.data?.url as string | undefined) ||
-    (uploadJson?.data?.fileUrl as string | undefined) ||
-    (uploadJson?.data?.downloadUrl as string | undefined);
+    (uploadJson?.data?.download_url as string | undefined) ||
+    (uploadJson?.data?.url as string | undefined);
 
   if (!uploadRes.ok || !url) {
-    throw new Error(uploadJson?.msg || uploadJson?.message || "KIE file upload failed.");
+    throw new Error(uploadJson?.msg || uploadJson?.message || "WaveSpeed file upload failed.");
   }
 
   return url;
 }
 
-async function pollKieTask(taskId: string, apiKey: string, maxAttempts = 40, intervalMs = 2000): Promise<string[]> {
+async function pollWaveSpeedTask(taskId: string, apiKey: string, maxAttempts = 40, intervalMs = 2000): Promise<string[]> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((r) => setTimeout(r, intervalMs));
 
     const res = await fetchWithTimeout(
-      `${KIE_BASE_URL}/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`,
+      `${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}/result`,
       { headers: { Authorization: `Bearer ${apiKey}` } },
       30_000,
     );
 
-    const json = (await res.json().catch(() => null)) as KieJobResponse | null;
+    const json = (await res.json().catch(() => null)) as WaveSpeedResponse | null;
     if (!res.ok || (json?.code != null && json.code !== 200)) {
-      throw new Error(json?.msg || json?.message || `KIE polling failed (${res.status})`);
+      throw new Error(json?.msg || json?.message || `WaveSpeed polling failed (${res.status})`);
     }
 
     const data = (json?.data ?? {}) as Record<string, unknown>;
-    const status = String(data.taskStatus || data.status || data.state || "").toLowerCase();
+    const status = String(data.status || data.taskStatus || "").toLowerCase();
     if (["success", "completed", "done"].includes(status)) {
-      const outputs = extractOutputs(data.resultUrls || data.outputs || data.resultJson || data.result || data.response);
-      if (!outputs.length) throw new Error("No output URL in KIE result.");
+      const outputs = extractOutputs(data.outputs || data.result || data.resultJson || data.response);
+      if (!outputs.length) throw new Error("No output URL in WaveSpeed result.");
       return outputs;
     }
-    if (["fail", "failed", "error", "canceled", "cancelled"].includes(status)) {
-      throw new Error(String(data.failMsg || data.errorMessage || data.error || "Remove background failed."));
+    if (["fail", "failed", "error", "canceled", "cancelled", "timeout"].includes(status)) {
+      throw new Error(String(data.error || data.errorMessage || "Remove background failed."));
     }
   }
   throw new Error("Remove background timed out.");
@@ -146,33 +143,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid imageUrl." }, { status: 400 });
     }
 
+    const creditsToCharge = await getGenerationCost("tool:remove-bg");
+    if (creditsToCharge <= 0) {
+      return NextResponse.json({ error: "No credit configuration for remove-bg tool." }, { status: 400 });
+    }
+
     const charge = await spendCredits({
       userId,
-      credits: FIXED_TOOL_CREDITS.removeBg,
+      credits: creditsToCharge,
       prompt: "Remove background",
       assetType: "IMAGE",
-      modelUsed: KIE_REMOVE_BG_MODEL,
+      modelUsed: WAVESPEED_REMOVE_BG_MODEL,
     });
     generationId = charge.generationId;
-    chargedCredits = FIXED_TOOL_CREDITS.removeBg;
+    chargedCredits = creditsToCharge;
     chargedUserId = userId;
 
-    const kieKey = getKieKey();
+    const waveKey = getWaveSpeedKey();
     const normalizedImageUrl = imageUrl.startsWith("data:")
-      ? await uploadDataUrlToKie(imageUrl, kieKey)
+      ? await uploadDataUrlToWaveSpeed(imageUrl, waveKey)
       : imageUrl;
 
     const submitRes = await fetchWithTimeout(
-      `${KIE_BASE_URL}/jobs/createTask`,
+      `${WAVESPEED_BASE_URL}/${WAVESPEED_REMOVE_BG_MODEL}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${kieKey}`,
+          Authorization: `Bearer ${waveKey}`,
         },
         body: JSON.stringify({
-          model: KIE_REMOVE_BG_MODEL,
-          input: { image: normalizedImageUrl },
+          image: normalizedImageUrl,
+          enable_base64_output: false,
+          enable_sync_mode: false,
         }),
       },
       30_000,
@@ -180,23 +183,29 @@ export async function POST(req: NextRequest) {
 
     if (!submitRes.ok) {
       const errText = await readErrorBody(submitRes);
-      throw new Error(`KIE submit failed: ${errText}`);
+      throw new Error(`WaveSpeed submit failed: ${errText}`);
     }
 
-    const submitJson = (await submitRes.json().catch(() => null)) as KieJobResponse | null;
+    const submitJson = (await submitRes.json().catch(() => null)) as WaveSpeedResponse | null;
     if (submitJson?.code != null && submitJson.code !== 200) {
-      throw new Error(submitJson.msg || submitJson.message || "KIE task submission failed.");
-    }
-    const taskId = (submitJson?.data?.taskId as string | undefined) || (submitJson?.data?.id as string | undefined);
-    if (!taskId) {
-      throw new Error(submitJson?.msg || submitJson?.message || "No task ID returned.");
+      throw new Error(submitJson.msg || submitJson.message || "WaveSpeed task submission failed.");
     }
 
-    const outputs = await pollKieTask(taskId, kieKey);
+    const taskId = (submitJson?.data?.id as string | undefined) || (submitJson?.data?.taskId as string | undefined);
+    if (!taskId) throw new Error("No task ID returned.");
+
+    const outputs = await pollWaveSpeedTask(taskId, waveKey);
     const url = outputs[0];
     if (generationId) await setGenerationMediaUrl(generationId, url);
 
-    return NextResponse.json({ generationId, imageUrl: url }, { status: 200 });
+    return NextResponse.json({
+      generationId,
+      imageUrl: url,
+      mediaUrl: url,
+      provider: "wavespeed",
+      modelUsed: WAVESPEED_REMOVE_BG_MODEL,
+      chargedCredits: creditsToCharge,
+    }, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(

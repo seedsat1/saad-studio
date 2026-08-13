@@ -4,11 +4,13 @@ import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
-import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl } from "@/lib/security";
+import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
-const WAVESPEED_IMAGE_UPSCALER_MODEL = "wavespeed-ai/image-upscaler";
-const WAVESPEED_VIDEO_UPSCALER_MODEL = "wavespeed-ai/video-upscaler";
+const WAVESPEED_IMAGE_ERASER_MODEL = "wavespeed-ai/image-eraser";
+const WAVESPEED_IMAGE_EDIT_MODEL = "wavespeed-ai/qwen-image/edit";
+
+type EditAction = "inpaint" | "replace" | "style";
 
 interface WaveSpeedResponse {
   code?: number;
@@ -21,6 +23,10 @@ function getWaveSpeedKey(): string {
   const key = process.env.WAVESPEED_API_KEY;
   if (!key) throw new Error("WAVESPEED_API_KEY is not configured.");
   return key;
+}
+
+function isEditAction(value: unknown): value is EditAction {
+  return value === "inpaint" || value === "replace" || value === "style";
 }
 
 function extractOutputs(input: unknown): string[] {
@@ -38,7 +44,7 @@ function extractOutputs(input: unknown): string[] {
   }
   if (typeof input === "object") {
     const rec = input as Record<string, unknown>;
-    const candidates = [rec.outputs, rec.resultUrls, rec.urls, rec.images, rec.result, rec.imageUrl, rec.videoUrl, rec.url, rec.output];
+    const candidates = [rec.outputs, rec.resultUrls, rec.urls, rec.images, rec.result, rec.imageUrl, rec.url, rec.output];
     for (const candidate of candidates) {
       const out = extractOutputs(candidate);
       if (out.length) return out;
@@ -52,17 +58,17 @@ function parseBase64DataUrl(raw: string) {
   if (!match) return null;
   const mime = match[1];
   const fileData = match[2];
-  const ext = mime.split("/")[1]?.replace("jpeg", "jpg").replace("mpeg", "mp4") || "bin";
+  const ext = mime.split("/")[1]?.replace("jpeg", "jpg") || "png";
   return { mime, fileData, ext };
 }
 
-async function uploadDataUrlToWaveSpeed(mediaDataUrl: string, apiKey: string): Promise<string> {
-  const parsed = parseBase64DataUrl(mediaDataUrl);
-  if (!parsed) return mediaDataUrl;
+async function uploadDataUrlToWaveSpeed(dataUrl: string, apiKey: string, fileStem: string): Promise<string> {
+  const parsed = parseBase64DataUrl(dataUrl);
+  if (!parsed) return dataUrl;
 
   const buffer = Buffer.from(parsed.fileData, "base64");
   const formData = new FormData();
-  formData.append("file", new Blob([new Uint8Array(buffer)], { type: parsed.mime }), `upscale-input.${parsed.ext}`);
+  formData.append("file", new Blob([new Uint8Array(buffer)], { type: parsed.mime }), `${fileStem}.${parsed.ext}`);
 
   const uploadRes = await fetchWithTimeout(
     `${WAVESPEED_BASE_URL}/media/upload/binary`,
@@ -71,7 +77,7 @@ async function uploadDataUrlToWaveSpeed(mediaDataUrl: string, apiKey: string): P
       headers: { Authorization: `Bearer ${apiKey}` },
       body: formData,
     },
-    45_000,
+    30_000,
   );
 
   const uploadJson = (await uploadRes.json().catch(() => null)) as WaveSpeedResponse | null;
@@ -80,13 +86,13 @@ async function uploadDataUrlToWaveSpeed(mediaDataUrl: string, apiKey: string): P
     (uploadJson?.data?.url as string | undefined);
 
   if (!uploadRes.ok || !url) {
-    throw new Error(uploadJson?.msg || uploadJson?.message || "WaveSpeed media upload failed.");
+    throw new Error(uploadJson?.msg || uploadJson?.message || "WaveSpeed file upload failed.");
   }
 
   return url;
 }
 
-async function pollWaveSpeedTask(taskId: string, apiKey: string, maxAttempts = 90, intervalMs = 2500): Promise<string[]> {
+async function pollWaveSpeedTask(taskId: string, apiKey: string, maxAttempts = 60, intervalMs = 2500): Promise<string[]> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((r) => setTimeout(r, intervalMs));
 
@@ -105,37 +111,22 @@ async function pollWaveSpeedTask(taskId: string, apiKey: string, maxAttempts = 9
     const status = String(data.status || data.taskStatus || "").toLowerCase();
     if (["success", "completed", "done"].includes(status)) {
       const outputs = extractOutputs(data.outputs || data.result || data.resultJson || data.response);
-      if (!outputs.length) throw new Error("No output URL in WaveSpeed upscale result.");
+      if (!outputs.length) throw new Error("No output URL in WaveSpeed result.");
       return outputs;
     }
     if (["fail", "failed", "error", "canceled", "cancelled", "timeout"].includes(status)) {
-      throw new Error(String(data.error || data.errorMessage || "Upscale failed."));
+      throw new Error(String(data.error || data.errorMessage || "Image edit failed."));
     }
   }
-  throw new Error("Upscale timed out.");
+  throw new Error("Image edit timed out.");
 }
 
-function readScale(body: Record<string, unknown>, resolution: string): string {
-  const resolutionMap: Record<string, string> = { "480": "1", "720": "2", "1080": "4" };
-  let scaleFactor = resolutionMap[resolution] || String(body.scale || "2");
-
-  if (!resolutionMap[resolution] && body.scale) {
-    scaleFactor = String(body.scale);
-  }
-
-  return ["1", "2", "4", "8"].includes(scaleFactor) ? scaleFactor : "2";
-}
-
-function resolveTargetResolution(input: { isVideo: boolean; resolution: string; scaleFactor: string }): string {
-  if (input.isVideo) {
-    const byResolution: Record<string, string> = { "480": "720p", "720": "1080p", "1080": "4k" };
-    const byScale: Record<string, string> = { "1": "720p", "2": "1080p", "4": "4k", "8": "4k" };
-    return byResolution[input.resolution] || byScale[input.scaleFactor] || "1080p";
-  }
-
-  const byResolution: Record<string, string> = { "480": "2k", "720": "4k", "1080": "8k" };
-  const byScale: Record<string, string> = { "1": "2k", "2": "4k", "4": "4k", "8": "8k" };
-  return byResolution[input.resolution] || byScale[input.scaleFactor] || "4k";
+function buildPrompt(action: EditAction, prompt: string): string {
+  const clean = sanitizePrompt(prompt, 1000).trim();
+  if (clean) return clean;
+  if (action === "style") return "Apply a polished cinematic artistic style while preserving the original subject and composition.";
+  if (action === "replace") return "Remove the painted object and reconstruct the background naturally.";
+  return "Fill the masked area naturally using surrounding image context.";
 }
 
 export async function POST(req: NextRequest) {
@@ -154,44 +145,39 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = getClientIp(req);
-    const rate = checkRateLimit(`upscale:${userId}:${ip}`, 20, 60_000);
+    const rate = checkRateLimit(`edit-tool:${userId}:${ip}`, 20, 60_000);
     if (!rate.allowed) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rate) });
     }
 
     const body = (await req.json()) as Record<string, unknown>;
+    const action = body.action;
     const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl : "";
-    const videoUrl = typeof body.videoUrl === "string" ? body.videoUrl : "";
-    const mediaUrl = imageUrl || videoUrl;
+    const maskImageUrl = typeof body.maskImageUrl === "string" ? body.maskImageUrl : "";
+    const prompt = buildPrompt(action as EditAction, typeof body.prompt === "string" ? body.prompt : "");
 
-    if (!mediaUrl) {
-      return NextResponse.json({ error: "imageUrl or videoUrl is required." }, { status: 400 });
+    if (!isEditAction(action)) {
+      return NextResponse.json({ error: "Unsupported edit action." }, { status: 400 });
     }
-    if (!(mediaUrl.startsWith("data:") || isSafePublicHttpUrl(mediaUrl))) {
-      return NextResponse.json({ error: "Invalid media URL." }, { status: 400 });
+    if (!imageUrl || !(imageUrl.startsWith("data:") || isSafePublicHttpUrl(imageUrl))) {
+      return NextResponse.json({ error: "A valid imageUrl is required." }, { status: 400 });
+    }
+    if ((action === "inpaint" || action === "replace") && (!maskImageUrl || !maskImageUrl.startsWith("data:image/"))) {
+      return NextResponse.json({ error: "A painted mask is required for this tool." }, { status: 400 });
     }
 
-    const isVideo = Boolean(
-      videoUrl ||
-      mediaUrl.startsWith("data:video/") ||
-      mediaUrl.match(/\.(mp4|webm|mov|mkv|3gp|avi|ogg)(?:[?#].*)?$/i),
-    );
-    const resolution = String(body.resolution || (isVideo ? "720" : "720"));
-    const scaleFactor = readScale(body, resolution);
-    const targetResolution = resolveTargetResolution({ isVideo, resolution, scaleFactor });
-    const modelToUse = isVideo ? WAVESPEED_VIDEO_UPSCALER_MODEL : WAVESPEED_IMAGE_UPSCALER_MODEL;
-    const duration = Math.max(5, Math.ceil(Number(body.duration) || 5));
-
-    const creditsToCharge = await getGenerationCost("tool:upscale", isVideo ? duration : 0, 1, targetResolution);
+    const modelToUse = action === "style" ? WAVESPEED_IMAGE_EDIT_MODEL : WAVESPEED_IMAGE_ERASER_MODEL;
+    const pricingRef = action === "style" ? "qwen2/image-edit" : "tool:remove-bg";
+    const creditsToCharge = await getGenerationCost(pricingRef);
     if (creditsToCharge <= 0) {
-      return NextResponse.json({ error: "No credit configuration for upscale tool." }, { status: 400 });
+      return NextResponse.json({ error: "No credit configuration for edit tool." }, { status: 400 });
     }
 
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
-      prompt: isVideo ? `Upscale video to ${targetResolution}` : `Upscale image to ${targetResolution}`,
-      assetType: isVideo ? "VIDEO" : "IMAGE",
+      prompt,
+      assetType: "IMAGE",
       modelUsed: modelToUse,
     });
     generationId = charge.generationId;
@@ -199,21 +185,23 @@ export async function POST(req: NextRequest) {
     chargedUserId = userId;
 
     const waveKey = getWaveSpeedKey();
-    const normalizedMediaUrl = mediaUrl.startsWith("data:")
-      ? await uploadDataUrlToWaveSpeed(mediaUrl, waveKey)
-      : mediaUrl;
+    const normalizedImageUrl = imageUrl.startsWith("data:")
+      ? await uploadDataUrlToWaveSpeed(imageUrl, waveKey, "edit-input")
+      : imageUrl;
 
-    const submitBody = isVideo
-      ? {
-          video: normalizedMediaUrl,
-          target_resolution: targetResolution,
-        }
-      : {
-          image: normalizedMediaUrl,
-          target_resolution: targetResolution,
-          output_format: "jpeg",
-          enable_base64_output: false,
-        };
+    const submitBody: Record<string, unknown> = {
+      image: normalizedImageUrl,
+      prompt,
+      output_format: "jpeg",
+      enable_base64_output: false,
+      enable_sync_mode: false,
+    };
+
+    if (action === "inpaint" || action === "replace") {
+      submitBody.mask_image = await uploadDataUrlToWaveSpeed(maskImageUrl, waveKey, "edit-mask");
+    } else {
+      submitBody.seed = -1;
+    }
 
     const submitRes = await fetchWithTimeout(
       `${WAVESPEED_BASE_URL}/${modelToUse}`,
@@ -243,24 +231,16 @@ export async function POST(req: NextRequest) {
 
     const outputs = await pollWaveSpeedTask(taskId, waveKey);
     const url = outputs[0];
-    if (generationId) {
-      await setGenerationMediaUrl(generationId, url).catch((err) => {
-        console.error("[upscale] Failed to attach media URL to generation", err);
-      });
-    }
+    if (generationId) await setGenerationMediaUrl(generationId, url);
 
-    return NextResponse.json(
-      {
-        generationId,
-        imageUrl: isVideo ? undefined : url,
-        videoUrl: isVideo ? url : undefined,
-        mediaUrl: url,
-        provider: "wavespeed",
-        modelUsed: modelToUse,
-        chargedCredits: creditsToCharge,
-      },
-      { status: 200 },
-    );
+    return NextResponse.json({
+      generationId,
+      imageUrl: url,
+      mediaUrl: url,
+      provider: "wavespeed",
+      modelUsed: modelToUse,
+      chargedCredits: creditsToCharge,
+    }, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(

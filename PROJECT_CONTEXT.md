@@ -1,3 +1,26 @@
+#### Latest task: Convert remaining visible `/edit` tools to WaveSpeed (2026-08-13)
+- Status: Completed.
+  - Converted `/api/generate/remove-bg` from KIE `recraft/remove-background` to WaveSpeed `wavespeed-ai/image-background-remover`.
+  - Added `/api/generate/edit-tool` for the generic `/edit` tools that previously fell through to `/api/generate/image`: Smart Inpaint and Object Remover now use `wavespeed-ai/image-eraser`, while Style Transfer uses `wavespeed-ai/qwen-image/edit`.
+  - Updated `/edit` so painted masks are converted client-side to black/white masks before submission; white pixels are the edit/erase region and black pixels are preserved.
+  - The visible `/edit` tool list is now WaveSpeed-backed: Background Remover, Smart Inpaint, Object Remover, Face Swap Pro, AI Relight, AI Upscale & Enhance, Style Transfer, and Watermark Remover.
+- Affected files: `app/(dash)/(routes)/edit/page.tsx`, `app/api/generate/remove-bg/route.ts`, `app/api/generate/edit-tool/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `rg` confirmed no KIE references remain in the visible `/edit` tool routes.
+- Errors discovered: Background Remover was still a KIE route, and Smart Inpaint/Object Remover/Style Transfer used the generic image generation route where provider routing could still fall through to KIE depending on selected model.
+- Decisions: Keep dedicated tool behavior separate from the generic image generator so `/edit` utility tools have deterministic WaveSpeed provider routing.
+
+#### Latest task: Convert `/api/generate/upscale` from KIE to WaveSpeed (2026-08-13)
+- Status: Completed.
+  - Replaced the KIE Topaz upscale integration with WaveSpeed official upscale endpoints.
+  - Image upscale now submits to `wavespeed-ai/image-upscaler` with `image`, `target_resolution`, `output_format`, and `enable_base64_output: false`.
+  - Video upscale now submits to `wavespeed-ai/video-upscaler` with `video` and `target_resolution`.
+  - Data URL uploads now use WaveSpeed `/media/upload/binary`; polling now uses `/predictions/{id}/result`.
+  - Billing now uses the central `getGenerationCost("tool:upscale", ...)` pricing path instead of the old KIE credit-factor map that caused very high credit charges.
+- Affected files: `app/api/generate/upscale/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed.
+- Errors discovered: The old upscale route still used KIE `topaz/image-upscale` and `topaz/video-upscale`, so production failures could report provider-side KIE insufficient credits even though the target provider for this tool should be WaveSpeed.
+- Decisions: Keep the public `/api/generate/upscale` request contract unchanged while translating the existing UI quality values to WaveSpeed target resolutions: image `480/720/1080` -> `2k/4k/8k`, video `480/720/1080` -> `720p/1080p/4k`.
+
 #### Latest task: Commit and push `/edit` upload/credit fix and tool inspection notes (2026-08-13)
 - Status: In progress at commit time per explicit user request.
 - Affected files: Git staging/commit/push task for the current working tree.

@@ -1,3 +1,26 @@
+## Edit Tools WaveSpeed Provider Contract (2026-08-13)
+
+- The visible `/edit` utility tools must be WaveSpeed-backed and must not fall through to KIE through generic image generation routing.
+- Current provider routes:
+  - Background Remover: `/api/generate/remove-bg` -> `wavespeed-ai/image-background-remover`, body includes `image`, `enable_base64_output: false`, `enable_sync_mode: false`.
+  - Smart Inpaint and Object Remover: `/api/generate/edit-tool` -> `wavespeed-ai/image-eraser`, body includes `image`, `mask_image`, `prompt`, `output_format`, `enable_base64_output: false`, `enable_sync_mode: false`.
+  - Style Transfer: `/api/generate/edit-tool` -> `wavespeed-ai/qwen-image/edit`, body includes `image`, `prompt`, `output_format`, `seed`, `enable_base64_output: false`, `enable_sync_mode: false`.
+  - Face Swap Pro: `/api/generate/face-swap` -> `wavespeed-ai/image-face-swap-pro`.
+  - AI Relight: `/api/runninghub/relight` -> `wavespeed-ai/qwen-image/edit`.
+  - AI Upscale & Enhance: `/api/generate/upscale` -> `wavespeed-ai/image-upscaler` or `wavespeed-ai/video-upscaler`.
+  - Watermark Remover: `/api/generate/watermark-remove` -> `wavespeed-ai/video-watermark-remover`.
+- `/edit` must convert the user-painted canvas overlay into a binary mask before sending it to Image Eraser: white pixels mean edit/remove, black pixels mean keep.
+- Dedicated `/edit` utility tools should use central pricing aliases where available (`tool:remove-bg`, `tool:upscale`, `tool:face-swap`, `tool:watermark-remover`) and existing image-edit pricing for `qwen2/image-edit` where used.
+
+## Upscale Provider Contract (2026-08-13)
+
+- `/api/generate/upscale` is a WaveSpeed-backed tool route. Do not route this tool through KIE Topaz unless a future explicit provider switch is requested.
+- Image upscale uses `POST https://api.wavespeed.ai/api/v3/wavespeed-ai/image-upscaler` with `image`, `target_resolution`, `output_format`, and `enable_base64_output: false`.
+- Video upscale uses `POST https://api.wavespeed.ai/api/v3/wavespeed-ai/video-upscaler` with `video` and `target_resolution`.
+- Data URL inputs must be uploaded server-side to WaveSpeed `/media/upload/binary` before task submission. Provider polling uses `GET /predictions/{id}/result` and reads final URLs from `data.outputs`.
+- The existing UI contract stays `imageUrl` or `videoUrl` plus `resolution/scale`. Current quality translation is image `480/720/1080` -> `2k/4k/8k`, and video `480/720/1080` -> `720p/1080p/4k`.
+- Upscale billing must use `getGenerationCost("tool:upscale", ...)` from the central pricing constitution, not a provider-specific KIE credit map.
+
 ## Hook Studio Model Selector Display Contract (2026-08-11)
 
 - `/hook-studio` must not expose provider branding such as `WaveSpeed` in subscriber-facing model selector labels; display cleanup is UI-only and must preserve provider routes, IDs, pricing, and backend dispatch.

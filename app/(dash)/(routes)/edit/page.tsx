@@ -325,6 +325,32 @@ const imgToDataUrl = async (src: string): Promise<string> => {
   });
 };
 
+function canvasToBinaryMaskDataUrl(canvas: HTMLCanvasElement): { dataUrl: string; hasMask: boolean } {
+  const maskCanvas = document.createElement("canvas");
+  maskCanvas.width = canvas.width;
+  maskCanvas.height = canvas.height;
+  const ctx = maskCanvas.getContext("2d");
+  if (!ctx) return { dataUrl: canvas.toDataURL("image/png"), hasMask: false };
+
+  ctx.drawImage(canvas, 0, 0);
+  const imageData = ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+  const pixels = imageData.data;
+  let hasMask = false;
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    const alpha = pixels[i + 3];
+    if (alpha > 8) hasMask = true;
+    const value = alpha > 8 ? 255 : 0;
+    pixels[i] = value;
+    pixels[i + 1] = value;
+    pixels[i + 2] = value;
+    pixels[i + 3] = 255;
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return { dataUrl: maskCanvas.toDataURL("image/png"), hasMask };
+}
+
 const resolveEditMediaUrl = (url: string | null | undefined): string => {
   return normalizeMediaUrl(url) || url || "";
 };
@@ -1266,24 +1292,26 @@ export default function EditPage() {
         if (!response.ok) throw new Error(data.error || "Failed to upscale");
         resultUrl = data.imageUrl || data.mediaUrl;
       } else {
-        // Drawing tools (inpaint, replace, etc.)
+        // WaveSpeed-backed drawing/style tools.
         const canvas = canvasRef.current;
         if (!canvas) throw new Error("Canvas not initialized");
-        const maskDataUrl = canvas.toDataURL("image/png");
+        const mask = canvasToBinaryMaskDataUrl(canvas);
+        if ((activeTool === "inpaint" || activeTool === "replace") && !mask.hasMask) {
+          throw new Error("Paint the area you want to edit first.");
+        }
 
-        const response = await fetch("/api/generate/image", {
+        const response = await fetch("/api/generate/edit-tool", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            action: activeTool,
             prompt,
-            modelId: selectedModel.id,
             imageUrl: inputMedia,
-            imageUrls: [maskDataUrl],
-            aspectRatio: "4:3",
+            maskImageUrl: mask.dataUrl,
           }),
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Failed to generate image");
+        if (!response.ok) throw new Error(data.error || "Failed to edit image");
         resultUrl = data.imageUrl || data.mediaUrl;
       }
 
