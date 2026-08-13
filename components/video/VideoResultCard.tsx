@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Play, Download, Plus, ArrowUp, RefreshCw, Trash2, Zap } from "lucide-react";
+import Image from "next/image";
+import { Play, Download, Plus, ArrowUp, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/use-language";
 import { ModelBadge } from "@/lib/video-models";
@@ -88,15 +89,36 @@ function SkeletonCard({ isHero, modelName }: { isHero?: boolean; modelName?: str
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
         />
       </div>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-        <Zap className="h-6 w-6 text-cyan-500/40 animate-pulse" />
-        <p className="text-xs text-slate-500">{t("Generating...")}</p>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5">
+        <div
+          className="relative h-11 w-11 saad-breath-sm"
+          style={{ filter: "drop-shadow(0 0 8px rgba(122,165,255,.45))" }}
+        >
+          <Image alt="Saad Studio" src="/icon-192.png" fill sizes="44px" className="object-contain" />
+        </div>
+        <p className="text-[11px] text-[#b7c8ff]/85 tracking-[0.4px]">{t("Generating...")}</p>
         {modelName && (
-          <div className="flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
+          <div className="flex items-center gap-1.5 mt-0.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
             <span className="text-[10px] text-slate-400">{modelName}</span>
           </div>
         )}
       </div>
+      {/* Mini progress bar */}
+      <div className="absolute left-[18%] right-[18%] bottom-[18%] h-[2px] rounded-full bg-[rgba(110,168,255,0.20)] overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,#7aa5ff,#8b6bff,transparent)] saad-bar-sm" />
+      </div>
+      <style jsx>{`
+        @keyframes saad-breath-sm {
+          0%, 100% { transform: scale(1); }
+          50%      { transform: scale(1.08); }
+        }
+        @keyframes saad-bar-sm {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        :global(.saad-breath-sm) { animation: saad-breath-sm 2.6s ease-in-out infinite; }
+        :global(.saad-bar-sm)    { animation: saad-bar-sm 1.6s ease-in-out infinite; }
+      `}</style>
     </div>
   );
 }

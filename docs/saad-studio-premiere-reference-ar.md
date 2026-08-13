@@ -1,3 +1,10 @@
+## Seedance 2.0 Turbo Pricing Contract (2026-08-14)
+
+- `/video` and `/api/video` must price `Seedance 2.0 Turbo` (`seedance2f`, `bytedance/seedance-2.0/text-to-video-turbo`, and image-to-video turbo aliases) by selected quality.
+- Source pricing for 15 seconds: `720p = $2.10`, `1080p = $2.40`.
+- User-credit conversion uses `40 credits/USD` plus a 20% user-price margin, so 15 seconds costs `100.8 cr` at `720p` and `115.2 cr` at `1080p`.
+- The selected `Quality` value must affect both the visible estimate and the server-side charge.
+
 ## Edit Tools WaveSpeed Provider Contract (2026-08-13)
 
 - The visible `/edit` utility tools must be WaveSpeed-backed and must not fall through to KIE through generic image generation routing.

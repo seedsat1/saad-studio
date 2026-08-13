@@ -1,3 +1,38 @@
+#### Latest task: Add 20% margin to Seedance 2.0 Turbo quality pricing (2026-08-14)
+- Status: Completed; applied a 20% margin multiplier to `Seedance 2.0 Turbo` quality-based pricing.
+- Affected files: `lib/pricing.ts`, `lib/pricing-models.ts`, `docs/saad-studio-premiere-reference-ar.md`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check` passed with CRLF/global Git ignore warnings only. Expected 15-second quotes are now `100.8 cr` for 720p and `115.2 cr` for 1080p from source prices `$2.10` and `$2.40`, using `40 credits/USD` plus 20% margin.
+- Errors discovered: The previous update used source price conversion only and did not include the requested margin.
+- Decisions: Keep the margin as an explicit constant in `lib/pricing.ts` for clarity and align the default fallback/admin rate with the 720p margin price.
+
+#### Latest task: Make Seedance 2.0 Turbo price change by quality (2026-08-14)
+- Status: Completed; updated central video pricing so `Seedance 2.0 Turbo` (`seedance2f` and the `bytedance/seedance-2.0/*-turbo` aliases) uses the user-provided source prices per 15 seconds: `720p = $2.10` and `1080p = $2.40`.
+- Affected files: `lib/pricing.ts`, `lib/pricing-models.ts`, `docs/saad-studio-premiere-reference-ar.md`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. Expected 15-second quotes are now `84 cr` for 720p and `96 cr` for 1080p using the active `40 credits/USD` conversion.
+- Errors discovered: `Seedance 2.0 Turbo` previously returned the same price for 720p and 1080p because the `seedance2f` special pricing branch treated every non-480p quality as one flat value.
+- Decisions: Keep the pricing change in the central `lib/pricing.ts` path so the `/video` estimate and `/api/video` charge stay aligned; update the default pricing model note/rate for fallback/admin visibility.
+
+#### Latest task: Upgrade Saad Studio HUD loader preview visual quality (2026-08-14)
+- Status: Completed; replaced the basic logo loader preview with a more cinematic HUD composition using layered orbital rings, scanline motion, corner brackets, readouts, particles, progress state, and a self-contained embedded logo.
+- Affected files: `PROJECT_CONTEXT.md` only inside the repository; the preview fragment was updated under `C:\Users\PC\.codex\visualizations\2026\08\13\019ffcd4-1eba-70c3-b6cc-00c6b5b22f91\saad-hud-loader\`.
+- Verification: Confirmed the updated `saad-hud-loader.html` contains the embedded `data:image/png;base64` logo and remains a preview-only file; no application files were changed.
+- Errors discovered: The first preview was visually too basic for the intended premium generation loading state.
+- Decisions: Keep the design as a richer standalone preview and wait for user approval before implementing it in the live generation UI.
+
+#### Latest task: Fix HUD loader preview logo visibility (2026-08-14)
+- Status: Completed; embedded the Saad Studio logo directly into the preview HTML as a data URI so the inline preview can render it without relying on a relative local image path.
+- Affected files: `PROJECT_CONTEXT.md` only inside the repository; the preview fragment was updated under `C:\Users\PC\.codex\visualizations\2026\08\13\019ffcd4-1eba-70c3-b6cc-00c6b5b22f91\saad-hud-loader\`.
+- Verification: Confirmed `saad-hud-loader.html` contains `data:image/png;base64`; no application files were changed.
+- Errors discovered: The inline visualization did not display the relative local image reference `./saad-logo.png`.
+- Decisions: Keep this as a self-contained preview only until the user approves applying it to the generation loading state.
+
+#### Latest task: Create standalone Saad Studio HUD generation loader preview (2026-08-14)
+- Status: Completed; created a preview-only HUD loading animation outside the app code so the user can inspect it before any implementation.
+- Affected files: `PROJECT_CONTEXT.md` only inside the repository; preview files were written under the thread visualization workspace at `C:\Users\PC\.codex\visualizations\2026\08\13\019ffcd4-1eba-70c3-b6cc-00c6b5b22f91\saad-hud-loader\`.
+- Verification: Confirmed `saad-hud-loader.html` and copied `saad-logo.png` exist; no application files were changed.
+- Errors discovered: None.
+- Decisions: Keep the loader as a separate preview because the user explicitly asked to see it before applying it during generation.
+
 #### Latest task: Convert remaining visible `/edit` tools to WaveSpeed (2026-08-13)
 - Status: Completed.
   - Converted `/api/generate/remove-bg` from KIE `recraft/remove-background` to WaveSpeed `wavespeed-ai/image-background-remover`.

@@ -18,6 +18,12 @@ import { isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-mod
 let _cachedModels: PricingModel[] | null = null;
 let _cacheTime = 0;
 const CACHE_TTL_MS = 60_000;
+const SEEDANCE_20_TURBO_CREDITS_PER_USD = 40;
+const SEEDANCE_20_TURBO_MARGIN_MULTIPLIER = 1.2;
+const SEEDANCE_20_TURBO_USD_PER_15S: Record<"720p" | "1080p", number> = {
+  "720p": 2.10,
+  "1080p": 2.40,
+};
 
 const normalizeKey = (value: string): string =>
   value
@@ -554,18 +560,18 @@ const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
 };
 
 const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
-  "bytedance/seedance-2-fast":                  { "720p": 1.0, "1080p": 0.75 / 0.70 },
-  "bytedance/seedance-2.0/text-to-video-turbo": { "720p": 1.0, "1080p": 0.75 / 0.70 },
-  "bytedance/seedance-2.0/image-to-video-turbo": { "720p": 1.0, "1080p": 0.75 / 0.70 },
+  "bytedance/seedance-2-fast":                  { "720p": 1.0, "1080p": 2.40 / 2.10 },
+  "bytedance/seedance-2.0/text-to-video-turbo": { "720p": 1.0, "1080p": 2.40 / 2.10 },
+  "bytedance/seedance-2.0/image-to-video-turbo": { "720p": 1.0, "1080p": 2.40 / 2.10 },
   "bytedance/seedance-2.5/text-to-video-turbo": { "480p": 0.5, "720p": 1.0 },
   "bytedance/seedance-2.5/image-to-video-turbo": { "480p": 0.5, "720p": 1.0 },
   "bytedance/seedance-2.5/image-to-video-spicy": { "480p": 0.5, "720p": 1.0 },
   "bytedance/seedance-2-mini":                  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "bytedance/seedance-2.0-mini/text-to-video":  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "bytedance/seedance-2.0-mini/image-to-video": { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
-  "bytedance/seedance-v2/text-to-video-fast":   { "720p": 1.0, "1080p": 0.75 / 0.70 },
+  "bytedance/seedance-v2/text-to-video-fast":   { "720p": 1.0, "1080p": 2.40 / 2.10 },
   "bytedance/seedance-v2/text-to-video-mini":   { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
-  "seedance2f":                                 { "720p": 1.0, "1080p": 0.75 / 0.70 },
+  "seedance2f":                                 { "720p": 1.0, "1080p": 2.40 / 2.10 },
   "seedance2mini":                              { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "bytedance/seedance-2":                       { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "bytedance/seedance-2.0/text-to-video":       { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
@@ -653,11 +659,10 @@ export async function getGenerationCost(
 
   if (constitutionId === "seedance2f") {
     const q = quality?.trim().toLowerCase() ?? "720p";
-    if (q === "480p") {
-      return parseFloat(((25 / 15) * durationSec * numUnits).toFixed(2));
-    } else {
-      return parseFloat(((55 / 15) * durationSec * numUnits).toFixed(2));
-    }
+    const sourceUsdPer15s = q === "1080p"
+      ? SEEDANCE_20_TURBO_USD_PER_15S["1080p"]
+      : SEEDANCE_20_TURBO_USD_PER_15S["720p"];
+    return parseFloat(((sourceUsdPer15s / 15) * SEEDANCE_20_TURBO_MARGIN_MULTIPLIER * SEEDANCE_20_TURBO_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
   }
 
   if (constitutionId === "seedance2") {
@@ -777,11 +782,10 @@ export function getGenerationCostSync(
 
   if (constitutionId === "seedance2f") {
     const q = quality?.trim().toLowerCase() ?? "720p";
-    if (q === "480p") {
-      return parseFloat(((25 / 15) * durationSec * numUnits).toFixed(2));
-    } else {
-      return parseFloat(((55 / 15) * durationSec * numUnits).toFixed(2));
-    }
+    const sourceUsdPer15s = q === "1080p"
+      ? SEEDANCE_20_TURBO_USD_PER_15S["1080p"]
+      : SEEDANCE_20_TURBO_USD_PER_15S["720p"];
+    return parseFloat(((sourceUsdPer15s / 15) * SEEDANCE_20_TURBO_MARGIN_MULTIPLIER * SEEDANCE_20_TURBO_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
   }
 
   if (constitutionId === "seedance2") {
