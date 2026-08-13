@@ -1,3 +1,51 @@
+#### Latest task: Commit and push `/edit` upload/credit fix and tool inspection notes (2026-08-13)
+- Status: In progress at commit time per explicit user request.
+- Affected files: Git staging/commit/push task for the current working tree.
+- Verification: Prior `npx.cmd tsc --noEmit --pretty false` and `git diff --check` passed for the implementation changes, with only CRLF/global Git ignore warnings; the later all-tools inspection was static read/search only.
+- Decisions: Follow the user's explicit `git add .`, `git commit -m "update"`, and `git push` request.
+
+#### Latest task: Inspect all `/edit` tools after upload/credit errors (2026-08-13)
+- Status: Inspection completed; no new behavior changes applied in this pass.
+- Affected files: `PROJECT_CONTEXT.md` only for this inspection note. Existing pending implementation changes remain in `app/(dash)/(routes)/edit/page.tsx` and `docs/saad-studio-premiere-reference-ar.md` from the upload/credit fix.
+- Findings:
+  - `/edit` has generic tools plus embedded pages for `relight`, `faceswap`, and `inpaint`; those embedded pages still duplicate the older `/api/media/upload` multipart-first logic and do not use the new signed-upload-first/auth helper.
+  - Production `413 Content Too Large` is consistent with large multipart uploads being rejected before or around the app route; signed upload first is the correct path for large files, but it must be shared across embedded tool pages too.
+  - Generic `/edit` generation routes are wired for `bgremove`, `watermark`, `upscale`, and generic image edit tools, but several UI controls are currently UI-only and not sent to the API payloads: upscale model/denoise/sharpness/face enhance, bg format/feather, outpaint direction/margin, style preset/strength, motion direction/speed, and some edit-strength values.
+  - `relight`, `face-swap`, `remove-bg`, `watermark-remove`, and `upscale` API routes have server-side Clerk auth and insufficient-credit handling. Generic `/edit` now stops simulation for credit errors, but embedded pages only show server errors through their own `useGenerationGate`/safe error flow.
+- Verification: Static inspection with `rg` and targeted file reads; no test run was required for this inspection-only pass.
+- Remaining step: If approved, extract a shared authenticated media upload helper and apply it to `/edit`, embedded `relight`, `face-swap`, and `nano-banana-pro-inpaint`, then decide whether UI-only controls should be wired to real API payloads or hidden.
+
+#### Latest task: Fix `/edit` upload 413 console error and insufficient-credit simulation fallback (2026-08-13)
+- Status: Completed.
+  - Changed `/edit` uploads so files larger than 4 MB request a signed `/api/media/upload` URL first, then upload directly to cloud storage, avoiding the large multipart POST that production rejects with `413 Content Too Large`.
+  - Kept multipart `/api/media/upload` for smaller files, with signed upload fallback if the server upload fails.
+  - Reused the authenticated Clerk upload headers added in the previous pass for both signing and multipart paths.
+  - Prevented `/edit` from falling back to simulated generation when the real API failure is an insufficient-credit/top-up error; the page now surfaces the credit error instead of showing simulated success.
+- Affected files: `app/(dash)/(routes)/edit/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check` passed with CRLF/global git ignore warnings only.
+- Errors discovered: The previous upload fix still allowed large files to hit the multipart endpoint first, so the browser console could still show a 413 even if signed fallback later worked. Also, `/edit` treated insufficient-credit API errors as generic provider failures and entered demo simulation.
+- Decisions: Use signed upload first only for files over the browser/serverless safety threshold, preserving the server upload path for small files; classify credit/top-up errors as terminal UI errors rather than demo fallback triggers.
+
+#### Previous task: Fix `/edit` media upload 413 -> signed fallback 401 (2026-08-13)
+- Status: Completed.
+  - Hardened `/edit` upload flows so media upload starts only after Clerk auth is loaded and the user is signed in.
+  - Added explicit Clerk bearer authorization plus same-origin credentials to both multipart `/api/media/upload` attempts and JSON signed-upload fallback attempts for the main media file and Face Swap reference upload.
+  - This keeps the existing server-side multipart path first, then lets large files fall back to direct signed cloud upload without the signing request losing auth and returning `401 Unauthorized`.
+- Affected files: `app/(dash)/(routes)/edit/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed.
+- Errors discovered: `/edit` was public and had no upload auth guard; a large unauthenticated or cookie-missing multipart request could be rejected as `413 Content Too Large` before route code, then the lightweight JSON signing fallback reached `/api/media/upload` and failed as `401 Unauthorized`.
+- Decisions: Preserve the existing `/api/media/upload` backend contract and fix the page caller by requiring sign-in and forwarding Clerk auth explicitly instead of making storage signing public.
+
+#### Latest task: Answer whether agent execution is real for Hook Studio fix (2026-08-12)
+- Status: Completed.
+  - Confirmed the latest local and remote Git commit is `4bf8ed4 restore hook studio seedance models` on `main`.
+  - Confirmed local Hook Studio code injects `Seedance 2.5` first without filtering existing models, and `lib/hook-studio-config.ts` still contains `Seedance 2.0`, `Seedance 2.0 Turbo`, `Seedance 2.0 Mini`, and `Seedance 2.0 Fast`.
+  - Checked the live Hook Studio URL: it returns `200 OK` from Vercel as a signed-out visitor, and the published Hook Studio page chunk contains `Seedance 2.5` with no `isLegacySeedance20HookModel` filter.
+- Affected files: `PROJECT_CONTEXT.md`.
+- Verification: `curl.exe -I https://www.saadstudio.app/hook-studio` returned `200 OK`; live `/api/models` returned `401 Unauthorized` without session, so logged-in dropdown data could not be fully inspected from this environment.
+- Errors discovered: The agent previously made a real but incorrect implementation decision by hiding old models; it was corrected and pushed.
+- Decisions: Explain honestly that execution is real, but live logged-in UI verification needs the user's browser/session or authenticated check.
+
 #### Latest task: Restore Hook Studio existing models while keeping Seedance 2.5 added (2026-08-12)
 - Status: Completed.
   - Removed the Hook Studio filter that incorrectly hid existing `Seedance 2.0` model rows from the video model dropdown.

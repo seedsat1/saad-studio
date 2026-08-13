@@ -595,6 +595,14 @@
 - إذا كانت صورة الـ clipboard لا تحمل MIME type واضحًا، يتم استنتاج النوع من امتداد الملف قبل طلب signed upload.
 - عند فشل الرفع، يجب عرض سبب الخطأ أو status القادم من السيرفر بدل رسالة عامة فقط.
 
+## Edit page authenticated upload fallback behavior (2026-08-13)
+
+- `/edit` starts image/video upload only after Clerk auth is loaded and the user is signed in; signed-out users should see the auth modal instead of attempting storage writes.
+- `/edit` sends same-origin credentials and, when available, an explicit Clerk bearer token to `/api/media/upload` for both the multipart upload path and the JSON signed-upload fallback.
+- Files larger than 4 MB use the authenticated JSON signed-upload path first, then upload directly to cloud storage, so production does not emit a large multipart `413 Content Too Large` request before fallback.
+- The multipart path remains first only for small uploads, with signed direct upload as fallback; the signing request must remain authenticated and must not be made public.
+- `/edit` must not fall back to simulated generation when the real API error is insufficient credits/top-up required; credit errors are terminal UI errors.
+
 ## Cinema Flow clipboard image paste behavior (2026-07-15)
 
 - صفحة الموقع `/cinema-flow` تدعم لصق الصور مباشرة داخل صندوق محادثة الوكيل.

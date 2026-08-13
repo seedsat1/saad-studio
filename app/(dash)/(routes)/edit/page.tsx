@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import NextImage from "next/image";
+import { useAuth } from "@clerk/nextjs";
 import {
   Wand2,
   Lightbulb,
@@ -44,6 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/use-language";
 import { normalizeMediaUrl } from "@/lib/storage";
+import { useAuthModal } from "@/hooks/use-auth-modal";
 import ToolShowcase from "@/components/ToolShowcase";
 import RelightPage from "../apps/tool/relight/page";
 import FaceSwapPage from "../apps/tool/face-swap/page";
@@ -339,6 +341,18 @@ const toAbsoluteEditMediaUrl = (url: string): string => {
 };
 
 // ─── Page Component ────────────────────────────────────────────────────────────
+const MAX_BROWSER_MULTIPART_UPLOAD_BYTES = 4 * 1024 * 1024;
+
+function isCreditFailureMessage(message: string | null | undefined): boolean {
+  const value = String(message || "").toLowerCase();
+  return (
+    value.includes("insufficient credit") ||
+    value.includes("credits insufficient") ||
+    value.includes("current balance") ||
+    value.includes("top up")
+  );
+}
+
 function useEditTranslation() {
   const { lang } = useLanguage();
   const dict: Record<string, Record<string, string>> = {
@@ -469,6 +483,8 @@ export default function EditPage() {
   const { t } = useEditTranslation();
   const searchParams = useSearchParams();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const { isLoaded: isAuthLoaded, isSignedIn, getToken } = useAuth();
+  const { onOpen: openAuthModal } = useAuthModal();
 
   // States
   const [activeTool, setActiveTool] = useState<string>("upscale");
@@ -712,66 +728,95 @@ export default function EditPage() {
     }),
   };
 
+  const ensureUploadAuthHeaders = useCallback(async (): Promise<Record<string, string> | null> => {
+    if (!isAuthLoaded) {
+      setSimulatedWarning("Authentication is still loading. Please try again in a moment.");
+      return null;
+    }
+    if (!isSignedIn) {
+      openAuthModal("signup");
+      setSimulatedWarning("Please sign in before uploading media.");
+      return null;
+    }
+
+    const token = await getToken().catch(() => null);
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, [getToken, isAuthLoaded, isSignedIn, openAuthModal]);
+
+  const uploadWithSignedUrl = useCallback(async (file: File, authHeaders: Record<string, string>) => {
+    const fileType = file.type || "application/octet-stream";
+    const signRes = await fetch("/api/media/upload", {
+      method: "POST",
+      headers: { ...authHeaders, "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        fileName: file.name || `edit-upload-${Date.now()}`,
+        fileType,
+      }),
+    });
+
+    if (!signRes.ok) {
+      const errText = await signRes.text();
+      throw new Error(`Cloud storage signing failed: ${errText}`);
+    }
+
+    const { signedUrl, publicUrl } = await signRes.json();
+    if (!signedUrl || !publicUrl) {
+      throw new Error("Failed to receive signed URL from server.");
+    }
+
+    const uploadRes = await fetch(signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": fileType },
+      body: file,
+    });
+
+    if (!uploadRes.ok) {
+      throw new Error("Direct cloud upload failed.");
+    }
+
+    return String(publicUrl);
+  }, []);
+
+  const uploadEditMediaFile = useCallback(async (file: File, authHeaders: Record<string, string>) => {
+    if (file.size > MAX_BROWSER_MULTIPART_UPLOAD_BYTES) {
+      return uploadWithSignedUrl(file, authHeaders);
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/media/upload", {
+        method: "POST",
+        headers: authHeaders,
+        credentials: "include",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.publicUrl) return String(data.publicUrl);
+        throw new Error("Upload response did not contain publicUrl");
+      }
+
+      throw new Error(`Server returned status ${response.status}`);
+    } catch (err) {
+      console.warn("Server media upload failed, attempting direct signed cloud upload fallback...", err);
+      return uploadWithSignedUrl(file, authHeaders);
+    }
+  }, [uploadWithSignedUrl]);
+
   // File Upload Handler with Direct Cloud Upload Fallback (fixes 413 Payload Too Large)
   const handleFileUpload = async (file: File) => {
     if (!file) return;
     setIsUploading(true);
     setSimulatedWarning(null);
     try {
-      let publicUrl = "";
+      const authHeaders = await ensureUploadAuthHeaders();
+      if (!authHeaders) return;
 
-      // Attempt 1: Try multipart/form-data upload via local server
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await fetch("/api/media/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          publicUrl = data.publicUrl;
-        } else {
-          throw new Error(`Server returned status ${response.status}`);
-        }
-      } catch (err) {
-        console.warn("Local server upload failed (possibly due to size limits), attempting direct S3/R2 upload fallback...", err);
-
-        // Attempt 2: Direct browser PUT upload to S3/R2 using signed URL (bypasses Nginx client_max_body_size and Vercel limits)
-        const signRes = await fetch("/api/media/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileType: file.type,
-          }),
-        });
-
-        if (!signRes.ok) {
-          const errText = await signRes.text();
-          throw new Error(`Cloud storage signing failed: ${errText}`);
-        }
-
-        const { signedUrl, publicUrl: cloudUrl } = await signRes.json();
-        if (!signedUrl || !cloudUrl) {
-          throw new Error("Failed to receive signed URL from server.");
-        }
-
-        // Upload the binary directly to R2/S3
-        const uploadRes = await fetch(signedUrl, {
-          method: "PUT",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
-
-        if (!uploadRes.ok) {
-          throw new Error("Direct cloud upload failed.");
-        }
-
-        publicUrl = cloudUrl;
-      }
+      const publicUrl = await uploadEditMediaFile(file, authHeaders);
 
       if (publicUrl) {
         setMediaUrl(publicUrl);
@@ -798,59 +843,10 @@ export default function EditPage() {
     setIsUploadingFace(true);
     setSimulatedWarning(null);
     try {
-      let publicUrl = "";
+      const authHeaders = await ensureUploadAuthHeaders();
+      if (!authHeaders) return;
 
-      // Attempt 1: Try multipart/form-data upload via local server
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await fetch("/api/media/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          publicUrl = data.publicUrl;
-        } else {
-          throw new Error(`Server returned status ${response.status}`);
-        }
-      } catch (err) {
-        console.warn("Local server upload failed, attempting direct cloud upload fallback...", err);
-
-        // Attempt 2: Direct browser PUT upload to cloud storage using signed URL
-        const signRes = await fetch("/api/media/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileType: file.type,
-          }),
-        });
-
-        if (!signRes.ok) {
-          const errText = await signRes.text();
-          throw new Error(`Cloud storage signing failed: ${errText}`);
-        }
-
-        const { signedUrl, publicUrl: cloudUrl } = await signRes.json();
-        if (!signedUrl || !cloudUrl) {
-          throw new Error("Failed to receive signed URL from server.");
-        }
-
-        const uploadRes = await fetch(signedUrl, {
-          method: "PUT",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
-
-        if (!uploadRes.ok) {
-          throw new Error("Direct cloud upload failed.");
-        }
-
-        publicUrl = cloudUrl;
-      }
+      const publicUrl = await uploadEditMediaFile(file, authHeaders);
 
       if (publicUrl) {
         setFaceImageUrl(publicUrl);
@@ -1300,6 +1296,13 @@ export default function EditPage() {
         handleClearMask();
       }
     } catch (err: any) {
+      if (isCreditFailureMessage(err?.message)) {
+        console.warn("Real API failed due to insufficient credits:", err.message);
+        setSimulatedWarning(err.message || "Credits insufficient. Please top up to continue.");
+        setIsProcessing(false);
+        return;
+      }
+
       console.warn("Real API failed, falling back to simulated generation:", err.message);
       
       // Fallback simulation
