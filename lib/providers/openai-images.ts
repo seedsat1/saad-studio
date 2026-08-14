@@ -20,17 +20,21 @@ function client(): OpenAI {
 /** Internal id → OpenAI upstream model id. */
 const MODEL_MAP: Record<string, string> = {
   "gpt-image-1":                  "gpt-image-1",
-  "gpt-image-2-text-to-image":    "gpt-image-1",   // alias until gpt-image-2 GA
-  "gpt-image/1.5-text-to-image":  "gpt-image-1",   // alias
+  "gpt-image-2-text-to-image":    "gpt-image-2",
+  "gpt-image-2-image-to-image":   "gpt-image-2",
+  "gpt-image/1.5-text-to-image":  "gpt-image-1.5",
+  "gpt-image/1.5-image-to-image": "gpt-image-1.5",
   "dall-e-3":                     "dall-e-3",
   "openai/dall-e-3":              "dall-e-3",
 };
 
 /** OpenAI supports these sizes; map our internal aspect+resolution. */
-function sizeFor(aspect: string | undefined, resolution: string | undefined): "1024x1024" | "1792x1024" | "1024x1792" {
+type OpenAIImageSize = "1024x1024" | "1536x1024" | "1024x1536" | "1792x1024" | "1024x1792";
+
+function sizeFor(upstream: string, aspect: string | undefined, resolution: string | undefined): OpenAIImageSize {
   const a = aspect ?? "1:1";
-  if (a === "16:9" || a === "4:3") return "1792x1024";
-  if (a === "9:16" || a === "3:4") return "1024x1792";
+  if (a === "16:9" || a === "4:3") return upstream === "dall-e-3" ? "1792x1024" : "1536x1024";
+  if (a === "9:16" || a === "3:4") return upstream === "dall-e-3" ? "1024x1792" : "1024x1536";
   // resolution is informational for OpenAI — size encodes both aspect and resolution
   void resolution;
   return "1024x1024";
@@ -42,12 +46,12 @@ export async function openaiGenerateImage(input: ImageGenInput): Promise<Provide
     throw new ProviderError("openai", "model", `Unknown OpenAI model: ${input.modelId}`);
   }
 
-  const size = sizeFor(input.aspectRatio, input.resolution);
+  const size = sizeFor(upstream, input.aspectRatio, input.resolution);
   const n = Math.max(1, Math.min(input.numImages ?? 1, 4));
 
   // Image-to-image / edit flow — OpenAI exposes a separate `images.edit`
   // endpoint. We use that when an imageUrl is present.
-  if ((input.imageUrl || input.imageUrls?.length) && upstream === "gpt-image-1") {
+  if ((input.imageUrl || input.imageUrls?.length) && upstream.startsWith("gpt-image")) {
     return openaiEdit(upstream, input, size, n);
   }
 
@@ -56,7 +60,7 @@ export async function openaiGenerateImage(input: ImageGenInput): Promise<Provide
     res = await client().images.generate({
       model: upstream,
       prompt: input.prompt,
-      size,
+      size: size as unknown as "1024x1024",
       n,
       // gpt-image-1 always returns b64; dall-e-3 returns URL by default.
       response_format: upstream === "dall-e-3" ? "url" : undefined,
@@ -80,7 +84,7 @@ export async function openaiGenerateImage(input: ImageGenInput): Promise<Provide
 async function openaiEdit(
   upstream: string,
   input: ImageGenInput,
-  size: "1024x1024" | "1792x1024" | "1024x1792",
+  size: OpenAIImageSize,
   n: number,
 ): Promise<ProviderResult> {
   const refUrls = Array.from(new Set([...(input.imageUrls ?? []), ...(input.imageUrl ? [input.imageUrl] : [])])).slice(0, 16);

@@ -15,9 +15,10 @@ const VIDEO_MODEL_ID_COST_MAP = new Map(VIDEO_MODELS.map((m) => [m.id, m.creditC
 const VIDEO_MODEL_BY_ID_MAP = new Map(VIDEO_MODELS.map((m) => [m.id, m]));
 const VIDEO_ROUTE_REGISTRY_MAP = new Map(VIDEO_MODEL_REGISTRY.map((m) => [m.api_route, m]));
 const SEEDANCE_25_CREDITS_PER_USD = 40;
+const SEEDANCE_25_MARGIN_MULTIPLIER = 1.4;
 const SEEDANCE_25_USD_PER_SECOND = {
   "480p": 0.162,
-  "720p": 0.342,
+  "720p": 0.18,
 } as const;
 const MINIMAX_H3_CREDITS_PER_USD = 40;
 const MINIMAX_H3_768P_USD_PER_SECOND = 0.4;
@@ -226,7 +227,7 @@ function getSeedance25TurboCredits(payload?: VideoPayload): number {
   const quality = readQuality(payload);
   const q = quality.includes("480") ? "480p" : "720p";
   const usdPerSecond = SEEDANCE_25_USD_PER_SECOND[q];
-  return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
+  return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_MARGIN_MULTIPLIER * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }
 
 function getSeedance25SpicyCredits(payload?: VideoPayload): number {
@@ -234,7 +235,7 @@ function getSeedance25SpicyCredits(payload?: VideoPayload): number {
   const quality = readQuality(payload);
   const q = quality.includes("480") ? "480p" : "720p";
   const usdPerSecond = SEEDANCE_25_USD_PER_SECOND[q];
-  return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
+  return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_MARGIN_MULTIPLIER * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }
 function getSora2Credits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 4);
@@ -282,12 +283,12 @@ function getVeo31Credits(modelRoute: string, payload?: VideoPayload): number {
     usdPerSecond = normalized.resolution === "4k" ? 0.60 : 0.40;
   }
 
-  return parseFloat(Math.max(1, usdPerSecond * normalized.duration * 30).toFixed(2));
+  return parseFloat(Math.max(1, usdPerSecond * normalized.duration * 28).toFixed(2));
 }
 
 function getGeminiOmniFlashCredits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 10);
-  return parseFloat((duration * 3.0).toFixed(2));
+  return parseFloat((duration * 2.8).toFixed(2));
 }
 
 function applyGenericRouteDynamics(modelRoute: string, baseCost: number, payload?: VideoPayload): number {

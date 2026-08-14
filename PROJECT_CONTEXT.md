@@ -1,3 +1,59 @@
+#### Latest task: Commit and push current image/pricing updates (2026-08-14)
+- Status: In progress at commit time per explicit user request.
+- Affected files: Git staging/commit/push task for the current working tree containing image provider routing, image reference ordering/caps, pricing margin updates, and project documentation.
+- Verification: Prior `npx.cmd tsc --noEmit --pretty false`, `git diff --check`, and targeted provider-route `rg` checks passed before staging.
+- Decisions: Follow the user's explicit `git add .`, `git commit -m "update"`, and `git push` request without opening a PR.
+
+#### Latest task: Correct image provider routing sources and reference caps (2026-08-14)
+- Status: Completed. Corrected the image-provider policy so Google image products use Google official APIs, OpenAI image products use OpenAI official APIs, and all other curated image models use WaveSpeed instead of KIE-derived routes/caps.
+- Affected files: `app/api/generate/image/route.ts`, `app/api/panel/generate/image/route.ts`, `lib/wavespeed-image-routing.ts`, `lib/image-models.ts`, `lib/providers/openai-images.ts`, `docs/saad-studio-premiere-reference-ar.md`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - `/api/generate/image` now routes curated non-Google/OpenAI image models through the shared WaveSpeed route resolver and returns a clear unsupported-provider error instead of falling back to KIE.
+  - `/api/panel/generate/image` now uses the same WaveSpeed route resolver and cap checks for Seedream, Qwen, Z-Image, Grok, Wan, and FLUX.2 image rows.
+  - OpenAI direct routing now uses official `gpt-image-1.5` and `gpt-image-2` upstream ids for matching rows and supports edit requests through the OpenAI image edit endpoint.
+- Verified caps recorded: Google Nano Banana direct 14, legacy Gemini 2.5 image rows 3, Imagen text rows 0; OpenAI edit rows 16; WaveSpeed Seedream 4.5/5 Lite/5 Pro edit 10; Z-Image 1; Qwen 2.0 edit 3; Qwen edit 1; Grok edit 1; Wan 2.7 edit 3; FLUX.2 edit 3.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `rg` confirmed no KIE/KIE API references remain in the patched image generation route files and shared image routing helper.
+- Errors discovered: A prior review used KIE or non-selected provider documentation for models that this product should source from Google/OpenAI/WaveSpeed, and both public and panel image routes still contained KIE fallback logic.
+- Decisions: Provider source authority now follows the user's product policy exactly: Google from Google, OpenAI from OpenAI, all remaining curated image models from WaveSpeed; unsupported ids fail visibly rather than silently changing providers.
+#### Latest task: Fix /image reference ordering and verified image reference caps (2026-08-14)
+- Status: Completed. Fixed `/image` reference upload ordering and added server-side reference-cap validation for image generation requests.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `app/api/generate/image/route.ts`, `lib/image-models.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `/image` now sorts reference image files by natural filename order for file picker, drag/drop, paste, Reference Studio attach, and generated-image reuse.
+  - `/api/generate/image` now rejects direct requests that send reference images to models with `maxRefImages = 0`, or more references than the selected model accepts.
+  - Corrected Google Imagen 4 Fast / Imagen 4 / Imagen 4 Ultra to `0` reference images for the current direct Google route.
+  - Corrected Grok Imagine I2I to `1` reference image based on the current KIE route behavior.
+- Source review:
+  - Google official Gemini/Nano Banana docs: direct Gemini image rows support up to 14 reference images, while Imagen is deprecated and the current direct Imagen route is text-to-image only.
+  - OpenAI generated SDK/OpenAPI types: GPT image edit supports up to 16 input images.
+  - WaveSpeed Seedream V5 Pro/Lite docs: edit routes accept up to 10 reference images for the configured WaveSpeed paths.
+  - QwenCloud docs: Qwen image editing supports 1 to 3 inputs; Wan 2.7 Image Edit Pro supports 1 to 3 input images on the current WaveSpeed route.
+  - Black Forest Labs docs: FLUX.2 API supports up to 8 reference images for Pro/Flex/Max API paths.
+  - KIE current pages/search snippets were used for KIE-routed rows such as Seedream 4.5, Grok, and provider wrapper rows when no direct primary route is used.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
+- Decision: Enforce caps in the API instead of relying only on client-side slicing, and prefer the exact provider route used by this code when model-family docs expose different limits.
+
+#### Latest task: Inspect `/image` reference ordering (2026-08-14)
+- Status: Completed inspection; `/image` reference ordering is not currently normalized by natural filename order.
+- Affected files: `PROJECT_CONTEXT.md` only.
+- Verification: Read `app/(dash)/(routes)/image/page.tsx`; `handleAttach`, drag/drop, textarea paste, and `ReferenceStudioModal` attach append files directly with `setReferenceFiles((prev) => [...prev, ...files])`/single append, unlike `/video` which has `sortReferenceFilesByNaturalName`.
+- Errors discovered: Numbered reference image batches on `/image` can follow arbitrary browser/OS file order instead of `1.png`, `2.png`, `3.png`, etc.
+- Decisions: No product code changed in this inspection answer; the same natural filename sort used by `/video` should be applied to `/image` reference add paths if the user wants the behavior fixed.
+
+#### Latest task: Raise source-cost pricing margin to 40% across models (2026-08-14)
+- Status: Completed; changed source-cost-backed pricing margins to 40% for Seedance 2.0 Turbo, Seedance 2.5, Google video, and the generic quote path.
+- Affected files: `lib/pricing.ts`, `lib/credit-pricing.ts`, `lib/pricing-models.ts`, `docs/saad-studio-premiere-reference-ar.md`, `docs/pricing-and-provider-cost-reference-ar.md`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check` passed with Git config/CRLF warnings only. Manual arithmetic check: Seedance 2.5 720p 30s source `$5.40` -> `302.4 cr`; Seedance 2.0 Turbo 15s 720p/1080p -> `117.6`/`120.96 cr`; Google Omni 720p -> `2.8 cr/s`.
+- Errors discovered: Pricing docs still contained older 20%/25% notes after the first Seedance correction; one old Seedance 2.5 line remains encoded/mojibake in the long reference file, so an explicit superseding 40% rule was added next to it.
+- Decisions: Apply 40% as the default source-cost margin via `CREDIT_MARGIN_PERCENT`/fallback quote handling and explicit model constants; update Google video from 50% to 40% so source-cost video margins are consistent.
+
+#### Latest task: Correct WaveSpeed Seedance source pricing with margin (2026-08-14)
+- Status: Completed; updated Seedance video pricing from the user's WaveSpeed completed prediction screenshots.
+- Affected files: `lib/pricing.ts`, `lib/credit-pricing.ts`, `lib/pricing-models.ts`, `docs/saad-studio-premiere-reference-ar.md`, `PROJECT_CONTEXT.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. Manual arithmetic check: Seedance 2.5 720p 30s source `$5.40` -> `259.2 cr` with `40 credits/USD` plus 20% margin; Seedance 2.0 Turbo 1080p 15s source `$2.16` -> `103.68 cr` with the same margin formula.
+- Errors discovered: Seedance 2.5 720p still used the older `$0.342/s` actual-run value, and Seedance 2.0 Turbo 1080p still used `$2.40/15s` even though the new source screenshot shows `$2.16/15s`.
+- Decisions: Keep Seedance 2.5 `480p` at `$0.162/s` until a new completed 480p source run is provided; apply the same explicit 20% user-price margin used for Seedance 2.0 Turbo.
+
 #### Latest task: Commit and push reference ordering notes (2026-08-14)
 - Status: In progress at commit time per explicit user request.
 - Affected files: Git staging/commit/push task for the current working tree containing reference-ordering documentation and project memory notes.

@@ -120,6 +120,23 @@ function isAnnualUnlimitedImageModel(modelId: string) {
   return ANNUAL_UNLIMITED_IMAGE_MODEL_IDS.has(modelId);
 }
 
+function sortReferenceFilesByNaturalName(files: File[]): File[] {
+  return files
+    .map((file, index) => ({ file, index }))
+    .sort((a, b) => {
+      const byName = a.file.name.localeCompare(b.file.name, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+      return byName || a.index - b.index;
+    })
+    .map(({ file }) => file);
+}
+
+function appendReferenceFiles(prev: File[], next: File[]): File[] {
+  return sortReferenceFilesByNaturalName([...prev, ...next]);
+}
+
 // Shared with /gallery so albums sync across pages
 const ALBUMS_STORAGE_KEY = "saad_studio_gallery_albums_v1";
 interface Album { id: string; name: string; assetIds: string[] }
@@ -2300,7 +2317,7 @@ export default function ImageWorkspacePage() {
       setActiveTool("create");
       setReferenceFiles((prev) => {
         const cap = Math.max(1, targetModel.maxRefImages || 1);
-        return [...prev, file].slice(-cap);
+        return appendReferenceFiles(prev, [file]).slice(-cap);
       });
     } catch (err) {
       console.error("Failed to use image as reference", err);
@@ -2623,7 +2640,7 @@ export default function ImageWorkspacePage() {
   const handleAttach = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files).filter((f) => f.type.startsWith("image/")) : [];
     if (!files.length) return;
-    setReferenceFiles((prev) => [...prev, ...files]);
+    setReferenceFiles((prev) => appendReferenceFiles(prev, files));
     event.target.value = "";
   };
 
@@ -2645,7 +2662,7 @@ export default function ImageWorkspacePage() {
     e.stopPropagation();
     setComposerDragActive(false);
     const dropped = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
-    if (dropped.length) setReferenceFiles((prev) => [...prev, ...dropped]);
+    if (dropped.length) setReferenceFiles((prev) => appendReferenceFiles(prev, dropped));
   };
 
   return (
@@ -2792,7 +2809,7 @@ export default function ImageWorkspacePage() {
                   </div>
                 )}
                 <div className="w-full flex-1 min-h-[64px]">
-                  <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onPaste={(e) => { if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) { const pastedFiles = Array.from(e.clipboardData.files).filter(f => f.type.startsWith("image/")); if (pastedFiles.length > 0) { e.preventDefault(); setReferenceFiles(prev => [...prev, ...pastedFiles]); } } }} placeholder={composer.placeholder} disabled={!composer.promptEnabled} rows={Math.min(8, Math.max(3, prompt.split('\n').length))} className="w-full flex-1 resize-y bg-transparent p-1.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none disabled:opacity-60 overflow-y-auto leading-relaxed custom-scrollbar min-h-[64px] max-h-[220px]" />
+                  <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onPaste={(e) => { if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) { const pastedFiles = Array.from(e.clipboardData.files).filter(f => f.type.startsWith("image/")); if (pastedFiles.length > 0) { e.preventDefault(); setReferenceFiles(prev => appendReferenceFiles(prev, pastedFiles)); } } }} placeholder={composer.placeholder} disabled={!composer.promptEnabled} rows={Math.min(8, Math.max(3, prompt.split('\n').length))} className="w-full flex-1 resize-y bg-transparent p-1.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none disabled:opacity-60 overflow-y-auto leading-relaxed custom-scrollbar min-h-[64px] max-h-[220px]" />
                 </div>
                 <div className="flex items-center justify-between border-t border-white/5 pt-2 gap-2 flex-wrap sm:flex-nowrap">
                   <div className="flex items-center gap-2">
@@ -2900,7 +2917,7 @@ export default function ImageWorkspacePage() {
               .then((r) => r.blob())
               .then((blob) => {
                 const f = new File([blob], `${file.name || "ref"}.jpg`, { type: "image/jpeg" });
-                setReferenceFiles((prev) => [...prev, f]);
+                setReferenceFiles((prev) => appendReferenceFiles(prev, [f]));
               })
               .catch((err) => console.error("Failed to attach reference file:", err));
           }}

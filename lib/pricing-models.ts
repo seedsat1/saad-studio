@@ -70,6 +70,7 @@ export const SAAD_PLANS: SaadPlan[] = [
 
 // Pricing strategy: user pays 1.5x of provider cost (≥50% margin) to cover
 // Stripe fees and yield a healthy net profit.
+// Current source-cost-backed margin default is 40% (1.4x).
 // kieCredits values are aligned to actual KIE.ai per-call charges observed
 // in the live logs (some were previously understated, e.g. nano-banana-pro
 // was 4 in config but 18 in real calls).
@@ -89,7 +90,7 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"grok_vid_v15",  name:"Grok Imagine Video 1.5",  notes:"T2V",          type:"video",  provider:"kie",       billing:"per_sec", kieCredits:14.7,  waveUsd:0,     userCreditsRate:2.06,  maxDuration:15,   isActive:true  },
   { id:"grok_vid_v15_i2v", name:"Grok Imagine Video 1.5 I2V", notes:"I2V",      type:"video",  provider:"kie",       billing:"per_sec", kieCredits:14.7,  waveUsd:0,     userCreditsRate:2.06,  maxDuration:15,   isActive:true  },
   // Seedance 2.0 family: base rate is 720p — per-resolution multipliers applied in lib/pricing.ts.
-  { id:"seedance2f",    name:"Seedance 2.0 Fast",       notes:"fast source + 20% margin: $2.10/15s 720p, $2.40/15s 1080p", type:"video", provider:"kie",       billing:"per_sec", kieCredits:33.0,  waveUsd:0,     userCreditsRate:100.8 / 15,  maxDuration:15,   isActive:true  },
+  { id:"seedance2f",    name:"Seedance 2.0 Fast",       notes:"fast source + 40% margin: $2.10/15s 720p, $2.16/15s 1080p", type:"video", provider:"kie",       billing:"per_sec", kieCredits:33.0,  waveUsd:0,     userCreditsRate:117.6 / 15,  maxDuration:15,   isActive:true  },
   { id:"seedance2mini",  name:"Seedance 2.0 Mini",       notes:"720p base — pricing.ts adds res mult", type:"video", provider:"kie", billing:"per_sec", kieCredits:20.0,  waveUsd:0,     userCreditsRate:64 / 15, maxDuration:15,   isActive:true  },
   { id:"seedance2",     name:"Seedance 2.0",            notes:"720p base — pricing.ts adds res mult", type:"video", provider:"kie", billing:"per_sec", kieCredits:41.0,  waveUsd:0,     userCreditsRate:116 / 15, maxDuration:15,   isActive:true  },
   { id:"minimax_h3",    name:"Minimax H3",              notes:"768p actual WaveSpeed run: $0.40/s", type:"video", provider:"wavespeed", billing:"per_sec", kieCredits:0, waveUsd:0.40, userCreditsRate:16.0, maxDuration:15, isActive:true },
@@ -97,17 +98,17 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"sora2",         name:"Sora 2",                  notes:"10s max",      type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:20.0,  waveUsd:0,     userCreditsRate:3.41,  maxDuration:10,   isActive:true  },
   { id:"sora2_i2v",     name:"Sora 2 I2V",              notes:"img2vid",      type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:22.0,  waveUsd:0,     userCreditsRate:3.75,  maxDuration:10,   isActive:true  },
   { id:"sora2_pro",     name:"Sora 2 Pro",              notes:"15s max",      type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:30.0,  waveUsd:0,     userCreditsRate:5.12,  maxDuration:15,   isActive:true  },
-  { id:"veo31_lite",    name:"Google Veo 3.1 Lite",     notes:"Google official 0.05 USD/s 720p, 0.08 USD/s 1080p", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:1.5, maxDuration:8, isActive:true },
-  { id:"veo31_fast",    name:"Google Veo 3.1 Fast",     notes:"Google official 0.10 USD/s 720p, 0.12 USD/s 1080p, 0.30 USD/s 4K", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:3.0, maxDuration:8, isActive:true },
-  { id:"veo31",         name:"Google Veo 3.1",          notes:"Google official 0.40 USD/s 720p/1080p, 0.60 USD/s 4K", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:12.0, maxDuration:8, isActive:true },
-  { id:"veo3_fast",     name:"Google Veo 3 Fast",       notes:"Google official legacy fast", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:3.0, maxDuration:8, isActive:true },
-  { id:"veo3",          name:"Google Veo 3",            notes:"Google official legacy standard", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:12.0, maxDuration:8, isActive:true },
+  { id:"veo31_lite",    name:"Google Veo 3.1 Lite",     notes:"Google official 0.05 USD/s 720p, 0.08 USD/s 1080p + 40% margin", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:1.4, maxDuration:8, isActive:true },
+  { id:"veo31_fast",    name:"Google Veo 3.1 Fast",     notes:"Google official 0.10 USD/s 720p, 0.12 USD/s 1080p, 0.30 USD/s 4K + 40% margin", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:2.8, maxDuration:8, isActive:true },
+  { id:"veo31",         name:"Google Veo 3.1",          notes:"Google official 0.40 USD/s 720p/1080p, 0.60 USD/s 4K + 40% margin", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:11.2, maxDuration:8, isActive:true },
+  { id:"veo3_fast",     name:"Google Veo 3 Fast",       notes:"Google official legacy fast + 40% margin", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:2.8, maxDuration:8, isActive:true },
+  { id:"veo3",          name:"Google Veo 3",            notes:"Google official legacy standard + 40% margin", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:11.2, maxDuration:8, isActive:true },
   // Direct Google Gemini API rows. Exact per-resolution USD rates are enforced in lib/pricing.ts.
-  { id:"veo31_gem_lite", name:"Veo 3.1 Lite (Gemini)",  notes:"direct Google official", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:1.5, maxDuration:8, isActive:true },
-  { id:"veo31_gem_fast", name:"Veo 3.1 Fast (Gemini)",  notes:"direct Google official", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:3.0, maxDuration:8, isActive:true },
-  { id:"veo31_gem",      name:"Veo 3.1 Pro (Gemini)",   notes:"direct Google official", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:12.0, maxDuration:8, isActive:true },
+  { id:"veo31_gem_lite", name:"Veo 3.1 Lite (Gemini)",  notes:"direct Google official + 40% margin", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:1.4, maxDuration:8, isActive:true },
+  { id:"veo31_gem_fast", name:"Veo 3.1 Fast (Gemini)",  notes:"direct Google official + 40% margin", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:2.8, maxDuration:8, isActive:true },
+  { id:"veo31_gem",      name:"Veo 3.1 Pro (Gemini)",   notes:"direct Google official + 40% margin", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:11.2, maxDuration:8, isActive:true },
   { id:"gemini_omni_video", name:"Gemini Omni Video",    notes:"replaced by Gemini Omni Flash", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:3.0, maxDuration:10, isActive:false },
-  { id:"gemini_omni_flash", name:"Gemini Omni Flash",    notes:"Google official effective 0.10 USD/s 720p", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:3.0, maxDuration:10, isActive:true },
+  { id:"gemini_omni_flash", name:"Gemini Omni Flash",    notes:"Google official effective 0.10 USD/s 720p + 40% margin", type:"cinema", provider:"kie", billing:"per_sec", kieCredits:0, waveUsd:0, userCreditsRate:2.8, maxDuration:10, isActive:true },
   { id:"nano_pro",      name:"Nano Banana Pro",         notes:"4K I2I",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:18,    waveUsd:0,     userCreditsRate:2.0,   maxDuration:null, isActive:true  },
   { id:"nano2",         name:"Nano Banana 2",           notes:"T2I",          type:"image",  provider:"kie",       billing:"flat",    kieCredits:3.5,   waveUsd:0,     userCreditsRate:2.0,   maxDuration:null, isActive:true  },
   { id:"nano2_lite",    name:"Nano Banana 2 Lite",      notes:"T2I Lite",     type:"image",  provider:"kie",       billing:"flat",    kieCredits:2.5,   waveUsd:0,     userCreditsRate:1.0,   maxDuration:null, isActive:true  },

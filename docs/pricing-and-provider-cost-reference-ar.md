@@ -318,3 +318,8 @@
 8. عدم افتراض أن `kieCredits` المسجلة صحيحة دون مقارنتها بالتكلفة الحقيقية للمزود.
 
 الملفات البرمجية المرجعية مذكورة في القسم الأول، والتعارضات المعروفة مذكورة في القسم 13.
+## Current Source-Cost Margin Rule (2026-08-14)
+
+- Default margin for source-cost quote paths is 40% via `CREDIT_MARGIN_PERCENT`.
+- `AUDIO_CREDIT_MARGIN_PERCENT` is still accepted only as a legacy fallback.
+- Fixed `userCreditsRate` model rows remain explicit sale prices unless a model has a source-cost-specific pricing function.

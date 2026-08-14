@@ -19,10 +19,10 @@ let _cachedModels: PricingModel[] | null = null;
 let _cacheTime = 0;
 const CACHE_TTL_MS = 60_000;
 const SEEDANCE_20_TURBO_CREDITS_PER_USD = 40;
-const SEEDANCE_20_TURBO_MARGIN_MULTIPLIER = 1.2;
+const SEEDANCE_20_TURBO_MARGIN_MULTIPLIER = 1.4;
 const SEEDANCE_20_TURBO_USD_PER_15S: Record<"720p" | "1080p", number> = {
   "720p": 2.10,
-  "1080p": 2.40,
+  "1080p": 2.16,
 };
 
 const normalizeKey = (value: string): string =>
@@ -350,7 +350,7 @@ const QUALITY_MULTIPLIER: Record<string, number> = {
 };
 
 const USER_CREDIT_USD = 0.05;
-const GOOGLE_VIDEO_MARGIN = 1.5;
+const GOOGLE_VIDEO_MARGIN = 1.4;
 type GoogleVideoBillingKey = "veo31_lite" | "veo31_fast" | "veo31" | "veo3_fast" | "veo3" | "omni_flash";
 
 function normalizeGoogleVideoQuality(quality: string | null | undefined): "720p" | "1080p" | "4k" {
@@ -424,9 +424,9 @@ export interface GenerationCostQuote {
 }
 
 function resolveAudioMarginPercent(): number {
-  const raw = process.env.AUDIO_CREDIT_MARGIN_PERCENT;
+  const raw = process.env.CREDIT_MARGIN_PERCENT ?? process.env.AUDIO_CREDIT_MARGIN_PERCENT;
   const parsed = Number(raw);
-  if (!Number.isFinite(parsed)) return 25;
+  if (!Number.isFinite(parsed)) return 40;
   return Math.max(0, Math.min(500, parsed));
 }
 
@@ -472,9 +472,10 @@ export function qualityMultiplierFor(quality: string | null | undefined): number
 
 
 const SEEDANCE_25_CREDITS_PER_USD = 40;
+const SEEDANCE_25_MARGIN_MULTIPLIER = 1.4;
 const SEEDANCE_25_USD_PER_SECOND = {
   "480p": 0.162,
-  "720p": 0.342,
+  "720p": 0.18,
 } as const;
 const MINIMAX_H3_CREDITS_PER_USD = 40;
 const MINIMAX_H3_768P_USD_PER_SECOND = 0.4;
@@ -505,7 +506,7 @@ function getMinimaxH3DefaultCredits(modelRef: string, durationSec: number, numUn
 function getSeedance25DefaultCredits(modelRef: string, durationSec: number, numUnits: number, quality?: string | null): number | null {
   const usd = getSeedance25ProviderUsd(modelRef, durationSec, quality);
   if (usd === null) return null;
-  return parseFloat(Math.max(1, usd * SEEDANCE_25_CREDITS_PER_USD * numUnits).toFixed(2));
+  return parseFloat(Math.max(1, usd * SEEDANCE_25_MARGIN_MULTIPLIER * SEEDANCE_25_CREDITS_PER_USD * numUnits).toFixed(2));
 }
 function isVeo31ModelRef(modelRef: string): boolean {
   return (
@@ -560,18 +561,18 @@ const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
 };
 
 const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
-  "bytedance/seedance-2-fast":                  { "720p": 1.0, "1080p": 2.40 / 2.10 },
-  "bytedance/seedance-2.0/text-to-video-turbo": { "720p": 1.0, "1080p": 2.40 / 2.10 },
-  "bytedance/seedance-2.0/image-to-video-turbo": { "720p": 1.0, "1080p": 2.40 / 2.10 },
+  "bytedance/seedance-2-fast":                  { "720p": 1.0, "1080p": 2.16 / 2.10 },
+  "bytedance/seedance-2.0/text-to-video-turbo": { "720p": 1.0, "1080p": 2.16 / 2.10 },
+  "bytedance/seedance-2.0/image-to-video-turbo": { "720p": 1.0, "1080p": 2.16 / 2.10 },
   "bytedance/seedance-2.5/text-to-video-turbo": { "480p": 0.5, "720p": 1.0 },
   "bytedance/seedance-2.5/image-to-video-turbo": { "480p": 0.5, "720p": 1.0 },
   "bytedance/seedance-2.5/image-to-video-spicy": { "480p": 0.5, "720p": 1.0 },
   "bytedance/seedance-2-mini":                  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "bytedance/seedance-2.0-mini/text-to-video":  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "bytedance/seedance-2.0-mini/image-to-video": { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
-  "bytedance/seedance-v2/text-to-video-fast":   { "720p": 1.0, "1080p": 2.40 / 2.10 },
+  "bytedance/seedance-v2/text-to-video-fast":   { "720p": 1.0, "1080p": 2.16 / 2.10 },
   "bytedance/seedance-v2/text-to-video-mini":   { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
-  "seedance2f":                                 { "720p": 1.0, "1080p": 2.40 / 2.10 },
+  "seedance2f":                                 { "720p": 1.0, "1080p": 2.16 / 2.10 },
   "seedance2mini":                              { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "bytedance/seedance-2":                       { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "bytedance/seedance-2.0/text-to-video":       { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
@@ -698,7 +699,7 @@ export async function getGenerationCostQuote(
       constitutionId: resolveGoogleVideoBillingKey(modelRef) ?? modelRef,
       provider: "kie",
       sourceCredits: parseFloat((googleVideoCredits / GOOGLE_VIDEO_MARGIN).toFixed(2)),
-      marginPercent: 50,
+      marginPercent: 40,
       finalCredits: Math.max(1, Math.ceil(googleVideoCredits)),
       qualityMultiplier: 1,
     };

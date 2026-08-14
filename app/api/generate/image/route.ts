@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
 import { getDynamicImageModels } from "@/lib/dynamic-model-loader";
+import { IMAGE_MODELS } from "@/lib/image-models";
 import { InsufficientCreditsError, recordFreeGeneration, rollbackGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { applyAnnualUnlimitedImageSlowdown, getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
-import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
-import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { isStorageConfigured, uploadBufferToStorage } from "@/lib/supabase-storage";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 import { normalizeMediaUrl } from "@/lib/storage";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
+import { buildWaveSpeedImageInput, resolveWaveSpeedImageModelRoute } from "@/lib/wavespeed-image-routing";
 import {
   getGoogleImageUpstreamModel,
   normalizeGoogleImageAspectRatio,
@@ -21,13 +21,13 @@ import {
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
 
-const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
-const KIE_QUERY_TASK_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const IDEMPOTENCY_ROUTE = "generate:image";
 const OPENAI_IMAGE_MODEL_MAP: Record<string, string> = {
   "gpt-image-2-text-to-image": "gpt-image-2",
   "gpt-image-2-image-to-image": "gpt-image-2",
+  "gpt-image/1.5-text-to-image": "gpt-image-1.5",
+  "gpt-image/1.5-image-to-image": "gpt-image-1.5",
 };
 
 interface ImageRequestBody {
@@ -42,25 +42,11 @@ interface ImageRequestBody {
   imageUrls?: string[];
   quality?: string;
   useAnnualUnlimited?: boolean;
-  /** KIE input field for reference images: "image_url" (default) or "image_input" (Gemini models) or "input_urls" (GPT I2I, Wan, Flux-2 I2I). */
+  /** Provider input field override for legacy callers. */
   imageInputField?: string;
 }
 
-interface KieTaskData {
-  taskId?: string;
-  state?: string;
-  resultJson?: string;
-  failMsg?: string;
-  failCode?: string;
-}
-
-interface KieApiResponse {
-  code?: number;
-  msg?: string;
-  data?: KieTaskData;
-}
-
-function extractKieOutputUrls(value: unknown): string[] {
+function extractProviderOutputUrls(value: unknown): string[] {
   if (!value) return [];
 
   if (typeof value === "string") {
@@ -68,7 +54,7 @@ function extractKieOutputUrls(value: unknown): string[] {
     if (!trimmed) return [];
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
       try {
-        return extractKieOutputUrls(JSON.parse(trimmed));
+        return extractProviderOutputUrls(JSON.parse(trimmed));
       } catch {
         return [];
       }
@@ -78,13 +64,13 @@ function extractKieOutputUrls(value: unknown): string[] {
   }
 
   if (Array.isArray(value)) {
-    return value.flatMap((item) => extractKieOutputUrls(item));
+    return value.flatMap((item) => extractProviderOutputUrls(item));
   }
 
   if (typeof value === "object") {
     const rec = value as Record<string, unknown>;
     const direct = rec.url ?? rec.imageUrl ?? rec.image_url ?? rec.downloadUrl;
-    if (typeof direct === "string") return extractKieOutputUrls(direct);
+    if (typeof direct === "string") return extractProviderOutputUrls(direct);
 
     const candidates = [
       rec.resultUrls,
@@ -98,43 +84,12 @@ function extractKieOutputUrls(value: unknown): string[] {
       rec.data,
     ];
     for (const candidate of candidates) {
-      const urls = extractKieOutputUrls(candidate);
+      const urls = extractProviderOutputUrls(candidate);
       if (urls.length) return urls;
     }
   }
 
   return [];
-}
-
-function inferImageInputField(kieModelId: string): "image_url" | "image_input" | "image_urls" | "input_urls" | undefined {
-  if ([
-    "google/nano-banana-edit",
-    "seedream/4.5-edit",
-    "seedream/5-lite-image-to-image",
-    "grok-imagine/image-to-image",
-    "flux-2/pro-image-to-image",
-    "flux-2/flex-image-to-image",
-  ].includes(kieModelId)) return "image_urls";
-
-  if ([
-    "nano-banana-pro",
-    "nano-banana-2",
-    "nano-banana-2-lite",
-    "google/nano-banana",
-  ].includes(kieModelId)) return "image_input";
-
-  if ([
-    "gpt-image/1.5-image-to-image",
-    "gpt-image-2-image-to-image",
-    "wan/2-7-image-pro",
-  ].includes(kieModelId)) return "input_urls";
-
-  if ([
-    "qwen2/image-edit",
-    "qwen/image-to-image",
-  ].includes(kieModelId)) return "image_url";
-
-  return undefined;
 }
 
 function resolveFlux2Variant(modelId: string, hasReferenceImages: boolean, quality?: string | null): string {
@@ -231,6 +186,32 @@ function getGoogleImageModel(modelId: string): string | null {
 
 function getOpenAIImageModel(modelId: string): string | null {
   return OPENAI_IMAGE_MODEL_MAP[modelId] ?? null;
+}
+
+function findStaticImageModel(...modelIds: string[]) {
+  for (const id of modelIds) {
+    const model = IMAGE_MODELS.find((item) => item.id === id);
+    if (model) return model;
+  }
+  return null;
+}
+
+function getImageReferenceLimit(
+  modelId: string,
+  effectiveModelId: string,
+  dynamicModel?: { maxRefImages?: unknown } | null,
+): number {
+  if (modelId.startsWith("flux-kontext") || effectiveModelId.startsWith("flux-kontext")) {
+    return 1;
+  }
+
+  const dynamicLimit = Number(dynamicModel?.maxRefImages);
+  if (Number.isFinite(dynamicLimit) && dynamicLimit >= 0) {
+    return Math.floor(dynamicLimit);
+  }
+
+  const staticModel = findStaticImageModel(modelId, effectiveModelId);
+  return Math.max(0, Math.floor(Number(staticModel?.maxRefImages) || 0));
 }
 
 function normalizeOpenAIImageSize(aspectRatio: string): string {
@@ -482,35 +463,6 @@ async function generateGoogleImage(params: {
   return images.map((image) => ({ buffer: Buffer.from(image.data, "base64"), mimeType: image.mimeType }));
 }
 
-
-async function createKieTask(
-  apiKey: string,
-  kieModelId: string,
-  input: Record<string, unknown>,
-): Promise<string> {
-  const res = await fetch(KIE_CREATE_TASK_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model: kieModelId, input }),
-  });
-
-  const json: KieApiResponse = await res.json().catch(() => ({}));
-
-  if (!res.ok || (json.code !== undefined && json.code !== 200 && json.code !== 0)) {
-    const msg = json?.msg ?? res.statusText;
-    throw new Error(`KIE createTask failed (HTTP ${res.status}, code ${json.code}): ${msg}`);
-  }
-
-  const taskId = json?.data?.taskId;
-  if (!taskId) {
-    throw new Error(`KIE createTask did not return a taskId. Full response: ${JSON.stringify(json)}`);
-  }
-  return taskId;
-}
-
 async function pollWaveSpeedImageTask(taskId: string, apiKey: string, maxAttempts = 60, intervalMs = 2500): Promise<string[]> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
@@ -522,76 +474,23 @@ async function pollWaveSpeedImageTask(taskId: string, apiKey: string, maxAttempt
     const resultJson = await resultRes.json().catch(() => null) as Record<string, unknown> | null;
     if (!resultRes.ok) {
       if (resultRes.status === 404) continue;
-      throw new Error(`WaveSpeed polling failed (${resultRes.status})`);
+      throw new Error(`WaveSpeed poll failed (${resultRes.status})`);
     }
 
-    const resultData = (resultJson?.data ?? resultJson) as Record<string, unknown> | null;
-    const status = String(resultData?.status ?? resultData?.taskStatus ?? "").toLowerCase();
-    if (["success", "completed", "done"].includes(status)) {
-      const urls = extractKieOutputUrls(
-        resultData?.outputs ??
-          resultData?.resultUrls ??
-          resultData?.imageUrls ??
-          resultData?.images ??
-          resultData?.urls ??
-          resultData?.result ??
-          resultData?.output ??
-          resultData?.response ??
-          resultData?.data,
-      );
-      if (!urls.length) throw new Error("No output URL in WaveSpeed result.");
+    const data = (resultJson?.data ?? resultJson) as Record<string, unknown> | null;
+    const status = String(data?.status ?? "").toLowerCase();
+    if (status === "completed") {
+      const urls = extractProviderOutputUrls(data?.outputs ?? data?.resultUrls ?? data?.imageUrls ?? data?.images ?? data?.urls);
+      if (!urls.length) throw new Error("WaveSpeed task completed but returned no image URLs.");
       return urls;
     }
-
-    if (["fail", "failed", "error", "canceled", "cancelled"].includes(status)) {
-      throw new Error(String(resultData?.error ?? resultData?.errorMessage ?? "WaveSpeed image generation failed."));
+    if (["failed", "cancelled", "timeout"].includes(status)) {
+      throw new Error(String(data?.error ?? data?.errorMessage ?? "WaveSpeed image generation failed."));
     }
   }
-
   throw new Error("WaveSpeed image generation timed out.");
 }
 
-async function pollKieTask(
-  apiKey: string,
-  taskId: string,
-  maxAttempts = 50,
-  intervalMs = 3000,
-): Promise<string[]> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // First 5 polls: 2s interval (fast models); then 3s (default)
-    const wait = attempt < 5 ? 2000 : intervalMs;
-    await new Promise((r) => setTimeout(r, wait));
-
-    const res = await fetch(
-      `${KIE_QUERY_TASK_URL}?taskId=${encodeURIComponent(taskId)}`,
-      { headers: { Authorization: `Bearer ${apiKey}` } },
-    );
-
-    if (!res.ok) throw new Error(`KIE poll failed (${res.status})`);
-
-    const json: KieApiResponse = await res.json().catch(() => ({}));
-    const taskData = json?.data;
-    const state = taskData?.state;
-
-    if (String(state || "").toLowerCase() === "success") {
-      const resultJson = taskData?.resultJson;
-      if (!resultJson) throw new Error("KIE task succeeded but resultJson is empty.");
-      const parsed = JSON.parse(resultJson) as unknown;
-      const urls = extractKieOutputUrls(parsed);
-      if (!urls.length) throw new Error("KIE task succeeded but resultUrls is empty.");
-      return urls;
-    }
-
-    if (String(state || "").toLowerCase() === "fail") {
-      const msg = taskData?.failMsg ?? taskData?.failCode ?? "Unknown error";
-      throw new Error(`KIE generation failed: ${msg}`);
-    }
-
-    // Continue polling while state is: waiting | queuing | generating
-  }
-
-  throw new Error("Image generation timed out.");
-}
 
 export async function POST(req: NextRequest) {
   let chargedCredits = 0;
@@ -599,9 +498,6 @@ export async function POST(req: NextRequest) {
   let generationId: string | null = null;
 
   try {
-    // non-blocking periodic sync of KIE updates catalog
-    await syncKieModelCatalog(false).catch(() => null);
-
     if (!isAllowedOrigin(req.headers.get("origin"))) {
       return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
     }
@@ -634,7 +530,6 @@ export async function POST(req: NextRequest) {
       resolution,
       imageSize,
       useAnnualUnlimited = true,
-      imageInputField,
     } = body;
 
     if (!prompt || !modelId) {
@@ -649,42 +544,24 @@ export async function POST(req: NextRequest) {
     if (body.imageUrl) rawRefUrls.push(body.imageUrl);
     if (body.imageUrls?.length) rawRefUrls.push(...body.imageUrls);
 
-    const isFluxKontext = modelId.startsWith("flux-kontext");
     const hasReferenceImages = Boolean(imageUrl || imageUrlsParam?.length);
-    let effectiveModelId = isFluxKontext ? modelId : resolveFlux2Variant(modelId, hasReferenceImages, quality);
+    let effectiveModelId = resolveFlux2Variant(modelId, hasReferenceImages, quality);
     effectiveModelId = resolveSeedream5ProVariant(effectiveModelId, hasReferenceImages);
-    const { imageModelMap } = getResolvedKieRoutingMaps();
-    const waveSpeedImageRoute = resolveWaveSpeedImageRoute(effectiveModelId, hasReferenceImages, Number(numImages) || 1);
+    const waveSpeedImageRoute = resolveWaveSpeedImageModelRoute(effectiveModelId, hasReferenceImages, Number(numImages) || 1);
     const isWaveSpeedImageModel = Boolean(waveSpeedImageRoute);
-    const openAIImageModel = isFluxKontext ? null : getOpenAIImageModel(effectiveModelId);
+    const openAIImageModel = getOpenAIImageModel(effectiveModelId);
 
     const dynamicModels = await getDynamicImageModels();
     const dynamicModel = dynamicModels.find(
       (m) => m.id === effectiveModelId && m.isActive !== false
     );
 
-    let kieModelId = isFluxKontext || isWaveSpeedImageModel ? null : (openAIImageModel ? null : imageModelMap[effectiveModelId]);
-    let dynamicImageInputField: string | undefined = undefined;
-
-    if (dynamicModel) {
-      const targetId = (dynamicModel as any).upstreamModelId || dynamicModel.id;
-      if (!isFluxKontext && !isWaveSpeedImageModel && !openAIImageModel) {
-        kieModelId = targetId;
-      }
-      dynamicImageInputField = dynamicModel.imageInputField;
-    } else {
-      if (!isFluxKontext && !isWaveSpeedImageModel && !openAIImageModel && !kieModelId) {
-        const supported = Object.keys(imageModelMap).join(", ");
-        return NextResponse.json(
-          { error: `Unsupported modelId: ${effectiveModelId}. Supported: ${supported}` },
-          { status: 400 },
-        );
-      }
+    if (!isWaveSpeedImageModel && !openAIImageModel && !getGoogleImageModel(effectiveModelId)) {
+      return NextResponse.json(
+        { error: `Unsupported image model for configured providers: ${effectiveModelId}` },
+        { status: 400 },
+      );
     }
-
-    const effectiveImageInputField = kieModelId
-      ? imageInputField ?? dynamicImageInputField ?? inferImageInputField(kieModelId)
-      : undefined;
     const googleImageModel = getGoogleImageModel(effectiveModelId);
     const googleApiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
     if (googleImageModel && !googleApiKey) {
@@ -723,6 +600,22 @@ export async function POST(req: NextRequest) {
     if (imageUrl) refUrls.push(imageUrl);
     if (imageUrlsParam?.length) refUrls.push(...imageUrlsParam);
 
+    const maxReferenceImages = getImageReferenceLimit(modelId, effectiveModelId, dynamicModel);
+    if (refUrls.length > 0 && maxReferenceImages <= 0) {
+      return NextResponse.json(
+        { error: "Selected model does not accept reference images." },
+        { status: 400 },
+      );
+    }
+    if (maxReferenceImages > 0 && refUrls.length > maxReferenceImages) {
+      return NextResponse.json(
+        {
+          error: `Selected model accepts up to ${maxReferenceImages} reference image${maxReferenceImages === 1 ? "" : "s"}.`,
+        },
+        { status: 400 },
+      );
+    }
+
     for (const ref of refUrls) {
       await checkStoryboardReferenceImageSafety(ref);
     }
@@ -735,19 +628,9 @@ export async function POST(req: NextRequest) {
       await verifyPublicMediaUrl(url, "reference_image");
     }
 
-    if (waveSpeedImageRoute === "bytedance/seedream-v5.0-pro/edit" && resolvedRefs.length === 0) {
+    if (waveSpeedImageRoute?.requiresReference && resolvedRefs.length === 0) {
       return NextResponse.json(
-        { error: "Seedream 5.0 Pro Edit requires at least one reference image." },
-        { status: 400 },
-      );
-    }
-    if (
-      (waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/edit"
-        || waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/edit-sequential")
-      && resolvedRefs.length === 0
-    ) {
-      return NextResponse.json(
-        { error: "Seedream 5.0 Lite Edit requires at least one reference image." },
+        { error: "Selected WaveSpeed image edit model requires at least one reference image." },
         { status: 400 },
       );
     }
@@ -762,94 +645,6 @@ export async function POST(req: NextRequest) {
       dailyUsed: unlimited.dailyUsed,
       requestedUnits: numImages,
     });
-
-    if (isFluxKontext) {
-      const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
-      if (!kieApiKey) {
-        throw new Error("KIE_API_KEY is not configured on the server.");
-      }
-
-      const buildKontextInput = (): Record<string, unknown> => {
-        const input: Record<string, unknown> = {
-          prompt: sanitizePrompt(prompt, 5000),
-          enableTranslation: true,
-          uploadCn: false,
-          aspectRatio: aspectRatio === "auto" ? "16:9" : aspectRatio,
-          outputFormat: "jpeg",
-          promptUpsampling: false,
-          model: modelId,
-          safetyTolerance: 2,
-        };
-
-        if (resolvedRefs.length > 0) {
-          input.inputImage = resolvedRefs[0];
-        }
-        return input;
-      };
-
-      const createKontextTask = async (apiKey: string, body: Record<string, unknown>): Promise<string> => {
-        const res = await fetch("https://api.kie.ai/api/v1/flux/kontext/generate", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        });
-
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok || (json.code !== undefined && json.code !== 200 && json.code !== 0)) {
-          const msg = json?.msg ?? res.statusText;
-          throw new Error(`KIE Kontext createTask failed (HTTP ${res.status}, code ${json.code}): ${msg}`);
-        }
-
-        const taskId = json?.data?.taskId;
-        if (!taskId) {
-          throw new Error(`KIE Kontext createTask did not return a taskId. Response: ${JSON.stringify(json)}`);
-        }
-        return taskId;
-      };
-
-      const taskIds = await Promise.all(
-        Array.from({ length: Math.max(1, Math.min(12, numImages)) }, () =>
-          createKontextTask(kieApiKey, buildKontextInput())
-        )
-      );
-
-      const pollResults = await Promise.all(
-        taskIds.map((tid) => pollKieTask(kieApiKey, tid))
-      );
-      const imageUrls = pollResults.flat();
-      const taskId = taskIds[0];
-
-      if (generationId && imageUrls[0]) {
-        await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
-          console.error("[generate/image] Failed to save Kontext media URL", err);
-        });
-      }
-
-      if (imageUrls.length > 1 && chargedUserId) {
-        await saveAdditionalGenerationUrls(
-          chargedUserId,
-          sanitizePrompt(prompt, 5000),
-          modelId,
-          "IMAGE",
-          imageUrls.slice(1),
-        ).catch((err) => {
-          console.error("[generate/image] Failed to save additional Kontext URLs", err);
-        });
-      }
-
-      const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
-      return NextResponse.json({
-        generationId,
-        imageUrls: normalizedImageUrls,
-        resultUrls: normalizedImageUrls,
-        imageUrl: normalizedImageUrls[0] ?? null,
-        mediaUrl: normalizedImageUrls[0] ?? null,
-        taskId,
-      }, { status: 200 });
-    }
 
     if (openAIImageModel) {
       const openAIApiKey = process.env.OPENAI_API_KEY;
@@ -987,62 +782,47 @@ export async function POST(req: NextRequest) {
         throw new Error("WAVESPEED_API_KEY is not configured on the server.");
       }
 
-      const isLiteRoute = waveSpeedImageRoute.startsWith("bytedance/seedream-v5.0-lite");
-      const isSequentialRoute =
-        waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/sequential"
-        || waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/edit-sequential";
-      const isEditRoute =
-        waveSpeedImageRoute === "bytedance/seedream-v5.0-pro/edit"
-        || waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/edit"
-        || waveSpeedImageRoute === "bytedance/seedream-v5.0-lite/edit-sequential";
-
-      const waveSpeedInput: Record<string, unknown> = {
+      const waveSpeedInput = buildWaveSpeedImageInput(waveSpeedImageRoute, {
         prompt: sanitizePrompt(prompt, 5000),
-        output_format: "jpeg",
-        enable_base64_output: false,
-        enable_sync_mode: false,
-      };
-
-      if (isLiteRoute) {
-        // Lite family uses `size` in "W*H" pixel form, not aspect_ratio / resolution.
-        waveSpeedInput.size = normalizeSeedream5LiteSize(quality ?? resolution ?? imageSize);
-      } else {
-        waveSpeedInput.aspect_ratio = aspectRatio === "auto" ? undefined : aspectRatio;
-        waveSpeedInput.resolution = normalizeSeedream5ProResolution(quality ?? resolution ?? imageSize);
-      }
-
-      if (isSequentialRoute) {
-        const requested = Math.max(1, Math.min(15, Math.ceil(Number(numImages) || 1)));
-        waveSpeedInput.max_images = requested;
-      }
-
-      if (isEditRoute) {
-        waveSpeedInput.images = resolvedRefs.slice(0, 10);
-      }
-
-      Object.keys(waveSpeedInput).forEach((key) => {
-        if (waveSpeedInput[key] === undefined) delete waveSpeedInput[key];
+        aspectRatio,
+        quality,
+        resolution,
+        imageSize,
+        numImages,
+        referenceUrls: resolvedRefs,
+        negativePrompt,
       });
 
-      const submitRes = await fetch(
-        `${WAVESPEED_BASE_URL}/${waveSpeedImageRoute}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${waveSpeedApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(waveSpeedInput),
-        },
+      const taskCount = waveSpeedImageRoute.outputCountField
+        ? 1
+        : Math.max(1, Math.min(waveSpeedImageRoute.maxOutputImages, Math.ceil(Number(numImages) || 1)));
+      const taskIds = await Promise.all(
+        Array.from({ length: taskCount }, async () => {
+          const submitRes = await fetch(
+            `${WAVESPEED_BASE_URL}/${waveSpeedImageRoute.model}`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${waveSpeedApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(waveSpeedInput),
+            },
+          );
+
+          const submitJson = await submitRes.json().catch(() => null) as Record<string, unknown> | null;
+          const taskId = ((submitJson?.data as Record<string, unknown> | undefined)?.id ?? submitJson?.id) as string | undefined;
+          if (!submitRes.ok || !taskId) {
+            throw new Error(`WaveSpeed submit failed for ${waveSpeedImageRoute.model} (${submitRes.status})`);
+          }
+          return taskId;
+        }),
       );
 
-      const submitJson = await submitRes.json().catch(() => null) as Record<string, unknown> | null;
-      const taskId = ((submitJson?.data as Record<string, unknown> | undefined)?.id ?? submitJson?.id) as string | undefined;
-      if (!submitRes.ok || !taskId) {
-        throw new Error(`WaveSpeed submit failed (${submitRes.status})`);
-      }
-
-      const imageUrls = await pollWaveSpeedImageTask(taskId, waveSpeedApiKey);
+      const imageUrls = (await Promise.all(
+        taskIds.map((taskId) => pollWaveSpeedImageTask(taskId, waveSpeedApiKey)),
+      )).flat();
+      const taskId = taskIds[0];
 
       if (generationId && imageUrls[0]) {
         await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
@@ -1069,186 +849,16 @@ export async function POST(req: NextRequest) {
         resultUrls: normalizedImageUrls,
         imageUrl: normalizedImageUrls[0] ?? null,
         mediaUrl: normalizedImageUrls[0] ?? null,
+        provider: "wavespeed",
+        model: waveSpeedImageRoute.model,
         credits: creditsToCharge,
       });
     }
 
-    const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
-    if (!kieApiKey) {
-      throw new Error("KIE_API_KEY is not configured on the server.");
-    }
-
-    if (!kieModelId) {
-      throw new Error(`Unsupported modelId: ${effectiveModelId}`);
-    }
-
-    const isWanModel = kieModelId.startsWith("wan/");
-    const isImagen4Fast = kieModelId === "google/imagen4-fast";
-    // Models whose KIE spec uses `image_size` instead of `aspect_ratio`.
-    // - Nano Banana family (google/nano-banana, google/nano-banana-edit) accepts the
-    //   ratio strings as-is (1:1, 9:16, 16:9, ...).
-    // - Qwen2 Image Edit accepts the ratio strings as-is.
-    // - Qwen Text-to-Image uses a named enum (square_hd / portrait_4_3 / ...).
-    const NANO_BANANA_IMAGE_SIZE = new Set(["nano-banana-2", "nano-banana-pro", "nano-banana-2-lite", "google/nano-banana", "google/nano-banana-edit", "nano-banana/image-to-image"]);
-    const QWEN_EDIT_IMAGE_SIZE = new Set(["qwen2/image-edit"]);
-    const QWEN_T2I_IMAGE_SIZE_ENUM = new Set(["qwen/text-to-image", "qwen2/text-to-image"]);
-    // qwen/image-to-image spec has no aspect/image_size field at all.
-    const NO_ASPECT_FIELD = new Set(["qwen/image-to-image"]);
-    // KIE models that natively accept a batch parameter (num_images / n).
-    // For everything else we fan out N parallel createTasks below.
-    const NATIVE_BATCH_MODELS = new Set(["google/imagen4-fast", "wan/2-7-image-pro"]);
-
-    const ratioToQwenImageSize = (ratio: string): string => {
-      switch (ratio) {
-        case "1:1":  return "square_hd";
-        case "3:4":  return "portrait_4_3";
-        case "4:3":  return "landscape_4_3";
-        case "9:16": return "portrait_16_9";
-        case "16:9": return "landscape_16_9";
-        default:     return "square_hd";
-      }
-    };
-
-    const buildAspectField = (target: Record<string, unknown>) => {
-      if (NO_ASPECT_FIELD.has(kieModelId)) return; // spec has no such field
-      if (NANO_BANANA_IMAGE_SIZE.has(kieModelId) || QWEN_EDIT_IMAGE_SIZE.has(kieModelId)) {
-        target.image_size = aspectRatio;
-        return;
-      }
-      if (QWEN_T2I_IMAGE_SIZE_ENUM.has(kieModelId)) {
-        target.image_size = ratioToQwenImageSize(aspectRatio);
-        return;
-      }
-      target.aspect_ratio = aspectRatio;
-    };
-
-    const normalizeGptImage2Resolution = (): string | null => {
-      if (!kieModelId.startsWith("gpt-image-2-")) return null;
-      const requested = typeof resolution === "string" && resolution ? resolution : quality;
-      const normalized = ["1K", "2K", "4K"].includes(requested ?? "") ? requested! : "1K";
-      if (aspectRatio === "auto") return "1K";
-      if (aspectRatio === "1:1" && normalized === "4K") {
-        throw new Error("GPT Image 2 does not support 4K with 1:1 aspect ratio.");
-      }
-      return normalized;
-    };
-
-    /** Build the `input` body for a single createTask call.
-     * `requestedCount` is what we pass to the model when it supports a batch field. */
-    const buildInput = (requestedCount: number): Record<string, unknown> => {
-      const input: Record<string, unknown> = {
-        prompt: sanitizePrompt(prompt, 5000),
-      };
-      buildAspectField(input);
-
-      if (isWanModel) {
-        // n=1-4 default; 1-12 with enable_sequential.
-        input.n = Math.max(1, Math.min(12, requestedCount));
-        if (requestedCount > 4) input.enable_sequential = true;
-        input.nsfw_checker = true;
-        input.watermark = false;
-        input.seed = 0;
-      } else if (isImagen4Fast) {
-        // Spec requires string enum "1" | "2" | "3" | "4"
-        input.num_images = String(Math.max(1, Math.min(4, requestedCount)));
-      } else if (NATIVE_BATCH_MODELS.has(kieModelId)) {
-        input.num_images = requestedCount;
-      }
-      // Models without native batch: do NOT send num_images / n; outer loop fans out.
-
-      if (negativePrompt) input.negative_prompt = negativePrompt;
-
-      if (resolvedRefs.length > 0) {
-        if (effectiveImageInputField === "image_input") {
-          input.image_input = resolvedRefs;
-        } else if (effectiveImageInputField === "image_urls") {
-          input.image_urls = resolvedRefs;
-        } else if (effectiveImageInputField === "input_urls") {
-          input.input_urls = resolvedRefs;
-          // Wan spec: aspect_ratio must not be sent when input_urls is present
-          if (isWanModel) {
-            delete input.aspect_ratio;
-            delete input.image_size;
-          }
-        } else if (effectiveImageInputField === "image_url") {
-          input.image_url = resolvedRefs[0];
-        } else {
-          if (resolvedRefs.length === 1) input.image_url = resolvedRefs[0];
-          else input.image_urls = resolvedRefs;
-        }
-      }
-
-      // Quality field handling
-      // - "1K"/"2K"/"4K"           â†’ resolution param (Wan, Nano Banana Pro/2)
-      // - "speed"/"quality"        â†’ enable_pro boolean (Grok Imagine T2I)
-      // - "basic"/"high"           â†’ quality param (Seedream)
-      // - other ("medium"/"high")  â†’ quality param (GPT Image)
-      const gptImage2Resolution = normalizeGptImage2Resolution();
-      const RESOLUTION_VALUES = ["512px", "1K", "2K", "4K"];
-      if (gptImage2Resolution) {
-        input.resolution = gptImage2Resolution;
-      } else if (quality && RESOLUTION_VALUES.includes(quality)) {
-        input.resolution = quality;
-      } else if (quality === "speed" || quality === "quality") {
-        // Grok Imagine T2I speed-vs-quality toggle
-        input.enable_pro = quality === "quality";
-      } else if (quality) {
-        input.quality = quality;
-      }
-      if (resolution && !gptImage2Resolution) input.resolution = resolution;
-
-      return input;
-    };
-
-    // Determine batch strategy:
-    // - native batch models    â†’ 1 call, model returns all images
-    // - non-native + N>1       â†’ fan out N parallel createTasks
-    const useNativeBatch = NATIVE_BATCH_MODELS.has(kieModelId);
-    const fanout = useNativeBatch ? 1 : Math.max(1, Math.min(12, numImages));
-    const requestedPerCall = useNativeBatch ? numImages : 1;
-
-    const taskIds: string[] = await Promise.all(
-      Array.from({ length: fanout }, () =>
-        createKieTask(kieApiKey, kieModelId, buildInput(requestedPerCall)),
-      ),
+    return NextResponse.json(
+      { error: `Unsupported image model for configured providers: ${effectiveModelId}` },
+      { status: 400 },
     );
-    const pollResults = await Promise.all(
-      taskIds.map((tid) => pollKieTask(kieApiKey, tid)),
-    );
-    const imageUrls = pollResults.flat();
-    const taskId = taskIds[0];
-
-    // Save the first result URL to the main generation record (Gallery + Image history)
-    if (generationId && imageUrls[0]) {
-      await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
-        console.error("[generate/image] Failed to save first image URL", err);
-      });
-    }
-
-    // Save each additional image as a separate zero-cost record so all images
-    // appear correctly in the gallery after page refresh (fixes multi-image loss bug)
-    if (imageUrls.length > 1 && chargedUserId) {
-      await saveAdditionalGenerationUrls(
-        chargedUserId,
-        sanitizePrompt(prompt, 5000),
-        modelId,
-        "IMAGE",
-        imageUrls.slice(1),
-      ).catch((err) => {
-        console.error("[generate/image] Failed to save additional image URLs", err);
-      });
-    }
-
-    const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
-    const responseJson = {
-      generationId,
-      imageUrls: normalizedImageUrls,
-      resultUrls: normalizedImageUrls,
-      imageUrl: normalizedImageUrls[0] ?? null,
-      mediaUrl: normalizedImageUrls[0] ?? null,
-      taskId,
-    };
-    return NextResponse.json(responseJson, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
       const responseJson: Record<string, unknown> = {

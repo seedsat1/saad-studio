@@ -1,3 +1,21 @@
+## Image Provider Source, Reference Ordering, And Caps Contract (2026-08-14)
+
+- `/image` must sort uploaded reference image files by natural filename order before display and before submission. Example: `1.png`, `2.png`, `10.png` stays numeric rather than browser/OS selection order.
+- The same ordering applies to file picker attach, drag/drop, clipboard paste, Reference Studio attach, and "use generated image as reference".
+- Provider source authority for image generation is fixed: Google image products route to Google official APIs, OpenAI image products route to OpenAI official APIs, and every other curated image model routes to WaveSpeed. Do not use KIE catalog values or routes for these curated image caps or requests.
+- `/api/generate/image` and `/api/panel/generate/image` must enforce reference-image caps server-side and must fail clearly for unsupported provider routes instead of falling back to KIE.
+- Current verified image reference caps in the static registry:
+  - Google direct: Nano Banana 2 / Pro / Lite support 14 reference images; legacy Gemini 2.5 Nano Banana rows support 3; Imagen 4 Fast / Imagen 4 / Imagen 4 Ultra support 0 in the current direct Imagen text-to-image route.
+  - OpenAI direct: GPT Image text-to-image rows support 0 references; GPT Image edit/image-to-image rows support up to 16 input images.
+  - WaveSpeed Seedream 4.5: text-to-image 0; edit 10.
+  - WaveSpeed Seedream 5 Lite: text-to-image 0; edit/image-to-image 10; sequential output can request up to 15 images.
+  - WaveSpeed Seedream 5 Pro: text-to-image 0; edit/image-to-image 10.
+  - WaveSpeed Z-Image Base: optional single `image` reference, cap 1.
+  - WaveSpeed Qwen Image 2.0: text-to-image 0; edit 3. WaveSpeed Qwen Image Edit: single `image`, cap 1.
+  - WaveSpeed Grok Image Quality: text-to-image 0; edit single `image`, cap 1; output count up to 4.
+  - WaveSpeed Wan 2.7 Pro: text route 0; edit route 3.
+  - WaveSpeed FLUX.2 Pro / Flex / Max: text routes 0; edit routes 3.
+- Sources reviewed: Google official Gemini image documentation, OpenAI official/generated API model types, and WaveSpeed documentation pages for Seedream, Qwen, Z-Image, Grok Image Quality, Wan 2.7, and FLUX.2.
 ## Client Authenticated API Fetch Contract (2026-08-14)
 
 - Protected browser APIs such as `/api/models`, `/api/assets`, `/api/characters`, `/api/editor/credits`, `/api/video`, and `/api/media/upload` must be called only after Clerk auth is loaded for signed-in users.
@@ -8,8 +26,8 @@
 ## Seedance 2.0 Turbo Pricing Contract (2026-08-14)
 
 - `/video` and `/api/video` must price `Seedance 2.0 Turbo` (`seedance2f`, `bytedance/seedance-2.0/text-to-video-turbo`, and image-to-video turbo aliases) by selected quality.
-- Source pricing for 15 seconds: `720p = $2.10`, `1080p = $2.40`.
-- User-credit conversion uses `40 credits/USD` plus a 20% user-price margin, so 15 seconds costs `100.8 cr` at `720p` and `115.2 cr` at `1080p`.
+- Source pricing for 15 seconds: `720p = $2.10`, `1080p = $2.16`.
+- User-credit conversion uses `40 credits/USD` plus a 40% user-price margin, so 15 seconds costs `117.6 cr` at `720p` and `120.96 cr` at `1080p`.
 - The selected `Quality` value must affect both the visible estimate and the server-side charge.
 
 ## Edit Tools WaveSpeed Provider Contract (2026-08-13)
@@ -70,12 +88,12 @@
 - Google official documentation is the authority for Gemini Omni Flash and Veo video generation. KIE catalog data must not define prices for direct Google video routes.
 - Gemini Omni Flash (`gemini-omni-flash-preview`) is the default Google video/editing engine for multimodal text, image, reference, and video-edit workflows. It supports `text_to_video`, `image_to_video`, `reference_to_video`, and `edit` task labels through the Interactions API.
 - Veo 3.1 remains the Google path for scene/video extension, last-frame control, reference images, 4/6/8 second generation, and 720p/1080p/4K output according to tier support.
-- User credit conversion for Google video uses official provider USD cost * 1.5 margin / 0.05 USD per user credit.
+- User credit conversion for Google video uses official provider USD cost * 1.4 margin / 0.05 USD per user credit.
 - Current official Google video user-credit floors:
-  - Gemini Omni Flash: 3 credits/sec at effective 0.10 USD/sec 720p.
-  - Veo 3.1 Lite: 1.5 credits/sec 720p, 2.4 credits/sec 1080p; no 4K in UI.
-  - Veo 3.1 Fast and Veo 3 Fast: 3 credits/sec 720p, 3.6 credits/sec 1080p, 9 credits/sec 4K.
-  - Veo 3.1 and Veo 3: 12 credits/sec 720p/1080p, 18 credits/sec 4K for Veo 3.1.
+  - Gemini Omni Flash: 2.8 credits/sec at effective 0.10 USD/sec 720p.
+  - Veo 3.1 Lite: 1.4 credits/sec 720p, 2.24 credits/sec 1080p; no 4K in UI.
+  - Veo 3.1 Fast and Veo 3 Fast: 2.8 credits/sec 720p, 3.36 credits/sec 1080p, 8.4 credits/sec 4K.
+  - Veo 3.1 and Veo 3: 11.2 credits/sec 720p/1080p, 16.8 credits/sec 4K for Veo 3.1.
 - `/video` must show only the selected model name to subscribers. Text To Video, Image To Video, Reference To Video, Video Extend, and Video Edit are hidden internal routing/audit modes only; API audit payloads may persist the mode and resolved Google provider model.
 ## إدارة وتحديث موديلات الذكاء الاصطناعي ديناميكياً من لوحة التحكم (2026-08-07)
 
@@ -3054,8 +3072,10 @@
 - Subscriber-facing UI should show simple model names. Internal routing may select Text Turbo or Image Turbo automatically based on whether an image/start frame is present.
 - Seedance 2.5 must not be normalized to Seedance 2.0 and must not fall back to KIE. It is a WaveSpeed route unless a future direct-provider adapter is explicitly added.
 - Pricing source separation:
-  - Turbo prices come from the attached WaveSpeed text pages: 720p no reference video $0.20/s, 1080p no reference video $0.21/s, 720p with reference video $0.38/s, 1080p with reference video $0.39/s.
+  - Turbo pricing for the current visible 720p quality is based on an actual completed WaveSpeed run: `bytedance/seedance-2.5/text-to-video-turbo`, `30s`, `720p`, `generate_audio=true`, image references, cost `$5.40`, so the source rate is `$0.18/s`.
+  - Final user credits for the same run include the 40% margin: `$5.40 x 40 x 1.4 = 302.4 cr`.
   - Spicy source prices come from provider UI screenshots: 480p $0.162/s, 720p $0.324/s, 1080p $0.81/s, 4k $1.62/s.
+  - Current margin rule supersedes older notes: Seedance 2.5 uses provider USD source price x 40 credits/USD x 1.4.
   - User credits for Seedance 2.5 use verified provider USD source price � 40 credits/USD. This protects the lowest effective annual plan credit value with an approximate 20% margin.
   - Generate Audio/sound does not affect Seedance 2.5 price; billing uses duration and resolution only.
 - Do not publish `video-edit`, `video-edit-turbo`, `video-extend`, base text-to-video, or base image-to-video Seedance 2.5 rows without exact specs and prices.
@@ -3101,7 +3121,7 @@
 
 - Current subscriber-facing Seedance 2.5 quality options are `480p` and `720p` only, in this order. Do not expose `1080p` or `4k` for the public Seedance 2.5 selector unless a later verified source explicitly restores them.
 - Seedance 2.5 API normalization must clamp stale/invalid resolution values to `720p`.
-- Seedance 2.5 pricing must use the user-supplied source table for the visible quality set: `480p = $0.162/s`, `720p = $0.324/s`, then multiply by 40 credits/USD. Audio generation is included and must not add cost.
+- Seedance 2.5 pricing must use the user-supplied source table for the visible quality set: `480p = $0.162/s`, `720p = $0.18/s`, then multiply by `40 credits/USD` plus a 40% user-price margin. Audio generation is included and must not add cost.
 - The public `Seedance 2.5` row may still route internally to Text Turbo, Image Turbo, or Spicy based on prompt/reference/start-frame inputs, but all subscriber-visible quality controls remain `480p`/`720p`.
 
 ## Seedance 2.5 Page Default Contract (2026-08-07)
@@ -3119,8 +3139,8 @@
 
 ## WaveSpeed Actual Run Pricing Corrections (2026-08-07)
 
-- Seedance 2.5 720p pricing is based on an actual completed WaveSpeed run for `bytedance/seedance-2.5/text-to-video-turbo`: `$1.368` for `4s`, so the source rate is `$0.342/s`.
+- Seedance 2.5 720p pricing is based on an actual completed WaveSpeed run for `bytedance/seedance-2.5/text-to-video-turbo`: `$5.40` for `30s`, so the source rate is `$0.18/s`.
 - Seedance 2.5 480p remains `$0.162/s` until a new actual completed 480p run is provided; do not infer a new 480p value from the 720p correction.
 - Minimax H3 pricing is based on an actual completed WaveSpeed run for `minimax/h3/reference-to-video`: `$2` for `5s` at `768p`, so the source rate is `$0.40/s`.
-- The active site conversion for these WaveSpeed video prices is `40 credits/USD`: Seedance 2.5 720p `4s = 54.72 cr`; Minimax H3 768p `5s = 80 cr`.
+- The active site conversion for Seedance 2.5 is `40 credits/USD` plus a 40% margin: Seedance 2.5 720p `30s = 302.4 cr`; Minimax H3 768p keeps `5s = 80 cr`.
 - Sound/generate_audio is not an extra charge for the Seedance 2.5 run pricing above.

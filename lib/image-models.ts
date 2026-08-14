@@ -1,6 +1,6 @@
 ﻿// â”€â”€â”€ Image Model Definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Per-model API parameter configs used by the image workspace UI.
-// Routes: WaveSpeed (seedream/*), PiAPI (flux-2/*), KIE.ai (everything else)
+// Routes: Google official (google/nano-banana/imagen), OpenAI official (gpt-image), WaveSpeed (all other curated image rows).
 
 import {
   GEMINI_FLASH_IMAGE_ASPECT_RATIOS,
@@ -26,20 +26,22 @@ export interface ImageModel {
   aspectRatios: string[];
   /** Max images per generation run. */
   maxImages: number;
-  /** How many reference images this model accepts (0 = none, 1 = single, 4 = multi). */
+  /** How many reference images this model accepts for the configured provider route. */
   maxRefImages: number;
   /** Whether this model exposes a grok-style mode toggle. */
   grokMode?: boolean;
   /** Quality presets sent as a `quality` param (e.g. GPT Image). */
   qualityParam?: string[];
-  /** KIE API input field name for reference images:
+  /** Provider input field name for reference images:
    * - undefined / "image_url" â†’ single: image_url, multi: image_urls (default)
    * - "image_input" â†’ always array: image_input (Gemini/Nano Banana models)
-   * - "image_urls" â†’ always array: image_urls (Seedream, FLUX.2, Grok I2I, Nano Banana Edit)
+   * - "images" â†’ always array: images (WaveSpeed multi-reference edit models)
+   * - "image" â†’ single string: image (WaveSpeed single-reference edit models)
+   * - "image_urls" â†’ always array: image_urls (legacy compatibility)
    * - "image_url" â†’ single string: image_url (Qwen image-edit, qwen/image-to-image)
    * - "input_urls" â†’ always array: input_urls (GPT Image I2I, Wan, Flux-2 I2I)
    */
-  imageInputField?: "image_url" | "image_input" | "image_urls" | "input_urls";
+  imageInputField?: "image_url" | "image_input" | "image_urls" | "input_urls" | "image" | "images";
   /** When true, the route runs N parallel createTasks for models that don't
    * accept num_images / n natively (so the user actually receives N images).
    * When false, model is sent num_images / n (or n via sequential mode for Wan).
@@ -161,9 +163,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     group: "Nano Banana",
     upstreamModelId: GOOGLE_IMAGE_UPSTREAM_MODEL_MAP["google/nano-banana"],
     inputType: "text-to-image",
-    // KIE spec: image_size enum (sent as `image_size` not `aspect_ratio`).
     aspectRatios: GEMINI_STANDARD_IMAGE_ASPECT_RATIOS,
-    // Spec has no num_images field â†’ batched via parallel createTasks in the route.
     maxImages: 4,
     maxRefImages: 3,
     imageInputField: "image_input",
@@ -193,8 +193,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
     maxImages: 4,
-    maxRefImages: 3,
-    imageInputField: "image_input",
+    maxRefImages: 0,
     creditCost: 1.0,
   },
   {
@@ -206,8 +205,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
     maxImages: 1,
-    maxRefImages: 3,
-    imageInputField: "image_input",
+    maxRefImages: 0,
     creditCost: 1.0,
   },
   {
@@ -219,8 +217,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
     maxImages: 1,
-    maxRefImages: 3,
-    imageInputField: "image_input",
+    maxRefImages: 0,
     creditCost: 1.0,
   },
   // â”€â”€ Seedream â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -231,9 +228,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Seedream",
     inputType: "text-to-image",
-    // KIE spec aspect_ratio enum: 1:1 / 4:3 / 3:4 / 16:9 / 9:16 / 2:3 / 3:2 / 21:9
     aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2", "21:9"],
-    // No num_images in spec â†’ parallel batching in the route.
     maxImages: 4,
     maxRefImages: 0,
     qualityParam: ["basic", "high"],
@@ -248,8 +243,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "edit",
     aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2", "21:9"],
     maxImages: 1,
-    maxRefImages: 14,
-    imageInputField: "image_urls",
+    maxRefImages: 10,
+    imageInputField: "images",
     qualityParam: ["basic", "high"],
     creditCost: 1.0,
   },
@@ -275,8 +270,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "image-to-image",
     aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2", "21:9"],
     maxImages: 4,
-    maxRefImages: 14,
-    imageInputField: "image_urls",
+    maxRefImages: 10,
+    imageInputField: "images",
     qualityParam: ["basic", "high"],
     creditCost: 1.0,
   },
@@ -297,7 +292,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
     maxImages: 15,
     maxRefImages: 10,
-    imageInputField: "image_urls",
+    imageInputField: "images",
     qualityParam: ["2K", "4K"],
     seedreamLiteSize: true,
     creditCost: 1.5,
@@ -318,7 +313,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2"],
     maxImages: 1,
     maxRefImages: 10,
-    imageInputField: "image_urls",
+    imageInputField: "images",
     qualityParam: ["1K", "2K"],
     creditCost: 1.0,
   },
@@ -332,8 +327,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
     maxImages: 4,
-    maxRefImages: 3,
-    imageInputField: "image_input",
+    maxRefImages: 1,
+    imageInputField: "image",
     creditCost: 1.0,
   },
   // â”€â”€ Qwen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -344,12 +339,9 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "NEW",
     group: "Qwen",
     inputType: "text-to-image",
-    // KIE spec uses `image_size` enum (square_hd / portrait_4_3 / landscape_4_3 / portrait_16_9 / landscape_16_9).
     aspectRatios: ["1:1", "3:4", "4:3", "9:16", "16:9"],
-    // No num_images â†’ parallel batching.
     maxImages: 4,
-    maxRefImages: 3,
-    imageInputField: "image_input",
+    maxRefImages: 0,
     creditCost: 1.0,
   },
   {
@@ -361,8 +353,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "edit",
     aspectRatios: ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"],
     maxImages: 1,
-    maxRefImages: 1,
-    imageInputField: "image_url",
+    maxRefImages: 3,
+    imageInputField: "images",
     creditCost: 1.0,
   },
   {
@@ -375,7 +367,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: [],
     maxImages: 1,
     maxRefImages: 1,
-    imageInputField: "image_url",
+    imageInputField: "image",
     creditCost: 1.0,
   },
   // â”€â”€ Grok Imagine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -386,9 +378,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Other",
     inputType: "text-to-image",
-    // KIE spec aspect_ratio enum: 2:3 / 3:2 / 1:1 / 16:9 / 9:16
     aspectRatios: ["2:3", "3:2", "1:1", "16:9", "9:16"],
-    // No num_images in spec â†’ parallel batching.
     maxImages: 4,
     maxRefImages: 0,
     // Speed (false) vs Quality (true) maps to enable_pro.
@@ -404,10 +394,10 @@ export const IMAGE_MODELS: ImageModel[] = [
     group: "Other",
     inputType: "image-to-image",
     aspectRatios: [],
-    maxImages: 1,
-    // KIE spec image_urls maxItems: 5
-    maxRefImages: 5,
-    imageInputField: "image_urls",
+    maxImages: 4,
+    // WaveSpeed Grok Image Quality Edit accepts one input image.
+    maxRefImages: 1,
+    imageInputField: "image",
     creditCost: 1.0,
   },
   // â”€â”€ GPT Image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -434,7 +424,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: ["auto", "1:1", "9:16", "16:9", "4:3", "3:4"],
     maxImages: 1,
     maxRefImages: 16,
-    imageInputField: "input_urls",
+    imageInputField: "images",
     qualityParam: ["low", "medium", "high"],
     creditCost: 2.0,
   },
@@ -476,8 +466,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: ["1:1", "16:9", "4:3", "21:9", "3:4", "9:16", "8:1", "1:8"],
     // n: 1-4 default; 1-12 when enable_sequential. UI bumps to 12 when sequential mode is on.
     maxImages: 12,
-    maxRefImages: 9,
-    imageInputField: "input_urls",
+    maxRefImages: 3,
+    imageInputField: "images",
     qualityParam: ["1K", "2K", "4K"],
     wanSequentialMode: true,
     creditCost: 1.0,
@@ -492,8 +482,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["auto", "1:1", "4:3", "3:4", "16:9", "9:16"],
     maxImages: 4,
-    maxRefImages: 8,
-    imageInputField: "input_urls",
+    maxRefImages: 3,
+    imageInputField: "images",
     qualityParam: ["1K", "2K"],
     creditCost: 1.0,
   },
@@ -506,8 +496,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["auto", "1:1", "4:3", "3:4", "16:9", "9:16"],
     maxImages: 4,
-    maxRefImages: 8,
-    imageInputField: "input_urls",
+    maxRefImages: 3,
+    imageInputField: "images",
     qualityParam: ["1K"],
     creditCost: 1.0,
   },
@@ -520,8 +510,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["auto", "1:1", "4:3", "3:4", "16:9", "9:16"],
     maxImages: 4,
-    maxRefImages: 8,
-    imageInputField: "input_urls",
+    maxRefImages: 3,
+    imageInputField: "images",
     qualityParam: ["2K"],
     creditCost: 1.0,
   },

@@ -5,11 +5,9 @@
  *   • Google models (Veo, Imagen, Nano Banana) → Google official API
  *   • Seedance v2 family                       → BytePlus official API
  *   • OpenAI models (gpt-image, DALL·E, Sora)  → OpenAI official API
- *   • Everything else                          → kie.ai aggregator
+ *   - Curated non-Google/OpenAI image models route through WaveSpeed in image routes
  *
- * The panel routes (app/api/panel/generate/{image,video}/route.ts) call
- * `generateImage` / `generateVideo` here instead of hitting kie.ai
- * directly. Credit charging, R2 upload, DB rows, etc. stay in the route. */
+ * Credit charging, storage upload, DB rows, etc. stay in the route. */
 
 import type {
   ProviderId,
@@ -81,12 +79,11 @@ export function getProviderFor(modelId: string): ProviderId {
     return "openai";
   }
 
-  // Default: kie.ai aggregator
+  // Default: legacy non-direct provider. Curated image routes handle WaveSpeed before this fallback.
   return "kie";
 }
 
-/** True if a modelId is served by something other than the kie.ai
- *  fallback. Panel routes can use this for an early dispatch. */
+/** True if a modelId is served by a direct provider adapter. */
 export function isDirectProviderModel(modelId: string): boolean {
   return getProviderFor(modelId) !== "kie";
 }
