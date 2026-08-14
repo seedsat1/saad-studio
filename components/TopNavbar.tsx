@@ -573,39 +573,97 @@ const PricingButton = () => (
   </Link>
 );
 
-function CreditRing({ ratio, size = 44, stroke = 2.5 }: { ratio: number; size?: number; stroke?: number }) {
+function CreditRing({ ratio, size = 46, stroke = 2.5, hovered = false }: { ratio: number; size?: number; stroke?: number; hovered?: boolean }) {
   const clamped = Math.max(0, Math.min(1, ratio));
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  // color interpolation: green (>50%) → amber (25-50%) → red (<25%)
-  const color =
-    clamped > 0.5 ? "#22c55e" :
-    clamped > 0.25 ? "#f59e0b" :
-    "#ef4444";
-  const glow = clamped > 0.5 ? "rgba(34,197,94,.55)" : clamped > 0.25 ? "rgba(245,158,11,.55)" : "rgba(239,68,68,.6)";
+  const cx = size / 2;
+  const cy = size / 2;
+
+  // Palette: gradient endpoints per state
+  const state: "high" | "mid" | "low" | "critical" =
+    clamped > 0.5 ? "high" : clamped > 0.25 ? "mid" : clamped > 0.08 ? "low" : "critical";
+  const grad = {
+    high:     { from: "#34d399", to: "#22c55e" }, // emerald → green
+    mid:      { from: "#fbbf24", to: "#f59e0b" }, // amber → orange
+    low:      { from: "#fb923c", to: "#ef4444" }, // orange → red
+    critical: { from: "#f43f5e", to: "#ef4444" }, // rose → red
+  }[state];
+  const glow = {
+    high:     "rgba(34,197,94,.55)",
+    mid:      "rgba(245,158,11,.55)",
+    low:      "rgba(239,68,68,.55)",
+    critical: "rgba(239,68,68,.75)",
+  }[state];
+  const alert = state === "low" || state === "critical";
+
+  // Head-dot coordinates at the end of the arc
+  const angle = -Math.PI / 2 + 2 * Math.PI * clamped;
+  const hx = cx + r * Math.cos(angle);
+  const hy = cy + r * Math.sin(angle);
+
+  const gradId = `cr-grad-${state}`;
   return (
     <svg
       className="pointer-events-none absolute inset-0"
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      style={{ filter: `drop-shadow(0 0 6px ${glow})` }}
+      style={{
+        filter: `drop-shadow(0 0 ${hovered ? 10 : 6}px ${glow})`,
+        transition: "filter .3s ease, transform .5s cubic-bezier(.2,.7,.2,1)",
+        transform: hovered ? "rotate(360deg)" : "rotate(0deg)",
+      }}
       aria-hidden="true"
     >
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth={stroke} />
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor={grad.from} />
+          <stop offset="100%" stopColor={grad.to} />
+        </linearGradient>
+      </defs>
+
+      {/* Track */}
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+
+      {/* Progress arc */}
       <circle
-        cx={size / 2}
-        cy={size / 2}
+        cx={cx}
+        cy={cy}
         r={r}
         fill="none"
-        stroke={color}
+        stroke={`url(#${gradId})`}
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeDasharray={c}
         strokeDashoffset={c * (1 - clamped)}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        style={{ transition: "stroke-dashoffset .6s ease, stroke .6s ease" }}
+        transform={`rotate(-90 ${cx} ${cy})`}
+        style={{
+          transition: "stroke-dashoffset .8s cubic-bezier(.2,.7,.2,1)",
+          animation: alert ? "cr-pulse 1.4s ease-in-out infinite" : undefined,
+        }}
       />
+
+      {/* Glowing head dot at arc tip — only when there is progress */}
+      {clamped > 0.01 && clamped < 0.999 && (
+        <circle
+          cx={hx}
+          cy={hy}
+          r={stroke * 0.9}
+          fill={grad.to}
+          style={{
+            filter: `drop-shadow(0 0 4px ${grad.to})`,
+            transition: "cx .8s cubic-bezier(.2,.7,.2,1), cy .8s cubic-bezier(.2,.7,.2,1), fill .6s ease",
+          }}
+        />
+      )}
+
+      <style>{`
+        @keyframes cr-pulse {
+          0%, 100% { opacity: 1; }
+          50%      { opacity: .55; }
+        }
+      `}</style>
     </svg>
   );
 }
@@ -620,6 +678,26 @@ const UserProfileDropdown = ({ creditBalance, creditCapacity }: { creditBalance:
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "User";
   const email = user?.emailAddresses[0]?.emailAddress ?? "";
   const initials = fullName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+  const [ringHovered, setRingHovered] = useState(false);
+  const ringRatio =
+    creditBalance !== null && creditCapacity && creditCapacity > 0
+      ? creditBalance / creditCapacity
+      : null;
+  const ringPct = ringRatio !== null ? Math.round(ringRatio * 100) : null;
+  const ringState =
+    ringRatio === null ? "none"
+    : ringRatio > 0.5 ? "high"
+    : ringRatio > 0.25 ? "mid"
+    : ringRatio > 0.08 ? "low"
+    : "critical";
+  const chipStyles: Record<string, { bg: string; text: string; ring: string }> = {
+    high:     { bg: "rgba(34,197,94,.14)",  text: "#4ade80", ring: "rgba(34,197,94,.35)" },
+    mid:      { bg: "rgba(245,158,11,.14)", text: "#fbbf24", ring: "rgba(245,158,11,.35)" },
+    low:      { bg: "rgba(249,115,22,.16)", text: "#fb923c", ring: "rgba(249,115,22,.45)" },
+    critical: { bg: "rgba(239,68,68,.18)",  text: "#f87171", ring: "rgba(239,68,68,.55)" },
+    none:     { bg: "rgba(255,255,255,.06)",text: "#e2e8f0", ring: "rgba(255,255,255,.15)" },
+  };
+  const chip = chipStyles[ringState];
 
   return (
     <DropdownMenu>
@@ -627,15 +705,19 @@ const UserProfileDropdown = ({ creditBalance, creditCapacity }: { creditBalance:
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          onMouseEnter={() => setRingHovered(true)}
+          onMouseLeave={() => setRingHovered(false)}
+          onFocus={() => setRingHovered(true)}
+          onBlur={() => setRingHovered(false)}
           className="relative flex h-11 w-11 items-center justify-center rounded-full focus:outline-none"
-          title={
+          aria-label={
             creditBalance !== null && creditCapacity && creditCapacity > 0
-              ? `${creditBalance.toLocaleString()} / ${creditCapacity.toLocaleString()} cr`
-              : creditBalance !== null ? `${creditBalance.toLocaleString()} cr` : undefined
+              ? `Credit ${creditBalance.toLocaleString()} of ${creditCapacity.toLocaleString()} (${ringPct}%)`
+              : creditBalance !== null ? `Credit ${creditBalance.toLocaleString()}` : "Profile"
           }
         >
-          {creditBalance !== null && creditCapacity && creditCapacity > 0 && (
-            <CreditRing ratio={creditBalance / creditCapacity} size={44} stroke={2.5} />
+          {ringRatio !== null && (
+            <CreditRing ratio={ringRatio} size={46} stroke={2.5} hovered={ringHovered} />
           )}
           <div className="relative h-9 w-9 rounded-full overflow-hidden ring-1 ring-white/10">
             {uploadedPhoto ? (
@@ -646,6 +728,25 @@ const UserProfileDropdown = ({ creditBalance, creditCapacity }: { creditBalance:
               </div>
             )}
           </div>
+
+          {/* Floating credit chip — appears on hover */}
+          {ringRatio !== null && (
+            <div
+              className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[10.5px] font-bold tabular-nums shadow-lg shadow-black/40"
+              style={{
+                top: "calc(100% + 6px)",
+                background: chip.bg,
+                color: chip.text,
+                border: `1px solid ${chip.ring}`,
+                backdropFilter: "blur(8px)",
+                opacity: ringHovered ? 1 : 0,
+                transform: ringHovered ? "translate(-50%, 0)" : "translate(-50%, -4px)",
+                transition: "opacity .22s ease, transform .22s cubic-bezier(.2,.7,.2,1)",
+              }}
+            >
+              {creditBalance!.toLocaleString()}{creditCapacity ? ` / ${creditCapacity.toLocaleString()}` : ""} cr · {ringPct}%
+            </div>
+          )}
         </motion.button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8} className="w-64 border border-white/10 bg-slate-900/95 backdrop-blur-xl p-2 text-white shadow-2xl shadow-black/60 rounded-xl">
