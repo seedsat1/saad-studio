@@ -802,6 +802,13 @@ function VideoHistoryList({
                   <span className="inline-block w-[5px] h-[5px] rounded-full bg-[#7aa5ff] saad-loader-dot" style={{ boxShadow: "0 0 8px #7aa5ff" }} />
                   <span>{statusText}</span>
                 </div>
+                {item.name && (
+                  <div className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10.5px] text-slate-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#7aa5ff]" style={{ boxShadow: "0 0 6px #7aa5ff" }} />
+                    <span className="max-w-[160px] truncate">{item.name}</span>
+                    {item.ratio && <span className="text-slate-500">· {item.ratio}</span>}
+                  </div>
+                )}
               </div>
               <div className="absolute left-[14%] right-[14%] bottom-[22%] h-[3px] rounded-full bg-[rgba(110,168,255,0.20)] overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,#7aa5ff,#8b6bff,transparent)] saad-loader-bar" />
@@ -1635,18 +1642,31 @@ function isAllowedReferenceFile(file: File, model: WaveSpeedVideoModel): boolean
   return false;
 }
 
+function sortReferenceFilesByNaturalName(files: File[]): File[] {
+  return files
+    .map((file, index) => ({ file, index }))
+    .sort((a, b) => {
+      const byName = a.file.name.localeCompare(b.file.name, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+      return byName || a.index - b.index;
+    })
+    .map((entry) => entry.file);
+}
+
 function mergeReferenceFiles(current: File[], incoming: File[], model: WaveSpeedVideoModel): File[] {
   const allFiles = [...current, ...incoming].filter((file) => isAllowedReferenceFile(file, model));
   const limits = getReferenceFileLimits(model);
 
   if (limits.videos > 0 || limits.audios > 0) {
-    const images = allFiles.filter((file) => file.type.startsWith("image/")).slice(0, limits.images);
-    const videos = allFiles.filter((file) => file.type.startsWith("video/")).slice(0, limits.videos);
-    const audios = allFiles.filter((file) => file.type.startsWith("audio/")).slice(0, limits.audios);
+    const images = sortReferenceFilesByNaturalName(allFiles.filter((file) => file.type.startsWith("image/"))).slice(0, limits.images);
+    const videos = sortReferenceFilesByNaturalName(allFiles.filter((file) => file.type.startsWith("video/"))).slice(0, limits.videos);
+    const audios = sortReferenceFilesByNaturalName(allFiles.filter((file) => file.type.startsWith("audio/"))).slice(0, limits.audios);
     return [...images, ...videos, ...audios];
   }
 
-  return allFiles.filter((file) => file.type.startsWith("image/")).slice(0, limits.images);
+  return sortReferenceFilesByNaturalName(allFiles.filter((file) => file.type.startsWith("image/"))).slice(0, limits.images);
 }
 
 function getReferenceFileSummary(files: File[], model: WaveSpeedVideoModel): string {
