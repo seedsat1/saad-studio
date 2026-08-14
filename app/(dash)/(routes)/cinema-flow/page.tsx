@@ -686,24 +686,53 @@ export default function CinemaFlowPage() {
         throw new Error(chatData.error ?? "فشل الاتصال بمساعد السينما الذكي.");
       }
 
-      const replyText = chatData.text;
+      const replyText = chatData.text as string;
 
-      if (replyText.startsWith("IMAGE_GEN:")) {
-        const refinedPrompt = replyText.replace("IMAGE_GEN:", "").trim();
-        await executeImageGeneration(refinedPrompt, finalRefUrls);
-      } else if (replyText.startsWith("VIDEO_WITH_VOICEOVER_GEN:")) {
-        const payloadStr = replyText.replace("VIDEO_WITH_VOICEOVER_GEN:", "").trim();
-        const parts = payloadStr.split("|");
-        const videoPrompt = parts[0].trim();
-        const voiceoverText = parts.slice(1).join("|").trim();
-        if (voiceoverText) {
-          await executeVideoWithVoiceoverGeneration(videoPrompt, voiceoverText, finalRefUrls, videoRefUrl, audioRefUrls);
-        } else {
-          await executeVideoGeneration(videoPrompt, finalRefUrls, videoRefUrl, audioRefUrls);
+      // Tolerant trigger extractor — model may put narrative BEFORE the trigger line.
+      // Priority: VIDEO_WITH_VOICEOVER_GEN > VIDEO_GEN > IMAGE_GEN
+      const extractTrigger = (text: string) => {
+        const patterns: Array<{ tag: "IMAGE_GEN" | "VIDEO_GEN" | "VIDEO_WITH_VOICEOVER_GEN"; re: RegExp }> = [
+          { tag: "VIDEO_WITH_VOICEOVER_GEN", re: /VIDEO_WITH_VOICEOVER_GEN\s*:\s*([\s\S]+?)$/im },
+          { tag: "VIDEO_GEN",                re: /VIDEO_GEN\s*:\s*([\s\S]+?)$/im },
+          { tag: "IMAGE_GEN",                re: /IMAGE_GEN\s*:\s*([\s\S]+?)$/im },
+        ];
+        for (const { tag, re } of patterns) {
+          const m = text.match(re);
+          if (m) {
+            const payload = m[1].trim();
+            const narrative = text.slice(0, m.index).trim();
+            return { tag, payload, narrative };
+          }
         }
-      } else if (replyText.startsWith("VIDEO_GEN:")) {
-        const refinedPrompt = replyText.replace("VIDEO_GEN:", "").trim();
-        await executeVideoGeneration(refinedPrompt, finalRefUrls, videoRefUrl, audioRefUrls);
+        return null;
+      };
+
+      const trigger = extractTrigger(replyText);
+
+      if (trigger) {
+        // If model spoke first, show its narration as a normal agent message
+        if (trigger.narrative) {
+          setChatMessages(prev => [...prev, {
+            id: Math.random().toString(),
+            sender: "agent",
+            text: trigger.narrative,
+          }]);
+        }
+
+        if (trigger.tag === "IMAGE_GEN") {
+          await executeImageGeneration(trigger.payload, finalRefUrls);
+        } else if (trigger.tag === "VIDEO_WITH_VOICEOVER_GEN") {
+          const parts = trigger.payload.split("|");
+          const videoPrompt = parts[0].trim();
+          const voiceoverText = parts.slice(1).join("|").trim();
+          if (voiceoverText) {
+            await executeVideoWithVoiceoverGeneration(videoPrompt, voiceoverText, finalRefUrls, videoRefUrl, audioRefUrls);
+          } else {
+            await executeVideoGeneration(videoPrompt, finalRefUrls, videoRefUrl, audioRefUrls);
+          }
+        } else {
+          await executeVideoGeneration(trigger.payload, finalRefUrls, videoRefUrl, audioRefUrls);
+        }
       } else {
         // Normal conversational reply
         setChatMessages(prev => [...prev, {
