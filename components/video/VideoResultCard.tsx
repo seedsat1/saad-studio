@@ -52,13 +52,13 @@ function useVideoResultCardTranslation() {
   const dict: Record<string, Record<string, string>> = {
     en: {},
     ar: {
-      "Generating...": "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªÙˆÙ„ÙŠØ¯...",
-      "Download": "ØªØ­Ù…ÙŠÙ„",
-      "+8s Extend": "ØªÙ…Ø¯ÙŠØ¯ +8Ø«",
-      "4K Upscale": "ØªØ±Ù‚ÙŠØ© Ø§Ù„Ø¯Ù‚Ø© Ù„Ù€ 4K",
-      "Remix": "Ø¥Ø¹Ø§Ø¯Ø© ØªØµÙ…ÙŠÙ…",
-      "Delete": "Ø­Ø°Ù",
-      "LATEST": "Ø§Ù„Ø£Ø­Ø¯Ø«",
+      "Generating...": "جاري التوليد...",
+      "Download": "تحميل",
+      "+8s Extend": "تمديد +8ث",
+      "4K Upscale": "ترقية الدقة لـ 4K",
+      "Remix": "إعادة تصميم",
+      "Delete": "حذف",
+      "LATEST": "الأحدث",
     }
   };
   const t = (key: string): string => {
@@ -167,7 +167,7 @@ export default function VideoResultCard({
         </div>
       )}
 
-      {/* Model pill â€” top-left (not hero) */}
+      {/* Model pill — top-left (not hero) */}
       {!isHero && (
         <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: result.familyColor }} />
@@ -184,7 +184,7 @@ export default function VideoResultCard({
         </div>
       )}
 
-      {/* Duration pill â€” top-right (not hero) */}
+      {/* Duration pill — top-right (not hero) */}
       {!isHero && (
         <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
           <span className="text-[9px] text-white/70">{result.duration}s</span>

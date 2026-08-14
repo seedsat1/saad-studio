@@ -927,7 +927,7 @@ export function WorkflowCanvas({
   const handleGenerateExistingVideoNode = async (videoNode: CanvasNode) => {
     const imageUrl = getInputImageUrl(videoNode);
     if (!imageUrl) {
-      setCanvasError(isArabic ? "Ø§Ø±Ø¨Ø· Ø¹Ù‚Ø¯Ø© Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø¨ØµÙˆØ±Ø© Ø£ÙˆÙ„Ø§Ù‹." : "Connect the video node to an image first.");
+      setCanvasError(isArabic ? "اربط عقدة الفيديو بصورة أولاً." : "Connect the video node to an image first.");
       return;
     }
     const prompt = getEffectivePrompt(videoNode, `${videoNode.influencerHandle || selectedHandle} looking at camera, gentle motion, cinematic lighting`, videoPrompt);
@@ -966,7 +966,7 @@ export function WorkflowCanvas({
   const handleGenerateUpscaleNode = async (upscaleNode: CanvasNode) => {
     const imageUrl = getInputImageUrl(upscaleNode);
     if (!imageUrl) {
-      setCanvasError(isArabic ? "Ø§Ø±Ø¨Ø· Ø§Ù„Ù€ Upscaler Ø¨ØµÙˆØ±Ø© Ø£ÙˆÙ„Ø§Ù‹." : "Connect the upscaler to an image first.");
+      setCanvasError(isArabic ? "اربط الـ Upscaler بصورة أولاً." : "Connect the upscaler to an image first.");
       return;
     }
 
@@ -1099,7 +1099,7 @@ export function WorkflowCanvas({
         </button>
         <button
           type="button"
-          title={isArabic ? "Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡" : "Create menu"}
+          title={isArabic ? "قائمة الإنشاء" : "Create menu"}
           onClick={openCreateMenu}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white"
         >
@@ -1248,7 +1248,7 @@ export function WorkflowCanvas({
           onMouseUp={(event) => event.stopPropagation()}
         >
           <div className="px-2 pb-2 text-[11px] font-extrabold uppercase tracking-wider text-zinc-400">
-            {isArabic ? "Ø¥Ù†Ø´Ø§Ø¡ Ø¯Ø§Ø®Ù„ Ø§Ù„ÙƒØ§Ù†ÙØ§Ø³" : "Create on canvas"}
+            {isArabic ? "إنشاء داخل الكانفاس" : "Create on canvas"}
           </div>
           <div className="space-y-1">
             <button
@@ -1264,7 +1264,7 @@ export function WorkflowCanvas({
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-extrabold text-white">{copy.uploadSource}</span>
-                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø§Ø³ØªØ¹Ù…Ù„Ù‡Ø§ ÙƒÙ‡ÙˆÙŠØ© Ø£Ùˆ Ù…ØµØ¯Ø±" : "Use it as the source identity"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "استعملها كهوية أو مصدر" : "Use it as the source identity"}</span>
               </span>
             </button>
             <button
@@ -1280,7 +1280,7 @@ export function WorkflowCanvas({
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-extrabold text-white">{copy.createBlank}</span>
-                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø§Ø¨Ø¯Ø£ Ù„ÙˆØ­Ø© Ø¹Ù…Ù„ Ø¬Ø¯ÙŠØ¯Ø©" : "Start a new blank work"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "ابدأ لوحة عمل جديدة" : "Start a new blank work"}</span>
               </span>
             </button>
             <button
@@ -1295,8 +1295,8 @@ export function WorkflowCanvas({
                 <ImageIcon size={16} />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-extrabold text-white">{isArabic ? "Ù…ÙˆÙ„Ø¯ ØµÙˆØ±" : "Image Generator"}</span>
-                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø£Ù†Ø´Ø¦ Ø¹Ù‚Ø¯Ø© ØµÙˆØ± Ù…ØªØµÙ„Ø©" : "Create a connected image node"}</span>
+                <span className="block text-sm font-extrabold text-white">{isArabic ? "مولد صور" : "Image Generator"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "أنشئ عقدة صور متصلة" : "Create a connected image node"}</span>
               </span>
             </button>
             <button
@@ -1311,8 +1311,8 @@ export function WorkflowCanvas({
                 <TypeIcon size={16} />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-extrabold text-white">{isArabic ? "Ø¹Ù‚Ø¯Ø© Ù†Øµ" : "Text Node"}</span>
-                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø¨Ø±ÙˆÙ…Ø¨Øª ÙŠØ±ØªØ¨Ø· Ø¨Ø£Ø¯ÙˆØ§Øª Ø§Ù„ØªÙˆÙ„ÙŠØ¯" : "Prompt input for generators"}</span>
+                <span className="block text-sm font-extrabold text-white">{isArabic ? "عقدة نص" : "Text Node"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "برومبت يرتبط بأدوات التوليد" : "Prompt input for generators"}</span>
               </span>
             </button>
             <button
@@ -1327,8 +1327,8 @@ export function WorkflowCanvas({
                 <VideoIcon size={16} />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-extrabold text-white">{isArabic ? "Ù…ÙˆÙ„Ø¯ ÙÙŠØ¯ÙŠÙˆ" : "Video Generator"}</span>
-                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø­ÙˆÙ„ Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¥Ù„Ù‰ ÙÙŠØ¯ÙŠÙˆ" : "Turn a connected image into video"}</span>
+                <span className="block text-sm font-extrabold text-white">{isArabic ? "مولد فيديو" : "Video Generator"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "حول الصورة المرتبطة إلى فيديو" : "Turn a connected image into video"}</span>
               </span>
             </button>
             <button
@@ -1343,8 +1343,8 @@ export function WorkflowCanvas({
                 <Aperture size={16} />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-extrabold text-white">{isArabic ? "Ø±ÙØ¹ Ø§Ù„Ø¯Ù‚Ø©" : "Image Upscaler"}</span>
-                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø­Ø³Ù† Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„Ù…ØªØµÙ„Ø©" : "Enhance the connected image"}</span>
+                <span className="block text-sm font-extrabold text-white">{isArabic ? "رفع الدقة" : "Image Upscaler"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "حسن الصورة المتصلة" : "Enhance the connected image"}</span>
               </span>
             </button>
             <button
@@ -1359,8 +1359,8 @@ export function WorkflowCanvas({
                 <Move size={16} />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-extrabold text-white">{isArabic ? "ØªØ±ØªÙŠØ¨ Ø§Ù„Ø¹Ù…Ù„" : "Arrange Workflow"}</span>
-                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø£Ø¹Ø¯ ØªØ±ØªÙŠØ¨ Ø§Ù„Ù†ÙˆØ¯Ø§Øª Ø¨Ø´ÙƒÙ„ ÙˆØ§Ø¶Ø­" : "Reflow nodes into lanes"}</span>
+                <span className="block text-sm font-extrabold text-white">{isArabic ? "ترتيب العمل" : "Arrange Workflow"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "أعد ترتيب النودات بشكل واضح" : "Reflow nodes into lanes"}</span>
               </span>
             </button>
           </div>

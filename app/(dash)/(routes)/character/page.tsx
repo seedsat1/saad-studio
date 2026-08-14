@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -127,60 +127,60 @@ const CHARACTER_TEMPLATES = [
   {
     id: "eccentric",
     name: "The Eccentric",
-    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„ØºØ±ÙŠØ¨Ø©",
+    nameAr: "الشخصية الغريبة",
     desc: "Unforgettable quirky humans. Magnetic scene-stealers with offbeat charm.",
-    descAr: "Ø´Ø®ØµÙŠØ© ÙØ±ÙŠØ¯Ø© ÙˆØºØ±ÙŠØ¨Ø© Ø§Ù„Ø£Ø·ÙˆØ§Ø± ØªÙ„ÙØª Ø§Ù„Ø£Ù†Ø¸Ø§Ø± Ø¨ÙƒØ§Ø±ÙŠØ²Ù…Ø§ ØºÙŠØ± ØªÙ‚Ù„ÙŠØ¯ÙŠØ©.",
-    avatar: "ðŸ¤ª",
+    descAr: "شخصية فريدة وغريبة الأطوار تلفت الأنظار بكاريزما غير تقليدية.",
+    avatar: "🤪",
     gradient: "from-pink-500/20 to-rose-500/20 text-rose-300 border-rose-500/20 hover:border-rose-500/40",
     prompt: "A character portrait of a highly eccentric person, quirky round glasses, colorful clothing, detailed facial expression, creative studio lighting."
   },
   {
     id: "professional",
     name: "The Professional",
-    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„Ù…Ù‡Ù†ÙŠØ©",
+    nameAr: "الشخصية المهنية",
     desc: "Clean cut, well spoken, competent.",
-    descAr: "Ù…Ø¸Ù‡Ø± Ø£Ù†ÙŠÙ‚ ÙˆÙ…Ù‡Ù†Ø¯Ù…ØŒ Ù…Ù„Ø§Ù…Ø­ ÙˆØ§Ø«Ù‚Ø© ÙˆØ¬Ø§Ø¯Ø© ØªØ¯Ù„ Ø¹Ù„Ù‰ Ø§Ù„ÙƒÙØ§Ø¡Ø©.",
-    avatar: "ðŸ’¼",
+    descAr: "مظهر أنيق ومهندم، ملامح واثقة وجادة تدل على الكفاءة.",
+    avatar: "💼",
     gradient: "from-blue-500/20 to-indigo-500/20 text-blue-300 border-blue-500/20 hover:border-blue-500/40",
     prompt: "A professional corporate headshot of a businessperson, clean-cut styling, confident neutral expression, soft office background, natural key light."
   },
   {
     id: "wildcard",
     name: "The Wildcard",
-    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„Ø­Ø±Ø©",
+    nameAr: "الشخصية الحرة",
     desc: "Beyond human, anything can be a character, right?",
-    descAr: "Ù…Ø¸Ù‡Ø± ØºÙŠØ± Ù…Ø£Ù„ÙˆÙ Ø£Ùˆ ÙƒØ§Ø¦Ù† Ù…Ù† Ø¹Ø§Ù„Ù… Ø¢Ø®Ø± ÙŠØªØ¬Ø§ÙˆØ² Ø§Ù„Ø­Ø¯ÙˆØ¯ Ø§Ù„ØªÙ‚Ù„ÙŠØ¯ÙŠØ©.",
-    avatar: "ðŸ¤–",
+    descAr: "مظهر غير مألوف أو كائن من عالم آخر يتجاوز الحدود التقليدية.",
+    avatar: "🤖",
     gradient: "from-purple-500/20 to-violet-500/20 text-violet-300 border-violet-500/20 hover:border-violet-500/40",
     prompt: "A highly stylized creative character, futuristic neon face markings, cyberpunk fashion, cinematic purple and teal highlights."
   },
   {
     id: "familiar",
     name: "The Familiar",
-    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„Ù…Ø£Ù„ÙˆÙØ©",
+    nameAr: "الشخصية المألوفة",
     desc: "Grounded and authentic, a relatable anchor for your story.",
-    descAr: "Ù…Ù„Ø§Ù…Ø­ Ø¯Ø§ÙØ¦Ø© ÙˆÙ‚Ø±ÙŠØ¨Ø© Ù…Ù† Ø§Ù„Ù‚Ù„Ø¨ØŒ ØªØ¹Ø¨Ø± Ø¹Ù† Ø§Ù„Ø¨Ø³Ø§Ø·Ø© ÙˆØ§Ù„ÙˆØ§Ù‚Ø¹ÙŠØ©.",
-    avatar: "ðŸ‘¤",
+    descAr: "ملامح دافئة وقريبة من القلب، تعبر عن البساطة والواقعية.",
+    avatar: "👤",
     gradient: "from-emerald-500/20 to-teal-500/20 text-emerald-300 border-emerald-500/20 hover:border-emerald-500/40",
     prompt: "A warm and friendly portrait of an everyday person, gentle smile, natural daylight, photorealistic detailed features."
   },
   {
     id: "wicked",
     name: "The Wicked",
-    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„Ø­Ø§Ø¯Ø©",
+    nameAr: "الشخصية الحادة",
     desc: "Powerful antagonistic figures that command the screen.",
-    descAr: "Ù…Ù„Ø§Ù…Ø­ Ø­Ø§Ø¯Ø© ÙˆÙƒØ§Ø±ÙŠØ²Ù…Ø§ Ù‚ÙˆÙŠØ© ØªÙØ±Ø¶ Ø­Ø¶ÙˆØ±Ù‡Ø§ Ø¨Ù‚ÙˆØ© Ø¹Ù„Ù‰ Ø§Ù„Ø´Ø§Ø´Ø©.",
-    avatar: "ðŸ˜ˆ",
+    descAr: "ملامح حادة وكاريزما قوية تفرض حضورها بقوة على الشاشة.",
+    avatar: "😈",
     gradient: "from-red-500/20 to-orange-500/20 text-orange-300 border-orange-500/20 hover:border-orange-500/40",
     prompt: "A dramatic portrait of a powerful antagonistic character, sharp eyes, low-key dark lighting, volumetric shadows, intense expression."
   },
   {
     id: "fantastical",
     name: "The Fantastical",
-    nameAr: "Ø§Ù„Ø´Ø®ØµÙŠØ© Ø§Ù„Ø®ÙŠØ§Ù„ÙŠØ©",
+    nameAr: "الشخصية الخيالية",
     desc: "Ethereal, dreamlike beings fusing the human and the mythical.",
-    descAr: "ÙƒØ§Ø¦Ù† Ø®ÙŠØ§Ù„ÙŠ Ø£Ø³Ø·ÙˆØ±ÙŠ ÙŠØ¯Ù…Ø¬ Ø¨ÙŠÙ† Ø§Ù„Ù…Ù„Ø§Ù…Ø­ Ø§Ù„Ø¨Ø´Ø±ÙŠØ© ÙˆØ§Ù„Ø¬Ù…Ø§Ù„ Ø§Ù„Ø³Ø­Ø±ÙŠ.",
-    avatar: "ðŸ§â€â™€ï¸",
+    descAr: "كائن خيالي أسطوري يدمج بين الملامح البشرية والجمال السحري.",
+    avatar: "🧝‍♀️",
     gradient: "from-cyan-500/20 to-sky-500/20 text-cyan-300 border-cyan-500/20 hover:border-cyan-500/40",
     prompt: "An ethereal portrait of a fantastical elf-like being, glowing silver hair, subtle magical particles, soft dreamlike fantasy lighting."
   }
@@ -805,9 +805,9 @@ export default function CharacterPage() {
                   <span className="text-xs font-bold uppercase tracking-wider text-violet-400">Model Capabilities</span>
                 </div>
                 <div className="text-xs text-zinc-400 leading-relaxed space-y-2">
-                  <p>â€¢ <strong>Nano Banana 2</strong> excels at multiple reference image processing and keeping characters consistent across outputs.</p>
-                  <p>â€¢ <strong>Nano Banana Pro</strong> is optimal for complex visual textures and custom brand identities.</p>
-                  <p>â€¢ Supports uploading up to 14 reference photos to build a stable identity record.</p>
+                  <p>• <strong>Nano Banana 2</strong> excels at multiple reference image processing and keeping characters consistent across outputs.</p>
+                  <p>• <strong>Nano Banana Pro</strong> is optimal for complex visual textures and custom brand identities.</p>
+                  <p>• Supports uploading up to 14 reference photos to build a stable identity record.</p>
                 </div>
               </div>
 
@@ -818,15 +818,15 @@ export default function CharacterPage() {
                 <div className="grid grid-cols-2 gap-3 text-[11px] text-zinc-400">
                   <div className="p-3.5 rounded-xl bg-emerald-500/[0.02] border border-emerald-500/10 space-y-1">
                     <span className="font-bold text-emerald-400 block">Recommended</span>
-                    <p>â€¢ Close-up front facing portraits.</p>
-                    <p>â€¢ Single subject only.</p>
-                    <p>â€¢ Multiple lighting angles.</p>
+                    <p>• Close-up front facing portraits.</p>
+                    <p>• Single subject only.</p>
+                    <p>• Multiple lighting angles.</p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-red-500/[0.02] border border-red-500/10 space-y-1">
                     <span className="font-bold text-red-400 block">Avoid</span>
-                    <p>â€¢ Duplicates & group shots.</p>
-                    <p>â€¢ Heavy filters & makeup.</p>
-                    <p>â€¢ Sunglasses & face coverings.</p>
+                    <p>• Duplicates & group shots.</p>
+                    <p>• Heavy filters & makeup.</p>
+                    <p>• Sunglasses & face coverings.</p>
                   </div>
                 </div>
               </div>

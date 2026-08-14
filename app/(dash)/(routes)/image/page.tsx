@@ -216,7 +216,7 @@ function resultAspectRatioNumber(item: Pick<ResultItem, "width" | "height" | "as
     if (width > 0 && height > 0) return width / height;
   }
 
-  const sizeMatch = aspect.match(/(\d{2,5})\s*[xÃ—]\s*(\d{2,5})/);
+  const sizeMatch = aspect.match(/(\d{2,5})\s*[x×]\s*(\d{2,5})/);
   if (sizeMatch) {
     const width = Number(sizeMatch[1]);
     const height = Number(sizeMatch[2]);
@@ -368,7 +368,7 @@ const EDIT_MODELS = IMAGE_MODELS.filter((m) =>
   ].includes(m.id) && !isHiddenImagePageModel(m),
 );
 
-// All models that accept real image inputs (any inputType) Ã¢â‚¬â€ includes Nano Banana (up to 14 imgs), edit, and pure img2img
+// All models that accept real image inputs (any inputType) — includes Nano Banana (up to 14 imgs), edit, and pure img2img
 const ENHANCE_MODELS = IMAGE_MODELS.filter(
   (m) => m.imageInputField !== undefined && m.maxRefImages > 0 && !isHiddenImagePageModel(m),
 );
@@ -677,7 +677,7 @@ function SettingsAccordion({ label, summary, children, defaultOpen = false }: { 
   );
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Gateway card Ã¢â‚¬â€ leads to /image-presets Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ─── Gateway card — leads to /image-presets ───────────────────────── */
 function StyleLibraryGatewayCard() {
   const { t, lang } = useImageTranslation();
   return (
@@ -685,12 +685,12 @@ function StyleLibraryGatewayCard() {
       href="/image-presets"
       className="group relative block overflow-hidden rounded-2xl border border-amber-400/25 bg-black/40 transition-all hover:border-amber-400/55 hover:shadow-xl hover:shadow-amber-500/20"
     >
-      {/* Hero image Ã¢â‚¬â€ tall to give the collage room to breathe */}
+      {/* Hero image — tall to give the collage room to breathe */}
       <div className="relative h-44 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/preset/card.webp"
-          alt="Style Library Ã¢â‚¬â€ featured styles"
+          alt="Style Library — featured styles"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           fetchPriority="high"
         />
@@ -712,11 +712,11 @@ function StyleLibraryGatewayCard() {
           {t("Style Library")}
         </h3>
         <p className="mt-0.5 text-[11px] leading-5 text-zinc-400">
-          {t("Tap a curated style Ã¢â‚¬â€ the prompt, model, and aspect ratio apply instantly.")}
+          {t("Tap a curated style — the prompt, model, and aspect ratio apply instantly.")}
         </p>
         <div className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 group-hover:text-amber-200">
           {t("Browse styles")}
-          <span className="transition-transform group-hover:translate-x-0.5">Ã¢â€ â€™</span>
+          <span className="transition-transform group-hover:translate-x-0.5">→</span>
         </div>
       </div>
     </a>
@@ -1215,7 +1215,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
   );
 }
 
-// Album Picker modal Ã¢â‚¬â€ shared visual with /gallery
+// Album Picker modal — shared visual with /gallery
 function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Album[]; count: number; onPick: (id: string) => void; onCreate: (name: string) => void; onClose: () => void }) {
   const { t, lang } = useImageTranslation();
   const [newName, setNewName] = useState("");
@@ -1223,7 +1223,7 @@ function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Alb
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1222] p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{lang === "ar" ? "Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â¹Ã™â€ Ã˜Â§Ã˜ÂµÃ˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â­Ã˜Â¯Ã˜Â¯Ã˜Â© Ã™â€žÃ™â€žÃ˜Â£Ã™â€žÃ˜Â¨Ã™Ë†Ã™â€¦" : `Add ${count} item(s) to album`}</h3>
+          <h3 className="text-lg font-semibold">{lang === "ar" ? "إضافة العناصر المحددة للألبوم" : `Add ${count} item(s) to album`}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10"><X className="h-4 w-4" /></button>
         </div>
 
@@ -1408,131 +1408,131 @@ function useImageTranslation() {
     },
     ar: {
       // Sidebar Accordion Headers
-      "Model": "Ã˜Â§Ã™â€žÃ™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬",
-      "Character Reference": "Ã™â€¦Ã˜Â±Ã˜Â¬Ã˜Â¹ Ã˜Â§Ã™â€žÃ˜Â´Ã˜Â®Ã˜ÂµÃ™Å Ã˜Â©",
-      "Aspect Ratio": "Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â¨Ã˜Â¹Ã˜Â§Ã˜Â¯",
-      "Number of Images": "Ã˜Â¹Ã˜Â¯Ã˜Â¯ Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±",
-      "Resolution": "Ã˜Â§Ã™â€žÃ˜Â¯Ã™â€šÃ˜Â©",
-      "Quality": "Ã˜Â§Ã™â€žÃ˜Â¬Ã™Ë†Ã˜Â¯Ã˜Â©",
+      "Model": "النموذج",
+      "Character Reference": "مرجع الشخصية",
+      "Aspect Ratio": "الأبعاد",
+      "Number of Images": "عدد الصور",
+      "Resolution": "الدقة",
+      "Quality": "الجودة",
 
       // Workspace status messages
-      "ENHANCE Ã¢â‚¬â€ Photo Restoration": "Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã¢â‚¬â€ Ã˜ÂªÃ˜Â±Ã™â€¦Ã™Å Ã™â€¦ Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±",
-      "Upload a photo in the settings panel Ã¢â€ â€™ click Enhance Photo": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™ÂÃ™Å  Ã™â€žÃ™Ë†Ã˜Â­Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã¢â€ Â Ã˜Â§Ã˜Â¶Ã˜ÂºÃ˜Â· Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â²Ã˜Â± Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©",
-      "Uses true image-to-image AI to preserve identity while improving quality": "Ã™Å Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â°Ã™Æ’Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜Â§Ã˜ÂµÃ˜Â·Ã™â€ Ã˜Â§Ã˜Â¹Ã™Å  Ã˜Â§Ã™â€žÃ™ÂÃ˜Â¹Ã™â€žÃ™Å  (Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã˜Â¥Ã™â€žÃ™â€° Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©) Ã™â€žÃ™â€žÃ˜Â­Ã™ÂÃ˜Â§Ã˜Â¸ Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ™â€¦Ã™â€žÃ˜Â§Ã™â€¦Ã˜Â­ Ã™â€¦Ã˜Â¹ Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã˜Â§Ã™â€žÃ˜Â¬Ã™Ë†Ã˜Â¯Ã˜Â©",
-      "Upload image and relight": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™Ë†Ã˜Â§Ã˜Â¶Ã˜Â¨Ã˜Â· Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â©",
-      "Upload media and upscale": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â³Ã˜Â§Ã˜Â¦Ã˜Â· Ã™Ë†Ã™Æ’Ã˜Â¨Ã™â€˜Ã˜Â± Ã˜Â¯Ã™â€šÃ˜ÂªÃ™â€¡Ã˜Â§",
-      "Upload source and target images": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂµÃ˜Â¯Ã˜Â± Ã™Ë†Ã˜Â§Ã™â€žÃ™â€¡Ã˜Â¯Ã™Â Ã™â€žÃ˜ÂªÃ˜Â¨Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
-      "Start generating to see results.": "Ã˜Â§Ã˜Â¨Ã˜Â¯Ã˜Â£ Ã˜Â§Ã™â€žÃ˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯ Ã™â€žÃ˜Â±Ã˜Â¤Ã™Å Ã˜Â© Ã˜Â§Ã™â€žÃ™â€ Ã˜ÂªÃ˜Â§Ã˜Â¦Ã˜Â¬.",
-      "Load more": "Ã˜ÂªÃ˜Â­Ã™â€¦Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â²Ã™Å Ã˜Â¯",
-      "Loading...": "Ã˜Â¬Ã˜Â§Ã˜Â± Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã™â€¦Ã™Å Ã™â€ž...",
-      "Upload image to start painting mask.": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™â€žÃ™â€žÃ˜Â¨Ã˜Â¯Ã˜Â¡ Ã™ÂÃ™Å  Ã˜Â±Ã˜Â³Ã™â€¦ Ã˜Â§Ã™â€žÃ™â€šÃ™â€ Ã˜Â§Ã˜Â¹.",
+      "ENHANCE — Photo Restoration": "التحسين — ترميم الصور",
+      "Upload a photo in the settings panel → click Enhance Photo": "ارفع صورة في لوحة الإعدادات ← اضغط على زر تحسين الصورة",
+      "Uses true image-to-image AI to preserve identity while improving quality": "يستخدم الذكاء الاصطناعي الفعلي (صورة إلى صورة) للحفاظ على الملامح مع تحسين الجودة",
+      "Upload image and relight": "ارفع صورة واضبط الإضاءة",
+      "Upload media and upscale": "ارفع الوسائط وكبّر دقتها",
+      "Upload source and target images": "ارفع الصور المصدر والهدف لتبديل الوجه",
+      "Start generating to see results.": "ابدأ التوليد لرؤية النتائج.",
+      "Load more": "تحميل المزيد",
+      "Loading...": "جار التحميل...",
+      "Upload image to start painting mask.": "ارفع صورة للبدء في رسم القناع.",
 
       // Sidebar Right Panel Settings
-      "New from Saad Studio": "Ã˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯ Ã™â€¦Ã™â€  Ã˜Â§Ã˜Â³Ã˜ÂªÃ™Ë†Ã˜Â¯Ã™Å Ã™Ë† Ã˜Â³Ã˜Â¹Ã˜Â¯",
-      "No saved character": "Ã™â€žÃ˜Â§ Ã˜ÂªÃ™Ë†Ã˜Â¬Ã˜Â¯ Ã˜Â´Ã˜Â®Ã˜ÂµÃ™Å Ã˜Â© Ã™â€¦Ã˜Â­Ã™ÂÃ™Ë†Ã˜Â¸Ã˜Â©",
-      "Create a reusable character": "Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Ã˜Â´Ã˜Â®Ã˜ÂµÃ™Å Ã˜Â© Ã™â€šÃ˜Â§Ã˜Â¨Ã™â€žÃ˜Â© Ã™â€žÃ™â€žÃ˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã˜Â§Ã™â€¦",
-      "This model does not accept reference images. Choose an image-to-image model to use this character.": "Ã™â€¡Ã˜Â°Ã˜Â§ Ã˜Â§Ã™â€žÃ™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬ Ã™â€žÃ˜Â§ Ã™Å Ã™â€šÃ˜Â¨Ã™â€ž Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â§Ã™â€¹ Ã™â€¦Ã˜Â±Ã˜Â¬Ã˜Â¹Ã™Å Ã˜Â©. Ã˜Â§Ã˜Â®Ã˜ÂªÃ˜Â± Ã™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã˜Â¥Ã™â€žÃ™â€° Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™â€žÃ˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã˜Â§Ã™â€¦ Ã™â€¡Ã˜Â°Ã™â€¡ Ã˜Â§Ã™â€žÃ˜Â´Ã˜Â®Ã˜ÂµÃ™Å Ã˜Â©.",
-      "Upload image to relight": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™â€žÃ˜Â¶Ã˜Â¨Ã˜Â· Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â©",
-      "Lighting Preset": "Ã™â€šÃ˜Â§Ã™â€žÃ˜Â¨ Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â©",
-      "Brightness": "Ã˜Â§Ã™â€žÃ˜Â³Ã˜Â·Ã™Ë†Ã˜Â¹",
-      "Contrast": "Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â¨Ã˜Â§Ã™Å Ã™â€ ",
-      "Temperature": "Ã˜Â¯Ã˜Â±Ã˜Â¬Ã˜Â© Ã˜Â­Ã˜Â±Ã˜Â§Ã˜Â±Ã˜Â© Ã˜Â§Ã™â€žÃ™â€žÃ™Ë†Ã™â€ ",
-      "Shadow Intensity": "Ã˜Â´Ã˜Â¯Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¸Ã™â€žÃ˜Â§Ã™â€ž",
-      "Light Direction": "Ã˜Â§Ã˜ÂªÃ˜Â¬Ã˜Â§Ã™â€¡ Ã˜Â§Ã™â€žÃ˜Â¶Ã™Ë†Ã˜Â¡",
-      "Number of Variations": "Ã˜Â¹Ã˜Â¯Ã˜Â¯ Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂªÃ˜ÂºÃ™Å Ã˜Â±Ã˜Â§Ã˜Âª",
-      "Edit Model": "Ã™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â¹Ã˜Â¯Ã™Å Ã™â€ž",
-      "Brush Size": "Ã˜Â­Ã˜Â¬Ã™â€¦ Ã˜Â§Ã™â€žÃ™ÂÃ˜Â±Ã˜Â´Ã˜Â§Ã˜Â©",
-      "Enhancement Model": "Ã™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€ ",
-      "Input Images": "Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â¯Ã˜Â®Ã™â€žÃ˜Â©",
-      "Required": "Ã™â€¦Ã˜Â·Ã™â€žÃ™Ë†Ã˜Â¨",
-      "Optional": "Ã˜Â§Ã˜Â®Ã˜ÂªÃ™Å Ã˜Â§Ã˜Â±Ã™Å ",
-      "Ã¢Å“Â¦ True Image-to-Image": "Ã¢Å“Â¦ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã˜Â¥Ã™â€žÃ™â€° Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™ÂÃ˜Â¹Ã™â€žÃ™Å ",
-      "ENHANCE sends your photo directly as input to the AI Ã¢â‚¬â€ preserves identity. Unlike CREATE which uses it as loose inspiration.": "Ã˜Â®Ã˜Â§Ã˜ÂµÃ™Å Ã˜Â© Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã˜ÂªÃ˜Â±Ã˜Â³Ã™â€ž Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜ÂªÃ™Æ’ Ã™â€¦Ã˜Â¨Ã˜Â§Ã˜Â´Ã˜Â±Ã˜Â© Ã™Æ’Ã™â€¦Ã˜Â¯Ã˜Â®Ã™â€ž Ã™â€žÃ™â€žÃ˜Â°Ã™Æ’Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜Â§Ã˜ÂµÃ˜Â·Ã™â€ Ã˜Â§Ã˜Â¹Ã™Å  Ã™â€žÃ™â€žÃ˜Â­Ã™ÂÃ˜Â§Ã˜Â¸ Ã˜Â¹Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ™â€¦Ã™â€žÃ˜Â§Ã™â€¦Ã˜Â­ Ã˜Â¨Ã˜Â¯Ã™â€šÃ˜Â©Ã˜Å’ Ã˜Â¨Ã˜Â®Ã™â€žÃ˜Â§Ã™Â Ã˜Â®Ã˜Â§Ã˜ÂµÃ™Å Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜ÂªÃ™Å  Ã˜ÂªÃ˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã™â€¦Ã™â€¡Ã˜Â§ Ã™Æ’Ã™â€¦Ã˜Â¬Ã˜Â±Ã˜Â¯ Ã˜Â¥Ã™â€žÃ™â€¡Ã˜Â§Ã™â€¦.",
-      "Upload image": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©",
-      "Scale Factor": "Ã™â€¦Ã˜Â¹Ã˜Â§Ã™â€¦Ã™â€ž Ã˜Â§Ã™â€žÃ˜ÂªÃ™Æ’Ã˜Â¨Ã™Å Ã˜Â±",
-      "Denoise": "Ã˜Â¥Ã˜Â²Ã˜Â§Ã™â€žÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â¶Ã™Ë†Ã˜Â¶Ã˜Â§Ã˜Â¡",
-      "Sharpen": "Ã˜Â²Ã™Å Ã˜Â§Ã˜Â¯Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â­Ã˜Â¯Ã˜Â©",
-      "Face Enhancement": "Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã™â€¦Ã™â€žÃ˜Â§Ã™â€¦Ã˜Â­ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
-      "Color Enhancement": "Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã˜Â§Ã™â€žÃ˜Â£Ã™â€žÃ™Ë†Ã˜Â§Ã™â€ ",
-      "Output Format": "Ã˜ÂµÃ™Å Ã˜ÂºÃ˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â®Ã˜Â±Ã˜Â¬Ã˜Â§Ã˜Âª",
-      "Source face": "Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡ Ã˜Â§Ã™â€žÃ™â€¦Ã˜ÂµÃ˜Â¯Ã˜Â±",
-      "Target image": "Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã˜Â§Ã™â€žÃ™â€¡Ã˜Â¯Ã™Â",
-      "Face Blend": "Ã˜Â¯Ã™â€¦Ã˜Â¬ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
-      "Keep target expression": "Ã˜Â§Ã™â€žÃ˜Â­Ã™ÂÃ˜Â§Ã˜Â¸ Ã˜Â¹Ã™â€žÃ™â€° Ã˜ÂªÃ˜Â¹Ã˜Â§Ã˜Â¨Ã™Å Ã˜Â± Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡ Ã˜Â§Ã™â€žÃ™â€¡Ã˜Â¯Ã™Â",
-      "Match skin tones": "Ã™â€¦Ã˜Â·Ã˜Â§Ã˜Â¨Ã™â€šÃ˜Â© Ã™â€žÃ™Ë†Ã™â€  Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â´Ã˜Â±Ã˜Â©",
-      "Target Face Index": "Ã™â€¦Ã˜Â¤Ã˜Â´Ã˜Â± Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡ Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â³Ã˜ÂªÃ™â€¡Ã˜Â¯Ã™Â",
+      "New from Saad Studio": "جديد من استوديو سعد",
+      "No saved character": "لا توجد شخصية محفوظة",
+      "Create a reusable character": "إنشاء شخصية قابلة للاستخدام",
+      "This model does not accept reference images. Choose an image-to-image model to use this character.": "هذا النموذج لا يقبل صوراً مرجعية. اختر نموذج صورة إلى صورة لاستخدام هذه الشخصية.",
+      "Upload image to relight": "ارفع صورة لضبط الإضاءة",
+      "Lighting Preset": "قالب الإضاءة",
+      "Brightness": "السطوع",
+      "Contrast": "التباين",
+      "Temperature": "درجة حرارة اللون",
+      "Shadow Intensity": "شدة الظلال",
+      "Light Direction": "اتجاه الضوء",
+      "Number of Variations": "عدد المتغيرات",
+      "Edit Model": "نموذج التعديل",
+      "Brush Size": "حجم الفرشاة",
+      "Enhancement Model": "نموذج التحسين",
+      "Input Images": "الصور المدخلة",
+      "Required": "مطلوب",
+      "Optional": "اختياري",
+      "✦ True Image-to-Image": "✦ صورة إلى صورة فعلي",
+      "ENHANCE sends your photo directly as input to the AI — preserves identity. Unlike CREATE which uses it as loose inspiration.": "خاصية التحسين ترسل صورتك مباشرة كمدخل للذكاء الاصطناعي للحفاظ على الملامح بدقة، بخلاف خاصية الإنشاء التي تستخدمها كمجرد إلهام.",
+      "Upload image": "ارفع صورة",
+      "Scale Factor": "معامل التكبير",
+      "Denoise": "إزالة الضوضاء",
+      "Sharpen": "زيادة الحدة",
+      "Face Enhancement": "تحسين ملامح الوجه",
+      "Color Enhancement": "تحسين الألوان",
+      "Output Format": "صيغة المخرجات",
+      "Source face": "الوجه المصدر",
+      "Target image": "الصورة الهدف",
+      "Face Blend": "دمج الوجه",
+      "Keep target expression": "الحفاظ على تعابير الوجه الهدف",
+      "Match skin tones": "مطابقة لون البشرة",
+      "Target Face Index": "مؤشر الوجه المستهدف",
 
       // Selection toolbar
-      "Exit selection": "Ã˜Â¥Ã™â€žÃ˜ÂºÃ˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â¯",
-      "Select": "Ã˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â¯",
-      "Unselect all": "Ã˜Â¥Ã™â€žÃ˜ÂºÃ˜Â§Ã˜Â¡ Ã˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â¯ Ã˜Â§Ã™â€žÃ™Æ’Ã™â€ž",
-      "Select all": "Ã˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â¯ Ã˜Â§Ã™â€žÃ™Æ’Ã™â€ž",
-      "selected": "Ã™â€¦Ã˜Â­Ã˜Â¯Ã˜Â¯",
-      "Preparing ZIP...": "Ã˜Â¬Ã˜Â§Ã˜Â±Ã™Å  Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â¬Ã™â€¡Ã™Å Ã˜Â²...",
-      "Download": "Ã˜ÂªÃ˜Â­Ã™â€¦Ã™Å Ã™â€ž",
-      "Add to album": "Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã˜Â¥Ã™â€žÃ™â€° Ã˜Â§Ã™â€žÃ˜Â£Ã™â€žÃ˜Â¨Ã™Ë†Ã™â€¦",
-      "Delete selected": "Ã˜Â­Ã˜Â°Ã™Â Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â­Ã˜Â¯Ã˜Â¯",
+      "Exit selection": "إلغاء التحديد",
+      "Select": "تحديد",
+      "Unselect all": "إلغاء تحديد الكل",
+      "Select all": "تحديد الكل",
+      "selected": "محدد",
+      "Preparing ZIP...": "جاري التجهيز...",
+      "Download": "تحميل",
+      "Add to album": "إضافة إلى الألبوم",
+      "Delete selected": "حذف المحدد",
 
       // Album Picker Modal
-      "Add {count} item(s) to album": "Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã˜Â§Ã™â€žÃ˜Â¹Ã™â€ Ã˜Â§Ã˜ÂµÃ˜Â± Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â­Ã˜Â¯Ã˜Â¯Ã˜Â© Ã™â€žÃ™â€žÃ˜Â£Ã™â€žÃ˜Â¨Ã™Ë†Ã™â€¦",
-      "Create new album": "Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡ Ã˜Â£Ã™â€žÃ˜Â¨Ã™Ë†Ã™â€¦ Ã˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯",
-      "Album name": "Ã˜Â§Ã˜Â³Ã™â€¦ Ã˜Â§Ã™â€žÃ˜Â£Ã™â€žÃ˜Â¨Ã™Ë†Ã™â€¦",
-      "Create": "Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡",
+      "Add {count} item(s) to album": "إضافة العناصر المحددة للألبوم",
+      "Create new album": "إنشاء ألبوم جديد",
+      "Album name": "اسم الألبوم",
+      "Create": "إنشاء",
 
       // Tool buttons
-      "CREATE": "Ã˜Â¥Ã™â€ Ã˜Â´Ã˜Â§Ã˜Â¡",
-      "ENHANCE": "Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€ ",
-      "RELIGHT": "Ã˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â©",
-      "INPAINT": "Ã˜ÂªÃ˜Â¹Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â±Ã˜Â³Ã™â€¦",
-      "UPSCALE": "Ã˜ÂªÃ™Æ’Ã˜Â¨Ã™Å Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â¯Ã™â€šÃ˜Â©",
-      "FACE SWAP": "Ã˜ÂªÃ˜Â¨Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
+      "CREATE": "إنشاء",
+      "ENHANCE": "تحسين",
+      "RELIGHT": "إضاءة",
+      "INPAINT": "تعديل الرسم",
+      "UPSCALE": "تكبير الدقة",
+      "FACE SWAP": "تبديل الوجه",
 
       // Main UI Controls
-      "Add character": "Ã˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜Â© Ã˜Â´Ã˜Â®Ã˜ÂµÃ™Å Ã˜Â©",
-      "Unlimited": "Ã˜ÂºÃ™Å Ã˜Â± Ã™â€¦Ã˜Â­Ã˜Â¯Ã™Ë†Ã˜Â¯",
-      "Drop images here to add as reference": "Ã˜Â£Ã™ÂÃ™â€žÃ˜Âª Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â± Ã™â€¡Ã™â€ Ã˜Â§ Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã™ÂÃ˜ÂªÃ™â€¡Ã˜Â§ Ã™Æ’Ã™â€¦Ã˜Â±Ã˜Â¬Ã˜Â¹",
-      "Describe what you want to generate...": "Ã˜ÂµÃ™Â Ã™â€¦Ã˜Â§ Ã˜ÂªÃ˜Â±Ã™Å Ã˜Â¯ Ã˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯Ã™â€¡...",
-      "Generate Image - Unlimited": "Ã˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© - Ã˜ÂºÃ™Å Ã˜Â± Ã™â€¦Ã˜Â­Ã˜Â¯Ã™Ë†Ã˜Â¯",
-      "Generate Image": "Ã˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©",
-      "Generate another": "Ã˜ÂªÃ™Ë†Ã™â€žÃ™Å Ã˜Â¯ Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã˜Â£Ã˜Â®Ã˜Â±Ã™â€°",
-      "cr": "Ã™â€ Ã™â€šÃ˜Â·Ã˜Â©",
-      "Image Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©",
-      "Enhance Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€ ",
-      "Relight Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â©",
-      "Inpaint Workspace": "Ã™â€¦Ã˜Â³Ã˜Â§Ã˜Â­Ã˜Â© Ã˜ÂªÃ˜Â¹Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â±Ã˜Â³Ã™â€¦",
-      "Inpaint Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜ÂªÃ˜Â¹Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ˜Â±Ã˜Â³Ã™â€¦",
-      "Upscale Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜ÂªÃ™Æ’Ã˜Â¨Ã™Å Ã˜Â± Ã˜Â§Ã™â€žÃ˜Â¯Ã™â€šÃ˜Â©",
-      "Face Swap Settings": "Ã˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª Ã˜ÂªÃ˜Â¨Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
-      "Settings": "Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯Ã˜Â§Ã˜Âª",
-      "Undo": "Ã˜ÂªÃ˜Â±Ã˜Â§Ã˜Â¬Ã˜Â¹",
-      "Clear Mask": "Ã™â€¦Ã˜Â³Ã˜Â­ Ã˜Â§Ã™â€žÃ™â€šÃ™â€ Ã˜Â§Ã˜Â¹",
-      "Brush": "Ã˜Â§Ã™â€žÃ™ÂÃ˜Â±Ã˜Â´Ã˜Â§Ã˜Â©",
-      "Upload or drag media": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜Â£Ã™Ë† Ã˜Â§Ã˜Â³Ã˜Â­Ã˜Â¨ Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â³Ã˜Â§Ã˜Â¦Ã˜Â· Ã™â€¡Ã™â€ Ã˜Â§",
-      "Upload or drag image": "Ã˜Â§Ã˜Â±Ã™ÂÃ˜Â¹ Ã˜Â£Ã™Ë† Ã˜Â§Ã˜Â³Ã˜Â­Ã˜Â¨ Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±Ã˜Â© Ã™â€¡Ã™â€ Ã˜Â§",
-      "Drop here": "Ã˜Â£Ã™ÂÃ™â€žÃ˜ÂªÃ™â€¡ Ã™â€¡Ã™â€ Ã˜Â§",
-      "Style Library": "Ã™â€¦Ã™Æ’Ã˜ÂªÃ˜Â¨Ã˜Â© Ã˜Â§Ã™â€žÃ˜Â£Ã™â€ Ã™â€¦Ã˜Â§Ã˜Â·",
-      "Tap a curated style Ã¢â‚¬â€ the prompt, model, and aspect ratio apply instantly.": "Ã˜Â§Ã˜Â¶Ã˜ÂºÃ˜Â· Ã˜Â¹Ã™â€žÃ™â€° Ã™â€ Ã™â€¦Ã˜Â· Ã™â€¦Ã™â€ Ã˜Â³Ã™â€š Ã¢â‚¬â€ Ã˜Â³Ã™Å Ã˜ÂªÃ™â€¦ Ã˜ÂªÃ˜Â·Ã˜Â¨Ã™Å Ã™â€š Ã˜Â§Ã™â€žÃ™Ë†Ã˜ÂµÃ™Â Ã™Ë†Ã˜Â§Ã™â€žÃ™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬ Ã™Ë†Ã˜Â§Ã™â€žÃ˜Â£Ã˜Â¨Ã˜Â¹Ã˜Â§Ã˜Â¯ Ã™ÂÃ™Ë†Ã˜Â±Ã˜Â§Ã™â€¹.",
-      "Browse styles": "Ã˜ÂªÃ˜ÂµÃ™ÂÃ˜Â­ Ã˜Â§Ã™â€žÃ˜Â£Ã™â€ Ã™â€¦Ã˜Â§Ã˜Â·",
-      "New": "Ã˜Â¬Ã˜Â¯Ã™Å Ã˜Â¯",
-      "18 styles": "18 Ã™â€ Ã™â€¦Ã˜Â·Ã˜Â§Ã™â€¹",
-      "Preview": "Ã™â€¦Ã˜Â¹Ã˜Â§Ã™Å Ã™â€ Ã˜Â©",
-      "Unselect": "Ã˜Â¥Ã™â€žÃ˜ÂºÃ˜Â§Ã˜Â¡ Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â¯Ã™Å Ã˜Â¯",
-      "Use": "Ã˜Â§Ã˜Â³Ã˜ÂªÃ˜Â®Ã˜Â¯Ã˜Â§Ã™â€¦",
-      "Remix": "Ã˜Â±Ã™Å Ã™â€¦Ã™Æ’Ã˜Â³",
-      "Delete": "Ã˜Â­Ã˜Â°Ã™Â",
-      "Enhancement instructions (optional) Ã¢â‚¬â€ e.g. \"cinematic, 8K, sharp\"...": "Ã˜ÂªÃ˜Â¹Ã™â€žÃ™Å Ã™â€¦Ã˜Â§Ã˜Âª Ã˜Â§Ã™â€žÃ˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  (Ã˜Â§Ã˜Â®Ã˜ÂªÃ™Å Ã˜Â§Ã˜Â±Ã™Å ) Ã¢â‚¬â€ Ã™â€¦Ã˜Â«Ã™â€ž: Ã˜Â³Ã™Å Ã™â€ Ã™â€¦Ã˜Â§Ã˜Â¦Ã™Å Ã˜Å’ Ã˜Â¨Ã˜Â¯Ã™â€šÃ˜Â© 8KÃ˜Å’ Ã˜Â­Ã˜Â§Ã˜Â¯...",
-      "Enhance Photo": "Ã˜ÂªÃ˜Â­Ã˜Â³Ã™Å Ã™â€  Ã˜Â§Ã™â€žÃ˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©",
-      "Describe the lighting you want...": "Ã˜ÂµÃ™Â Ã˜Â§Ã™â€žÃ˜Â¥Ã˜Â¶Ã˜Â§Ã˜Â¡Ã˜Â© Ã˜Â§Ã™â€žÃ˜ÂªÃ™Å  Ã˜ÂªÃ˜Â±Ã™Å Ã˜Â¯Ã™â€¡Ã˜Â§...",
-      "Describe what should replace the painted area...": "Ã˜ÂµÃ™Â Ã™â€¦Ã˜Â§ Ã™Å Ã˜Â¬Ã˜Â¨ Ã˜Â£Ã™â€  Ã™Å Ã˜Â­Ã™â€ž Ã™â€¦Ã˜Â­Ã™â€ž Ã˜Â§Ã™â€žÃ™â€¦Ã™â€ Ã˜Â·Ã™â€šÃ˜Â© Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â±Ã˜Â³Ã™Ë†Ã™â€¦Ã˜Â©...",
-      "Swap Face": "Ã˜ÂªÃ˜Â¨Ã˜Â¯Ã™Å Ã™â€ž Ã˜Â§Ã™â€žÃ™Ë†Ã˜Â¬Ã™â€¡",
-      "Search model": "Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â­Ã˜Â« Ã˜Â¹Ã™â€  Ã™â€ Ã™â€¦Ã™Ë†Ã˜Â°Ã˜Â¬",
+      "Add character": "إضافة شخصية",
+      "Unlimited": "غير محدود",
+      "Drop images here to add as reference": "أفلت الصور هنا لإضافتها كمرجع",
+      "Describe what you want to generate...": "صف ما تريد توليده...",
+      "Generate Image - Unlimited": "توليد صورة - غير محدود",
+      "Generate Image": "توليد صورة",
+      "Generate another": "توليد صورة أخرى",
+      "cr": "نقطة",
+      "Image Settings": "إعدادات الصورة",
+      "Enhance Settings": "إعدادات التحسين",
+      "Relight Settings": "إعدادات الإضاءة",
+      "Inpaint Workspace": "مساحة تعديل الرسم",
+      "Inpaint Settings": "إعدادات تعديل الرسم",
+      "Upscale Settings": "إعدادات تكبير الدقة",
+      "Face Swap Settings": "إعدادات تبديل الوجه",
+      "Settings": "الإعدادات",
+      "Undo": "تراجع",
+      "Clear Mask": "مسح القناع",
+      "Brush": "الفرشاة",
+      "Upload or drag media": "ارفع أو اسحب الوسائط هنا",
+      "Upload or drag image": "ارفع أو اسحب الصورة هنا",
+      "Drop here": "أفلته هنا",
+      "Style Library": "مكتبة الأنماط",
+      "Tap a curated style — the prompt, model, and aspect ratio apply instantly.": "اضغط على نمط منسق — سيتم تطبيق الوصف والنموذج والأبعاد فوراً.",
+      "Browse styles": "تصفح الأنماط",
+      "New": "جديد",
+      "18 styles": "18 نمطاً",
+      "Preview": "معاينة",
+      "Unselect": "إلغاء التحديد",
+      "Use": "استخدام",
+      "Remix": "ريمكس",
+      "Delete": "حذف",
+      "Enhancement instructions (optional) — e.g. \"cinematic, 8K, sharp\"...": "تعليمات التحسين (اختياري) — مثل: سينمائي، بدقة 8K، حاد...",
+      "Enhance Photo": "تحسين الصورة",
+      "Describe the lighting you want...": "صف الإضاءة التي تريدها...",
+      "Describe what should replace the painted area...": "صف ما يجب أن يحل محل المنطقة المرسومة...",
+      "Swap Face": "تبديل الوجه",
+      "Search model": "البحث عن نموذج",
 
       // Model families
-      "Cinema Studio": "Ã˜Â³Ã™Å Ã™â€ Ã™â€¦Ã˜Â§ Ã˜Â§Ã˜Â³Ã˜ÂªÃ™Ë†Ã˜Â¯Ã™Å Ã™Ë†",
-      "Nano Banana": "Ã™â€ Ã˜Â§Ã™â€ Ã™Ë† Ã˜Â¨Ã™â€ Ã˜Â§Ã™â€ Ã˜Â§",
-      "Seedance": "Ã˜Â³Ã™Å Ã˜Â¯Ã˜Â§Ã™â€ Ã˜Â³",
-      "Kling": "Ã™Æ’Ã™â€žÃ™Å Ã™â€ Ã˜Âº",
-      "GPT Image": "GPT Ã˜ÂµÃ™Ë†Ã˜Â±"
+      "Cinema Studio": "سينما استوديو",
+      "Nano Banana": "نانو بنانا",
+      "Seedance": "سيدانس",
+      "Kling": "كلينغ",
+      "GPT Image": "GPT صور"
     }
   };
 
@@ -1683,9 +1683,9 @@ export default function ImageWorkspacePage() {
     const requestedCharacter = searchParams.get("characterId");
     if (requestedCharacter) setSelectedCharacterId(requestedCharacter);
 
-    // Ã¢â€â‚¬Ã¢â€â‚¬ Style Library preset hydration Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    // ── Style Library preset hydration ──────────────────────────────
     // When the user clicks a card on /image-presets, we land here with
-    // ?prompt= ?aspect= ?quality= ?preset=Ã¢â‚¬Â¦ params. Apply them once.
+    // ?prompt= ?aspect= ?quality= ?preset=… params. Apply them once.
     const requestedPrompt = searchParams.get("prompt");
     if (requestedPrompt) setPrompt(requestedPrompt);
 
@@ -2278,7 +2278,7 @@ export default function ImageWorkspacePage() {
         try {
           const direct = await fetch(resultOriginalUrl(item), { mode: "cors" });
           if (direct.ok) blob = await direct.blob();
-        } catch { /* CORS or network Ã¢â‚¬â€ fall through to proxy */ }
+        } catch { /* CORS or network — fall through to proxy */ }
       }
       if (!blob) {
         const proxied = await fetch(`/api/proxy-image?url=${encodeURIComponent(resultOriginalUrl(item))}`);
@@ -2315,8 +2315,8 @@ export default function ImageWorkspacePage() {
       return <div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 text-zinc-400">
         <Zap className="h-10 w-10 text-amber-400/60" />
         <div className="text-center">
-          <p className="text-sm font-semibold text-amber-300">{t("ENHANCE Ã¢â‚¬â€ Photo Restoration")}</p>
-          <p className="mt-1 text-xs text-zinc-500">{t("Upload a photo in the settings panel Ã¢â€ â€™ click Enhance Photo")}</p>
+          <p className="text-sm font-semibold text-amber-300">{t("ENHANCE — Photo Restoration")}</p>
+          <p className="mt-1 text-xs text-zinc-500">{t("Upload a photo in the settings panel → click Enhance Photo")}</p>
           <p className="mt-1 text-xs text-zinc-600">{t("Uses true image-to-image AI to preserve identity while improving quality")}</p>
         </div>
       </div>;
@@ -2498,7 +2498,7 @@ export default function ImageWorkspacePage() {
           </SettingsAccordion>
         ) : null}
 
-        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Gateway card Ã¢â€ â€™ /image-presets Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        {/* ── Gateway card → /image-presets ── */}
         <StyleLibraryGatewayCard />
 
       </>;
@@ -2592,8 +2592,8 @@ export default function ImageWorkspacePage() {
         </section>
 
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] leading-relaxed text-amber-200">
-          <strong className="text-amber-300">{t("Ã¢Å“Â¦ True Image-to-Image")}</strong><br />
-          {t("ENHANCE sends your photo directly as input to the AI Ã¢â‚¬â€ preserves identity. Unlike CREATE which uses it as loose inspiration.")}
+          <strong className="text-amber-300">{t("✦ True Image-to-Image")}</strong><br />
+          {t("ENHANCE sends your photo directly as input to the AI — preserves identity. Unlike CREATE which uses it as loose inspiration.")}
         </div>
       </>;
     }
