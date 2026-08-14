@@ -573,7 +573,44 @@ const PricingButton = () => (
   </Link>
 );
 
-const UserProfileDropdown = ({ creditBalance }: { creditBalance: number | null }) => {
+function CreditRing({ ratio, size = 44, stroke = 2.5 }: { ratio: number; size?: number; stroke?: number }) {
+  const clamped = Math.max(0, Math.min(1, ratio));
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  // color interpolation: green (>50%) → amber (25-50%) → red (<25%)
+  const color =
+    clamped > 0.5 ? "#22c55e" :
+    clamped > 0.25 ? "#f59e0b" :
+    "#ef4444";
+  const glow = clamped > 0.5 ? "rgba(34,197,94,.55)" : clamped > 0.25 ? "rgba(245,158,11,.55)" : "rgba(239,68,68,.6)";
+  return (
+    <svg
+      className="pointer-events-none absolute inset-0"
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      style={{ filter: `drop-shadow(0 0 6px ${glow})` }}
+      aria-hidden="true"
+    >
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth={stroke} />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={c * (1 - clamped)}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: "stroke-dashoffset .6s ease, stroke .6s ease" }}
+      />
+    </svg>
+  );
+}
+
+const UserProfileDropdown = ({ creditBalance, creditCapacity }: { creditBalance: number | null; creditCapacity: number | null }) => {
   const { user } = useUser();
   const { lang } = useLanguage();
   const { signOut } = useClerk();
@@ -590,16 +627,25 @@ const UserProfileDropdown = ({ creditBalance }: { creditBalance: number | null }
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="relative flex h-9 w-9 items-center justify-center rounded-full ring-2 ring-violet-500/40 hover:ring-violet-400/70 transition-all focus:outline-none overflow-hidden"
+          className="relative flex h-11 w-11 items-center justify-center rounded-full focus:outline-none"
+          title={
+            creditBalance !== null && creditCapacity && creditCapacity > 0
+              ? `${creditBalance.toLocaleString()} / ${creditCapacity.toLocaleString()} cr`
+              : creditBalance !== null ? `${creditBalance.toLocaleString()} cr` : undefined
+          }
         >
-          {uploadedPhoto ? (
-            <img src={uploadedPhoto} alt="Avatar" className="h-9 w-9 rounded-full object-cover" />
-          ) : (
-            <div className={`absolute inset-0 bg-gradient-to-br ${activeGradient} flex items-center justify-center`}>
-              <span className="text-sm font-bold text-white select-none">{initials}</span>
-            </div>
+          {creditBalance !== null && creditCapacity && creditCapacity > 0 && (
+            <CreditRing ratio={creditBalance / creditCapacity} size={44} stroke={2.5} />
           )}
-          <span className="absolute bottom-0.5 right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-slate-950" />
+          <div className="relative h-9 w-9 rounded-full overflow-hidden ring-1 ring-white/10">
+            {uploadedPhoto ? (
+              <img src={uploadedPhoto} alt="Avatar" className="h-9 w-9 rounded-full object-cover" />
+            ) : (
+              <div className={`absolute inset-0 bg-gradient-to-br ${activeGradient} flex items-center justify-center`}>
+                <span className="text-sm font-bold text-white select-none">{initials}</span>
+              </div>
+            )}
+          </div>
         </motion.button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8} className="w-64 border border-white/10 bg-slate-900/95 backdrop-blur-xl p-2 text-white shadow-2xl shadow-black/60 rounded-xl">
@@ -803,7 +849,7 @@ const HoverNavItem = ({
 };
 
 // ─── AUTH NAV BUTTONS ─────────────────────────────────────────────────────────
-const AuthNavButtons = ({ creditBalance, hydrated }: { creditBalance: number | null; hydrated: boolean }) => {
+const AuthNavButtons = ({ creditBalance, creditCapacity, hydrated }: { creditBalance: number | null; creditCapacity: number | null; hydrated: boolean }) => {
   const { isSignedIn } = useAuth();
   const { lang } = useLanguage();
   const { onOpen } = useAuthModal();
@@ -816,7 +862,7 @@ const AuthNavButtons = ({ creditBalance, hydrated }: { creditBalance: number | n
       <PricingButton />
       {showAccount ? (
         <div className="hidden 2xl:block">
-          <UserProfileDropdown creditBalance={creditBalance} />
+          <UserProfileDropdown creditBalance={creditBalance} creditCapacity={creditCapacity} />
         </div>
       ) : showGuestButtons ? (
         <div className="hidden 2xl:flex items-center gap-2">
@@ -854,6 +900,7 @@ const TopNavbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [creditCapacity, setCreditCapacity] = useState<number | null>(null);
   const toggleSection = (k: string) => setMobileSection((p) => (p === k ? null : k));
   const { uploadedPhoto: mobilePhoto, activePreset: mobilePreset } = useAvatar();
   const mobileName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "User";
@@ -880,35 +927,42 @@ const TopNavbar = () => {
   useEffect(() => {
     if (isAuthLoaded && !isSignedIn) {
       setCreditBalance(null);
+      setCreditCapacity(null);
       return;
     }
     if (!isAuthLoaded) return;
 
     let disposed = false;
-    const readBalance = (payload: unknown): number | null => {
+    const readNumber = (payload: unknown, ...keys: string[]): number | null => {
       const data = payload as Record<string, unknown> | null;
-      const raw = typeof data?.balance === "number"
-        ? data.balance
-        : typeof data?.credits === "number"
-          ? data.credits
-          : null;
-      return raw === null ? null : Math.max(0, Math.floor(raw));
+      if (!data) return null;
+      for (const k of keys) {
+        const v = data[k];
+        if (typeof v === "number" && Number.isFinite(v)) return Math.max(0, Math.floor(v));
+      }
+      return null;
     };
+    const readBalance = (payload: unknown): number | null => readNumber(payload, "balance", "credits");
+    const readCapacity = (payload: unknown): number | null => readNumber(payload, "capacity", "monthlyCredits");
     const loadCredits = async () => {
       try {
         const res = await fetchWithAuth("/api/editor/credits", { cache: "no-store" });
         const data = await res.json();
         const balance = readBalance(data);
+        const capacity = readCapacity(data);
         if (!disposed && balance !== null) {
           setCreditBalance(balance);
+          if (capacity !== null) setCreditCapacity(capacity);
           return;
         }
         const fallbackRes = await fetchWithAuth("/api/profile/overview", { cache: "no-store" });
         if (!fallbackRes.ok) return;
         const fallbackData = await fallbackRes.json();
         const fallbackBalance = readBalance(fallbackData);
+        const fallbackCapacity = readCapacity(fallbackData);
         if (!disposed && fallbackBalance !== null) {
           setCreditBalance(fallbackBalance);
+          if (fallbackCapacity !== null) setCreditCapacity(fallbackCapacity);
         }
       } catch {
         // keep previous value
@@ -1168,7 +1222,7 @@ const TopNavbar = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <AuthNavButtons creditBalance={creditBalance} hydrated={hydrated} />
+            <AuthNavButtons creditBalance={creditBalance} creditCapacity={creditCapacity} hydrated={hydrated} />
             <button
               className="2xl:hidden flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
