@@ -732,7 +732,7 @@ const UserProfileDropdown = ({ creditBalance, creditCapacity }: { creditBalance:
           {/* Floating credit chip — appears on hover */}
           {ringRatio !== null && (
             <div
-              className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[10.5px] font-bold tabular-nums shadow-lg shadow-black/40"
+              className="pointer-events-none absolute left-1/2 -translate-x-1/2 flex items-baseline gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 shadow-lg shadow-black/40"
               style={{
                 top: "calc(100% + 6px)",
                 background: chip.bg,
@@ -744,7 +744,13 @@ const UserProfileDropdown = ({ creditBalance, creditCapacity }: { creditBalance:
                 transition: "opacity .22s ease, transform .22s cubic-bezier(.2,.7,.2,1)",
               }}
             >
-              {creditBalance!.toLocaleString()}{creditCapacity ? ` / ${creditCapacity.toLocaleString()}` : ""} cr · {ringPct}%
+              <span className="text-[10px] font-medium opacity-70">
+                {lang === "ar" ? "متبقّي" : "Remaining"}
+              </span>
+              <span className="text-[12px] font-bold tabular-nums">
+                {creditBalance!.toLocaleString()}
+              </span>
+              <span className="text-[10px] font-medium opacity-70">cr</span>
             </div>
           )}
         </motion.button>
