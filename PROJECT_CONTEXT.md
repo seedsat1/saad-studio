@@ -1,3 +1,16 @@
+#### Latest task: Commit and push reference ordering notes (2026-08-14)
+- Status: In progress at commit time per explicit user request.
+- Affected files: Git staging/commit/push task for the current working tree containing reference-ordering documentation and project memory notes.
+- Verification: Prior `npx.cmd tsc --noEmit --pretty false` and `git diff --check` passed for the reference-ordering change.
+- Decisions: Follow the user's explicit `git add .`, `git commit -m "update"`, and `git push` request without opening a PR.
+
+#### Latest task: Fix `/video` reference media filename ordering (2026-08-14)
+- Status: Completed; changed `/video` reference merging so each media type is ordered by natural filename before tags and payload arrays are assigned, fixing numbered batches such as `1.png` through `9.png` appearing as `6,5,4,3,2,1` when the browser/OS supplies that selection order.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed; `git diff --check` passed with only existing CRLF/global Git ignore warnings.
+- Errors discovered: The previous behavior used raw browser `FileList`/drop order without numeric filename normalization, so the visible `@ImageN` tags could be reversed or arbitrary for a numbered image batch.
+- Decisions: Sort by natural filename within images, videos, and audios separately, preserving the existing type grouping and matching displayed chips with the request payload. The fix applies to the shared `/video` reference list for every selected video model that uses `referenceImages`; Seedance 2.5 supports 50 total references as 30 images, 10 videos, and 10 audios, and each type is sorted naturally up to its own cap.
+
 #### Latest task: Commit and push `/video` protected API console fix (2026-08-14)
 - Status: In progress at commit time per explicit user request.
 - Affected files: Git staging/commit/push task for the current working tree containing the `/video` authenticated fetch and optional asset-context response fix.

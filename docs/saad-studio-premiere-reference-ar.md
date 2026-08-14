@@ -3080,6 +3080,7 @@
 
 - `/video` reference chips must display every uploaded reference media type supported by the selected model, not image files only.
 - Seedance 2.5 chips map uploaded media to prompt tags by media type: `@ImageN`, `@VideoN`, and `@AudioN`.
+- Reference media must be ordered deterministically by natural filename order within each media type before assigning prompt tags, so numbered files such as `1.png` through `9.png` map to `@Image1` through `@Image9` even when the browser/OS supplies the selected files in reverse or arbitrary order.
 - Video and audio references should render with compact media icons when no image thumbnail exists.
 - The visible chip list must match the request payload capability so uploaded videos do not appear ignored while still being counted in the reference summary.
 
