@@ -1,3 +1,10 @@
+## Client Authenticated API Fetch Contract (2026-08-14)
+
+- Protected browser APIs such as `/api/models`, `/api/assets`, `/api/characters`, `/api/editor/credits`, `/api/video`, and `/api/media/upload` must be called only after Clerk auth is loaded for signed-in users.
+- Client callers should use `useAuthenticatedFetch` so same-origin credentials are included and a Clerk bearer token is sent when available.
+- Keep server routes protected; do not make subscriber model, asset, credit, or generation endpoints public to hide browser `401` noise.
+- Asset context lookups with `/api/assets?contextId=...` may legitimately miss for stale/provider-only ids. The route should return `200` with `contextFound:false` and empty reference arrays so optional detail lookups do not create browser Network 404 noise.
+
 ## Seedance 2.0 Turbo Pricing Contract (2026-08-14)
 
 - `/video` and `/api/video` must price `Seedance 2.0 Turbo` (`seedance2f`, `bytedance/seedance-2.0/text-to-video-turbo`, and image-to-video turbo aliases) by selected quality.

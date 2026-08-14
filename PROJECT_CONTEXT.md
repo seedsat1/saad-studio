@@ -1,3 +1,16 @@
+#### Latest task: Commit and push `/video` protected API console fix (2026-08-14)
+- Status: In progress at commit time per explicit user request.
+- Affected files: Git staging/commit/push task for the current working tree containing the `/video` authenticated fetch and optional asset-context response fix.
+- Verification: Prior targeted TypeScript check and `git diff --check` passed for the implementation.
+- Decisions: Follow the user's explicit `git add .`, `git commit -m "update"`, and `git push` request.
+
+#### Latest task: Fix `/video` protected API 401 console failures (2026-08-14)
+- Status: Completed; added a shared client `useAuthenticatedFetch` helper that forwards Clerk bearer auth plus same-origin credentials, then wired it into `/video` model/character/asset/video/persist/upload calls, the asset store, asset inspector protected actions, and navbar credit loading. Also changed optional `/api/assets?contextId=...` misses to return `200` with empty reference arrays so stale provider ids do not create browser Network 404 noise.
+- Affected files: `hooks/use-authenticated-fetch.ts`, `hooks/use-dynamic-models.ts`, `hooks/use-asset-store.ts`, `app/(dash)/(routes)/video/page.tsx`, `app/api/assets/route.ts`, `components/AssetInspector.tsx`, `components/TopNavbar.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Verification: `npx.cmd tsc --noEmit --pretty false -p tsconfig.codex-check.json` passed with a temporary `.next`-excluding check config that was removed afterward; `git diff --check` passed with only CRLF/global Git ignore warnings; targeted `rg` confirmed no plain `fetch("/api/models|assets|characters|editor/credits|video|media/upload|generate/upscale|generate/remove-bg")` remain in the patched scope.
+- Errors discovered: The normal full `npx.cmd tsc --noEmit --pretty false` is currently blocked by stale `.next/types/app/loader-check/page.ts` references to a missing `app/loader-check/page.js`; this is build cache noise unrelated to the auth fix.
+- Decisions: Keep server APIs protected and fix the browser callers by waiting for Clerk auth and forwarding the bearer token, rather than making model/assets/credits routes public. Treat missing asset context as an optional empty detail payload rather than an HTTP error.
+
 #### Latest task: Add 20% margin to Seedance 2.0 Turbo quality pricing (2026-08-14)
 - Status: Completed; applied a 20% margin multiplier to `Seedance 2.0 Turbo` quality-based pricing.
 - Affected files: `lib/pricing.ts`, `lib/pricing-models.ts`, `docs/saad-studio-premiere-reference-ar.md`, `PROJECT_CONTEXT.md`.

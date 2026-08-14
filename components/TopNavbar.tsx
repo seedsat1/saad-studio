@@ -9,6 +9,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/lib/use-language";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthModal } from "@/hooks/use-auth-modal";
+import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
 import {
   Menu,
   X,
@@ -844,6 +845,7 @@ const TopNavbar = () => {
   const pathname = usePathname();
   const { lang } = useLanguage();
   const { isSignedIn } = useAuth();
+  const { fetchWithAuth, isAuthLoaded } = useAuthenticatedFetch();
   const { user } = useUser();
   const { signOut } = useClerk();
   const { onOpen } = useAuthModal();
@@ -876,10 +878,11 @@ const TopNavbar = () => {
   }, [pathname]);
 
   useEffect(() => {
-    if (!isSignedIn) {
+    if (isAuthLoaded && !isSignedIn) {
       setCreditBalance(null);
       return;
     }
+    if (!isAuthLoaded) return;
 
     let disposed = false;
     const readBalance = (payload: unknown): number | null => {
@@ -893,14 +896,14 @@ const TopNavbar = () => {
     };
     const loadCredits = async () => {
       try {
-        const res = await fetch("/api/editor/credits", { cache: "no-store" });
+        const res = await fetchWithAuth("/api/editor/credits", { cache: "no-store" });
         const data = await res.json();
         const balance = readBalance(data);
         if (!disposed && balance !== null) {
           setCreditBalance(balance);
           return;
         }
-        const fallbackRes = await fetch("/api/profile/overview", { cache: "no-store" });
+        const fallbackRes = await fetchWithAuth("/api/profile/overview", { cache: "no-store" });
         if (!fallbackRes.ok) return;
         const fallbackData = await fallbackRes.json();
         const fallbackBalance = readBalance(fallbackData);
@@ -930,7 +933,7 @@ const TopNavbar = () => {
       disposed = true;
       window.removeEventListener("saad-credits-updated", handleCreditsUpdate);
     };
-  }, [isSignedIn, pathname]);
+  }, [fetchWithAuth, isAuthLoaded, isSignedIn, pathname]);
 
   return (
     <>

@@ -18,6 +18,7 @@ import {
 import { useLanguage } from "@/lib/use-language";
 import { useAuth } from "@clerk/nextjs";
 import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
+import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
 
 import type { MediaItem } from "@/components/MediaGrid";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
@@ -276,6 +277,7 @@ function VideoHoverTools({
 // ── VideoCardReferences helper component ─────────────────────────────────────────
 
 function VideoCardReferences({ assetId }: { assetId: string }) {
+  const { fetchWithAuth, isAuthLoaded, isSignedIn } = useAuthenticatedFetch();
   const [references, setReferences] = useState<{
     startImageUrl?: string;
     endImageUrl?: string;
@@ -289,10 +291,16 @@ function VideoCardReferences({ assetId }: { assetId: string }) {
 
   useEffect(() => {
     if (!assetId) return;
+    if (!isAuthLoaded || !isSignedIn) return;
     setLoading(true);
-    fetch(`/api/assets?contextId=${encodeURIComponent(assetId)}`)
-      .then((res) => res.json())
+    fetchWithAuth(`/api/assets?contextId=${encodeURIComponent(assetId)}`)
+      .then((res) => {
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error("Unable to load video references");
+        return res.json();
+      })
       .then((data) => {
+        if (!data) return;
         setReferences({
           startImageUrl: data.startImageUrl,
           endImageUrl: data.endImageUrl,
@@ -303,7 +311,7 @@ function VideoCardReferences({ assetId }: { assetId: string }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [assetId]);
+  }, [assetId, fetchWithAuth, isAuthLoaded, isSignedIn]);
 
   if (loading) {
     return (
@@ -1265,9 +1273,12 @@ async function readVideoUploadError(response: Response, fallback = "Failed to up
   }
 }
 
-async function uploadVideoRequestFile(file: File): Promise<string> {
+async function uploadVideoRequestFile(
+  file: File,
+  authFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> = fetch,
+): Promise<string> {
   const fileType = inferVideoUploadMimeType(file);
-  const signRes = await fetch("/api/media/upload", {
+  const signRes = await authFetch("/api/media/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -2009,6 +2020,7 @@ function normalizeBrowserMediaUrl(url: string | null | undefined): string {
 
 function VideoPageInner() {
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { fetchWithAuth } = useAuthenticatedFetch();
   const { t, lang } = useVideoTranslation();
   const searchParams = useSearchParams();
   const [activeTool,    setActiveTool]    = useState<VideoToolId>("create-video");
@@ -2092,7 +2104,7 @@ function VideoPageInner() {
     let cancelled = false;
     const loadCharacters = async () => {
       try {
-        const res = await fetch("/api/characters", { cache: "no-store" });
+        const res = await fetchWithAuth("/api/characters", { cache: "no-store" });
         const data = await res.json().catch(() => null);
         if (!cancelled && res.ok && Array.isArray(data?.characters)) {
           setCharacters(data.characters);
@@ -2105,7 +2117,7 @@ function VideoPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthLoaded, isSignedIn]);
+  }, [fetchWithAuth, isAuthLoaded, isSignedIn]);
 
   // Prompt fields
   const [prompt,    setPrompt]    = useState("");
@@ -2425,7 +2437,7 @@ function VideoPageInner() {
     )));
 
     try {
-      const res = await fetch("/api/assets/favorite", {
+      const res = await fetchWithAuth("/api/assets/favorite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: item.id, isFavorite: nextFavorite }),
@@ -2440,7 +2452,7 @@ function VideoPageInner() {
       )));
       console.error("[video] favorite update failed", error);
     }
-  }, []);
+  }, [fetchWithAuth]);
 
   const mediaItemToInspectorAsset = useCallback((item: MediaItem): Asset => ({
     id: item.id,
@@ -2460,7 +2472,7 @@ function VideoPageInner() {
     if (mode === "append") setLoadingMoreVideos(true);
     try {
       const params = new URLSearchParams({ type: "video", page: String(nextPage), limit: "12" });
-      const res = await fetch(`/api/assets?${params.toString()}`, { cache: "no-cache" });
+      const res = await fetchWithAuth(`/api/assets?${params.toString()}`, { cache: "no-cache" });
       const data = await res.json().catch(() => null);
       if (!res.ok || !Array.isArray(data?.assets)) return;
 
@@ -2490,7 +2502,7 @@ function VideoPageInner() {
     } finally {
       if (mode === "append") setLoadingMoreVideos(false);
     }
-  }, [mapAssetToMediaItem]);
+  }, [fetchWithAuth, mapAssetToMediaItem]);
 
   const confirmDeleteVideo = useCallback(async () => {
     const id = deleteTargetId;
@@ -2498,7 +2510,7 @@ function VideoPageInner() {
     setDeletingId(id);
     setResults((prev) => prev.filter((item) => item.id !== id));
     try {
-      const res = await fetch("/api/assets", {
+      const res = await fetchWithAuth("/api/assets", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
@@ -2510,7 +2522,7 @@ function VideoPageInner() {
     } finally {
       setDeletingId(null);
     }
-  }, [deleteTargetId, deletingId, loadPersistedVideos]);
+  }, [deleteTargetId, deletingId, fetchWithAuth, loadPersistedVideos]);
   useEffect(() => {
     void loadPersistedVideos(0, "replace");
   }, [loadPersistedVideos]);
@@ -2709,7 +2721,7 @@ function VideoPageInner() {
   const loadPickerAssets = useCallback(async (type: "image" | "video") => {
     setPickerLoading(true);
     try {
-      const res  = await fetch(`/api/assets?type=${type}`, { cache: "no-store" });
+      const res  = await fetchWithAuth(`/api/assets?type=${type}`, { cache: "no-store" });
       const data = await res.json().catch(() => null);
       if (res.ok && Array.isArray(data?.assets)) {
         setPickerGallery(data.assets);
@@ -2721,7 +2733,7 @@ function VideoPageInner() {
     } finally {
       setPickerLoading(false);
     }
-  }, []);
+  }, [fetchWithAuth]);
 
   const openMediaPicker = useCallback(async (target: PickerTarget) => {
     setMediaPicker(target);
@@ -2862,7 +2874,7 @@ function VideoPageInner() {
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/video?taskId=${encodeURIComponent(taskId)}`);
+        const res = await fetchWithAuth(`/api/video?taskId=${encodeURIComponent(taskId)}`);
         let data: { taskId: string; status: "created" | "processing" | "completed" | "failed"; outputs: string[]; error: string | null; } | null = null;
         const cloned = res.clone();
         try { data = await res.json(); } catch {
@@ -2904,7 +2916,7 @@ function VideoPageInner() {
             addAsset({ type: "video", url: videoUrl, prompt: ctx.promptText, model: ctx.model.name, duration: ctx.duration != null ? `${ctx.duration}s` : undefined, providerRequestId: taskId });
           }
           if (videoUrl && !isDurableUrl) {
-            void fetch("/api/assets/persist", {
+            void fetchWithAuth("/api/assets/persist", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ mediaUrl: videoUrl, assetType: "video" }),
@@ -2937,7 +2949,7 @@ function VideoPageInner() {
     poll();
     const intervalId = setInterval(poll, 4000);
     pollRefs.current.set(taskId, intervalId);
-  }, [addAsset, loadPersistedVideos]);
+  }, [addAsset, fetchWithAuth, loadPersistedVideos]);
 
   // Resume any in-flight video generations that were interrupted by a page refresh.
   useEffect(() => {
@@ -3071,7 +3083,7 @@ function VideoPageInner() {
         let imgUrl = "";
         if (startFrame) {
           const imgBase64 = await fileToDataURL(startFrame);
-          const imgRes = await fetch("/api/upload/frame", {
+          const imgRes = await fetchWithAuth("/api/upload/frame", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -3091,7 +3103,7 @@ function VideoPageInner() {
 
         // 2. Upload Audio File to get public URL
         const audioBase64 = await fileToDataURL(lipsyncAudioFile);
-        const audioRes = await fetch("/api/upload/frame", {
+        const audioRes = await fetchWithAuth("/api/upload/frame", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -3107,7 +3119,7 @@ function VideoPageInner() {
         const audioUrl = audioData.url;
 
         // 3. Submit lipsync task to /api/generate/audio
-        const lipsyncRes = await fetch("/api/generate/audio", {
+        const lipsyncRes = await fetchWithAuth("/api/generate/audio", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -3135,7 +3147,7 @@ function VideoPageInner() {
         
         if (finalVideoUrl && !isDurableUrl) {
           try {
-            const persistRes = await fetch("/api/assets/persist", {
+            const persistRes = await fetchWithAuth("/api/assets/persist", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ mediaUrl: finalVideoUrl, assetType: "video" }),
@@ -3304,12 +3316,12 @@ function VideoPageInner() {
           const seedanceImageLimit = Math.max(1, caps.max_reference_images || 9);
           const referenceImageLimit = isMinimaxH3 ? Math.max(1, Math.min(9, caps.max_reference_images || 9)) : seedanceImageLimit;
           const explicitStartImage = startFrame
-            ? await uploadVideoRequestFile(startFrame)
+            ? await uploadVideoRequestFile(startFrame, fetchWithAuth)
             : linkedStartFrameUrl
               ? linkedStartFrameUrl
               : null;
-          const uploadedImageRefs = await Promise.all(refImgs.slice(0, referenceImageLimit).map(f => uploadVideoRequestFile(f)));
-          const explicitEndImageForReference = isMinimaxH3 && endFrame ? await uploadVideoRequestFile(endFrame) : null;
+          const uploadedImageRefs = await Promise.all(refImgs.slice(0, referenceImageLimit).map(f => uploadVideoRequestFile(f, fetchWithAuth)));
+          const explicitEndImageForReference = isMinimaxH3 && endFrame ? await uploadVideoRequestFile(endFrame, fetchWithAuth) : null;
           const mergedImageRefs = [
             ...(explicitStartImage ? [explicitStartImage] : []),
             ...characterReferenceUrls,
@@ -3327,12 +3339,12 @@ function VideoPageInner() {
             payload.reference_image_urls = mergedImageRefs;
           }
           if (refVids.length > 0)
-            payload.reference_video_urls = await Promise.all(refVids.slice(0, Math.max(0, caps.max_reference_videos || 3)).map(f => uploadVideoRequestFile(f)));
+            payload.reference_video_urls = await Promise.all(refVids.slice(0, Math.max(0, caps.max_reference_videos || 3)).map(f => uploadVideoRequestFile(f, fetchWithAuth)));
           if (refAuds.length > 0)
-            payload.reference_audio_urls = await Promise.all(refAuds.slice(0, Math.max(0, caps.max_reference_audios || 3)).map(f => uploadVideoRequestFile(f)));
+            payload.reference_audio_urls = await Promise.all(refAuds.slice(0, Math.max(0, caps.max_reference_audios || 3)).map(f => uploadVideoRequestFile(f, fetchWithAuth)));
           // Also allow end frame alongside Seedance references
           if (isSeedanceV2 && caps.has_end_frame && endFrame) {
-            const explicitEndImage = await uploadVideoRequestFile(endFrame);
+            const explicitEndImage = await uploadVideoRequestFile(endFrame, fetchWithAuth);
             payload.last_image = explicitEndImage;
             payload.last_frame_url = explicitEndImage;
           }
@@ -3342,13 +3354,13 @@ function VideoPageInner() {
         }
       } else if ((caps.requires_image || caps.optional_image) && startFrame) {
         payload[isSeedanceV2 ? "first_frame_url" : "image"] = isSeedanceV2
-          ? await uploadVideoRequestFile(startFrame)
+          ? await uploadVideoRequestFile(startFrame, fetchWithAuth)
           : await fileToDataURL(startFrame);
       } else if ((caps.requires_image || caps.optional_image) && characterSupport.mode === "image_reference" && selectedCharacter?.referenceUrls?.[0]) {
         payload[isSeedanceV2 ? "first_frame_url" : "image"] = selectedCharacter.referenceUrls[0];
       }
       if ((caps.requires_video || caps.optional_video) && motionVideo) {
-        payload.video = await uploadVideoRequestFile(motionVideo);
+        payload.video = await uploadVideoRequestFile(motionVideo, fetchWithAuth);
       }
       if (caps.has_end_frame && endFrame && referenceImages.length === 0) {
         const endKey = isSeedanceV2
@@ -3357,7 +3369,7 @@ function VideoPageInner() {
             ? "last_image"
             : "end_image";
         payload[endKey] = isSeedanceV2
-          ? await uploadVideoRequestFile(endFrame)
+          ? await uploadVideoRequestFile(endFrame, fetchWithAuth)
           : await fileToDataURL(endFrame);
       }
 
@@ -3676,7 +3688,7 @@ function VideoPageInner() {
         console.log("[video POST] modelRoute sent:", requestModelRoute);
       }
 
-      const res = await fetch("/api/video", {
+      const res = await fetchWithAuth("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ modelRoute: requestModelRoute, payload }),
@@ -3763,7 +3775,7 @@ function VideoPageInner() {
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId, selectedPalette, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
-    estimatedCredits, activeVideoModeLabel, getSafeErrorMessage, guardGeneration,
+    estimatedCredits, activeVideoModeLabel, fetchWithAuth, getSafeErrorMessage, guardGeneration,
   ]);
 
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);

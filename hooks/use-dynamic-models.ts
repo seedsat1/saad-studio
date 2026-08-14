@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
 
 export type DynamicKieModel = {
   id: string;
@@ -24,6 +25,7 @@ const REFRESH_MS = 10 * 60 * 1000; // re-poll every 10 min while page is open
  * models without a redeploy. Pass a `kind` to filter server-side.
  */
 export function useDynamicKieModels(kind?: DynamicKieModel["kind"]): FetchState {
+  const { fetchWithAuth, isAuthLoaded, isSignedIn } = useAuthenticatedFetch();
   const [state, setState] = useState<FetchState>({
     models: [],
     loading: true,
@@ -32,13 +34,19 @@ export function useDynamicKieModels(kind?: DynamicKieModel["kind"]): FetchState 
   });
 
   useEffect(() => {
+    if (!isAuthLoaded) return;
+    if (!isSignedIn) {
+      setState((s) => ({ ...s, loading: false, error: null }));
+      return;
+    }
+
     let cancelled = false;
     let timer: ReturnType<typeof setInterval> | null = null;
 
     const fetchOnce = async () => {
       try {
         const url = "/api/models";
-        const res = await fetch(url, { cache: "no-store" });
+        const res = await fetchWithAuth(url, { cache: "no-store" });
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
         if (cancelled) return;
@@ -101,7 +109,7 @@ export function useDynamicKieModels(kind?: DynamicKieModel["kind"]): FetchState 
       cancelled = true;
       if (timer) clearInterval(timer);
     };
-  }, [kind]);
+  }, [fetchWithAuth, isAuthLoaded, isSignedIn, kind]);
 
   return state;
 }
@@ -115,6 +123,7 @@ export type FullFetchState = {
 };
 
 export function useFullDynamicModels(): FullFetchState {
+  const { fetchWithAuth, isAuthLoaded, isSignedIn } = useAuthenticatedFetch();
   const [state, setState] = useState<FullFetchState>({
     imageModels: [],
     videoModels: [],
@@ -124,11 +133,17 @@ export function useFullDynamicModels(): FullFetchState {
   });
 
   useEffect(() => {
+    if (!isAuthLoaded) return;
+    if (!isSignedIn) {
+      setState((s) => ({ ...s, loading: false, error: null }));
+      return;
+    }
+
     let cancelled = false;
 
     const fetchOnce = async () => {
       try {
-        const res = await fetch("/api/models", { cache: "no-store" });
+        const res = await fetchWithAuth("/api/models", { cache: "no-store" });
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
         if (cancelled) return;
@@ -155,7 +170,7 @@ export function useFullDynamicModels(): FullFetchState {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchWithAuth, isAuthLoaded, isSignedIn]);
 
   return state;
 }

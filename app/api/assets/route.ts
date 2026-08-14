@@ -214,7 +214,15 @@ export async function GET(req: NextRequest) {
       });
 
       if (!context) {
-        return NextResponse.json({ error: "Asset context not found" }, { status: 404 });
+        return NextResponse.json({
+          ok: true,
+          contextFound: false,
+          startImageUrl: undefined,
+          endImageUrl: undefined,
+          referenceImageUrls: [],
+          referenceVideoUrls: [],
+          referenceAudioUrls: [],
+        }, { status: 200 });
       }
 
       const payload = context.generationRequestSnapshot?.requestPayload as any;
@@ -235,6 +243,8 @@ export async function GET(req: NextRequest) {
       );
 
       return NextResponse.json({
+        ok: true,
+        contextFound: true,
         id: context.id,
         providerRequestId: context.providerRequestId ?? undefined,
         modelRoute: context.modelUsed,

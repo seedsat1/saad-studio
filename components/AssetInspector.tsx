@@ -34,6 +34,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn, getFallbackUrls } from "@/lib/utils";
+import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -873,6 +874,7 @@ interface AssetInspectorProps {
 export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
   const router = useRouter();
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
+  const { fetchWithAuth, isAuthLoaded, isSignedIn } = useAuthenticatedFetch();
   const [expanded, setExpanded] = useState(false);
   const cfg = TYPE_CONFIG[asset.type];
   const TypeIcon = cfg.Icon;
@@ -917,16 +919,19 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
   useEffect(() => {
     const assetId = asset.id || asset.providerRequestId;
     if (!assetId) return;
+    if (!isAuthLoaded || !isSignedIn) return;
 
     setLoadingContext(true);
     setDetailedContext(null);
 
-    fetch(`/api/assets?contextId=${encodeURIComponent(assetId)}`)
+    fetchWithAuth(`/api/assets?contextId=${encodeURIComponent(assetId)}`)
       .then((res) => {
+        if (res.status === 404) return null;
         if (!res.ok) throw new Error("Failed to load asset details");
         return res.json();
       })
       .then((data) => {
+        if (!data) return;
         setDetailedContext({
           startImageUrl: data.startImageUrl,
           endImageUrl: data.endImageUrl,
@@ -941,7 +946,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
       .finally(() => {
         setLoadingContext(false);
       });
-  }, [asset.id, asset.providerRequestId]);
+  }, [asset.id, asset.providerRequestId, fetchWithAuth, isAuthLoaded, isSignedIn]);
 
   const refImages = Array.from(new Set(detailedContext?.referenceImageUrls || []))
     .filter(url => url !== detailedContext?.startImageUrl && url !== detailedContext?.endImageUrl);
@@ -1027,7 +1032,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
         }
         setActiveAction(label);
         try {
-          const res = await fetch("/api/generate/upscale", {
+          const res = await fetchWithAuth("/api/generate/upscale", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ imageUrl: url }),
@@ -1061,7 +1066,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
         }
         setActiveAction(label);
         try {
-          const res = await fetch("/api/generate/remove-bg", {
+          const res = await fetchWithAuth("/api/generate/remove-bg", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ imageUrl: url }),
@@ -1129,7 +1134,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUrl, asset, router, onClose, downloadAsset, getSafeErrorMessage, guardGeneration]);
+  }, [effectiveUrl, asset, router, onClose, downloadAsset, fetchWithAuth, getSafeErrorMessage, guardGeneration]);
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-slate-950 rounded-2xl ring-1 ring-white/10 shadow-2xl shadow-black/60">
