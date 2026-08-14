@@ -758,11 +758,7 @@ export default function CinemaFlowPage() {
         ? imageRefUrls
         : activeImageReferences.map(img => img.url).filter((u): u is string => Boolean(u));
 
-      // If ordinary image references are selected, append reference image details to prompt
-      if (finalImageRefs.length > 0) {
-        const refsStr = finalImageRefs.map((url, idx) => `[Reference Image ${idx + 1}: ${url}]`).join("\n");
-        finalPrompt = `${promptText}\n\n${refsStr}`;
-      }
+      // References travel through body.imageUrls below — never inject URLs into prompt text.
 
       // Inject Style/Effect/Camera/Sketch/Location/Element systemPromptAddon
       // so the model actually applies the selected preset (thumbnails are just index cards).
@@ -1753,56 +1749,85 @@ export default function CinemaFlowPage() {
                   {/* standalone attachment card (no text container background framing) */}
                   {msg.assetUrls && msg.assetUrls.length > 0 ? (
                     <div className="flex flex-wrap gap-2 mt-2 max-w-full">
-                      {msg.assetUrls.map((url, idx) => (
-                        <div 
-                          key={idx}
-                          className="rounded-xl overflow-hidden border border-white/10 aspect-video bg-black flex items-center justify-center relative w-36 shadow-lg cursor-pointer hover:border-violet-500/50 transition group"
+                      {msg.assetUrls.map((url, idx) => {
+                        const isActive = activeImageReferences.some((r) => r.url === url);
+                        return (
+                          <div
+                            key={idx}
+                            className={cn(
+                              "rounded-xl overflow-hidden border aspect-video bg-black flex items-center justify-center relative w-36 shadow-lg cursor-pointer transition group",
+                              isActive ? "border-violet-400" : "border-white/10 hover:border-violet-500/50"
+                            )}
+                            onClick={() => {
+                              if (isActive) return;
+                              addActiveImageReference({
+                                id: `${msg.id}-${idx}`,
+                                url: url,
+                                type: "image",
+                                prompt: msg.text || "Chat generated reference",
+                                createdAt: new Date().toISOString()
+                              } as any);
+                            }}
+                            title={isActive ? "مرجع نشط" : "استخدم كمرجع"}
+                          >
+                            <img src={url} alt="Chat attachment reference" className="w-full h-full object-cover" />
+                            {/* Persistent action chip — always visible */}
+                            <div
+                              className={cn(
+                                "pointer-events-none absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-semibold backdrop-blur-md transition",
+                                isActive
+                                  ? "bg-violet-500/85 text-white"
+                                  : "bg-black/55 text-white/90 group-hover:bg-violet-500/85"
+                              )}
+                            >
+                              {isActive ? <CheckCircle size={10} /> : <Sparkles size={10} />}
+                              <span>{isActive ? "مرجع نشط" : "استخدم كمرجع"}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    msg.assetUrl && (() => {
+                      const isActive = activeImageReferences.some((r) => r.url === msg.assetUrl);
+                      return (
+                        <div
+                          className={cn(
+                            "rounded-xl overflow-hidden border aspect-video bg-black flex items-center justify-center relative w-72 max-w-full shadow-lg cursor-pointer transition group",
+                            isActive ? "border-violet-400" : "border-white/10 hover:border-violet-500/50"
+                          )}
                           onClick={() => {
+                            if (isActive) return;
                             addActiveImageReference({
-                              id: `${msg.id}-${idx}`,
-                              url: url,
-                              type: "image",
+                              id: msg.id,
+                              url: msg.assetUrl!,
+                              type: msg.assetType === "video" ? "video" : "image",
                               prompt: msg.text || "Chat generated reference",
                               createdAt: new Date().toISOString()
                             } as any);
                           }}
-                          title="تعيين كصورة مرجعية"
+                          title={isActive ? "مرجع نشط" : "استخدم كمرجع"}
                         >
-                          <img src={url} alt="Chat attachment reference" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[9px] font-medium gap-0.5 pointer-events-none">
-                            <Sparkles size={10} className="text-violet-400 animate-pulse" />
-                            <span>استخدام</span>
+                          {msg.assetType === "video" ? (
+                            <video src={msg.assetUrl} controls className="w-full h-full object-cover" />
+                          ) : (
+                            <img src={msg.assetUrl} alt="Chat attachment" className="w-full h-full object-cover" />
+                          )}
+                          {/* Persistent action chip — always visible */}
+                          <div
+                            className={cn(
+                              "pointer-events-none absolute bottom-2 right-2 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-semibold backdrop-blur-md transition",
+                              isActive
+                                ? "bg-violet-500/85 text-white"
+                                : "bg-black/55 text-white/90 group-hover:bg-violet-500/85"
+                            )}
+                          >
+                            {isActive ? <CheckCircle size={12} /> : <Sparkles size={12} />}
+                            <span>{isActive ? "مرجع نشط" : "استخدم كمرجع"}</span>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    msg.assetUrl && (
-                      <div 
-                        className="rounded-xl overflow-hidden border border-white/10 aspect-video bg-black flex items-center justify-center relative w-72 max-w-full shadow-lg cursor-pointer hover:border-violet-500/50 transition group"
-                        onClick={() => {
-                          addActiveImageReference({
-                            id: msg.id,
-                            url: msg.assetUrl!,
-                            type: msg.assetType === "video" ? "video" : "image",
-                            prompt: msg.text || "Chat generated reference",
-                            createdAt: new Date().toISOString()
-                          } as any);
-                        }}
-                        title="تعيين كصورة مرجعية"
-                      >
-                        {msg.assetType === "video" ? (
-                          <video src={msg.assetUrl} controls className="w-full h-full object-cover" />
-                        ) : (
-                          <img src={msg.assetUrl} alt="Chat attachment" className="w-full h-full object-cover" />
-                        )}
-                        {/* Hover overlay indicator */}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[11px] font-medium gap-1 pointer-events-none">
-                          <Sparkles size={12} className="text-violet-400 animate-pulse" />
-                          <span>استخدام كصورة مرجعية</span>
-                        </div>
-                      </div>
-                    )
+                      );
+                    })()
                   )}
                   
                   <span className="text-[9px] text-zinc-500 px-1">
