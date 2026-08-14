@@ -1024,6 +1024,10 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
   return (
     <>
       <style>{`
+        @keyframes saad-loader-breath { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        @keyframes saad-loader-bar    { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        .saad-loader-breath { animation: saad-loader-breath 2.8s ease-in-out infinite; }
+        .saad-loader-bar    { animation: saad-loader-bar 1.6s ease-in-out infinite; }
         .result-masonry {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(clamp(132px, 10vw, 210px), 1fr));
@@ -1115,16 +1119,25 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete, 
                     }}
                   >
                     {item.isPending ? (
-                      <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+                      <div className="relative h-full w-full overflow-hidden bg-[#0b1020]">
                         <motion.div
                           className="absolute inset-0"
-                          style={{ background: "linear-gradient(105deg, transparent 20%, rgba(236,72,153,0.16) 50%, transparent 80%)" }}
+                          style={{ background: "linear-gradient(105deg, transparent 20%, rgba(122,165,255,0.14) 50%, transparent 80%)" }}
                           animate={{ x: ["-120%", "120%"] }}
-                          transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                         />
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
-                          <div className="rounded-full bg-pink-500/20 px-3 py-1 text-[11px] font-semibold text-pink-300 ring-1 ring-pink-400/30">{t("Generating...")}</div>
-                          <div className="text-[11px] text-zinc-400">{item.model}</div>
+                          <div
+                            className="relative h-10 w-10 saad-loader-breath"
+                            style={{ filter: "drop-shadow(0 0 8px rgba(122,165,255,.45))" }}
+                          >
+                            <NextImage alt="Saad Studio" src="/icon-192.png" fill sizes="40px" className="object-contain" />
+                          </div>
+                          <div className="text-[10.5px] tracking-[0.4px] text-[#b7c8ff]/85">{t("Generating...")}</div>
+                          <div className="text-[10px] text-zinc-500">{item.model}</div>
+                        </div>
+                        <div className="absolute left-[18%] right-[18%] bottom-[16%] h-[2px] rounded-full bg-[rgba(110,168,255,0.20)] overflow-hidden">
+                          <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,#7aa5ff,#8b6bff,transparent)] saad-loader-bar" />
                         </div>
                       </div>
                     ) : (

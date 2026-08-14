@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo, Suspense, type DragEvent } from "react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { motion, AnimatePresence } from "framer-motion";
+import NextImage from "next/image";
 import { useSearchParams } from "next/navigation";
 import {
   Film, Sparkles, ChevronDown, ImageIcon,
@@ -767,6 +768,8 @@ function VideoHistoryList({
   onReusePrompt?: (item: MediaItem) => void;
   onDelete?: (id: string) => void;
 }) {
+  const { lang } = useLanguage();
+  const statusText = lang === "ar" ? "جارٍ التوليد" : "Generating";
   return (
     <>
       <style>{`
@@ -775,14 +778,33 @@ function VideoHistoryList({
         .video-history-preview { min-height: clamp(330px, 43vw, 560px); }
         @media (max-width: 1180px) { .video-history-card { grid-template-columns: 1fr; } .video-history-side { min-height: auto; } }
         @media (max-width: 720px) { .video-history-list { padding: 10px 0 24px; gap: 12px; } .video-history-preview { min-height: 260px; } }
+        @keyframes saad-loader-breath { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        @keyframes saad-loader-bar    { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        @keyframes saad-loader-dot    { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+        .saad-loader-breath { animation: saad-loader-breath 3.2s ease-in-out infinite; }
+        .saad-loader-bar    { animation: saad-loader-bar 1.6s ease-in-out infinite; }
+        .saad-loader-dot    { animation: saad-loader-dot 1.4s ease-in-out infinite; }
       `}</style>
       <div className="video-history-list">
         {(skeletonModels ?? []).map((item, index) => (
           <div key={`pending-${index}`} className="video-history-card overflow-hidden border border-white/5 bg-[#050a14] p-2">
             <div className="video-history-preview relative overflow-hidden rounded-[14px] bg-[#050a14]">
               <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Loader2 size={28} className="animate-spin text-slate-400" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <div
+                  className="relative h-14 w-14 saad-loader-breath"
+                  style={{ filter: "drop-shadow(0 0 10px rgba(122,165,255,.5)) drop-shadow(0 0 26px rgba(139,107,255,.35))" }}
+                >
+                  <NextImage alt="Saad Studio" src="/icon-192.png" fill sizes="56px" className="object-contain" />
+                </div>
+                <div className="flex items-center gap-2 text-[11.5px] tracking-[0.6px] text-[#b7c8ff]/90 font-mono">
+                  <span>SAAD</span>
+                  <span className="inline-block w-[5px] h-[5px] rounded-full bg-[#7aa5ff] saad-loader-dot" style={{ boxShadow: "0 0 8px #7aa5ff" }} />
+                  <span>{statusText}</span>
+                </div>
+              </div>
+              <div className="absolute left-[14%] right-[14%] bottom-[22%] h-[3px] rounded-full bg-[rgba(110,168,255,0.20)] overflow-hidden">
+                <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,#7aa5ff,#8b6bff,transparent)] saad-loader-bar" />
               </div>
             </div>
             <div className="video-history-side rounded-[14px] border border-white/5 bg-[#050a14] p-4">
