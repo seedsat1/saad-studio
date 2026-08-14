@@ -104,7 +104,7 @@ const STRATEGY_OPTIONS: PodcastExecutionStrategy[] = [
   "unsupported-multicam-angle-switching",
 ];
 
-type PodcastToolKey = "multi-cam" | "captions" | "sync" | "one-click";
+type PodcastToolKey = "multi-cam" | "captions" | "sync" | "one-click" | "silence-removal";
 
 const PODCAST_TEXT = {
   en: {
@@ -113,6 +113,8 @@ const PODCAST_TEXT = {
     autoCaptionsTitle: "Auto Captions",
     synchronize: "Synchronize",
     oneClick: "One Click",
+    silenceRemoval: "Silence Removal",
+    silenceRemovalDesc: "Detect and remove silent pauses from your sequence.",
     multiCamAutoSwitch: "Multi-Cam Auto Switch",
     multiCamDescription: "Analyze the active Premiere timeline, preview the camera plan, then create a visual-only draft.",
     syncDescription: "Align audio and video perfectly.",
@@ -162,6 +164,8 @@ const PODCAST_TEXT = {
     autoCaptionsTitle: "\u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a\u0629",
     synchronize: "\u0627\u0644\u0645\u0632\u0627\u0645\u0646\u0629",
     oneClick: "\u0636\u063a\u0637\u0629 \u0648\u0627\u062d\u062f\u0629",
+    silenceRemoval: "\u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u0635\u0645\u062a",
+    silenceRemovalDesc: "\u0627\u0643\u062a\u0634\u0627\u0641 \u0648\u0625\u0632\u0627\u0644\u0629 \u0641\u062a\u0631\u0627\u062a \u0627\u0644\u0635\u0645\u062a \u0645\u0646 \u0627\u0644\u062a\u0627\u064a\u0645\u0644\u0627\u064a\u0646.",
     multiCamAutoSwitch: "\u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a \u0628\u064a\u0646 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a",
     multiCamDescription: "\u062d\u0644\u0644 \u0627\u0644\u062a\u0627\u064a\u0645\u0644\u0627\u064a\u0646 \u0627\u0644\u0646\u0634\u0637\u060c \u0631\u0627\u062c\u0639 \u062e\u0637\u0629 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a\u060c \u062b\u0645 \u0623\u0646\u0634\u0626 \u0646\u0633\u062e\u0629 \u0645\u0631\u0626\u064a\u0629.",
     syncDescription: "\u0645\u0632\u0627\u0645\u0646\u0629 \u0627\u0644\u0635\u0648\u062a \u0648\u0627\u0644\u0641\u064a\u062f\u064a\u0648 \u0628\u062f\u0642\u0629.",
@@ -172,7 +176,7 @@ const PODCAST_TEXT = {
     standard: "\u0642\u064a\u0627\u0633\u064a",
     fast: "\u0633\u0631\u064a\u0639",
     professional: "\u0627\u062d\u062a\u0631\u0627\u0641\u064a",
-    autoCaptionsSubtitle: "\u0625\u0646\u0634\u0627\u0621 \u062a\u0631\u062c\u0645\u0627\u062a \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u062a\u0639\u062f\u064a\u0644 \u0645\u062d\u0644\u064a\u064b\u0627 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 faster-whisper. \u0644\u0627 \u064a\u062a\u0645 \u0627\u0633\u062a\u062e\u062f\u0627\u0645 Reap.",
+    autoCaptionsSubtitle: "\u0625\u0646\u0634\u0626 \u062a\u0631\u062c\u0645\u0627\u062a \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u062a\u0639\u062f\u064a\u0644 \u0645\u062d\u0644\u064a\u064b\u0627 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 faster-whisper. \u0644\u0627 \u064a\u062a\u0645 \u0627\u0643\u062a\u0634\u0627\u0641 \u0648\u0625\u0632\u0627\u0644\u0629 \u0641\u062a\u0631\u0627\u062a \u0627\u0644\u0635\u0645\u062a \u0645\u0646 \u0627\u0644\u062a\u0627\u064a\u0645\u0644\u0627\u064a\u0646.",
     language: "\u0627\u0644\u0644\u063a\u0629",
     subtitlesLevel: "\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u0629",
     engine: "\u0627\u0644\u0645\u062d\u0631\u0643",

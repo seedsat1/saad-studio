@@ -13,7 +13,7 @@ import {
   setGenerationMediaUrl,
   spendCredits,
 } from "@/lib/credit-ledger";
-import { getMusicCredits } from "@/lib/credit-pricing";
+import { getMusicCreditsAsync } from "@/lib/credit-pricing";
 import { precheckGenerationPolicy } from "@/lib/credit-ledger";
 import { sanitizePrompt } from "@/lib/security";
 import { uploadBufferToStorage } from "@/lib/r2-storage";
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: precheck.message, blocked: true, reason: precheck.reason }, { status: 403 });
     }
 
-    const credits = getMusicCredits(model, duration);
+    const credits = await getMusicCreditsAsync(model, duration);
     const spent = await spendCredits({
       userId,
       credits,

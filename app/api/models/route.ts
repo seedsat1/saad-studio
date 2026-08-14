@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getDynamicImageModels, getDynamicVideoModels } from "@/lib/dynamic-model-loader";
+import { withAudioSourceMetadata, withImageSourceMetadata, withVideoSourceMetadata } from "@/lib/model-source-map";
 import { loadModels } from "@/lib/pricing";
 
 export async function GET() {
@@ -14,8 +15,12 @@ export async function GET() {
     const videoModels = await getDynamicVideoModels();
 
     // Filter out inactive models for general users
-    const activeImageModels = imageModels.filter((m) => m.isActive !== false);
-    const activeVideoModels = videoModels.filter((m) => m.isActive !== false);
+    const activeImageModels = imageModels
+      .filter((m) => m.isActive !== false)
+      .map(withImageSourceMetadata);
+    const activeVideoModels = videoModels
+      .filter((m) => m.isActive !== false)
+      .map(withVideoSourceMetadata);
 
     const allModels = await loadModels();
     const activeAudioModels = allModels
@@ -34,7 +39,8 @@ export async function GET() {
           creditCost: m.userCreditsRate,
           isActive: m.isActive,
         };
-      });
+      })
+      .map(withAudioSourceMetadata);
 
     return NextResponse.json({
       ok: true,

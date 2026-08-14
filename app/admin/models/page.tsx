@@ -503,6 +503,7 @@ export default function AdminModelsPage() {
                 <tr className="border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-900/40">
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Model Info</th>
+                  <th className="px-6 py-4">Source</th>
                   <th className="px-6 py-4">Group</th>
                   <th className="px-6 py-4">Type</th>
                   <th className="px-6 py-4">Credit Cost</th>
@@ -514,6 +515,7 @@ export default function AdminModelsPage() {
                 {filteredImageModels.map((model) => {
                   const isEditing = editingId === model.id;
                   const isActive = model.isActive !== false;
+                  const source = model as any;
 
                   return (
                     <tr
@@ -569,6 +571,17 @@ export default function AdminModelsPage() {
                             <div className="text-[10px] text-slate-500 font-mono mt-1">ID: {model.id}</div>
                           </div>
                         )}
+                      </td>
+                      <td className="px-6 py-4 text-xs">
+                        <div className="inline-flex items-center rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase text-cyan-300">
+                          {source.runtimeSourceLabel || source.runtimeSource || "Unknown"}
+                        </div>
+                        <div className="mt-1 max-w-[220px] truncate font-mono text-[10px] text-slate-500">
+                          {source.sourceModelId || model.upstreamModelId || model.id}
+                        </div>
+                        <div className="mt-0.5 text-[10px] text-slate-600">
+                          pricing: {source.pricingProvider || "kie"}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                         {isEditing ? (
@@ -716,7 +729,7 @@ export default function AdminModelsPage() {
                 <tr className="border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-900/40">
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Model Info</th>
-                  <th className="px-6 py-4">Provider Route</th>
+                  <th className="px-6 py-4">Source Route</th>
                   <th className="px-6 py-4">Price rate</th>
                   <th className="px-6 py-4">Resolutions & Durations</th>
                   <th className="px-6 py-4">Reference limits</th>
@@ -728,6 +741,7 @@ export default function AdminModelsPage() {
                   const isEditing = editingId === model.id;
                   const isActive = model.isActive !== false;
                   const creditRate = (model as any).creditCost ?? 5.0;
+                  const source = model as any;
 
                   return (
                     <tr
@@ -821,8 +835,14 @@ export default function AdminModelsPage() {
                           </div>
                         ) : (
                           <div>
+                            <div className="mb-1 inline-flex items-center rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-[10px] font-bold uppercase text-cyan-300">
+                              {source.runtimeSourceLabel || source.runtimeSource || "Unknown"}
+                            </div>
                             <div className="font-mono text-[10px] text-violet-400 bg-violet-950/20 px-2 py-1 rounded inline-block">
-                              {model.api_route}
+                              {source.sourceModelId || model.api_route}
+                            </div>
+                            <div className="mt-1 text-[10px] text-slate-600">
+                              pricing: {source.pricingProvider || "kie"}
                             </div>
                             <div className="flex items-center gap-1.5 mt-1.5">
                               <span

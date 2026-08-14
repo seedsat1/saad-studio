@@ -8,6 +8,7 @@ import {
   GEMINI_STANDARD_IMAGE_ASPECT_RATIOS,
   GOOGLE_IMAGE_UPSTREAM_MODEL_MAP,
 } from "./google-image-model-specs";
+import { DEFAULT_MODELS, calcUserCredits } from "./pricing-models";
 
 export type ImageInputType = "text-to-image" | "image-to-image" | "edit";
 
@@ -92,6 +93,45 @@ export function getImageCreditCost(_model: ImageModel, numImages = 1, quality?: 
   const q = quality?.trim().toLowerCase() ?? "1k";
   const baseRate = q === "4k" ? 4.0 : 2.0;
   return parseFloat((baseRate * safeUnits).toFixed(2));
+}
+
+const CLIENT_UTILITY_IMAGE_MODEL_IDS = {
+  upscale: "tool_upscale",
+  faceSwap: "tool_faceswap",
+} as const;
+
+const CLIENT_QUALITY_MULTIPLIER: Record<string, number> = {
+  "512px": 0.5,
+  "1k": 1.0,
+  "2k": 1.5,
+  "4k": 3.0,
+  "8k": 3.0,
+};
+
+export function formatCreditAmount(value: number): string {
+  const safe = Number.isFinite(value) ? value : 0;
+  return safe.toFixed(2).replace(/\.?0+$/, "");
+}
+
+export function getImageUtilityCreditCost(
+  tool: keyof typeof CLIENT_UTILITY_IMAGE_MODEL_IDS,
+  quality?: string | null,
+): number {
+  const modelId = CLIENT_UTILITY_IMAGE_MODEL_IDS[tool];
+  const model = DEFAULT_MODELS.find((entry) => entry.id === modelId && entry.isActive);
+  if (!model) return 0;
+
+  const base = calcUserCredits(model, 0);
+  const q = quality?.trim().toLowerCase() ?? "";
+  const multiplier = CLIENT_QUALITY_MULTIPLIER[q] ?? 1.0;
+  return parseFloat((base * multiplier).toFixed(2));
+}
+
+export function getImageUpscaleTargetResolution(scale: number): "2k" | "4k" | "8k" {
+  const normalized = String(scale);
+  if (normalized === "1") return "2k";
+  if (normalized === "8") return "8k";
+  return "4k";
 }
 
 // â”€â”€â”€ All Aspect Options lookup (for the UI toggle buttons) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

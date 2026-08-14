@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getVideoCreditsByModelId } from "@/lib/credit-pricing";
+import { getVideoCreditsByModelIdAsync } from "@/lib/credit-pricing";
 import {
   InsufficientCreditsError,
   precheckGenerationPolicy,
@@ -219,7 +219,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "One or more imageUrls are invalid." }, { status: 400 });
     }
 
-    const creditsToCharge = getVideoCreditsByModelId(modelId, { duration, resolution, quality });
+    const creditsToCharge = await getVideoCreditsByModelIdAsync(modelId, { duration, resolution, quality });
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: `No credit configuration for model: ${modelId}` }, { status: 400 });
     }

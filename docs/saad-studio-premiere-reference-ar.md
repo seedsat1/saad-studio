@@ -1,3 +1,104 @@
+## دعم المقاطع المتداخلة (Nest Sequence) والمزامنة بالتايم لاين (2026-08-14)
+
+- **حل الفروق الزمنية التراكمية (Accumulated totalDelta)**:
+  - لحساب مواضع الصوت والفيديو بدقة داخل الـ Nests وتجنب انحراف الصوت والصورة (Sync Drift)، تم تحديث دالة `getResolvedClipInfo` لتقوم بتجميع تراكمي للفروق الزمنية (`totalDelta = startSec - inSec`) عبر جميع مستويات التداخل (Nests).
+  - دالة `readPodcastTimelineClip` تستخدم هذا الفارق لتعديل حساب نقاط البداية والنهاية الحقيقية للملفات الصوتية (`sourceInPointSec` و `sourceOutPointSec`) في محرك المزامنة بالـ Waveform.
+- **إصلاح حلقة التكرار والخروج المبكر في المزامنة**:
+  - تم إصلاح دالة `moveTrackClipsByOffset` لتقوم بالدوران حول كامل المسار وتحريك كافة المقاطع والـ Nests وتجنب التوقف والخروج المبكر (`early exit return`) عند مصادفة أول Nest على التايم لاين.
+- **القص والتبديل المباشر للكاميرات للـ Nest Sequences**:
+  - تم تعديل دالة `prepareVisualOnlyCameraDecisionSegment` للتعرف على الـ Nest sequence (`isNest = true`) وتخطي محاولة التقطيع كـ `createSubClip` (وهو أمر غير مدعوم للـ sequences في Premiere).
+  - تم إضافة دالة مساعدة `findClipAtStartTicks` للبحث عن الـ Nest sequence بعد وضعه على التراك المستهدف، لتتيح للدالة `applyPodcastCameraDecisionsOverlapAwareVisualOnly` تعديل أطرافه ونقاط دخوله وخروجه (`Trim inPoint/outPoint`) مباشرة دون فك النيست أو تخريب المخطط الزمني للمستخدم.
+
+## Routing Control Center Contract (2026-08-14)
+
+- Current provider policy:
+  - Google = `active`, `allowRouting=true`, `allowFallback=true`.
+  - OpenAI = `active`, `allowRouting=true`, `allowFallback=true`.
+  - WaveSpeed = `active`, `allowRouting=true`, `allowFallback=true`.
+  - BytePlus = `standby`, `enabled=false`, `allowRouting=false`, `allowFallback=false`, `futureProvider=true`.
+  - KIE = `standby`, `enabled=false`, `allowRouting=false`, `allowFallback=false`, `futureProvider=true`.
+- BytePlus and KIE must not appear as selectable Primary or Fallback providers in `/admin/routing` while they are standby.
+- Any admin routing save that tries to use a standby provider must fail validation before persistence.
+- `/admin/routing` is the routing control center and has exactly three operational views:
+  - Routing Map: shows effective model -> provider -> route relationships.
+  - Configuration: edits persisted routing overrides.
+  - Diagnostics: shows last routing test/attempt metadata.
+- Routing configuration flow:
+  - Model Registry Defaults
+  - Database Routing Override from `PlatformConfig`
+  - Effective Routing Config
+  - Provider Router
+  - Future Unified Generation Engine
+- Routing overrides are stored in `PlatformConfig` key `model_routing_overrides`. Diagnostics are stored in `model_routing_diagnostics`.
+- Routing config reads must report structured state, not only a plain object:
+  - `data`: the loaded config record.
+  - `source`: `persisted` when a stored PlatformConfig row was read, otherwise `default`.
+  - `databaseAvailable`: false when Neon/PlatformConfig could not be read.
+  - `error`: a non-secret read failure summary when unavailable.
+- `no persisted override` and `database unavailable` are different states and must not be collapsed in admin APIs or UI.
+- `/api/admin/routing` must expose top-level `databaseAvailable`, `configSource`, and `warning` fields so `/admin/routing` can warn when registry defaults are shown because Neon is unavailable.
+- `/admin/routing` must show a visible warning when `databaseAvailable=false`: saved routing overrides may not be reflected.
+- Routing writes are fail-closed. If the existing PlatformConfig store cannot be read, save/reset/diagnostic writes must return an error and must not report the configuration as saved.
+- Diagnostics must distinguish configured fallbacks from effective fallbacks:
+  - Configured fallback: the route saved/defaulted in the routing config.
+  - Effective fallback: the subset allowed by provider policy and automatic fallback state.
+  - Ignored fallbacks must include a reason such as standby/disabled/not allowed or automatic fallback disabled.
+- `lib/model-routing-registry.ts` defines the routing config shape and default config builder.
+- `lib/routing/routing-config.ts` owns override/diagnostics persistence.
+- `lib/routing/route-validator.ts` validates provider eligibility.
+- `lib/routing/provider-router.ts` resolves the effective provider decision without calling external APIs.
+- Admin endpoints:
+  - `GET /api/admin/routing`
+  - `PUT /api/admin/routing/:modelId`
+  - `POST /api/admin/routing/:modelId/test`
+  - `POST /api/admin/routing/:modelId/reset`
+- The `test` endpoint is a safe routing-decision test. It must not call external provider APIs; live health checks belong to the later Health/Generation Engine layer.
+- Current routing rule:
+  - Google image/video/audio rows -> Google Official API.
+  - OpenAI image/video rows -> OpenAI Official API.
+  - Other curated image/video/audio rows -> WaveSpeed unless a future active provider override is explicitly saved.
+- OpenAI routes must not be reported as WaveSpeed in routing metadata.
+
+## Provider Management Contract (2026-08-14)
+
+- `/admin/providers` is the source management inventory that must be completed before editable routing and the unified generation engine.
+- Provider definitions live in `lib/provider-registry.ts`, not inside page JSX. Current runtime provider ids are `google`, `openai`, `byteplus`, `wavespeed`, `kie`, `elevenlabs`, and `reap`.
+- `/api/admin/providers` is admin-only and returns safe operational metadata only:
+  - Provider name, enabled state, online/offline status, API configured boolean, health check label, last check time, last error, model count, active routes, fallback usage, monthly requests, estimated provider cost, balance/credits when provided by safe env values, modalities, and billing URL.
+  - It must never return API key values, bearer tokens, raw secret names with values, or provider credentials.
+- Model and active-route counts must derive from the central model source map and dynamic model loaders, not from hand-written page counts.
+- Usage/cost aggregation is best-effort. If provider usage tables or cost rows are unavailable, the provider page must still load and show inventory/routing data instead of returning `500`.
+- Online/offline in this first implementation means the provider is enabled and required API configuration is present. Live paid API pings and persisted provider enable toggles belong in the next Provider/Routing control phase.
+- `/admin/providers` links forward to `/admin/routing` and `/admin/pricing`; `/admin` must expose Provider Management as an Advanced Tool.
+
+## Central Model Source Map Contract (2026-08-14)
+
+- Model/pages/admin source metadata must come from `lib/model-source-map.ts`, not local per-page guesses.
+- Public `/api/models`, admin `/api/admin/models`, and admin `/api/admin/routing` expose the same metadata for model rows:
+  - `runtimeSource`: real serving source such as `google`, `openai`, `wavespeed`, `kie`, `byteplus`, or `reap`.
+  - `runtimeSourceLabel`: display label for dashboards.
+  - `sourceModelId`: upstream/provider route or official upstream model id.
+  - `pricingProvider`: the pricing-table provider shape currently supported by `PricingConstitution` (`kie` or `wavespeed`).
+- Do not use `PricingConstitution.provider` as proof of the real generation source. It is a billing/cost-shape field, while `runtimeSource` is the runtime source.
+- `/admin/models` should show the source metadata so the admin dashboard acts as the hub between subscriber pages and source providers.
+- `/admin/routing` is the dedicated read-only admin page for the full routing map across image, video, and audio.
+- Admin model sync must use the central source map when writing pricing rows. This keeps runtime/provider labels consistent while preserving the existing pricing table schema.
+
+## `/image` Tool Pricing Display Contract (2026-08-14)
+
+- أسعار أزرار أدوات صفحة `/image` يجب ألا تكون أرقامًا ثابتة داخل JSX.
+- زر Create يستخدم `getImageCreditCost` وقاعدة السيرفر الحالية: 2 كريدت لكل صورة في 1K/2K، و4 كريدت لكل صورة في 4K.
+- أدوات Enhance وRelight وInpaint تمر عبر `/api/generate/image`، لذلك تعرض وتفحص مسبقًا نفس قاعدة صور التحرير غير الخدمية: 2 كريدت لكل مخرج ما لم تتغير جودة 4K.
+- أداة Upscale تعرض السعر من helper الأداة الخدمية وفق نفس تحويل السيرفر للصورة: `2x` و`4x` يحاسبان على tier `4k` في المسار الحالي.
+- أداة Face Swap تعرض السعر من نموذج التسعير `tool_faceswap`، وليس رقمًا ثابتًا في الواجهة.
+- يجب تنسيق القيم العشرية بدون أصفار زائدة، مثل `0.8 cr` و`3.6 cr`.
+
+## `/image` Sidebar Card Visibility (2026-08-14)
+
+- صفحة `/image` لا تعرض كارت الترويج `New from Saad Studio / GPT Image 2` داخل إعدادات الموديل.
+- صفحة `/image` لا تعرض كارت/أكورديون `Character Reference` في اللوحة الجانبية.
+- إزالة هذه الكروت مرئية فقط؛ اختيار الموديل، منطق التوليد، وحالة الشخصية الموجودة عبر الرابط/المودال/المؤلف تبقى كما هي.
+
 ## Image Provider Source, Reference Ordering, And Caps Contract (2026-08-14)
 
 - `/image` must sort uploaded reference image files by natural filename order before display and before submission. Example: `1.png`, `2.png`, `10.png` stays numeric rather than browser/OS selection order.
@@ -3144,3 +3245,32 @@
 - Minimax H3 pricing is based on an actual completed WaveSpeed run for `minimax/h3/reference-to-video`: `$2` for `5s` at `768p`, so the source rate is `$0.40/s`.
 - The active site conversion for Seedance 2.5 is `40 credits/USD` plus a 40% margin: Seedance 2.5 720p `30s = 302.4 cr`; Minimax H3 768p keeps `5s = 80 cr`.
 - Sound/generate_audio is not an extra charge for the Seedance 2.5 run pricing above.
+## Pricing Core Consolidation Contract (2026-08-14)
+
+- User-facing generation prices are governed by the current `getGenerationCost` behavior.
+- `getGenerationCost` and `getGenerationCostSync` must share the same internal user-charge core so async charge and sync display estimates stay in parity when using the same pricing model data.
+- `/api/pricing/quote` must return final user charge from `getGenerationCost`; keep legacy `credits`/`baseCost` fields while exposing explicit `userCredits`.
+- Provider/source cost is a separate concept from user charge. `/api/pricing/quote` may expose `providerEstimatedCost` and `providerCostSource`, but this must not drive the user charge.
+- `getGenerationCostQuote` is currently a source/provider-cost-style quote helper, not the canonical user charge resolver. Do not use it as the user-facing price authority until audio/avatar routes are reviewed separately.
+- Pricing remains keyed by model id/model route for now. Do not connect pricing to the new routing control layer until pricing parity is fully stabilized.
+## Pricing Consistency Contract (2026-08-14)
+
+- User charge and provider/source estimate are separate concepts.
+- `getGenerationCost` remains the primary async user-charge resolver for normal generation pricing.
+- `getGenerationCostSync` may be used for UI/display estimates, but final deduction routes that need DB PricingConstitution overrides should use async pricing helpers backed by `getGenerationCost`.
+- Historical audio/avatar pricing is authoritative commercial behavior and must not be replaced by lower generic `userCreditsRate` values.
+- `getLegacyAudioAvatarUserCharge` preserves the current audio/avatar deduction behavior inside the central pricing core:
+  - ElevenLabs multilingual TTS (`elevenlabs/multilingual-v2` / `el_v2`) remains 23 credits under the current defaults.
+  - `avatar-pro` preserves its fallback base `12` plus 40% margin, resulting in 17 credits when no source quote row exists.
+  - Lip-sync/avatar source-margin formulas must keep their previous final credit result when moved out of route-local code.
+- `/api/generate/audio` and `/api/panel/generate/avatar-pro` must not use `getGenerationCostQuote` directly as the user deduction resolver. That helper remains source/provider-cost-style quoting for tracking, analytics, and estimates.
+- `/api/pricing/quote` must expose provider estimate scope explicitly:
+  - `perUnitProviderEstimatedCost`
+  - `totalProviderEstimatedCost`
+  - `providerEstimatedCost` as a backward-compatible total estimate.
+- Updating provider estimates for `numUnits` must not change `userCredits`.
+- Current async deduction helpers:
+  - `getVideoCreditsByModelIdAsync`
+  - `getVideoCreditsByRouteAsync`
+  - `getMusicCreditsAsync`
+- Do not connect pricing to the routing control layer until pricing parity is stable and separately reviewed.

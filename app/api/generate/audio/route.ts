@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getGenerationCost, getGenerationCostQuote } from "@/lib/pricing";
+import { getGenerationCost, getLegacyAudioAvatarUserCharge } from "@/lib/pricing";
 import { getAudioActionCredits } from "@/lib/credit-pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
@@ -285,24 +285,39 @@ async function buildAudioChargeQuote(actionType: AudioRequestBody["actionType"],
   const durationSec = resolveQuoteDurationSec(actionType, body);
   const quality = resolveQuoteQuality(actionType, body);
   const units = resolveQuoteUnits(actionType, durationSec);
-  const dynamicQuote = await getGenerationCostQuote(chargeModelRef, durationSec, units, quality);
+  const dynamicQuote = await getLegacyAudioAvatarUserCharge(chargeModelRef, durationSec, units, quality);
 
-  if (dynamicQuote && Number.isFinite(dynamicQuote.finalCredits) && dynamicQuote.finalCredits > 0) {
-    return { chargeModelRef, durationSec, quote: dynamicQuote };
-  }
-
-  // Safety net: keep generation working even when source quote data is incomplete.
-  const legacy = await getGenerationCost(chargeModelRef, durationSec, units, quality);
-  if (Number.isFinite(legacy) && legacy > 0) {
+  if (dynamicQuote && Number.isFinite(dynamicQuote.userCredits) && dynamicQuote.userCredits > 0) {
     return {
       chargeModelRef,
       durationSec,
       quote: {
         actionType,
         modelRef: chargeModelRef,
-        sourceCredits: legacy,
-        marginPercent: 0,
-        finalCredits: Math.ceil(legacy),
+        sourceCredits: dynamicQuote.sourceCredits ?? dynamicQuote.userCredits,
+        marginPercent: dynamicQuote.marginPercent,
+        finalCredits: dynamicQuote.userCredits,
+        pricingSource: dynamicQuote.source,
+      },
+    };
+  }
+
+  // Safety net: keep generation working even when source quote data is incomplete.
+  const legacy = await getGenerationCost(chargeModelRef, durationSec, units, quality);
+  if (Number.isFinite(legacy) && legacy > 0) {
+    const fallbackQuote = await getLegacyAudioAvatarUserCharge(chargeModelRef, durationSec, units, quality, {
+      fallbackUserCredits: legacy,
+    });
+    return {
+      chargeModelRef,
+      durationSec,
+      quote: {
+        actionType,
+        modelRef: chargeModelRef,
+        sourceCredits: fallbackQuote?.sourceCredits ?? legacy,
+        marginPercent: fallbackQuote?.marginPercent ?? 0,
+        finalCredits: fallbackQuote?.userCredits ?? Math.ceil(legacy),
+        pricingSource: fallbackQuote?.source ?? "user-charge-fallback",
       },
     };
   }
@@ -319,6 +334,7 @@ async function buildAudioChargeQuote(actionType: AudioRequestBody["actionType"],
           sourceCredits: fallback,
           marginPercent: 0,
           finalCredits: Math.ceil(fallback),
+          pricingSource: "user-charge-fallback",
         },
       };
     }

@@ -10,41 +10,37 @@ import {
   type DynamicImageModel,
   type DynamicVideoModel,
 } from "@/lib/dynamic-model-loader";
-import { getProviderFor } from "@/lib/provider-router";
+import {
+  resolveImageModelSource,
+  resolveVideoModelSource,
+  withImageSourceMetadata,
+  withVideoSourceMetadata,
+} from "@/lib/model-source-map";
 import { invalidatePricingCache } from "@/lib/pricing";
 import prismadb from "@/lib/prismadb";
-
-function resolveModelProvider(modelRef: string | undefined, fallback = "kie") {
-  if (!modelRef) return fallback;
-  try {
-    return getProviderFor(modelRef);
-  } catch {
-    return fallback;
-  }
-}
 
 async function syncPricingConstitution(imageModels: DynamicImageModel[], videoModels: DynamicVideoModel[]) {
   const syncOperations = [];
 
   for (const model of imageModels) {
-    const provider = resolveModelProvider(model.upstreamModelId || model.id);
+    const source = resolveImageModelSource(model);
     syncOperations.push(
       prismadb.pricingConstitution.upsert({
         where: { id: model.id },
         create: {
           id: model.id,
           name: model.label,
-          notes: model.sublabel || "Sync from models manager",
+          notes: model.sublabel || `Source: ${source.runtimeSourceLabel}`,
           type: "image",
-          provider,
+          provider: source.pricingProvider,
           billing: "flat",
           userCreditsRate: model.creditCost ?? 2.0,
           isActive: model.isActive !== false,
         },
         update: {
           name: model.label,
-          notes: model.sublabel || "Sync from models manager",
-          provider,
+          notes: model.sublabel || `Source: ${source.runtimeSourceLabel}`,
+          provider: source.pricingProvider,
           userCreditsRate: model.creditCost ?? 2.0,
           isActive: model.isActive !== false,
         },
@@ -53,7 +49,7 @@ async function syncPricingConstitution(imageModels: DynamicImageModel[], videoMo
   }
 
   for (const model of videoModels) {
-    const provider = resolveModelProvider(model.api_route || model.id);
+    const source = resolveVideoModelSource(model);
     const creditRate = model.creditCost ?? 5.0;
     const billingType = model.capabilities?.durations?.length === 0 ? "flat" : "per_sec";
 
@@ -63,17 +59,17 @@ async function syncPricingConstitution(imageModels: DynamicImageModel[], videoMo
         create: {
           id: model.id,
           name: model.name,
-          notes: model.description || "Sync from models manager",
+          notes: model.description || `Source: ${source.runtimeSourceLabel}`,
           type: "video",
-          provider,
+          provider: source.pricingProvider,
           billing: billingType,
           userCreditsRate: creditRate,
           isActive: model.isActive !== false,
         },
         update: {
           name: model.name,
-          notes: model.description || "Sync from models manager",
-          provider,
+          notes: model.description || `Source: ${source.runtimeSourceLabel}`,
+          provider: source.pricingProvider,
           userCreditsRate: creditRate,
           isActive: model.isActive !== false,
         },
@@ -95,7 +91,10 @@ export async function GET() {
   try {
     const imageModels = await getDynamicImageModels();
     const videoModels = await getDynamicVideoModels();
-    return NextResponse.json({ imageModels, videoModels });
+    return NextResponse.json({
+      imageModels: imageModels.map(withImageSourceMetadata),
+      videoModels: videoModels.map(withVideoSourceMetadata),
+    });
   } catch (err) {
     console.error("[admin-models] GET error:", err);
     return NextResponse.json({ error: "Failed to load models" }, { status: 500 });

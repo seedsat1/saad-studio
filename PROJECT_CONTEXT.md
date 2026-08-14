@@ -1,3 +1,134 @@
+#### Latest task: Fix pricing consistency for provider totals, legacy audio/avatar charges, and async deduction paths (2026-08-14)
+- Status: Completed. Stabilized pricing consistency without changing current user charges.
+- Affected files: `lib/pricing.ts`, `lib/credit-pricing.ts`, `app/api/pricing/quote/route.ts`, `app/api/generate/audio/route.ts`, `app/api/panel/generate/avatar-pro/route.ts`, `app/api/generate/video/route.ts`, `app/api/panel/generate/video/route.ts`, `app/api/video/route.ts`, `app/api/panel/generate/music/route.ts`, `test/pricing-core.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added `getLegacyAudioAvatarUserCharge` as the central user-charge core for the historical audio/avatar pricing behavior.
+  - `/api/generate/audio` no longer uses `getGenerationCostQuote` as the deduction resolver; it uses the legacy user-charge core while preserving current charges such as ElevenLabs multilingual TTS = 23 credits.
+  - `/api/panel/generate/avatar-pro` no longer deducts directly from `getGenerationCostQuote`; it uses the central legacy user-charge core and preserves the current fallback `12 * 1.4 = 17` credits behavior.
+  - `/api/pricing/quote` now returns both `perUnitProviderEstimatedCost` and `totalProviderEstimatedCost`; `providerEstimatedCost` remains as the total-compatible legacy field. User credits are unchanged.
+  - Added async charge helpers for video/music deduction paths so final charges can use `getGenerationCost` and see effective DB/default pricing instead of depending on `getGenerationCostSync`.
+  - Existing sync helpers remain available for UI/display estimates and non-deduction usage.
+- Verification: `npx.cmd vitest run test/pricing-core.test.ts` passed with 17 tests. `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed, with only existing Git global ignore permission and CRLF warnings.
+- Errors discovered: `getGenerationCostSync` still exists for UI/display paths and can differ from async pricing when DB overrides are present or cache is stale; actual deduction paths inspected in this task were moved to async helpers.
+- Decisions: Preserve current commercial audio/avatar prices as authoritative legacy user charges rather than replacing them with lower generic PricingConstitution user rates. Keep provider/source estimates separate from user deductions.
+
+#### Latest task: Consolidate user-facing pricing core without price changes (2026-08-14)
+- Status: Completed. Consolidated the current user-charge logic so `getGenerationCost` and `getGenerationCostSync` share one internal pricing core while preserving all existing user-facing prices.
+- Affected files: `lib/pricing.ts`, `app/api/pricing/quote/route.ts`, `test/pricing-core.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `resolveSpecialUserCharge` now owns current special user-charge branches for Google video, Seedance 2.5, and Minimax H3.
+  - `resolveModelUserCharge` now owns current PricingConstitution/default-model user-charge branches for image rules, Seedance 2.0 Fast/Mini/Base, generic model pricing, and utility tools.
+  - `getGenerationCost` keeps async DB/default loading and delegates final user charge to the shared core.
+  - `getGenerationCostSync` keeps cache/default behavior and delegates final user charge to the same shared core.
+  - `/api/pricing/quote` still returns the same `credits`/`baseCost` user charge from `getGenerationCost`, and now also separates `userCredits` from `providerEstimatedCost`/`providerCostSource`.
+  - `getGenerationCostQuote` behavior was not changed because audio/avatar still import it; its comment now explicitly marks it as source/provider-cost-style quoting, not the canonical user charge resolver.
+- Verification: `npx.cmd vitest run test/pricing-core.test.ts` passed with 14 parity tests covering Google video, Seedance 2.5, Seedance 2.0 Fast/Mini/Base, Minimax H3, GPT Image 2, generic image 1k/2k/4k, remove-bg, upscale 4k, generic WaveSpeed, and DB-unavailable fallback. `npx.cmd tsc --noEmit --pretty false` passed.
+- Errors discovered: `getGenerationCostQuote` remains semantically different from user charge and is still used by audio/avatar routes; those routes are intentionally left untouched for a separate review.
+- Decisions: Treat `getGenerationCost` behavior as the current user-price authority and consolidate implementation without linking pricing to routing, changing provider-cost logic, or starting generation-engine/jobs work.
+
+#### Latest task: Add Nest sequence and timeline synchronization support in SaadStudio CEP (2026-08-14)
+- Status: Completed. Enabled full timing offset translation and placement of nested sequences inside Premiere Pro timelines for Synchronize, Multi-Cam Auto Switch, and One Click Podcast Edit.
+- Affected files: `adobe/saadstudio-cep/jsx/index.jsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `getResolvedClipInfo` recursively gathers and bubbles up the accumulated clip-to-sequence timing delta (`totalDelta`) for nested levels.
+  - `readPodcastTimelineClip` uses `totalDelta` to shift the resolved media's waveform range, correcting the waveform alignment engine for Nests.
+  - `moveTrackClipsByOffset` has been fixed to loop through all track items, correctly recursing on nests and continuing with adjacent sibling clips.
+  - `prepareVisualOnlyCameraDecisionSegment` flags nested sequence projectItems as nests, bypassing subclip creation.
+  - `applyPodcastCameraDecisionsOverlapAwareVisualOnly` overwrites the Nest sequence projectItem directly and dynamically trims its `inPoint`/`outPoint` on the timeline using the new `findClipAtStartTicks` helper.
+- Verification: Compiled client application and rebuilt the extension via `npm run build:cep` with exit code 0. Generated manual installation package under `adobe/saadstudio-cep/release/extension/app.saadstudio.cep`.
+- Decisions: Retain original Nest sequences on the timeline instead of breaking them into raw media files, preserving the nested structure on the main sequence exactly as requested by the user ("بدون تخريب اي شي").
+
+#### Latest task: Fix routing configuration state reporting (2026-08-14)
+- Status: Completed. Tightened `/admin/routing` state reporting so registry defaults, persisted overrides, and database-unavailable fallback are no longer indistinguishable.
+- Affected files: `lib/routing/routing-config.ts`, `lib/routing/provider-router.ts`, `lib/routing/admin-routing-data.ts`, `app/api/admin/routing/route.ts`, `app/admin/routing/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Routing config reads now return structured state with `data`, `source`, `databaseAvailable`, and optional `error`.
+  - `/api/admin/routing` exposes `databaseAvailable`, `configSource`, and `warning` in addition to routing rows.
+  - `/admin/routing` shows an explicit warning banner when Neon/PlatformConfig reads are unavailable: registry defaults are visible, but saved overrides may not be reflected.
+  - Routing rows expose per-row `configSource` (`default` or `persisted`) and database state.
+  - Diagnostics now separates configured fallbacks from effective fallbacks and shows why disabled/standby providers are ignored.
+  - Routing writes are fail-closed: save/reset/diagnostic writes require a successful database read first and throw instead of writing over an unknown store.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed.
+- Errors discovered: New routing files remain untracked in Git, so `git diff` does not show their contents until staged or tracked.
+- Decisions: Keep fallback execution safe by ignoring ineligible providers, but expose the ignored configured state diagnostically so admins can see what was configured versus what will actually run. Do not start Pricing yet.
+
+#### Latest task: Convert admin routing to control center with active/standby provider policy (2026-08-14)
+- Status: Completed. Converted `/admin/routing` from a read-only routing map into a control center backed by default model routing plus database-stored overrides.
+- Affected files: `lib/provider-registry.ts`, `lib/model-source-map.ts`, `lib/model-routing-registry.ts`, `lib/routing/provider-router.ts`, `lib/routing/routing-config.ts`, `lib/routing/route-validator.ts`, `lib/routing/admin-routing-data.ts`, `app/api/admin/routing/route.ts`, `app/api/admin/routing/[...path]/route.ts`, `app/api/admin/providers/route.ts`, `app/admin/providers/page.tsx`, `app/admin/routing/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Provider policy is now explicit: Google, OpenAI, and WaveSpeed are `active`; BytePlus and KIE are `standby`, disabled, and not eligible for primary or fallback routing.
+  - `/admin/providers` now exposes operational status plus `allowRouting`, `allowFallback`, `futureProvider`, and routing eligibility fields.
+  - `/api/admin/routing` returns effective routing rows using: model registry defaults -> `PlatformConfig` routing overrides -> effective routing config.
+  - `/admin/routing` now has three views: Routing Map, Configuration, and Diagnostics.
+  - The Configuration view can save/reset model overrides and only offers routing/fallback providers that are active and eligible.
+  - Admin routing actions exist at `PUT /api/admin/routing/:modelId`, `POST /api/admin/routing/:modelId/test`, and `POST /api/admin/routing/:modelId/reset`. Catch-all model ids support slash-containing ids.
+  - Route validation rejects standby providers before saving; a direct test confirmed KIE primary routing returns `400`.
+  - OpenAI video routes are no longer labeled as WaveSpeed in `lib/model-source-map.ts`; OpenAI product source metadata now stays OpenAI.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. Local dev server on `http://localhost:3001` returned `200` for `/admin/routing` and `/api/admin/routing`. Provider eligibility check showed Google/OpenAI/WaveSpeed eligible and BytePlus/KIE ineligible. Attempting to save KIE as a primary route returned `400`.
+- Errors discovered: The local Neon database endpoint was unreachable during verification, so routing override persistence could not be tested end-to-end locally. Read paths now fall back to defaults if override/diagnostics reads fail; write paths still require the database by design.
+- Decisions: Use `PlatformConfig` JSON stores (`model_routing_overrides`, `model_routing_diagnostics`) instead of adding a migration in this pass. Keep Generation Engine integration for the later unified engine phase.
+
+#### Latest task: Add admin provider management page (2026-08-14)
+- Status: Completed. Added `/admin/providers` and `/api/admin/providers` as the first Provider Management layer before making `/admin/routing` editable.
+- Affected files: `lib/provider-registry.ts`, `app/api/admin/providers/route.ts`, `app/admin/providers/page.tsx`, `app/admin/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `/admin/providers` displays Provider Name, Online/Offline status, Enabled, API Configured, Health Check, Last Check, Last Error, Models Count, Active Routes, Fallback Usage, Monthly Requests, Estimated Cost, Balance/Credits, modalities, and billing link.
+  - `/api/admin/providers` derives provider rows from the central `lib/provider-registry.ts`, model/route counts from the existing image/video/audio source map, and usage/cost from provider usage records when available.
+  - Provider API secrets are never returned; the page only exposes boolean configuration state and optional env-provided balance/cost values.
+  - `/admin` Advanced Tools now links to "Provider Management".
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with only existing Git global ignore permission and CRLF warnings. Local dev server on `http://localhost:3001` returned `200` for `/admin/providers` and `/api/admin/providers`.
+- Errors discovered: The first provider endpoint draft could return `500` if usage/cost aggregation failed; usage stats are now isolated so provider inventory and routing counts still load.
+- Decisions: Keep `/admin/providers` as the read-only source inventory for this step. Do not add provider toggles or runtime fallback controls until `/admin/routing` becomes the real control center that consumes those settings.
+
+#### Latest task: Add admin model routing dashboard page (2026-08-14)
+- Status: Completed. Added a dedicated `/admin/routing` dashboard page and `/api/admin/routing` endpoint to show the provider/model routing map from the central source metadata.
+- Affected files: `app/admin/routing/page.tsx`, `app/api/admin/routing/route.ts`, `app/admin/page.tsx`, `app/api/models/route.ts`, `lib/model-source-map.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `/admin/routing` displays a unified image/video/audio routing table with modality, runtime source, upstream/source model id, pricing provider, active status, and basic caps.
+  - `/api/admin/routing` returns image/video/audio model rows with source metadata for the dashboard, so the admin page does not stitch together public and admin endpoints.
+  - `/admin` Advanced Tools now links to "Model Routing Map".
+  - Audio rows now receive source metadata from the central `lib/model-source-map.ts` helper.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with only existing Git global ignore permission and CRLF warnings. Local dev server on `http://localhost:3001` returned `200` for `/admin/routing` and `/api/admin/routing`.
+- Errors discovered: Audio model rows previously lacked the central source metadata that image/video rows had.
+- Decisions: Add a read-only dashboard page and admin-only routing API first, instead of changing generation engine routing or database schema in this pass.
+
+#### Latest task: Add central model source map for pages and admin (2026-08-14)
+- Status: Completed. Added a small central source metadata helper so public model APIs and the admin model manager expose the same runtime source and source model id for image/video rows.
+- Affected files: `lib/model-source-map.ts`, `app/api/models/route.ts`, `app/api/admin/models/route.ts`, `app/admin/models/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `/api/models` now returns `runtimeSource`, `runtimeSourceLabel`, `sourceModelId`, and `pricingProvider` for active image/video models.
+  - `/api/admin/models` returns the same metadata and uses the central map when syncing `PricingConstitution`, so pricing stores only its supported provider shape (`kie` or `wavespeed`) while admin can still see the real runtime source.
+  - `/admin/models` now displays source/provider metadata for image and video rows, making the admin dashboard act like the hub in the user's reference diagram.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with only existing Git global ignore permission and CRLF warnings.
+- Errors discovered: Source/provider inference was spread across admin sync and route/provider helpers, which let pricing provider labels and runtime provider labels get mixed.
+- Decisions: Keep this as a lightweight metadata layer instead of changing generation routing or the pricing table schema in this pass; `pricingProvider` remains constrained to the existing pricing constitution values, while `runtimeSource` reports the real serving source.
+
+#### Latest task: Align `/image` tool price display with server pricing (2026-08-14)
+- Status: Completed. Replaced hard-coded `/image` tool button prices with shared client pricing helpers that mirror the server-side default pricing rules.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `lib/image-models.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Create, Enhance, Relight, and Inpaint now display/preflight with the same non-utility image rule used by `/api/generate/image`: 2 credits per output unless 4K quality applies.
+  - Upscale now displays/preflights from the utility pricing model and the same image scale-to-resolution behavior used by `/api/generate/upscale` (`2x`/`4x` -> `4k` charge tier).
+  - Face Swap now displays/preflights from the `tool_faceswap` pricing model instead of the old fixed `4` label.
+  - Button labels format decimal credit values cleanly, e.g. `0.8 cr` or `3.6 cr`.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with only existing Git global ignore permission and CRLF warnings.
+- Errors discovered: `/image` previously mixed real model/reference caps with stale hard-coded tool prices (`Enhance 2`, `Relight/Inpaint 3`, `Upscale 2`, `Face Swap 4`), so displayed prices and preflight estimates could differ from actual server charges.
+- Decisions: Keep image generation model pricing in `getImageCreditCost`, add lightweight utility-tool helpers in `lib/image-models.ts`, and avoid importing server-only `lib/pricing.ts` into the client page.
+
+#### Latest task: Remove selected `/image` sidebar cards (2026-08-14)
+- Status: Completed. Removed the "New from Saad Studio / GPT Image 2" promo card and the "Character Reference" accordion card from the `/image` right settings panel.
+- Affected files: `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior: The model selector still renders normally, image generation logic remains unchanged, and existing character selection state can still be consumed by URL/modal/composer paths; only the requested visible cards were removed from the side panel.
+- Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with only existing Git global ignore permission and CRLF warnings.
+- Errors discovered: None.
+- Decisions: Removed the JSX blocks directly instead of hiding them with CSS so the cards do not remain in the rendered UI/accessibility tree.
+
+#### Latest task: Inspect MachiCut-2.1.48.exe plugin structure and functionality (2026-08-14)
+- Status: Completed.
+- Affected files: None (investigatory task).
+- Behavior: Extracted and analyzed the NSIS installer package, identifying Adobe CEP panel design with Node.js integration, local FFmpeg binary invocation (`ffmpeg.exe`), and Modal-hosted Whisper API (`https://abdessamedbouazza--autoedit-whisper-transcriber-transcribe.modal.run`) for speech-to-text.
+- Verification: Successful extraction using 7z.exe, and inspection of client-side JavaScript (`main.js`, `silenceCutter.js`, `ffmpegLocal.js`) and host-side ExtendScript (`index.jsx`).
+
 #### Latest task: Commit and push current image/pricing updates (2026-08-14)
 - Status: In progress at commit time per explicit user request.
 - Affected files: Git staging/commit/push task for the current working tree containing image provider routing, image reference ordering/caps, pricing margin updates, and project documentation.

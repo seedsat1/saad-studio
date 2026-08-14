@@ -423,6 +423,14 @@ export interface GenerationCostQuote {
   qualityMultiplier: number;
 }
 
+export interface LegacyUserChargeQuote {
+  modelRef: string;
+  userCredits: number;
+  sourceCredits: number | null;
+  marginPercent: number;
+  source: "source-margin" | "user-charge-fallback" | "avatar-pro-fallback";
+}
+
 function resolveAudioMarginPercent(): number {
   const raw = process.env.CREDIT_MARGIN_PERCENT ?? process.env.AUDIO_CREDIT_MARGIN_PERCENT;
   const parsed = Number(raw);
@@ -604,23 +612,12 @@ function qualityMultiplierForModel(modelRef: string, quality: string | null | un
   return QUALITY_MULTIPLIER[q] ?? 1.0;
 }
 
-// â”€â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-/**
- * Returns the credits to charge a user for one generation task.
- *
- * @param modelRef   Model ID as used by the route (route alias or constitution ID).
- * @param durationSec  Duration in seconds; ignored for flat-billing models.
- * @param numUnits   Number of units (e.g. images); multiplies flat-billing cost.
- * @param quality    Optional resolution/mode string (e.g. "pro", "1080p", "std").
- * @returns  Credits to charge (0 = model not found or inactive â†’ caller should reject).
- */
-export async function getGenerationCost(
+function resolveSpecialUserCharge(
   modelRef: string,
-  durationSec = 5,
-  numUnits = 1,
+  durationSec: number,
+  numUnits: number,
   quality?: string | null,
-): Promise<number> {
+): number | null {
   const googleVideoCredits = getGoogleVideoCredits(modelRef, durationSec, numUnits, quality);
   if (googleVideoCredits !== null) return googleVideoCredits;
 
@@ -630,7 +627,16 @@ export async function getGenerationCost(
   const minimaxH3Credits = getMinimaxH3DefaultCredits(modelRef, durationSec, numUnits);
   if (minimaxH3Credits !== null) return minimaxH3Credits;
 
-  const models = await loadModels();
+  return null;
+}
+
+function resolveModelUserCharge(
+  modelRef: string,
+  durationSec: number,
+  numUnits: number,
+  quality: string | null | undefined,
+  models: PricingModel[],
+): number {
   const constitutionId = resolveConstitutionId(modelRef, models);
   const model = models.find((m) => m.id === constitutionId && m.isActive);
   if (!model) return 0;
@@ -682,9 +688,36 @@ export async function getGenerationCost(
   return parseFloat((perUnit * numUnits * qMul).toFixed(2));
 }
 
+// â”€â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
 /**
- * Dynamic quote from source cost + margin.
- * Used when you want transparent "source + margin = charged" pricing.
+ * Returns the credits to charge a user for one generation task.
+ *
+ * @param modelRef   Model ID as used by the route (route alias or constitution ID).
+ * @param durationSec  Duration in seconds; ignored for flat-billing models.
+ * @param numUnits   Number of units (e.g. images); multiplies flat-billing cost.
+ * @param quality    Optional resolution/mode string (e.g. "pro", "1080p", "std").
+ * @returns  Credits to charge (0 = model not found or inactive â†’ caller should reject).
+ */
+export async function getGenerationCost(
+  modelRef: string,
+  durationSec = 5,
+  numUnits = 1,
+  quality?: string | null,
+): Promise<number> {
+  const specialCharge = resolveSpecialUserCharge(modelRef, durationSec, numUnits, quality);
+  if (specialCharge !== null) return specialCharge;
+
+  const models = await loadModels();
+  return resolveModelUserCharge(modelRef, durationSec, numUnits, quality, models);
+}
+
+/**
+ * Source/provider-cost-style quote from source cost + margin.
+ *
+ * Important: this is not the canonical user charge resolver. User-facing
+ * pricing should use getGenerationCost()/getGenerationCostSync(), which
+ * preserve the current subscriber charge rules and special cases.
  */
 export async function getGenerationCostQuote(
   modelRef: string,
@@ -735,6 +768,53 @@ export async function getGenerationCostQuote(
 }
 
 /**
+ * Preserves the historical user charge used by audio/avatar routes while moving
+ * the deduction decision into the central pricing core.
+ */
+export async function getLegacyAudioAvatarUserCharge(
+  modelRef: string,
+  durationSec = 5,
+  numUnits = 1,
+  quality?: string | null,
+  options?: { fallbackUserCredits?: number; avatarProFallbackBaseCredits?: number },
+): Promise<LegacyUserChargeQuote | null> {
+  const quote = await getGenerationCostQuote(modelRef, durationSec, numUnits, quality);
+  if (quote && Number.isFinite(quote.finalCredits) && quote.finalCredits > 0) {
+    return {
+      modelRef,
+      userCredits: quote.finalCredits,
+      sourceCredits: quote.sourceCredits,
+      marginPercent: quote.marginPercent,
+      source: "source-margin",
+    };
+  }
+
+  if (Number.isFinite(options?.fallbackUserCredits) && Number(options?.fallbackUserCredits) > 0) {
+    return {
+      modelRef,
+      userCredits: Math.ceil(Number(options?.fallbackUserCredits)),
+      sourceCredits: Number(options?.fallbackUserCredits),
+      marginPercent: 0,
+      source: "user-charge-fallback",
+    };
+  }
+
+  if (Number.isFinite(options?.avatarProFallbackBaseCredits) && Number(options?.avatarProFallbackBaseCredits) > 0) {
+    const legacyBaseCredits = Number(options?.avatarProFallbackBaseCredits);
+    const marginPercent = 40;
+    return {
+      modelRef,
+      userCredits: Math.max(1, Math.ceil(legacyBaseCredits * (1 + marginPercent / 100))),
+      sourceCredits: legacyBaseCredits,
+      marginPercent,
+      source: "avatar-pro-fallback",
+    };
+  }
+
+  return null;
+}
+
+/**
  * Synchronous version using the current cache (or DEFAULT_MODELS).
  * Safe to call without await; uses whatever is already in memory.
  */
@@ -744,65 +824,11 @@ export function getGenerationCostSync(
   numUnits = 1,
   quality?: string | null,
 ): number {
-  const googleVideoCredits = getGoogleVideoCredits(modelRef, durationSec, numUnits, quality);
-  if (googleVideoCredits !== null) return googleVideoCredits;
-
-  const seedance25Credits = getSeedance25DefaultCredits(modelRef, durationSec, numUnits, quality);
-  if (seedance25Credits !== null) return seedance25Credits;
-
-  const minimaxH3Credits = getMinimaxH3DefaultCredits(modelRef, durationSec, numUnits);
-  if (minimaxH3Credits !== null) return minimaxH3Credits;
+  const specialCharge = resolveSpecialUserCharge(modelRef, durationSec, numUnits, quality);
+  if (specialCharge !== null) return specialCharge;
 
   const models = _cachedModels ?? DEFAULT_MODELS;
-  const constitutionId = resolveConstitutionId(modelRef, models);
-  const model = models.find((m) => m.id === constitutionId && m.isActive);
-  if (!model) return 0;
-
-  // Custom pricing rule: All image generation models cost 2 credits for 1k/2k and 4 credits for 4k
-  const isUtilityImageTool = ["tool_upscale", "tool_rmbg", "tool_faceswap", "tool_instant_character"].includes(model.id);
-  if (model.type === "image" && !isUtilityImageTool) {
-    const q = quality?.trim().toLowerCase() ?? "1k";
-    const baseRate = q === "4k" ? 4.0 : 2.0;
-    return baseRate * numUnits;
-  }
-
-  if (constitutionId === "minimax_h3") {
-    return parseFloat((MINIMAX_H3_768P_CREDITS_PER_SECOND * durationSec * numUnits).toFixed(2));
-  }
-
-  if (constitutionId === "seedance2mini") {
-    const q = quality?.trim().toLowerCase() ?? "720p";
-    const perSec15 = ({
-      "480p": 32 / 15,
-      "720p": 64 / 15,
-      "1080p": 161 / 15,
-      "4k": 321 / 15,
-    } as Record<string, number>)[q] ?? 64 / 15;
-    return parseFloat((perSec15 * durationSec * numUnits).toFixed(2));
-  }
-
-  if (constitutionId === "seedance2f") {
-    const q = quality?.trim().toLowerCase() ?? "720p";
-    const sourceUsdPer15s = q === "1080p"
-      ? SEEDANCE_20_TURBO_USD_PER_15S["1080p"]
-      : SEEDANCE_20_TURBO_USD_PER_15S["720p"];
-    return parseFloat(((sourceUsdPer15s / 15) * SEEDANCE_20_TURBO_MARGIN_MULTIPLIER * SEEDANCE_20_TURBO_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
-  }
-
-  if (constitutionId === "seedance2") {
-    const q = quality?.trim().toLowerCase() ?? "720p";
-    const perSec15 = ({
-      "480p": 58 / 15,
-      "720p": 116 / 15,
-      "1080p": 290 / 15,
-      "4k": 580 / 15,
-    } as Record<string, number>)[q] ?? 116 / 15;
-    return parseFloat((perSec15 * durationSec * numUnits).toFixed(2));
-  }
-
-  const perUnit = calcUserCredits(model, durationSec);
-  const qMul = qualityMultiplierForModel(modelRef, quality);
-  return parseFloat((perUnit * numUnits * qMul).toFixed(2));
+  return resolveModelUserCharge(modelRef, durationSec, numUnits, quality, models);
 }
 
 /**
@@ -813,7 +839,10 @@ export function estimateProviderCostSync(
   modelRef: string,
   durationSec = 5,
   quality?: string | null,
+  numUnits = 1,
 ): { usd: number | null; source: "actual" | "estimated" | "unknown" } {
+  const units = Math.max(1, Math.floor(Number.isFinite(numUnits) ? numUnits : 1));
+  const total = (usd: number): number => parseFloat((usd * units).toFixed(4));
   const modelLower = (modelRef || "").toLowerCase();
 
   // 1. Reap/ClipCraft costing
@@ -829,22 +858,22 @@ export function estimateProviderCostSync(
       ratePerMin = 0.15;
     }
     const durationMin = durationSec / 60;
-    return { usd: parseFloat((durationMin * ratePerMin).toFixed(4)), source: "estimated" };
+    return { usd: total(parseFloat((durationMin * ratePerMin).toFixed(4))), source: "estimated" };
   }
 
   const googleVideoUsd = getGoogleVideoProviderUsd(modelRef, durationSec, quality);
   if (googleVideoUsd !== null) {
-    return { usd: googleVideoUsd, source: "actual" };
+    return { usd: total(googleVideoUsd), source: "actual" };
   }
 
   const seedance25Usd = getSeedance25ProviderUsd(modelRef, durationSec, quality);
   if (seedance25Usd !== null) {
-    return { usd: seedance25Usd, source: "actual" };
+    return { usd: total(seedance25Usd), source: "actual" };
   }
 
   const minimaxH3Usd = getMinimaxH3ProviderUsd(modelRef, durationSec);
   if (minimaxH3Usd !== null) {
-    return { usd: minimaxH3Usd, source: "actual" };
+    return { usd: total(minimaxH3Usd), source: "actual" };
   }
 
   // 2. BytePlus/Dreamina/Seedance costing
@@ -867,7 +896,7 @@ export function estimateProviderCostSync(
     const isMini = modelLower.includes("mini");
     const ratePerToken = isMini ? 0.0000021 : 0.0000043;
     const bpEstimatedCost = bpTokens * ratePerToken;
-    return { usd: bpEstimatedCost, source: "estimated" };
+    return { usd: total(bpEstimatedCost), source: "estimated" };
   }
 
   const models = _cachedModels ?? DEFAULT_MODELS;
@@ -876,23 +905,23 @@ export function estimateProviderCostSync(
 
   if (!model) {
     if (modelRef.includes("assist") || modelRef.includes("chat") || modelRef.includes("gemini-3-pro") || modelRef.includes("gpt")) {
-      return { usd: 0.002, source: "estimated" };
+      return { usd: total(0.002), source: "estimated" };
     }
     if (modelRef.includes("transition")) {
-      return { usd: 0.02, source: "estimated" };
+      return { usd: total(0.02), source: "estimated" };
     }
     if (modelRef.includes("image") || modelRef.includes("banana") || modelRef.includes("rmbg") || modelRef.includes("upscale") || modelRef.includes("face-swap")) {
-      return { usd: durationSec * 0.01, source: "estimated" };
+      return { usd: total(durationSec * 0.01), source: "estimated" };
     }
     if (modelRef.includes("elevenlabs") || modelRef.includes("audio") || modelRef.includes("voice") || modelRef.includes("tts")) {
-      return { usd: durationSec * 0.01, source: "estimated" };
+      return { usd: total(durationSec * 0.01), source: "estimated" };
     }
     return { usd: null, source: "unknown" };
   }
 
   if (model.provider === "wavespeed") {
     const usd = model.billing === "per_sec" ? durationSec * model.waveUsd : model.waveUsd;
-    return { usd, source: "estimated" };
+    return { usd: total(usd), source: "estimated" };
   }
 
   // KIE provider
@@ -900,5 +929,5 @@ export function estimateProviderCostSync(
   const baseCredits = model.billing === "per_sec" ? durationSec * model.kieCredits : model.kieCredits;
   const kieCredits = baseCredits * multiplier;
   const usd = kieCredits * 0.005;
-  return { usd, source: "estimated" };
+  return { usd: total(usd), source: "estimated" };
 }

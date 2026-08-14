@@ -5,7 +5,7 @@ import sharp from "sharp";
 export const maxDuration = 90;
 export const dynamic = "force-dynamic";
 import { getGenerationCost, estimateProviderCostSync } from "@/lib/pricing";
-import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
+import { getVideoCreditsByRouteAsync } from "@/lib/credit-pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
@@ -2388,7 +2388,7 @@ export async function POST(req: Request) {
       (typeof payload.quality === "string" ? payload.quality : null);
     const soundEnabled = payload.sound === true || payload.generate_audio === true;
     const baseCost = modelRoute.startsWith("bytedance/seedance-2.5")
-      ? getVideoCreditsByRoute(modelRoute, payload)
+      ? await getVideoCreditsByRouteAsync(modelRoute, payload)
       : await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost).catch(() => 0);
     const creditsToCharge = baseCost;
     if (creditsToCharge <= 0) {

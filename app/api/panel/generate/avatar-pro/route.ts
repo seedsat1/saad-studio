@@ -9,7 +9,7 @@ import {
   spendCredits,
 } from "@/lib/credit-ledger";
 import { getVideoCreditsByModelId } from "@/lib/credit-pricing";
-import { getGenerationCostQuote } from "@/lib/pricing";
+import { getLegacyAudioAvatarUserCharge } from "@/lib/pricing";
 import { isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
@@ -25,7 +25,6 @@ const DEFAULT_AVATAR_MODEL_ID: AvatarModelId = "kling/ai-avatar-pro";
 const DEFAULT_AVATAR_PROMPT = "Natural lip sync performance, accurate mouth movement, stable framing, preserve facial identity.";
 const AVATAR_QUOTE_DURATION_SEC = 5;
 const AVATAR_QUOTE_RESOLUTION = "1080p";
-const AVATAR_MARGIN_PERCENT = 40;
 
 type KieApiJson = {
   code?: number;
@@ -132,21 +131,22 @@ async function pollKieTask(apiKey: string, taskId: string, maxAttempts = 80, int
 }
 
 async function getAvatarCreditsToCharge(modelId: AvatarModelId): Promise<number> {
-  const quote = await getGenerationCostQuote(
+  const legacyBase = getVideoCreditsByModelId(modelId, {
+    duration: AVATAR_QUOTE_DURATION_SEC,
+    resolution: AVATAR_QUOTE_RESOLUTION,
+  }) || 12;
+  const quote = await getLegacyAudioAvatarUserCharge(
     modelId,
     AVATAR_QUOTE_DURATION_SEC,
     1,
     AVATAR_QUOTE_RESOLUTION,
+    { avatarProFallbackBaseCredits: legacyBase },
   );
-  if (quote && Number.isFinite(quote.sourceCredits) && quote.sourceCredits > 0) {
-    return Math.max(1, Math.ceil(quote.sourceCredits * (1 + AVATAR_MARGIN_PERCENT / 100)));
+  if (quote && Number.isFinite(quote.userCredits) && quote.userCredits > 0) {
+    return quote.userCredits;
   }
 
-  const legacy = getVideoCreditsByModelId(modelId, {
-    duration: AVATAR_QUOTE_DURATION_SEC,
-    resolution: AVATAR_QUOTE_RESOLUTION,
-  }) || 12;
-  return Math.max(1, Math.ceil(legacy * (1 + AVATAR_MARGIN_PERCENT / 100)));
+  return 17;
 }
 
 export async function POST(req: NextRequest) {

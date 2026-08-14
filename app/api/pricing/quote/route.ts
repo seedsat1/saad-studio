@@ -1,6 +1,6 @@
 ﻿import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getGenerationCost } from "@/lib/pricing";
+import { estimateProviderCostSync, getGenerationCost } from "@/lib/pricing";
 import { isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 
 export const runtime = "nodejs";
@@ -52,15 +52,35 @@ export async function POST(req: Request) {
     const soundEnabled = body?.sound === true || body?.generate_audio === true;
 
     const baseCost = await getGenerationCost(modelRoute, duration, numUnits, quality).catch(() => 0);
+    const perUnitProviderCost = estimateProviderCostSync(modelRoute, duration, quality, 1);
+    const totalProviderCost = estimateProviderCostSync(modelRoute, duration, quality, numUnits);
     if (!baseCost || baseCost <= 0) {
-      return NextResponse.json({ credits: 0, baseCost: 0, modelRoute, duration, quality, sound: soundEnabled });
+      return NextResponse.json({
+        credits: 0,
+        userCredits: 0,
+        baseCost: 0,
+        providerEstimatedCost: totalProviderCost.usd,
+        perUnitProviderEstimatedCost: perUnitProviderCost.usd,
+        totalProviderEstimatedCost: totalProviderCost.usd,
+        providerCostSource: totalProviderCost.source,
+        modelRoute,
+        duration,
+        quality,
+        sound: soundEnabled,
+        numUnits,
+      });
     }
 
     const credits = Math.max(1, Math.ceil(baseCost));
 
     return NextResponse.json({
       credits,
+      userCredits: credits,
       baseCost,
+      providerEstimatedCost: totalProviderCost.usd,
+      perUnitProviderEstimatedCost: perUnitProviderCost.usd,
+      totalProviderEstimatedCost: totalProviderCost.usd,
+      providerCostSource: totalProviderCost.source,
       modelRoute,
       duration,
       quality,

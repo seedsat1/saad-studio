@@ -49,6 +49,7 @@ import {
   Mail,
   FileText,
   Calendar,
+  Route,
 } from "lucide-react";
 import { getFallbackUrls, SITE_CREATION_DATE } from "@/lib/utils";
 
@@ -1122,7 +1123,9 @@ export default function AdminDashboard() {
           </p>
           {[
             { label: "Subscriber Usage Analytics", href: "/admin/subscriber-analytics", icon: TrendingUp },
+            { label: "Provider Management", href: "/admin/providers", icon: Cpu },
             { label: "Provider Cost Tracking", href: "/admin/provider-costs", icon: Cpu },
+            { label: "Model Routing Map", href: "/admin/routing", icon: Route },
             { label: "Pricing Constitution", href: "/admin/pricing", icon: CreditCard },
             { label: "AI Models Registry", href: "/admin/models", icon: Layers },
             { label: "Voice Samples Studio", href: "/admin/voice-samples", icon: Music },

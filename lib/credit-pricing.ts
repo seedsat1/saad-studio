@@ -1,7 +1,7 @@
 import { IMAGE_MODELS, getImageCreditCost } from "@/lib/image-models";
 import { VIDEO_MODELS } from "@/lib/video-models";
 import { VIDEO_MODEL_REGISTRY, isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
-import { getGenerationCostSync } from "@/lib/pricing";
+import { getGenerationCost, getGenerationCostSync } from "@/lib/pricing";
 
 type VideoPayload = Record<string, unknown>;
 type ImagePricingOptions = {
@@ -323,6 +323,21 @@ export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload
     return shouldApplySound(modelId) ? applySoundMultiplier(dbCost, payload) : dbCost;
   }
 
+  return getVideoCreditsByModelIdFallback(modelId, payload);
+}
+
+export async function getVideoCreditsByModelIdAsync(modelId: string, payload?: VideoPayload): Promise<number> {
+  const duration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const dbCost = await getGenerationCost(modelId, duration, 1, quality).catch(() => 0);
+  if (dbCost > 0) {
+    return shouldApplySound(modelId) ? applySoundMultiplier(dbCost, payload) : dbCost;
+  }
+
+  return getVideoCreditsByModelIdFallback(modelId, payload);
+}
+
+function getVideoCreditsByModelIdFallback(modelId: string, payload?: VideoPayload): number {
   if (modelId === "kling-v3-turbo") {
     const duration = readDuration(payload, 5);
     return applySoundMultiplier(parseFloat((duration * (5 / 3)).toFixed(2)), payload);
@@ -368,6 +383,21 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
     return shouldApplySound(modelRoute) ? applySoundMultiplier(dbCost, payload) : dbCost;
   }
 
+  return getVideoCreditsByRouteFallback(modelRoute, payload);
+}
+
+export async function getVideoCreditsByRouteAsync(modelRoute: string, payload?: VideoPayload): Promise<number> {
+  const duration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const dbCost = await getGenerationCost(modelRoute, duration, 1, quality).catch(() => 0);
+  if (dbCost > 0) {
+    return shouldApplySound(modelRoute) ? applySoundMultiplier(dbCost, payload) : dbCost;
+  }
+
+  return getVideoCreditsByRouteFallback(modelRoute, payload);
+}
+
+function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPayload): number {
   if (modelRoute === "minimax/h3/reference-to-video") {
     return getMinimaxH3Credits(payload);
   }
@@ -467,6 +497,18 @@ export function getMusicCredits(modelId: string, duration?: number): number {
   const dbCost = getGenerationCostSync(modelId, safeDuration, 1);
   if (dbCost > 0) return dbCost;
 
+  return getMusicCreditsFallback(modelId, safeDuration);
+}
+
+export async function getMusicCreditsAsync(modelId: string, duration?: number): Promise<number> {
+  const safeDuration = duration && duration > 0 ? duration : 30;
+  const dbCost = await getGenerationCost(modelId, safeDuration, 1).catch(() => 0);
+  if (dbCost > 0) return dbCost;
+
+  return getMusicCreditsFallback(modelId, safeDuration);
+}
+
+function getMusicCreditsFallback(modelId: string, safeDuration: number): number {
   const base = MUSIC_MODEL_BASE_COST.get(modelId) ?? 10;
   const durationMultiplier = Math.max(1, Math.ceil(safeDuration / 30));
   return base * durationMultiplier;

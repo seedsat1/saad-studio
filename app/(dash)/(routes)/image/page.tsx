@@ -31,7 +31,14 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { IMAGE_MODELS, getImageCreditCost, type ImageModel } from "@/lib/image-models";
+import {
+  IMAGE_MODELS,
+  formatCreditAmount,
+  getImageCreditCost,
+  getImageUpscaleTargetResolution,
+  getImageUtilityCreditCost,
+  type ImageModel,
+} from "@/lib/image-models";
 import { DEFAULT_GOOGLE_IMAGE_MODEL_ID, getDefaultImageModel } from "@/lib/google-image-model-specs";
 import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
@@ -1896,19 +1903,28 @@ export default function ImageWorkspacePage() {
   }, [annualUnlimitedEnabled, canUseAnnualUnlimitedCreate]);
 
   const composer = useMemo(() => {
+    const creditLabel = (credits: number) => `${formatCreditAmount(credits)} ${t("cr")}`;
     if (activeTool === "create") {
       if (isAnnualUnlimitedCreate) {
         return { placeholder: t("Describe what you want to generate..."), button: t("Generate Image - Unlimited"), promptEnabled: true };
       }
       const credits = getImageCreditCost(selectedModel, numImages, selectedQuality);
-      return { placeholder: t("Describe what you want to generate..."), button: t("Generate Image") + " - " + credits + " " + t("cr"), promptEnabled: true };
+      return { placeholder: t("Describe what you want to generate..."), button: t("Generate Image") + " - " + creditLabel(credits), promptEnabled: true };
     }
-    if (activeTool === "enhance") return { placeholder: t("Enhancement instructions (optional) - e.g. \"cinematic, 8K, sharp\"..."), button: t("Enhance Photo") + " - 2 " + t("cr"), promptEnabled: true };
-    if (activeTool === "relight") return { placeholder: t("Describe the lighting you want..."), button: t("Relight Image") + " - " + (3 * relightVariations), promptEnabled: true };
-    if (activeTool === "inpaint") return { placeholder: t("Describe what should replace the painted area..."), button: t("Inpaint") + " - " + (3 * inpaintVariations), promptEnabled: true };
-    if (activeTool === "upscale") return { placeholder: t("Upload media to upscale"), button: t("Upscale Image") + " - 2", promptEnabled: false };
-    return { placeholder: t("Upload source face and target above"), button: t("Swap Face") + " - 4", promptEnabled: false };
-  }, [activeTool, inpaintVariations, isAnnualUnlimitedCreate, numImages, relightVariations, selectedModel, selectedQuality]);
+    if (activeTool === "enhance") {
+      const model = enhanceModels.find((entry) => entry.id === enhanceModelId) ?? enhanceModels[0];
+      const credits = model ? getImageCreditCost(model, 1) : 0;
+      return { placeholder: t("Enhancement instructions (optional) - e.g. \"cinematic, 8K, sharp\"..."), button: t("Enhance Photo") + " - " + creditLabel(credits), promptEnabled: true };
+    }
+    if (activeTool === "relight") return { placeholder: t("Describe the lighting you want..."), button: t("Relight Image") + " - " + creditLabel(getImageCreditCost(EDIT_MODELS[0], relightVariations)), promptEnabled: true };
+    if (activeTool === "inpaint") {
+      const model = editModels.find((entry) => entry.id === inpaintModelId) ?? editModels[0];
+      const credits = model ? getImageCreditCost(model, inpaintVariations) : 0;
+      return { placeholder: t("Describe what should replace the painted area..."), button: t("Inpaint") + " - " + creditLabel(credits), promptEnabled: true };
+    }
+    if (activeTool === "upscale") return { placeholder: t("Upload media to upscale"), button: t("Upscale Image") + " - " + creditLabel(getImageUtilityCreditCost("upscale", getImageUpscaleTargetResolution(upscaleScale))), promptEnabled: false };
+    return { placeholder: t("Upload source face and target above"), button: t("Swap Face") + " - " + creditLabel(getImageUtilityCreditCost("faceSwap")), promptEnabled: false };
+  }, [activeTool, editModels, enhanceModelId, enhanceModels, inpaintModelId, inpaintVariations, isAnnualUnlimitedCreate, numImages, relightVariations, selectedModel, selectedQuality, t, upscaleScale]);
 
   useEffect(() => {
     setNumImages(Math.min(Math.max(1, numImages), selectedModel.maxImages));
@@ -1930,12 +1946,18 @@ export default function ImageWorkspacePage() {
       if (isAnnualUnlimitedCreate) return 0;
       return getImageCreditCost(selectedModel, numImages, selectedQuality);
     }
-    if (activeTool === "enhance") return enhanceModels.find((m) => m.id === enhanceModelId)?.creditCost ?? 2;
-    if (activeTool === "relight") return 3 * relightVariations;
-    if (activeTool === "inpaint") return 3 * inpaintVariations;
-    if (activeTool === "upscale") return 2;
-    return 4;
-  }, [activeTool, enhanceModelId, inpaintVariations, isAnnualUnlimitedCreate, numImages, relightVariations, selectedModel, selectedQuality]);
+    if (activeTool === "enhance") {
+      const model = enhanceModels.find((entry) => entry.id === enhanceModelId) ?? enhanceModels[0];
+      return model ? getImageCreditCost(model, 1) : 0;
+    }
+    if (activeTool === "relight") return getImageCreditCost(EDIT_MODELS[0], relightVariations);
+    if (activeTool === "inpaint") {
+      const model = editModels.find((entry) => entry.id === inpaintModelId) ?? editModels[0];
+      return model ? getImageCreditCost(model, inpaintVariations) : 0;
+    }
+    if (activeTool === "upscale") return getImageUtilityCreditCost("upscale", getImageUpscaleTargetResolution(upscaleScale));
+    return getImageUtilityCreditCost("faceSwap");
+  }, [activeTool, editModels, enhanceModelId, enhanceModels, inpaintModelId, inpaintVariations, isAnnualUnlimitedCreate, numImages, relightVariations, selectedModel, selectedQuality, upscaleScale]);
 
   const addResultItems = useCallback((urls: string[], tool: ToolId, model: string, p: string, aspect: string, records?: Partial<ResultItem>[]) => {
     const newItems = urls.map((url, index) => ({
@@ -2367,69 +2389,7 @@ export default function ImageWorkspacePage() {
         </SettingsAccordion>
 
         <SettingsAccordion label="Model" summary={selectedModel.label} defaultOpen>
-          <div className="mb-2 rounded-2xl border border-white/10 bg-gradient-to-r from-emerald-500/[0.10] via-pink-500/[0.08] to-sky-500/[0.10] px-3 py-2.5">
-            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-pink-200/90">
-              <Sparkles className="h-3.5 w-3.5" />
-              {t("New from Saad Studio")}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {visibleImageModels.filter((m) => m.id === "gpt-image-2-text-to-image").map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setSelectedModel(m)}
-                  className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 transition hover:bg-emerald-500/25"
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
           <ModelDropdown selected={selectedModel} onSelect={setSelectedModel} models={visibleImageModels} />
-        </SettingsAccordion>
-
-        <SettingsAccordion label="Character Reference" summary={selectedCharacter?.name || "None"} defaultOpen={Boolean(selectedCharacter)}>
-          <div className="space-y-3">
-            <select
-              aria-label={t("Character reference selection")}
-              value={selectedCharacterId}
-              onChange={(e) => setSelectedCharacterId(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500"
-            >
-              <option value="">{t("No saved character")}</option>
-              {characters.map((character) => (
-                <option key={character.id} value={character.id}>{character.name}</option>
-              ))}
-            </select>
-
-            {selectedCharacter ? (
-              <div className="rounded-xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-3">
-                <div className="flex gap-3">
-                  {selectedCharacter.coverUrl ? (
-                    <img src={selectedCharacter.coverUrl} alt={selectedCharacter.name} className="h-14 w-14 rounded-lg object-cover" />
-                  ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-white/10 text-zinc-500">
-                      <ScanFace className="h-5 w-5" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-zinc-100">{selectedCharacter.name}</p>
-                    <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{selectedCharacter.description || "Identity reference set"}</p>
-                    <p className="mt-1 text-[11px] text-fuchsia-200">{selectedCharacter.referenceUrls.length} reference image(s)</p>
-                  </div>
-                </div>
-                {selectedModel.maxRefImages <= 0 ? (
-                  <p className="mt-3 rounded-lg border border-amber-400/20 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200">
-                    {t("This model does not accept reference images. Choose an image-to-image model to use this character.")}
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <a href="/character" className="flex items-center justify-center rounded-xl border border-dashed border-white/15 px-3 py-3 text-xs font-semibold text-zinc-400 hover:border-fuchsia-400/50 hover:text-fuchsia-200">
-                {t("Create a reusable character")}
-              </a>
-            )}
-          </div>
         </SettingsAccordion>
 
         {selectedModel.aspectRatios.length ? (

@@ -7,7 +7,7 @@ import {
   setGenerationMediaUrl,
   spendCredits,
 } from "@/lib/credit-ledger";
-import { getVideoCreditsByModelId } from "@/lib/credit-pricing";
+import { getVideoCreditsByModelIdAsync } from "@/lib/credit-pricing";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { getDynamicVideoModels } from "@/lib/dynamic-model-loader";
 import { isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
@@ -374,7 +374,7 @@ export async function POST(req: NextRequest) {
     let creditsToCharge: number;
     try {
       const normalizedGoogleForCost = isGoogleVideoRoute(modelId) ? normalizeGoogleVideoOptions(modelId, { duration, resolution, aspectRatio, referenceImageCount: safeReferenceImageUrls.length, hasVideoInput: Boolean(videoUrl || safeVideoUrls.length), hasStartImage: Boolean(firstFrameUrl || imageUrl || safeImageUrls.length), hasEndImage: Boolean(lastFrameUrl) }) : null;
-      creditsToCharge = getVideoCreditsByModelId(kieModelId, {
+      creditsToCharge = await getVideoCreditsByModelIdAsync(kieModelId, {
         duration: normalizedGoogleForCost?.duration ?? duration,
         resolution: normalizedGoogleForCost?.resolution ?? resolution,
         generate_audio: enableAudio === true,
