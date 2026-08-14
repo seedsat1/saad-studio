@@ -28,10 +28,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Forward the incoming request's cookie so protected same-origin media
+    // (e.g. /api/media/...) can be fetched with the user's auth session.
+    const forwardedCookie = req.headers.get("cookie") || "";
+
     // Format chat history for Google Gemini API
     const contents = [];
     for (const m of messages) {
-      const parts: any[] = [{ text: m.text }];
+      const parts: any[] = [];
+      let loadedRefs = 0;
+      let failedRefs = 0;
 
       // Download and attach reference images if present
       const urlsToFetch: string[] = [];
@@ -49,28 +55,51 @@ export async function POST(req: NextRequest) {
       for (const url of urlsToFetch) {
         try {
           let targetUrl = url;
-          if (targetUrl.startsWith("/")) {
-            const origin = req.nextUrl.origin;
-            targetUrl = `${origin}${targetUrl}`;
+          const isSameOrigin = targetUrl.startsWith("/");
+          if (isSameOrigin) {
+            targetUrl = `${req.nextUrl.origin}${targetUrl}`;
           }
 
-          const imgRes = await fetch(targetUrl);
+          const imgRes = await fetch(targetUrl, {
+            headers: isSameOrigin && forwardedCookie ? { cookie: forwardedCookie } : {},
+          });
+
           if (imgRes.ok) {
             const buffer = await imgRes.arrayBuffer();
             const base64 = Buffer.from(buffer).toString("base64");
             const contentType = imgRes.headers.get("content-type") || "image/jpeg";
-
-            parts.push({
-              inlineData: {
-                mimeType: contentType,
-                data: base64
-              }
-            });
+            // Skip anything that isn't clearly an image (Gemini rejects other types silently)
+            if (contentType.startsWith("image/") || contentType.startsWith("video/")) {
+              parts.push({
+                inlineData: { mimeType: contentType, data: base64 },
+              });
+              loadedRefs += 1;
+            } else {
+              failedRefs += 1;
+              console.error(`[cinema-flow chat] reference URL returned non-media content-type: ${contentType} · ${targetUrl}`);
+            }
+          } else {
+            failedRefs += 1;
+            console.error(`[cinema-flow chat] reference fetch failed ${imgRes.status} for ${targetUrl}`);
           }
         } catch (e) {
-          console.error("Failed to download chat reference image:", e);
+          failedRefs += 1;
+          console.error("[cinema-flow chat] reference fetch threw:", e);
         }
       }
+
+      // Add the text part LAST so image data appears before the accompanying prompt.
+      // Also prepend an explicit system-visible note so the model never claims
+      // "I don't see images" when references were meant to be attached.
+      let textForModel = m.text || "";
+      if (m.sender === "user" && urlsToFetch.length > 0) {
+        if (loadedRefs > 0) {
+          textForModel = `[Attached ${loadedRefs} reference image${loadedRefs > 1 ? "s" : ""} — describe/use them directly. You CAN see them.]\n\n${textForModel}`;
+        } else if (failedRefs > 0) {
+          textForModel = `[Note: ${failedRefs} reference image${failedRefs > 1 ? "s were" : " was"} attached but could not be loaded server-side. Tell the user honestly that a reference failed to load and ask them to re-upload it.]\n\n${textForModel}`;
+        }
+      }
+      parts.push({ text: textForModel });
 
       contents.push({
         role: m.sender === "user" ? "user" : "model",
@@ -120,12 +149,25 @@ Never promise multiple shots, variants, or a series. If the user
 wants more, they'll say "نفذ" again for the next one.
 
 ===============================================================
-REFERENCE IMAGES
+REFERENCE IMAGES — YOU CAN SEE THEM
 ===============================================================
-If the user attached image references, they are automatically
-passed to the generation model — you don't paste URLs or reference
-tokens. Just describe what to do WITH them ("same character, new
-angle", "same lighting, dusk").
+You are a MULTIMODAL model. When reference images are attached to a
+user message, they appear as inlineData BEFORE the user's text and
+you CAN see them directly — describe them, name what's in them,
+match their colors/lighting/composition when helping the user.
+
+NEVER say "I can't see images" or "I don't see the way humans do".
+If the user asks "did you see the reference?" — describe what you
+see in it briefly.
+
+If a message begins with "[Note: reference could not be loaded]" —
+tell the user honestly that the upload failed on the server and ask
+them to re-upload. Otherwise assume every attached image is visible
+to you.
+
+When generating, references are passed to the image/video model too —
+you don't paste URLs. Just describe the transformation ("same
+character, new angle", "same lighting, dusk").
 
 ===============================================================
 TOOL CALL FORMAT
