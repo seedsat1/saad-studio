@@ -7,17 +7,14 @@ import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import {
   InsufficientCreditsError,
   precheckGenerationPolicy,
-  refundGenerationCharge,
-  setGenerationMediaUrl,
   saveAdditionalGenerationUrls,
-  spendCredits,
 } from "@/lib/credit-ledger";
+import { runInlineGeneration } from "@/lib/generation/inline-orchestrator";
 import { getGenerationCost } from "@/lib/pricing";
 
 const ALLOWED_RESOLUTIONS = new Set(["256x256", "512x512", "1024x1024", "1024x1792", "1792x1024"]);
 
 export async function POST(req: NextRequest) {
-  let charge: { generationId: string; remainingCredits: number } | null = null;
   let chargeUserId: string | null = null;
   let creditsToCharge = 0;
 
@@ -63,43 +60,60 @@ export async function POST(req: NextRequest) {
     }
 
     creditsToCharge = await getGenerationCost("dall-e-3", 5, Math.floor(amount));
-    charge = await spendCredits({
-      userId,
-      credits: creditsToCharge,
-      prompt,
-      assetType: "image_legacy",
-      modelUsed: "dall-e-3",
-    });
     chargeUserId = userId;
 
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt,
-      n: amount,
-      size: resolution,
+    const result = await runInlineGeneration({
+      modelId: "dall-e-3",
+      modality: "image",
+      currentRoute: { provider: "openai", route: "dall-e-3" },
+      charge: {
+        userId,
+        credits: creditsToCharge,
+        prompt,
+        assetType: "image_legacy",
+        modelUsed: "dall-e-3",
+      },
+      execute: async ({ generationId }) => {
+        const response = await openai.images.generate({
+          model: "dall-e-3",
+          prompt,
+          n: amount,
+          size: resolution,
+        });
+
+        const firstUrl = response.data?.[0]?.url ?? null;
+        if (!firstUrl) {
+          throw new Error("OpenAI did not return an image URL");
+        }
+
+        const additionalUrls = response.data
+          .slice(1)
+          .map((item) => item.url)
+          .filter((url): url is string => typeof url === "string");
+
+        return {
+          mediaUrl: firstUrl,
+          responseData: response.data,
+          additionalUrls,
+        };
+      },
     });
 
-    const firstUrl = response.data?.[0]?.url ?? null;
-    if (firstUrl && charge) {
-      await setGenerationMediaUrl(charge.generationId, firstUrl);
-    }
-
     // Save each additional image URL as a separate zero-cost record
-    const additionalUrls = response.data
-      .slice(1)
-      .map((item) => item.url)
-      .filter((url): url is string => typeof url === "string");
-    if (additionalUrls.length > 0 && chargeUserId) {
+    if (result.providerResult.additionalUrls.length > 0 && chargeUserId) {
       await saveAdditionalGenerationUrls(
         chargeUserId,
         prompt,
         "dall-e-3",
         "image_legacy",
-        additionalUrls,
+        result.providerResult.additionalUrls,
       ).catch(() => {});
     }
 
-    return NextResponse.json({ generationId: charge?.generationId ?? null, images: response.data });
+    return NextResponse.json({
+      generationId: result.generationId,
+      images: result.providerResult.responseData,
+    });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(
@@ -110,13 +124,6 @@ export async function POST(req: NextRequest) {
         },
         { status: 402 },
       );
-    }
-
-    if (charge && chargeUserId && creditsToCharge > 0) {
-      await refundGenerationCharge(charge.generationId, chargeUserId, creditsToCharge, {
-        reason: "generation_refund_provider_failed",
-        clearMediaUrl: true,
-      }).catch(() => {});
     }
 
     console.error("--- image generation error ---", error);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs/promises';
-import { defaultProvider, legacyProvider } from '@/lib/storage';
+import { readObject } from '@/lib/storage';
 
 // دعم التحميل من مصادر مختلفة:
 // 1. R2 (Cloudflare) - الخيار الأول
@@ -42,31 +42,13 @@ export async function GET(
 }
 
 async function downloadFromR2(filename: string): Promise<NextResponse> {
-  const path = `downloads/${filename}`;
+  const storagePath = `downloads/${filename}`;
   
-  // 1. Try default provider (Backblaze B2)
   try {
-    console.log(`[api/download] Attempting B2 download for: ${path}`);
-    const exists = await defaultProvider.exists({ bucket: "", path });
-    if (exists) {
-      const response = await defaultProvider.download({ bucket: "", path });
-      const buffer = Buffer.from(await new Response(response.body).arrayBuffer());
-      return new NextResponse(buffer, {
-        headers: {
-          'Content-Type': response.contentType,
-          'Content-Disposition': `attachment; filename="${filename}"`,
-          'Cache-Control': response.cacheControl,
-        },
-      });
-    }
-  } catch (error) {
-    console.error('[api/download] B2 download failed, trying legacy R2:', error);
-  }
-
-  // 2. Try legacy provider (Cloudflare R2)
-  try {
-    console.log(`[api/download] Attempting legacy R2 download for: ${path}`);
-    const response = await legacyProvider.download({ bucket: "", path });
+    console.log(`[api/download] Attempting storage runtime download for: ${storagePath}`);
+    const result = await readObject({ objectKey: storagePath });
+    if (!result) return await downloadFromLocal(filename);
+    const response = result.response;
     const buffer = Buffer.from(await new Response(response.body).arrayBuffer());
     return new NextResponse(buffer, {
       headers: {
@@ -76,10 +58,9 @@ async function downloadFromR2(filename: string): Promise<NextResponse> {
       },
     });
   } catch (error) {
-    console.error('[api/download] Legacy R2 download failed:', error);
+    console.error('[api/download] Storage runtime download failed:', error);
   }
 
-  // 3. Fallback: Download from local
   return await downloadFromLocal(filename);
 }
 

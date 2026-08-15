@@ -3,7 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { pollReapStatus } from "@/lib/providers/reap";
 import { persistProviderUrl } from "@/lib/providers/persist-output";
-import { setGenerationMediaUrl, saveAdditionalGenerationUrls, finalizeReapGeneration } from "@/lib/credit-ledger";
+import { saveAdditionalGenerationUrls, finalizeReapGeneration } from "@/lib/credit-ledger";
+import { completeTaskGeneration } from "@/lib/generation/task-orchestrator";
 import { normalizeMediaUrl } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +87,10 @@ export async function GET(req: NextRequest) {
 
     const internalId = generationId || job?.id;
     if (internalId && persistedUrls[0]) {
-      await setGenerationMediaUrl(internalId, persistedUrls[0]).catch(() => {});
+      await completeTaskGeneration({
+        generationId: internalId,
+        mediaUrl: persistedUrls[0],
+      }).catch(() => {});
       if (persistedUrls.length > 1) {
         await saveAdditionalGenerationUrls(
           userId,

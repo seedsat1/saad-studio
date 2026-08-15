@@ -16,6 +16,8 @@ import {
   withImageSourceMetadata,
   withVideoSourceMetadata,
 } from "@/lib/model-source-map";
+import { buildCentralModelDefinitions } from "@/lib/model-definition-registry";
+import { loadKnowledgeHub } from "@/lib/admin/knowledge-hub";
 import { invalidatePricingCache } from "@/lib/pricing";
 import prismadb from "@/lib/prismadb";
 
@@ -91,9 +93,14 @@ export async function GET() {
   try {
     const imageModels = await getDynamicImageModels();
     const videoModels = await getDynamicVideoModels();
+    const modelDefinitions = buildCentralModelDefinitions({ imageModels, videoModels });
+    const knowledge = await loadKnowledgeHub();
     return NextResponse.json({
       imageModels: imageModels.map(withImageSourceMetadata),
       videoModels: videoModels.map(withVideoSourceMetadata),
+      modelDefinitions,
+      pendingModelChanges: knowledge.modelChanges.filter((change) => change.status === "proposed"),
+      sourceOfTruth: "dynamic model PlatformConfig normalized by Central Model Definition",
     });
   } catch (err) {
     console.error("[admin-models] GET error:", err);

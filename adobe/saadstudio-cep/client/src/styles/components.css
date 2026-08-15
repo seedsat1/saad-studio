@@ -3572,4 +3572,47 @@
   }
 }
 
+/* --- Silence Removal Track Chips --- */
+.track-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--line-medium);
+  border-radius: var(--r-xs);
+  padding: 5px 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.track-chip input[type="radio"],
+.track-chip input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--brand-primary);
+}
+
+.track-chip.checked,
+.track-chip.pinned {
+  border-color: var(--brand-primary);
+  color: var(--text-primary);
+  background: var(--brand-primary-soft);
+}
+
+.track-chip.pinned {
+  opacity: 0.85;
+  cursor: not-allowed;
+}
+
+.sc-detect-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+
 

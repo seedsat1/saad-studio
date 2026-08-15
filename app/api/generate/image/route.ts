@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { getDynamicImageModels } from "@/lib/dynamic-model-loader";
 import { IMAGE_MODELS } from "@/lib/image-models";
-import { InsufficientCreditsError, recordFreeGeneration, rollbackGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { getCentralizedDynamicImageModels } from "@/lib/model-definition-registry";
+import { InsufficientCreditsError, recordFreeGeneration, rollbackGenerationCharge, saveAdditionalGenerationUrls, setActualProviderUsage, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { applyAnnualUnlimitedImageSlowdown, getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
@@ -12,6 +12,7 @@ import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "
 import { normalizeMediaUrl } from "@/lib/storage";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 import { buildWaveSpeedImageInput, resolveWaveSpeedImageModelRoute } from "@/lib/wavespeed-image-routing";
+import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
 import {
   getGoogleImageUpstreamModel,
   normalizeGoogleImageAspectRatio,
@@ -547,22 +548,50 @@ export async function POST(req: NextRequest) {
     const hasReferenceImages = Boolean(imageUrl || imageUrlsParam?.length);
     let effectiveModelId = resolveFlux2Variant(modelId, hasReferenceImages, quality);
     effectiveModelId = resolveSeedream5ProVariant(effectiveModelId, hasReferenceImages);
-    const waveSpeedImageRoute = resolveWaveSpeedImageModelRoute(effectiveModelId, hasReferenceImages, Number(numImages) || 1);
-    const isWaveSpeedImageModel = Boolean(waveSpeedImageRoute);
-    const openAIImageModel = getOpenAIImageModel(effectiveModelId);
+    let waveSpeedImageRoute = resolveWaveSpeedImageModelRoute(effectiveModelId, hasReferenceImages, Number(numImages) || 1);
+    let isWaveSpeedImageModel = Boolean(waveSpeedImageRoute);
+    let openAIImageModel = getOpenAIImageModel(effectiveModelId);
+    let googleImageModel = getGoogleImageModel(effectiveModelId);
+    const legacyImageProvider = openAIImageModel ? "openai" : googleImageModel ? "google" : "wavespeed";
+    const legacyImageRoute = openAIImageModel || googleImageModel || waveSpeedImageRoute?.model || effectiveModelId;
+    const routingDecision = await resolveRuntimeProviderRoute({
+      modelId: effectiveModelId,
+      modality: "image",
+      legacyRoute: { provider: legacyImageProvider, route: legacyImageRoute },
+    });
+    if (routingDecision.routingSource === "control_center") {
+      const routedOpenAIModel = getOpenAIImageModel(routingDecision.providerRoute);
+      const routedGoogleModel = getGoogleImageModel(routingDecision.providerRoute);
+      const routedWaveSpeedRoute = resolveWaveSpeedImageModelRoute(routingDecision.providerRoute, hasReferenceImages, Number(numImages) || 1);
+      if (routingDecision.effectiveProvider === "openai" && routedOpenAIModel) {
+        openAIImageModel = routedOpenAIModel;
+        googleImageModel = null;
+        waveSpeedImageRoute = null;
+        isWaveSpeedImageModel = false;
+      } else if (routingDecision.effectiveProvider === "google" && routedGoogleModel) {
+        googleImageModel = routedGoogleModel;
+        openAIImageModel = null;
+        waveSpeedImageRoute = null;
+        isWaveSpeedImageModel = false;
+      } else if (routingDecision.effectiveProvider === "wavespeed" && routedWaveSpeedRoute) {
+        waveSpeedImageRoute = routedWaveSpeedRoute;
+        isWaveSpeedImageModel = true;
+        openAIImageModel = null;
+        googleImageModel = null;
+      }
+    }
 
-    const dynamicModels = await getDynamicImageModels();
+    const dynamicModels = await getCentralizedDynamicImageModels();
     const dynamicModel = dynamicModels.find(
       (m) => m.id === effectiveModelId && m.isActive !== false
     );
 
-    if (!isWaveSpeedImageModel && !openAIImageModel && !getGoogleImageModel(effectiveModelId)) {
+    if (!isWaveSpeedImageModel && !openAIImageModel && !googleImageModel) {
       return NextResponse.json(
         { error: `Unsupported image model for configured providers: ${effectiveModelId}` },
         { status: 400 },
       );
     }
-    const googleImageModel = getGoogleImageModel(effectiveModelId);
     const googleApiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
     if (googleImageModel && !googleApiKey) {
       return NextResponse.json(
@@ -594,7 +623,10 @@ export async function POST(req: NextRequest) {
       modelUsed: modelId,
       resolution: chargeQuality,
       aspectRatio,
-      requestPayload: body,
+      requestPayload: {
+        ...body,
+        routing: routingMetadata(routingDecision),
+      },
     };
     const refUrls: string[] = [];
     if (imageUrl) refUrls.push(imageUrl);
@@ -686,6 +718,11 @@ export async function POST(req: NextRequest) {
         await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
           console.error("[generate/image] Failed to save OpenAI media URL", err);
         });
+        await setActualProviderUsage(generationId, {
+          providerName: "OpenAI",
+          providerModel: openAIImageModel,
+          status: "completed",
+        });
       }
 
       if (imageUrls.length > 1 && chargedUserId) {
@@ -749,6 +786,11 @@ export async function POST(req: NextRequest) {
       if (generationId && imageUrls[0]) {
         await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
           console.error("[generate/image] Failed to save Google media URL", err);
+        });
+        await setActualProviderUsage(generationId, {
+          providerName: "Google",
+          providerModel: googleImageModel,
+          status: "completed",
         });
       }
 
@@ -827,6 +869,12 @@ export async function POST(req: NextRequest) {
       if (generationId && imageUrls[0]) {
         await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
           console.error("[generate-image] Failed to save WaveSpeed media URL", err);
+        });
+        await setActualProviderUsage(generationId, {
+          providerName: "WaveSpeed",
+          providerModel: waveSpeedImageRoute.model,
+          providerRequestId: taskId,
+          status: "completed",
         });
       }
       if (imageUrls.length > 1 && chargedUserId) {

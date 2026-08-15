@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { persistProviderUrl } from "@/lib/providers/persist-output";
 import {
-  setGenerationMediaUrl,
   saveAdditionalGenerationUrls,
-  rollbackGenerationCharge,
   finalizeReapGeneration,
   updateProviderUsageRecord,
 } from "@/lib/credit-ledger";
+import {
+  completeTaskGeneration,
+  failTaskGenerationWithRefund,
+} from "@/lib/generation/task-orchestrator";
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +112,10 @@ export async function POST(req: NextRequest) {
 
       // Update Generation row in database
       if (persistedUrls.length > 0) {
-        await setGenerationMediaUrl(job.id, persistedUrls[0]).catch(() => {});
+        await completeTaskGeneration({
+          generationId: job.id,
+          mediaUrl: persistedUrls[0],
+        }).catch(() => {});
         if (persistedUrls.length > 1) {
           await saveAdditionalGenerationUrls(
             job.userId,
@@ -150,7 +155,11 @@ export async function POST(req: NextRequest) {
 
       // Refund credits
       if (job.creditsCost > 0) {
-        await rollbackGenerationCharge(job.id, job.userId, job.creditsCost).catch(() => {});
+        await failTaskGenerationWithRefund({
+          generationId: job.id,
+          userId: job.userId,
+          credits: job.creditsCost,
+        }).catch(() => {});
       }
 
       const rawPayloadSafe = body ? JSON.stringify(body).slice(0, 5000) : null;

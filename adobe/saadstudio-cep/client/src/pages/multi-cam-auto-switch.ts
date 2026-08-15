@@ -2,7 +2,7 @@ import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { icon } from "../lib/icons";
-import { loadExtendScript } from "../lib/cep";
+import { loadExtendScript, evalES } from "../lib/cep";
 import { getLanguage, type Language } from "../lib/i18n";
 import { getPodcastDiagnostics } from "../lib/podcast/services/diagnostics-service";
 import {
@@ -44,6 +44,11 @@ import {
 import {
   runOneClickPodcastEditService,
 } from "../lib/podcast/services/one-click-podcast-edit-service";
+import {
+  detectSilenceOnTrack,
+  detectSilenceOnCachedWav,
+  type SilenceRange,
+} from "../lib/podcast/services/silence-removal-service";
 
 import {
   applyCameraDecisionsVisualOnly,
@@ -238,8 +243,65 @@ interface ApplyTrace {
 const DEFAULT_CAMERA_ROLES = ["CAM WIDE", "CAM HOST", "CAM GUEST", "CAM GUESTS", "CAM DRONE / CRANE"];
 
 export function MultiCamAutoSwitchPage(): HTMLElement {
+  (window as any).__globalSilenceDragging = false;
+  
+  if (!(window as any).__silenceDraggingBound) {
+    (window as any).__silenceDraggingBound = true;
+    
+    document.addEventListener("mousemove", (e) => {
+      if (!(window as any).__globalSilenceDragging) return;
+      const canvas = document.getElementById("silence-waveform-canvas") as HTMLCanvasElement | null;
+      if (!canvas) return;
+      
+      const pageState = (window as any).__activeSilenceState;
+      if (pageState) {
+        const H = canvas.height;
+        const mid = H / 2;
+        const rect = canvas.getBoundingClientRect();
+        const mouseY = (e.clientY - rect.top) * (H / rect.height);
+        const amp = Math.max(0.0001, Math.min(1, (mid - mouseY) / (H * 0.44)));
+        const db = Math.round(20 * Math.log10(amp));
+        pageState.silenceThresholdDb = Math.max(-60, Math.min(-10, db));
+        
+        if ((window as any).__drawSilenceWaveformFn) {
+          (window as any).__drawSilenceWaveformFn();
+        }
+        
+        const sliderInput = document.getElementById("silence-threshold-slider") as HTMLInputElement | null;
+        if (sliderInput) sliderInput.value = String(pageState.silenceThresholdDb);
+        const labelVal = document.getElementById("silence-threshold-val");
+        if (labelVal) labelVal.textContent = `${pageState.silenceThresholdDb} dB`;
+      }
+    });
+
+    document.addEventListener("mouseup", () => {
+      if ((window as any).__globalSilenceDragging) {
+        (window as any).__globalSilenceDragging = false;
+        if ((window as any).__runSilenceDetectionCachedFn) {
+          (window as any).__runSilenceDetectionCachedFn();
+        }
+      }
+    });
+  }
+
   const state = {
     loading: false,
+    silenceThresholdDb: -35,
+    silenceMinDurationSec: 0.5,
+    silencePaddingSec: 0.1,
+    silenceTracks: [] as { type: string; index: number; name: string }[],
+    silenceDetectTrack: "",
+    silenceCutTracks: [] as string[],
+    silenceDetecting: false,
+    silenceCutting: false,
+    detectedSilences: [] as SilenceRange[],
+    silenceMessage: "",
+    silenceMessageType: "" as "success" | "error" | "info" | "",
+    silenceWaveformPeaks: [] as number[],
+    silenceWaveformDuration: 0,
+    silenceWaveformCanvasRef: null as HTMLCanvasElement | null,
+    silenceMediaPath: "",
+    silenceClipMap: null as any[] | null,
     timelineLoading: false,
     duplicateLoading: false,
     audioProofLoading: false,
@@ -526,6 +588,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         renderProductionWorkflow(),
       ),
     );
+    
+    if (state.activePodcastTool === "silence-removal") {
+      setTimeout(drawSilenceWaveform, 20);
+    }
   }
 
   function renderProductionWorkflow(): HTMLElement {
@@ -548,9 +614,554 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           renderOneClickTool(),
           renderDeveloperOnlyPanels(),
         );
+      case "silence-removal":
+        return renderSilenceRemovalTool();
       case "multi-cam":
       default:
         return renderMultiCamProductionTool();
+    }
+  }
+
+  function renderSilenceRemovalTool(): HTMLElement {
+    if (state.silenceTracks.length === 0 && !state.silenceDetecting) {
+      setTimeout(loadSilenceTracks, 10);
+    }
+    
+    const text = getPodcastText();
+    const busy = state.silenceDetecting || state.silenceCutting;
+    const audioTracks = state.silenceTracks.filter(t => t.type === "audio");
+    
+    return el("div.podcast-production-card.podcast-simple-card", { id: "podcast-silence-removal-tool" },
+      el("div.podcast-section-head.podcast-simple-head", null,
+        el("div.podcast-tool-title", null,
+          el("div.podcast-tool-icon", null, icon("scissors", 20)),
+          el("div", null,
+            el("h3", null, text.silenceRemoval),
+            el("p", null, text.silenceRemovalDesc),
+          ),
+        ),
+      ),
+      el("div", { style: { display: "flex", flexDirection: "column", gap: "16px", width: "100%" } },
+        // ── SECTION 1: Detection ──
+        el("div.podcast-simple-card", { style: { padding: "15px", background: "var(--bg-card)", border: "1px solid var(--line-medium)", borderRadius: "var(--r-sm)", width: "100%" } },
+          el("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" } },
+            el("div", { style: { display: "flex", alignItems: "center", gap: "8px", fontWeight: "600", fontSize: "14px" } },
+              icon("waveform", 16),
+              "Detection"
+            ),
+            el("span.muted", null, icon("chevron-down", 14))
+          ),
+          
+          el("div.podcast-field", { style: { marginBottom: "15px" } },
+            el("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" } },
+              el("span.muted", { style: { fontSize: "12px" } }, "Detect from"),
+              el("button", {
+                type: "button",
+                disabled: busy,
+                onClick: loadSilenceTracks,
+                style: { background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", display: "flex", alignItems: "center", padding: "2px" }
+              },
+                icon("refresh", 14)
+              )
+            ),
+            el("div.sc-detect-chips", null,
+              audioTracks.length === 0
+                ? el("span.muted", null, "No audio tracks found")
+                : audioTracks.map((t, idx) => {
+                    const val = `${t.type}:${t.index}`;
+                    const isChecked = state.silenceDetectTrack ? val === state.silenceDetectTrack : idx === 0;
+                    return el("label.track-chip" + (isChecked ? ".checked" : ""), null,
+                      el("input", {
+                        type: "radio",
+                        name: "sc-detect-radio",
+                        value: val,
+                        checked: isChecked,
+                        disabled: busy,
+                        onChange: (e: any) => {
+                          state.silenceDetectTrack = e.target.value;
+                          state.silenceMediaPath = "";
+                          state.silenceWaveformPeaks = [];
+                          state.detectedSilences = [];
+                          if (!state.silenceCutTracks.includes(state.silenceDetectTrack)) {
+                            state.silenceCutTracks = [...state.silenceCutTracks, state.silenceDetectTrack];
+                          }
+                          render();
+                          runSilenceDetectionFull();
+                        }
+                      }),
+                      `${t.name}`
+                    );
+                  })
+            )
+          ),
+          
+          el("div.podcast-field", { style: { marginBottom: "15px" } },
+            el("div.podcast-waveform-wrapper", {
+              style: { background: "var(--bg-input)", border: "1px solid var(--line-soft)", borderRadius: "var(--r-xs)", padding: "10px", height: "100px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }
+            },
+              el("canvas#silence-waveform-canvas", {
+                style: { width: "100%", height: "80px", display: "block", cursor: "default" },
+                onMousedown: (e: MouseEvent) => {
+                  const canvas = document.getElementById("silence-waveform-canvas") as HTMLCanvasElement | null;
+                  if (!canvas || state.silenceWaveformPeaks.length === 0) return;
+                  const H = canvas.height;
+                  const mid = H / 2;
+                  const tdb = state.silenceThresholdDb;
+                  const tAmp = Math.pow(10, tdb / 20);
+                  const tY = mid - tAmp * (H * 0.88) / 2;
+                  const rect = canvas.getBoundingClientRect();
+                  const mouseY = (e.clientY - rect.top) * (H / rect.height);
+                  
+                  if (Math.abs(mouseY - tY) < 12 || Math.abs(mouseY - (H - tY)) < 12) {
+                    (window as any).__globalSilenceDragging = true;
+                    e.preventDefault();
+                  }
+                },
+                onMousemove: (e: MouseEvent) => {
+                  const canvas = document.getElementById("silence-waveform-canvas") as HTMLCanvasElement | null;
+                  if (!canvas) return;
+                  if (state.silenceWaveformPeaks.length === 0 || (window as any).__globalSilenceDragging) return;
+                  const H = canvas.height;
+                  const mid = H / 2;
+                  const tdb = state.silenceThresholdDb;
+                  const tAmp = Math.pow(10, tdb / 20);
+                  const tY = mid - tAmp * (H * 0.88) / 2;
+                  const rect = canvas.getBoundingClientRect();
+                  const mouseY = (e.clientY - rect.top) * (H / rect.height);
+                  canvas.style.cursor = (Math.abs(mouseY - tY) < 12 || Math.abs(mouseY - (H - tY)) < 12)
+                    ? "ns-resize" : "default";
+                }
+              })
+            )
+          ),
+          
+          el("div.podcast-field", { style: { marginBottom: "12px" } },
+            el("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "4px", fontSize: "12px" } },
+              el("span.muted", null, "Threshold"),
+              el("span", { id: "silence-threshold-val", style: { fontWeight: "600" } }, `${state.silenceThresholdDb} dB`)
+            ),
+            el("input#silence-threshold-slider", {
+              type: "range",
+              min: "-60",
+              max: "-10",
+              step: "1",
+              value: String(state.silenceThresholdDb),
+              disabled: busy,
+              style: { width: "100%", accentColor: "var(--brand-primary)", cursor: "pointer" },
+              onInput: (e: any) => {
+                state.silenceThresholdDb = parseInt(e.target.value, 10);
+                const valSpan = document.getElementById("silence-threshold-val");
+                if (valSpan) valSpan.textContent = `${state.silenceThresholdDb} dB`;
+                drawSilenceWaveform();
+              },
+              onChange: () => {
+                if (state.silenceMediaPath) {
+                  runSilenceDetectionCached();
+                }
+              }
+            })
+          ),
+          
+          el("div.podcast-field", { style: { marginBottom: "12px" } },
+            el("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "4px", fontSize: "12px" } },
+              el("span.muted", null, "Min silence"),
+              el("span", { id: "silence-duration-val", style: { fontWeight: "600" } }, `${state.silenceMinDurationSec.toFixed(1)} s`)
+            ),
+            el("input", {
+              type: "range",
+              min: "0.1",
+              max: "3.0",
+              step: "0.1",
+              value: String(state.silenceMinDurationSec),
+              disabled: busy,
+              style: { width: "100%", accentColor: "var(--brand-primary)", cursor: "pointer" },
+              onInput: (e: any) => {
+                state.silenceMinDurationSec = parseFloat(e.target.value);
+                const valSpan = document.getElementById("silence-duration-val");
+                if (valSpan) valSpan.textContent = `${state.silenceMinDurationSec.toFixed(1)} s`;
+              },
+              onChange: () => {
+                if (state.silenceMediaPath) {
+                  runSilenceDetectionCached();
+                }
+              }
+            })
+          ),
+          
+          el("div.podcast-field", null,
+            el("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "4px", fontSize: "12px" } },
+              el("span.muted", null, "Padding"),
+              el("span", { id: "silence-padding-val", style: { fontWeight: "600" } }, `${state.silencePaddingSec.toFixed(2)} s`)
+            ),
+            el("input", {
+              type: "range",
+              min: "0.0",
+              max: "0.5",
+              step: "0.05",
+              value: String(state.silencePaddingSec),
+              disabled: busy,
+              style: { width: "100%", accentColor: "var(--brand-primary)", cursor: "pointer" },
+              onInput: (e: any) => {
+                state.silencePaddingSec = parseFloat(e.target.value);
+                const valSpan = document.getElementById("silence-padding-val");
+                if (valSpan) valSpan.textContent = `${state.silencePaddingSec.toFixed(2)} s`;
+              },
+              onChange: () => {
+                if (state.silenceMediaPath) {
+                  runSilenceDetectionCached();
+                }
+              }
+            })
+          )
+        ),
+        
+        // ── SECTION 2: Cut on ──
+        el("div.podcast-simple-card", { style: { padding: "15px", background: "var(--bg-card)", border: "1px solid var(--line-medium)", borderRadius: "var(--r-sm)", width: "100%" } },
+          el("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" } },
+            el("div", { style: { display: "flex", alignItems: "center", gap: "8px", fontWeight: "600", fontSize: "14px" } },
+              icon("scissors", 16),
+              "Cut on"
+            ),
+            el("span.muted", null, icon("chevron-down", 14))
+          ),
+          
+          el("div.sc-detect-chips", null,
+            // All checkbox
+            (() => {
+              const allChecked = state.silenceTracks.length > 0 && state.silenceTracks.every(t => {
+                const val = `${t.type}:${t.index}`;
+                return state.silenceCutTracks.includes(val) || val === state.silenceDetectTrack;
+              });
+              return el("label.track-chip" + (allChecked ? ".checked" : ""), null,
+                el("input", {
+                  type: "checkbox",
+                  value: "all",
+                  checked: allChecked,
+                  disabled: busy,
+                  onChange: (e: any) => {
+                    if (e.target.checked) {
+                      state.silenceCutTracks = state.silenceTracks.map(t => `${t.type}:${t.index}`);
+                    } else {
+                      state.silenceCutTracks = state.silenceDetectTrack ? [state.silenceDetectTrack] : [];
+                    }
+                    render();
+                  }
+                }),
+                "All"
+              );
+            })(),
+            
+            // Individual track checkboxes
+            state.silenceTracks.map(t => {
+              const val = `${t.type}:${t.index}`;
+              const isDetectTrack = val === state.silenceDetectTrack;
+              const checked = state.silenceCutTracks.includes(val) || isDetectTrack;
+              return el("label.track-chip" + (checked ? ".checked" : "") + (isDetectTrack ? ".pinned" : ""), null,
+                el("input", {
+                  type: "checkbox",
+                  value: val,
+                  checked: checked,
+                  disabled: busy || isDetectTrack,
+                  onChange: (e: any) => {
+                    if (e.target.checked) {
+                      state.silenceCutTracks = [...state.silenceCutTracks, val];
+                    } else {
+                      state.silenceCutTracks = state.silenceCutTracks.filter(item => item !== val);
+                    }
+                    render();
+                  }
+                }),
+                `${t.name}`
+              );
+            })
+          )
+        ),
+        
+        state.silenceMessage ? el("div.podcast-status-box" + (state.silenceMessageType ? `.${state.silenceMessageType}` : ""), {
+          style: { padding: "10px", borderRadius: "var(--r-xs)", background: "var(--bg-card)", border: "1px solid var(--line-soft)", width: "100%" }
+        }, state.silenceMessage) : null
+      ),
+      
+      // Bottom Buttons Container
+      el("div.podcast-card-foot", { style: { display: "flex", gap: "10px", marginTop: "20px", justifyContent: "space-between", width: "100%" } },
+        el("button.btn-secondary", {
+          type: "button",
+          disabled: busy,
+          style: { flex: "1", justifyContent: "center", display: "flex", alignItems: "center", gap: "8px", height: "36px" },
+          onClick: () => {
+            runSilenceDetectionFull();
+          }
+        },
+          icon("search", 16),
+          "Detect Silences"
+        ),
+        el("button.btn-danger", {
+          type: "button",
+          disabled: busy || state.detectedSilences.length === 0,
+          style: { flex: "1", justifyContent: "center", display: "flex", alignItems: "center", gap: "8px", height: "36px", background: "#ef4444", borderColor: "#ef4444", color: "white" },
+          onClick: runSilenceCut
+        },
+          icon("scissors", 16),
+          state.silenceCutting ? "Cutting..." : `Cut Silences (${state.detectedSilences.length})`
+        )
+      )
+    );
+  }
+  function drawSilenceWaveform() {
+    (window as any).__drawSilenceWaveformFn = drawSilenceWaveform;
+    (window as any).__activeSilenceState = state;
+    const canvas = document.getElementById("silence-waveform-canvas") as HTMLCanvasElement | null;
+    if (!canvas) return;
+    
+    const parentWidth = canvas.parentElement?.getBoundingClientRect().width;
+    if (parentWidth && parentWidth > 0 && canvas.width !== parentWidth) {
+      canvas.width = parentWidth;
+    }
+    
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const W = canvas.width;
+    const H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const COLORS = {
+      wave: "#3a7fd5",
+      waveSil: "rgba(255, 60, 50, 0.85)",
+      silBg: "rgba(255, 40, 30, 0.18)",
+      threshold: "#ff9f0a",
+      grid: "rgba(255, 255, 255, 0.04)",
+      text: "rgba(255, 255, 255, 0.25)",
+    };
+
+    ctx.fillStyle = "#151518";
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = COLORS.grid;
+    ctx.lineWidth = 1;
+    for (let g = 1; g < 4; g++) {
+      const gy = Math.round(H * g / 4) + 0.5;
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+    }
+
+    if (state.silenceWaveformPeaks.length === 0) {
+      ctx.fillStyle = COLORS.text;
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Select a track and click 'Detect Silences' to load the waveform", W / 2, H / 2 + 4);
+      return;
+    }
+
+    const silentPeaks = new Uint8Array(state.silenceWaveformPeaks.length);
+    if (state.detectedSilences.length > 0 && state.silenceWaveformDuration > 0) {
+      for (const s of state.detectedSilences) {
+        let cStart = s.start;
+        let cEnd = s.end;
+
+        if (state.silenceClipMap && state.silenceClipMap.length > 0) {
+          const tToC = (t: number) => {
+            for (const cm of state.silenceClipMap!) {
+              const timelineEnd = cm.timelineStart + (cm.concatEnd - cm.concatStart);
+              if (t < cm.timelineStart) return cm.concatStart;
+              if (t <= timelineEnd) {
+                return cm.concatStart + (t - cm.timelineStart);
+              }
+            }
+            return state.silenceClipMap![state.silenceClipMap!.length - 1].concatEnd;
+          };
+          cStart = Math.max(0, tToC(s.start));
+          cEnd = Math.min(state.silenceWaveformDuration, tToC(s.end));
+        }
+
+        const iStart = Math.floor(cStart / state.silenceWaveformDuration * state.silenceWaveformPeaks.length);
+        const iEnd = Math.ceil(cEnd / state.silenceWaveformDuration * state.silenceWaveformPeaks.length);
+        for (let pi = iStart; pi < iEnd; pi++) {
+          if (pi >= 0 && pi < silentPeaks.length) silentPeaks[pi] = 1;
+        }
+      }
+    }
+
+    const barW = W / state.silenceWaveformPeaks.length;
+    const mid = H / 2;
+
+    let inSil = false;
+    let silX = 0;
+    for (let i = 0; i <= silentPeaks.length; i++) {
+      const isSil = i < silentPeaks.length && silentPeaks[i];
+      if (isSil && !inSil) { silX = i * barW; inSil = true; }
+      if (!isSil && inSil) {
+        ctx.fillStyle = COLORS.silBg;
+        ctx.fillRect(silX, 0, i * barW - silX, H);
+        inSil = false;
+      }
+    }
+
+    for (let bi = 0; bi < state.silenceWaveformPeaks.length; bi++) {
+      const peak = state.silenceWaveformPeaks[bi];
+      const bh = Math.max(1, peak * (H * 0.88));
+      const bx = bi * barW;
+      ctx.fillStyle = silentPeaks[bi] ? COLORS.waveSil : COLORS.wave;
+      ctx.fillRect(bx, mid - bh / 2, Math.max(1, barW - 0.5), bh);
+    }
+
+    const tdb = state.silenceThresholdDb;
+    const tAmp = Math.pow(10, tdb / 20);
+    const tY = mid - tAmp * (H * 0.88) / 2;
+    const boundedY = Math.max(4, Math.min(H - 4, tY));
+
+    ctx.save();
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = COLORS.threshold;
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath(); ctx.moveTo(0, boundedY); ctx.lineTo(W, boundedY); ctx.stroke();
+    const tYb = mid + (mid - boundedY);
+    ctx.beginPath(); ctx.moveTo(0, tYb); ctx.lineTo(W, tYb); ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = COLORS.threshold;
+    ctx.font = "9px monospace";
+    ctx.fillText(`${tdb} dB`, 4, boundedY - 3);
+
+    if (state.silenceWaveformDuration > 0) {
+      ctx.fillStyle = COLORS.text;
+      ctx.font = "9px monospace";
+      const durLabel = `${state.silenceWaveformDuration.toFixed(1)}s`;
+      ctx.fillText(durLabel, W - ctx.measureText(durLabel).width - 4, H - 4);
+    }
+  }
+
+  async function loadSilenceTracks() {
+    try {
+      const tracks = await evalES<any[]>("getTrackList");
+      state.silenceTracks = tracks || [];
+      if (tracks && tracks.length > 0) {
+        const audioTracks = tracks.filter((t: any) => t.type === 'audio');
+        if (audioTracks.length > 0) {
+          state.silenceDetectTrack = `${audioTracks[0].type}:${audioTracks[0].index}`;
+        } else {
+          state.silenceDetectTrack = `${tracks[0].type}:${tracks[0].index}`;
+        }
+        
+        state.silenceCutTracks = tracks.map((t: any) => `${t.type}:${t.index}`);
+        
+        render();
+        if (state.silenceDetectTrack) {
+          runSilenceDetectionFull();
+        }
+      } else {
+        render();
+      }
+      setTimeout(drawSilenceWaveform, 50);
+    } catch (err) {
+      state.silenceMessage = "Failed to load tracks: " + (err as Error).message;
+      state.silenceMessageType = "error";
+      render();
+    }
+  }
+
+  async function runSilenceDetectionFull() {
+    if (!state.silenceDetectTrack) {
+      state.silenceMessage = "Please select a track to detect silences from.";
+      state.silenceMessageType = "error";
+      render();
+      return;
+    }
+    
+    state.silenceDetecting = true;
+    state.silenceMessage = "Extracting audio and detecting silences (running FFmpeg locally)...";
+    state.silenceMessageType = "info";
+    render();
+    
+    try {
+      const parts = state.silenceDetectTrack.split(":");
+      const type = parts[0] as "audio" | "video";
+      const index = parseInt(parts[1], 10);
+      
+      const result = await detectSilenceOnTrack(
+        type,
+        index,
+        state.silenceThresholdDb,
+        state.silenceMinDurationSec,
+        state.silencePaddingSec
+      );
+      
+      state.silenceMediaPath = result.mediaPath;
+      state.silenceClipMap = result.clipMap;
+      state.detectedSilences = result.silences;
+      state.silenceWaveformPeaks = result.peaks;
+      state.silenceWaveformDuration = result.duration;
+      
+      state.silenceMessage = `Found ${result.silences.length} silent section(s).`;
+      state.silenceMessageType = "success";
+    } catch (err) {
+      state.silenceMessage = "Detection failed: " + (err as Error).message;
+      state.silenceMessageType = "error";
+    } finally {
+      state.silenceDetecting = false;
+      render();
+      setTimeout(drawSilenceWaveform, 50);
+    }
+  }
+
+  async function runSilenceDetectionCached() {
+    (window as any).__runSilenceDetectionCachedFn = runSilenceDetectionCached;
+    if (!state.silenceMediaPath) return;
+    try {
+      const silences = await detectSilenceOnCachedWav(
+        state.silenceMediaPath,
+        state.silenceClipMap || [],
+        state.silenceThresholdDb,
+        state.silenceMinDurationSec,
+        state.silencePaddingSec
+      );
+      state.detectedSilences = silences;
+      state.silenceMessage = `Found ${silences.length} silent section(s).`;
+      state.silenceMessageType = "success";
+      render();
+      setTimeout(drawSilenceWaveform, 50);
+    } catch (err) {
+      state.silenceMessage = "Re-detection failed: " + (err as Error).message;
+      state.silenceMessageType = "error";
+      render();
+    }
+  }
+
+  async function runSilenceCut() {
+    if (state.detectedSilences.length === 0) return;
+    
+    state.silenceCutting = true;
+    state.silenceMessage = "Removing silent segments on selected tracks (applying cuts in Premiere)...";
+    state.silenceMessageType = "info";
+    render();
+    
+    try {
+      const cutTracks = state.silenceCutTracks.map(t => {
+        const parts = t.split(":");
+        return { type: parts[0], index: parseInt(parts[1], 10) };
+      });
+      
+      const result = await evalES<{ removed: number; total: number; errors: string[] }>(
+        "removeSilenceRanges",
+        JSON.stringify(state.detectedSilences),
+        JSON.stringify(cutTracks)
+      );
+      
+      if (result.errors && result.errors.length > 0) {
+        state.silenceMessage = `Removed ${result.removed || 0} of ${result.total || 0} silent sections. Some clips could not be cut.`;
+        state.silenceMessageType = "error";
+      } else {
+        state.silenceMessage = `Done! Successfully removed ${result.removed || 0} silent sections.`;
+        state.silenceMessageType = "success";
+        state.detectedSilences = [];
+      }
+    } catch (err) {
+      state.silenceMessage = "Silence removal failed: " + (err as Error).message;
+      state.silenceMessageType = "error";
+    } finally {
+      state.silenceCutting = false;
+      render();
+      setTimeout(drawSilenceWaveform, 50);
     }
   }
 
@@ -561,6 +1172,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       renderStudioToolTab(text.autoCaptionsTitle, "captions", "captions"),
       renderStudioToolTab(text.synchronize, "link", "sync"),
       renderStudioToolTab(text.oneClick, "spark", "one-click"),
+      renderStudioToolTab(text.silenceRemoval, "scissors", "silence-removal"),
     );
   }
 

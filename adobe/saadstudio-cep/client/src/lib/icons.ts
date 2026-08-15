@@ -11,7 +11,8 @@ export type IconName =
   | "back" | "close" | "plus" | "import" | "send" | "chevron-down" | "link"
   | "settings" | "spark" | "check" | "trash"
   // Reap tool icons
-  | "captions" | "mic" | "transcript" | "waveform" | "noise" | "eye" | "cut";
+  | "captions" | "mic" | "transcript" | "waveform" | "noise" | "eye" | "cut"
+  | "refresh" | "search";
 
 export function icon(name: IconName, size = 18): HTMLElement {
   const wrap = document.createElement("span");
@@ -69,4 +70,7 @@ const SHAPES: Record<IconName, string> = {
     <circle cx="12" cy="12" r="3"/>`,
   cut: `<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/>
     <path d="M20 4L8.5 16.5"/><path d="M20 20L13 13"/>`,
+  refresh: `<path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>`,
+  search: `<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>`,
 };
+

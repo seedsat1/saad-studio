@@ -27,8 +27,12 @@ vi.mock("@/lib/prismadb", () => {
       $transaction: async (fn: any) => await fn(tx),
       generation: {
         update: vi.fn(async () => ({})),
+        updateMany: vi.fn(async () => ({})),
         findUnique: vi.fn(async () => null),
         findMany: vi.fn(async () => []),
+      },
+      providerUsageRecord: {
+        updateMany: vi.fn(async () => ({})),
       },
       user: {
         findUnique: mockUserFindUnique,
@@ -51,7 +55,16 @@ vi.mock("@clerk/nextjs/server", () => {
   };
 });
 
-import { keywordBlocksPrompt, precheckGenerationPolicy, refundGenerationCharge, requestAnnualCreditAdvance, CreditAdvanceError } from "@/lib/credit-ledger";
+import prismadb from "@/lib/prismadb";
+import {
+  CreditAdvanceError,
+  keywordBlocksPrompt,
+  precheckGenerationPolicy,
+  refundGenerationCharge,
+  requestAnnualCreditAdvance,
+  setActualProviderUsage,
+  setGenerationCompletedWithoutMedia,
+} from "@/lib/credit-ledger";
 
 describe("credit-ledger policy + refunds", () => {
   beforeEach(() => {
@@ -108,6 +121,46 @@ describe("credit-ledger policy + refunds", () => {
     });
     expect(tx.creditLedgerEntry.create).toHaveBeenCalledWith({
       data: { userId: "u1", generationId: "g1", delta: 10, reason: "generation_refund_provider_failed" },
+    });
+  });
+
+  it("setActualProviderUsage records the provider that actually executed", async () => {
+    await setActualProviderUsage("gen_1", {
+      providerName: "WaveSpeed",
+      providerModel: "bytedance/seedream-v5.0-pro",
+      providerRequestId: "task_1",
+      status: "completed",
+    });
+
+    expect(prismadb.generation.updateMany).toHaveBeenCalledWith({
+      where: { id: "gen_1" },
+      data: {
+        providerName: "WaveSpeed",
+        providerModel: "bytedance/seedream-v5.0-pro",
+        providerRequestId: "task_1",
+      },
+    });
+    expect(prismadb.providerUsageRecord.updateMany).toHaveBeenCalledWith({
+      where: { generationId: "gen_1" },
+      data: {
+        providerName: "WaveSpeed",
+        providerModel: "bytedance/seedream-v5.0-pro",
+        providerRequestId: "task_1",
+        status: "completed",
+      },
+    });
+  });
+
+  it("setGenerationCompletedWithoutMedia completes transcript-only generations without media", async () => {
+    await setGenerationCompletedWithoutMedia("gen_transcript");
+
+    expect(prismadb.generation.updateMany).toHaveBeenCalledWith({
+      where: { id: "gen_transcript" },
+      data: { status: "completed" },
+    });
+    expect(prismadb.providerUsageRecord.updateMany).toHaveBeenCalledWith({
+      where: { generationId: "gen_transcript" },
+      data: { status: "completed" },
     });
   });
 

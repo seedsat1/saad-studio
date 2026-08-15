@@ -20,6 +20,14 @@ import {
   Video,
 } from "lucide-react";
 import type { DynamicImageModel, DynamicVideoModel } from "@/lib/dynamic-model-loader";
+import type { CentralModelDefinition } from "@/lib/model-definition-registry";
+
+type PendingModelChange = {
+  id: string;
+  modelId: string;
+  status: "proposed" | "published" | "rejected";
+  fields: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
+};
 
 export default function AdminModelsPage() {
   const router = useRouter();
@@ -28,6 +36,8 @@ export default function AdminModelsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [imageModels, setImageModels] = useState<DynamicImageModel[]>([]);
   const [videoModels, setVideoModels] = useState<DynamicVideoModel[]>([]);
+  const [modelDefinitions, setModelDefinitions] = useState<CentralModelDefinition[]>([]);
+  const [pendingModelChanges, setPendingModelChanges] = useState<PendingModelChange[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +116,8 @@ export default function AdminModelsPage() {
         const data = await res.json();
         if (data.imageModels) setImageModels(data.imageModels);
         if (data.videoModels) setVideoModels(data.videoModels);
+        if (data.modelDefinitions) setModelDefinitions(data.modelDefinitions);
+        if (data.pendingModelChanges) setPendingModelChanges(data.pendingModelChanges);
         setLoading(false);
       })
       .catch((err) => {
@@ -156,6 +168,8 @@ export default function AdminModelsPage() {
       const reloadData = await reloadRes.json();
       if (reloadData.imageModels) setImageModels(reloadData.imageModels);
       if (reloadData.videoModels) setVideoModels(reloadData.videoModels);
+      if (reloadData.modelDefinitions) setModelDefinitions(reloadData.modelDefinitions);
+      if (reloadData.pendingModelChanges) setPendingModelChanges(reloadData.pendingModelChanges);
     } catch (err: any) {
       setError(err.message || "Failed to synchronize the official models catalog.");
     } finally {
@@ -318,6 +332,14 @@ export default function AdminModelsPage() {
     return true;
   });
 
+  const centralSummary = {
+    total: modelDefinitions.length,
+    active: modelDefinitions.filter((model) => model.status === "active").length,
+    image: modelDefinitions.filter((model) => model.modality === "image").length,
+    video: modelDefinitions.filter((model) => model.modality === "video").length,
+    pending: pendingModelChanges.filter((change) => change.status === "proposed").length,
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-100">
@@ -379,6 +401,56 @@ export default function AdminModelsPage() {
           <span className="text-sm font-semibold">{error}</span>
         </div>
       )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 mb-6">
+        {[
+          { label: "Central Definitions", value: centralSummary.total },
+          { label: "Active", value: centralSummary.active },
+          { label: "Image", value: centralSummary.image },
+          { label: "Video", value: centralSummary.video },
+          { label: "Pending Knowledge", value: centralSummary.pending },
+        ].map((item) => (
+          <div key={item.label} className="rounded-xl border border-slate-800 bg-slate-900/55 p-4">
+            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{item.label}</div>
+            <div className="mt-2 text-2xl font-extrabold text-slate-100">{item.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mb-6 rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+        <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="text-sm font-bold text-cyan-200">Central Model Definition is the production source for model capabilities.</div>
+            <div className="text-xs text-slate-400">
+              Knowledge approval creates proposed changes only. Runtime changes happen after explicit publish into this model registry.
+            </div>
+          </div>
+          <a href="/admin/knowledge" className="text-xs font-bold text-cyan-300 hover:text-cyan-200">
+            Open Knowledge Hub
+          </a>
+        </div>
+        {pendingModelChanges.length > 0 ? (
+          <div className="mt-4 space-y-2">
+            {pendingModelChanges.slice(0, 5).map((change) => (
+              <div key={change.id} className="rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-xs">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-mono font-bold text-slate-100">{change.modelId}</span>
+                  <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 font-bold text-amber-300">
+                    {change.fields.length} pending field(s)
+                  </span>
+                </div>
+                <div className="mt-2 grid gap-1 text-slate-400">
+                  {change.fields.slice(0, 3).map((field) => (
+                    <div key={`${change.id}-${field.field}`} className="font-mono">
+                      {field.field}: {JSON.stringify(field.oldValue)} -&gt; {JSON.stringify(field.newValue)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       {/* Tabs & Search */}
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-6">

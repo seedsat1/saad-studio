@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
+import type { CentralModelDefinition } from "@/lib/model-definition-registry";
 
 export type DynamicKieModel = {
   id: string;
@@ -118,6 +119,8 @@ export type FullFetchState = {
   imageModels: any[];
   videoModels: any[];
   audioModels: any[];
+  modelDefinitions: CentralModelDefinition[];
+  modelDefinitionSource: "central" | "legacy_fallback" | null;
   loading: boolean;
   error: string | null;
 };
@@ -128,6 +131,8 @@ export function useFullDynamicModels(): FullFetchState {
     imageModels: [],
     videoModels: [],
     audioModels: [],
+    modelDefinitions: [],
+    modelDefinitionSource: null,
     loading: true,
     error: null,
   });
@@ -152,6 +157,8 @@ export function useFullDynamicModels(): FullFetchState {
           imageModels: Array.isArray(data.imageModels) ? data.imageModels : [],
           videoModels: Array.isArray(data.videoModels) ? data.videoModels : [],
           audioModels: Array.isArray(data.audioModels) ? data.audioModels : [],
+          modelDefinitions: Array.isArray(data.modelDefinitions) ? data.modelDefinitions : [],
+          modelDefinitionSource: data.modelDefinitionSource === "central" ? "central" : "legacy_fallback",
           loading: false,
           error: null,
         });

@@ -5,9 +5,9 @@
  *
  *   {
  *     tool: "captions" | "reframe" | "dubbing" | "transcription" | "edit-videos",
- *     sourceUrl: string,        // public URL the backend will hand to Reap
- *     filename?: string,        // default: derived from URL
- *     options?: Record<string, unknown>  // tool-specific extras
+ *     sourceUrl: string,
+ *     filename?: string,
+ *     options?: Record<string, unknown>
  *   }
  *
  * On success:
@@ -20,10 +20,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import {
   ensureUserRow,
-  rollbackGenerationCharge,
-  spendCredits,
   InsufficientCreditsError,
 } from "@/lib/credit-ledger";
+import { runTaskGenerationStart } from "@/lib/generation/task-orchestrator";
 import { hitRateLimit, panelRateLimitResponse, getRequestIp } from "@/lib/panel-rate-limit";
 import prismadb from "@/lib/prismadb";
 import { sanitizePrompt } from "@/lib/security";
@@ -43,22 +42,22 @@ const KNOWN_TOOLS = new Set<ReapTool>([
 
 function calculateDynamicCost(tool: ReapTool, durationSec?: number): number {
   const sec = typeof durationSec === "number" && durationSec > 0 ? durationSec : 60;
-  let rate = 1 / 60; // Default: 1 credit per minute
+  let rate = 1 / 60;
   if (tool === "dubbing") {
-    rate = 4 / 60; // 4 credits per minute
+    rate = 4 / 60;
   } else if (tool === "transcription") {
-    rate = 0.5 / 60; // 0.5 credits per minute
+    rate = 0.5 / 60;
   }
   return Math.max(1, Math.ceil(sec * rate));
 }
 
 const TOOL_TO_ASSET_TYPE: Record<ReapTool, "VIDEO" | "TRANSCRIPTION"> = {
-  "captions":      "VIDEO",
-  "reframe":       "VIDEO",
-  "dubbing":       "VIDEO",
-  "audiogram":     "VIDEO",
+  "captions": "VIDEO",
+  "reframe": "VIDEO",
+  "dubbing": "VIDEO",
+  "audiogram": "VIDEO",
   "transcription": "TRANSCRIPTION",
-  "edit-videos":   "VIDEO",
+  "edit-videos": "VIDEO",
 };
 
 export async function POST(req: NextRequest) {
@@ -70,7 +69,7 @@ export async function POST(req: NextRequest) {
 
   const rate = hitRateLimit({
     key: `panel:reap:start:${verified.userId}:${getRequestIp(req.headers)}`,
-    limit: 8,                 // Reap's own ceiling is 10/min, leave headroom
+    limit: 8,
     windowMs: 60_000,
   });
   if (!rate.allowed) return panelRateLimitResponse(rate.retryAfterSec);
@@ -90,9 +89,7 @@ export async function POST(req: NextRequest) {
   if (!tool || !KNOWN_TOOLS.has(tool)) {
     return NextResponse.json({ error: `Unsupported tool: ${tool}` }, { status: 400 });
   }
-  // Accept either a public sourceUrl (we'll proxy it into Reap) or a Reap
-  // uploadId (the panel already pushed the bytes to Reap's S3 directly,
-  // skipping the R2 hop).
+
   const hasUploadId = typeof body.uploadId === "string" && body.uploadId.length > 0;
   const hasSourceUrl = typeof body.sourceUrl === "string" && /^https?:\/\//i.test(body.sourceUrl);
   if (!hasUploadId && !hasSourceUrl) {
@@ -124,16 +121,44 @@ export async function POST(req: NextRequest) {
   const options = normalizeReapOptions(tool, body.options ?? {});
 
   let generationId: string;
+  let projectId: string;
   try {
-    const spent = await spendCredits({
-      userId,
-      prompt,
-      assetType: TOOL_TO_ASSET_TYPE[tool],
-      modelUsed: `reap:${tool}`,
-      credits: cost,
-      duration: inputDuration,
+    const started = await runTaskGenerationStart({
+      charge: {
+        userId,
+        prompt,
+        assetType: TOOL_TO_ASSET_TYPE[tool],
+        modelUsed: `reap:${tool}`,
+        credits: cost,
+        duration: inputDuration,
+      },
+      submit: async () => {
+        const { projectId } = hasUploadId
+          ? await startReapJobWithUploadId({
+              tool,
+              uploadId: body.uploadId!,
+              options,
+            })
+          : tool === "transcription"
+          ? await startReapJobWithSourceUrl({
+              tool,
+              sourceUrl: body.sourceUrl!,
+              options,
+            })
+          : await startReapJob({
+              tool,
+              sourceUrl: body.sourceUrl!,
+              filename: body.filename ?? guessFilenameFromUrl(body.sourceUrl!),
+              options,
+            });
+
+        return { projectId, taskId: `reap:${projectId}` };
+      },
+      taskMarkerFailure: "log",
+      logPrefix: "panel/reap/start",
     });
-    generationId = spent.generationId;
+    generationId = started.generationId;
+    projectId = started.providerResult.projectId;
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
       return NextResponse.json(
@@ -145,50 +170,17 @@ export async function POST(req: NextRequest) {
         { status: 402 },
       );
     }
-    throw err;
-  }
-
-  try {
-    const { projectId } = hasUploadId
-      ? await startReapJobWithUploadId({
-          tool,
-          uploadId: body.uploadId!,
-          options,
-        })
-      : tool === "transcription"
-      ? await startReapJobWithSourceUrl({
-          tool,
-          sourceUrl: body.sourceUrl!,
-          options,
-        })
-      : await startReapJob({
-          tool,
-          sourceUrl: body.sourceUrl!,
-          filename: body.filename ?? guessFilenameFromUrl(body.sourceUrl!),
-          options,
-        });
-
-    // Stash the Reap projectId on the Generation row so the status route
-    // can correlate the upstream project with our internal id.
-    await prismadb.generation
-      .update({
-        where: { id: generationId },
-        data: { mediaUrl: `task:reap:${projectId}` },
-      })
-      .catch(() => { /* generation may not exist yet — non-fatal */ });
-
-    return NextResponse.json({
-      projectId,
-      generationId,
-      creditsCharged: cost,
-      status: "queued",
-    });
-  } catch (err) {
-    await rollbackGenerationCharge(generationId, userId, cost).catch(() => {});
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[panel/reap/start]", err);
     return NextResponse.json({ error: `Reap start failed: ${msg}` }, { status: 502 });
   }
+
+  return NextResponse.json({
+    projectId,
+    generationId,
+    creditsCharged: cost,
+    status: "queued",
+  });
 }
 
 function guessFilenameFromUrl(url: string): string {

@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 const TTS_CREDIT_COST = 3;
 const KIE_BASE_URL = "https://api.kie.ai/api/v1";
 const KIE_TTS_MODEL = "elevenlabs/text-to-speech-multilingual-v2";
+// Panel TTS is a separate lightweight panel action; keep its intentional fixed charge independent from the main /api/generate/audio TTS legacy price.
 
 // ElevenLabs voice IDs for multilingual-v2
 const VOICE_IDS: Record<string, string> = {

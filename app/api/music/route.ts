@@ -18,6 +18,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { getFfmpegPath } from "@/lib/server/ffmpeg-path";
+import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
 
 const execFileAsync = promisify(execFile);
 
@@ -113,6 +114,17 @@ export async function POST(req: Request) {
     if (!isWaveSpeedModel(model)) {
       return new NextResponse("Unsupported music model", { status: 400 });
     }
+    const legacyMusicProvider = model.startsWith("google/lyria") ? "google" : "wavespeed";
+    const routingDecision = await resolveRuntimeProviderRoute({
+      modelId: model,
+      modality: "audio",
+      legacyRoute: { provider: legacyMusicProvider, route: model },
+    });
+    const routedModel =
+      routingDecision.routingSource === "control_center" &&
+      (routingDecision.effectiveProvider === "google" || routingDecision.effectiveProvider === "wavespeed")
+        ? routingDecision.providerRoute
+        : model;
 
     const creditsToCharge = await getGenerationCost(model, duration ?? 30);
     if (creditsToCharge <= 0) {
@@ -150,7 +162,10 @@ export async function POST(req: Request) {
       assetType: "AUDIO",
       modelUsed: model,
       duration: duration ?? 30,
-      requestPayload: body,
+      requestPayload: {
+        ...body,
+        routing: routingMetadata(routingDecision),
+      },
     });
     chargedCredits = creditsToCharge;
     generationId = charge.generationId;
@@ -164,7 +179,7 @@ export async function POST(req: Request) {
     let audioUrl: string | null = null;
     let responseJson: any = null;
 
-    if (model.startsWith("google/lyria")) {
+    if (routedModel.startsWith("google/lyria")) {
       const googleKey = getGoogleApiKey();
       if (!googleKey) {
         if (chargedCredits > 0 && chargedUserId && generationId) {
@@ -182,7 +197,7 @@ export async function POST(req: Request) {
       }
 
       try {
-        const googleModelId = model.includes("pro") ? "lyria-3-pro-preview" : "lyria-3-clip-preview";
+        const googleModelId = routedModel.includes("pro") ? "lyria-3-pro-preview" : "lyria-3-clip-preview";
 
         const inputList: any[] = [];
         let fullPrompt = sanitizePrompt(prompt, 3000);
@@ -340,7 +355,7 @@ export async function POST(req: Request) {
       }
 
       const payload: Record<string, unknown> = { prompt: sanitizePrompt(prompt, 3000) };
-      if (model === "elevenlabs/music") {
+      if (routedModel === "elevenlabs/music") {
         const safeSeconds = duration && Number.isFinite(duration) && duration > 0 ? Math.min(duration, 300) : 30;
         payload.music_length_ms = Math.max(5000, safeSeconds * 1000);
         payload.force_instrumental = Boolean(force_instrumental);
@@ -348,7 +363,7 @@ export async function POST(req: Request) {
         if (style?.trim()) payload.prompt = `${payload.prompt} ${sanitizePrompt(style, 200)}`;
         if (lyrics?.trim()) payload.prompt = `${payload.prompt} ${sanitizePrompt(lyrics, 2500)}`;
       } else {
-        if (model.startsWith("minimax/")) {
+        if (routedModel.startsWith("minimax/")) {
           const finalLyrics = lyrics?.trim() || "[Instrumental]";
           payload.lyrics = sanitizePrompt(finalLyrics, 2500);
         } else {
@@ -359,7 +374,7 @@ export async function POST(req: Request) {
       }
 
       const externalRes = await fetchWithTimeout(
-        `https://api.wavespeed.ai/api/v3/${model}`,
+        `https://api.wavespeed.ai/api/v3/${routedModel}`,
         {
           method: "POST",
           headers: {

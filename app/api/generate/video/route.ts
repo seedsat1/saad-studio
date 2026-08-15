@@ -4,10 +4,8 @@ import { getVideoCreditsByModelIdAsync } from "@/lib/credit-pricing";
 import {
   InsufficientCreditsError,
   precheckGenerationPolicy,
-  refundGenerationCharge,
-  setGenerationMediaUrl,
-  spendCredits,
 } from "@/lib/credit-ledger";
+import { runInlineGeneration } from "@/lib/generation/inline-orchestrator";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
@@ -172,10 +170,6 @@ async function pollKie(taskId: string, apiKey: string, maxAttempts = 100, interv
 }
 
 export async function POST(req: NextRequest) {
-  let chargedCredits = 0;
-  let chargedUserId: string | null = null;
-  let generationId: string | null = null;
-
   try {
     await syncKieModelCatalog(false).catch(() => null);
 
@@ -224,7 +218,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `No credit configuration for model: ${modelId}` }, { status: 400 });
     }
 
-    const charge = await spendCredits({
+    const chargeInput = {
       userId,
       credits: creditsToCharge,
       prompt: sanitizePrompt(prompt, 5000),
@@ -235,10 +229,7 @@ export async function POST(req: NextRequest) {
       aspectRatio,
       quality,
       requestPayload: body,
-    });
-    generationId = charge.generationId;
-    chargedCredits = creditsToCharge;
-    chargedUserId = userId;
+    };
 
     const payload: Record<string, unknown> = {
       prompt: sanitizePrompt(prompt, 5000),
@@ -262,35 +253,56 @@ export async function POST(req: NextRequest) {
         throw new Error("KIE_API_KEY is not configured.");
       }
 
-      const submitRes = await fetch(`${KIE_BASE_URL}/jobs/createTask`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${kieKey}`,
+      const result = await runInlineGeneration({
+        modelId,
+        modality: "video",
+        currentRoute: { provider: "kie", route: kieModel },
+        charge: chargeInput,
+        execute: async () => {
+          const submitRes = await fetch(`${KIE_BASE_URL}/jobs/createTask`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${kieKey}`,
+            },
+            body: JSON.stringify({
+              model: kieModel,
+              input: payload,
+            }),
+          });
+
+          const submitJson = await submitRes.json().catch(() => ({}));
+          const taskId = submitJson?.data?.taskId || submitJson?.taskId;
+          if (!submitRes.ok || !taskId) {
+            throw new Error(submitJson?.msg || submitJson?.message || "KIE submit failed");
+          }
+
+          const providerResult = await pollKie(String(taskId), kieKey);
+          if (providerResult.status === "failed") {
+            throw new Error(providerResult.error ?? "KIE generation failed.");
+          }
+
+          const videoUrl = providerResult.outputs?.[0];
+          if (!videoUrl) throw new Error("No output URL in KIE result.");
+          const normalizedVideoUrl = normalizeMediaUrl(videoUrl) || videoUrl;
+
+          return {
+            mediaUrl: normalizedVideoUrl,
+            videoUrl: normalizedVideoUrl,
+            taskId: String(taskId),
+          };
         },
-        body: JSON.stringify({
-          model: kieModel,
-          input: payload,
-        }),
       });
 
-      const submitJson = await submitRes.json().catch(() => ({}));
-      const taskId = submitJson?.data?.taskId || submitJson?.taskId;
-      if (!submitRes.ok || !taskId) {
-        throw new Error(submitJson?.msg || submitJson?.message || "KIE submit failed");
-      }
-
-      const result = await pollKie(String(taskId), kieKey);
-      if (result.status === "failed") {
-        throw new Error(result.error ?? "KIE generation failed.");
-      }
-
-      const videoUrl = result.outputs?.[0];
-      if (!videoUrl) throw new Error("No output URL in KIE result.");
-      const normalizedVideoUrl = normalizeMediaUrl(videoUrl) || videoUrl;
-      if (generationId) await setGenerationMediaUrl(generationId, normalizedVideoUrl);
-
-      return NextResponse.json({ generationId, videoUrl: normalizedVideoUrl, taskId: String(taskId), provider: "kie" }, { status: 200 });
+      return NextResponse.json(
+        {
+          generationId: result.generationId,
+          videoUrl: result.providerResult.videoUrl,
+          taskId: result.providerResult.taskId,
+          provider: "kie",
+        },
+        { status: 200 },
+      );
     } else {
       // FALLBACK: WaveSpeed for all other video models
       const wavespeedModel = resolveWaveSpeedModelRoute(modelId);
@@ -319,41 +331,60 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const submitRes = await fetch(`${WAVESPEED_BASE_URL}/${wavespeedModel}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${wavespeedKey}`,
+      const result = await runInlineGeneration({
+        modelId,
+        modality: "video",
+        currentRoute: { provider: "wavespeed", route: wavespeedModel },
+        charge: chargeInput,
+        execute: async () => {
+          const submitRes = await fetch(`${WAVESPEED_BASE_URL}/${wavespeedModel}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${wavespeedKey}`,
+            },
+            body: JSON.stringify(wavespeedPayload),
+          });
+
+          if (!submitRes.ok) {
+            const errText = await submitRes.text();
+            throw new Error(`WaveSpeed submit failed: ${errText}`);
+          }
+
+          const submitJson = await submitRes.json().catch(() => ({}));
+          const predictionId = submitJson?.data?.id || submitJson?.id;
+          if (!predictionId) {
+            throw new Error("No prediction ID returned from WaveSpeed.");
+          }
+
+          const providerResult = await pollWaveSpeed(String(predictionId), wavespeedKey);
+          if (providerResult.status === "failed") {
+            throw new Error(providerResult.error ?? "WaveSpeed generation failed.");
+          }
+
+          const videoUrl = providerResult.outputs?.[0];
+          if (!videoUrl) {
+            throw new Error("No output URL in WaveSpeed result.");
+          }
+          const normalizedVideoUrl = normalizeMediaUrl(videoUrl) || videoUrl;
+
+          return {
+            mediaUrl: normalizedVideoUrl,
+            videoUrl: normalizedVideoUrl,
+            predictionId,
+          };
         },
-        body: JSON.stringify(wavespeedPayload),
       });
 
-      if (!submitRes.ok) {
-        const errText = await submitRes.text();
-        throw new Error(`WaveSpeed submit failed: ${errText}`);
-      }
-
-      const submitJson = await submitRes.json().catch(() => ({}));
-      const predictionId = submitJson?.data?.id || submitJson?.id;
-      if (!predictionId) {
-        throw new Error("No prediction ID returned from WaveSpeed.");
-      }
-
-      const result = await pollWaveSpeed(String(predictionId), wavespeedKey);
-      if (result.status === "failed") {
-        throw new Error(result.error ?? "WaveSpeed generation failed.");
-      }
-
-      const videoUrl = result.outputs?.[0];
-      if (!videoUrl) {
-        throw new Error("No output URL in WaveSpeed result.");
-      }
-      const normalizedVideoUrl = normalizeMediaUrl(videoUrl) || videoUrl;
-      if (generationId) {
-        await setGenerationMediaUrl(generationId, normalizedVideoUrl);
-      }
-
-      return NextResponse.json({ generationId, videoUrl: normalizedVideoUrl, predictionId, provider: "wavespeed" }, { status: 200 });
+      return NextResponse.json(
+        {
+          generationId: result.generationId,
+          videoUrl: result.providerResult.videoUrl,
+          predictionId: result.providerResult.predictionId,
+          provider: "wavespeed",
+        },
+        { status: 200 },
+      );
     }
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
@@ -365,13 +396,6 @@ export async function POST(req: NextRequest) {
         },
         { status: 402 },
       );
-    }
-
-    if (chargedCredits > 0 && chargedUserId && generationId) {
-      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
-        reason: "generation_refund_provider_failed",
-        clearMediaUrl: true,
-      }).catch(() => {});
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";

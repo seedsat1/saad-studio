@@ -18,6 +18,11 @@ import {
   invalidatePricingCache,
 } from "@/lib/pricing";
 import {
+  calcTransitionCredits,
+  calcTransitionCreditsForModel,
+} from "@/lib/transition-presets";
+import {
+  getHookStudioCreditsAsync,
   getMusicCredits,
   getMusicCreditsAsync,
   getVideoCreditsByModelId,
@@ -191,5 +196,33 @@ describe("pricing core user charge parity", () => {
       getVideoCreditsByRoute("bytedance/seedance-2.5/text-to-video-turbo", routePayload),
     );
     await expect(getMusicCreditsAsync("elevenlabs/music", 60)).resolves.toBe(getMusicCredits("elevenlabs/music", 60));
+  });
+
+  it("keeps direct provider video dispatch pricing in parity with the previous sync helper when DB is unavailable", async () => {
+    invalidatePricingCache();
+
+    const payload = { duration: 8, quality: "1080p" };
+    await expect(getVideoCreditsByModelIdAsync("google/gemini-omni-flash", payload)).resolves.toBe(
+      getVideoCreditsByModelId("google/gemini-omni-flash", payload),
+    );
+  });
+
+  it("keeps Hook Studio legacy fallback charge while using the async resolver entrypoint", async () => {
+    invalidatePricingCache();
+
+    await expect(
+      getHookStudioCreditsAsync("bytedance-seedance-v25-t2v-turbo", { duration: 15, quality: "720p" }, { legacyUserCredits: 10 }),
+    ).resolves.toBe(10);
+  });
+
+  it("keeps panel transition legacy charge when the model-aware core default would be lower", async () => {
+    invalidatePricingCache();
+
+    const legacyCredits = calcTransitionCredits("morph", 5, "1080p");
+    await expect(
+      calcTransitionCreditsForModel("morph", 5, "1080p", "kling-2.6/image-to-video", {
+        legacyMinimumCredits: legacyCredits,
+      }),
+    ).resolves.toBe(legacyCredits);
   });
 });

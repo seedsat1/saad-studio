@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 type ProviderId = "google" | "openai" | "wavespeed" | "byteplus" | "elevenlabs" | "kie" | "reap" | string;
-type Modality = "image" | "video" | "audio";
+type Modality = "image" | "video" | "audio" | "3d";
 
 type RouteTarget = {
   provider: ProviderId;

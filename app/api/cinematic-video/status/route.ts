@@ -12,7 +12,10 @@ import {
   downloadVeoVideo,
   pollVeoOperation,
 } from "@/lib/gemini-veo";
-import { setGenerationMediaUrl, rollbackGenerationCharge } from "@/lib/credit-ledger";
+import {
+  completeTaskGeneration,
+  failTaskGenerationWithRefund,
+} from "@/lib/generation/task-orchestrator";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin } from "@/lib/security";
@@ -116,11 +119,11 @@ export async function POST(req: Request) {
         lower.includes("invalid_argument");
 
       if (terminal) {
-        await rollbackGenerationCharge(
-          generation.id,
+        await failTaskGenerationWithRefund({
+          generationId: generation.id,
           userId,
-          generation.cost,
-        ).catch(() => {});
+          credits: generation.cost,
+        }).catch(() => {});
         await prismadb.generation
           .update({
             where: { id: generation.id },
@@ -148,11 +151,11 @@ export async function POST(req: Request) {
 
     if (!poll.videoUri) {
       // Operation finished but no video — refund and mark failed.
-      await rollbackGenerationCharge(
-        generation.id,
+      await failTaskGenerationWithRefund({
+        generationId: generation.id,
         userId,
-        generation.cost,
-      ).catch(() => {});
+        credits: generation.cost,
+      }).catch(() => {});
       await prismadb.generation
         .update({
           where: { id: generation.id },
@@ -182,7 +185,10 @@ export async function POST(req: Request) {
       );
     }
 
-    await setGenerationMediaUrl(generation.id, publicUrl);
+    await completeTaskGeneration({
+      generationId: generation.id,
+      mediaUrl: publicUrl,
+    });
 
     return NextResponse.json({
       done: true,

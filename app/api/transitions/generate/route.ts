@@ -242,6 +242,16 @@ export async function POST(req: NextRequest) {
       modelUsed: `${selectedModelId}/transition/${presetId}`,
       duration: duration,
       resolution: controls.resolution,
+      providerName: "KIE.ai",
+      providerModel: selectedModelId,
+      requestPayload: {
+        routing: {
+          routingSource: "legacy_fallback",
+          effectiveProvider: "kie",
+          providerRoute: selectedModelId,
+          routingReason: "Transitions currently use the KIE workflow job path; KIE is standby in Routing Control.",
+        },
+      },
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;

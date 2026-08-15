@@ -3,10 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { Prisma } from "@prisma/client";
 import {
   ensureUserRow,
-  rollbackGenerationCharge,
-  spendCredits,
   InsufficientCreditsError,
 } from "@/lib/credit-ledger";
+import { runTaskGenerationStart } from "@/lib/generation/task-orchestrator";
 import prismadb from "@/lib/prismadb";
 import { sanitizePrompt } from "@/lib/security";
 import { normalizeReapOptions, startReapJob, type ReapTool } from "@/lib/providers/reap";
@@ -24,21 +23,21 @@ const KNOWN_TOOLS = new Set<ReapTool>([
 ]);
 
 const TOOL_COST: Record<ReapTool, number> = {
-  "captions":      50,
-  "reframe":       80,
-  "dubbing":      120,
-  "audiogram":     80,
+  "captions": 50,
+  "reframe": 80,
+  "dubbing": 120,
+  "audiogram": 80,
   "transcription": 30,
-  "edit-videos":  150,
+  "edit-videos": 150,
 };
 
 const TOOL_TO_ASSET_TYPE: Record<ReapTool, "VIDEO" | "TRANSCRIPTION"> = {
-  "captions":      "VIDEO",
-  "reframe":       "VIDEO",
-  "dubbing":       "VIDEO",
-  "audiogram":     "VIDEO",
+  "captions": "VIDEO",
+  "reframe": "VIDEO",
+  "dubbing": "VIDEO",
+  "audiogram": "VIDEO",
   "transcription": "TRANSCRIPTION",
-  "edit-videos":   "VIDEO",
+  "edit-videos": "VIDEO",
 };
 
 export async function POST(req: NextRequest) {
@@ -91,16 +90,45 @@ export async function POST(req: NextRequest) {
     : undefined;
 
   let generationId: string;
+  let projectId: string;
   try {
-    const spent = await spendCredits({
-      userId,
-      prompt,
-      assetType: TOOL_TO_ASSET_TYPE[tool],
-      modelUsed: `reap:${tool}`,
-      credits: cost,
-      duration: inputDuration,
+    const started = await runTaskGenerationStart({
+      charge: {
+        userId,
+        prompt,
+        assetType: TOOL_TO_ASSET_TYPE[tool],
+        modelUsed: `reap:${tool}`,
+        credits: cost,
+        duration: inputDuration,
+      },
+      submit: async ({ generationId }) => {
+        const { projectId } = await startReapJob({
+          tool,
+          sourceUrl: body.sourceUrl!,
+          filename: body.filename ?? guessFilenameFromUrl(body.sourceUrl!),
+          options,
+        });
+
+        await prismadb.reapJob.create({
+          data: {
+            id: generationId,
+            userId,
+            projectId,
+            tool,
+            sourceUrl: body.sourceUrl!,
+            status: "processing",
+            options: options as Prisma.InputJsonValue,
+            creditsCost: cost,
+          },
+        });
+
+        return { projectId, taskId: `reap:${projectId}` };
+      },
+      taskMarkerFailure: "log",
+      logPrefix: "studio-edit/start",
     });
-    generationId = spent.generationId;
+    generationId = started.generationId;
+    projectId = started.providerResult.projectId;
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
       return NextResponse.json(
@@ -112,52 +140,17 @@ export async function POST(req: NextRequest) {
         { status: 402 },
       );
     }
-    throw err;
-  }
-
-  try {
-    const { projectId } = await startReapJob({
-      tool,
-      sourceUrl: body.sourceUrl,
-      filename: body.filename ?? guessFilenameFromUrl(body.sourceUrl),
-      options,
-    });
-
-    // Save the job to ReapJob
-    await prismadb.reapJob.create({
-      data: {
-        id: generationId, // Match the internal generation row ID for correlation
-        userId,
-        projectId,
-        tool,
-        sourceUrl: body.sourceUrl,
-        status: "processing",
-        options: options as Prisma.InputJsonValue,
-        creditsCost: cost,
-      },
-    });
-
-    // Stash the Reap projectId on the Generation row so the status route
-    // can correlate the upstream project with our internal id.
-    await prismadb.generation
-      .update({
-        where: { id: generationId },
-        data: { mediaUrl: `task:reap:${projectId}` },
-      })
-      .catch(() => { /* generation may not exist yet — non-fatal */ });
-
-    return NextResponse.json({
-      projectId,
-      generationId,
-      creditsCharged: cost,
-      status: "processing",
-    });
-  } catch (err) {
-    await rollbackGenerationCharge(generationId, userId, cost).catch(() => {});
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[studio-edit/start]", err);
     return NextResponse.json({ error: `Reap start failed: ${msg}` }, { status: 502 });
   }
+
+  return NextResponse.json({
+    projectId,
+    generationId,
+    creditsCharged: cost,
+    status: "processing",
+  });
 }
 
 function guessFilenameFromUrl(url: string): string {

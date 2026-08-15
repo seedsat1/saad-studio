@@ -5,6 +5,9 @@ import { spendCredits, InsufficientCreditsError, refundGenerationCharge, ensureU
 import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS, HOOK_STYLES, HOOK_ELEMENTS, HOOK_LOCATIONS, HOOK_CAMERAS, HOOK_EFFECTS, HOOK_CHARACTERS } from "@/lib/hook-studio-config";
 import { openai } from "@/lib/gptutils";
 import { buildHookStudioDirectorSystemPrompt } from "@/lib/hook-studio-director-prompt";
+import { getHookStudioCreditsAsync } from "@/lib/credit-pricing";
+import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
+import { getCentralizedDynamicVideoModels } from "@/lib/model-definition-registry";
 
 export const dynamic = "force-dynamic";
 
@@ -126,6 +129,43 @@ function getInternalImageModelId(modelId: string, hasRefs: boolean): string {
     return "nano-banana-pro";
   }
   return "seedream/5-pro"; // fallback
+}
+
+function centralNumber(value: unknown, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+async function getEffectiveHookVideoModels() {
+  try {
+    const centralModels = await getCentralizedDynamicVideoModels();
+    return HOOK_VIDEO_MODELS.map((model) => {
+      const central = centralModels.find((item) =>
+        item.id === model.id ||
+        item.api_route === model.id ||
+        item.id === model.apiRoute ||
+        item.api_route === model.apiRoute
+      );
+      if (!central) return model;
+      const caps = central.capabilities;
+      return {
+        ...model,
+        name: central.name || model.name,
+        apiRoute: central.api_route || model.apiRoute,
+        maxRefImages: centralNumber(caps?.max_reference_images, model.maxRefImages),
+        maxRefVideos: centralNumber(caps?.max_reference_videos, model.maxRefVideos),
+        maxRefVideoSeconds: centralNumber(caps?.max_reference_video_total_seconds, model.maxRefVideoSeconds),
+        maxRefAudios: centralNumber(caps?.max_reference_audios, model.maxRefAudios),
+        maxRefAudioSeconds: centralNumber(caps?.max_reference_audio_total_seconds, model.maxRefAudioSeconds),
+        durations: caps?.durations?.length ? caps.durations : model.durations,
+        aspectRatios: caps?.aspect_ratios?.length ? caps.aspect_ratios : model.aspectRatios,
+        qualityModes: caps?.resolutions?.length ? caps.resolutions : model.qualityModes,
+      };
+    });
+  } catch (error) {
+    console.warn("[hook-studio] Central model definitions unavailable; using legacy Hook model capabilities.", error);
+    return HOOK_VIDEO_MODELS;
+  }
 }
 
 function normalizeKlingStdDuration(value: unknown) {
@@ -365,7 +405,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const selectedModel = HOOK_VIDEO_MODELS.find((m) => m.id === modelId) || HOOK_VIDEO_MODELS[0];
+    const hookVideoModels = await getEffectiveHookVideoModels();
+    const selectedModel = hookVideoModels.find((m) => m.id === modelId || m.apiRoute === modelId) || hookVideoModels[0];
     const selectedGenre = HOOK_GENRES.find((g) => g.id === genre) || HOOK_GENRES[0];
     const selectedStyle = HOOK_STYLES.find((s) => s.id === artStyle) || HOOK_STYLES[0];
     const selectedElement = HOOK_ELEMENTS.find((el) => el.id === selectedElementId);
@@ -384,7 +425,7 @@ export async function POST(req: NextRequest) {
     const safeRefImages = Array.isArray(refImages) ? refImages.filter((v) => typeof v === "string" && /^https?:\/\//i.test(v)) : [];
     const safeRefVideos = Array.isArray(refVideos) ? refVideos.filter((v) => typeof v === "string" && /^https?:\/\//i.test(v)) : [];
     const safeRefAudios = Array.isArray(refAudios) ? refAudios.filter((v) => typeof v === "string" && /^https?:\/\//i.test(v)) : [];
-    const providerRoute = resolveHookWavespeedRoute(
+    let providerRoute = resolveHookWavespeedRoute(
       selectedModel.id,
       selectedModel.apiRoute,
       safeRefImages.length > 0,
@@ -392,6 +433,21 @@ export async function POST(req: NextRequest) {
       safeRefVideos.length > 0,
       safeRefImages.length,
     );
+    const legacyHookProvider = selectedModel.provider === "google" || selectedModel.apiRoute.startsWith("google/")
+      ? "google"
+      : selectedModel.provider === "openai" || selectedModel.apiRoute.startsWith("openai/")
+        ? "openai"
+        : "wavespeed";
+    const routingDecision = await resolveRuntimeProviderRoute({
+      modelId: selectedModel.apiRoute,
+      modality: selectedModel.durations[0] === 0 ? "image" : "video",
+      legacyRoute: { provider: legacyHookProvider, route: providerRoute },
+    });
+    if (routingDecision.routingSource === "control_center") {
+      if (routingDecision.effectiveProvider === "google" || routingDecision.effectiveProvider === "wavespeed" || routingDecision.effectiveProvider === "openai") {
+        providerRoute = routingDecision.providerRoute;
+      }
+    }
 
     if (executeStoryboard && executeAsImage) {
       try {
@@ -596,7 +652,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 2: Video Execution (Bypasses OpenAI, spends credits, dispatches task)
-    const cost = selectedModel.creditCost;
+    const cost = await getHookStudioCreditsAsync(selectedModel.id, {
+      duration: safeDuration,
+      quality,
+      resolution: quality,
+      generate_audio: !!generateAudio,
+    }, {
+      legacyUserCredits: selectedModel.creditCost,
+    });
     const isImageModel = selectedModel.durations[0] === 0;
     const assetType = isImageModel ? "IMAGE" : "VIDEO";
 
@@ -614,6 +677,10 @@ export async function POST(req: NextRequest) {
         quality: quality,
         providerName: "WaveSpeed",
         providerModel: providerRoute,
+        requestPayload: {
+          ...body,
+          routing: routingMetadata(routingDecision),
+        },
       });
       newBalance = charge.remainingCredits;
       generationId = charge.generationId;
@@ -637,7 +704,9 @@ export async function POST(req: NextRequest) {
     let resultUrl: string | null = null;
     let status = "processing";
 
-    const isGoogleModel = selectedModel.provider === "google" || selectedModel.apiRoute.startsWith("google/");
+    const isGoogleModel = routingDecision.routingSource === "control_center"
+      ? routingDecision.effectiveProvider === "google"
+      : selectedModel.provider === "google" || selectedModel.apiRoute.startsWith("google/");
 
     if (isGoogleModel) {
       try {
@@ -650,7 +719,7 @@ export async function POST(req: NextRequest) {
             Authorization: req.headers.get("authorization") || "",
           },
           body: JSON.stringify({
-            modelRoute: selectedModel.apiRoute,
+            modelRoute: providerRoute,
             payload: {
               prompt: `${promptToUse.trim()}. [Style: ${selectedGenre.nameEn}. ${selectedStyle.systemPromptAddon}. ${selectedGenre.systemPromptAddon}]${safeRefImages.length > 0 ? " Maintain strict character and style consistency matching the reference image." : ""}`,
               aspect_ratio: aspectRatio,

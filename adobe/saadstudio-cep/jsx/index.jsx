@@ -5241,6 +5241,12 @@
         });
     };
 
+    function getActiveSequence() {
+        var seq = app.project.activeSequence;
+        if (!seq) throw new Error('No active sequence found.');
+        return seq;
+    }
+
     host.saadstudio.getAudioTrackClips = function (trackTypeStr, trackIndexNum) {
         try {
             var seq = getActiveSequence();
@@ -5254,12 +5260,28 @@
             for (var i = 0; i < track.clips.numItems; i++) {
                 var clip = track.clips[i];
                 var resolved = getResolvedClipInfo(clip);
-                if (resolved && resolved.mediaPath) {
+                if (resolved && resolved.sourcePath) {
+                    var timelineStartSec = 0;
+                    var timelineEndSec = 0;
+                    try { if (clip.start) timelineStartSec = Number(clip.start.seconds); } catch (_) {}
+                    try { if (clip.end) timelineEndSec = Number(clip.end.seconds); } catch (_) {}
+                    
+                    var srcIn = 0;
+                    var srcOut = 0;
+                    
+                    if (resolved.totalDelta !== null && resolved.totalDelta !== undefined) {
+                        srcIn = timelineStartSec - resolved.totalDelta;
+                        srcOut = timelineEndSec - resolved.totalDelta;
+                    } else {
+                        try { if (clip.inPoint) srcIn = Number(clip.inPoint.seconds); } catch (_) {}
+                        try { if (clip.outPoint) srcOut = Number(clip.outPoint.seconds); } catch (_) {}
+                    }
+                    
                     clips.push({
-                        sourceFile:    resolved.mediaPath,
-                        srcIn:         resolved.sourceInPointSec,
-                        srcOut:        resolved.sourceOutPointSec,
-                        timelineStart: ticksToSeconds(clip.start.ticks)
+                        sourceFile:    resolved.sourcePath,
+                        srcIn:         srcIn,
+                        srcOut:        srcOut,
+                        timelineStart: timelineStartSec
                     });
                 }
             }
@@ -5324,18 +5346,27 @@
             selectedSet[cutTracks[s].type + ':' + cutTracks[s].index] = true;
         }
 
-        // Lock non-selected tracks, save previous states.
+        // Lock/Unlock states using standard API
         var lockStates = { video: [], audio: [] };
         var v, a;
+        
         for (v = 0; v < seq.videoTracks.numTracks; v++) {
-            var qeV = qeSeq.getVideoTrackAt(v);
-            lockStates.video.push(qeV ? qeV.isLocked() : false);
-            if (!allSelected && !selectedSet['video:' + v] && qeV) qeV.setLock(true);
+            var standardV = seq.videoTracks[v];
+            lockStates.video.push(standardV ? standardV.locked : false);
+            
+            var isSelected = allSelected || selectedSet['video:' + v];
+            if (standardV) {
+                standardV.locked = !isSelected;
+            }
         }
         for (a = 0; a < seq.audioTracks.numTracks; a++) {
-            var qeA = qeSeq.getAudioTrackAt(a);
-            lockStates.audio.push(qeA ? qeA.isLocked() : false);
-            if (!allSelected && !selectedSet['audio:' + a] && qeA) qeA.setLock(true);
+            var standardA = seq.audioTracks[a];
+            lockStates.audio.push(standardA ? standardA.locked : false);
+            
+            var isSelected = allSelected || selectedSet['audio:' + a];
+            if (standardA) {
+                standardA.locked = !isSelected;
+            }
         }
 
         // Process largest-start-time first to keep indices valid during ripple.
@@ -5354,28 +5385,59 @@
 
                     var startTC = secondsToTimecode(r.start, fps, 'ceil');
                     var endTC   = secondsToTimecode(r.end,   fps, 'floor');
-                    qeSeq.razor(startTC);
-                    qeSeq.razor(endTC);
+                    
+                    // Razor only on the selected tracks directly!
+                    for (v = 0; v < seq.videoTracks.numTracks; v++) {
+                        if (!allSelected && !selectedSet['video:' + v]) continue;
+                        var qeV = qeSeq.getVideoTrackAt(v);
+                        if (qeV) {
+                            qeV.razor(startTC);
+                            qeV.razor(endTC);
+                        }
+                    }
+                    for (a = 0; a < seq.audioTracks.numTracks; a++) {
+                        if (!allSelected && !selectedSet['audio:' + a]) continue;
+                        var qeA = qeSeq.getAudioTrackAt(a);
+                        if (qeA) {
+                            qeA.razor(startTC);
+                            qeA.razor(endTC);
+                        }
+                    }
 
-                    var rsInt = parseInt(secondsToTicks(startF / fps), 10);
-                    var reInt = parseInt(secondsToTicks(endF   / fps), 10);
+                    var rsInt = parseInt(secondsToTicksString(startF / fps), 10);
+                    var reInt = parseInt(secondsToTicksString(endF   / fps), 10);
+
+                    // To prevent double-rippling (out of sync), only ripple the first removed clip in this range.
+                    var rippled = false;
 
                     for (v = 0; v < seq.videoTracks.numTracks; v++) {
+                        if (!allSelected && !selectedSet['video:' + v]) continue;
                         var vt = seq.videoTracks[v];
                         for (var vc = vt.clips.numItems - 1; vc >= 0; vc--) {
                             var vClip = vt.clips[vc];
                             var vMid  = parseInt(vClip.start.ticks, 10) +
                                         Math.floor((parseInt(vClip.end.ticks, 10) - parseInt(vClip.start.ticks, 10)) / 2);
-                            if (vMid > rsInt && vMid < reInt) { vClip.remove(true, true); removed++; }
+                            if (vMid > rsInt && vMid < reInt) {
+                                var useRipple = !rippled;
+                                vClip.remove(useRipple, useRipple);
+                                if (useRipple) rippled = true;
+                                removed++;
+                            }
                         }
                     }
                     for (a = 0; a < seq.audioTracks.numTracks; a++) {
+                        if (!allSelected && !selectedSet['audio:' + a]) continue;
                         var at = seq.audioTracks[a];
                         for (var ac = at.clips.numItems - 1; ac >= 0; ac--) {
                             var aClip = at.clips[ac];
                             var aMid  = parseInt(aClip.start.ticks, 10) +
                                         Math.floor((parseInt(aClip.end.ticks, 10) - parseInt(aClip.start.ticks, 10)) / 2);
-                            if (aMid > rsInt && aMid < reInt) { aClip.remove(true, true); removed++; }
+                            if (aMid > rsInt && aMid < reInt) {
+                                var useRipple = !rippled;
+                                aClip.remove(useRipple, useRipple);
+                                if (useRipple) rippled = true;
+                                removed++;
+                            }
                         }
                     }
                 } catch (e) {
@@ -5384,12 +5446,20 @@
             }
         } finally {
             for (v = 0; v < seq.videoTracks.numTracks; v++) {
-                var qeVr = qeSeq.getVideoTrackAt(v);
-                if (qeVr) qeVr.setLock(lockStates.video[v]);
+                try {
+                    var standardV = seq.videoTracks[v];
+                    if (standardV && lockStates.video[v] !== undefined) {
+                        standardV.locked = lockStates.video[v];
+                    }
+                } catch (_) {}
             }
             for (a = 0; a < seq.audioTracks.numTracks; a++) {
-                var qeAr = qeSeq.getAudioTrackAt(a);
-                if (qeAr) qeAr.setLock(lockStates.audio[a]);
+                try {
+                    var standardA = seq.audioTracks[a];
+                    if (standardA && lockStates.audio[a] !== undefined) {
+                        standardA.locked = lockStates.audio[a];
+                    }
+                } catch (_) {}
             }
         }
         return { removed: removed, total: ranges.length, errors: errors };

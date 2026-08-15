@@ -332,7 +332,7 @@ type CharacterReference = {
   };
 };
 
-const RATIO_OPTIONS = [
+const RATIO_OPTION_CATALOG = [
   { value: "16:9", width: 1920, height: 1080, cls: "ratio-16-9" },
   { value: "3:2", width: 1620, height: 1080, cls: "ratio-3-2" },
   { value: "4:3", width: 1440, height: 1080, cls: "ratio-4-3" },
@@ -349,7 +349,21 @@ const RATIO_OPTIONS = [
   { value: "1:8", width: 512, height: 4096, cls: "ratio-1-8" },
 ] as const;
 
-type RatioOption = (typeof RATIO_OPTIONS)[number];
+type RatioOption = { value: string; width: number; height: number; cls: string };
+
+function ratioOptionForValue(value: string): RatioOption {
+  const fromCatalog = RATIO_OPTION_CATALOG.find((ratio) => ratio.value === value);
+  if (fromCatalog) return fromCatalog;
+  const match = value.match(/^(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)$/);
+  const width = match ? Number(match[1]) : 1;
+  const height = match ? Number(match[2]) : 1;
+  return {
+    value,
+    width: Number.isFinite(width) && width > 0 ? width : 1,
+    height: Number.isFinite(height) && height > 0 ? height : 1,
+    cls: "ratio-auto",
+  };
+}
 
 function ratioIconStyle(ratio: RatioOption) {
   const maxWidth = 38;
@@ -1663,7 +1677,9 @@ export default function ImageWorkspacePage() {
   useEffect(() => {
     if (rawImageModels.length > 0) {
       const existsSelected = visibleImageModels.find((m) => m.id === selectedModel.id);
-      if (!existsSelected && visibleImageModels.length > 0) {
+      if (existsSelected && existsSelected !== selectedModel) {
+        setSelectedModel(existsSelected);
+      } else if (!existsSelected && visibleImageModels.length > 0) {
         const def = getDefaultImageModel(visibleImageModels) ?? visibleImageModels.find((model) => model.id === DEFAULT_GOOGLE_IMAGE_MODEL_ID) ?? visibleImageModels[0];
         if (def) setSelectedModel(def);
       }
@@ -1853,11 +1869,17 @@ export default function ImageWorkspacePage() {
     };
   }, [beginGeneration, finishGeneration]);
 
-  const selectedRatio = useMemo(() => RATIO_OPTIONS.find((r) => r.value === aspectRatio) || RATIO_OPTIONS[0], [aspectRatio]);
+  const selectedRatio = useMemo(() => ratioOptionForValue(aspectRatio), [aspectRatio]);
   const availableRatioOptions = useMemo(
-    () => RATIO_OPTIONS.filter((ratio) => selectedModel.aspectRatios.includes(ratio.value)),
+    () => selectedModel.aspectRatios.map(ratioOptionForValue),
     [selectedModel.aspectRatios],
   );
+  useEffect(() => {
+    if (selectedModel.aspectRatios.length > 0 && !selectedModel.aspectRatios.includes(aspectRatio)) {
+      setAspectRatio(selectedModel.aspectRatios[0]);
+      setAspectRatioDropdownOpen(false);
+    }
+  }, [aspectRatio, selectedModel.aspectRatios]);
   const createNeedsImage = selectedModel.inputType !== "text-to-image";
   const selectedCharacter = useMemo(
     () => characters.find((character) => character.id === selectedCharacterId) || null,

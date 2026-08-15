@@ -1,6 +1,14 @@
 import {
-  defaultProvider,
-  normalizeMediaUrl as newNormalizeMediaUrl,
+  bucketForAssetType as runtimeBucketForAssetType,
+  createSignedUploadUrl as runtimeCreateSignedUploadUrl,
+  deleteObject,
+  extensionFromContentType as runtimeExtensionFromContentType,
+  isStoredAssetUrl as runtimeIsStoredAssetUrl,
+  normalizeMediaUrl as runtimeNormalizeMediaUrl,
+  putObject,
+  resolvePublicUrl,
+  uploadBuffer,
+  uploadFromUrl,
 } from "./storage";
 
 export const BUCKETS = {
@@ -36,38 +44,23 @@ export function isStorageConfigured(): boolean {
 }
 
 export function bucketForAssetType(assetType: string): BucketName {
-  const type = assetType.toLowerCase();
-  if (type.includes("video") || type.includes("cinema") || type.includes("transition")) return BUCKETS.videos;
-  if (type.includes("audio") || type.includes("music")) return BUCKETS.audio;
-  if (type.includes("thumbnail")) return BUCKETS.thumbnails;
-  return BUCKETS.images;
+  return runtimeBucketForAssetType(assetType) as BucketName;
 }
 
 export function extensionFromContentType(ct: string): string {
-  if (ct.includes("jpeg") || ct.includes("jpg")) return ".jpg";
-  if (ct.includes("png")) return ".png";
-  if (ct.includes("webp")) return ".webp";
-  if (ct.includes("gif")) return ".gif";
-  if (ct.includes("mp4")) return ".mp4";
-  if (ct.includes("webm")) return ".webm";
-  if (ct.includes("mp3") || ct.includes("mpeg")) return ".mp3";
-  if (ct.includes("wav")) return ".wav";
-  if (ct.includes("ogg")) return ".ogg";
-  if (ct.includes("pdf")) return ".pdf";
-  if (ct.includes("json")) return ".json";
-  return ".bin";
+  return runtimeExtensionFromContentType(ct);
 }
 
 export function getPublicObjectUrl(bucket: string, path: string): string {
-  return defaultProvider.getPublicUrl(bucket, path);
+  return resolvePublicUrl(bucket, path, { deliveryMode: "direct" });
 }
 
 export function normalizeMediaUrl(url: string | null | undefined): string | null {
-  return newNormalizeMediaUrl(url);
+  return runtimeNormalizeMediaUrl(url);
 }
 
 export function isStoredAssetUrl(url: string): boolean {
-  return defaultProvider.isStoredAssetUrl(url);
+  return runtimeIsStoredAssetUrl(url);
 }
 
 export async function createSignedUploadUrl(params: {
@@ -76,11 +69,7 @@ export async function createSignedUploadUrl(params: {
   contentType: string;
   expiresIn?: number;
 }): Promise<{ signedUrl: string; publicUrl: string; key: string }> {
-  const result = await defaultProvider.createSignedUploadUrl(params);
-  return {
-    ...result,
-    publicUrl: `/api/media/${result.key}`,
-  };
+  return runtimeCreateSignedUploadUrl(params);
 }
 
 export async function putObjectToStorage(params: {
@@ -90,16 +79,14 @@ export async function putObjectToStorage(params: {
   contentType: string;
   cacheControl?: string;
 }): Promise<string> {
-  await defaultProvider.upload(params);
-  const cleanPath = params.path.replace(/^\/+/, "").replace(/\\/g, "/");
-  return params.bucket ? `${params.bucket}/${cleanPath}` : cleanPath;
+  return putObject(params);
 }
 
 export async function deleteObjectFromStorage(params: {
   bucket: string;
   path: string;
 }): Promise<void> {
-  return defaultProvider.delete(params);
+  return deleteObject(params);
 }
 
 export async function readTextFromStorage(params: {
@@ -107,7 +94,10 @@ export async function readTextFromStorage(params: {
   path: string;
 }): Promise<string | null> {
   try {
-    const response = await defaultProvider.download(params);
+    const { readObject, objectKeyFor } = await import("./storage");
+    const result = await readObject({ objectKey: objectKeyFor(params.bucket, params.path) });
+    const response = result?.response;
+    if (!response) return null;
     const body = response.body;
     if (!body) return "";
     
@@ -163,35 +153,7 @@ export async function uploadUrlToStorage(params: {
   assetType: string;
   generationId: string;
 }): Promise<string | null> {
-  const { remoteUrl, userId, assetType, generationId } = params;
-
-  if (!remoteUrl.startsWith("http://") && !remoteUrl.startsWith("https://")) {
-    return null;
-  }
-
-  try {
-    const fetchResponse = await fetch(remoteUrl, { signal: AbortSignal.timeout(120_000) });
-    if (!fetchResponse.ok) {
-      return null;
-    }
-
-    const contentType = fetchResponse.headers.get("content-type") || "application/octet-stream";
-    const buffer = Buffer.from(await fetchResponse.arrayBuffer());
-    const bucket = bucketForAssetType(assetType);
-    const ext = extensionFromContentType(contentType);
-    const path = `${userId}/${generationId}${ext}`;
-
-    return await putObjectToStorage({
-      bucket,
-      path,
-      body: buffer,
-      contentType,
-      cacheControl: "public, max-age=2592000, immutable",
-    });
-  } catch (error) {
-    console.error("[storage] uploadUrlToStorage failed:", error);
-    return null;
-  }
+  return uploadFromUrl(params);
 }
 
 export async function uploadBufferToStorage(params: {
@@ -202,27 +164,7 @@ export async function uploadBufferToStorage(params: {
   generationId: string;
   fileName?: string;
 }): Promise<string | null> {
-  try {
-    const bucket = bucketForAssetType(params.assetType);
-    const ext = params.fileName
-      ? `.${params.fileName.split(".").pop()}`
-      : extensionFromContentType(params.contentType);
-    const path = `${params.userId}/${params.generationId}${ext}`;
-    const body = Buffer.isBuffer(params.buffer)
-      ? params.buffer
-      : Buffer.from(params.buffer);
-
-    return await putObjectToStorage({
-      bucket,
-      path,
-      body,
-      contentType: params.contentType,
-      cacheControl: "public, max-age=2592000, immutable",
-    });
-  } catch (error) {
-    console.error("[storage] uploadBufferToStorage failed:", error);
-    return null;
-  }
+  return uploadBuffer(params);
 }
 
 export async function deleteFromStorage(params: {

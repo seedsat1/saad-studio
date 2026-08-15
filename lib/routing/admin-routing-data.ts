@@ -10,6 +10,7 @@ import { loadModels } from "@/lib/pricing";
 import { loadRoutingDiagnosticsResult, loadRoutingOverridesResult } from "@/lib/routing/routing-config";
 import { evaluateFallbackRoutes, resolveEffectiveRoutingConfig } from "@/lib/routing/provider-router";
 import { validateRoutingOverride } from "@/lib/routing/route-validator";
+import { THREE_D_ROUTING_MODELS } from "@/lib/three-d-models";
 
 function defaultConfig(input: {
   modelId: string;
@@ -81,6 +82,17 @@ export async function loadAdminRoutingData() {
           enabled: model.isActive !== false,
         });
       }),
+    ...THREE_D_ROUTING_MODELS.map((model) =>
+      defaultConfig({
+        modelId: model.modelId,
+        modelName: model.modelName,
+        modality: model.modality,
+        runtimeSource: model.runtimeSource,
+        sourceModelId: model.sourceModelId,
+        pricingProvider: model.pricingProvider,
+        enabled: model.enabled,
+      }),
+    ),
   ];
 
   const rows = defaults.map((defaultsRow) => {

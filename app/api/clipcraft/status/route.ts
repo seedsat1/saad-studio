@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/security";
-import { setGenerationMediaUrl, saveAdditionalGenerationUrls, ensureUserRow, finalizeReapGeneration } from "@/lib/credit-ledger";
+import { saveAdditionalGenerationUrls, ensureUserRow, finalizeReapGeneration } from "@/lib/credit-ledger";
+import { completeTaskGeneration } from "@/lib/generation/task-orchestrator";
 import prismadb from "@/lib/prismadb";
 import { pollReapStatus } from "@/lib/providers/reap";
 import { persistProviderUrl } from "@/lib/providers/persist-output";
@@ -84,7 +85,10 @@ export async function GET(req: NextRequest) {
 
     // Save the primary URL on the Generation row, secondary URLs as extras.
     if (generationId && persistedUrls[0]) {
-      await setGenerationMediaUrl(generationId, persistedUrls[0]).catch(() => {});
+      await completeTaskGeneration({
+        generationId,
+        mediaUrl: persistedUrls[0],
+      }).catch(() => {});
       if (persistedUrls.length > 1) {
         const row = await prismadb.generation
           .findUnique({

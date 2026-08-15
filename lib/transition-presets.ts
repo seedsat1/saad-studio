@@ -472,7 +472,8 @@ export async function calcTransitionCreditsForModel(
   presetId: string,
   duration: number,
   resolution: string | undefined,
-  modelId: TransitionModelId,
+  modelId: string,
+  options?: { legacyMinimumCredits?: number },
 ): Promise<number> {
   const preset = TRANSITION_PRESETS.find((p) => p.id === presetId);
   const multiplier = preset?.costMultiplier ?? 1.0;
@@ -491,7 +492,14 @@ export async function calcTransitionCreditsForModel(
           : "pro"
         : String(resolution || "720p").toLowerCase();
     const base = await getGenerationCost(modelId, safeDuration, 1, quality);
-    if (base > 0) return Math.max(1, Math.ceil(base * multiplier));
+    if (base > 0) {
+      const pricedCredits = Math.max(1, Math.ceil(base * multiplier));
+      const legacyMinimumCredits = Number(options?.legacyMinimumCredits);
+      if (Number.isFinite(legacyMinimumCredits) && legacyMinimumCredits > 0) {
+        return Math.max(pricedCredits, Math.ceil(legacyMinimumCredits));
+      }
+      return pricedCredits;
+    }
   } catch {}
 
   return calcTransitionCredits(presetId, safeDuration, resolution);

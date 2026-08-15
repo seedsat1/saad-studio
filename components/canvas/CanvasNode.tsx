@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useState, useEffect, useRef } from "react";
+import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import {
   Play, Loader2, ChevronDown, Search, Plus,
@@ -15,6 +15,7 @@ import {
 import { useCanvasActions } from "./canvas-context";
 import { VIDEO_MODEL_REGISTRY, type WaveSpeedVideoModel } from "@/lib/video-model-registry";
 import { getFallbackUrls } from "@/lib/utils";
+import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 
 // ─── Model definitions ────────────────────────────────────────────────────────
 interface ModelDef {
@@ -51,6 +52,20 @@ function toModelDef(m: { id: string; label: string; sublabel?: string | null; gr
     badge: (m.badge as ModelDef["badge"]) || undefined,
     icon: familyIcon(m.group, label),
     family: m.group || "AI",
+  };
+}
+
+function toVideoModelDef(m: { id: string; name?: string; api_route?: string; family_label?: string; description?: string; badge?: string | null }): ModelDef {
+  const label = m.name || m.id;
+  const family = m.family_label || "Video";
+  return {
+    id: m.api_route || m.id,
+    label,
+    short: label.length > 14 ? label.slice(0, 12) + "…" : label,
+    desc: (m.description || family || "").toString().slice(0, 34),
+    badge: (m.badge as ModelDef["badge"]) || undefined,
+    icon: familyIcon(family, label),
+    family,
   };
 }
 
@@ -222,12 +237,13 @@ function Chip({ label, active, onClick }: {
 }
 
 // ─── Model dropdown ───────────────────────────────────────────────────────────
-function ModelDropdown({ value, onChange, nodeType, accentColor, rgb, onClose }: {
+function ModelDropdown({ value, onChange, nodeType, accentColor, rgb, onClose, modelOptions }: {
   value: string | undefined; onChange: (id: string) => void;
   nodeType: CanvasNodeType; accentColor: string; rgb: string; onClose: () => void;
+  modelOptions?: ModelDef[];
 }) {
   const [q, setQ] = useState("");
-  const models    = modelsFor(nodeType);
+  const models    = modelOptions ?? modelsFor(nodeType);
   const filtered  = q ? models.filter(m =>
     m.label.toLowerCase().includes(q.toLowerCase()) ||
     m.family.toLowerCase().includes(q.toLowerCase())
@@ -716,6 +732,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
   const sc  = STATUS_CFG[data.status];
 
   const { runNode, deleteNode, updateNodeSettings, addNodeAfter } = useCanvasActions();
+  const { imageModels: centralImageModels, videoModels: centralVideoModels } = useFullDynamicModels();
 
   const [openChip, setOpenChip] = useState<"model" | "ar" | "dur" | "res" | "add" | null>(null);
   const [count,    setCount]    = useState(1);
@@ -767,19 +784,83 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
   const slotTop = (i: number, t: number) =>
     t === 1 ? "50%" : `${((i + 1) / (t + 1)) * 100}%`;
 
-  const selModel = modelById(data.settings.modelId, data.nodeType);
-  const videoModelMeta = isVideo ? getVideoModelByRoute(data.settings.modelId) : undefined;
-  const videoAROptions = isVideo ? getVideoAspectOptions(data.settings.modelId) : [];
-  const videoDurOptions = isVideo ? getVideoDurationOptions(data.settings.modelId) : [];
-  const videoResOptions = isVideo ? getVideoQualityOptions(data.settings.modelId) : [];
+  const centralImageModelDefs = useMemo(
+    () => centralImageModels
+      .filter((m: any) => m.inputType === "text-to-image" && m.isActive !== false)
+      .map((m: any) => toModelDef(m)),
+    [centralImageModels],
+  );
+  const centralImageEditModelDefs = useMemo(
+    () => centralImageModels
+      .filter((m: any) => (m.inputType === "edit" || m.inputType === "image-to-image") && m.isActive !== false)
+      .map((m: any) => toModelDef(m)),
+    [centralImageModels],
+  );
+  const centralVideoModelDefs = useMemo(
+    () => centralVideoModels
+      .filter((m: any) => m.isActive !== false)
+      .map((m: any) => toVideoModelDef(m)),
+    [centralVideoModels],
+  );
+  const modelOptions = useMemo(() => {
+    if (data.nodeType === "assistant" || data.nodeType === "translate") return LLM_MODELS;
+    if (
+      data.nodeType === "image-to-video" || data.nodeType === "video-to-video" || data.nodeType === "text-to-video" ||
+      data.nodeType === "video-combiner" || data.nodeType === "video-as-prompt" || data.nodeType === "frame-interpolation" ||
+      data.nodeType === "video-audio-joint" || data.nodeType === "lipsync" || data.nodeType === "head-animation" ||
+      data.nodeType === "subtitle-generator"
+    ) return centralVideoModelDefs.length ? centralVideoModelDefs : VIDEO_MODELS;
+    if (
+      data.nodeType === "image-edit" || data.nodeType === "variations" ||
+      data.nodeType === "controlnet-canny" || data.nodeType === "controlnet-depth" || data.nodeType === "controlnet-openpose" ||
+      data.nodeType === "controlnet-lineart" || data.nodeType === "controlnet-scribble" ||
+      data.nodeType === "ip-adapter" || data.nodeType === "face-swap" || data.nodeType === "style-transfer" || data.nodeType === "comic-layout"
+    ) return centralImageEditModelDefs.length ? centralImageEditModelDefs : IMAGE_EDIT_MODELS;
+    return centralImageModelDefs.length ? centralImageModelDefs : IMAGE_MODELS;
+  }, [centralImageEditModelDefs, centralImageModelDefs, centralVideoModelDefs, data.nodeType]);
+
+  const selectedImageModel = useMemo(
+    () => centralImageModels.find((model: any) => model.id === data.settings.modelId),
+    [centralImageModels, data.settings.modelId],
+  );
+  const effectiveVideoModels = centralVideoModels.length ? centralVideoModels : VIDEO_MODEL_REGISTRY;
+  const selectedVideoModel = useMemo(
+    () => effectiveVideoModels.find((model: any) => model.api_route === data.settings.modelId || model.id === data.settings.modelId),
+    [effectiveVideoModels, data.settings.modelId],
+  );
+  const selModel = data.settings.modelId
+    ? modelOptions.find((model) => model.id === data.settings.modelId)
+    : undefined;
+  const videoModelMeta = isVideo ? selectedVideoModel : undefined;
+  const videoAROptions = isVideo
+    ? selectedVideoModel?.capabilities?.aspect_ratios?.length
+      ? selectedVideoModel.capabilities.aspect_ratios
+      : getVideoAspectOptions(data.settings.modelId)
+    : [];
+  const videoDurOptions = isVideo
+    ? selectedVideoModel?.capabilities?.durations?.length
+      ? selectedVideoModel.capabilities.durations
+      : getVideoDurationOptions(data.settings.modelId)
+    : [];
+  const videoResOptions = isVideo
+    ? selectedVideoModel?.capabilities?.resolutions?.length
+      ? selectedVideoModel.capabilities.resolutions
+      : getVideoQualityOptions(data.settings.modelId)
+    : [];
+  const imageAROptions = !isVideo && selectedImageModel?.aspectRatios?.length
+    ? selectedImageModel.aspectRatios
+    : ASPECT_RATIOS.filter(({ v }) => v !== "auto").map(({ v }) => v);
+  const imageResOptions = !isVideo && selectedImageModel?.qualityParam?.length
+    ? selectedImageModel.qualityParam
+    : IMAGE_QUALITIES;
   const showVideoAR = isVideo && videoAROptions.length > 0;
   const showVideoDur = isVideo && videoDurOptions.length > 0;
   const showVideoRes = isVideo && videoResOptions.length > 0;
 
-  const arFallback = isVideo ? (videoAROptions[0] || "Auto") : "1:1";
+  const arFallback = isVideo ? (videoAROptions[0] || "Auto") : (imageAROptions[0] || "1:1");
   const durFallback = isVideo ? (videoDurOptions[0] || 8) : 5;
-  const resOptions = isVideo ? videoResOptions : IMAGE_QUALITIES;
-  const resFallback = isVideo ? (videoResOptions[0] || "720p") : "1K";
+  const resOptions = isVideo ? videoResOptions : imageResOptions;
+  const resFallback = isVideo ? (videoResOptions[0] || "720p") : (imageResOptions[0] || "1K");
 
   const selAR    = data.settings.aspectRatio ?? arFallback;
   const selDur   = data.settings.duration    ?? durFallback;
@@ -1496,6 +1577,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
                 <ModelDropdown
                   value={data.settings.modelId} onChange={v => updateNodeSettings(id, { modelId: v })}
                   nodeType={data.nodeType} accentColor={cfg.accentColor} rgb={rgb}
+                  modelOptions={modelOptions}
                   onClose={() => setOpenChip(null)}
                 />
               )}
@@ -1507,7 +1589,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
             <div style={{ position: "relative", flexShrink: 0 }}>
               <Chip label={selAR} active={openChip === "ar"} onClick={() => toggleChip("ar")} />
               {openChip === "ar" && (
-                <ARDropdown value={selAR} onChange={v => updateNodeSettings(id, { aspectRatio: v })} options={ASPECT_RATIOS.filter(({ v }) => v !== "auto").map(({ v }) => v)} rgb={rgb} onClose={() => setOpenChip(null)} />
+                <ARDropdown value={selAR} onChange={v => updateNodeSettings(id, { aspectRatio: v })} options={imageAROptions} rgb={rgb} onClose={() => setOpenChip(null)} />
               )}
             </div>
           )}

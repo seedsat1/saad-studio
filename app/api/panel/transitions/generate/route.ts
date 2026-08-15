@@ -11,6 +11,7 @@ import {
 import {
   assembleHiddenPrompt,
   calcTransitionCredits,
+  calcTransitionCreditsForModel,
   getPresetById,
 } from "@/lib/transition-presets";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
@@ -172,7 +173,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid preset" }, { status: 400 });
     }
 
-    const creditsToCharge = calcTransitionCredits(presetId, duration, controls.resolution);
+    const legacyCredits = calcTransitionCredits(presetId, duration, controls.resolution);
+    const creditsToCharge = await calcTransitionCreditsForModel(presetId, duration, controls.resolution, modelId, {
+      legacyMinimumCredits: legacyCredits,
+    });
     const hidden = assembleHiddenPrompt(preset, controls);
 
     const precheck = await precheckGenerationPolicy({

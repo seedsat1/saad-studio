@@ -8,7 +8,7 @@ import {
   setGenerationTaskMarker,
   spendCredits,
 } from "@/lib/credit-ledger";
-import { assembleHiddenPrompt, calcTransitionCredits, getPresetById } from "@/lib/transition-presets";
+import { assembleHiddenPrompt, calcTransitionCredits, calcTransitionCreditsForModel, getPresetById } from "@/lib/transition-presets";
 import { isSafePublicHttpUrl } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
@@ -252,7 +252,10 @@ export async function POST(req: NextRequest) {
     };
     const hidden = assembleHiddenPrompt(preset, controls);
 
-    const creditsToCharge = calcTransitionCredits(presetId, duration, resolution);
+    const legacyCredits = calcTransitionCredits(presetId, duration, resolution);
+    const creditsToCharge = await calcTransitionCreditsForModel(presetId, duration, resolution, modelId, {
+      legacyMinimumCredits: legacyCredits,
+    });
     const spent = await spendCredits({
       userId,
       credits: creditsToCharge,

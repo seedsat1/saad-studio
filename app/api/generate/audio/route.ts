@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost, getLegacyAudioAvatarUserCharge } from "@/lib/pricing";
 import { getAudioActionCredits } from "@/lib/credit-pricing";
-import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setActualProviderUsage, setGenerationCompletedWithoutMedia, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
+import { isFinalProviderExecutionAllowed } from "@/lib/generation/runtime-safety";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,23 @@ const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const KIE_BASE_URL = "https://api.kie.ai/api/v1";
 const KIE_FILE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-base64-upload";
 const IDEMPOTENCY_ROUTE = "generate:audio";
+
+function providerNotActiveResponse(provider: "kie" | "wavespeed" | "google") {
+  const label = provider === "kie" ? "KIE" : provider === "wavespeed" ? "WaveSpeed" : "Google";
+  return {
+    error: `${label} provider is not active for generation execution.`,
+    code: "provider_not_active",
+    provider,
+  };
+}
+
+function hasActiveWaveSpeedFallback(wavespeedKey: string | undefined): boolean {
+  return Boolean(wavespeedKey) && isFinalProviderExecutionAllowed("wavespeed");
+}
+
+function hasActiveKie(kieKey: string | undefined): boolean {
+  return Boolean(kieKey) && isFinalProviderExecutionAllowed("kie");
+}
 
 const WS_TTS_MODEL = "elevenlabs/multilingual-v2";
 const WS_VIDEO2AUDIO_MODEL = "wavespeed-ai/mmaudio-v2";
@@ -1087,6 +1105,34 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if ((actionType === "speech-to-text" || actionType === "audio-isolation" || actionType === "lip-sync") && !hasActiveKie(kieKey)) {
+      return NextResponse.json(providerNotActiveResponse("kie"), { status: 503 });
+    }
+    if ((actionType === "video2audio" || actionType === "voice-changer" || actionType === "dubbing") && !hasActiveWaveSpeedFallback(wavespeedKey)) {
+      return NextResponse.json(providerNotActiveResponse("wavespeed"), { status: 503 });
+    }
+    if (actionType === "tts") {
+      const hasActiveGoogleTts = isGeminiTtsModelSupported(body.model) && Boolean(googleKey) && isFinalProviderExecutionAllowed("google");
+      const hasActiveWaveSpeedTts = Boolean(wavespeedKey) && isFinalProviderExecutionAllowed("wavespeed");
+      const hasActiveKieTts = isKieTtsModelSupported(body.model) && hasActiveKie(kieKey);
+      if (!hasActiveGoogleTts && !hasActiveWaveSpeedTts && !hasActiveKieTts) {
+        return NextResponse.json(providerNotActiveResponse(isGeminiTtsModelSupported(body.model) ? "google" : "wavespeed"), { status: 503 });
+      }
+    }
+    if (actionType === "music") {
+      const requestedMusicModel = resolveWaveSpeedMusicModel(body.model);
+      const isSoundEffect = requestedMusicModel === KIE_SOUND_EFFECT_V2_MODEL;
+      if (isSoundEffect && !hasActiveKie(kieKey) && !hasActiveWaveSpeedFallback(wavespeedKey)) {
+        return NextResponse.json(providerNotActiveResponse("kie"), { status: 503 });
+      }
+      if (!isSoundEffect && !hasActiveWaveSpeedFallback(wavespeedKey)) {
+        return NextResponse.json(providerNotActiveResponse("wavespeed"), { status: 503 });
+      }
+    }
+    if (actionType === "voice-cloning" && !hasActiveKie(kieKey) && !hasActiveWaveSpeedFallback(wavespeedKey)) {
+      return NextResponse.json(providerNotActiveResponse("wavespeed"), { status: 503 });
+    }
+
     const { chargeModelRef, durationSec, quote } = await buildAudioChargeQuote(actionType, body);
     if (!quote || quote.finalCredits <= 0) {
       return NextResponse.json(
@@ -1133,6 +1179,17 @@ export async function POST(req: NextRequest) {
               : actionType === "audio-isolation"
                 ? KIE_AUDIO_ISOLATION_MODEL
             : resolveWaveSpeedMusicModel(body.model);
+    const generationRequestPayload =
+      actionType === "lip-sync"
+        ? {
+            routing: {
+              routingSource: "legacy_fallback",
+              effectiveProvider: "kie",
+              providerRoute: modelUsedForLedger,
+              routingReason: "Lip-sync currently executes the KIE-specific upload/task path; KIE is standby in Routing Control.",
+            },
+          }
+        : undefined;
 
     if (requestHash) {
       const idem = await beginIdempotency({
@@ -1156,6 +1213,7 @@ export async function POST(req: NextRequest) {
       assetType: "AUDIO",
       modelUsed: modelUsedForLedger,
       duration: durationSec,
+      requestPayload: generationRequestPayload,
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
@@ -1172,6 +1230,20 @@ export async function POST(req: NextRequest) {
         responseJson && typeof responseJson === "object" && !Array.isArray(responseJson)
           ? ({ generationId, ...(responseJson as Record<string, unknown>) } as Record<string, unknown>)
           : ({ generationId, data: responseJson } as Record<string, unknown>);
+
+      const actualProvider = typeof wrapped.provider === "string" ? wrapped.provider : null;
+      if (generationId && actualProvider) {
+        const providerName =
+          actualProvider === "google" ? "Google" :
+          actualProvider === "wavespeed" ? "WaveSpeed" :
+          actualProvider === "kie" ? "KIE.ai" :
+          actualProvider;
+        await setActualProviderUsage(generationId, {
+          providerName,
+          providerModel: typeof wrapped.model === "string" ? wrapped.model : modelUsedForLedger,
+          status: "completed",
+        }).catch(() => {});
+      }
 
       await completeIdempotency({
         userId,
@@ -1209,8 +1281,8 @@ export async function POST(req: NextRequest) {
 
       const wsModel = resolveWaveSpeedTtsModel(body.model);
       const providerOrder = [
-        kieKey && isKieTtsModelSupported(body.model) ? "kie" : null,
-        wavespeedKey ? "wavespeed" : null,
+        hasActiveKie(kieKey) && isKieTtsModelSupported(body.model) ? "kie" : null,
+        hasActiveWaveSpeedFallback(wavespeedKey) ? "wavespeed" : null,
       ].filter(Boolean) as Array<"kie" | "wavespeed">;
 
       let lastError: string | null = null;
@@ -1246,13 +1318,13 @@ export async function POST(req: NextRequest) {
 
     if (actionType === "video2audio") {
       const { videoUrl, prompt = "" } = body;
-      if (!wavespeedKey) {
+      if (!hasActiveWaveSpeedFallback(wavespeedKey)) {
         throw new Error("WaveSpeed API key is required for video2audio.");
       }
       const audioUrl = await runWaveSpeed(
         WS_VIDEO2AUDIO_MODEL,
         { video_url: videoUrl, prompt: sanitizePrompt(prompt, 500), steps: 25 },
-        wavespeedKey,
+        wavespeedKey!,
       );
       if (generationId) {
         await setGenerationMediaUrl(generationId, audioUrl);
@@ -1287,9 +1359,9 @@ export async function POST(req: NextRequest) {
         }
 
         let kieError: string | null = null;
-        if (kieKey) {
+        if (hasActiveKie(kieKey)) {
           try {
-            const audioUrl = await runKieSoundEffect(body, kieKey);
+            const audioUrl = await runKieSoundEffect(body, kieKey!);
             if (generationId) {
               await setGenerationMediaUrl(generationId, audioUrl);
             }
@@ -1299,7 +1371,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        if (!wavespeedKey) {
+        if (!hasActiveWaveSpeedFallback(wavespeedKey)) {
           throw new Error(kieError || "KIE sound effect failed and WaveSpeed is unavailable.");
         }
 
@@ -1311,7 +1383,7 @@ export async function POST(req: NextRequest) {
             force_instrumental: Boolean(force_instrumental),
             output_format: sanitizeMusicFormat(output_format),
           },
-          wavespeedKey,
+          wavespeedKey!,
         );
         if (generationId) {
           await setGenerationMediaUrl(generationId, fallbackAudioUrl);
@@ -1319,7 +1391,7 @@ export async function POST(req: NextRequest) {
         return await finalize({ audioUrl: fallbackAudioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, 200);
       }
 
-      if (!wavespeedKey) {
+      if (!hasActiveWaveSpeedFallback(wavespeedKey)) {
         throw new Error("WaveSpeed API key is required for music generation.");
       }
 
@@ -1327,7 +1399,7 @@ export async function POST(req: NextRequest) {
 
       if (isGoogleLyriaModel(wsMusicModel)) {
         const normalizedImage = image
-          ? (image.startsWith("data:") ? await uploadDataUrlToWaveSpeed(image, wavespeedKey) : image)
+          ? (image.startsWith("data:") ? await uploadDataUrlToWaveSpeed(image, wavespeedKey!) : image)
           : undefined;
 
         audioUrl = await runWaveSpeed(
@@ -1336,7 +1408,7 @@ export async function POST(req: NextRequest) {
             prompt: fullPrompt,
             ...(normalizedImage ? { image: normalizedImage } : {}),
           },
-          wavespeedKey,
+          wavespeedKey!,
         );
       } else {
         const safeMs = Number.isFinite(Number(music_length_ms))
@@ -1351,7 +1423,7 @@ export async function POST(req: NextRequest) {
             force_instrumental: Boolean(force_instrumental),
             output_format,
           },
-          wavespeedKey,
+          wavespeedKey!,
         );
       }
       if (generationId) {
@@ -1362,6 +1434,9 @@ export async function POST(req: NextRequest) {
     if (actionType === "speech-to-text") {
       if (!kieKey) throw new Error("KIE API key is required for speech-to-text.");
       const transcript = await runKieSpeechToText(body, kieKey);
+      if (generationId) {
+        await setGenerationCompletedWithoutMedia(generationId);
+      }
       return await finalize({ transcript, provider: "kie", chargedCredits: creditsToCharge }, 200);
     }
     if (actionType === "audio-isolation") {
@@ -1373,13 +1448,13 @@ export async function POST(req: NextRequest) {
       return await finalize({ audioUrl, provider: "kie", chargedCredits: creditsToCharge }, 200);
     }
     if (actionType === "voice-changer") {
-      if (!wavespeedKey) {
+      if (!hasActiveWaveSpeedFallback(wavespeedKey)) {
         throw new Error("WaveSpeed API key is required for voice changer.");
       }
 
       const voiceId = body.voice?.trim() || "pNInz6obpgDQGcFmaJgB";
       const normalizedAudioUrl = body.audioUrl!.startsWith("data:")
-        ? await uploadDataUrlToWaveSpeed(body.audioUrl!, wavespeedKey)
+        ? await uploadDataUrlToWaveSpeed(body.audioUrl!, wavespeedKey!)
         : body.audioUrl!;
 
       const audioUrl = await runWaveSpeed(
@@ -1389,7 +1464,7 @@ export async function POST(req: NextRequest) {
           voice_id: voiceId,
           remove_background_noise: body.remove_background_noise ?? true,
         },
-        wavespeedKey,
+        wavespeedKey!,
       );
 
       if (generationId) {
@@ -1398,15 +1473,15 @@ export async function POST(req: NextRequest) {
       return await finalize({ audioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, 200);
     }
     if (actionType === "dubbing") {
-      if (!wavespeedKey) {
+      if (!hasActiveWaveSpeedFallback(wavespeedKey)) {
         throw new Error("WaveSpeed API key is required for dubbing.");
       }
 
       const normalizedVideoUrl = body.videoUrl
-        ? (body.videoUrl.startsWith("data:") ? await uploadDataUrlToWaveSpeed(body.videoUrl, wavespeedKey) : body.videoUrl)
+        ? (body.videoUrl.startsWith("data:") ? await uploadDataUrlToWaveSpeed(body.videoUrl, wavespeedKey!) : body.videoUrl)
         : undefined;
       const normalizedAudioUrl = body.audioUrl
-        ? (body.audioUrl.startsWith("data:") ? await uploadDataUrlToWaveSpeed(body.audioUrl, wavespeedKey) : body.audioUrl)
+        ? (body.audioUrl.startsWith("data:") ? await uploadDataUrlToWaveSpeed(body.audioUrl, wavespeedKey!) : body.audioUrl)
         : undefined;
 
       const sourceLang = (body.sourceLang || "Auto").replace("Auto-detect", "Auto");
@@ -1420,7 +1495,7 @@ export async function POST(req: NextRequest) {
           source_lang: sourceLang,
           target_lang: targetLang,
         },
-        wavespeedKey,
+        wavespeedKey!,
       );
 
       if (generationId) {
@@ -1535,9 +1610,9 @@ export async function POST(req: NextRequest) {
       const bodyWithUrls = { ...body, sampleAudioUrls: sampleUrls, customVoiceId };
 
       // --- Try KIE first ---
-      if (kieKey) {
+      if (hasActiveKie(kieKey)) {
         try {
-          const audioUrl = await runKieVoiceClone(bodyWithUrls, kieKey);
+          const audioUrl = await runKieVoiceClone(bodyWithUrls, kieKey!);
           if (generationId) {
             await setGenerationMediaUrl(generationId, audioUrl);
           }
@@ -1557,13 +1632,13 @@ export async function POST(req: NextRequest) {
       }
 
       // --- WaveSpeed fallback ---
-      if (!wavespeedKey) {
+      if (!hasActiveWaveSpeedFallback(wavespeedKey)) {
         throw new Error("Voice cloning failed: no available provider.");
       }
 
       const samples = await Promise.all(
         sampleUrls.map((url) =>
-          url.startsWith("data:") ? uploadDataUrlToWaveSpeed(url, wavespeedKey) : Promise.resolve(url),
+          url.startsWith("data:") ? uploadDataUrlToWaveSpeed(url, wavespeedKey!) : Promise.resolve(url),
         ),
       );
       const referenceAudio = samples[0];
@@ -1579,7 +1654,7 @@ export async function POST(req: NextRequest) {
           accuracy: 1,
           need_noise_reduction: body.remove_background_noise !== false,
         },
-        wavespeedKey,
+        wavespeedKey!,
       );
 
       if (generationId) {

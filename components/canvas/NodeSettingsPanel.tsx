@@ -1,22 +1,24 @@
 "use client";
 
+import { useMemo } from "react";
 import { type CanvasNodeData, type CanvasNodeSettings, NODE_CONFIGS, hexToRgb } from "./canvas-types";
 import { useCanvasActions } from "./canvas-context";
 import { X, ExternalLink } from "lucide-react";
 import { VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
 import { IMAGE_MODELS as ALL_IMAGE_MODELS } from "@/lib/image-models";
+import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 
 // Every model in the site's registry, filtered by what each canvas node needs.
 // Text-to-Image nodes get text-to-image models; Image-Edit nodes get edit + image-to-image models.
-const IMAGE_MODELS = ALL_IMAGE_MODELS
+const FALLBACK_IMAGE_MODELS = ALL_IMAGE_MODELS
   .filter((m) => m.inputType === "text-to-image")
   .map((m) => ({ id: m.id, label: m.label }));
 
-const IMAGE_EDIT_MODELS = ALL_IMAGE_MODELS
+const FALLBACK_IMAGE_EDIT_MODELS = ALL_IMAGE_MODELS
   .filter((m) => m.inputType === "edit" || m.inputType === "image-to-image")
   .map((m) => ({ id: m.id, label: m.label }));
 
-const VIDEO_MODELS = VIDEO_MODEL_REGISTRY.map((model) => ({
+const FALLBACK_VIDEO_MODELS = VIDEO_MODEL_REGISTRY.map((model) => ({
   id: model.api_route,
   label: model.name,
 }));
@@ -144,6 +146,36 @@ interface NodeSettingsPanelProps {
 
 export function NodeSettingsPanel({ nodeId, data, onClose }: NodeSettingsPanelProps) {
   const { updateNodeSettings, runNode } = useCanvasActions();
+  const { imageModels: centralImageModels, videoModels: centralVideoModels } = useFullDynamicModels();
+  const s = data?.settings ?? {};
+  const imageModels = useMemo(
+    () => (centralImageModels.length ? centralImageModels : ALL_IMAGE_MODELS)
+      .filter((m: any) => m.inputType === "text-to-image" && m.isActive !== false)
+      .map((m: any) => ({ id: m.id, label: m.label || m.name || m.id })),
+    [centralImageModels],
+  );
+  const imageEditModels = useMemo(
+    () => (centralImageModels.length ? centralImageModels : ALL_IMAGE_MODELS)
+      .filter((m: any) => (m.inputType === "edit" || m.inputType === "image-to-image") && m.isActive !== false)
+      .map((m: any) => ({ id: m.id, label: m.label || m.name || m.id })),
+    [centralImageModels],
+  );
+  const videoModels = useMemo(
+    () => (centralVideoModels.length ? centralVideoModels : VIDEO_MODEL_REGISTRY)
+      .filter((m: any) => m.isActive !== false)
+      .map((m: any) => ({ id: m.api_route || m.id, label: m.name || m.label || m.id })),
+    [centralVideoModels],
+  );
+  const selectedVideoModel = useMemo(
+    () => (centralVideoModels.length ? centralVideoModels : VIDEO_MODEL_REGISTRY)
+      .find((model: any) => model.api_route === s.modelId || model.id === s.modelId),
+    [centralVideoModels, s.modelId],
+  );
+  const selectedImageModel = useMemo(
+    () => (centralImageModels.length ? centralImageModels : ALL_IMAGE_MODELS)
+      .find((model: any) => model.id === s.modelId),
+    [centralImageModels, s.modelId],
+  );
 
   const update = (patch: Partial<CanvasNodeSettings>) => {
     if (nodeId) updateNodeSettings(nodeId, patch);
@@ -174,19 +206,20 @@ export function NodeSettingsPanel({ nodeId, data, onClose }: NodeSettingsPanelPr
 
   const cfg = NODE_CONFIGS[data.nodeType];
   const rgb = hexToRgb(cfg.accentColor);
-  const s   = data.settings;
-  const selectedVideoModel = VIDEO_MODEL_REGISTRY.find((model) => model.api_route === s.modelId || model.id === s.modelId);
-  const videoAspectOptions = selectedVideoModel?.capabilities.aspect_ratios?.length
+  const videoAspectOptions: string[] = selectedVideoModel?.capabilities.aspect_ratios?.length
     ? selectedVideoModel.capabilities.aspect_ratios
     : ["Auto"];
-  const videoDurations = selectedVideoModel?.capabilities.durations?.length
+  const videoDurations: number[] = selectedVideoModel?.capabilities.durations?.length
     ? selectedVideoModel.capabilities.durations
     : [];
-  const videoQualities = selectedVideoModel?.capabilities.resolutions?.length
+  const videoQualities: string[] = selectedVideoModel?.capabilities.resolutions?.length
     ? selectedVideoModel.capabilities.resolutions
     : selectedVideoModel?.capabilities.quality_param === "mode"
       ? ["std", "pro", "4K"]
       : [];
+  const imageAspectOptions: string[] = selectedImageModel?.aspectRatios?.length
+    ? selectedImageModel.aspectRatios
+    : ASPECT_RATIOS_IMAGE;
 
   return (
     <div
@@ -329,14 +362,14 @@ export function NodeSettingsPanel({ nodeId, data, onClose }: NodeSettingsPanelPr
               <SelectField
                 value={s.modelId ?? "nano-banana-pro"}
                 onChange={v => update({ modelId: v })}
-                options={IMAGE_MODELS}
+                options={imageModels.length ? imageModels : FALLBACK_IMAGE_MODELS}
               />
             </Field>
             <Field label="Aspect Ratio">
               <SelectField
                 value={s.aspectRatio ?? "1:1"}
                 onChange={v => update({ aspectRatio: v })}
-                options={ASPECT_RATIOS_IMAGE.map(r => ({ id: r, label: r }))}
+                options={imageAspectOptions.map(r => ({ id: r, label: r }))}
               />
             </Field>
             <Field label="Negative Prompt">
@@ -365,14 +398,14 @@ export function NodeSettingsPanel({ nodeId, data, onClose }: NodeSettingsPanelPr
               <SelectField
                 value={s.modelId ?? "nano-banana-pro"}
                 onChange={v => update({ modelId: v })}
-                options={IMAGE_EDIT_MODELS}
+                options={imageEditModels.length ? imageEditModels : FALLBACK_IMAGE_EDIT_MODELS}
               />
             </Field>
             <Field label="Aspect Ratio">
               <SelectField
                 value={s.aspectRatio ?? "1:1"}
                 onChange={v => update({ aspectRatio: v })}
-                options={ASPECT_RATIOS_IMAGE.map(r => ({ id: r, label: r }))}
+                options={imageAspectOptions.map(r => ({ id: r, label: r }))}
               />
             </Field>
           </>
@@ -393,7 +426,7 @@ export function NodeSettingsPanel({ nodeId, data, onClose }: NodeSettingsPanelPr
               <SelectField
                 value={s.modelId ?? "kwaivgi/kling-v3.0-pro/text-to-video"}
                 onChange={v => update({ modelId: v })}
-                options={VIDEO_MODELS}
+                options={videoModels.length ? videoModels : FALLBACK_VIDEO_MODELS}
               />
             </Field>
             <Field label="Aspect Ratio">
@@ -443,7 +476,7 @@ export function NodeSettingsPanel({ nodeId, data, onClose }: NodeSettingsPanelPr
               <SelectField
                 value={s.modelId ?? "kwaivgi/kling-v3.0-pro/text-to-video"}
                 onChange={v => update({ modelId: v })}
-                options={VIDEO_MODELS}
+                options={videoModels.length ? videoModels : FALLBACK_VIDEO_MODELS}
               />
             </Field>
             {videoDurations.length > 0 ? (

@@ -3,10 +3,8 @@ import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import {
   InsufficientCreditsError,
   ensureUserRow,
-  rollbackGenerationCharge,
-  setGenerationMediaUrl,
-  spendCredits,
 } from "@/lib/credit-ledger";
+import { runInlineGeneration } from "@/lib/generation/inline-orchestrator";
 import { getVideoCreditsByModelIdAsync } from "@/lib/credit-pricing";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { getDynamicVideoModels } from "@/lib/dynamic-model-loader";
@@ -217,8 +215,6 @@ export async function POST(req: NextRequest) {
     return panelRateLimitResponse(rate.retryAfterSec);
   }
 
-  let chargedCredits = 0;
-  let generationId: string | null = null;
   const userId = verified.userId;
 
   try {
@@ -385,7 +381,7 @@ export async function POST(req: NextRequest) {
       creditsToCharge = 12; // fallback: 12 credits
     }
 
-    const spent = await spendCredits({
+    const chargeInput = {
       userId,
       credits: creditsToCharge,
       prompt: sanitizePrompt(prompt, 5000),
@@ -395,9 +391,7 @@ export async function POST(req: NextRequest) {
       resolution: resolution || null,
       aspectRatio: aspectRatio || null,
       quality: mode || null,
-    });
-    chargedCredits = creditsToCharge;
-    generationId = spent.generationId;
+    };
 
     const isGoogle = modelId.includes("google") || modelId.includes("veo") || modelId.includes("gemini");
     const isSeedance25 = modelId.startsWith("bytedance/seedance-2.5") || kieModelId.startsWith("bytedance/seedance-2.5");
@@ -474,14 +468,33 @@ export async function POST(req: NextRequest) {
         if (resolution) input.resolution = resolution.toLowerCase();
       }
 
-      const taskId = await createKieTask(kieApiKey, kieModelId, input);
-      const videoUrls = await pollKieTask(kieApiKey, taskId);
+      const result = await runInlineGeneration({
+        modelId,
+        modality: "video",
+        currentRoute: { provider: "kie", route: kieModelId },
+        charge: chargeInput,
+        attachMediaFailure: "log",
+        failureCreditAction: "rollback",
+        logPrefix: "panel-generate-video",
+        execute: async () => {
+          const taskId = await createKieTask(kieApiKey, kieModelId, input);
+          const videoUrls = await pollKieTask(kieApiKey, taskId);
 
-      if (generationId && videoUrls[0]) {
-        await setGenerationMediaUrl(generationId, videoUrls[0]).catch(() => {});
-      }
+          return {
+            mediaUrl: videoUrls[0] ?? "",
+            videoUrls,
+            videoUrl: videoUrls[0] ?? null,
+            taskId,
+          };
+        },
+      });
 
-      return NextResponse.json({ videoUrls, videoUrl: videoUrls[0] ?? null, taskId, generationId });
+      return NextResponse.json({
+        videoUrls: result.providerResult.videoUrls,
+        videoUrl: result.providerResult.videoUrl,
+        taskId: result.providerResult.taskId,
+        generationId: result.generationId,
+      });
     } else {
       // WaveSpeed for all other video models
       const wavespeedKey = process.env.WAVESPEED_API_KEY;
@@ -560,14 +573,33 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const taskId = await createWaveSpeedTask(wavespeedKey, wavespeedModel, payload);
-      const videoUrls = await pollWaveSpeedTask(wavespeedKey, taskId);
+      const result = await runInlineGeneration({
+        modelId,
+        modality: "video",
+        currentRoute: { provider: "wavespeed", route: wavespeedModel },
+        charge: chargeInput,
+        attachMediaFailure: "log",
+        failureCreditAction: "rollback",
+        logPrefix: "panel-generate-video",
+        execute: async () => {
+          const taskId = await createWaveSpeedTask(wavespeedKey, wavespeedModel, payload);
+          const videoUrls = await pollWaveSpeedTask(wavespeedKey, taskId);
 
-      if (generationId && videoUrls[0]) {
-        await setGenerationMediaUrl(generationId, videoUrls[0]).catch(() => {});
-      }
+          return {
+            mediaUrl: videoUrls[0] ?? "",
+            videoUrls,
+            videoUrl: videoUrls[0] ?? null,
+            taskId,
+          };
+        },
+      });
 
-      return NextResponse.json({ videoUrls, videoUrl: videoUrls[0] ?? null, taskId, generationId });
+      return NextResponse.json({
+        videoUrls: result.providerResult.videoUrls,
+        videoUrl: result.providerResult.videoUrl,
+        taskId: result.providerResult.taskId,
+        generationId: result.generationId,
+      });
     }
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
@@ -575,9 +607,6 @@ export async function POST(req: NextRequest) {
         { error: "Insufficient credits", requiredCredits: error.requiredCredits, currentBalance: error.currentBalance },
         { status: 402 },
       );
-    }
-    if (chargedCredits > 0 && generationId) {
-      await rollbackGenerationCharge(generationId, userId, chargedCredits).catch(() => {});
     }
     console.error("[panel/generate/video]", error);
     const msg = error instanceof Error ? error.message : "Server error";

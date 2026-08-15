@@ -14,19 +14,18 @@
 import {
   ensureUserRow,
   recordFreeGeneration,
-  rollbackGenerationCharge,
   saveAdditionalGenerationUrls,
-  setGenerationMediaUrl,
-  spendCredits,
   InsufficientCreditsError,
 } from "../credit-ledger";
 import { getGenerationCost } from "../pricing";
-import { getVideoCreditsByModelId } from "../credit-pricing";
+import { getVideoCreditsByModelIdAsync } from "../credit-pricing";
 import { sanitizePrompt } from "../security";
 import prismadb from "../prismadb";
 
 import { generateImage, generateVideo } from "../provider-router";
+import { runInlineGeneration } from "../generation/inline-orchestrator";
 import { persistProviderUrl } from "./persist-output";
+import { resolveRuntimeProviderRoute, routingMetadata, type RuntimeRoutingDecision } from "../routing/runtime-routing";
 
 const DEFAULT_IMAGE_COST = 10;
 const DEFAULT_VIDEO_COST = 60;
@@ -87,63 +86,96 @@ export async function dispatchDirectImage(input: DispatchImageInput): Promise<Di
   let cost = await getGenerationCost(input.modelId, 5, input.numImages ?? 1, input.resolution ?? "1K");
   if (!cost || cost <= 0) cost = DEFAULT_IMAGE_COST * (input.numImages ?? 1);
 
-  // 2) Charge credits
   const cleanPrompt = sanitizePrompt(input.prompt, 5000);
-  const spent = await spendCredits({
-    userId: input.userId,
-    prompt: cleanPrompt,
-    assetType: "IMAGE",
-    modelUsed: input.modelId,
-    credits: cost,
+  const legacyProviderName = input.modelId.startsWith("gpt-image") ||
+    input.modelId.startsWith("dall-e") ||
+    input.modelId.startsWith("openai/")
+      ? "openai"
+      : "google";
+  const routingDecision = await resolveRuntimeProviderRoute({
+    modelId: input.modelId,
+    modality: "image",
+    legacyRoute: { provider: legacyProviderName, route: input.modelId },
   });
-  const generationId = spent.generationId;
+  const directRoutingDecision: RuntimeRoutingDecision =
+    routingDecision.effectiveProvider === "google" || routingDecision.effectiveProvider === "openai"
+      ? routingDecision
+      : {
+          modelId: input.modelId,
+          modality: "image",
+          routingSource: "legacy_fallback",
+          effectiveProvider: legacyProviderName,
+          providerRoute: input.modelId,
+          route: { provider: legacyProviderName, route: input.modelId },
+          reason: `Routing resolved ${routingDecision.effectiveProvider}, which is not handled by direct image dispatch.`,
+        };
 
-  try {
-    // 3) Call the provider adapter
-    const result = await generateImage({
-      modelId: input.modelId,
+  const result = await runInlineGeneration({
+    modelId: input.modelId,
+    modality: "image",
+    currentRoute: directRoutingDecision.route,
+    charge: {
+      userId: input.userId,
       prompt: cleanPrompt,
-      aspectRatio: input.aspectRatio,
-      resolution: input.resolution,
-      numImages: input.numImages,
-      negativePrompt: input.negativePrompt,
-      imageUrl: input.imageUrl,
-      imageUrls: input.imageUrls,
-    });
+      assetType: "IMAGE",
+      modelUsed: input.modelId,
+      credits: cost,
+      requestPayload: {
+        routing: routingMetadata(directRoutingDecision),
+      },
+    },
+    attachMediaFailure: "log",
+    failureCreditAction: "rollback",
+    logPrefix: "dispatch-direct-image",
+    execute: async ({ generationId }) => {
+      // 3) Call the provider adapter
+      const imageResult = await generateImage({
+        modelId: directRoutingDecision.providerRoute,
+        prompt: cleanPrompt,
+        aspectRatio: input.aspectRatio,
+        resolution: input.resolution,
+        numImages: input.numImages,
+        negativePrompt: input.negativePrompt,
+        imageUrl: input.imageUrl,
+        imageUrls: input.imageUrls,
+      });
 
     // 4) Persist each URL to R2 (best-effort — falls back to source URL)
-    const persistedUrls: string[] = [];
-    for (let i = 0; i < result.urls.length; i++) {
-      const persisted = await persistProviderUrl({
-        url: result.urls[i],
-        userId: input.userId,
-        generationId: i === 0 ? generationId : `${generationId}-${i}`,
-        assetType: "IMAGE",
-      });
-      persistedUrls.push(persisted);
-    }
+      const persistedUrls: string[] = [];
+      for (let i = 0; i < imageResult.urls.length; i++) {
+        const persisted = await persistProviderUrl({
+          url: imageResult.urls[i],
+          userId: input.userId,
+          generationId: i === 0 ? generationId : `${generationId}-${i}`,
+          assetType: "IMAGE",
+        });
+        persistedUrls.push(persisted);
+      }
 
-    // 5) Save to DB
-    if (persistedUrls[0]) {
-      await setGenerationMediaUrl(generationId, persistedUrls[0]).catch(() => {});
-    }
-    if (persistedUrls.length > 1) {
-      await saveAdditionalGenerationUrls(
-        input.userId, cleanPrompt, input.modelId, "IMAGE", persistedUrls.slice(1),
-      ).catch(() => {});
-    }
+      return {
+        mediaUrl: persistedUrls[0] ?? "",
+        imageUrls: persistedUrls,
+        imageUrl: persistedUrls[0] ?? null,
+      };
+    },
+  });
 
-    return {
-      imageUrls: persistedUrls,
-      imageUrl: persistedUrls[0] ?? null,
-      generationId,
-      creditsCharged: cost,
-    };
-  } catch (err) {
-    // Roll back the charge so the user isn't billed for a failed generation.
-    await rollbackGenerationCharge(generationId, input.userId, cost).catch(() => {});
-    throw err;
+  if ((result.providerResult.imageUrls?.length ?? 0) > 1) {
+    await saveAdditionalGenerationUrls(
+      input.userId,
+      cleanPrompt,
+      input.modelId,
+      "IMAGE",
+      result.providerResult.imageUrls?.slice(1) ?? [],
+    ).catch(() => {});
   }
+
+  return {
+    imageUrls: result.providerResult.imageUrls,
+    imageUrl: result.providerResult.imageUrl,
+    generationId: result.generationId,
+    creditsCharged: cost,
+  };
 }
 
 // ─── Video ─────────────────────────────────────────────────────────────
@@ -157,66 +189,94 @@ export async function dispatchDirectVideo(input: DispatchVideoInput): Promise<Di
   if (banned?.isBanned) throw new Error("Account suspended.");
 
   // 1) Credit cost
-  let cost = getVideoCreditsByModelId(input.modelId, {
+  let cost = await getVideoCreditsByModelIdAsync(input.modelId, {
     duration: input.durationSec,
     quality: input.quality,
   });
   if (!cost || cost <= 0) cost = DEFAULT_VIDEO_COST;
 
-  // 2) Charge credits
   const cleanPrompt = sanitizePrompt(input.prompt, 5000);
-  const spent = await spendCredits({
-    userId: input.userId,
-    prompt: cleanPrompt,
-    assetType: "VIDEO",
-    modelUsed: input.modelId,
-    credits: cost,
+  const legacyProviderName = input.modelId.includes("google") || input.modelId.includes("veo")
+    ? "google"
+    : input.modelId.includes("openai") || input.modelId.includes("sora")
+      ? "openai"
+      : "byteplus";
+  const routingDecision = await resolveRuntimeProviderRoute({
+    modelId: input.modelId,
+    modality: "video",
+    legacyRoute: { provider: legacyProviderName, route: input.modelId },
   });
-  const generationId = spent.generationId;
+  const directRoutingDecision: RuntimeRoutingDecision =
+    routingDecision.effectiveProvider === "google" || routingDecision.effectiveProvider === "byteplus"
+      ? routingDecision
+      : {
+          modelId: input.modelId,
+          modality: "video",
+          routingSource: "legacy_fallback",
+          effectiveProvider: legacyProviderName,
+          providerRoute: input.modelId,
+          route: { provider: legacyProviderName, route: input.modelId },
+          reason: `Routing resolved ${routingDecision.effectiveProvider}, which is not handled by direct video dispatch.`,
+        };
 
-  try {
-    // 3) Call the provider adapter
-    const result = await generateVideo({
-      modelId: input.modelId,
-      prompt: cleanPrompt,
-      aspect: input.aspect,
-      durationSec: input.durationSec,
-      quality: input.quality,
-      mode: input.mode,
-      imageUrl: input.imageUrl,
-      imageUrls: input.imageUrls,
-      videoUrl: input.videoUrl,
-      videoUrls: input.videoUrls,
-      audioUrls: input.audioUrls,
-      firstFrameUrl: input.firstFrameUrl,
-      lastFrameUrl: input.lastFrameUrl,
-      referenceImageUrls: input.referenceImageUrls,
-      referenceVideoUrls: input.referenceVideoUrls,
-      referenceAudioUrls: input.referenceAudioUrls,
-      generationType: input.generationType,
-      enableAudio: input.enableAudio,
-    });
-
-    // 4) Persist to R2
-    const persistedUrl = await persistProviderUrl({
-      url: result.urls[0],
+  const result = await runInlineGeneration({
+    modelId: input.modelId,
+    modality: "video",
+    currentRoute: directRoutingDecision.route,
+    charge: {
       userId: input.userId,
-      generationId,
+      prompt: cleanPrompt,
       assetType: "VIDEO",
-    });
+      modelUsed: input.modelId,
+      credits: cost,
+      requestPayload: {
+        routing: routingMetadata(directRoutingDecision),
+      },
+    },
+    attachMediaFailure: "log",
+    failureCreditAction: "rollback",
+    logPrefix: "dispatch-direct-video",
+    execute: async ({ generationId }) => {
+      const videoResult = await generateVideo({
+        modelId: directRoutingDecision.providerRoute,
+        prompt: cleanPrompt,
+        aspect: input.aspect,
+        durationSec: input.durationSec,
+        quality: input.quality,
+        mode: input.mode,
+        imageUrl: input.imageUrl,
+        imageUrls: input.imageUrls,
+        videoUrl: input.videoUrl,
+        videoUrls: input.videoUrls,
+        audioUrls: input.audioUrls,
+        firstFrameUrl: input.firstFrameUrl,
+        lastFrameUrl: input.lastFrameUrl,
+        referenceImageUrls: input.referenceImageUrls,
+        referenceVideoUrls: input.referenceVideoUrls,
+        referenceAudioUrls: input.referenceAudioUrls,
+        generationType: input.generationType,
+        enableAudio: input.enableAudio,
+      });
 
-    // 5) Save to DB
-    await setGenerationMediaUrl(generationId, persistedUrl).catch(() => {});
+      const persistedUrl = await persistProviderUrl({
+        url: videoResult.urls[0],
+        userId: input.userId,
+        generationId,
+        assetType: "VIDEO",
+      });
 
-    return {
-      videoUrl: persistedUrl,
-      generationId,
-      creditsCharged: cost,
-    };
-  } catch (err) {
-    await rollbackGenerationCharge(generationId, input.userId, cost).catch(() => {});
-    throw err;
-  }
+      return {
+        mediaUrl: persistedUrl,
+        videoUrl: persistedUrl,
+      };
+    },
+  });
+
+  return {
+    videoUrl: result.providerResult.videoUrl,
+    generationId: result.generationId,
+    creditsCharged: cost,
+  };
 }
 
 // Re-export error type for callers to do `instanceof InsufficientCreditsError`.

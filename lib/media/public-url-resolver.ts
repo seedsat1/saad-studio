@@ -1,4 +1,4 @@
-import { defaultProvider, legacyProvider } from "@/lib/storage";
+import { headObject, putObject, resolveMediaObject, resolveProviderPublicUrl } from "@/lib/storage";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
 export class ValidationError extends Error {
@@ -86,14 +86,14 @@ export async function resolveProviderMediaUrl(
     const mediaPath = trimmed.slice(apiMediaIndex + "/api/media/".length);
     const parsed = parseStorageKey(mediaPath);
     if (parsed) {
-      return defaultProvider.getPublicUrl(parsed.bucket, parsed.path);
+      return resolveProviderPublicUrl(parsed.bucket, parsed.path);
     }
   }
 
   // 3. If it's a relative storage path (e.g. "images/user/file.jpg")
   const parsedRelative = parseStorageKey(trimmed);
   if (parsedRelative) {
-    return defaultProvider.getPublicUrl(parsedRelative.bucket, parsedRelative.path);
+    return resolveProviderPublicUrl(parsedRelative.bucket, parsedRelative.path);
   }
 
   // 4. If it's an absolute URL
@@ -102,17 +102,13 @@ export async function resolveProviderMediaUrl(
       throw new ValidationError(`Insecure/local media URL not allowed: ${trimmed}`);
     }
     
-    // If it's a legacy R2/Supabase URL, try to map it to Backblaze B2 public URL if it exists
-    const r2Match = trimmed.match(/pub-[a-zA-Z0-9]+\.r2\.dev\/(images|videos|audio|thumbnails|media)\/(.+)/i) ||
-                    trimmed.match(/media\.saadstudio\.app\/(images|videos|audio|thumbnails|media)\/(.+)/i) ||
-                    trimmed.match(/.*\.supabase\.(?:co|in)\/storage\/v1\/object\/public\/(images|videos|audio|thumbnails|media)\/(.+)/i);
-    if (r2Match) {
-      const bucket = r2Match[1];
-      const path = r2Match[2];
+    const owned = resolveMediaObject(trimmed);
+    if (owned?.kind === "owned_storage") {
+      const { bucket, path, objectKey } = owned;
       try {
-        const existsOnB2 = await defaultProvider.exists({ bucket, path });
-        if (existsOnB2) {
-          return defaultProvider.getPublicUrl(bucket, path);
+        const attempts = await headObject({ objectKey });
+        if (attempts[0]?.found) {
+          return resolveProviderPublicUrl(bucket, path);
         }
         
         // If not on B2, try migrating from legacy R2 with a timeout
@@ -128,7 +124,7 @@ export async function resolveProviderMediaUrl(
         if (res.ok) {
           const buffer = Buffer.from(await res.arrayBuffer());
           const contentType = res.headers.get("content-type") || "application/octet-stream";
-          await defaultProvider.upload({
+          await putObject({
             bucket,
             path,
             body: buffer,
@@ -136,7 +132,7 @@ export async function resolveProviderMediaUrl(
             cacheControl: "public, max-age=2592000, immutable",
           });
           console.log(`[resolveProviderMediaUrl] Successfully migrated R2 key ${bucket}/${path} to B2.`);
-          return defaultProvider.getPublicUrl(bucket, path);
+          return resolveProviderPublicUrl(bucket, path);
         } else {
           console.warn(`[resolveProviderMediaUrl] Failed to fetch legacy R2 asset at ${r2Url}: Status ${res.status}`);
         }
@@ -161,7 +157,7 @@ async function uploadDataUrlToKieOrB2(
   const uploadedPath = await uploadDataUrlToStorage(dataUrl, userId, assetType);
   const parsed = parseStorageKey(uploadedPath);
   if (parsed) {
-    return defaultProvider.getPublicUrl(parsed.bucket, parsed.path);
+    return resolveProviderPublicUrl(parsed.bucket, parsed.path);
   }
   throw new ValidationError(`Failed to parse uploaded storage path: ${uploadedPath}`);
 }

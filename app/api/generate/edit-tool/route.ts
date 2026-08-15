@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError } from "@/lib/credit-ledger";
+import { runInlineGeneration } from "@/lib/generation/inline-orchestrator";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
@@ -130,10 +131,6 @@ function buildPrompt(action: EditAction, prompt: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  let chargedCredits = 0;
-  let chargedUserId: string | null = null;
-  let generationId: string | null = null;
-
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
       return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
@@ -173,17 +170,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No credit configuration for edit tool." }, { status: 400 });
     }
 
-    const charge = await spendCredits({
-      userId,
-      credits: creditsToCharge,
-      prompt,
-      assetType: "IMAGE",
-      modelUsed: modelToUse,
-    });
-    generationId = charge.generationId;
-    chargedCredits = creditsToCharge;
-    chargedUserId = userId;
-
     const waveKey = getWaveSpeedKey();
     const normalizedImageUrl = imageUrl.startsWith("data:")
       ? await uploadDataUrlToWaveSpeed(imageUrl, waveKey, "edit-input")
@@ -203,38 +189,52 @@ export async function POST(req: NextRequest) {
       submitBody.seed = -1;
     }
 
-    const submitRes = await fetchWithTimeout(
-      `${WAVESPEED_BASE_URL}/${modelToUse}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${waveKey}`,
-        },
-        body: JSON.stringify(submitBody),
+    const result = await runInlineGeneration({
+      modelId: pricingRef,
+      modality: "image",
+      currentRoute: { provider: "wavespeed", route: modelToUse },
+      charge: {
+        userId,
+        credits: creditsToCharge,
+        prompt,
+        assetType: "IMAGE",
+        modelUsed: modelToUse,
       },
-      30_000,
-    );
+      execute: async () => {
+        const submitRes = await fetchWithTimeout(
+          `${WAVESPEED_BASE_URL}/${modelToUse}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${waveKey}`,
+            },
+            body: JSON.stringify(submitBody),
+          },
+          30_000,
+        );
 
-    if (!submitRes.ok) {
-      const errText = await readErrorBody(submitRes);
-      throw new Error(`WaveSpeed submit failed: ${errText}`);
-    }
+        if (!submitRes.ok) {
+          const errText = await readErrorBody(submitRes);
+          throw new Error(`WaveSpeed submit failed: ${errText}`);
+        }
 
-    const submitJson = (await submitRes.json().catch(() => null)) as WaveSpeedResponse | null;
-    if (submitJson?.code != null && submitJson.code !== 200) {
-      throw new Error(submitJson.msg || submitJson.message || "WaveSpeed task submission failed.");
-    }
+        const submitJson = (await submitRes.json().catch(() => null)) as WaveSpeedResponse | null;
+        if (submitJson?.code != null && submitJson.code !== 200) {
+          throw new Error(submitJson.msg || submitJson.message || "WaveSpeed task submission failed.");
+        }
 
-    const taskId = (submitJson?.data?.id as string | undefined) || (submitJson?.data?.taskId as string | undefined);
-    if (!taskId) throw new Error("No task ID returned.");
+        const taskId = (submitJson?.data?.id as string | undefined) || (submitJson?.data?.taskId as string | undefined);
+        if (!taskId) throw new Error("No task ID returned.");
 
-    const outputs = await pollWaveSpeedTask(taskId, waveKey);
-    const url = outputs[0];
-    if (generationId) await setGenerationMediaUrl(generationId, url);
+        const outputs = await pollWaveSpeedTask(taskId, waveKey);
+        return { mediaUrl: outputs[0], taskId };
+      },
+    });
+    const url = result.providerResult.mediaUrl;
 
     return NextResponse.json({
-      generationId,
+      generationId: result.generationId,
       imageUrl: url,
       mediaUrl: url,
       provider: "wavespeed",
@@ -251,13 +251,6 @@ export async function POST(req: NextRequest) {
         },
         { status: 402 },
       );
-    }
-
-    if (chargedCredits > 0 && chargedUserId && generationId) {
-      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
-        reason: "generation_refund_provider_failed",
-        clearMediaUrl: true,
-      }).catch(() => {});
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";

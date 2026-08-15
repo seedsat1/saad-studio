@@ -1,7 +1,7 @@
 import type { RuntimeSourceProvider } from "@/lib/model-source-map";
 import type { PricingProvider } from "@/lib/model-source-map";
 
-export type RoutingModality = "image" | "video" | "audio";
+export type RoutingModality = "image" | "video" | "audio" | "3d";
 
 export type RouteTarget = {
   provider: RuntimeSourceProvider;

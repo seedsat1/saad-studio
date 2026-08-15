@@ -14,7 +14,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
-import { setGenerationMediaUrl, saveAdditionalGenerationUrls, ensureUserRow, finalizeReapGeneration } from "@/lib/credit-ledger";
+import { saveAdditionalGenerationUrls, ensureUserRow, finalizeReapGeneration } from "@/lib/credit-ledger";
+import { completeTaskGeneration } from "@/lib/generation/task-orchestrator";
 import { hitRateLimit, panelRateLimitResponse, getRequestIp } from "@/lib/panel-rate-limit";
 import prismadb from "@/lib/prismadb";
 import { pollReapStatus } from "@/lib/providers/reap";
@@ -83,7 +84,10 @@ export async function GET(req: NextRequest) {
 
     // Save the primary URL on the Generation row, secondary URLs as extras.
     if (generationId && persistedUrls[0]) {
-      await setGenerationMediaUrl(generationId, persistedUrls[0]).catch(() => {});
+      await completeTaskGeneration({
+        generationId,
+        mediaUrl: persistedUrls[0],
+      }).catch(() => {});
       if (persistedUrls.length > 1) {
         // Look up the prompt + modelUsed off the existing row to keep the
         // saveAdditionalGenerationUrls signature happy.

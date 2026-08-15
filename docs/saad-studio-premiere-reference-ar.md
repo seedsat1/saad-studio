@@ -1,3 +1,69 @@
+## Final Generation Core Consolidation Review (2026-08-15)
+
+- تم فحص المسارات الثلاثة الأساسية كحزمة واحدة:
+  - `/api/generate/image`
+  - `/api/video`
+  - `/api/generate/audio`
+- القرار الهندسي: لا يتم إنشاء Engine جديد ولا يتم إجبار المسارات على orchestrator إذا كان ذلك يغير behavior.
+- التغيير الآمن الوحيد في هذه الدفعة:
+  - `/api/video` في GET/status completion يستخدم `completeTaskGeneration` بدلاً من النداء المباشر لـ`setGenerationMediaUrl`.
+  - هذا يغطي اكتمال:
+    - Google `gvo:`
+    - BytePlus `ark:`
+    - WaveSpeed `ws:`
+    - KIE Veo `veo:` / `veo1080:` / `veo4k:`
+    - KIE generic polling
+- لم يتم نقل failure/refund في `/api/video` إلى `failTaskGenerationWithRefund` لأن السلوك الحالي يستخدم `refundGenerationCharge` مع `clearMediaUrl: true`، بينما helper الحالي يستخدم rollback semantics. هذا فرق سلوكي ولا يجوز تغييره بصمت.
+- `/api/generate/image` بقي Special لأنه يجمع:
+  - annual free generation
+  - paid charge
+  - OpenAI/Google direct output
+  - WaveSpeed submit+poll داخل نفس الطلب
+  - multiple outputs
+  - `saveAdditionalGenerationUrls`
+  - rollback-on-error
+- `/api/generate/audio` بقي Special لأنه يجمع:
+  - action router متعدد
+  - legacy TTS 23 credits
+  - transcript-only outputs
+  - video outputs مثل lip-sync/dubbing
+  - KIE/WaveSpeed fallback chains
+  - idempotency/finalize محلي
+- الحكم الحالي: Generation Engine phase ليست CLOSED بالكامل بعد. الإغلاق يحتاج إما توسيع orchestrators الحالية بعقود صريحة تحفظ هذه الحالات، أو إبقاء هذه المسارات Special موثقة حتى مرحلة لاحقة.
+
+## Controlled Generation Batch: Transitions و Lipsync و 3D (2026-08-15)
+
+- تم تنفيذ دفعة تحكم محدودة للميزات الثلاث فقط دون تغيير الأسعار أو الـAPI responses أو task ids أو polling/status أو refund behavior.
+- تم توسيع `RoutingModality` ليشمل `3d` وإضافة `lib/three-d-models.ts` كمرجع صغير لخرائط 3D المثبتة الحالية:
+  - `tripo3d-2.5.*`
+  - `hunyuan3d-3.1.*`
+  - `hunyuan3d-3.*`
+  - `meshy-6.*`
+  - `hyper3d-rodin-2.*`
+- `/api/3d` يستخدم الآن `resolveRuntimeProviderRoute` مع modality `3d`:
+  - إذا وجد Routing Control route نشطاً وصالحاً، يسجل `routingSource=control_center`.
+  - إذا لم يوجد route أو كان المزود غير صالح للـ3D، يرجع إلى `legacy_fallback`.
+  - التنفيذ الحالي يبقى WaveSpeed، وKIE لا يمر لأن `KIE_3D_MODELS` فارغة وKIE standby.
+- `requestPayload.routing` في Generation snapshot يحتوي:
+  - `routingSource`
+  - `effectiveProvider`
+  - `providerRoute`
+  - `routingReason`
+- Transitions بقيت PARTIAL:
+  - المسار الحالي يستخدم KIE workflow job و`TransitionJob`.
+  - KIE standby ولا يوجد WaveSpeed parity route مثبت لنفس workflow.
+  - تم فقط تسجيل metadata صريحة `legacy_fallback` دون تغيير workflow أو status routes.
+- Lipsync Studio بقيت PARTIAL:
+  - `/api/generate/audio` في action `lip-sync` ما يزال يستخدم KIE-specific upload/task execution.
+  - الأسعار legacy محفوظة كما هي.
+  - تم فقط تسجيل metadata صريحة `legacy_fallback` دون تغيير action routing أو response أو polling.
+- توزيع Feature Control بعد الدفعة:
+  - CONTROLLED: 25
+  - PARTIAL: 6
+  - UNCONTROLLED: 1
+  - UNKNOWN: 8
+- قرار معماري: لا يتم رفع Feature إلى CONTROLLED إذا كان التنفيذ الفعلي يعتمد على KIE standby أو يحتاج fallback غير مثبت.
+
 ## دعم المقاطع المتداخلة (Nest Sequence) والمزامنة بالتايم لاين (2026-08-14)
 
 - **حل الفروق الزمنية التراكمية (Accumulated totalDelta)**:
@@ -8,6 +74,14 @@
 - **القص والتبديل المباشر للكاميرات للـ Nest Sequences**:
   - تم تعديل دالة `prepareVisualOnlyCameraDecisionSegment` للتعرف على الـ Nest sequence (`isNest = true`) وتخطي محاولة التقطيع كـ `createSubClip` (وهو أمر غير مدعوم للـ sequences في Premiere).
   - تم إضافة دالة مساعدة `findClipAtStartTicks` للبحث عن الـ Nest sequence بعد وضعه على التراك المستهدف، لتتيح للدالة `applyPodcastCameraDecisionsOverlapAwareVisualOnly` تعديل أطرافه ونقاط دخوله وخروجه (`Trim inPoint/outPoint`) مباشرة دون فك النيست أو تخريب المخطط الزمني للمستخدم.
+- **أداة إزالة الصمت (Silence Removal)**:
+  - تم إضافة التبويب الخامس `Silence Removal` إلى واجهة البودكاست مع أيقونة المقص (`scissors`) المناسبة.
+  - تم بناء خيارات التحكم بالكامل: Threshold (dB) و Min Silence (s) و Padding (s) مع لوحة رسم Waveform تفاعلية تدعم سحب خط العتبة (Threshold line) وتحديث القيمة لحظياً.
+  - تم ربط الواجهة بخدمة `silence-removal-service.ts` لتقوم باستدعاء FFmpeg محلياً على جهاز المستخدم للقيام بدمج المقاطع الصوتية للمسار المختار، وحساب الفروق وسعة الموجه الصوتية (Waveform peaks) واستكشاف فترات الصمت.
+  - تم دمج دوال الـ ExtendScript اللازمة في `index.jsx`:
+    - `getTrackList`: لاستعراض قائمة المسارات النشطة على التايم لاين.
+    - `getAudioTrackClips`: لجلب جميع المقاطع على المسار مع دمج دعم المقاطع المتداخلة (Nest sequences) ديناميكياً.
+    - `removeSilenceRanges`: لعمل قطع شفرة الحلاقة (Razor cuts) وحذف فترات الصمت بالـ Ripple delete على المسارات المحددة بالقوة وبشكل متزامن.
 
 ## Routing Control Center Contract (2026-08-14)
 
@@ -3273,4 +3347,975 @@
   - `getVideoCreditsByModelIdAsync`
   - `getVideoCreditsByRouteAsync`
   - `getMusicCreditsAsync`
+- Final REVIEW_REQUIRED cleanup:
+  - Direct provider video dispatch must use `getVideoCreditsByModelIdAsync`, not the sync helper, for final deductions.
+  - Hook Studio execution uses `getHookStudioCreditsAsync`; the existing Hook Studio `creditCost` values are preserved as explicit legacy fallback user charges, not as an inline route-local deduction source.
+  - Panel transition routes use `calcTransitionCreditsForModel` with the previous transition formula passed as a legacy minimum so default user charges do not drop while async model-aware pricing remains part of the resolver path.
+  - `/api/panel/generate/tts` is intentionally a separate lightweight panel TTS action with a fixed 3-credit charge; it is not the same commercial route as `/api/generate/audio` TTS legacy pricing.
 - Do not connect pricing to the routing control layer until pricing parity is stable and separately reviewed.
+
+## Unified Generation Engine Phase 1 Contract (2026-08-14)
+
+- Phase 1 is a small Pattern A lifecycle orchestration layer only:
+  - pricing/user charge is resolved by the route exactly as before.
+  - `spendCredits` is called through the existing credit ledger.
+  - provider submit/poll remains inside the current route/provider adapter.
+  - `setGenerationMediaUrl` completes the existing Generation row.
+  - `refundGenerationCharge` is used when provider execution or required media attach fails after charging.
+- `lib/generation/inline-orchestrator.ts` is not a provider engine and must not absorb provider-specific API payloads, upload rules, or polling details in this phase.
+- Phase 1 is currently wired only to `/api/generate/remove-bg`, `/api/generate/face-swap`, `/api/generate/edit-tool`, `/api/generate/upscale`, and `/api/generate/watermark-remove`.
+- `/api/video`, `/api/generate/audio`, Variations, Reap, Transitions, Cinema, and other job-table systems remain untouched.
+- Routing Control integration in this layer is opt-in only. If a matching `ModelRoutingConfig` is not explicitly supplied for the current model/action, the orchestrator must use the route's existing provider route and must not guess a provider.
+- The API response shape, pricing result, provider route, task/result handling, and status behavior of migrated routes must remain unchanged.
+- `face-swap` intentionally preserves its previous media-attach failure behavior: log the attach failure and still return the provider result instead of failing/refunding the completed provider request.
+## Unified Generation Engine Pattern B: Reap Lifecycle Expansion (2026-08-15)
+
+- `lib/generation/task-orchestrator.ts` remains the only task-based orchestration layer.
+- Expanded Pattern B scope:
+  - `app/api/panel/reap/start`
+  - `app/api/panel/reap/status`
+  - `app/api/webhook/reap`
+  - `app/api/clipcraft/start`
+  - `app/api/clipcraft/status`
+  - `app/api/studio-edit/start`
+  - `app/api/studio-edit/status`
+- Start routes use the existing route-local pricing and provider adapters, then `runTaskGenerationStart` handles:
+  - `spendCredits`
+  - provider submit callback owned by the route
+  - `setGenerationTaskMarker`
+- Reap-style marker persistence is best-effort where it was best-effort before. Use `taskMarkerFailure: "log"` so marker write failures do not change API success/failure behavior.
+- Task id formats are unchanged:
+  - Panel Reap / Studio Edit store `task:reap:<projectId>`.
+  - ClipCraft stores `task:clipcraft:<projectId>`.
+- Status/webhook routes use `completeTaskGeneration` for primary output completion and `failTaskGenerationWithRefund` for Reap webhook failure refunds, while preserving ReapJob/finalize/additional-output logic.
+- Do not move routes into Pattern B if completion does not use `setGenerationMediaUrl` or if moving provider-submit failures would alter the route's current refund behavior. Current exclusions include `/api/3d` and transition job routes.
+
+## Unified Generation Engine Pattern B: Cinematic Task Lifecycle (2026-08-15)
+
+- `lib/generation/task-orchestrator.ts` is the small task-based lifecycle layer for routes that submit a provider task and later resolve it through status polling.
+- Current scope is only:
+  - `app/api/cinematic-video/generate`
+  - `app/api/cinematic-video/status`
+- Start flow:
+  - existing pricing in the route
+  - `spendCredits`
+  - provider submit remains in the route/adapter (`startVeoGeneration`)
+  - `setGenerationTaskMarker` stores the exact provider task id format as before
+- Status flow:
+  - provider polling remains in the status route (`pollVeoOperation`)
+  - completion uses `setGenerationMediaUrl`
+  - terminal provider failure/no-output refunds through existing `rollbackGenerationCharge`
+- The orchestrator must not change pricing, provider selection, task id format, API response shape, polling interval/contract, or generation status semantics.
+- `/api/video`, audio, 3D, Reap, Variations, Transitions, and other job systems remain outside this Pattern B phase.
+## Video Generation Orchestration Contract (2026-08-15)
+
+- Main video lifecycle consolidation must reuse `runInlineGeneration` and `runTaskGenerationStart` where they preserve behavior exactly. Do not add a separate Video engine for lifecycle-only work.
+- `dispatchDirectVideo` is the direct-provider inline path. It keeps provider selection in `generateVideo`, keeps pricing in `getVideoCreditsByModelIdAsync`, persists the provider output through `persistProviderUrl`, and uses `runInlineGeneration` only to coordinate charge, attach, and rollback.
+- `/api/generate/video` is an inline route for its current KIE and WaveSpeed branches: submit, poll, attach media, and return the final URL inside the same request. These branches may use `runInlineGeneration`.
+- `/api/panel/generate/video` direct-provider dispatch, KIE, and WaveSpeed branches are inline lifecycles and may use `runInlineGeneration` with `failureCreditAction: "rollback"` and best-effort media attach logging.
+- `/api/video` is the main task-based public video route but remains special until a task orchestrator can preserve all of its contracts:
+  - idempotency attach/complete calls
+  - provider-specific 502 response bodies
+  - Google `gvo:` task ids
+  - WaveSpeed `ws:` task ids
+  - BytePlus `ark:` task ids
+  - KIE `veo:` / `veo1080:` / `veo4k:` task ids
+  - debug payload fields and provider-status error details
+  - GET polling and callback status contracts
+- Do not migrate a `/api/video` branch into `runTaskGenerationStart` if doing so changes provider selection, pricing, credits, task id format, response shape, status semantics, callback behavior, polling behavior, idempotency behavior, or refund/rollback behavior.
+- Routing Control must not be connected to Video lifecycle orchestration until a separate explicit routing integration phase.
+
+## Audio Generation Orchestration Contract (2026-08-15)
+
+- Audio generation consolidation must reuse existing lifecycle orchestrators only. Do not add a separate Audio engine for lifecycle-only work.
+- `/api/panel/generate/music` is an inline Google Lyria lifecycle and may use `runInlineGeneration`:
+  - route-local `getMusicCreditsAsync` pricing stays the price authority.
+  - provider execution, trimming, and storage upload remain route-owned.
+  - `runInlineGeneration` coordinates charge, media attach, and rollback on provider failure.
+  - media attach failure remains best-effort logging, matching the previous route behavior.
+- `/api/generate/audio` remains special until a later explicit phase because it combines many different actions and contracts:
+  - legacy main TTS commercial pricing, including the preserved 23-credit ElevenLabs rule.
+  - idempotency attach/complete behavior.
+  - KIE/WaveSpeed fallback chains.
+  - transcript-only outputs that do not attach a media URL.
+  - audio and video outputs in the same route, including lip-sync/dubbing style responses.
+- `/api/music` remains special because its idempotency and provider-specific error response/rollback contracts are route-specific.
+- `/api/panel/generate/tts` remains an independent fixed 3-credit panel product. Do not merge it with main audio TTS or move it into orchestration if doing so changes the current refund behavior.
+- Audio orchestration must not change pricing, provider selection, action routing, response shapes, polling behavior, task ids, media status semantics, or refund/rollback behavior.
+- Routing Control must not be connected to Audio lifecycle orchestration until a separate explicit routing integration phase.
+
+## Image Generation Orchestration Contract (2026-08-15)
+
+- Main image generation unification must reuse the existing orchestration layers; do not add a separate `UnifiedImageEngine` while `runInlineGeneration` can represent the lifecycle safely.
+- `runInlineGeneration` owns the paid inline lifecycle only: `spendCredits`, optional post-charge hook, route/provider-owned execution callback, `setGenerationMediaUrl` for the primary output, and refund or rollback on provider/attach failure according to the route's existing behavior.
+- Default failure action remains `refundGenerationCharge`, preserving previously migrated Pattern A tool routes.
+- Image routes that historically use `rollbackGenerationCharge` must call `runInlineGeneration` with `failureCreditAction: "rollback"` if they are migrated.
+- `/api/image` legacy OpenAI image generation is an inline paid route and uses `runInlineGeneration`.
+- `/api/panel/generate/image` direct Google/OpenAI branch enters inline orchestration through `dispatchDirectImage`.
+- `dispatchDirectImage` must keep provider-specific execution in the existing `generateImage` adapter and persistence in `persistProviderUrl`; the orchestrator only coordinates lifecycle.
+- `saveAdditionalGenerationUrls` remains outside the primary media attach lifecycle and must keep the current best-effort behavior.
+- `recordFreeGeneration` remains outside `runInlineGeneration`; free annual image branches must not be forced into paid orchestration.
+- `/api/generate/image` and `/api/image/generate` still contain mixed provider/free/KIE-specific lifecycles. Only migrate their branches when the branch matches Pattern A 100% without changing provider, price, response shape, status, multiple-output behavior, or refund/rollback behavior.
+
+## Product Feature Registry Contract (2026-08-15)
+
+- `lib/product/feature-registry.ts` هو مرجع Product Surface الإداري للميزات الظاهرة والمعتمدة فقط.
+- العدد المعتمد حالياً ثابت: 40 Feature بالضبط.
+- التصنيف الحالي:
+  - Image: 10
+  - Video: 18
+  - Edit: 6
+  - Audio: 6
+- حالات الـFeature المسموحة:
+  - `active`
+  - `partial`
+  - `ui_only`
+  - `unknown`
+- Lifecycle المسموح:
+  - `inline`
+  - `task`
+  - `special`
+  - `workflow_job`
+  - `no_generation`
+- Orchestration المسموح:
+  - `inline`
+  - `task`
+  - `special`
+  - `workflow`
+  - `none`
+- `/api/admin/features` يقرأ من الـRegistry فقط، ولا يقوم بأي discovery للصفحات أو routes.
+- `/admin/features` صفحة read-only تعرض الـ40 Feature مع فلاتر Category/State/Lifecycle/Orchestration/Registry/Routing.
+- `enabled` و`visible` داخل هذا الـRegistry هما metadata فقط في هذه المرحلة. لا يغيران navbar أو UI visibility أو generation behavior.
+- لا تدخل الصفحات القديمة أو المخفية أو التجريبية أو admin routes في Product Feature Registry لمجرد وجودها في الكود.
+- Features بحالة `unknown` يجب أن تبقى `unknown` أو `null` حتى يتم إثبات ربطها من واجهة UI معتمدة إلى backend فعلي.
+
+## Feature Control Mapping Contract (2026-08-15)
+
+- Feature Control Mapping هو metadata مشتق read-only داخل `lib/product/feature-registry.ts` للـ40 Feature المعتمدة فقط.
+- لا يقوم هذا العقد بأي discovery للصفحات أو routes ولا يضيف Product Features جديدة.
+- الحقول المشتقة لكل Feature:
+  - `modelStatus`: `connected` أو `partial` أو `none` أو `unknown`.
+  - `providerStatus`: `active` أو `standby` أو `mixed` أو `none` أو `unknown`.
+  - `routingStatus`: `active` أو `standby` أو `disconnected` أو `not_applicable` أو `unknown`.
+  - `pricingStatus`: `core` أو `legacy` أو `fixed` أو `mixed` أو `none` أو `unknown`.
+  - `generationStatus`: `inline_orchestrated` أو `task_orchestrated` أو `special` أو `workflow_job` أو `no_generation`.
+  - `overallControl`: `CONTROLLED` أو `PARTIAL` أو `UNCONTROLLED` أو `UNKNOWN`.
+- `CONTROLLED` لا تعطى إلا عندما يكون lifecycle معروفاً، ومعلومات model/provider/pricing مثبتة عند الحاجة.
+- أدوات ثابتة لا تحتاج model routing يمكن أن تكون `CONTROLLED` مع `routingStatus=not_applicable`.
+- أي Feature model-based لا يزال يعتمد provider selection داخل route محلي أو `/api/video` يبقى `PARTIAL` حتى لو كان السعر والموديل معروفين.
+- BytePlus وKIE في حالة standby من Provider Registry؛ الميزات التي تعتمد عليهما أو تمزجهما مع providers نشطة لا تعتبر fully controlled.
+- `/admin/features` يعرض Overview وFeature Control Matrix وفلاتر control فقط للقراءة. هذه الصفحة لا تعدل registry أو routing أو pricing أو visibility.
+- التوزيع الحالي:
+  - CONTROLLED: 16
+  - PARTIAL: 15
+  - UNCONTROLLED: 1
+  - UNKNOWN: 8
+
+## Runtime Routing Integration Batch Contract (2026-08-15)
+
+- `lib/routing/runtime-routing.ts` هو bridge صغير للـgeneration runtime، وليس routing engine جديد.
+- الدالة `resolveRuntimeProviderRoute` تحاول:
+  1. قراءة rows الحالية من Routing Control.
+  2. مطابقة `modelId` أو `sourceModelId/provider route`.
+  3. تمرير الـeffective config إلى `decideProviderRoute`.
+  4. إرجاع `routingSource=control_center` فقط إذا كان provider نشطاً ومسموحاً من Provider Registry.
+  5. الرجوع إلى `routingSource=legacy_fallback` إذا لا يوجد row مطابق أو فشل القرار أو كان provider standby/disabled.
+- الدالة لا تغير pricing ولا credits ولا task ids ولا response contracts.
+- المسارات التي دخلت batch:
+  - `app/api/generate/image/route.ts`
+  - `app/api/hook-studio/generate/route.ts`
+  - `app/api/video/route.ts`
+  - `app/api/music/route.ts`
+  - direct dispatch في `lib/providers/dispatch.ts`
+- Product Features التي أصبحت مربوطة بهذا الـbridge:
+  - Create Image
+  - Inpaint
+  - Hook Studio
+  - Cinematic Styles
+  - Create Video
+  - Draw to Video
+  - Edit Video
+  - Text to Music
+- كل Generation في المسارات التي تم لمسها يجب أن يسجل داخل `requestPayload.routing`:
+  - `routingSource`: `control_center` أو `legacy_fallback`
+  - `effectiveProvider`
+  - `providerRoute`
+  - `routingReason`
+- BytePlus وKIE لا يسمحان بالمرور من `control_center` ما داما standby في Provider Registry.
+- خرائط provider القديمة تبقى موجودة كـcompatibility fallback مؤقتاً ولا تحذف في هذه المرحلة.
+- `/admin/features` يعرض هذه الميزات كـ`routingStatus=active` و`overallControl=CONTROLLED` لأن مساراتها أصبحت تستدعي الـruntime routing bridge فعلياً.
+- التوزيع الحالي بعد batch:
+  - CONTROLLED: 24
+  - PARTIAL: 7
+  - UNCONTROLLED: 1
+  - UNKNOWN: 8
+- الميزات التي بقيت PARTIAL خارج هذا batch:
+  - Cinema Flow
+  - AI Canvas
+  - Agent Studio
+  - Transitions
+  - Lipsync Studio
+  - 3D Studio
+  - Smart CLI
+
+## Generation Lifecycle Contract (2026-08-15)
+
+- `lib/generation/lifecycle-contract.ts` هو المرجع المركزي لعقود lifecycle الخاصة بالتوليد.
+- أنواع lifecycle المعتمدة للتوليد:
+  - `inline`
+  - `task`
+  - `workflow_job`
+  - `special_workflow`
+- `special_workflow` نوع رسمي ومقصود، وليس placeholder. يستخدم عندما يكون route الإنتاجي يحتوي سلوكاً مركباً يجب الحفاظ عليه بدون إجباره على inline/task orchestrator.
+- كل contract يصف read-only:
+  - provider resolution
+  - pricing source
+  - charge behavior
+  - task behavior
+  - completion behavior
+  - failure/refund policy
+  - multiple outputs support
+  - free generation support
+  - idempotency support
+- `/api/generate/image` مصنف `special_workflow` لأنه يحافظ على:
+  - free generation
+  - paid generation
+  - multiple outputs
+  - `saveAdditionalGenerationUrls`
+  - rollback semantics
+- `/api/generate/audio` مصنف `special_workflow` لأنه يحافظ على:
+  - action router
+  - legacy TTS pricing
+  - transcript-only actions
+  - video outputs
+  - provider fallbacks
+  - local finalize/idempotency
+- `/api/video` مصنف `special_workflow` task hybrid لأنه يحافظ على:
+  - task prefixes مثل `gvo:`, `ws:`, `ark:`, `veo:`
+  - polling/callback contracts
+  - idempotency
+  - custom failure/refund policy
+- `workflow_job` يبقى للميزات التي تملك job/workflow table خاص مثل Transitions.
+- Product Feature Registry يعرّض لكل Feature:
+  - `generationLifecycleType`
+  - `lifecycleContractId`
+  - `lifecycleContract`
+- `/admin/features` يعرض معلومات عقدة lifecycle للقراءة فقط ولا يغير UI visibility أو routing أو pricing أو generation behavior.
+- كل ACTIVE generation feature في Product Registry يجب أن يكون لها lifecycle معروف من:
+  - `inline`
+  - `task`
+  - `workflow_job`
+  - `special_workflow`
+- التوزيع الحالي:
+  - `inline`: 7
+  - `task`: 3
+  - `special_workflow`: 18
+  - `workflow_job`: 1
+  - `no_generation`: 11
+- Generation Core يعتبر مغلقاً كمرحلة contract/metadata. أي runtime refactor لاحق يجب أن يكون محدوداً بسلوك مثبت ولا يغير pricing/providers/API/task ids/polling/callbacks/refunds.
+
+## Final Generation Runtime Safety Gate (2026-08-15)
+
+- `legacy_fallback` لا يملك صلاحية تجاوز Provider Registry عند التنفيذ النهائي.
+- كل provider نهائي قبل أي provider API call يجب أن يمر عبر Provider Registry permission check.
+- Provider بحالة `standby` أو `disabled` ممنوع من التنفيذ حتى لو كان موجوداً في خرائط legacy أو fallback محلية.
+- `lib/generation/runtime-safety.ts` هو guard صغير فقط:
+  - `isFinalProviderExecutionAllowed`
+  - `assertFinalProviderExecutionAllowed`
+- `/api/video`:
+  - BytePlus standby ممنوع قبل submit إلى ModelArk.
+  - KIE standby ممنوع قبل submit إلى KIE.
+  - polling/status calls لـ`ark:` و`veo:` وKIE generic ممنوعة أيضاً إذا المزود standby.
+  - Google وWaveSpeed النشطان يبقيان كما هما.
+- `/api/generate/audio`:
+  - KIE-only actions مثل speech-to-text وaudio-isolation وlip-sync تمنع قبل الخصم إذا KIE standby.
+  - fallback chains التي كانت تملك WaveSpeed كبديل مثبت يمكنها استخدام WaveSpeed فقط إذا كان active ومفتاحه موجوداً.
+  - لا يتم اختراع fallback جديد.
+- Provider usage accuracy:
+  - `setActualProviderUsage` يصحح `Generation` و`ProviderUsageRecord` بعد معرفة provider الفعلي الذي نجح.
+  - `/api/generate/image` يصحح OpenAI/Google/WaveSpeed بعد النجاح.
+  - `/api/generate/audio` يصحح provider من response النهائي، فيغطي KIE -> WaveSpeed fallback وvoice-cloning/sound-effect fallbacks.
+- Transcript-only completion:
+  - `setGenerationCompletedWithoutMedia` يعلّم Generation وProviderUsageRecord كـ`completed` بدون إنشاء `mediaUrl` وهمي.
+  - speech-to-text يحافظ على response الحالي الذي يرجع transcript.
+- لا تغير هذه المرحلة:
+  - pricing
+  - credits
+  - model ids
+  - task ids
+  - polling
+  - callbacks
+  - image multiple outputs
+  - DB schema
+- نتيجة إعادة Final Generation Runtime Gate للنطاق:
+  - `/api/generate/image`
+  - `/api/video`
+  - `/api/generate/audio`
+- الحكم الحالي:
+  - `GENERATION RUNTIME READY FOR JOBS = YES`
+
+## Jobs / Queue / Status Observability Layer (2026-08-15)
+
+- مرحلة Jobs الحالية هي طبقة مراقبة وقراءة فقط فوق الأنظمة الموجودة، وليست Queue جديدة ولا Worker جديد.
+- لا تغير هذه المرحلة:
+  - generation execution
+  - provider calls
+  - pricing
+  - routing
+  - credits/refunds
+  - polling/callbacks
+  - DB schema
+- `lib/admin/jobs-read-model.ts` هو read model الإداري المركزي.
+- مصادر jobs الفعلية التي تقرأها الطبقة:
+  - `Generation` + `GenerationRequestSnapshot` + `ProviderUsageRecord`
+  - `TransitionJob` + `TransitionOutput`
+  - `VariationJob` + `VariationOutput`
+  - `ReapJob`
+  - `CinemaJob`
+- `/api/admin/jobs` هو endpoint إداري read-only محمي بـ`isAdmin()`.
+- `/admin/jobs` صفحة read-only تعرض:
+  - All Jobs
+  - Queued
+  - Processing
+  - Completed
+  - Failed
+  - Diagnostics
+- Unified job fields للعرض فقط قدر الإمكان:
+  - `jobId`
+  - `sourceType`
+  - `generationId`
+  - `featureId`
+  - `userId`
+  - `modelId`
+  - `provider`
+  - `providerTaskId`
+  - `routingSource`
+  - `status`
+  - `progress`
+  - `createdAt`
+  - `startedAt`
+  - `completedAt`
+  - `error`
+  - `creditsCharged`
+  - `mediaUrl/result`
+  - `providerUsage`
+- Unified status normalization للعرض فقط:
+  - `queued`: queued / pending / created
+  - `processing`: submitted / prepped / processing / running / in_progress / rendering
+  - `completed`: completed / succeeded / success / done / ready
+  - `failed`: failed / failure / error / rejected
+  - `cancelled`: cancelled / canceled
+- Diagnostics المتاحة للقراءة فقط:
+  - queued too long
+  - processing too long
+  - result exists لكن status ما زال processing
+  - failed job مع generation mismatch عندما يمكن كشفه
+  - provider task id missing
+  - provider usage missing
+- ربط jobs بالـProduct Feature Registry محافظ:
+  - لا يتم استخدام صفحات مخفية أو routes قديمة لإثبات Feature.
+  - `video-transitions` يثبت عبر `TransitionJob`.
+  - بعض `Generation` tool rows غير الملتبسة يمكن ربطها مثل Background Remove وFace Swap.
+  - مصادر أو rows لا تحمل دليل Feature من الـ40 المعتمدة تبقى `featureId=null`.
+- عند تحقق Neon في 2026-08-15، كانت الأعداد المقروءة:
+  - `Generation`: 1072
+  - `TransitionJob`: 44
+  - `VariationJob`: 2
+  - `ReapJob`: 0
+  - `CinemaJob`: 0
+  - الإجمالي قبل الفلاتر: 1118 Unified Job rows.
+- القرار:
+  - `JOBS OBSERVABILITY LAYER READY = YES`.
+
+## History / Logs / Usage Observability Layer (2026-08-15)
+
+- مرحلة History / Logs / Usage الحالية هي طبقة مراقبة وقراءة فقط فوق البيانات الموجودة، وليست Logging Architecture جديدة ولا Analytics.
+- لا تغير هذه المرحلة:
+  - Generation Runtime
+  - Jobs Runtime
+  - Pricing
+  - Routing
+  - Providers
+  - Credits / refunds
+  - Provider calls
+  - DB schema
+- `lib/admin/history-read-model.ts` هو read model الإداري المركزي لتاريخ التوليد والاستخدام.
+- مصادر History/Usage الفعلية التي تقرأها الطبقة:
+  - `Generation`
+  - `GenerationRequestSnapshot`
+  - `ProviderUsageRecord`
+  - `CreditLedgerEntry` عبر raw read اختياري لأنه غير ممثل حالياً في Prisma schema
+  - Unified Jobs Read Model mapping
+- `/api/admin/history` هو endpoint إداري read-only محمي بـ`isAdmin()`.
+- `/admin/history` صفحة read-only تعرض:
+  - Summary حقيقي من البيانات المخزنة
+  - جدول عمليات Generation
+  - Provider usage المرتبط
+  - Credit ledger entries عند توفرها
+  - Observability gaps
+- الحقول الموحدة للعرض فقط قدر الإمكان:
+  - `generationId`
+  - `jobId`
+  - `featureId`
+  - `userId`
+  - `modelId`
+  - `provider`
+  - `routingSource`
+  - `providerTaskId`
+  - `status`
+  - `creditsCharged`
+  - `creditsRefunded`
+  - `providerEstimatedCost`
+  - `providerActualCost`
+  - `createdAt`
+  - `completedAt`
+  - `duration / latency`
+  - `primaryResult`
+  - `additionalOutputsCount`
+  - `error / errorCode`
+- قواعد الثقة:
+  - لا يتم حساب provider actual cost من التخمين؛ يظهر فقط إذا كان مخزناً فعلياً كمصدر `actual`.
+  - لا يتم إثبات refund من status فاشل فقط؛ refund يحتاج `CreditLedgerEntry` صريحاً.
+  - provider estimated cost يظهر فقط من snapshot/generation metadata المخزنة.
+  - additional outputs count يظهر فقط إذا payload مخزن يحتوي array واضحة.
+  - featureId يبقى `null` أو `unknown` إذا لم يثبت الربط بواحدة من الـ40 Product Features المعتمدة.
+- الفلاتر المتاحة:
+  - Date
+  - Feature
+  - Provider
+  - Model
+  - Status
+  - Charged / Free / Refunded
+  - Has Error
+  - Has Provider Cost
+  - Query
+- عند تحقق Neon في 2026-08-15، كانت الأعداد المقروءة:
+  - `Generation`: 1072
+  - `ProviderUsageRecord`: 618
+  - linked ProviderUsageRecord: 458
+  - unlinked ProviderUsageRecord: 160
+- Observability gaps الحالية:
+  - `CreditLedgerEntry` raw/optional وليس Prisma model typed، لذلك refund proof قد يكون محدوداً إذا الجدول غير متاح أو فارغ.
+  - بعض الأخطاء لا تُحفظ كـstructured error field وتظهر فقط من status/media markers أو لا تظهر.
+  - multiple/additional outputs ليست مربوطة دائماً بوضوح مع primary generation id.
+  - actual provider cost غير متوفر لكل provider usage row.
+- القرار:
+  - لا يتم إنشاء log table أو revenue/margin/profit analytics في هذه المرحلة.
+  - `HISTORY / LOGS / USAGE OBSERVABILITY READY = YES`.
+
+## Analytics Read-Only Observability Layer (2026-08-15)
+
+- مرحلة Analytics الحالية قراءة فقط وتنقسم صراحة إلى:
+  - Operational Analytics: مسموحة وجاهزة من البيانات التشغيلية.
+  - Financial Analytics: غير موثوقة كتحليل مالي نهائي حالياً بسبب نقص actual provider cost coverage.
+- لا تغير هذه المرحلة:
+  - runtime
+  - jobs runtime
+  - generation lifecycle
+  - pricing
+  - routing
+  - providers
+  - credits/refunds
+  - DB schema
+- `lib/admin/analytics-read-model.ts` هو read model المركزي للتحليلات.
+- مصادر Analytics الفعلية:
+  - `Generation`
+  - `History Read Model`
+  - `Unified Jobs Read Model`
+  - `ProviderUsageRecord`
+  - `Product Feature Registry`
+  - `CreditLedgerEntry` عبر raw read اختياري عندما يحتاج History rows لإثبات refunds
+- `/api/admin/analytics` endpoint إداري read-only محمي بـ`isAdmin()`.
+- `/admin/analytics` صفحة read-only تعرض:
+  - Overview
+  - Providers
+  - Models
+  - Features
+  - Jobs
+  - Credits
+  - Cost Coverage
+  - Data Quality / Coverage
+  - Partial Metrics
+  - Refused Metrics
+- Operational metrics المسموحة:
+  - Total / Completed / Failed / Processing generations
+  - Success Rate / Failure Rate
+  - Average latency فقط عندما timestamps تسمح
+  - Stuck jobs / queued too long / processing too long من diagnostics الموجودة
+  - provider/model/feature buckets من الصفوف المثبتة
+- Usage Analytics المسموحة:
+  - ProviderUsage total
+  - linked / unlinked usage
+  - usage by provider/model/status
+  - missing request identifiers
+  - missing actual cost
+  - missing estimated cost
+  - coverage percentages
+- Credits Analytics:
+  - total credits charged من History/Credit ledger/snapshot/generation cost حسب الإثبات المتاح
+  - total credits refunded فقط عندما يوجد proof صريح
+  - net credits فقط إذا charged/refunded قابلان للحساب
+  - free generations count
+- Financial/Cost Coverage:
+  - actual provider cost rows منفصلة عن estimated rows.
+  - actual provider cost total يحسب فقط من rows التي تحمل cost source فعلي.
+  - estimated provider cost total يحسب منفصلاً ولا يخلط مع actual.
+  - ممنوع عرض Total Profit أو True Margin أو Net Revenue كأرقام نهائية في هذه المرحلة.
+  - أي future margin view يجب أن يكون موسوماً بوضوح PARTIAL / COVERAGE-LIMITED.
+- Data Quality / Coverage يعرض:
+  - Generation rows
+  - ProviderUsage rows
+  - linked / unlinked usage
+  - actual cost coverage
+  - estimated cost coverage
+  - feature mapping coverage
+  - error data coverage عندما يمكن حسابها
+- عند تحقق Neon في 2026-08-15:
+  - `Generation`: 1072
+  - `ProviderUsageRecord`: 618
+  - linked ProviderUsageRecord: 458
+  - unlinked ProviderUsageRecord: 160
+  - usage link coverage: 74.1%
+  - ProviderUsage rows with actual cost: 4
+  - ProviderUsage rows with estimated cost: 530
+  - ProviderUsage rows missing request id: 337
+  - completed Generation rows: 552
+  - failed Generation rows: 212
+- القرار:
+  - `OPERATIONAL ANALYTICS READY = YES`
+  - `FINANCIAL ANALYTICS TRUSTWORTHY = NO`
+
+## Admin Control Center Aggregation Layer (2026-08-15)
+
+- `/admin` هو مركز التحكم الرئيسي للقراءة فقط، وليس Source of Truth جديد.
+- لا تغير هذه المرحلة:
+  - generation runtime
+  - jobs runtime
+  - provider calls
+  - routing
+  - pricing
+  - credits/refunds
+  - analytics calculations
+  - DB schema
+  - Knowledge Hub
+- مصادر الحقيقة التي يقرأ منها `/admin`:
+  - Provider Registry عبر `/api/admin/providers`
+  - Product Feature Registry عبر `/api/admin/features`
+  - Routing Control عبر `/api/admin/routing`
+  - Unified Jobs Read Model عبر `/api/admin/jobs`
+  - History / Usage Read Model عبر `/api/admin/history`
+  - Analytics Read Model عبر `/api/admin/analytics`
+  - Admin Models عبر `/api/admin/models`
+  - Pricing Constitution عبر `/api/admin/pricing-constitution`
+- `lib/admin/control-center.ts` يحول نتائج الـAPIs الحالية إلى snapshot للعرض فقط:
+  - overview cards
+  - quick navigation
+  - system health matrix
+  - alerts
+- System Health Matrix تستخدم الحالات:
+  - `READY`
+  - `PARTIAL`
+  - `DEGRADED`
+  - `NOT_STARTED`
+- Knowledge Hub يظهر في المصفوفة كـ`NOT_STARTED / Planned` ولا يبدأ أي تنفيذ.
+- Financial Data يجب أن تظهر دائماً بعبارة واضحة:
+  - `FINANCIAL DATA NOT FULLY TRUSTWORTHY`
+  - لأن actual provider cost coverage غير مكتملة.
+- ممنوع في `/admin` عرض `Total Profit` أو `True Margin` أو `Net Revenue` كأرقام نهائية ما دامت Financial Analytics غير موثوقة.
+- Alerts المسموحة فقط من read models الحالية:
+  - Routing DB unavailable
+  - job diagnostics / stuck jobs
+  - unlinked ProviderUsage
+  - missing provider usage
+  - low actual-cost coverage
+  - partial/uncontrolled/unknown features
+  - financial data not fully trustworthy
+- القرار:
+  - `ADMIN CONTROL CENTER READY = YES`
+
+## Knowledge Hub Phase 1 (2026-08-15)
+
+- Knowledge Hub في المرحلة الأولى لا يغير Runtime ولا أي Registry إنتاجي.
+- لا تغير هذه المرحلة:
+  - Model Registry
+  - Feature Registry
+  - Routing
+  - Pricing
+  - Providers
+  - Generation
+  - Jobs
+  - History
+  - Analytics
+  - DB schema
+- لا توجد migration في Phase 1.
+- التخزين الحالي يستخدم `PlatformConfig` بالمفتاح:
+  - `knowledge_hub_v1`
+- هذا التخزين مخصص لمساحة Knowledge فقط وليس بديلاً دائماً عن جداول مخصصة إذا توسع النظام لاحقاً.
+- إذا احتاجت المرحلة التالية schema منفصل، يجب عرض التصميم أولاً قبل أي migration:
+  - `KnowledgeSource`
+  - `KnowledgeDocument`
+  - `KnowledgeDraft`
+- `/admin/knowledge` هي صفحة Knowledge Hub الإدارية.
+- `/api/admin/knowledge` هو API إداري read/write داخل مساحة Knowledge فقط:
+  - `GET`: قراءة sources/documents/drafts.
+  - `POST`: import URL واحد.
+  - `PATCH`: approve/reject draft داخل Knowledge فقط.
+- Providers المدعومة كتصنيف Knowledge:
+  - Google
+  - OpenAI
+  - WaveSpeed
+  - BytePlus
+  - KIE
+  - ElevenLabs
+  - Reap
+  - RunningHub
+  - Custom Provider
+- Source types المعتمدة في data model:
+  - `url`
+  - `pasted_text`
+  - `markdown`
+  - `json`
+- واجهة Phase 1 تستورد `url` فقط.
+- Import URL:
+  - يستورد صفحة HTTP/HTTPS واحدة فقط.
+  - لا ينفذ crawler عميق.
+  - لا ينفذ PDF parsing.
+  - يرفض `file://` وlocalhost وloopback وprivate IPv4 ranges قبل fetch.
+- كل Import ينشئ:
+  - `KnowledgeSource`
+  - `KnowledgeDocument`
+  - `KnowledgeDraft`
+- Document fields:
+  - `sourceId`
+  - `sourceUrl`
+  - `title`
+  - `rawContent`
+  - `normalizedText`
+  - `importedAt`
+  - `contentHash`
+  - `status`
+- Document statuses:
+  - `imported`
+  - `parse_failed`
+  - `needs_review`
+  - `approved`
+  - `rejected`
+  - `outdated`
+- Extraction في هذه المرحلة heuristic ودائماً Draft:
+  - Models
+  - Model IDs
+  - Endpoints
+  - Parameters
+  - Capabilities
+  - Pricing/limits references
+  - Authentication
+  - Callbacks/Webhooks
+  - Task/Status APIs
+- كل extracted field يجب أن يحمل provenance:
+  - `sourceUrl`
+  - `documentId`
+  - `section` عندما يمكن إثباته أو best-effort label.
+- Review:
+  - Approve يعني `approved knowledge` فقط.
+  - Reject يعني رفض draft داخل Knowledge فقط.
+  - لا يوجد auto-publish إلى Model Registry أو Routing أو Pricing.
+- `/admin` يربط إلى `/admin/knowledge`.
+- Knowledge status في Admin Control Center يصبح `READY` إذا API يعمل تقنياً، حتى لو:
+  - `0 sources`
+  - `0 approved docs`
+- القرار:
+  - `KNOWLEDGE HUB PHASE 1 READY = YES`
+
+## Central Model Configuration + Knowledge Hub Phase 2
+
+- المبدأ المعتمد:
+  - `ONE MODEL ID -> ONE CENTRAL DEFINITION -> ALL MIGRATED CONSUMERS`
+- لا توجد DB migration في هذه المرحلة.
+- مصدر الحقيقة الإنتاجي الحالي للموديل:
+  - `lib/model-definition-registry.ts`
+  - يقرأ من Admin Models storage الموجود فعلياً:
+    - `dynamic_image_models`
+    - `dynamic_video_models`
+  - هذه المفاتيح موجودة مسبقاً في `PlatformConfig` وتبقى registry الإنتاجي الحالي للموديلات.
+- Central Model Definition يحتوي قدر الإمكان على:
+  - `modelId`
+  - `displayName`
+  - `modality`
+  - `status`
+  - `sourceModelId`
+  - `pricingRef`
+  - `routingRef`
+  - `capabilities`
+  - `parameters`
+  - `parameterRules`
+  - `inputs`
+  - `outputs`
+  - `limits`
+  - `defaults`
+  - `provenance`
+- Parameter Schema الحالي يدعم:
+  - `resolution`
+  - `duration`
+  - `aspectRatio`
+  - `quality`
+  - `numOutputs`
+  - `referenceImages`
+  - `referenceVideos`
+  - `referenceAudios`
+- كل Parameter يدعم:
+  - `id`
+  - `label`
+  - `type`
+  - `required`
+  - `defaultValue`
+  - `options`
+  - `min`
+  - `max`
+  - `step`
+  - `visible`
+  - `supported`
+  - `provenance`
+- `/api/model-definitions`:
+  - API read-only للمستهلكين المصرح لهم.
+  - يرجع التعريفات المركزية.
+- `/api/models`:
+  - ما زال يرجع نفس legacy-compatible shape للواجهات الحالية.
+  - قبل الإرجاع يطبّق Central Model Definition على image/video models.
+  - هذا يثبت أن Create Image وCreate Video يستطيعان رؤية تغييرات capabilities/options من نفس المصدر المركزي بدون تعديل الصفحة نفسها.
+- `/admin/models`:
+  - بقي الصفحة الوحيدة لإدارة Models.
+  - يعرض ملخص Central Definitions.
+  - يعرض Pending Knowledge Model Changes.
+  - لا ينشئ source of truth ثاني.
+- Knowledge Hub Phase 2:
+  - المسار أصبح:
+    - Documentation
+    - Import
+    - Extract
+    - Review
+    - Approved Knowledge
+    - Proposed Model Changes
+    - Admin Review
+    - Publish Model Configuration
+  - Approve داخل Knowledge لا يغير الإنتاج.
+  - Publish فقط هو الذي يحدّث production model registry.
+- الحقول التي يمكن نشرها حالياً من Knowledge إلى Model Registry:
+  - `sourceModelId` / `api_route`
+  - resolution/quality options
+  - duration options
+  - aspect ratios
+  - max reference images
+- الفصل بين السلطات:
+  - Knowledge Hub = ماذا تقول الوثائق.
+  - Model Registry = تعريف الموديل المعتمد داخل Saad Studio.
+  - Routing Control = اختيار provider/runtime route.
+  - Pricing Core = سعر المستخدم والخصم.
+  - Generation Runtime = التنفيذ.
+  - UI Parameter Renderer/Consumers = قراءة options من Central Model Definition.
+- Pricing:
+  - لا يوجد user price داخل Model Definition.
+  - `pricingRef` فقط يربط إلى Pricing Core.
+- Routing:
+  - لا يوجد active provider داخل Model Definition.
+  - `routingRef` فقط يربط إلى Routing Control.
+- Storage:
+  - Storage & Media Core مرحلة مستقلة لاحقة.
+  - لا تخلط Backblaze/B2 أو `/admin/storage` مع Model Configuration.
+- القرار الحالي:
+  - `CENTRAL MODEL DEFINITION READY = YES`
+  - `DYNAMIC MODEL CAPABILITIES READY = YES` للـconsumers الذين يقرأون `/api/models`.
+  - `KNOWLEDGE -> MODEL PUBLISH PIPELINE READY = YES`
+  - `ALL PRODUCT UI CENTRALIZED = NO`
+- المتبقي:
+  - ترحيل باقي Product UI features تدريجياً من constants محلية إلى Central Model Definition.
+  - إضافة DB schema مخصص فقط إذا وافق المطور بعد عرض التصميم، versioning، rollback، وفصل Draft عن Production.
+
+## Central Storage & Media Core Phase 1
+
+- الهدف:
+  - إنشاء Storage Runtime Resolver مركزي فوق التخزين الحالي.
+  - الحفاظ على Backblaze كـactive writer.
+  - إبقاء R2 كـlegacy read fallback فقط.
+  - جعل `/api/media` وواجهات الإدارة تقرأ من نفس طبقة التخزين بدل الاعتماد المباشر على مزود واحد.
+- المصدر المركزي:
+  - `lib/storage/runtime.ts`
+  - `PlatformConfig.storage_runtime_config_v1` للسياسات التشغيلية فقط.
+  - أسرار التخزين وcredentials تبقى في environment variables ولا تُخزن في الداشبورد.
+- Provider policy الحالية:
+  - `backblaze`: active writer/read provider.
+  - `r2`: legacy read fallback.
+  - لا يوجد S3/R2 active write switch في هذه المرحلة.
+- واجهات الإدارة:
+  - `/admin/storage`
+  - `/api/admin/storage`
+- وظائف `/api/admin/storage`:
+  - عرض active provider.
+  - عرض media delivery mode.
+  - عرض legacy read policy.
+  - عرض provider matrix.
+  - media path diagnostics.
+  - السماح بتعديل operational policy المحدودة فقط.
+  - رفض تفعيل R2 كـactive writer في Phase 1.
+- `/api/media/[...path]`:
+  - يستخدم Storage Runtime.
+  - يحاول active provider أولاً.
+  - يستخدم legacy fallback عند التفعيل.
+  - يحافظ على Range requests وHEAD/OPTIONS وcontent type handling.
+  - يرجع 404 إذا لم يجد الملف في active ولا legacy providers.
+- `lib/r2-storage.ts`:
+  - أصبح compatibility facade فوق Storage Runtime.
+  - الهدف إبقاء imports القديمة تعمل بدون جعل R2 هو المصدر المعماري.
+- `lib/media/public-url-resolver.ts`:
+  - يستخدم Storage Runtime للـowned storage.
+  - لا يحول external provider URLs إلى `/api/media`.
+  - يحافظ على provider URLs الخارجية كما هي عندما لا تكون مملوكة للتخزين.
+- Direct coupling المتبقي:
+  - `defaultProvider` و`legacyProvider` exports باقية مؤقتاً للتوافق.
+  - بعض thumbnail/reference assets في الواجهة ما زالت Backblaze URLs ثابتة.
+  - بعض fallbacks القديمة للـmedia URLs باقية للتوافق.
+  - `lib/supabase-storage.ts` ما زال compatibility legacy surface.
+- حدود المرحلة:
+  - لا DB migration.
+  - لا نقل للملفات القديمة.
+  - لا تغيير في Generation Runtime.
+  - لا تغيير في Pricing/Routing/Providers/Credits/Jobs/History/Analytics.
+  - لا تفعيل لـKIE/BytePlus.
+- قرارات:
+  - `CENTRAL STORAGE RUNTIME READY = YES`
+  - `MEDIA DELIVERY CENTRALIZED = YES`
+  - `LEGACY MEDIA SAFE = YES`
+  - `STORAGE PROVIDER SWITCHABLE FROM ADMIN = NO`
+- المتبقي:
+  - Phase 2 فقط بعد قرار منفصل: إزالة direct coupling المتبقي، إضافة provider write adapter جديد إن لزم، وخطة migration للروابط القديمة.
+
+## Central Storage & Media Core Phase 1B
+
+- الهدف:
+  - جعل اختيار مزود الكتابة النشط قراراً مركزياً من `/admin/storage`.
+  - إبقاء كل consumers على نفس helpers/facades الحالية بدون تعديل مسارات Image/Video/Audio/Tools.
+- Storage Provider Registry:
+  - `lib/storage/provider-registry.ts`
+  - يحتوي تعريفات غير سرية لكل provider:
+    - `id`
+    - `displayName`
+    - `configured`
+    - `readEnabled`
+    - `writeEnabled`
+    - `legacyReadOnly`
+    - `status`
+    - metadata آمنة مثل bucket/endpoint/publicBaseUrl بدون credentials.
+- Storage Policy:
+  - مصدر الحقيقة الحالي:
+    - `PlatformConfig.storage_runtime_config_v1`
+  - الحقول التشغيلية:
+    - `activeWriteProvider`
+    - `legacyReadEnabled`
+    - `mediaDeliveryMode`
+  - `activeProvider` باقٍ فقط كـcompatibility alias.
+  - الأسرار لا تدخل PlatformConfig.
+- سياسة الكتابة:
+  - أي write operation يقرأ active writer وقت التنفيذ من Storage Runtime.
+  - `defaultProvider` لم يعد Backblaze singleton؛ أصبح compatibility facade ديناميكي فوق Storage Runtime.
+  - R2 لا يمكن أن يكون active writer لأنه `legacyReadOnly=true` و`writeEnabled=false`.
+- سياسة القراءة:
+  - read chain:
+    - active writer أولاً
+    - ثم configured legacy readers عند تفعيل `legacyReadEnabled`
+  - إذا تغير writer مستقبلاً، الملفات القديمة تبقى قابلة للقراءة من legacy chain بدون migration.
+- `/admin/storage`:
+  - يعرض Active Write Provider.
+  - يعرض فقط providers التي تكون:
+    - configured
+    - writeEnabled
+    - ليست legacyReadOnly
+  - حالياً Backblaze هو الخيار الإنتاجي الوحيد للكتابة.
+  - R2 يظهر في matrix كـlegacy read-only فقط.
+- Fail-closed:
+  - حفظ policy يرفض:
+    - provider غير معروف
+    - provider غير configured
+    - provider read-only
+    - provider legacy-only
+    - provider disabled/unavailable
+  - لا يوجد silent save عند الفشل.
+- `/admin`:
+  - Storage يكون `READY` فقط عند توفر:
+    - central runtime
+    - active writable provider
+    - media gateway
+  - Storage يكون `DEGRADED` إذا active writer أو media gateway غير متاح.
+- Direct URL policy:
+  - `resolvePublicUrl(..., direct)` لا يرجع direct provider URL إلا عند تمرير `providerId` صراحة.
+  - بدون providerId يرجع `/api/media/...` حتى لا يختار مزوداً خاطئاً بشكل متزامن.
+- قرارات:
+  - `CENTRAL STORAGE POLICY READY = YES`
+  - `ACTIVE WRITE PROVIDER ADMIN-CONTROLLED = YES`
+  - `CONSUMERS STORAGE-PROVIDER AGNOSTIC = YES` للـconsumers التي تستخدم helpers/facades.
+  - `STORAGE PROVIDER SWITCHABLE WITHOUT CONSUMER CODE CHANGES = YES` على مستوى runtime/helper، بشرط إضافة adapter/config حقيقي لأي provider مستقبلي.
+  - `LEGACY MEDIA SURVIVES PROVIDER SWITCH = YES`
+- حدود المرحلة:
+  - لا DB media metadata migration.
+  - لا نقل ملفات قديمة.
+  - لا S3 migration.
+  - لا تعديل Pricing/Routing/Generation/Jobs/Knowledge/Model Definition.
+  - لا تفعيل R2 write.
+## Central Model Consumer Migration Batch 1 (2026-08-15)
+
+- تم تنفيذ ترحيل محدود للمستهلكين الذين كانوا PARTIALLY_CENTRALIZED فقط:
+  - Create Image
+  - Inpaint
+  - Hook Studio
+  - Cinema Flow
+  - Cinematic Styles
+  - AI Canvas
+  - Agent Studio
+  - Create Video
+  - Transitions
+  - Draw to Video
+  - Edit Video
+- مصدر الحقيقة للمعلومات القابلة للتغيير الخاصة بالموديل يبقى:
+  - `lib/model-definition-registry.ts`
+- تمت إضافة resolvers مركزية للمستهلكين:
+  - `getCentralizedDynamicImageModels`
+  - `getCentralizedDynamicVideoModels`
+- هذه resolvers تطبق Central Model Definition على الشكل القديم الذي تستهلكه الواجهات والمسارات الحالية، لذلك لا تتغير API contracts.
+- الحقول التي تنتقل مركزياً عندما تكون مثبتة:
+  - display name
+  - source model id / api route
+  - resolutions / quality
+  - durations
+  - aspect ratios
+  - max reference images/videos/audios
+  - output count limits
+- `/api/models` و`/api/generate/image` و`/api/video` يقرؤون الآن model metadata/capabilities عبر central-applied dynamic models.
+- `/image` يعرض aspect ratios من الموديل المركزي المختار، مع fallback للرسم المحلي للأيقونات فقط.
+- `/video` يحافظ على `selectedModel` منسجماً مع الموديل المركزي القادم من `/api/models`.
+- Hook Studio:
+  - hook-specific UX/config يبقى محلياً.
+  - model-specific capabilities تتطبق كـoverlay من Central Model Definition فوق `HOOK_VIDEO_MODELS` عند وجود match مثبت.
+  - Seedance 2.5 static Hook injection صار fallback فقط إذا لم يصل الموديل من central list.
+- AI Canvas:
+  - node picker وsettings panel يفضلان قوائم image/video المركزية.
+  - خيارات video duration/resolution/aspect وخيارات image aspect تأتي من الموديل المركزي عندما يتوفر.
+- Transitions:
+  - preset/effect/workflow behavior يبقى محلياً.
+  - لا يتم خلط transition-specific workflow config مع generic model definition.
+- لم تتغير:
+  - pricing
+  - routing behavior
+  - storage
+  - generation lifecycle
+  - jobs/history/analytics
+  - credits/refunds
+  - provider statuses
+  - DB schema
+  - task ids/callbacks
+- نتيجة Audit بعد الدفعة:
+  - FULLY_CENTRALIZED: 6
+  - PARTIALLY_CENTRALIZED: 5
+  - NOT_CENTRALIZED: 8
+  - NO_MODEL_CONFIG: 12
+  - UNKNOWN: 9
+- القرار:
+  - `BATCH 1 MODEL CONSUMER MIGRATION READY = YES`
+  - `ALL PRODUCT MODEL CONFIG CENTRALIZED = NO`

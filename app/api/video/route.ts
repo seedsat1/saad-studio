@@ -6,12 +6,13 @@ export const maxDuration = 90;
 export const dynamic = "force-dynamic";
 import { getGenerationCost, estimateProviderCostSync } from "@/lib/pricing";
 import { getVideoCreditsByRouteAsync } from "@/lib/credit-pricing";
-import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
+import { completeTaskGeneration } from "@/lib/generation/task-orchestrator";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
-import { getDynamicVideoModels } from "@/lib/dynamic-model-loader";
+import { getCentralizedDynamicVideoModels } from "@/lib/model-definition-registry";
 import { getGoogleVideoConstraints, isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
@@ -28,7 +29,9 @@ import {
   verifyPublicMediaUrl,
   ValidationError,
 } from "@/lib/media/public-url-resolver";
-import { defaultProvider, legacyProvider } from "@/lib/storage";
+import { resolveProviderPublicUrl } from "@/lib/storage";
+import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
+import { isFinalProviderExecutionAllowed } from "@/lib/generation/runtime-safety";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
@@ -43,6 +46,15 @@ const GOOGLE_VEO3_ROUTE = "google/veo3-text-to-video";
 const LEGACY_GEMINI_OMNI_VIDEO_ROUTE = "google/gemini-omni-video";
 const BYTEPLUS_ARK_BASE = (process.env.BYTEPLUS_ARK_BASE_URL || "https://ark.ap-southeast.bytepluses.com/api/v3").replace(/\/+$/, "");
 const BYTEPLUS_CONTENT_TASKS_URL = `${BYTEPLUS_ARK_BASE}/contents/generations/tasks`;
+
+function providerNotActiveResponse(provider: "byteplus" | "kie", extra?: Record<string, unknown>) {
+  return {
+    error: `${provider === "byteplus" ? "BytePlus" : "KIE"} provider is not active for generation execution.`,
+    code: "provider_not_active",
+    provider,
+    ...extra,
+  };
+}
 const SEEDANCE_2_MODEL = "dreamina-seedance-2-0-260128";
 const SEEDANCE_2_FAST_MODEL = "dreamina-seedance-2-0-fast-260128";
 const SEEDANCE_2_MINI_MODEL = process.env.BYTEPLUS_MODEL_MINI ?? "dreamina-seedance-2-0-mini-260615";
@@ -1160,7 +1172,7 @@ async function readBytePlusImageInputBuffer(value: string, userId: string): Prom
   let fetchUrl: string | null = null;
 
   if (directKey) {
-    fetchUrl = defaultProvider.getPublicUrl(directKey.bucket, directKey.path);
+    fetchUrl = await resolveProviderPublicUrl(directKey.bucket, directKey.path);
   } else if (/^https?:\/\//i.test(trimmed)) {
     fetchUrl = await resolveProviderMediaUrl(trimmed, { userId, assetType: "image" });
   }
@@ -2227,7 +2239,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const isDirectGoogleVeo31Route = isGoogleVideoRoute(modelRoute);
+    let isDirectGoogleVeo31Route = isGoogleVideoRoute(modelRoute);
     
     // WaveSpeed Models Checklist Bypass
     const isWaveSpeedOnlyModel = 
@@ -2247,7 +2259,7 @@ export async function POST(req: Request) {
       modelRoute === "bytedance/seedream-v5.0-pro/edit" ||
       modelRoute === "gpt-image-2-text-to-image";
 
-    const dynamicVideoModels = await getDynamicVideoModels();
+    const dynamicVideoModels = await getCentralizedDynamicVideoModels();
     const dynamicVideoModel = dynamicVideoModels.find(
       (m) => (m.api_route === modelRoute || m.id === modelRoute) && m.isActive !== false
     );
@@ -2266,6 +2278,32 @@ export async function POST(req: Request) {
       } else {
         kieModel = resolveKieVideoModel(dynamicVideoModel.api_route) || dynamicVideoModel.id;
         wavespeedRoute = undefined;
+      }
+    }
+
+    const legacyVideoRoute =
+      isDirectGoogleVeo31Route
+        ? { provider: "google" as const, route: modelRoute }
+        : wavespeedRoute && !kieModel
+          ? { provider: "wavespeed" as const, route: wavespeedRoute }
+          : kieModel
+            ? { provider: "kie" as const, route: kieModel }
+            : { provider: "wavespeed" as const, route: modelRoute };
+    const routingDecision = await resolveRuntimeProviderRoute({
+      modelId: modelRoute,
+      modality: "video",
+      legacyRoute: legacyVideoRoute,
+    });
+    if (routingDecision.routingSource === "control_center") {
+      if (routingDecision.effectiveProvider === "google") {
+        modelRoute = routingDecision.providerRoute;
+        kieModel = undefined;
+        wavespeedRoute = undefined;
+        isDirectGoogleVeo31Route = isGoogleVideoRoute(modelRoute);
+      } else if (routingDecision.effectiveProvider === "wavespeed") {
+        wavespeedRoute = routingDecision.providerRoute;
+        kieModel = undefined;
+        isDirectGoogleVeo31Route = false;
       }
     }
 
@@ -2430,6 +2468,19 @@ export async function POST(req: Request) {
     const hasImageOrAvatar = payloadHasImageInput(payload);
 
     if (isOfficialSeedance2Route(modelRoute) && !hasImageOrAvatar) {
+      if (!isFinalProviderExecutionAllowed("byteplus")) {
+        const responseJson = providerNotActiveResponse("byteplus", { modelRoute });
+        await completeIdempotency({
+          userId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 503,
+          responseJson,
+        }).catch(() => {});
+        return NextResponse.json(responseJson, { status: 503 });
+      }
+
       const arkKey = getArkApiKeyFromEnv();
       if (!arkKey) {
         return NextResponse.json(
@@ -2479,7 +2530,10 @@ export async function POST(req: Request) {
         providerCostUsd: bpEstimatedCost,
         providerTokens: bpTokens,
         providerCostSource: "estimated",
-        requestPayload: payload,
+        requestPayload: {
+          ...payload,
+          routing: routingMetadata(routingDecision),
+        },
       });
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
@@ -2750,6 +2804,7 @@ export async function POST(req: Request) {
         ...payload,
         google_video_mode: googleVideoModeLabel,
         google_video_provider_model: resolveGoogleVeoProviderModel(modelRoute),
+        routing: routingMetadata(routingDecision),
       };
 
       console.log(`[Provider Payload Audit] ---`);
@@ -2961,7 +3016,10 @@ export async function POST(req: Request) {
         providerModel: wavespeedRoute,
         providerCostUsd: wsCostEst.usd,
         providerCostSource: wsCostEst.source,
-        requestPayload: payload,
+        requestPayload: {
+          ...payload,
+          routing: routingMetadata(routingDecision),
+        },
       });
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
@@ -3023,6 +3081,19 @@ export async function POST(req: Request) {
     }
 
     // KIE path
+    if (!isFinalProviderExecutionAllowed("kie")) {
+      const responseJson = providerNotActiveResponse("kie", { modelRoute, providerModel: kieModel });
+      await completeIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 503,
+        responseJson,
+      }).catch(() => {});
+      return NextResponse.json(responseJson, { status: 503 });
+    }
+
     const kieKey = getKieKeyFromEnv();
     if (!kieKey) {
       return NextResponse.json(
@@ -3094,7 +3165,10 @@ export async function POST(req: Request) {
       providerCostUsd: kieCostEst.usd,
       providerCredits: kieCostEst.usd ? kieCostEst.usd / 0.005 : null,
       providerCostSource: kieCostEst.source,
-      requestPayload: payload,
+      requestPayload: {
+        ...payload,
+        routing: routingMetadata(routingDecision),
+      },
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
@@ -3433,7 +3507,7 @@ export async function GET(req: Request) {
           return NextResponse.json({ taskId: requestedTaskId, status: "failed", outputs: [], error: "Storage upload failed" });
         }
         publicUrl = storedUrl;
-        await setGenerationMediaUrl(linkedGeneration.id, publicUrl);
+        await completeTaskGeneration({ generationId: linkedGeneration.id, mediaUrl: publicUrl });
       }
 
       return NextResponse.json({ taskId: requestedTaskId, status: "completed", outputs: [normalizeMediaUrl(publicUrl) || publicUrl], error: null });
@@ -3441,6 +3515,10 @@ export async function GET(req: Request) {
 
     // -- WaveSpeed polling ---
     if (taskId.startsWith("ark:")) {
+      if (!isFinalProviderExecutionAllowed("byteplus")) {
+        return NextResponse.json(providerNotActiveResponse("byteplus", { taskId }), { status: 503 });
+      }
+
       const arkTaskId = taskId.slice(4);
       const arkKey = getArkApiKeyFromEnv();
       if (!arkKey) {
@@ -3477,7 +3555,7 @@ export async function GET(req: Request) {
 
       try {
         if (status === "completed" && outputs.length > 0 && linkedGeneration) {
-          await setGenerationMediaUrl(linkedGeneration.id, outputs[0]);
+          await completeTaskGeneration({ generationId: linkedGeneration.id, mediaUrl: outputs[0] });
         }
 
         if (status === "failed" && linkedGeneration && linkedGeneration.cost > 0) {
@@ -3566,7 +3644,7 @@ export async function GET(req: Request) {
         });
         if (linkedGeneration) {
           if (wsStatus === "completed" && wsOutputs.length > 0 && linkedGeneration.mediaUrl?.startsWith("task:")) {
-            await setGenerationMediaUrl(linkedGeneration.id, wsOutputs[0]);
+            await completeTaskGeneration({ generationId: linkedGeneration.id, mediaUrl: wsOutputs[0] });
           }
           if (wsStatus === "failed" && linkedGeneration.cost > 0) {
             await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
@@ -3584,6 +3662,10 @@ export async function GET(req: Request) {
     // Confirmed: https://docs.kie.ai/veo3-api/get-veo-3-video-details
     // successFlag: 0=generating, 1=success, 2=failed, 3=generation_failed
     if (taskId.startsWith("veo:") || taskId.startsWith("veo1080:") || taskId.startsWith("veo4k:")) {
+      if (!isFinalProviderExecutionAllowed("kie")) {
+        return NextResponse.json(providerNotActiveResponse("kie", { taskId }), { status: 503 });
+      }
+
       const kieKey = getKieKeyFromEnv();
       if (!kieKey) {
         return NextResponse.json({ error: "KIE provider is not configured.", code: "kie_key_missing" }, { status: 503 });
@@ -3670,7 +3752,7 @@ export async function GET(req: Request) {
         });
         if (linkedGeneration) {
           if (veoStatus === "completed" && veoOutputs.length > 0 && linkedGeneration.mediaUrl?.startsWith("task:")) {
-            await setGenerationMediaUrl(linkedGeneration.id, veoOutputs[0]);
+            await completeTaskGeneration({ generationId: linkedGeneration.id, mediaUrl: veoOutputs[0] });
           }
           if (veoStatus === "failed" && linkedGeneration.cost > 0) {
             await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
@@ -3685,6 +3767,10 @@ export async function GET(req: Request) {
     }
 
     // -- KIE polling ---
+    if (!isFinalProviderExecutionAllowed("kie")) {
+      return NextResponse.json(providerNotActiveResponse("kie", { taskId }), { status: 503 });
+    }
+
     const kieKey = getKieKeyFromEnv();
     if (!kieKey) {
       return NextResponse.json({ error: "KIE provider is not configured.", code: "kie_key_missing" }, { status: 503 });
@@ -3754,7 +3840,7 @@ export async function GET(req: Request) {
       }
 
       if (status === "completed" && outputs.length > 0 && linkedGeneration) {
-        await setGenerationMediaUrl(linkedGeneration.id, outputs[0]);
+        await completeTaskGeneration({ generationId: linkedGeneration.id, mediaUrl: outputs[0] });
       }
 
       if (status === "failed" && linkedGeneration && linkedGeneration.cost > 0) {

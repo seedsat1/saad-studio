@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError } from "@/lib/credit-ledger";
+import { runInlineGeneration } from "@/lib/generation/inline-orchestrator";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl } from "@/lib/security";
@@ -115,10 +116,6 @@ async function pollWaveSpeedTask(taskId: string, apiKey: string, maxAttempts = 5
 }
 
 export async function POST(req: NextRequest) {
-  let chargedCredits = 0;
-  let chargedUserId: string | null = null;
-  let generationId: string | null = null;
-
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
       return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
@@ -153,17 +150,6 @@ export async function POST(req: NextRequest) {
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: "No credit configuration for face-swap tool." }, { status: 400 });
     }
-    const charge = await spendCredits({
-      userId,
-      credits: creditsToCharge,
-      prompt: "Face swap",
-      assetType: "IMAGE",
-      modelUsed: WAVESPEED_FACE_SWAP_MODEL,
-    });
-    generationId = charge.generationId;
-    chargedCredits = creditsToCharge;
-    chargedUserId = userId;
-
     const waveKey = getWaveSpeedKey();
     const source = sourceImageUrl.startsWith("data:")
       ? await uploadDataUrlToWaveSpeed(sourceImageUrl, waveKey)
@@ -172,44 +158,56 @@ export async function POST(req: NextRequest) {
       ? await uploadDataUrlToWaveSpeed(targetImageUrl, waveKey)
       : targetImageUrl;
 
-    const submitRes = await fetchWithTimeout(
-      `${WAVESPEED_BASE_URL}/${WAVESPEED_FACE_SWAP_MODEL}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${waveKey}`,
-        },
-        body: JSON.stringify({
-          image: target,
-          face_image: source,
-        }),
+    const result = await runInlineGeneration({
+      modelId: "tool:face-swap",
+      modality: "image",
+      currentRoute: { provider: "wavespeed", route: WAVESPEED_FACE_SWAP_MODEL },
+      charge: {
+        userId,
+        credits: creditsToCharge,
+        prompt: "Face swap",
+        assetType: "IMAGE",
+        modelUsed: WAVESPEED_FACE_SWAP_MODEL,
       },
-      30_000,
-    );
+      attachMediaFailure: "log",
+      logPrefix: "face-swap",
+      execute: async () => {
+        const submitRes = await fetchWithTimeout(
+          `${WAVESPEED_BASE_URL}/${WAVESPEED_FACE_SWAP_MODEL}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${waveKey}`,
+            },
+            body: JSON.stringify({
+              image: target,
+              face_image: source,
+            }),
+          },
+          30_000,
+        );
 
-    if (!submitRes.ok) {
-      const errText = await readErrorBody(submitRes);
-      throw new Error(`WaveSpeed submit failed: ${errText}`);
-    }
+        if (!submitRes.ok) {
+          const errText = await readErrorBody(submitRes);
+          throw new Error(`WaveSpeed submit failed: ${errText}`);
+        }
 
-    const submitJson = (await submitRes.json().catch(() => null)) as WaveSpeedResponse | null;
-    if (submitJson?.code != null && submitJson.code !== 200) {
-      throw new Error(submitJson.msg || submitJson.message || "WaveSpeed task submission failed.");
-    }
+        const submitJson = (await submitRes.json().catch(() => null)) as WaveSpeedResponse | null;
+        if (submitJson?.code != null && submitJson.code !== 200) {
+          throw new Error(submitJson.msg || submitJson.message || "WaveSpeed task submission failed.");
+        }
 
-    const taskId = (submitJson?.data?.id as string | undefined) || (submitJson?.data?.taskId as string | undefined);
-    if (!taskId) throw new Error("No task ID returned.");
+        const taskId = (submitJson?.data?.id as string | undefined) || (submitJson?.data?.taskId as string | undefined);
+        if (!taskId) throw new Error("No task ID returned.");
 
-    const outputs = await pollWaveSpeedTask(taskId, waveKey);
-    const url = outputs[0];
-    if (generationId) {
-      await setGenerationMediaUrl(generationId, url).catch((err) => {
-        console.error("[face-swap] Failed to attach media URL to generation", err);
-      });
-    }
+        const outputs = await pollWaveSpeedTask(taskId, waveKey);
+        return { mediaUrl: outputs[0], taskId };
+      },
+    });
+    const url = result.providerResult.mediaUrl;
 
-    return NextResponse.json({ generationId, imageUrl: url }, { status: 200 });
+    return NextResponse.json({ generationId: result.generationId, imageUrl: url }, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(
@@ -220,13 +218,6 @@ export async function POST(req: NextRequest) {
         },
         { status: 402 },
       );
-    }
-
-    if (chargedCredits > 0 && chargedUserId && generationId) {
-      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
-        reason: "generation_refund_provider_failed",
-        clearMediaUrl: true,
-      }).catch(() => {});
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";

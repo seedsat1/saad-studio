@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError } from "@/lib/credit-ledger";
+import { runInlineGeneration } from "@/lib/generation/inline-orchestrator";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl } from "@/lib/security";
@@ -139,10 +140,6 @@ function resolveTargetResolution(input: { isVideo: boolean; resolution: string; 
 }
 
 export async function POST(req: NextRequest) {
-  let chargedCredits = 0;
-  let chargedUserId: string | null = null;
-  let generationId: string | null = null;
-
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
       return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
@@ -187,71 +184,72 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No credit configuration for upscale tool." }, { status: 400 });
     }
 
-    const charge = await spendCredits({
-      userId,
-      credits: creditsToCharge,
-      prompt: isVideo ? `Upscale video to ${targetResolution}` : `Upscale image to ${targetResolution}`,
-      assetType: isVideo ? "VIDEO" : "IMAGE",
-      modelUsed: modelToUse,
-    });
-    generationId = charge.generationId;
-    chargedCredits = creditsToCharge;
-    chargedUserId = userId;
-
-    const waveKey = getWaveSpeedKey();
-    const normalizedMediaUrl = mediaUrl.startsWith("data:")
-      ? await uploadDataUrlToWaveSpeed(mediaUrl, waveKey)
-      : mediaUrl;
-
-    const submitBody = isVideo
-      ? {
-          video: normalizedMediaUrl,
-          target_resolution: targetResolution,
-        }
-      : {
-          image: normalizedMediaUrl,
-          target_resolution: targetResolution,
-          output_format: "jpeg",
-          enable_base64_output: false,
-        };
-
-    const submitRes = await fetchWithTimeout(
-      `${WAVESPEED_BASE_URL}/${modelToUse}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${waveKey}`,
-        },
-        body: JSON.stringify(submitBody),
+    const result = await runInlineGeneration({
+      modelId: "tool:upscale",
+      modality: isVideo ? "video" : "image",
+      currentRoute: { provider: "wavespeed", route: modelToUse },
+      charge: {
+        userId,
+        credits: creditsToCharge,
+        prompt: isVideo ? `Upscale video to ${targetResolution}` : `Upscale image to ${targetResolution}`,
+        assetType: isVideo ? "VIDEO" : "IMAGE",
+        modelUsed: modelToUse,
       },
-      30_000,
-    );
+      attachMediaFailure: "log",
+      logPrefix: "upscale",
+      execute: async () => {
+        const waveKey = getWaveSpeedKey();
+        const normalizedMediaUrl = mediaUrl.startsWith("data:")
+          ? await uploadDataUrlToWaveSpeed(mediaUrl, waveKey)
+          : mediaUrl;
 
-    if (!submitRes.ok) {
-      const errText = await readErrorBody(submitRes);
-      throw new Error(`WaveSpeed submit failed: ${errText}`);
-    }
+        const submitBody = isVideo
+          ? {
+              video: normalizedMediaUrl,
+              target_resolution: targetResolution,
+            }
+          : {
+              image: normalizedMediaUrl,
+              target_resolution: targetResolution,
+              output_format: "jpeg",
+              enable_base64_output: false,
+            };
 
-    const submitJson = (await submitRes.json().catch(() => null)) as WaveSpeedResponse | null;
-    if (submitJson?.code != null && submitJson.code !== 200) {
-      throw new Error(submitJson.msg || submitJson.message || "WaveSpeed task submission failed.");
-    }
+        const submitRes = await fetchWithTimeout(
+          `${WAVESPEED_BASE_URL}/${modelToUse}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${waveKey}`,
+            },
+            body: JSON.stringify(submitBody),
+          },
+          30_000,
+        );
 
-    const taskId = (submitJson?.data?.id as string | undefined) || (submitJson?.data?.taskId as string | undefined);
-    if (!taskId) throw new Error("No task ID returned.");
+        if (!submitRes.ok) {
+          const errText = await readErrorBody(submitRes);
+          throw new Error(`WaveSpeed submit failed: ${errText}`);
+        }
 
-    const outputs = await pollWaveSpeedTask(taskId, waveKey);
-    const url = outputs[0];
-    if (generationId) {
-      await setGenerationMediaUrl(generationId, url).catch((err) => {
-        console.error("[upscale] Failed to attach media URL to generation", err);
-      });
-    }
+        const submitJson = (await submitRes.json().catch(() => null)) as WaveSpeedResponse | null;
+        if (submitJson?.code != null && submitJson.code !== 200) {
+          throw new Error(submitJson.msg || submitJson.message || "WaveSpeed task submission failed.");
+        }
+
+        const taskId = (submitJson?.data?.id as string | undefined) || (submitJson?.data?.taskId as string | undefined);
+        if (!taskId) throw new Error("No task ID returned.");
+
+        const outputs = await pollWaveSpeedTask(taskId, waveKey);
+        return { mediaUrl: outputs[0], taskId };
+      },
+    });
+    const url = result.providerResult.mediaUrl;
 
     return NextResponse.json(
       {
-        generationId,
+        generationId: result.generationId,
         imageUrl: isVideo ? undefined : url,
         videoUrl: isVideo ? url : undefined,
         mediaUrl: url,
@@ -271,13 +269,6 @@ export async function POST(req: NextRequest) {
         },
         { status: 402 },
       );
-    }
-
-    if (chargedCredits > 0 && chargedUserId && generationId) {
-      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
-        reason: "generation_refund_provider_failed",
-        clearMediaUrl: true,
-      }).catch(() => {});
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";

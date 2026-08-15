@@ -1,52 +1,90 @@
-import { StorageProvider } from "./types";
-import { BackblazeProvider } from "./backblaze";
-import { R2Provider } from "./r2";
-
 export * from "./types";
+import { getStorageProvider } from "./provider-registry";
+import type { StorageProvider } from "./types";
+import {
+  deleteObject,
+  getActiveStorageProvider,
+  headObject,
+  objectKeyFor,
+  readObject,
+  resolvePublicUrl,
+} from "./runtime";
 
-export const defaultProvider: StorageProvider = new BackblazeProvider();
-export const legacyProvider: StorageProvider = new R2Provider();
+export const defaultProvider: StorageProvider = {
+  async upload(params) {
+    const active = await getActiveStorageProvider();
+    return active.provider.upload(params);
+  },
+  async download(params) {
+    const read = await readObject({ objectKey: objectKeyFor(params.bucket, params.path), range: params.range });
+    if (!read) throw new Error(`Storage object not found: ${objectKeyFor(params.bucket, params.path)}`);
+    return read.response;
+  },
+  async delete(params) {
+    await deleteObject(params);
+  },
+  async exists(params) {
+    const attempts = await headObject({ objectKey: objectKeyFor(params.bucket, params.path) });
+    return attempts.some((attempt) => attempt.found);
+  },
+  getPublicUrl(bucket, path) {
+    return resolvePublicUrl(bucket, path, { deliveryMode: "proxy" });
+  },
+  isStoredAssetUrl(url) {
+    return Boolean(url && (url.includes("/api/media/") || url.includes("backblazeb2.com") || url.includes("r2.dev") || url.includes("saadstudio-storage")));
+  },
+  async createSignedUploadUrl(params) {
+    const active = await getActiveStorageProvider();
+    const signed = await active.provider.createSignedUploadUrl(params);
+    return {
+      ...signed,
+      publicUrl: resolvePublicUrl(params.bucket, params.path, { deliveryMode: "proxy" }),
+      key: objectKeyFor(params.bucket, params.path),
+    };
+  },
+};
+export const legacyProvider = getStorageProvider("r2");
 
-export function normalizeMediaUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
+export {
+  DEFAULT_STORAGE_RUNTIME_CONFIG,
+  STORAGE_RUNTIME_CONFIG_KEY,
+  bucketForAssetType,
+  createSignedUploadUrl,
+  deleteObject,
+  getActiveStorageProvider,
+  getStorageProviderDescriptors,
+  getStorageReadProvidersForConfig,
+  getStorageReadProviders,
+  headObject,
+  isStoredAssetUrl,
+  normalizeMediaUrl,
+  objectKeyFor,
+  putObject,
+  readObject,
+  readStorageRuntimeConfig,
+  resolveMediaObject,
+  resolveProviderPublicUrl,
+  resolvePublicUrl,
+  sanitizeStorageRuntimeConfig,
+  splitObjectKey,
+  uploadBuffer,
+  uploadFromUrl,
+  writeStorageRuntimeConfig,
+  extensionFromContentType,
+  type ResolvedMediaObject,
+  type StorageDeliveryMode,
+  type StorageProviderDescriptor,
+  type StorageRuntimeConfig,
+} from "./runtime";
 
-  let mediaPath = "";
-  // 1. If it already starts with /api/media/ or http://.../api/media/, extract the key
-  const apiMediaIndex = url.indexOf("/api/media/");
-  if (apiMediaIndex !== -1) {
-    mediaPath = url.slice(apiMediaIndex + "/api/media/".length);
-  } else {
-    // 2. Extract storage key robustly
-    const match = url.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/(.+)/i);
-    if (match) {
-      mediaPath = `${match[1]}/${match[2]}`;
-    }
-  }
-
-  if (!mediaPath) {
-    return url;
-  }
-
-  // 3. Determine browser media URL mode dynamically
-  const mode = process.env.BROWSER_MEDIA_URL_MODE || process.env.NEXT_PUBLIC_BROWSER_MEDIA_URL_MODE || "b2";
-
-  if (mode === "proxy") {
-    return `/api/media/${mediaPath}`;
-  }
-
-  if (mode === "cdn") {
-    const cdnBase = process.env.BROWSER_CDN_BASE_URL || process.env.NEXT_PUBLIC_BROWSER_CDN_BASE_URL || "";
-    if (cdnBase) {
-      return `${cdnBase.replace(/\/+$/, "")}/${mediaPath}`;
-    }
-    // Fall back to B2 direct if CDN base is not configured
-  }
-
-  // default mode: "b2" - return direct public URL from Backblaze B2 provider
-  const matchParts = mediaPath.match(/^(images|videos|audio|thumbnails|media)\/(.+)$/i);
-  if (matchParts) {
-    return defaultProvider.getPublicUrl(matchParts[1], matchParts[2]);
-  }
-
-  return defaultProvider.getPublicUrl("", mediaPath);
-}
+export {
+  findStorageProviderDefinition,
+  getStorageProvider,
+  getStorageProviderRegistry,
+  getWritableStorageProviders,
+  isBackblazeConfigured,
+  validateActiveWriteProvider,
+  type StorageProviderDefinition,
+  type StorageProviderId,
+  type StorageProviderStatus,
+} from "./provider-registry";

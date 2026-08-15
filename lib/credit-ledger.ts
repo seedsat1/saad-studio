@@ -1016,6 +1016,47 @@ export async function setGenerationTaskMarker(generationId: string, taskId: stri
   }).catch((e) => console.error("[setGenerationTaskMarker] Failed to sync ProviderUsageRecord:", e));
 }
 
+export async function setGenerationCompletedWithoutMedia(generationId: string) {
+  if (!generationId) return;
+  await prismadb.generation.updateMany({
+    where: { id: generationId },
+    data: { status: "completed" },
+  });
+  await prismadb.providerUsageRecord.updateMany({
+    where: { generationId },
+    data: { status: "completed" },
+  }).catch((e) => console.error("[setGenerationCompletedWithoutMedia] Failed to update ProviderUsageRecord status:", e));
+}
+
+export async function setActualProviderUsage(
+  generationId: string,
+  data: {
+    providerName: string;
+    providerModel?: string | null;
+    providerRequestId?: string | null;
+    status?: string | null;
+  },
+) {
+  if (!generationId) return;
+  await prismadb.generation.updateMany({
+    where: { id: generationId },
+    data: {
+      providerName: data.providerName,
+      providerModel: data.providerModel ?? null,
+      ...(data.providerRequestId !== undefined ? { providerRequestId: data.providerRequestId } : {}),
+    },
+  });
+  await prismadb.providerUsageRecord.updateMany({
+    where: { generationId },
+    data: {
+      providerName: data.providerName,
+      providerModel: data.providerModel ?? null,
+      ...(data.providerRequestId !== undefined ? { providerRequestId: data.providerRequestId } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+    },
+  }).catch((e) => console.error("[setActualProviderUsage] Failed to sync ProviderUsageRecord:", e));
+}
+
 export async function rollbackGenerationCharge(generationId: string, userId: string, credits: number) {
   const safeCredits = Math.max(0, Math.floor(credits));
   if (!generationId || !userId || safeCredits <= 0) return;

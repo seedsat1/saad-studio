@@ -508,6 +508,26 @@ export async function getMusicCreditsAsync(modelId: string, duration?: number): 
   return getMusicCreditsFallback(modelId, safeDuration);
 }
 
+export async function getHookStudioCreditsAsync(
+  modelId: string,
+  payload?: VideoPayload,
+  options?: { legacyUserCredits?: number },
+): Promise<number> {
+  const duration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const dbCost = await getGenerationCost(modelId, duration, 1, quality).catch(() => 0);
+  if (dbCost > 0) {
+    return shouldApplySound(modelId) ? applySoundMultiplier(dbCost, payload) : dbCost;
+  }
+
+  const legacyUserCredits = Number(options?.legacyUserCredits);
+  if (Number.isFinite(legacyUserCredits) && legacyUserCredits > 0) {
+    return legacyUserCredits;
+  }
+
+  return getVideoCreditsByModelIdFallback(modelId, payload);
+}
+
 function getMusicCreditsFallback(modelId: string, safeDuration: number): number {
   const base = MUSIC_MODEL_BASE_COST.get(modelId) ?? 10;
   const durationMultiplier = Math.max(1, Math.ceil(safeDuration / 30));

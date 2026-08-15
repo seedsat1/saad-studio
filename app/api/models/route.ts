@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getDynamicImageModels, getDynamicVideoModels } from "@/lib/dynamic-model-loader";
+import {
+  buildCentralModelDefinitions,
+  getCentralizedDynamicImageModels,
+  getCentralizedDynamicVideoModels,
+} from "@/lib/model-definition-registry";
 import { withAudioSourceMetadata, withImageSourceMetadata, withVideoSourceMetadata } from "@/lib/model-source-map";
 import { loadModels } from "@/lib/pricing";
 
@@ -13,12 +18,13 @@ export async function GET() {
 
     const imageModels = await getDynamicImageModels();
     const videoModels = await getDynamicVideoModels();
+    const modelDefinitions = buildCentralModelDefinitions({ imageModels, videoModels });
 
     // Filter out inactive models for general users
-    const activeImageModels = imageModels
+    const activeImageModels = (await getCentralizedDynamicImageModels())
       .filter((m) => m.isActive !== false)
       .map(withImageSourceMetadata);
-    const activeVideoModels = videoModels
+    const activeVideoModels = (await getCentralizedDynamicVideoModels())
       .filter((m) => m.isActive !== false)
       .map(withVideoSourceMetadata);
 
@@ -47,6 +53,8 @@ export async function GET() {
       imageModels: activeImageModels,
       videoModels: activeVideoModels,
       audioModels: activeAudioModels,
+      modelDefinitions: modelDefinitions.filter((definition) => definition.status === "active"),
+      modelDefinitionSource: "central",
     });
   } catch (err) {
     console.error("[public-models] GET error:", err);

@@ -3,17 +3,16 @@ import { NextResponse } from "next/server";
 import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
+import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
+import { KIE_3D_MODELS, resolveThreeDLegacyRoute, THREE_D_ENDPOINTS } from "@/lib/three-d-models";
 import prismadb from "@/lib/prismadb";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const KIE_BASE = "https://api.kie.ai/api/v1";
 const IDEMPOTENCY_ROUTE = "generate:3d";
-
-// Keep this list strict: only add models that are verified to work on KIE 3D endpoints.
-const KIE_3D_MODELS = new Set<string>([]);
 
 async function uploadImageToWaveSpeed(base64DataUri: string, apiKey: string): Promise<string> {
   const matches = base64DataUri.match(/^data:([^;]+);base64,(.+)$/);
@@ -47,20 +46,6 @@ async function checkBase64ImageSafety(value?: string | null): Promise<void> {
   if (!value || !value.startsWith("data:image/")) return;
   await checkStoryboardReferenceImageSafety(value);
 }
-
-const ENDPOINTS: Record<string, string> = {
-  "tripo3d-2.5.image": "tripo3d/v2.5/image-to-3d",
-  "tripo3d-2.5.multiview": "tripo3d/v2.5/multiview-to-3d",
-  "hunyuan3d-3.1.text": "wavespeed-ai/hunyuan-3d-v3.1/text-to-3d-rapid",
-  "hunyuan3d-3.1.image": "wavespeed-ai/hunyuan-3d-v3.1/image-to-3d-rapid",
-  "hunyuan3d-3.text": "wavespeed-ai/hunyuan3d-v3/text-to-3d",
-  "hunyuan3d-3.image": "wavespeed-ai/hunyuan3d-v3/image-to-3d",
-  "hunyuan3d-3.sketch": "wavespeed-ai/hunyuan3d-v3/sketch-to-3d",
-  "meshy-6.text": "wavespeed-ai/meshy6/text-to-3d",
-  "meshy-6.image": "wavespeed-ai/meshy6/image-to-3d",
-  "hyper3d-rodin-2.text": "hyper3d/rodin-v2/text-to-3d",
-  "hyper3d-rodin-2.image": "hyper3d/rodin-v2/image-to-3d",
-};
 
 interface RequestBody {
   modelId: string;
@@ -126,7 +111,7 @@ export async function POST(req: Request) {
     if (!mode) return new NextResponse("mode is required", { status: 400 });
 
     const endpointKey = `${modelId}.${mode}`;
-    const endpoint = ENDPOINTS[endpointKey];
+    const endpoint = THREE_D_ENDPOINTS[endpointKey];
     if (!endpoint) return new NextResponse(`Unknown model/mode: ${endpointKey}`, { status: 400 });
 
     if (mode === "text" && !prompt?.trim()) {
@@ -184,12 +169,36 @@ export async function POST(req: Request) {
       }
     }
 
+    const legacyRoute = resolveThreeDLegacyRoute(modelId, endpoint);
+    const routingDecision = await resolveRuntimeProviderRoute({
+      modelId: endpointKey,
+      modality: "3d",
+      legacyRoute,
+    });
+    const runtimeRoutingDecision =
+      routingDecision.effectiveProvider === "wavespeed" ||
+      (routingDecision.effectiveProvider === "kie" && KIE_3D_MODELS.has(modelId))
+        ? routingDecision
+        : {
+            ...routingDecision,
+            routingSource: "legacy_fallback" as const,
+            effectiveProvider: legacyRoute.provider,
+            providerRoute: legacyRoute.route,
+            route: legacyRoute,
+            reason: `Routing provider ${routingDecision.effectiveProvider} is not supported by the current 3D route.`,
+          };
+
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
       prompt: prompt ? sanitizePrompt(prompt, 2000) : `${modelId} ${mode}`,
       assetType: "3D",
       modelUsed: endpointKey,
+      providerName: runtimeRoutingDecision.effectiveProvider === "kie" ? "KIE.ai" : "WaveSpeed",
+      providerModel: runtimeRoutingDecision.providerRoute,
+      requestPayload: {
+        routing: routingMetadata(runtimeRoutingDecision),
+      },
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
@@ -205,7 +214,8 @@ export async function POST(req: Request) {
     const kieKey = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
 
     const provider: "kie" | "wavespeed" =
-      KIE_3D_MODELS.has(modelId) && !!kieKey ? "kie" : "wavespeed";
+      runtimeRoutingDecision.effectiveProvider === "kie" && KIE_3D_MODELS.has(modelId) && !!kieKey ? "kie" : "wavespeed";
+    const providerEndpoint = provider === runtimeRoutingDecision.effectiveProvider ? runtimeRoutingDecision.providerRoute : endpoint;
 
     if (provider === "wavespeed" && !waveKey) {
       throw new Error("WAVESPEED_API_KEY not configured");
@@ -317,7 +327,7 @@ export async function POST(req: Request) {
             Authorization: `Bearer ${kieKey!}`,
           },
           body: JSON.stringify({
-            model: endpoint,
+            model: providerEndpoint,
             callBackUrl: "",
             input: requestBody,
             config: {
@@ -329,7 +339,7 @@ export async function POST(req: Request) {
             },
           }),
         })
-      : await fetch(`${WAVESPEED_BASE}/${endpoint}`, {
+      : await fetch(`${WAVESPEED_BASE}/${providerEndpoint}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

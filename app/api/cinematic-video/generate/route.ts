@@ -13,9 +13,8 @@ import {
   InsufficientCreditsError,
   precheckGenerationPolicy,
   rollbackGenerationCharge,
-  setGenerationTaskMarker,
-  spendCredits,
 } from "@/lib/credit-ledger";
+import { runTaskGenerationStart } from "@/lib/generation/task-orchestrator";
 import { getGenerationCost } from "@/lib/pricing";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import {
@@ -53,6 +52,13 @@ interface CinematicRequestBody {
   endImageUrl?: string;
   referenceImageUrls?: string[];
   extendVideoUrl?: string;
+}
+
+class CinematicProviderSubmitError extends Error {
+  constructor(message: string, readonly originalError: unknown) {
+    super(message);
+    this.name = "CinematicProviderSubmitError";
+  }
 }
 
 export async function POST(req: Request) {
@@ -207,15 +213,48 @@ export async function POST(req: Request) {
     ]);
 
     // ── Charge credits + create generation row ──────────────────────────
-    let spendResult: Awaited<ReturnType<typeof spendCredits>>;
+    let startResult: Awaited<ReturnType<typeof runTaskGenerationStart<{
+      taskId: string;
+      name: string;
+      model: string;
+    }>>>;
     try {
-      spendResult = await spendCredits({
-        userId,
-        prompt,
-        assetType: "video",
-        modelUsed: pricingId,
-        credits,
+      startResult = await runTaskGenerationStart({
+        charge: {
+          userId,
+          prompt,
+          assetType: "video",
+          modelUsed: pricingId,
+          credits,
+        },
+        submit: async () => {
+          let opHandle: Awaited<ReturnType<typeof startVeoGeneration>>;
+          try {
+            opHandle = await startVeoGeneration({
+              tier,
+              prompt,
+              aspectRatio,
+              resolution,
+              durationSeconds,
+              negativePrompt,
+              image,
+              lastFrame: image ? lastFrame : undefined, // last frame requires a start
+              referenceImages: referenceImages.length ? referenceImages : undefined,
+              video,
+            });
+          } catch (err) {
+            const message = err instanceof Error ? err.message : "Generation failed.";
+            throw new CinematicProviderSubmitError(message, err);
+          }
+
+          return {
+            ...opHandle,
+            taskId: opHandle.name,
+          };
+        },
       });
+      generationId = startResult.generationId;
+      chargedCredits = startResult.chargedCredits;
     } catch (err) {
       if (err instanceof InsufficientCreditsError) {
         return NextResponse.json(
@@ -227,47 +266,22 @@ export async function POST(req: Request) {
           { status: 402 },
         );
       }
-      throw err;
-    }
-    generationId = spendResult.generationId;
-    chargedCredits = credits;
-
-    // ── Kick off the Veo generation ─────────────────────────────────────
-    let opHandle;
-    try {
-      opHandle = await startVeoGeneration({
-        tier,
-        prompt,
-        aspectRatio,
-        resolution,
-        durationSeconds,
-        negativePrompt,
-        image,
-        lastFrame: image ? lastFrame : undefined, // last frame requires a start
-        referenceImages: referenceImages.length ? referenceImages : undefined,
-        video,
-      });
-    } catch (err) {
-      if (generationId && chargedUserId) {
-        await rollbackGenerationCharge(
-          generationId,
-          chargedUserId,
-          chargedCredits,
-        );
+      if (!(err instanceof CinematicProviderSubmitError)) {
+        throw err;
       }
       const message = err instanceof Error ? err.message : "Generation failed.";
-      console.error("[cinematic-video] startVeoGeneration error:", err);
+      console.error("[cinematic-video] startVeoGeneration error:", err.originalError);
       return NextResponse.json({ error: message }, { status: 502 });
     }
 
-    await setGenerationTaskMarker(generationId, opHandle.name);
+    const opHandle = startResult.providerResult;
 
     return NextResponse.json({
-      generationId,
+      generationId: startResult.generationId,
       operationName: opHandle.name,
       model: opHandle.model,
-      creditsCharged: chargedCredits,
-      remainingCredits: spendResult.remainingCredits,
+      creditsCharged: startResult.chargedCredits,
+      remainingCredits: startResult.remainingCredits,
       status: "processing",
     }, { status: 202 });
   } catch (err) {

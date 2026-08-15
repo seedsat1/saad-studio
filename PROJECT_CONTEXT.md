@@ -1,3 +1,177 @@
+#### Latest task: Final Generation Core Consolidation review and safe completion pass (2026-08-15)
+- Status: Completed as a conservative behavior-preserving pass. The requested three-route package was reviewed together, but only the lifecycle piece that matched an existing orchestrator 100% was changed.
+- Affected files: `app/api/video/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `/api/video` GET status completion paths now call `completeTaskGeneration` for completed provider outputs instead of directly calling `setGenerationMediaUrl`.
+  - This covers Google `gvo:`, BytePlus `ark:`, WaveSpeed `ws:`, KIE Veo `veo:`/`veo1080:`/`veo4k:`, and generic KIE polling completion DB sync.
+  - Refund behavior was intentionally not moved to `failTaskGenerationWithRefund` because `/api/video` currently uses `refundGenerationCharge(..., { clearMediaUrl: true })`, while the task orchestrator failure helper uses rollback semantics. Replacing it would change behavior.
+  - `/api/generate/image` remains special: it combines annual free generation, paid charging, multiple outputs, `saveAdditionalGenerationUrls`, OpenAI/Google direct outputs, WaveSpeed submit+poll inside the request, and rollback-on-error semantics. Moving it safely requires a richer inline orchestration contract.
+  - `/api/generate/audio` remains special: it combines one charge/idempotency wrapper with many action branches, legacy TTS 23-credit pricing, transcript-only responses, video outputs, KIE/WaveSpeed fallback chains, and route-local finalize behavior. Moving it safely requires a richer inline orchestration contract.
+- Verification:
+  - `npx.cmd vitest run test/task-orchestrator.test.ts test/inline-orchestrator.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts --reporter=verbose --pool=forks` passed: 41 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Scoped `git diff --check -- app/api/video/route.ts PROJECT_CONTEXT.md docs/saad-studio-premiere-reference-ar.md` passed with CRLF warnings only.
+- Decision:
+  - Do not create a new engine for the final pass.
+  - Do not force `/api/generate/image` or `/api/generate/audio` into existing orchestrators when that would require behavior-changing abstractions.
+  - Generation Engine is not fully CLOSED yet; blockers are the mixed contracts in `/api/generate/image`, `/api/generate/audio`, and `/api/video` start/failure flows.
+
+#### Latest task: Controlled Generation Batch for Transitions, Lipsync Studio, and 3D Studio (2026-08-15)
+- Status: Completed with behavior-preserving control mapping only. No pricing values, API response shapes, task ids, polling/status behavior, refund semantics, provider statuses, navbar, or generation engine architecture were changed.
+- Affected files: `lib/three-d-models.ts`, `lib/model-routing-registry.ts`, `lib/routing/admin-routing-data.ts`, `app/admin/routing/page.tsx`, `app/api/3d/route.ts`, `app/api/transitions/generate/route.ts`, `app/api/generate/audio/route.ts`, `lib/product/feature-registry.ts`, `test/runtime-routing.test.ts`, `test/product-feature-registry.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - 3D Studio now has verified 3D routing rows derived from the existing `/api/3d` endpoint map. `/api/3d` calls `resolveRuntimeProviderRoute` for the `3d` modality, records `requestPayload.routing`, and falls back to the exact legacy WaveSpeed route when no active control-center route exists.
+  - 3D KIE execution remains blocked while `KIE_3D_MODELS` is empty and KIE is standby; no task id/status/refund behavior changed.
+  - Transitions remain on the existing KIE workflow job path and now record explicit legacy routing metadata in the Generation snapshot. They stay PARTIAL because KIE is standby and no active WaveSpeed parity route is proven.
+  - Lipsync Studio remains on the existing `/api/generate/audio` lip-sync action path and now records explicit legacy routing metadata. It stays PARTIAL because the current branch executes KIE-specific upload/task logic while KIE is standby.
+- Feature Control distribution after this batch:
+  - CONTROLLED: 25
+  - PARTIAL: 6
+  - UNCONTROLLED: 1
+  - UNKNOWN: 8
+- Verification:
+  - `npx.cmd vitest run test/product-feature-registry.test.ts test/runtime-routing.test.ts --reporter=verbose --pool=forks` passed: 7 tests.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/inline-orchestrator.test.ts test/task-orchestrator.test.ts --reporter=verbose --pool=forks` passed: 37 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Scoped `git diff --check` on touched tracked files passed with CRLF warnings only. `git diff --no-index --check -- NUL lib/three-d-models.ts` reported only the expected CRLF warning.
+- Decisions:
+  - Do not force Transitions or Lipsync to CONTROLLED while they depend on KIE-only execution and KIE is standby.
+  - Treat 3D's current active execution provider as WaveSpeed and connect it through Routing Control with compatibility fallback.
+  - Do not invent fallback providers for KIE-backed workflows.
+
+#### Latest task: Audio generation lifecycle package phase 1 (2026-08-15)
+- Status: Completed. Started Audio package consolidation without creating an Audio engine and migrated only the branch that matched the existing inline lifecycle exactly.
+- Affected files: `app/api/panel/generate/music/route.ts`, `test/inline-orchestrator.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Inline branches migrated:
+  - `/api/panel/generate/music` Google Lyria flow now uses `runInlineGeneration` for `spendCredits`, provider execution inside the same request, primary `setGenerationMediaUrl`, and rollback on provider failure.
+- Task-based branches migrated: none in this phase.
+- Special branches intentionally left unchanged:
+  - `/api/generate/audio`: multi-action route with legacy main TTS pricing, idempotency, KIE/WaveSpeed fallbacks, transcript-only responses, and some video outputs such as lip-sync/dubbing.
+  - `/api/music`: custom idempotency and provider-specific error response/rollback contracts.
+  - `/api/panel/generate/tts`: independent fixed 3-credit panel product with existing no-refund-on-provider-failure behavior; migrating it would change refund behavior.
+- Behavior:
+  - Audio/music/TTS prices unchanged. Main `/api/generate/audio` legacy TTS remains governed by the centralized legacy rule; panel TTS remains fixed at 3 credits.
+  - Provider selection, action routing, response shapes, media attach behavior, and rollback/refund behavior are unchanged for all touched and untouched routes.
+- Verification:
+  - `npx.cmd vitest run test/inline-orchestrator.test.ts --reporter=verbose` passed: 11 tests.
+  - `npx.cmd vitest run test/task-orchestrator.test.ts --reporter=verbose` passed: 6 tests.
+  - `npx.cmd vitest run test/pricing-core.test.ts --reporter=verbose` passed: 20 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `git diff --check -- app/api/panel/generate/music/route.ts test/inline-orchestrator.test.ts` passed with Git CRLF warning only.
+- Decision: Treat Audio as a package, but only migrate exact lifecycle matches. Do not force `/api/generate/audio`, `/api/music`, or panel TTS into orchestration until their idempotency/error/refund contracts can be preserved exactly.
+
+#### Latest task: Consolidate main Video generation lifecycle package (2026-08-15)
+- Status: Completed as a behavior-preserving lifecycle consolidation. Reused existing inline/task orchestration layers and did not create a new Video engine.
+- Affected files: `lib/providers/dispatch.ts`, `app/api/generate/video/route.ts`, `app/api/panel/generate/video/route.ts`, `test/dispatch-video-orchestration.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `dispatchDirectVideo` now uses `runInlineGeneration` for the direct provider lifecycle: `getVideoCreditsByModelIdAsync` -> `spendCredits` -> `generateVideo` adapter -> `persistProviderUrl` -> primary media attach -> rollback on provider failure.
+  - `/api/generate/video` now uses `runInlineGeneration` for both inline KIE and inline WaveSpeed branches. Existing submit/poll functions, provider selection, pricing resolver, response shapes (`taskId` vs `predictionId`), normalized output URL behavior, and refund behavior are unchanged.
+  - `/api/panel/generate/video` now uses `runInlineGeneration` for both inline KIE and inline WaveSpeed branches. Existing direct-provider early dispatch continues through `dispatchDirectVideo`; panel KIE/WaveSpeed keep best-effort media attach and rollback-on-failure semantics.
+  - `/api/video` remains special for now. Its POST branches combine idempotency, provider-specific 502 response bodies, task-id prefixes, debug payloads, and GET/callback polling contracts. Forcing it into `runTaskGenerationStart` in this pass would change response/error semantics, so no route behavior was changed there.
+- Branch classification:
+  - Inline: `dispatchDirectVideo`; `/api/generate/video` KIE and WaveSpeed; `/api/panel/generate/video` direct-provider dispatch, KIE, and WaveSpeed.
+  - Task-based via existing orchestrator: none newly migrated in `/api/video` because matching branches have custom response/idempotency contracts that the current task orchestrator does not represent without changing behavior.
+  - Special: `/api/video` Google, WaveSpeed, KIE submit/status branches remain route-specific.
+- Verification: `npx.cmd vitest run test/dispatch-video-orchestration.test.ts --reporter=verbose` passed with 2 tests. `npx.cmd vitest run test/inline-orchestrator.test.ts --reporter=verbose` passed with 10 tests. `npx.cmd vitest run test/task-orchestrator.test.ts --reporter=verbose` passed with 6 tests. `npx.cmd vitest run test/pricing-core.test.ts --reporter=verbose` passed with 20 tests. `npx.cmd tsc --noEmit --pretty false` passed. Scoped `git diff --check` on touched Video orchestration files passed with only CRLF warnings.
+- Errors discovered: Full worktree still contains unrelated existing changes from previous phases, so verification used scoped diff check. `/api/video` still has duplicated task-lifecycle code by design because the existing task orchestrator cannot yet preserve all its idempotency and custom submit-failure response contracts.
+- Decisions: Prefer no behavior change over larger refactor. Do not connect Routing Control to Video in this phase. Do not touch Audio, Image, Cinema, Variations, or job systems.
+
+#### Latest task: Start main image generation orchestration unification (2026-08-15)
+- Status: Completed as a limited behavior-preserving pass. Reused the existing `runInlineGeneration` layer and did not create a new image engine.
+- Affected files: `lib/generation/inline-orchestrator.ts`, `lib/providers/dispatch.ts`, `app/api/image/route.ts`, `test/inline-orchestrator.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `runInlineGeneration` now supports `failureCreditAction: "rollback"` for image routes that historically used `rollbackGenerationCharge`, while keeping `refundGenerationCharge` as the default for existing tool routes.
+  - `runInlineGeneration` now supports an `afterCharge` hook for routes that need a post-charge/pre-provider step, without changing current callers.
+  - Direct Google/OpenAI image dispatch in `dispatchDirectImage` now uses `runInlineGeneration` for `spendCredits -> provider adapter -> primary media attach -> rollback on provider failure`.
+  - `/api/image` legacy OpenAI image generation now uses `runInlineGeneration` for its paid lifecycle while keeping the same pricing resolver, provider call, response shape, additional URL saving, and refund behavior.
+  - `/api/panel/generate/image` direct Google/OpenAI branch enters orchestration through `dispatchDirectImage`.
+  - `/api/generate/image` remains route-specific for now because it combines annual free-generation records, multi-provider branches, best-effort media attach, and additional-output behavior in one route. Moving it safely requires a separate paid/free split.
+  - `/api/image/generate` remains route-specific because its WaveSpeed/KIE branches include provider-specific polling and KIE early-return behavior that does not match Pattern A 100%.
+- Verification: `npx.cmd vitest run test/inline-orchestrator.test.ts --reporter=verbose` passed with 10 tests. `npx.cmd vitest run test/task-orchestrator.test.ts --reporter=verbose` passed with 6 tests. `npx.cmd vitest run test/pricing-core.test.ts --reporter=verbose` passed with 20 tests. `npx.cmd tsc --noEmit --pretty false` passed. Scoped `git diff --check` on the touched image orchestration files passed with only CRLF warnings.
+- Errors discovered: `npx.cmd prettier --write ...` attempted to fetch Prettier from npm and failed due local npm/network permissions; formatting was corrected manually where needed. Full worktree still contains unrelated existing changes from earlier phases.
+- Decisions: Do not force annual-free, KIE-specific, or mixed lifecycle image branches into the inline orchestrator. Preserve provider, pricing, response shape, multiple outputs, free/paid behavior, and refund/rollback behavior over maximizing refactor size.
+
+#### Latest task: Expand Pattern B task orchestration to matching Reap lifecycle routes (2026-08-15)
+- Status: Completed. Expanded the existing `task-orchestrator` only to routes that matched the task-based lifecycle without changing pricing, providers, task id format, API responses, status contracts, or job tables.
+- Affected files: `lib/generation/task-orchestrator.ts`, `app/api/panel/reap/start/route.ts`, `app/api/panel/reap/status/route.ts`, `app/api/webhook/reap/route.ts`, `app/api/clipcraft/start/route.ts`, `app/api/clipcraft/status/route.ts`, `app/api/studio-edit/start/route.ts`, `app/api/studio-edit/status/route.ts`, `test/task-orchestrator.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `runTaskGenerationStart` now supports `taskMarkerFailure: "log"` for routes whose previous marker persistence was best-effort.
+  - Panel Reap, ClipCraft, and Studio Edit start routes now use `runTaskGenerationStart` for `spendCredits -> provider submit -> task marker`.
+  - Reap-style task ids keep their exact previous formats: `task:reap:<projectId>` and `task:clipcraft:<projectId>` by passing `reap:<projectId>` / `clipcraft:<projectId>` to `setGenerationTaskMarker`.
+  - Panel Reap, ClipCraft, Studio Edit status routes and the Reap webhook now use `completeTaskGeneration` / `failTaskGenerationWithRefund` wrappers over the same credit-ledger calls.
+  - Pricing, providers, response bodies, Reap polling/status contracts, ReapJob tables, and additional-output saving behavior are unchanged.
+- Routes intentionally not moved:
+  - `/api/3d`: provider non-OK submit handling and failure/refund semantics are not the same as `runTaskGenerationStart`; moving it would change behavior.
+  - `/api/transitions/generate`, `/api/transitions/job/[id]`, `/api/panel/transitions/generate`, `/api/panel/transitions/job/[id]`: transition job completion uses transition-specific tables and direct `generation.updateMany` rather than `setGenerationMediaUrl`, so it is not a 100% Pattern B match.
+  - `/api/video`, `/api/generate/audio`, variations, hook-studio, cinema workflows: explicitly out of scope for this task.
+- Verification: `npx.cmd vitest run test/task-orchestrator.test.ts --reporter=verbose` passed with 6 tests. `npx.cmd vitest run test/pricing-core.test.ts --reporter=verbose` passed with 20 tests. `npx.cmd vitest run test/inline-orchestrator.test.ts --reporter=verbose` passed with 8 tests. `npx.cmd tsc --noEmit --pretty false` passed. Scoped `git diff --check` on touched Pattern B files passed with only CRLF warnings.
+- Errors discovered: Full worktree still contains unrelated existing changes; scoped diff verification was used for this phase.
+- Decisions: Keep task orchestration lifecycle-only. Do not force routes with transition-specific completion semantics or known differing refund behavior into the shared layer.
+
+#### Latest task: Add Pattern B task orchestration for cinematic-video (2026-08-15)
+- Status: Completed. Added a small task-based orchestration layer for only `app/api/cinematic-video/generate` and `app/api/cinematic-video/status`.
+- Affected files: `lib/generation/task-orchestrator.ts`, `app/api/cinematic-video/generate/route.ts`, `app/api/cinematic-video/status/route.ts`, `test/task-orchestrator.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `runTaskGenerationStart` centralizes the task lifecycle start: `spendCredits` -> route-owned provider submit -> `setGenerationTaskMarker`.
+  - `completeTaskGeneration` centralizes completion via `setGenerationMediaUrl`.
+  - `failTaskGenerationWithRefund` centralizes failure/refund via the existing `rollbackGenerationCharge`.
+  - Cinematic Veo pricing, provider selection, task id format, response body shape, polling behavior, status semantics, and Google provider code are unchanged.
+  - `/api/video`, audio, 3D, Reap, Variations, Transitions, and other job systems were not touched.
+- Verification: `npx.cmd vitest run test/task-orchestrator.test.ts --reporter=verbose` passed with 5 tests. `npx.cmd vitest run test/pricing-core.test.ts --reporter=verbose` passed with 20 tests. `npx.cmd vitest run test/inline-orchestrator.test.ts --reporter=verbose` passed with 8 tests. `npx.cmd tsc --noEmit --pretty false` passed. Scoped `git diff --check` passed with only CRLF warnings.
+- Errors discovered: Full worktree still contains unrelated existing changes; verification for this task used scoped diff check plus full TypeScript.
+- Decisions: Keep Pattern B as lifecycle orchestration only. Do not move provider-specific Veo submit/poll/download/upload logic into the orchestrator and do not connect Routing Control to this route in this phase.
+
+#### Latest task: Extend inline orchestration to matching Pattern A tools (2026-08-15)
+- Status: Completed. Extended the existing `runInlineGeneration` lifecycle orchestration to the additional matching Pattern A routes only.
+- Affected files: `app/api/generate/upscale/route.ts`, `app/api/generate/watermark-remove/route.ts`, `test/inline-orchestrator.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `/api/generate/upscale` and `/api/generate/watermark-remove` now use the existing `runInlineGeneration` wrapper for charge -> provider callback -> media attach -> refund-on-failure lifecycle.
+  - Their WaveSpeed upload/submit/poll code remains inside each route. Pricing resolvers, providers, response bodies, polling loops, and status behavior are unchanged.
+  - Both routes preserve their previous media-attach failure behavior by logging attach failures instead of failing/refunding a completed provider request.
+  - Other `app/api/generate` routes were left unchanged: `audio` and `video` are explicitly out of scope, `image` has multi-provider/free-generation/additional-output behavior, and `captions` does not charge credits or create a Generation record in this route.
+- Verification: `npx.cmd vitest run test/inline-orchestrator.test.ts --reporter=verbose` passed with 8 tests. `npx.cmd vitest run test/pricing-core.test.ts` passed with 20 tests. `npx.cmd tsc --noEmit --pretty false` passed. Scoped `git diff --check` on inline-orchestrator generation files passed with only CRLF warnings.
+- Errors discovered: Full worktree still contains unrelated existing changes; scoped verification was used for this generation-orchestration phase.
+- Decisions: Keep the expansion limited to exact Pattern A matches and do not move `captions`, `image`, `video`, `audio`, or job-based routes into the inline orchestrator.
+
+#### Latest task: Add Unified Generation Engine phase 1 inline orchestration layer (2026-08-14)
+- Status: Completed. Added a small Pattern A orchestration layer without changing API contracts, pricing, credit ledger behavior, `/api/video`, `/api/generate/audio`, or job-based systems.
+- Affected files: `lib/generation/inline-orchestrator.ts`, `app/api/generate/remove-bg/route.ts`, `app/api/generate/face-swap/route.ts`, `app/api/generate/edit-tool/route.ts`, `test/inline-orchestrator.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `runInlineGeneration` now centralizes the inline lifecycle: resolve current route, call `spendCredits`, execute the route-owned provider callback, call `setGenerationMediaUrl`, and refund with `refundGenerationCharge` on provider/attach failure.
+  - Phase 1 covers only `remove-bg`, `face-swap`, and `edit-tool`; provider-specific WaveSpeed upload/submit/poll code remains inside each route.
+  - Routing Control is optional and only used when a matching `ModelRoutingConfig` is explicitly supplied. These tool routes do not supply one because the current routing registry does not represent these `tool:*` actions, so provider behavior remains WaveSpeed exactly as before.
+  - `face-swap` preserves its previous behavior of logging `setGenerationMediaUrl` failure without failing/refunding the request.
+- Verification: `npx.cmd vitest run test/inline-orchestrator.test.ts` passed with 6 tests. `npx.cmd vitest run test/pricing-core.test.ts test/inline-orchestrator.test.ts` passed with 26 tests. `npx.cmd tsc --noEmit --pretty false` passed. Scoped `git diff --check` on the modified generation files passed with only CRLF warnings.
+- Errors discovered: Full worktree still contains unrelated pre-existing changes, including CEP files from the Premiere task; they were not touched in this phase.
+- Decisions: Start the unified engine with lifecycle orchestration only, not provider refactors. Keep Pattern B/job systems out of scope until this small layer proves stable.
+
+#### Latest task: Port MachiCut "Silence Removal" (Silence Cutter) feature to Saad Studio CEP Extension (2026-08-14)
+- Status: Completed.
+- Affected files:
+  - `CSXS/manifest.xml` (incremented CEP version to 3.0.0 to resolve caching and file locks).
+  - `jsx/index.jsx` (added `getAudioTrackClips` and `getActiveSequence` with Nest sequences resolution support, and corrected secondsToTicksReferenceError).
+  - `client/src/lib/podcast/services/silence-removal-service.ts` (new file implementing local FFmpeg silence detection, segment extraction, and waveform calculation).
+  - `client/src/pages/multi-cam-auto-switch.ts` (added Silence Removal tab and redesigned UI to match MachiCut layout and logic, and added dynamic canvas auto-resizing to fix the empty black waveform box, and fixed a critical bug where custom DOM library 'el' did not support react-style 'ref' callback properties by switching to explicit canvas ID lookup and direct event binding, and replaced the two-column grid .podcast-sync-layout container with a single-column full-width container to prevent the panels from being squeezed to the right side).
+  - `client/src/lib/icons.ts` (added refresh and search SVG icon shapes).
+  - `client/src/styles/components.css` (added track-chip styling rules).
+- Behavior:
+  - The CEP extension now includes a dedicated "Silence Removal" tab.
+  - Users can select a detection track, tweak Threshold, Min Silence, and Padding, preview detected silences in red on a dynamic canvas waveform, and ripple-delete silence sections across target tracks.
+- Verification: `npm run build:cep` and `install-dev.ps1` completed successfully.
+- Decisions: Added `getActiveSequence` helper to `index.jsx` and resolved a property name mismatch in `getAudioTrackClips` (corrected `resolved.mediaPath` to `resolved.sourcePath` and added timing conversions using `totalDelta`). Rewrote `removeSilenceRanges` in JSX to prevent sync drift and video-cutting errors by implementing direct track razoring (which cuts tracks directly without needing UI targeting) and Single-Ripple Orchestration (deleting the first clip with ripple=true and subsequent ones with ripple=false). Integrated Nest sequences resolution timing math directly into `getAudioTrackClips` to ensure Silence Cutter works accurately on timelines with nested clips. Cast node integration requires to `any` to prevent compilation errors.
+
+#### Latest task: Fix final Pricing Consistency REVIEW_REQUIRED paths (2026-08-14)
+- Status: Completed. Fixed only the five REVIEW_REQUIRED pricing paths without changing current user charges.
+- Affected files: `lib/providers/dispatch.ts`, `lib/credit-pricing.ts`, `lib/transition-presets.ts`, `app/api/hook-studio/generate/route.ts`, `app/api/panel/transitions/generate/route.ts`, `app/api/panel/generate/transition/route.ts`, `app/api/panel/generate/tts/route.ts`, `test/pricing-core.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Direct provider video dispatch now uses `getVideoCreditsByModelIdAsync` for final deduction.
+  - Hook Studio video execution now uses `getHookStudioCreditsAsync`, which reads async pricing by Hook Studio model id and preserves the existing `selectedModel.creditCost` as an explicit legacy fallback.
+  - Panel transition routes now call `calcTransitionCreditsForModel` with the existing local transition charge as a preserved legacy minimum, so default prices do not drop while async model-aware pricing can still apply when higher.
+  - Panel TTS remains an intentional fixed 3-credit lightweight panel action, documented as separate from the main `/api/generate/audio` TTS legacy 23-credit route.
+- Verification: `npx.cmd vitest run test/pricing-core.test.ts` passed with 20 tests. `npx.cmd tsc --noEmit --pretty false` passed. Scoped `git diff --check` on the modified pricing files passed. Full `git diff --check` still fails on pre-existing trailing whitespace in `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`, which was outside this task and was not modified.
+- Errors discovered: Full diff whitespace check remains blocked by unrelated existing Premiere worktree changes.
+- Decisions: Preserve Hook Studio, transition, and panel TTS commercial charges exactly; do not lower them to generic model-core defaults during consistency cleanup.
+
 #### Latest task: Fix pricing consistency for provider totals, legacy audio/avatar charges, and async deduction paths (2026-08-14)
 - Status: Completed. Stabilized pricing consistency without changing current user charges.
 - Affected files: `lib/pricing.ts`, `lib/credit-pricing.ts`, `app/api/pricing/quote/route.ts`, `app/api/generate/audio/route.ts`, `app/api/panel/generate/avatar-pro/route.ts`, `app/api/generate/video/route.ts`, `app/api/panel/generate/video/route.ts`, `app/api/video/route.ts`, `app/api/panel/generate/music/route.ts`, `test/pricing-core.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
@@ -11502,3 +11676,444 @@
   - Existing DB rows with raw storage keys still load correctly through `/api/assets`, while immediate post-generation UI updates no longer request `/videos/...` from the app root.
 - Verification: `npx.cmd tsc --noEmit --pretty false` passed. `git diff --check` passed with Git config/CRLF warnings only.
 - Decision: Do not change `putObjectToStorage` globally because some admin upload paths intentionally expect a raw key and build `/api/media/${key}` themselves.
+
+#### Latest task: Product Feature Registry and admin feature map (2026-08-15)
+- Status: Completed. Added a read-only Product Feature Registry from the approved 40-feature Master Map only.
+- Affected files: `lib/product/feature-registry.ts`, `app/api/admin/features/route.ts`, `app/admin/features/page.tsx`, `test/product-feature-registry.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - `lib/product/feature-registry.ts` is the central product surface inventory for exactly 40 approved UI features.
+  - `/api/admin/features` is read-only, admin-guarded, and returns the registry, summary counts, and validation errors.
+  - `/admin/features` displays the 40 features with filters for category, state, lifecycle, orchestration, registry connection, and routing connection.
+  - `enabled` and `visible` are registry metadata only and are not connected to navbar, feature visibility, routing, pricing, providers, or generation behavior.
+- Distribution:
+  - Category: image 10, video 18, edit 6, audio 6.
+  - State: active 26, partial 4, ui_only 2, unknown 8.
+  - Lifecycle: inline 7, task 3, special 18, workflow_job 1, no_generation 11.
+- Verification:
+  - `npx.cmd vitest run test/product-feature-registry.test.ts --reporter=verbose` passed with 3 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Scoped `git diff --check` on the new Product Feature Registry files passed with CRLF warnings only for pre-existing tracked memory files.
+- Decision: Keep hidden, legacy, experimental, and admin routes outside the registry even if they exist in code. Unknown feature links remain unknown/null instead of guessed.
+
+#### Latest task: Feature Control Mapping (2026-08-15)
+- Status: Completed. Added read-only effective control metadata for the approved 40 Product Features only.
+- Affected files: `lib/product/feature-registry.ts`, `app/admin/features/page.tsx`, `test/product-feature-registry.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Each registry feature now exposes derived control fields: `modelStatus`, `providerStatus`, `routingStatus`, `pricingStatus`, `generationStatus`, `overallControl`, and `controlReasons`.
+  - `/admin/features` now shows a control overview and a Feature Control Matrix with filters for overall, provider, pricing, routing, and generation status.
+  - `/api/admin/features` remains read-only and returns the same registry-backed payload; no discovery was added.
+  - No generation routes, pricing routes, routing behavior, providers, navbar visibility, or feature visibility were changed.
+- Distribution:
+  - Overall Control: CONTROLLED 16, PARTIAL 15, UNCONTROLLED 1, UNKNOWN 8.
+  - Generation Control: inline_orchestrated 7, task_orchestrated 3, special 18, workflow_job 1, no_generation 11.
+- Verification:
+  - `npx.cmd vitest run test/product-feature-registry.test.ts --reporter=verbose --pool=forks` passed with 3 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decision: Treat fixed tool actions as `routingStatus=not_applicable` when they do not require model routing. Model-based product surfaces that still rely on route-local provider selection remain `PARTIAL` rather than `CONTROLLED`.
+
+#### Latest task: Routing Integration Batch for selected PARTIAL features (2026-08-15)
+- Status: Completed. Added a behavior-preserving runtime routing bridge for the selected batch only.
+- Affected files: `lib/routing/runtime-routing.ts`, `lib/providers/dispatch.ts`, `app/api/generate/image/route.ts`, `app/api/hook-studio/generate/route.ts`, `app/api/video/route.ts`, `app/api/music/route.ts`, `lib/product/feature-registry.ts`, `test/runtime-routing.test.ts`, `test/product-feature-registry.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Features integrated:
+  - Create Image
+  - Inpaint
+  - Hook Studio
+  - Cinematic Styles
+  - Create Video
+  - Draw to Video
+  - Edit Video
+  - Text to Music
+- Behavior:
+  - Runtime generation routes now call `resolveRuntimeProviderRoute` to try Routing Control first.
+  - If a matching routing row has an active provider decision, the route uses `routingSource=control_center` and the selected `effectiveProvider`.
+  - If no matching row exists or the routing row resolves to a standby/disabled provider, the route keeps the existing route-local provider logic as `routingSource=legacy_fallback`.
+  - Each touched generation path records `routingSource`, `effectiveProvider`, `providerRoute`, and `routingReason` inside `requestPayload.routing` on the Generation record. API response shapes were not changed.
+  - BytePlus/KIE are not accepted through Routing Control because `decideProviderRoute` uses Provider Registry eligibility. Legacy maps are still present as compatibility fallback as requested.
+  - Pricing, credits, task ids, polling/callback contracts, refund behavior, and feature UI were not changed.
+- Feature Control distribution after this batch:
+  - CONTROLLED 24
+  - PARTIAL 7
+  - UNCONTROLLED 1
+  - UNKNOWN 8
+- Remaining PARTIAL features:
+  - Cinema Flow: mixed downstream routes.
+  - AI Canvas: node/downstream mixed.
+  - Agent Studio: planner + downstream mixed.
+  - Transitions: KIE standby/workflow job remains out of this batch.
+  - Lipsync Studio: legacy audio/avatar pricing and mixed KIE/WaveSpeed.
+  - 3D Studio: KIE/WaveSpeed mixed and route-specific lifecycle.
+  - Smart CLI: delegated MCP/downstream execution.
+- Verification:
+  - `npx.cmd vitest run test/product-feature-registry.test.ts test/runtime-routing.test.ts --reporter=verbose --pool=forks` passed with 6 tests.
+  - `npx.cmd vitest run test/dispatch-video-orchestration.test.ts test/inline-orchestrator.test.ts test/pricing-core.test.ts --reporter=verbose --pool=forks` passed with 33 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Scoped `git diff --check` passed for touched tracked files, and no-index checks for new runtime-routing test/helper had CRLF warnings only.
+- Errors discovered:
+  - Existing dispatch-video tests log dynamic model loader errors under mocks with incomplete Prisma shape; the runtime helper catches this and falls back to legacy routing, and the tests pass.
+- Decision:
+  - Keep old provider maps as compatibility fallback for now.
+  - Do not connect Routing Control to Cinema Flow, AI Canvas, Agent Studio, Smart CLI, Transitions, Lipsync, 3D, or UNKNOWN features in this batch.
+
+#### Latest task: Generation Lifecycle Contract (2026-08-15)
+- Status: Completed. Closed the Generation Core metadata layer by defining lifecycle contracts without forcing image/audio special workflows into `runInlineGeneration`.
+- Affected files: `lib/generation/lifecycle-contract.ts`, `lib/product/feature-registry.ts`, `app/admin/features/page.tsx`, `test/generation-lifecycle-contract.test.ts`, `test/product-feature-registry.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added central lifecycle contract/types for `inline`, `task`, `workflow_job`, and `special_workflow`.
+  - `/api/generate/image` is classified as `special_workflow` because it preserves annual-free generation, paid generation, multiple outputs, `saveAdditionalGenerationUrls`, and rollback semantics.
+  - `/api/generate/audio` is classified as `special_workflow` because it preserves the action router, legacy TTS pricing, transcript-only actions, video outputs, provider fallbacks, and local finalize/idempotency behavior.
+  - `/api/video` is classified as `special_workflow` task hybrid because it preserves task prefixes, polling/callback contracts, idempotency, and a custom failure/refund policy instead of forcing `failTaskGenerationWithRefund`.
+  - Product Feature metadata now exposes `generationLifecycleType`, `lifecycleContractId`, and `lifecycleContract` read-only values.
+  - `/admin/features` shows the lifecycle contract metadata read-only.
+- Distribution:
+  - Generation lifecycle type: inline 7, task 3, special_workflow 18, workflow_job 1, no_generation 11.
+  - Active generation features without a known lifecycle contract: 0.
+- Verification:
+  - `npx.cmd vitest run test/product-feature-registry.test.ts test/generation-lifecycle-contract.test.ts --reporter=verbose --pool=forks` passed with 7 tests.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/runtime-routing.test.ts test/inline-orchestrator.test.ts test/task-orchestrator.test.ts --reporter=verbose --pool=forks` passed with 41 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Scoped `git diff --check` passed for tracked touched files; no-index checks for new lifecycle test/contract showed CRLF warnings only.
+- Decision:
+  - Treat `special_workflow` as a first-class lifecycle, not a temporary failure to orchestrate.
+  - Generation Core is closed as a lifecycle contract/metadata phase. Runtime consolidation remains intentionally bounded to already-safe inline/task flows.
+
+#### Latest task: Runtime Safety Batch for final Generation Runtime Gate FAILs (2026-08-15)
+- Status: Completed. Closed the confirmed runtime FAILs without changing pricing, credits, task ids, polling, callbacks, DB schema, or starting Jobs.
+- Affected files: `lib/generation/runtime-safety.ts`, `lib/credit-ledger.ts`, `app/api/generate/image/route.ts`, `app/api/video/route.ts`, `app/api/generate/audio/route.ts`, `test/runtime-safety.test.ts`, `test/final-generation-runtime-safety.test.ts`, `test/credit-ledger.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added `isFinalProviderExecutionAllowed` / `assertFinalProviderExecutionAllowed` as a thin Provider Registry runtime guard.
+  - `/api/video` now blocks final BytePlus and KIE execution, including status polling provider calls, when the provider is not active in Provider Registry.
+  - `/api/generate/audio` now blocks KIE-only branches before charging while KIE is standby. Existing WaveSpeed fallbacks are allowed only when WaveSpeed is active and configured; no new fallback is invented.
+  - `/api/generate/image` updates actual provider usage after successful OpenAI, Google, or WaveSpeed execution so WaveSpeed image branches are not mislabeled by model-id inference.
+  - Audio successful finalization updates actual provider usage based on the provider that actually succeeded, fixing KIE-to-WaveSpeed and voice-cloning/sound-effect fallback tracking.
+  - Speech-to-text transcript-only success marks the Generation and ProviderUsageRecord completed without creating a fake media URL.
+- Runtime Gate rerun:
+  - Standby bypasses for BytePlus/KIE in `/api/video`: closed.
+  - Standby bypasses for KIE in `/api/generate/audio`: closed.
+  - ProviderUsage mismatch for WaveSpeed image/audio fallback success: closed.
+  - Speech-to-text queued-success lifecycle: closed.
+  - Remaining FAILs blocking Jobs: none found in the scoped gate.
+- Verification:
+  - `npx.cmd vitest run test/runtime-safety.test.ts test/final-generation-runtime-safety.test.ts test/credit-ledger.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 15 tests.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/runtime-routing.test.ts test/inline-orchestrator.test.ts test/task-orchestrator.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 41 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Scoped `git diff --check` passed for tracked touched files; no-index checks for new runtime safety files showed CRLF warnings only.
+- Decision:
+  - `legacy_fallback` is no longer allowed to bypass Provider Registry for final execution.
+  - `GENERATION RUNTIME READY FOR JOBS = YES` for the scoped routes: `/api/generate/image`, `/api/video`, and `/api/generate/audio`.
+
+#### Latest task: Jobs / Queue / Status observability layer (2026-08-15)
+- Status: Completed as a read-only Jobs Control Layer. No queue, worker, generation route, provider call, pricing, routing, credit, refund, callback, polling, or DB schema behavior was changed.
+- Affected files: `lib/admin/jobs-read-model.ts`, `app/api/admin/jobs/route.ts`, `app/admin/jobs/page.tsx`, `test/admin-jobs-read-model.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added a unified admin read model over existing job sources only: `Generation`, `TransitionJob`, `VariationJob`, `ReapJob`, and `CinemaJob`.
+  - Added read-only `GET /api/admin/jobs` guarded by `isAdmin()`.
+  - Added read-only `/admin/jobs` with filters for status, feature, provider, model, source type, and date, plus a detail panel for identity, provider task id, routing source, credits, provider usage, timeline, result, error, refund state, and diagnostics.
+  - Status normalization is display-only: queued/pending/created -> `queued`; submitted/prepped/processing/running/in_progress/rendering -> `processing`; completed/succeeded/success/done/ready -> `completed`; failed/error/rejected -> `failed`; cancelled/canceled -> `cancelled`.
+  - Diagnostics are read-only only: queued too long, processing too long, completed result while status is processing, failed job with generation mismatch when detectable, provider task id missing, and provider usage missing.
+  - Feature linking stays conservative. Transition jobs link to `video-transitions`; unambiguous Generation tool rows can link to approved features such as background remove and face swap; ambiguous shared routes and job rows remain `featureId=null` instead of guessed.
+  - `VariationJob`, `ReapJob`, and `CinemaJob` are visible as source types, but rows that cannot prove one of the 40 Product Features remain unlinked.
+  - With Neon reachable during verification, current source counts were: Generation 1072, TransitionJob 44, VariationJob 2, ReapJob 0, CinemaJob 0; total unified rows loadable before filters: 1118.
+- Verification:
+  - `npx.cmd vitest run test/admin-jobs-read-model.test.ts test/product-feature-registry.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 10 tests.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/runtime-routing.test.ts test/inline-orchestrator.test.ts test/task-orchestrator.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 41 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Scoped `git diff --check` passed for tracked touched paths. No-index checks for new Jobs files reported only expected LF/CRLF warnings.
+- Decision:
+  - Jobs phase starts as observability/read model only, not execution.
+  - Do not infer Product Feature ownership from route existence or weak naming; unknown remains unknown until stored metadata proves it.
+  - `JOBS OBSERVABILITY LAYER READY = YES`.
+
+#### Latest task: History / Logs / Usage observability layer (2026-08-15)
+- Status: Completed as a read-only History/Usage monitoring layer over persisted data only. No generation runtime, jobs runtime, pricing, routing, providers, credits/refunds, provider calls, callbacks, polling, analytics, queue, or DB schema behavior was changed.
+- Affected files: `lib/admin/history-read-model.ts`, `app/api/admin/history/route.ts`, `app/admin/history/page.tsx`, `app/admin/jobs/page.tsx`, `test/admin-history-read-model.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added `lib/admin/history-read-model.ts` as the unified generation history read model.
+  - Added read-only `GET /api/admin/history` guarded by `isAdmin()`.
+  - Added read-only `/admin/history` with filters for date, feature, provider, model, status, charged/free/refunded state, error presence, provider cost presence, and text query.
+  - `/admin/jobs` job details now link to the matching `/admin/history?query=<generationId>` row when a job has a `generationId`.
+  - History rows join existing `Generation`, `GenerationRequestSnapshot`, linked `ProviderUsageRecord`, optional raw `CreditLedgerEntry`, and the existing Unified Jobs read model mapping.
+  - Provider estimated cost is shown only from persisted snapshot/generation cost metadata. Provider actual cost is shown only when persisted as actual on `ProviderUsageRecord` or `Generation.providerCostSource=actual`.
+  - Refund state is proven only from explicit `CreditLedgerEntry` refund records; failed status alone is not treated as proof of refund.
+  - Multiple/additional output counts are shown only when a persisted payload array proves them; no output count is guessed.
+- Current Neon counts during verification:
+  - `Generation`: 1072
+  - `ProviderUsageRecord`: 618
+  - Linked `ProviderUsageRecord`: 458
+  - Unlinked `ProviderUsageRecord`: 160
+- Observability gaps recorded:
+  - `CreditLedgerEntry` exists as an optional/raw-read table, not a typed Prisma model, so missing/empty reads limit refund proof.
+  - Some failed generations do not have structured persisted error fields beyond status/media markers.
+  - Additional outputs are not consistently linked back to a primary generation id.
+  - Actual provider cost is not available for every provider usage row.
+  - Feature id remains conservative and may be null when a generation row cannot prove one of the 40 approved Product Features.
+- Verification:
+  - `npx.cmd vitest run test/admin-history-read-model.test.ts test/admin-jobs-read-model.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 10 tests.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/runtime-routing.test.ts test/inline-orchestrator.test.ts test/task-orchestrator.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 41 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decision:
+  - Do not create a new log table or analytics layer in this phase.
+  - Treat `/admin/history` as operational observability only; revenue/margin/profit analytics remain a later phase.
+  - `HISTORY / LOGS / USAGE OBSERVABILITY READY = YES`.
+
+#### Latest task: Analytics read-only observability layer (2026-08-15)
+- Status: Completed as a read-only Analytics layer split into Operational Analytics and coverage-limited Financial/Cost Coverage. No runtime, DB schema, pricing, routing, providers, jobs, history, credits/refunds, provider calls, or dashboard runtime behavior was changed.
+- Affected files: `lib/admin/analytics-read-model.ts`, `app/api/admin/analytics/route.ts`, `app/admin/analytics/page.tsx`, `test/admin-analytics-read-model.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added `lib/admin/analytics-read-model.ts` as the central analytics read model.
+  - Added read-only `GET /api/admin/analytics` guarded by `isAdmin()`.
+  - Added read-only `/admin/analytics` with sections: Overview, Providers, Models, Features, Jobs, Credits, Cost Coverage, Data Quality / Coverage, Partial Metrics, Refused Metrics, and Sources.
+  - Operational metrics are computed from actual persisted rows through `Generation`, `History Read Model`, `Unified Jobs Read Model`, `ProviderUsageRecord`, and approved `Product Feature Registry` ids.
+  - Feature analytics count only feature ids proven against the approved 40-feature registry. Unknown/unapproved feature ids stay unknown.
+  - Cost coverage separates actual provider cost from estimated provider cost. Actual totals use only persisted actual-cost rows; estimated totals use estimated rows separately.
+  - The page intentionally refuses Total Profit, True Margin, and Net Revenue because provider actual-cost coverage is incomplete.
+- Current Neon data quality snapshot during verification:
+  - `Generation`: 1072
+  - `ProviderUsageRecord`: 618
+  - Linked ProviderUsageRecord: 458
+  - Unlinked ProviderUsageRecord: 160
+  - ProviderUsage link coverage: 74.1%
+  - ProviderUsage rows with actual cost: 4
+  - ProviderUsage rows with estimated cost: 530
+  - ProviderUsage rows missing request id: 337
+  - Generation completed rows: 552
+  - Generation failed rows: 212
+- Partial metrics:
+  - Average latency is partial when completion timestamps are not proven.
+  - Feature analytics are partial where no approved feature id is stored/proven.
+  - Provider usage analytics are partial because unlinked ProviderUsage rows exist.
+  - Refund analytics are partial where explicit CreditLedgerEntry refund proof is missing.
+  - Financial cost analytics are partial because actual provider cost is missing for most rows.
+- Verification:
+  - `npx.cmd vitest run test/admin-analytics-read-model.test.ts test/admin-history-read-model.test.ts test/admin-jobs-read-model.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 13 tests.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/runtime-routing.test.ts test/inline-orchestrator.test.ts test/task-orchestrator.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 41 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decision:
+  - Operational analytics are ready.
+  - Financial analytics are not globally trustworthy yet; only actual/estimated cost coverage views are allowed until actual-cost and usage-link coverage improve.
+  - `OPERATIONAL ANALYTICS READY = YES`.
+  - `FINANCIAL ANALYTICS TRUSTWORTHY = NO`.
+
+#### Latest task: Admin Control Center aggregation layer (2026-08-15)
+- Status: Completed as a read-only `/admin` Control Center over the existing admin APIs and read models. No generation runtime, jobs runtime, provider calls, routing, pricing, credits/refunds, analytics logic, DB schema, or Knowledge Hub work was changed.
+- Affected files: `app/admin/page.tsx`, `lib/admin/control-center.ts`, `test/admin-control-center.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Replaced the old mock-heavy `/admin` page with a read-only aggregation page.
+  - `/admin` reads from existing endpoints only: `/api/admin/providers`, `/api/admin/features`, `/api/admin/routing`, `/api/admin/jobs`, `/api/admin/history`, `/api/admin/analytics`, `/api/admin/models`, and `/api/admin/pricing-constitution`.
+  - Added `lib/admin/control-center.ts` to build a display snapshot from those API/read-model payloads without becoming a source of truth.
+  - The page shows overview cards, quick navigation, a System Health Matrix, read-model alerts, and an explicit `FINANCIAL DATA NOT FULLY TRUSTWORTHY` warning.
+  - Knowledge Hub is shown as `NOT_STARTED / Planned` only.
+  - Financial data remains coverage-limited; actual and estimated cost coverage are shown separately and no profit/margin/revenue numbers are computed.
+- Alerts exposed from current read models:
+  - Routing DB unavailable when reported by `/api/admin/routing`.
+  - Job diagnostics when reported by `/api/admin/jobs` or Analytics.
+  - Unlinked `ProviderUsageRecord` rows.
+  - Paid generation rows missing provider usage.
+  - Low actual-cost coverage.
+  - Partial/uncontrolled/unknown Product Features.
+  - Financial data not fully trustworthy when Analytics reports coverage-limited financial state.
+- Verification:
+  - `npx.cmd vitest run test/admin-control-center.test.ts test/admin-analytics-read-model.test.ts test/admin-history-read-model.test.ts test/admin-jobs-read-model.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 15 tests.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/runtime-routing.test.ts test/inline-orchestrator.test.ts test/task-orchestrator.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 41 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decision:
+  - `/admin` is only an aggregation/control overview layer. Sources of truth remain Provider Registry, Feature Registry, Routing, Pricing, Jobs Read Model, History Read Model, and Analytics Read Model.
+  - Do not start Knowledge Hub, financial analytics expansion, or runtime/admin mutation work from this phase.
+  - `ADMIN CONTROL CENTER READY = YES`.
+
+#### Latest task: Knowledge Hub phase 1 (2026-08-15)
+- Status: Completed without a DB migration. The first Knowledge Hub phase uses the existing `PlatformConfig` table key `knowledge_hub_v1` as a Knowledge-only JSON store.
+- Affected files: `lib/admin/knowledge-hub.ts`, `app/api/admin/knowledge/route.ts`, `app/admin/knowledge/page.tsx`, `app/admin/page.tsx`, `lib/admin/control-center.ts`, `test/admin-knowledge-hub.test.ts`, `test/admin-control-center.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added `/admin/knowledge` as a read-only/review UI plus URL import form for documentation sources.
+  - Added `GET /api/admin/knowledge` to read Knowledge sources/documents/drafts.
+  - Added `POST /api/admin/knowledge` to import one safe HTTP/HTTPS URL into Knowledge storage.
+  - Added `PATCH /api/admin/knowledge` to mark a draft as `approved` or `rejected` inside Knowledge only.
+  - Supported providers in this phase: Google, OpenAI, WaveSpeed, BytePlus, KIE, ElevenLabs, Reap, RunningHub, and Custom Provider.
+  - Supported source types in the data model: `url`, `pasted_text`, `markdown`, `json`; the UI imports URL sources only in this phase.
+  - Imported pages create a `KnowledgeSource`, `KnowledgeDocument`, and `KnowledgeDraft`.
+  - Extraction is heuristic and always stored as draft Knowledge with field-level provenance: `sourceUrl`, `documentId`, and best-effort section label.
+  - URL import is intentionally shallow: one URL only. No deep crawler and no PDF parsing.
+  - URL safety rejects non-HTTP protocols, localhost, loopback, and private IPv4 ranges before fetch.
+  - `/admin` now links `/admin/knowledge`; Knowledge status is `READY` when the Knowledge API is available, even with 0 sources/0 approved docs.
+- Runtime safety:
+  - Knowledge does not change Model Registry, Feature Registry, Routing, Pricing, Providers, Generation, Jobs, History, or Analytics.
+  - Approve means only `approved knowledge`; it does not publish extracted fields to production registries.
+  - No provider APIs are called from extracted documentation.
+- Verification:
+  - `npx.cmd vitest run test/admin-knowledge-hub.test.ts test/admin-control-center.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 5 tests.
+  - `npx.cmd vitest run test/admin-analytics-read-model.test.ts test/admin-history-read-model.test.ts test/admin-jobs-read-model.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 13 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decisions:
+  - Use `PlatformConfig` for phase 1 to avoid a schema migration. If Knowledge grows beyond this proof/control layer, propose dedicated `KnowledgeSource`, `KnowledgeDocument`, and `KnowledgeDraft` tables before migration.
+  - Keep extraction draft-only and provenance-required.
+  - `KNOWLEDGE HUB PHASE 1 READY = YES`.
+
+#### Latest task: Central Model Configuration + Knowledge Hub phase 2 (2026-08-15)
+- Status: Completed as a limited, safe central-definition phase without DB migration and without runtime behavior changes.
+- Affected files:
+  - `lib/model-definition-registry.ts`
+  - `app/api/model-definitions/route.ts`
+  - `app/api/models/route.ts`
+  - `app/api/admin/models/route.ts`
+  - `hooks/use-dynamic-models.ts`
+  - `app/admin/models/page.tsx`
+  - `lib/admin/knowledge-hub.ts`
+  - `app/api/admin/knowledge/route.ts`
+  - `app/admin/knowledge/page.tsx`
+  - `test/model-definition-registry.test.ts`
+  - `test/admin-knowledge-hub.test.ts`
+- Source of Truth:
+  - Production model definitions now resolve through `lib/model-definition-registry.ts`.
+  - Storage remains the existing Admin Models storage: `dynamic_image_models` and `dynamic_video_models` in `PlatformConfig`, normalized over curated static defaults.
+  - No new DB schema was added. This is acceptable for this phase because the project already uses these PlatformConfig keys as the current admin model registry; Knowledge proposals remain in the existing Knowledge-only `knowledge_hub_v1` store.
+- Behavior:
+  - Added a typed `CentralModelDefinition` schema with model identity, modality, status, source model id, pricingRef, routingRef, capabilities, parameter schema, inputs, outputs, limits, defaults, and provenance.
+  - Added parameter definitions for resolution, duration, aspectRatio, quality, numOutputs, referenceImages, referenceVideos, and referenceAudios when proven by the existing image/video registries.
+  - Added `GET /api/model-definitions` for authenticated read-only access to central definitions.
+  - Updated `GET /api/models` so Create Image/Create Video consumers receive legacy-compatible model objects after applying the central definition. This preserves existing UI contracts while proving central propagation.
+  - Updated `useFullDynamicModels()` to expose `modelDefinitions` and `modelDefinitionSource`.
+  - Updated `/admin/models` to show central-definition summary and pending Knowledge model changes without creating a second Models page.
+  - Extended Knowledge Hub with `Approved Knowledge -> Proposed Model Changes -> Admin Review -> Publish Model Configuration`.
+  - Knowledge approval alone still does not change runtime. Only explicit publish of a proposed model change updates the Admin Models production registry.
+  - Publish can update only model fields currently represented in the existing registries: sourceModelId/api_route, resolution/quality options, duration options, aspect ratios, and max reference images.
+- Boundaries:
+  - Pricing remains Pricing Core only. Model Definition stores `pricingRef`, not user prices.
+  - Routing remains Routing Control only. Model Definition stores `routingRef`, not active runtime provider.
+  - Generation runtime, jobs, history, analytics, providers, credit ledger, refunds, task ids, polling, callbacks, and storage runtime were not changed.
+  - Storage & Media Core remains a future separate phase; do not mix it into model configuration.
+- Verification:
+  - `npx.cmd vitest run test/model-definition-registry.test.ts test/admin-knowledge-hub.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 6 tests.
+  - `npx.cmd vitest run test/model-definition-registry.test.ts test/admin-knowledge-hub.test.ts test/product-feature-registry.test.ts test/admin-control-center.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 12 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Scoped `git diff --check` passed for tracked files; no-index checks for new files showed only expected CRLF warnings.
+- Decisions:
+  - Do not migrate all 40 Product UI features yet. Create Image and Create Video are the first effective consumers through `/api/models`.
+  - Keep legacy model maps as compatibility fallback while central definitions are rolled out.
+  - `CENTRAL MODEL DEFINITION READY = YES`.
+  - `DYNAMIC MODEL CAPABILITIES READY = YES` for migrated `/api/models` consumers.
+  - `KNOWLEDGE -> MODEL PUBLISH PIPELINE READY = YES` for approved Knowledge proposals and manual publish.
+  - `ALL PRODUCT UI CENTRALIZED = NO`; remaining consumers still need phased migration from model-specific local constants.
+
+#### Latest task: Central Storage & Media Core phase 1 (2026-08-15)
+- Status: Completed as a central storage runtime/read model phase without DB migration and without changing generation runtime behavior.
+- Affected files:
+  - `lib/storage/runtime.ts`
+  - `lib/storage/index.ts`
+  - `lib/r2-storage.ts`
+  - `lib/media/public-url-resolver.ts`
+  - `app/api/media/[...path]/route.ts`
+  - `app/api/admin/storage/route.ts`
+  - `app/admin/storage/page.tsx`
+  - `app/api/video/route.ts`
+  - `app/api/download/[filename]/route.ts`
+  - `lib/admin/control-center.ts`
+  - `app/admin/page.tsx`
+  - `test/storage-runtime.test.ts`
+- Behavior:
+  - Added `lib/storage/runtime.ts` as the central Storage Runtime Resolver.
+  - Backblaze is the active write provider in phase 1. R2 remains legacy/read fallback only.
+  - Storage operational policy is stored in `PlatformConfig` under `storage_runtime_config_v1`; secrets and provider credentials remain environment-only.
+  - `lib/r2-storage.ts` is now a compatibility facade over the central runtime. Old consumers keep their imports while new storage behavior goes through the runtime.
+  - `/api/media/[...path]` now reads through the runtime provider chain: active provider first, then legacy read fallback when enabled.
+  - `/api/admin/storage` exposes read-only summary, provider health/config status, media diagnostics, and limited operational policy updates. Phase 1 rejects switching active writer away from Backblaze.
+  - `/admin/storage` provides read-only/controlled Storage overview, provider matrix, policy controls for delivery/legacy read, and media path diagnostics.
+  - `/admin` now includes Storage in Control Center cards, system matrix, navigation, and alerts.
+  - `lib/media/public-url-resolver.ts` now resolves storage-owned media through the storage abstraction and preserves external provider URLs instead of converting them into `/api/media`.
+  - `/api/video` BytePlus image preprocessing now resolves owned storage URLs through provider abstraction.
+  - `/api/download/[filename]` reads storage downloads through the runtime before local fallback.
+- Runtime safety:
+  - No pricing, routing, model registry, provider status, credit ledger, generation provider selection, task IDs, polling, callbacks, jobs, history, analytics, KIE, or BytePlus behavior was changed.
+  - No DB schema migration and no old media migration were added.
+  - Existing generated media references remain valid through active+legacy read resolution where the object can be found.
+- Direct coupling still recorded:
+  - Compatibility exports `defaultProvider` and `legacyProvider` remain in `lib/storage/index.ts` for existing consumers.
+  - Some product UI/static reference assets still contain durable Backblaze URLs.
+  - Some old media/client fallback handling remains intentionally untouched for compatibility.
+  - `lib/supabase-storage.ts` remains a legacy compatibility surface.
+- Verification:
+  - `npx.cmd vitest run test/storage-runtime.test.ts test/admin-control-center.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 8 tests.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/inline-orchestrator.test.ts test/task-orchestrator.test.ts test/runtime-routing.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 41 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed after storage exports were completed.
+- Decisions:
+  - Phase 1 centralizes runtime/provider abstraction and media delivery, not storage migration.
+  - Backblaze remains the only active writer. R2 is read fallback only.
+  - Storage provider switching from admin is intentionally not fully enabled until a future provider has a write adapter, policy, and tests.
+  - `CENTRAL STORAGE RUNTIME READY = YES`.
+  - `ALL NEW UPLOADS CENTRALIZED = YES` for consumers using the central storage helpers/facade.
+  - `MEDIA DELIVERY CENTRALIZED = YES`.
+  - `LEGACY MEDIA SAFE = YES` for configured active/legacy providers.
+  - `STORAGE PROVIDER SWITCHABLE FROM ADMIN = NO`.
+
+#### Latest task: Central Storage & Media Core phase 1B (2026-08-15)
+- Status: Completed as a storage policy/provider-switch control phase without changing Image, Video, Audio, Tools, pricing, routing, generation runtime, jobs, history, analytics, or DB schema.
+- Affected files:
+  - `lib/storage/provider-registry.ts`
+  - `lib/storage/runtime.ts`
+  - `lib/storage/index.ts`
+  - `app/api/admin/storage/route.ts`
+  - `app/admin/storage/page.tsx`
+  - `lib/admin/control-center.ts`
+  - `test/storage-runtime.test.ts`
+  - `test/admin-control-center.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - Added a central Storage Provider Registry with non-secret provider definitions: id, displayName, configured, readEnabled, writeEnabled, legacyReadOnly, status, bucket/endpoint/public URL metadata, and lastError.
+  - Introduced `activeWriteProvider` as the official Storage Policy field. `activeProvider` remains a compatibility alias only.
+  - `StorageRuntimeConfig` still uses `PlatformConfig.storage_runtime_config_v1`; the stored policy contains provider id and operational flags only, never credentials.
+  - Runtime writes (`putObject`, `uploadBuffer`, `uploadFromUrl`, signed upload, delete, and the `defaultProvider` compatibility facade) resolve the active writer at call time from Storage Runtime.
+  - Runtime reads use policy-based read chain: active writer first, then configured legacy readers when enabled. This keeps old media readable after future provider switches.
+  - `/api/admin/storage` validates policy writes against the Provider Registry and fails closed for unknown, unconfigured, read-only, disabled, or legacy-only providers.
+  - `/admin/storage` now shows Active Write Provider selection. The select only lists configured write-enabled providers. Currently Backblaze is the only production writable provider; R2 is visible only as legacy read-only.
+  - `/admin` Storage status now reports `DEGRADED` when active writable storage or media gateway is unavailable, `READY` only when central runtime + active writable provider + media gateway are available.
+  - `resolvePublicUrl(..., { deliveryMode: "direct" })` returns a direct provider URL only when a provider id is explicitly supplied; otherwise it returns `/api/media/...` to avoid a wrong hardcoded provider.
+- Runtime safety:
+  - R2 write remains disabled and cannot be selected as an active writer.
+  - No secrets are stored in PlatformConfig/Admin DB.
+  - No existing media references were rewritten and no old files were migrated.
+  - No generation consumer route had to change to support future provider switching.
+- Direct coupling still recorded:
+  - `legacyProvider` export remains for legacy compatibility.
+  - Some thumbnail/poster/admin utility files still import `defaultProvider`, but it is now a dynamic compatibility facade rather than a Backblaze singleton.
+  - Static Backblaze URLs in some UI/reference assets remain unchanged.
+  - `lib/supabase-storage.ts` remains a separate legacy compatibility surface.
+- Verification:
+  - `npx.cmd vitest run test/storage-runtime.test.ts test/admin-control-center.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed with 11 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decisions:
+  - Use `PlatformConfig.storage_runtime_config_v1` as the Storage Policy source of truth for Phase 1B.
+  - Do not add a DB migration or media metadata columns in this phase.
+  - Do not activate R2 writes without a real writable adapter and production config.
+  - Keep direct provider switching admin-controlled only for configured writable providers.
+  - `CENTRAL STORAGE POLICY READY = YES`.
+  - `ACTIVE WRITE PROVIDER ADMIN-CONTROLLED = YES`, with Backblaze currently the only writable production option.
+  - `CONSUMERS STORAGE-PROVIDER AGNOSTIC = YES` for consumers using storage helpers/facades.
+  - `STORAGE PROVIDER SWITCHABLE WITHOUT CONSUMER CODE CHANGES = YES` at the runtime/helper level; adding a real future provider still needs an adapter and config.
+  - `LEGACY MEDIA SURVIVES PROVIDER SWITCH = YES` through the active+legacy read chain.
+#### Latest task: Central Model Consumer Migration Batch 1 (2026-08-15)
+- Status: Completed as a behavior-preserving consumer migration for the approved partially-centralized model consumers only. No pricing, routing behavior, storage, generation lifecycle, jobs, history, analytics, credits, provider statuses, DB schema, task ids, callbacks, or refund behavior were changed.
+- Affected files: `lib/model-definition-registry.ts`, `app/api/models/route.ts`, `app/api/generate/image/route.ts`, `app/api/video/route.ts`, `app/api/hook-studio/generate/route.ts`, `app/(dash)/(routes)/image/page.tsx`, `app/(dash)/(routes)/video/page.tsx`, `app/(dash)/(routes)/hook-studio/page.tsx`, `components/canvas/CanvasNode.tsx`, `components/canvas/NodeSettingsPanel.tsx`, `test/model-definition-registry.test.ts`.
+- Behavior:
+  - Added centralized dynamic image/video consumer resolvers in `lib/model-definition-registry.ts` over the existing Central Model Definition registry.
+  - `/api/models`, `/api/generate/image`, and `/api/video` now consume centralized dynamic image/video model shapes for model metadata/capabilities where they validate or expose model options.
+  - `/image` now renders aspect-ratio options from the selected centralized model and supports central ratios that are not in the old drawing catalog.
+  - `/video` keeps the selected model synchronized with the centralized `/api/models` model object.
+  - Hook Studio keeps hook-specific UX/config local, but overlays central video model metadata/capabilities onto matching `HOOK_VIDEO_MODELS` before runtime selection. The static Seedance 2.5 Hook injection is now fallback-only when the central model list lacks that model.
+  - AI Canvas node picker and settings now prefer centralized image/video model lists and selected-model capability options, falling back to legacy registries when central models are unavailable.
+- Legacy fallbacks intentionally kept:
+  - Hook-specific provider/prompt/style/genre/credit config remains in `HOOK_VIDEO_MODELS` and Hook Studio config because it is workflow/product config, not generic model capability.
+  - Transition model allowlists and transition preset/effect logic remain local because Transition workflow behavior is KIE/workflow-specific and not safely represented as generic model capabilities yet.
+  - Canvas LLM nodes and non-image/video workflow nodes remain local/out of scope.
+- Verification:
+  - `npx.cmd vitest run test/model-definition-registry.test.ts test/product-feature-registry.test.ts --reporter=verbose --pool=forks --exclude "**/.claude/**" --exclude "**/seedsat1/**"` passed: 10 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Scoped `git diff --check` on touched Batch 1 files passed with CRLF warnings only.
+- Audit after this batch:
+  - FULLY_CENTRALIZED: 6
+  - PARTIALLY_CENTRALIZED: 5
+  - NOT_CENTRALIZED: 8
+  - NO_MODEL_CONFIG: 12
+  - UNKNOWN: 9
+- Decisions:
+  - Treat Batch 1 as ready for the consumers whose mutable model capabilities now flow through Central Model Definition.
+  - Do not claim all product model config is centralized while Transitions, Cinema Flow, Agent Studio, AI Canvas composite internals, and Hook-specific workflow config still retain local compatibility data.

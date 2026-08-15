@@ -4,10 +4,9 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/security";
 import {
   ensureUserRow,
-  rollbackGenerationCharge,
-  spendCredits,
   InsufficientCreditsError,
 } from "@/lib/credit-ledger";
+import { runTaskGenerationStart } from "@/lib/generation/task-orchestrator";
 import prismadb from "@/lib/prismadb";
 import { sanitizePrompt } from "@/lib/security";
 import { normalizeReapOptions, startReapJob, startReapJobWithUploadId, type ReapTool } from "@/lib/providers/reap";
@@ -110,16 +109,38 @@ export async function POST(req: NextRequest) {
   const options = normalizeReapOptions(tool, body.options ?? {});
 
   let generationId: string;
+  let projectId: string;
   try {
-    const spent = await spendCredits({
-      userId,
-      prompt,
-      assetType: TOOL_TO_ASSET_TYPE[tool],
-      modelUsed: `clipcraft:${tool}`,
-      credits: cost,
-      duration: inputDuration,
+    const started = await runTaskGenerationStart({
+      charge: {
+        userId,
+        prompt,
+        assetType: TOOL_TO_ASSET_TYPE[tool],
+        modelUsed: `clipcraft:${tool}`,
+        credits: cost,
+        duration: inputDuration,
+      },
+      submit: async () => {
+        const { projectId } = hasUploadId
+          ? await startReapJobWithUploadId({
+              tool,
+              uploadId: body.uploadId!,
+              options,
+            })
+          : await startReapJob({
+              tool,
+              sourceUrl: body.sourceUrl!,
+              filename: body.filename ?? guessFilenameFromUrl(body.sourceUrl!),
+              options,
+            });
+
+        return { projectId, taskId: `clipcraft:${projectId}` };
+      },
+      taskMarkerFailure: "log",
+      logPrefix: "clipcraft/start",
     });
-    generationId = spent.generationId;
+    generationId = started.generationId;
+    projectId = started.providerResult.projectId;
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
       return NextResponse.json(
@@ -131,42 +152,17 @@ export async function POST(req: NextRequest) {
         { status: 402 }
       );
     }
-    throw err;
-  }
-
-  try {
-    const { projectId } = hasUploadId
-      ? await startReapJobWithUploadId({
-          tool,
-          uploadId: body.uploadId!,
-          options,
-        })
-      : await startReapJob({
-          tool,
-          sourceUrl: body.sourceUrl!,
-          filename: body.filename ?? guessFilenameFromUrl(body.sourceUrl!),
-          options,
-        });
-
-    await prismadb.generation
-      .update({
-        where: { id: generationId },
-        data: { mediaUrl: `task:clipcraft:${projectId}` },
-      })
-      .catch(() => {});
-
-    return NextResponse.json({
-      projectId,
-      generationId,
-      creditsCharged: cost,
-      status: "queued",
-    });
-  } catch (err) {
-    await rollbackGenerationCharge(generationId, userId, cost).catch(() => {});
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[api/clipcraft/start]", err);
     return NextResponse.json({ error: `ClipCraft start failed: ${msg}` }, { status: 502 });
   }
+
+  return NextResponse.json({
+    projectId,
+    generationId,
+    creditsCharged: cost,
+    status: "queued",
+  });
 }
 
 function guessFilenameFromUrl(url: string): string {
