@@ -1085,10 +1085,10 @@ export function ReferenceStudioModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative max-w-6xl w-full bg-[#090c14] border border-slate-800/90 rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row h-[88vh] transition-all animate-in zoom-in-95 duration-200"
+        className="relative max-w-6xl w-full bg-[#090c14] border border-slate-800/90 rounded-3xl overflow-y-auto md:overflow-hidden shadow-2xl flex flex-col md:flex-row h-[88vh] transition-all animate-in zoom-in-95 duration-200"
       >
         {/* ── Left Rail Navigation ── */}
-        <div className="w-full md:w-64 bg-[#0c0f18] border-b md:border-b-0 md:border-r border-slate-800/80 p-4 flex flex-col justify-between flex-shrink-0">
+        <div className="w-full md:w-64 bg-[#0c0f18] border-b md:border-b-0 md:border-r border-slate-800/80 p-4 flex flex-col justify-between md:flex-shrink-0">
           <div className="space-y-4">
             <div className="flex items-center justify-between px-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
@@ -1333,7 +1333,7 @@ export function ReferenceStudioModal({
         </div>
 
         {/* ── Center Content Area Grid ── */}
-        <div className="flex-1 flex flex-col bg-[#080a10] overflow-hidden">
+        <div className="flex-1 flex flex-col bg-[#080a10] md:overflow-hidden min-h-[60vh] md:min-h-0">
           {/* Top Search & Filter Bar */}
           <div className="p-4 border-b border-slate-800/80 bg-[#0b0e17] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="relative flex-1">
@@ -2344,7 +2344,7 @@ export function ReferenceStudioModal({
         </div>
 
         {/* ── Right Panel: Media Upload Drop Zone (or Create form on Character/Element/Location/Color tab) ── */}
-        <div className="w-full md:w-72 bg-[#0b0e17] p-5 flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-800/80 flex-shrink-0">
+        <div className="w-full md:w-72 bg-[#0b0e17] p-5 flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-800/80 md:flex-shrink-0">
           {activeTab === "color" ? (
             <>
               <div className="space-y-4 overflow-y-auto pr-1">
