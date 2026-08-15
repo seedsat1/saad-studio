@@ -2106,6 +2106,7 @@ function VideoPageInner() {
 
   const [selectedModel, setSelectedModel] = useState<WaveSpeedVideoModel>(DEFAULT_MODEL);
   const [modelOpen,     setModelOpen]     = useState(false);
+  const [mobileModelOpen, setMobileModelOpen] = useState(false);
   const [characters, setCharacters] = useState<CharacterReference[]>([]);
   const [selectedCharacterId, setSelectedCharacterId] = useState("");
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
@@ -2115,6 +2116,13 @@ function VideoPageInner() {
       setSelectedModel(allModels[0]);
     }
   }, [allModels, selectedModel]);
+
+  useEffect(() => {
+    const centralModel = allModels.find((model) => model.id === selectedModel.id || model.api_route === selectedModel.api_route);
+    if (centralModel && centralModel !== selectedModel) {
+      setSelectedModel(centralModel);
+    }
+  }, [allModels, selectedModel.id, selectedModel.api_route]);
 
   useEffect(() => {
     let requestedTool = resolveVideoTool(searchParams.get("tool"));
@@ -6489,18 +6497,34 @@ function VideoPageInner() {
                   <button
                     className="w-full h-full min-h-48 flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed transition-all hover:border-opacity-60"
                     style={{ borderColor: hexA(selectedModel.family_color, 0.3) }}
-                    onClick={async () => {
+                    onClick={() => {
                       const target = mediaPicker;
                       setMediaPicker(null);
                       if (!target) return;
 
-                      const handled = await pickDeviceFiles(target);
-                      if (handled) return;
+                      const clickNativeInput = () => {
+                        if (target === "startFrame") startFrameRef.current?.click();
+                        else if (target === "endFrame") endFrameRef.current?.click();
+                        else if (target === "motionVideo") motionVideoRef.current?.click();
+                        else if (target === "referenceImages") referenceImagesRef.current?.click();
+                      };
 
-                      if (target === "startFrame") startFrameRef.current?.click();
-                      else if (target === "endFrame") endFrameRef.current?.click();
-                      else if (target === "motionVideo") motionVideoRef.current?.click();
-                      else if (target === "referenceImages") referenceImagesRef.current?.click();
+                      // On mobile / older browsers `showOpenFilePicker` isn't available;
+                      // await-ing it there would break the user-gesture chain and iOS Safari
+                      // would silently block the file input. Detect support synchronously and
+                      // click the native input immediately if we can't use the modern API.
+                      const anyWindow = window as any;
+                      const canUseFsAccess =
+                        typeof anyWindow.showOpenFilePicker === "function" && window.isSecureContext;
+
+                      if (!canUseFsAccess) {
+                        clickNativeInput();
+                        return;
+                      }
+
+                      void pickDeviceFiles(target).then((handled) => {
+                        if (!handled) clickNativeInput();
+                      });
                     }}
                   >
                     <div
@@ -6651,19 +6675,110 @@ function VideoPageInner() {
                 </button>
               </div>
               <div className="px-4 py-4">
-                {/* Model selector button */}
+                {/* References & Styling (mobile) */}
+                <div className="mb-4">
+                  <ReferenceActionTiles
+                    onOpenStudio={(tab) => {
+                      setActiveStudioTab(tab);
+                      setShowReferenceStudioModal(true);
+                      setMobileSettingsOpen(false);
+                    }}
+                    selectedStyle={selectedStyle}
+                    selectedElementId={selectedElementId}
+                    selectedLocationId={selectedLocationId}
+                    selectedCameraId={selectedCameraId}
+                    selectedEffectId={selectedEffectId}
+                    selectedCharacterId={selectedCharacterPresetId}
+                    onClearStyle={() => setSelectedStyle(null)}
+                    onClearElement={() => setSelectedElementId(null)}
+                    onClearLocation={() => setSelectedLocationId(null)}
+                    onClearCamera={() => setSelectedCameraId(null)}
+                    onClearEffect={() => setSelectedEffectId(null)}
+                    onClearCharacter={() => setSelectedCharacterPresetId(null)}
+                    isAr={lang === "ar"}
+                  />
+                </div>
+
+                {/* Model selector (inline dropdown) */}
                 <div className="mb-4">
                   <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>Model</label>
-                  <button
-                    onClick={() => { setModelOpen(true); setMobileSettingsOpen(false); }}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl"
-                    style={{ background: hexA(selectedModel.family_color, 0.08), border: `1px solid ${hexA(selectedModel.family_color, 0.3)}`, color: "#e2e8f0" }}
-                  >
-                    <span className="text-sm font-medium">{selectedModel.name}</span>
-                    {bStyle && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: bStyle.bg, color: bStyle.text }}>{selectedModel.badge}</span>
-                    )}
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setMobileModelOpen(v => !v)}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left"
+                      style={{ background: hexA(selectedModel.family_color, 0.08), border: `1px solid ${hexA(selectedModel.family_color, 0.3)}`, color: "#e2e8f0" }}
+                    >
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedModel.family_color }} />
+                      <span className="flex-1 text-sm font-medium truncate">{prettyModelName(selectedModel.name)}</span>
+                      {bStyle && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: bStyle.bg, color: bStyle.text }}>{selectedModel.badge}</span>
+                      )}
+                      <ChevronDown size={14} style={{ color: "#94a3b8", transform: mobileModelOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                    </button>
+
+                    <AnimatePresence>
+                      {mobileModelOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.15 }}
+                          className="mt-1 rounded-lg overflow-y-auto py-1"
+                          style={{
+                            background: "#0a1220",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            boxShadow: "0 16px 32px rgba(0,0,0,0.6)",
+                            maxHeight: 280,
+                          }}
+                        >
+                          {(activeTool as string) === "lipsync" ? (
+                            LIPSYNC_MODELS.map(m => {
+                              const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
+                              const active = selectedModel.id === m.id;
+                              return (
+                                <button
+                                  key={m.id}
+                                  onClick={() => { selectModel(m); setMobileModelOpen(false); }}
+                                  className="w-full flex items-center gap-2 px-4 py-2.5 transition-colors"
+                                  style={{ background: active ? "rgba(255,255,255,0.06)" : "transparent", color: active ? "#e2e8f0" : "#94a3b8" }}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
+                                  <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
+                                  {bs && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style={{ background: bs.bg, color: bs.text }}>{m.badge}</span>
+                                  )}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            dynamicModelGroups.map((g, gIdx) => (
+                              <div key={g.family} className={gIdx === 0 ? "pt-1" : ""}>
+                                {gIdx > 0 && <div className="mx-3 my-1.5 border-t border-slate-800/80" />}
+                                {g.models.map((m: any) => {
+                                  const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
+                                  const active = selectedModel.id === m.id;
+                                  return (
+                                    <button
+                                      key={m.id}
+                                      onClick={() => { selectModel(m); setMobileModelOpen(false); }}
+                                      className="w-full flex items-center gap-2 px-4 py-2.5 transition-colors"
+                                      style={{ background: active ? "rgba(255,255,255,0.06)" : "transparent", color: active ? "#e2e8f0" : "#94a3b8" }}
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
+                                      <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
+                                      {bs && (
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style={{ background: bs.bg, color: bs.text }}>{m.badge}</span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            ))
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
 
                 {/* Duration */}

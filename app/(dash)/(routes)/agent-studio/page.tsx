@@ -1906,7 +1906,7 @@ A professional close-up of dark espresso pouring into a ceramic cup. Delicate wa
                         isDragging ? "border-violet-500 bg-violet-600/5" : "border-white/5 hover:border-white/10 bg-[#090f1d]/40"
                       }`}
                     >
-                      <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                      <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*,video/*,audio/*" className="hidden" />
                       
                       {attachedImageUrl ? (
                         <div className="flex items-center gap-3 p-1.5 rounded-lg border border-violet-500/20 bg-violet-950/10">
@@ -2615,7 +2615,7 @@ A professional close-up of dark espresso pouring into a ceramic cup. Delicate wa
                 </button>
               </div>
 
-              <input type="file" ref={fileInputRef} onChange={handleFileUpload} multiple className="hidden" />
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*,video/*,audio/*" multiple className="hidden" />
 
               {filteredFiles.length === 0 ? (
                 <div className="text-center p-8 border border-white/5 bg-white/[0.01] rounded-2xl">

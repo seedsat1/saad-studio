@@ -618,11 +618,11 @@ function VideoExtendPageInner() {
       {/* Sleek radial background glows */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(6,182,212,0.12),transparent_35%),radial-gradient(circle_at_75%_35%,rgba(59,130,246,0.08),transparent_40%)]" />
 
-      <section className="relative mx-auto flex h-full max-w-7xl flex-col p-6 gap-5 justify-between">
+      <section className="relative mx-auto flex h-full max-w-7xl flex-col p-3 sm:p-6 gap-5 justify-between overflow-y-auto lg:overflow-hidden">
         {/* Main interactive grid: Sidebar on left, Comparison workspace on right */}
-        <div className="grid grid-cols-[300px_1fr] gap-6 items-stretch min-h-0 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4 lg:gap-6 items-stretch min-h-0 flex-1">
           {/* Left Column: Title Block & Logo */}
-          <aside className="flex flex-col justify-between py-2 pr-6 border-r border-white/5">
+          <aside className="flex flex-col justify-between py-2 lg:pr-6 lg:border-r lg:border-white/5">
             <div className="flex flex-col gap-5">
               <div className="flex items-center gap-3">
                 <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">

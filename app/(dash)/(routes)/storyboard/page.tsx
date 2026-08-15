@@ -737,14 +737,16 @@ export default function StoryboardProductionPage() {
 
   return (
     <div
-      className={`${caveat.variable} fixed inset-x-0 bottom-0 top-16 overflow-hidden bg-[#030610] text-slate-100 font-sans`}
+      className={`${caveat.variable} fixed inset-x-0 bottom-0 top-16 overflow-y-auto lg:overflow-hidden bg-[#030610] text-slate-100 font-sans`}
       style={{ fontFamily: "var(--font-body, sans-serif)" }}
     >
-      {/* Global page scroll lock */}
+      {/* Global page scroll lock (desktop only — mobile needs to scroll) */}
       <style dangerouslySetInnerHTML={{ __html: `
-        html, body {
-          overflow: hidden !important;
-          height: 100% !important;
+        @media (min-width: 1024px) {
+          html, body {
+            overflow: hidden !important;
+            height: 100% !important;
+          }
         }
       `}} />
 
@@ -752,10 +754,10 @@ export default function StoryboardProductionPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(6,182,212,0.1),transparent_35%),radial-gradient(circle_at_80%_80%,rgba(139,92,246,0.06),transparent_40%)]" />
 
       {/* Main split grid */}
-      <section className="relative flex h-full w-full max-w-none gap-6 p-6 justify-between select-none">
-        
+      <section className="relative flex flex-col lg:flex-row h-full w-full max-w-none gap-4 lg:gap-6 p-3 sm:p-6 justify-between select-none">
+
         {/* ── LEFT SIDEBAR: Configuration Control Panel ── */}
-        <aside className="w-[360px] flex flex-col justify-between py-2 pr-6 border-r border-white/5 shrink-0 overflow-y-auto select-none bg-slate-950/20 p-4 rounded-2xl gap-5">
+        <aside className="w-full lg:w-[360px] flex flex-col justify-between py-2 lg:pr-6 lg:border-r lg:border-white/5 shrink-0 lg:overflow-y-auto select-none bg-slate-950/20 p-3 lg:p-4 rounded-2xl gap-5">
           <div className="flex flex-col gap-4 overflow-y-auto pb-4 scrollbar-thin">
             {/* Logo */}
             <div className="flex items-center gap-3 select-none border-b border-white/5 pb-3">

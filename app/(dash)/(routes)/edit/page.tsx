@@ -1410,17 +1410,47 @@ export default function EditPage() {
   }, [isDraggingShoe, handleShoeMove]);
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#03060d] text-white select-none w-full">
-      {/* ─── Left Sidebar ─── */}
-      <aside className="w-[280px] shrink-0 bg-[#05070f] border-r border-white/[0.05] flex flex-col p-5 space-y-6 select-none z-30">
-        <div>
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)] overflow-hidden bg-[#03060d] text-white select-none w-full">
+      {/* ─── Left Sidebar (desktop) / Top tool tabs (mobile) ─── */}
+      <aside className="w-full lg:w-[280px] shrink-0 bg-[#05070f] border-b lg:border-b-0 lg:border-r border-white/[0.05] flex flex-col lg:p-5 lg:space-y-6 select-none z-30">
+        <div className="hidden lg:block">
           <h2 className="text-sm font-black tracking-wider uppercase flex items-center gap-1">
             <span className="text-white">{t("EDIT")}</span>
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{t("AI")}</span>
           </h2>
         </div>
 
-        <div className="flex-1 space-y-2 overflow-y-auto scrollbar-none">
+        {/* Mobile: horizontal scrollable tool chips */}
+        <div className="lg:hidden flex gap-2 overflow-x-auto p-3 scrollbar-none">
+          {EDIT_TOOLS.map((tool) => {
+            const isActive = activeTool === tool.id;
+            return (
+              <button
+                key={tool.id}
+                type="button"
+                onClick={() => handleToolSelect(tool.id)}
+                className={cn(
+                  "flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold transition-all border",
+                  isActive
+                    ? "bg-[#0c1224] text-white border-white/10"
+                    : "bg-white/[0.02] border-white/[0.03] text-zinc-400"
+                )}
+                style={isActive ? { borderColor: `${tool.hex}55` } : {}}
+              >
+                <div
+                  className="h-6 w-6 rounded-lg flex items-center justify-center text-white shrink-0"
+                  style={{ background: `linear-gradient(135deg, ${tool.hex} 0%, ${tool.hex}cc 100%)` }}
+                >
+                  <tool.icon className="h-3.5 w-3.5" />
+                </div>
+                <span className="whitespace-nowrap">{t(tool.label)}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Desktop: vertical tool list */}
+        <div className="hidden lg:flex flex-1 flex-col space-y-2 overflow-y-auto scrollbar-none">
           {EDIT_TOOLS.map((tool) => {
             const isActive = activeTool === tool.id;
             return (
@@ -1437,7 +1467,7 @@ export default function EditPage() {
                 style={isActive ? { borderColor: `${tool.hex}55`, boxShadow: `0 0 18px -4px ${tool.hex}30` } : {}}
               >
                 <div className="flex items-center gap-3">
-                  <div 
+                  <div
                     className="h-8 w-8 rounded-xl flex items-center justify-center shadow-inner text-white shrink-0"
                     style={{
                       background: `linear-gradient(135deg, ${tool.hex} 0%, ${tool.hex}cc 100%)`,
@@ -1475,7 +1505,7 @@ export default function EditPage() {
 
         {/* Standard 2-Panel layout for upscale, watermark, bgremove, etc. */}
         {!["relight", "faceswap", "inpaint"].includes(activeTool) && (
-          <div className="flex flex-1 overflow-hidden w-full h-full">
+          <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden w-full h-full">
             {/* CENTER PANEL — Canvas & Prompt Engine */}
             <main className="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-[#02040a]">
               {/* Canvas Toolbar */}
@@ -1873,7 +1903,7 @@ export default function EditPage() {
             </main>
 
             {/* RIGHT SIDEBAR — Settings Panel */}
-            <aside className="w-[320px] shrink-0 flex flex-col border-l border-white/5 bg-[#050914] z-10 h-full">
+            <aside className="w-full lg:w-[320px] shrink-0 flex flex-col border-t lg:border-t-0 lg:border-l border-white/5 bg-[#050914] z-10 lg:h-full">
               {/* Sidebar Header */}
               <div className="relative px-5 py-5 border-b border-white/5 flex items-center justify-between overflow-visible shrink-0">
                 {activeTool === "upscale" && (

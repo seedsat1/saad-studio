@@ -36,6 +36,7 @@ import {
   FileImage,
   Camera,
   ChevronDown,
+  Settings2,
 } from "lucide-react";
 import {
   LLM_BRAIN_MODELS,
@@ -403,7 +404,9 @@ export default function HookStudioPage() {
         supportsScript: true,
         creditCost: m.creditCost || 10,
       }));
-    if (!SEEDANCE_25_HOOK_MODEL) return mappedModels;
+    if (!SEEDANCE_25_HOOK_MODEL || mappedModels.some((m: any) => m.id === SEEDANCE_25_HOOK_MODEL.id)) {
+      return mappedModels;
+    }
     return [
       SEEDANCE_25_HOOK_MODEL,
       ...mappedModels.filter((m: any) => m.id !== SEEDANCE_25_HOOK_MODEL.id),
@@ -413,6 +416,7 @@ export default function HookStudioPage() {
   // Sidebar Configuration States
   const [selectedVideoModel, setSelectedVideoModel] = useState("bytedance-seedance-v25-t2v-turbo");
   const [isVideoModelMenuOpen, setIsVideoModelMenuOpen] = useState(false);
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (dynamicHookVideoModels.length > 0 && !dynamicHookVideoModels.some((m) => m.id === selectedVideoModel)) {
@@ -1745,8 +1749,44 @@ export default function HookStudioPage() {
         </div>
       </div>
 
+      {/* Mobile floating settings button */}
+      <button
+        type="button"
+        onClick={() => setMobileSettingsOpen(true)}
+        className="md:hidden fixed bottom-24 right-4 z-30 h-12 w-12 rounded-full bg-indigo-600 text-white shadow-2xl shadow-indigo-600/40 flex items-center justify-center border border-indigo-400/40"
+        aria-label="Open settings"
+      >
+        <Settings2 className="h-5 w-5" />
+      </button>
+
+      {/* Mobile backdrop */}
+      {mobileSettingsOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+          onClick={() => setMobileSettingsOpen(false)}
+        />
+      )}
+
       {/* Right Column: Settings Sidebar */}
-      <div className="w-80 border-l border-slate-800 bg-[#090b10] p-5 space-y-6 hidden md:block overflow-y-auto flex-shrink-0 scrollbar-thin">
+      <div
+        className={`${
+          mobileSettingsOpen
+            ? "fixed inset-x-0 bottom-0 top-16 z-50 w-full max-w-none rounded-t-2xl"
+            : "hidden"
+        } md:relative md:block md:inset-auto md:z-auto md:w-80 md:rounded-none md:max-w-none border-l border-slate-800 bg-[#090b10] p-5 space-y-6 overflow-y-auto flex-shrink-0 scrollbar-thin`}
+      >
+        {/* Mobile close button */}
+        <div className="md:hidden flex items-center justify-between pb-3 border-b border-slate-800/80">
+          <span className="text-sm font-bold text-white">{t.settings}</span>
+          <button
+            type="button"
+            onClick={() => setMobileSettingsOpen(false)}
+            className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400"
+            aria-label="Close settings"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
         {/* Section: Video Model */}
         <div className="space-y-2">
           <label htmlFor="video-model-select" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
