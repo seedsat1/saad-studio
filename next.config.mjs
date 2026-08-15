@@ -43,7 +43,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
-    serverComponentsExternalPackages: ["fluent-ffmpeg", "@ffmpeg-installer/ffmpeg", "ffmpeg-static"],
+    serverComponentsExternalPackages: ["sharp", "fluent-ffmpeg", "@ffmpeg-installer/ffmpeg", "ffmpeg-static"],
     serverActions: {
       bodySizeLimit: "10mb",
     },
