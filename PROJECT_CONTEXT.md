@@ -1,3 +1,14 @@
+#### Latest task: Adjust Seedance 2.0 Mini 1080p pricing to 90 credits (2026-08-16)
+- Status: Completed.
+- Affected files: `lib/pricing.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Calibrated the 1080p multiplier for `bytedance/seedance-2.0-mini/*` to `90 / 64` so a full 15s 1080p generation with audio costs 90 credits instead of 160 credits.
+  - Ensures healthy ~50% profit margin and safe positive margins across all monthly and annual plans.
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed with exit code 0.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/runtime-routing.test.ts --reporter=verbose --pool=forks` passed: 24 tests.
+- Decision: Seedance 2.0 Mini 15s 1080p aligned to 90 credits user price.
+
 #### Latest task: Fix assets thumbnail 500 internal server error with safe redirects (2026-08-15)
 - Status: Completed.
 - Affected files: `app/api/assets/thumbnail/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
