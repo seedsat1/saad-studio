@@ -511,7 +511,7 @@ function useEditTranslation() {
 }
 
 export default function EditPage() {
-  const { t } = useEditTranslation();
+  const { t, lang } = useEditTranslation();
   const searchParams = useSearchParams();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { isLoaded: isAuthLoaded, isSignedIn, getToken } = useAuth();
@@ -1830,24 +1830,38 @@ export default function EditPage() {
                             <motion.div
                               initial={{ scale: 0.95, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
-                              className="bg-[#090e18]/90 border border-white/10 rounded-2xl p-6 flex flex-col items-center gap-3 shadow-2xl backdrop-blur-2xl"
+                              className="relative bg-[#090e18]/90 border border-white/10 rounded-2xl px-7 py-6 flex flex-col items-center gap-3 shadow-2xl backdrop-blur-2xl min-w-[260px]"
                             >
-                              <Sparkles className="h-6 w-6 animate-pulse" style={{ color: currentTool.hex }} />
-                              <span className="text-sm font-bold text-slate-100">Applying AI Generation</span>
-                              <span className="text-[10px] text-zinc-400 font-mono tracking-wider uppercase">
-                                {t(selectedModel.label)} · {t(currentTool.label)}
-                              </span>
-                              <div className="flex gap-1 mt-1">
-                                {[0, 1, 2, 3].map((dot) => (
-                                  <motion.div
-                                    key={dot}
-                                    className="h-1.5 w-1.5 rounded-full"
-                                    style={{ backgroundColor: currentTool.hex }}
-                                    animate={{ opacity: [0.2, 1, 0.2] }}
-                                    transition={{ duration: 0.8, repeat: Infinity, delay: dot * 0.15 }}
-                                  />
-                                ))}
+                              <div
+                                className="relative h-14 w-14 saad-edit-breath"
+                                style={{ filter: "drop-shadow(0 0 10px rgba(122,165,255,.5)) drop-shadow(0 0 26px rgba(139,107,255,.35))" }}
+                              >
+                                <NextImage alt="Saad Studio" src="/icon-192.png" fill sizes="56px" className="object-contain" />
                               </div>
+                              <div className="flex items-center gap-2 text-[11.5px] tracking-[0.6px] text-[#b7c8ff]/90 font-mono">
+                                <span>SAAD</span>
+                                <span
+                                  className="inline-block w-[5px] h-[5px] rounded-full bg-[#7aa5ff] saad-edit-dot"
+                                  style={{ boxShadow: "0 0 8px #7aa5ff" }}
+                                />
+                                <span>{lang === "ar" ? "جارٍ التوليد" : "Generating"}</span>
+                              </div>
+                              <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10.5px] text-slate-300">
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#7aa5ff]" style={{ boxShadow: "0 0 6px #7aa5ff" }} />
+                                <span className="max-w-[180px] truncate">{t(selectedModel.label)}</span>
+                                <span className="text-slate-500">· {t(currentTool.label)}</span>
+                              </div>
+                              <div className="absolute left-6 right-6 bottom-3 h-[3px] rounded-full bg-[rgba(110,168,255,0.20)] overflow-hidden">
+                                <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,#7aa5ff,#8b6bff,transparent)] saad-edit-bar" />
+                              </div>
+                              <style jsx>{`
+                                @keyframes saad-edit-breath { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+                                @keyframes saad-edit-bar    { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+                                @keyframes saad-edit-dot    { 0%,100% { opacity:.4 } 50% { opacity:1 } }
+                                :global(.saad-edit-breath) { animation: saad-edit-breath 3.2s ease-in-out infinite; }
+                                :global(.saad-edit-bar)    { animation: saad-edit-bar 1.6s ease-in-out infinite; }
+                                :global(.saad-edit-dot)    { animation: saad-edit-dot 1.4s ease-in-out infinite; }
+                              `}</style>
                             </motion.div>
                           </div>
                         </motion.div>
