@@ -64,6 +64,7 @@ const nextConfig = {
         'public/preset/**/*',
         'public/explore/**/*',
         'public/transitions/**/*',
+        'public/downloads/**/*',
         'adobe/**/*',
       ],
     },
