@@ -50,6 +50,7 @@ import ToolShowcase from "@/components/ToolShowcase";
 import RelightPage from "../apps/tool/relight/page";
 import FaceSwapPage from "../apps/tool/face-swap/page";
 import NanoBananaInpaintPage from "../apps/tool/nano-banana-pro-inpaint/page";
+import { AssetInspector, type Asset as InspectorAsset } from "@/components/AssetInspector";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type EditTool = {
@@ -442,6 +443,10 @@ function useEditTranslation() {
       "browse": "تصفح",
       "Supports high-res Images & Videos up to 25MB": "يدعم الصور والفيديوهات عالية الدقة حتى 25 ميجابايت",
       "Download Result": "تحميل النتيجة",
+      "Preview": "معاينة",
+      "Download": "تحميل",
+      "Use": "استخدام",
+      "Use as reference for video": "استخدامها كمرجع لتوليد الفيديو",
       "Applying AI Generation": "جاري تطبيق توليد الذكاء الاصطناعي",
       "Upscale": "تكبير",
       "Parameters & controls": "المعايير وعناصر التحكم",
@@ -545,6 +550,7 @@ export default function EditPage() {
   const [showInlight, setShowInlight] = useState(true);
   const [mediaUrl, setMediaUrl] = useState("/explore/tool-upscale.jpg");
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
+  const [inspectorAsset, setInspectorAsset] = useState<InspectorAsset | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [faceImageUrl, setFaceImageUrl] = useState("");
@@ -1703,23 +1709,56 @@ export default function EditPage() {
                           </span>
                         </div>
 
-                        {/* Download Pinned */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const link = document.createElement("a");
-                            link.href = resolveEditMediaUrl(mediaUrl);
-                            link.download = mediaUrl.split("/").pop() || "result";
-                            link.target = "_blank";
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
-                          className="absolute top-4 right-4 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg z-30 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer"
-                        >
-                          <Download className="h-3.5 w-3.5 shrink-0" />
-                          <span>{t("Download Result")}</span>
-                        </button>
+                        {/* Action Buttons — same visual language as the Image page result grid */}
+                        <div className="absolute top-4 right-4 flex items-center gap-2 z-30 pointer-events-auto">
+                          {/* Preview — opens the AssetInspector modal (full-size viewer with meta + actions) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInspectorAsset({
+                                id: `edit-${activeTool}-${Date.now()}`,
+                                type: mediaType,
+                                url: resolveEditMediaUrl(mediaUrl),
+                                prompt: prompt || undefined,
+                                model: selectedModel?.label,
+                                title: t(currentTool.label),
+                              });
+                            }}
+                            title={t("Preview")}
+                            className="rounded-lg bg-black/55 p-2 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+
+                          {/* Download — proxied through /api/download which forces Content-Disposition: attachment
+                              (fixes cross-origin CDN URLs where the browser was ignoring the download attribute) */}
+                          <a
+                            href={`/api/download?url=${encodeURIComponent(resolveEditMediaUrl(mediaUrl))}&filename=${encodeURIComponent(
+                              (() => {
+                                const raw = (mediaUrl.split("?")[0].split("/").pop() || "saadstudio-edit").trim();
+                                const stem = raw.replace(/\.[a-z0-9]{2,5}$/i, "") || "saadstudio-edit";
+                                return `${stem}${mediaType === "video" ? ".mp4" : ".png"}`;
+                              })()
+                            )}`}
+                            download
+                            title={t("Download")}
+                            className="rounded-lg bg-black/55 p-2 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                          >
+                            <Download className="h-4 w-4" />
+                          </a>
+
+                          {/* Use as reference for video generation (images only) */}
+                          {mediaType === "image" && (
+                            <a
+                              href={`/video?imageUrl=${encodeURIComponent(resolveEditMediaUrl(mediaUrl))}`}
+                              title={t("Use as reference for video")}
+                              className="inline-flex max-w-full items-center gap-1 rounded-lg bg-pink-500/85 px-2.5 py-1.5 text-[11px] font-semibold text-white ring-1 ring-pink-300/40 hover:bg-pink-500 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                            >
+                              <Wand2 className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">{t("Use")}</span>
+                            </a>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       /* Backdrop Original Image/Video when no edit is applied yet */
@@ -3090,6 +3129,29 @@ export default function EditPage() {
           </div>
         )}
       </div>
+
+      {/* Full-size preview / inspector — same modal used on the Image page */}
+      <AnimatePresence>
+        {inspectorAsset ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/80 p-4"
+            onClick={() => setInspectorAsset(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.96, y: 12 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.96, y: 12 }}
+              className="mx-auto h-[82vh] max-w-5xl overflow-hidden rounded-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AssetInspector asset={inspectorAsset} onClose={() => setInspectorAsset(null)} />
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
