@@ -1,3 +1,17 @@
+## إصلاح نوع معامِل المدة duration لموديل Kling V3 Turbo (2026-08-15)
+
+- تم إصلاح خطأ الـ 502 الصادر من المزود: `field "duration" must be one of [3, 4, 5, 6, 7, 8, 9, 10, ...], got string "7"`.
+- في مسار المعالجة (`app/api/video/route.ts`): تم تعديل `exact.duration` لمسار `isKlingV3TurboImageRoute` ليتم إرساله كـ `number` رقمي بدلاً من تحويله إلى نص `string`.
+
+## إصلاح خطأ التحقق من معامِل shot_type لموديلات Kling 3.0 (2026-08-15)
+
+- تم إصلاح خطأ `shot_type value 'intelligent' is invalid` الصادر من خوادم المزود (WaveSpeed / Kling 3.0) عند توليد لقطة عادية مفردة (Single-shot) دون لقطات متعددة.
+- في واجهة التوليد (`app/(dash)/(routes)/video/page.tsx`):
+  - تم ربط إرسال معامِل `payload.shot_type` بوجود لقطات متعددة (`multi_prompt`) وتفعيل نمط Multi-shot.
+  - تم إخفاء أزرار اختيار نوع اللقطة (Shot Type) وجعل ظهورها مشروطاً بتفعيل زر اللقطات المتعددة `multiShotEnabled`.
+- في مسار المعالجة في السيرفر (`app/api/video/route.ts`):
+  - لموديلات `isKling30ImageRoute` و `isKlingO3Route`، تم حصر تمرير `exact.shot_type` بحالة وجود عناصر في `multi_prompt` فقط (`multiPrompt.length > 0`).
+
 ## Final Generation Core Consolidation Review (2026-08-15)
 
 - تم فحص المسارات الثلاثة الأساسية كحزمة واحدة:

@@ -684,12 +684,14 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     }
     exact.sound = payload.sound === true || payload.generate_audio === true;
     const shotType = typeof payload.shot_type === "string" ? payload.shot_type.trim() : "";
-    if (shotType === "customize" || shotType === "intelligent") exact.shot_type = shotType;
     if (Array.isArray(payload.multi_prompt)) {
       const multiPrompt = payload.multi_prompt
         .slice(0, 6)
         .filter((item) => item && typeof item === "object");
-      if (multiPrompt.length > 0) exact.multi_prompt = multiPrompt;
+      if (multiPrompt.length > 0) {
+        exact.multi_prompt = multiPrompt;
+        if (shotType === "customize" || shotType === "intelligent") exact.shot_type = shotType;
+      }
     }
     const elementList = readKlingElementList();
     if (elementList.length > 0) exact.element_list = elementList;
@@ -748,7 +750,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
       if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
       const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
       const normalizedDuration = Number.isFinite(duration) ? Math.min(15, Math.max(3, duration)) : 5;
-      exact.duration = String(normalizedDuration);
+      exact.duration = normalizedDuration;
     }
     return exact;
   }
@@ -786,10 +788,12 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     }
     exact.sound = payload.sound === true || payload.generate_audio === true;
     const shotType = typeof payload.shot_type === "string" ? payload.shot_type.trim() : "";
-    if (shotType === "customize" || shotType === "intelligent") exact.shot_type = shotType;
     if (Array.isArray(payload.multi_prompt)) {
       const multiPrompt = payload.multi_prompt.slice(0, 6).filter((item) => item && typeof item === "object");
-      if (multiPrompt.length > 0) exact.multi_prompt = multiPrompt;
+      if (multiPrompt.length > 0) {
+        exact.multi_prompt = multiPrompt;
+        if (shotType === "customize" || shotType === "intelligent") exact.shot_type = shotType;
+      }
     }
     const elementList = readKlingElementList();
     if (elementList.length > 0) exact.element_list = elementList;

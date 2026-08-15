@@ -3470,9 +3470,6 @@ function VideoPageInner() {
       if (caps.has_sound) {
         payload[caps.sound_param] = sound;
       }
-      if (caps.has_shot_type) {
-        payload.shot_type = shotType;
-      }
       if (caps.has_multi_prompt) {
         const filled = multiPrompts
           .map((text, index) => ({ text: text.trim(), index }))
@@ -3501,6 +3498,9 @@ function VideoPageInner() {
             prompt: item.text,   // shot prompts are pure scene descriptions — no toolPrefix
             ...(duration != null ? { duration: splitDurations[idx] } : {}),
           }));
+          if (caps.has_shot_type) {
+            payload.shot_type = shotType;
+          }
         }
       }
       if (caps.has_element_list) {
@@ -5925,8 +5925,28 @@ function VideoPageInner() {
             </div>
           )}
 
+          {/* -- Multi-Prompt (Kling) ----------------------------------------- */}
+          {caps.has_multi_prompt && showOmniTabs && (
+            <div className="flex items-center justify-between">
+              <span className="text-[12px]" style={{ color: "#a1a1aa" }}>Multi-shot</span>
+              <button
+                role="switch"
+                aria-checked={multiShotEnabled}
+                aria-label={t("Toggle Multi-shot Mode")}
+                onClick={() => setMultiPrompts(prev => prev.length === 1 && prev[0] === "" ? ["", ""] : [""])}
+                className="relative w-9 h-5 rounded-full transition-all"
+                style={{ background: multiShotEnabled ? hexA(selectedModel.family_color, 0.6) : "rgba(255,255,255,0.08)" }}
+              >
+                <span
+                  className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                  style={{ left: multiShotEnabled ? "calc(100% - 18px)" : 2 }}
+                />
+              </button>
+            </div>
+          )}
+
           {/* -- Shot Type (Kling) -------------------------------------------- */}
-          {caps.has_shot_type && (
+          {caps.has_shot_type && multiShotEnabled && (
             <div className="flex flex-col gap-2">
               <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Shot Type
@@ -5947,26 +5967,6 @@ function VideoPageInner() {
                   </button>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* -- Multi-Prompt (Kling) ----------------------------------------- */}
-          {caps.has_multi_prompt && showOmniTabs && (
-            <div className="flex items-center justify-between">
-              <span className="text-[12px]" style={{ color: "#a1a1aa" }}>Multi-shot</span>
-              <button
-                role="switch"
-                aria-checked={multiShotEnabled}
-                aria-label={t("Toggle Multi-shot Mode")}
-                onClick={() => setMultiPrompts(prev => prev.length === 1 && prev[0] === "" ? ["", ""] : [""])}
-                className="relative w-9 h-5 rounded-full transition-all"
-                style={{ background: multiShotEnabled ? hexA(selectedModel.family_color, 0.6) : "rgba(255,255,255,0.08)" }}
-              >
-                <span
-                  className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
-                  style={{ left: multiShotEnabled ? "calc(100% - 18px)" : 2 }}
-                />
-              </button>
             </div>
           )}
           {caps.has_multi_prompt && showOmniTabs && multiShotEnabled && (

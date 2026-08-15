@@ -1,3 +1,26 @@
+#### Latest task: Fix Kling V3 Turbo duration type validation error (2026-08-15)
+- Status: Completed.
+- Affected files: `app/api/video/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Fixed an issue where `isKlingV3TurboImageRoute` converted `duration` into a string (`String(normalizedDuration)` -> `"7"`), causing WaveSpeed API validation failure `field "duration" must be one of [3, 4, 5, 6, 7, 8, 9, 10, ... 5 more], got string "7"`.
+  - `exact.duration` is now strictly passed as a normalized integer `number`.
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed with exit code 0.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/runtime-routing.test.ts --reporter=verbose --pool=forks` passed: 24 tests.
+- Decision: Ensure all duration fields sent to WaveSpeed / Kling models remain numbers and not string-cast.
+
+#### Latest task: Fix Kling 3.0 shot_type parameter validation error (2026-08-15)
+- Status: Completed.
+- Affected files: `app/api/video/route.ts`, `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Fixed an issue where single-shot Kling 3.0 / Kling O3 requests sent `shot_type: "intelligent"` to provider endpoints without `multi_prompt`, causing WaveSpeed API validation failure `shot_type value 'intelligent' is invalid`.
+  - In `app/(dash)/(routes)/video/page.tsx`, `payload.shot_type` is now only attached when multi-shot is enabled and `multi_prompt` is populated. The Shot Type UI controls are also rendered only when Multi-shot mode is active.
+  - In `app/api/video/route.ts`, `exact.shot_type` for `isKling30ImageRoute` and `isKlingO3Route` is now only forwarded to the upstream provider when `multiPrompt.length > 0`.
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed with exit code 0.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/runtime-routing.test.ts --reporter=verbose --pool=forks` passed: 24 tests.
+- Decision: Do not send `shot_type` on single-shot Kling requests; restrict `shot_type` strictly to multi-shot / storyboard executions.
+
 #### Latest task: Final Generation Core Consolidation review and safe completion pass (2026-08-15)
 - Status: Completed as a conservative behavior-preserving pass. The requested three-route package was reviewed together, but only the lifecycle piece that matched an existing orchestrator 100% was changed.
 - Affected files: `app/api/video/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
@@ -151,7 +174,7 @@
   - `CSXS/manifest.xml` (incremented CEP version to 3.0.0 to resolve caching and file locks).
   - `jsx/index.jsx` (added `getAudioTrackClips` and `getActiveSequence` with Nest sequences resolution support, and corrected secondsToTicksReferenceError).
   - `client/src/lib/podcast/services/silence-removal-service.ts` (new file implementing local FFmpeg silence detection, segment extraction, and waveform calculation).
-  - `client/src/pages/multi-cam-auto-switch.ts` (added Silence Removal tab and redesigned UI to match MachiCut layout and logic, and added dynamic canvas auto-resizing to fix the empty black waveform box, and fixed a critical bug where custom DOM library 'el' did not support react-style 'ref' callback properties by switching to explicit canvas ID lookup and direct event binding, and replaced the two-column grid .podcast-sync-layout container with a single-column full-width container to prevent the panels from being squeezed to the right side).
+  - `client/src/pages/multi-cam-auto-switch.ts` (added Silence Removal tab and redesigned UI to match MachiCut layout and logic, and added dynamic canvas auto-resizing to fix the empty black waveform box, and fixed a critical bug where custom DOM library 'el' did not support react-style 'ref' callback properties by switching to explicit canvas ID lookup and direct event binding, and replaced the two-column grid .podcast-sync-layout container with a single-column full-width container to prevent the panels from being squeezed to the right side, and successfully recompiled the C# Standalone Installer SaadStudio-Setup.exe containing the updated payload).
   - `client/src/lib/icons.ts` (added refresh and search SVG icon shapes).
   - `client/src/styles/components.css` (added track-chip styling rules).
 - Behavior:
