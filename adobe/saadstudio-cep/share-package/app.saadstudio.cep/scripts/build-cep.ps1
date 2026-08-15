@@ -37,12 +37,11 @@ Copy-Item (Join-Path $root "icons") $extensionDir -Recurse
 Copy-Item (Join-Path $root "runtime-manifests") $extensionDir -Recurse
 Copy-Item (Join-Path $root "runtime-assets") $extensionDir -Recurse
 $ffmpegCandidates = @(
-    (Join-Path $root "..\..\..\..\..\node_modules\ffmpeg-static\ffmpeg.exe"),
-    (Join-Path $root "..\..\..\..\node_modules\ffmpeg-static\ffmpeg.exe"),
+    (Join-Path $root "..\..\node_modules\ffmpeg-static\ffmpeg.exe"),
+    (Join-Path $root "..\..\node_modules\@ffmpeg-installer\win32-x64\ffmpeg.exe"),
     (Join-Path $root "..\..\..\node_modules\ffmpeg-static\ffmpeg.exe"),
-    (Join-Path $root "..\..\..\..\..\node_modules\@ffmpeg-installer\win32-x64\ffmpeg.exe"),
-    (Join-Path $root "..\..\..\..\node_modules\@ffmpeg-installer\win32-x64\ffmpeg.exe"),
-    "E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\ffmpeg-static\ffmpeg.exe"
+    (Join-Path $root "..\..\..\..\node_modules\ffmpeg-static\ffmpeg.exe"),
+    (Join-Path $root "..\..\..\..\..\node_modules\ffmpeg-static\ffmpeg.exe")
 )
 $ffmpegExe = $ffmpegCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 if ($ffmpegExe) {
