@@ -1,3 +1,14 @@
+#### Latest task: Fix upscale scale factor mapping to strictly respect chosen scale (2026-08-16)
+- Status: Completed.
+- Affected files: `app/api/generate/upscale/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Fixed an issue where `readScale` in upscale API defaulted to mapping `resolution` (`"1080"` -> `"8k"`) even when `body.scale` was explicitly `"2"` (2x).
+  - Explicit user scale selection (`x1`, `x2`, `x4`, `x8`) now strictly and deterministically controls the target resolution (`1` -> `2k`, `2`/`4` -> `4k`, `8` -> `8k`).
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed with exit code 0.
+  - `npx.cmd vitest run test/generate-inline-routes.test.ts` passed: 2 tests.
+- Decision: User scale selection in upscale tool takes strict priority over fallback quality parameters.
+
 #### Latest task: Adjust Seedance 2.0 Mini 1080p pricing to 90 credits (2026-08-16)
 - Status: Completed.
 - Affected files: `lib/pricing.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.

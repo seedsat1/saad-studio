@@ -658,8 +658,8 @@ function resolveModelUserCharge(
     const perSec15 = ({
       "480p": 32 / 15,
       "720p": 64 / 15,
-      "1080p": 161 / 15,
-      "4k": 321 / 15,
+      "1080p": 90 / 15,
+      "4k": 300 / 15,
     } as Record<string, number>)[q] ?? 64 / 15;
     return parseFloat((perSec15 * durationSec * numUnits).toFixed(2));
   }

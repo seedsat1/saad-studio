@@ -117,26 +117,21 @@ async function pollWaveSpeedTask(taskId: string, apiKey: string, maxAttempts = 9
 }
 
 function readScale(body: Record<string, unknown>, resolution: string): string {
-  const resolutionMap: Record<string, string> = { "480": "1", "720": "2", "1080": "4" };
-  let scaleFactor = resolutionMap[resolution] || String(body.scale || "2");
-
-  if (!resolutionMap[resolution] && body.scale) {
-    scaleFactor = String(body.scale);
+  if (body.scale && ["1", "2", "4", "8"].includes(String(body.scale))) {
+    return String(body.scale);
   }
-
-  return ["1", "2", "4", "8"].includes(scaleFactor) ? scaleFactor : "2";
+  const resolutionMap: Record<string, string> = { "480": "1", "720": "2", "1080": "8" };
+  return resolutionMap[resolution] || "2";
 }
 
 function resolveTargetResolution(input: { isVideo: boolean; resolution: string; scaleFactor: string }): string {
   if (input.isVideo) {
-    const byResolution: Record<string, string> = { "480": "720p", "720": "1080p", "1080": "4k" };
     const byScale: Record<string, string> = { "1": "720p", "2": "1080p", "4": "4k", "8": "4k" };
-    return byResolution[input.resolution] || byScale[input.scaleFactor] || "1080p";
+    return byScale[input.scaleFactor] || "1080p";
   }
 
-  const byResolution: Record<string, string> = { "480": "2k", "720": "4k", "1080": "8k" };
   const byScale: Record<string, string> = { "1": "2k", "2": "4k", "4": "4k", "8": "8k" };
-  return byResolution[input.resolution] || byScale[input.scaleFactor] || "4k";
+  return byScale[input.scaleFactor] || "4k";
 }
 
 export async function POST(req: NextRequest) {

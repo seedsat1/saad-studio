@@ -3098,7 +3098,17 @@ export default function EditPage() {
                   {!isProcessing && (["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) || prompt.trim()) && (
                     <span className="inline-flex items-center gap-1 text-[11px] bg-black/10 px-1.5 py-0.5 rounded font-black ml-1">
                       <Star className="h-3 w-3 fill-current" />
-                      <span>{activeTool === "watermark" ? (Math.max(5, Math.ceil(videoDuration || 5)) * 0.4).toFixed(1) : "5"}</span>
+                      <span>
+                        {activeTool === "watermark"
+                          ? (Math.max(5, Math.ceil(videoDuration || 5)) * 0.4).toFixed(1)
+                          : activeTool === "upscale"
+                            ? mediaType === "video"
+                              ? (Math.max(5, Math.ceil(videoDuration || 5)) * 1.2).toFixed(1)
+                              : "2"
+                            : activeTool === "bgremove" || activeTool === "faceswap"
+                              ? "1"
+                              : "2"}
+                      </span>
                     </span>
                   )}
                 </button>
