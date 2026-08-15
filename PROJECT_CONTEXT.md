@@ -1,3 +1,15 @@
+#### Latest task: Fix assets thumbnail 500 internal server error with safe redirects (2026-08-15)
+- Status: Completed.
+- Affected files: `app/api/assets/thumbnail/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Fixed an issue where `/api/assets/thumbnail?id=...` returned 500 when `NextResponse.redirect` was called on relative or empty URL strings (causing unhandled `TypeError: Failed to parse URL`).
+  - Added a `safeRedirect` helper ensuring all URLs are safely parsed against `req.url` before redirecting.
+  - Wrapped the entire GET handler in a root `try/catch` with safe fallback to `/canvas.webp` or `originalUrl`.
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed with exit code 0.
+  - `npx.cmd vitest run test/pricing-core.test.ts test/runtime-routing.test.ts --reporter=verbose --pool=forks` passed: 24 tests.
+- Decision: Never allow dynamic thumbnail redirect calls to crash with unhandled 500; always safely resolve URLs.
+
 #### Latest task: Fix Kling V3 Turbo duration type validation error (2026-08-15)
 - Status: Completed.
 - Affected files: `app/api/video/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.

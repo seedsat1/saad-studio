@@ -1,3 +1,9 @@
+## حماية مسار الصور المصغرة assets thumbnail من خطأ 500 (2026-08-15)
+
+- تم إصلاح خطأ `500 Internal Server Error` في مسار `/api/assets/thumbnail?id=...`.
+- السبب: استدعاء `NextResponse.redirect` بروابط نسبية أو غير مكتملة كان يرمي استثناء `TypeError: Failed to parse URL` غير معالج.
+- الحل: إضافة دالة `safeRedirect` للتحقق من صحة الرابط وتحويله لرابط مطلق آمن مع إرجاع `fallback` مناسب، وتغليف الدالة كاملة بـ `try/catch`.
+
 ## إصلاح نوع معامِل المدة duration لموديل Kling V3 Turbo (2026-08-15)
 
 - تم إصلاح خطأ الـ 502 الصادر من المزود: `field "duration" must be one of [3, 4, 5, 6, 7, 8, 9, 10, ...], got string "7"`.
