@@ -1,3 +1,29 @@
+#### Latest task: Route all Minimax/Hailuo models directly through WaveSpeed API (2026-08-16)
+- Status: Completed.
+- Affected files: `lib/video-model-registry.ts`, `app/api/video/route.ts`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - Updated Hailuo 2.3 routes in `lib/video-model-registry.ts` to direct WaveSpeed routes (`minimax/hailuo-2.3/i2v-standard` and `minimax/hailuo-2.3/i2v-pro`).
+  - Enforced `modelRoute.startsWith("minimax/")` under `isWaveSpeedOnlyModel` in `app/api/video/route.ts` so all Minimax requests execute directly through WaveSpeed.
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts` passed: 36 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+- Decision: Use direct WaveSpeed API dispatch for all Minimax/Hailuo models.
+
+#### Latest task: Update Minimax H3 exact pricing with 40% profit margin across all engines (2026-08-16)
+- Status: Completed.
+- Affected files: `lib/pricing.ts`, `lib/credit-pricing.ts`, `lib/pricing-models.ts`, `test/pricing-core.test.ts`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - Configured exact WaveSpeed provider pricing:
+    - `768p`: $0.10 USD / sec ($0.50 for 5s, $1.00 for 10s, $1.50 for 15s).
+    - `2k`: $0.14 USD / sec ($0.70 for 5s, $1.40 for 10s, $2.10 for 15s).
+  - Applied 40% margin multiplier (`1.4`) with platform credit conversion rate (`40 credits / USD`):
+    - `768p`: 5.6 credits / sec (5s = 28 cr, 10s = 56 cr, 15s = 84 cr).
+    - `2k`: 7.84 credits / sec (5s = 39.2 cr, 10s = 78.4 cr, 15s = 117.6 cr).
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts` passed: 36 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+- Decision: Enforce exact provider pricing + 40% margin for Minimax H3 for both 768p and 2K resolutions.
+
 #### Latest task: Ensure Quality / Resolution selector renders and supports Minimax H3 2K / 768p (2026-08-16)
 - Status: Completed.
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.

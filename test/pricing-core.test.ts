@@ -77,11 +77,18 @@ const parityCases: PricingCase[] = [
     expected: 116,
   },
   {
-    name: "Minimax H3",
+    name: "Minimax H3 768p",
     modelRef: "minimax/h3/reference-to-video",
     durationSec: 5,
     quality: "768p",
-    expected: 80,
+    expected: 28,
+  },
+  {
+    name: "Minimax H3 2k",
+    modelRef: "minimax/h3/reference-to-video",
+    durationSec: 5,
+    quality: "2k",
+    expected: 39.2,
   },
   {
     name: "GPT Image 2",

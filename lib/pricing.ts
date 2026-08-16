@@ -486,8 +486,11 @@ const SEEDANCE_25_USD_PER_SECOND = {
   "720p": 0.18,
 } as const;
 const MINIMAX_H3_CREDITS_PER_USD = 40;
-const MINIMAX_H3_768P_USD_PER_SECOND = 0.4;
-const MINIMAX_H3_768P_CREDITS_PER_SECOND = MINIMAX_H3_768P_USD_PER_SECOND * MINIMAX_H3_CREDITS_PER_USD;
+const MINIMAX_H3_MARGIN_MULTIPLIER = 1.4;
+const MINIMAX_H3_USD_PER_SECOND = {
+  "768p": 0.10,
+  "2k": 0.14,
+} as const;
 
 function getSeedance25ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
   const route = (modelRef || "").toLowerCase();
@@ -498,17 +501,19 @@ function getSeedance25ProviderUsd(modelRef: string, durationSec: number, quality
   return parseFloat((usdPerSecond * duration).toFixed(4));
 }
 
-function getMinimaxH3ProviderUsd(modelRef: string, durationSec: number): number | null {
+function getMinimaxH3ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
   const constitutionId = MODEL_ALIAS_MAP[modelRef] ?? modelRef;
   if (constitutionId !== "minimax_h3" && modelRef !== "minimax/h3/reference-to-video") return null;
   const duration = Math.max(1, Number.isFinite(durationSec) ? durationSec : 5);
-  return parseFloat((MINIMAX_H3_768P_USD_PER_SECOND * duration).toFixed(4));
+  const q = (quality || "768p").trim().toLowerCase();
+  const usdPerSecond = q.includes("2k") ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"];
+  return parseFloat((usdPerSecond * duration).toFixed(4));
 }
 
-function getMinimaxH3DefaultCredits(modelRef: string, durationSec: number, numUnits: number): number | null {
-  const usd = getMinimaxH3ProviderUsd(modelRef, durationSec);
+function getMinimaxH3DefaultCredits(modelRef: string, durationSec: number, numUnits: number, quality?: string | null): number | null {
+  const usd = getMinimaxH3ProviderUsd(modelRef, durationSec, quality);
   if (usd === null) return null;
-  return parseFloat(Math.max(1, usd * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
+  return parseFloat(Math.max(1, usd * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
 }
 
 function getSeedance25DefaultCredits(modelRef: string, durationSec: number, numUnits: number, quality?: string | null): number | null {
@@ -624,7 +629,7 @@ function resolveSpecialUserCharge(
   const seedance25Credits = getSeedance25DefaultCredits(modelRef, durationSec, numUnits, quality);
   if (seedance25Credits !== null) return seedance25Credits;
 
-  const minimaxH3Credits = getMinimaxH3DefaultCredits(modelRef, durationSec, numUnits);
+  const minimaxH3Credits = getMinimaxH3DefaultCredits(modelRef, durationSec, numUnits, quality);
   if (minimaxH3Credits !== null) return minimaxH3Credits;
 
   return null;
@@ -650,7 +655,9 @@ function resolveModelUserCharge(
   }
 
   if (constitutionId === "minimax_h3") {
-    return parseFloat((MINIMAX_H3_768P_CREDITS_PER_SECOND * durationSec * numUnits).toFixed(2));
+    const q = (quality || "768p").trim().toLowerCase();
+    const usdPerSec = q.includes("2k") ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"];
+    return parseFloat((usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
   }
 
   if (constitutionId === "seedance2mini") {
@@ -871,7 +878,7 @@ export function estimateProviderCostSync(
     return { usd: total(seedance25Usd), source: "actual" };
   }
 
-  const minimaxH3Usd = getMinimaxH3ProviderUsd(modelRef, durationSec);
+  const minimaxH3Usd = getMinimaxH3ProviderUsd(modelRef, durationSec, quality);
   if (minimaxH3Usd !== null) {
     return { usd: total(minimaxH3Usd), source: "actual" };
   }

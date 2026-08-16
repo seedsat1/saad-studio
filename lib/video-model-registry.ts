@@ -555,7 +555,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
     badge: "FAST",
     description: "Hailuo 2.3 I2V Standard — fast, image required.",
-    api_route: "hailuo/2-3-image-to-video-standard",
+    api_route: "minimax/hailuo-2.3/i2v-standard",
     route_confirmed: true,
     capabilities: i2vCaps({
       aspect_ratios: [],
@@ -571,7 +571,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
     badge: "PRO",
     description: "Hailuo 2.3 I2V Pro — highest quality, image required.",
-    api_route: "hailuo/2-3-image-to-video-pro",
+    api_route: "minimax/hailuo-2.3/i2v-pro",
     route_confirmed: true,
     capabilities: i2vCaps({
       aspect_ratios: [],

@@ -21,10 +21,14 @@ const SEEDANCE_25_USD_PER_SECOND = {
   "720p": 0.18,
 } as const;
 const MINIMAX_H3_CREDITS_PER_USD = 40;
-const MINIMAX_H3_768P_USD_PER_SECOND = 0.4;
+const MINIMAX_H3_MARGIN_MULTIPLIER = 1.4;
+const MINIMAX_H3_USD_PER_SECOND = {
+  "768p": 0.10,
+  "2k": 0.14,
+} as const;
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
-  ["minimax/h3/reference-to-video", 80.0],
+  ["minimax/h3/reference-to-video", 28.0],
   ["kwaivgi/kling-v3.0-std/text-to-video", 9.0],
   ["kwaivgi/kling-v3.0-std/image-to-video", 9.0],
   ["kwaivgi/kling-v3.0-pro/image-to-video", 17.5],
@@ -153,7 +157,9 @@ function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number 
 
 function getMinimaxH3Credits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
-  return parseFloat(Math.max(1, duration * MINIMAX_H3_768P_USD_PER_SECOND * MINIMAX_H3_CREDITS_PER_USD).toFixed(2));
+  const quality = (readQuality(payload) || "768p").toLowerCase();
+  const usdPerSec = quality.includes("2k") ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"];
+  return parseFloat(Math.max(1, duration * usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD).toFixed(2));
 }
 
 function getKling3Credits(payload?: VideoPayload): number {

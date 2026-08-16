@@ -2259,9 +2259,9 @@ export async function POST(req: Request) {
     
     // WaveSpeed Models Checklist Bypass
     const isWaveSpeedOnlyModel = 
+      modelRoute.startsWith("minimax/") ||
       modelRoute.startsWith("bytedance/seedance-2.0") ||
       modelRoute.includes("seedance") ||
-      modelRoute === "minimax/h3/reference-to-video" ||
       modelRoute === "kwaivgi/kling-v3.0-std/text-to-video" ||
       modelRoute === "kwaivgi/kling-v3.0-std/image-to-video" ||
       modelRoute === "kwaivgi/kling-v3.0-pro/image-to-video" ||
