@@ -1,3 +1,41 @@
+#### Latest task: Remove redundant Negative Prompt textareas from sidebar in video page (2026-08-16)
+- Status: Completed.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - Removed duplicated Negative Prompt textareas from both Kling 3.0 and Generic Sidebar sections.
+  - Kept Negative Prompt exclusively accessible via the circular `(-)` button in the prompt toolbar, which cleanly expands directly below the main prompt textarea.
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts` passed: 35 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+- Decision: Restrict Negative Prompt input solely to the toolbar `(-)` toggle to prevent UI clutter and duplication.
+
+#### Latest task: Fix video model duration dropdown rendering and ensure duration synchronization (2026-08-16)
+- Status: Completed.
+- Affected files: `lib/video-model-registry.ts`, `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - Added explicit durations (`[6, 10]`) and aspect ratios to `minimax-h3-reference-to-video` in `lib/video-model-registry.ts`.
+  - Removed strict `duration != null` guard on `<select id="duration-select">` so the duration dropdown never disappears when durationChoices is available.
+  - Automatically synchronized `duration` to `durationChoices[0]` or 8s whenever switching to a model where the previous duration is not supported.
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts` passed: 35 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+- Decision: Always ensure `durationChoices` renders consistently across all models with automatic fallback to supported durations.
+
+#### Latest task: Implement Prompt Editor (Ctrl+E) Modal with AI Copilot for Video and Image Studios (2026-08-16)
+- Status: Completed.
+- Affected files: `components/PromptEditorModal.tsx`, `app/api/prompt/copilot/route.ts`, `app/(dash)/(routes)/video/page.tsx`, `app/(dash)/(routes)/image/page.tsx`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - Created reusable `PromptEditorModal` component featuring a split two-column design:
+    - Left Column: Expansive textarea with live character counter (`0/2500`), copy, clear, and auto-focus.
+    - Right Column: AI Copilot powered by Google Gemini Flash & KIE fallback with one-click `🪄 Random prompt`, `🪄 Auto prompt`, interactive conversation stream, quick style tag chips, and custom refinement input.
+  - Added global `Ctrl+E` / `Cmd+E` keyboard shortcut listener on both `/video` and `/image` pages.
+  - Added modern circular `Prompt editor (Ctrl+E)` icon button (`SquarePen`) with dark tooltip badge in prompt composer action toolbars on both `/video` and `/image` pages.
+  - Created `/api/prompt/copilot` endpoint handling `enhance`, `random`, and `chat` modes with specialized system prompts for video and image generation.
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts` passed: 35 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+- Decision: Provide a unified, high-performance Prompt Editor modal with AI Copilot integrated via `Ctrl+E` and toolbar triggers across both Video and Image generators.
+
 #### Latest task: Add Negative Prompt UI with (-) button and Loop / Ping-Pong support across video models (2026-08-16)
 - Status: Completed.
 - Affected files: `lib/video-model-registry.ts`, `lib/model-definition-registry.ts`, `app/(dash)/(routes)/video/page.tsx`, `app/api/video/route.ts`, `app/admin/models/page.tsx`, `app/admin/model-test/page.tsx`, `test/model-definition-registry.test.ts`, `PROJECT_CONTEXT.md`.

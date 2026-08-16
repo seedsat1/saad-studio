@@ -427,6 +427,8 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       requires_image: true,
       optional_image: true,
       optional_video: true,
+      aspect_ratios: ["16:9", "9:16", "1:1"],
+      durations: [6, 10],
       resolutions: ["768p", "2k"],
       max_reference_images: 9,
       max_reference_videos: 3,

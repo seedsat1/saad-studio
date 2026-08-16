@@ -23,6 +23,7 @@ import {
   ShieldAlert,
   SlidersHorizontal,
   Sparkles,
+  SquarePen,
   Trash2,
   UploadCloud,
   Wand2,
@@ -49,6 +50,7 @@ import NextImage from "next/image";
 import { useLanguage } from "@/lib/use-language";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
+import { PromptEditorModal } from "@/components/PromptEditorModal";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 import { HOOK_CHARACTERS } from "@/lib/hook-studio-config";
 
@@ -1620,6 +1622,20 @@ export default function ImageWorkspacePage() {
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [numImages, setNumImages] = useState(1);
   const [prompt, setPrompt] = useState("");
+  const [showPromptEditorModal, setShowPromptEditorModal] = useState(false);
+
+  // Global keyboard shortcut for Prompt Editor (Ctrl+E / Cmd+E)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        setShowPromptEditorModal((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const [quality, setQuality] = useState("standard");
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [characters, setCharacters] = useState<CharacterReference[]>([]);
@@ -2805,6 +2821,23 @@ export default function ImageWorkspacePage() {
                         </label>
                       </>
                     ) : null}
+
+                    {/* Prompt Editor (Ctrl+E) Button with Tooltip */}
+                    <div className="relative group">
+                      <button
+                        type="button"
+                        onClick={() => setShowPromptEditorModal(true)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:text-zinc-200 hover:bg-white/10 transition-all"
+                        aria-label={lang === "ar" ? "محرر ومساعد الوصف (Ctrl+E)" : "Prompt editor (Ctrl+E)"}
+                        title={lang === "ar" ? "محرر ومساعد الوصف (Ctrl+E)" : "Prompt editor (Ctrl+E)"}
+                      >
+                        <SquarePen className="h-4 w-4" />
+                      </button>
+                      {/* Tooltip on Hover */}
+                      <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-20 whitespace-nowrap bg-neutral-900/95 text-slate-200 border border-white/15 text-[11px] font-medium px-2.5 py-1 rounded-md shadow-xl backdrop-blur-md">
+                        {lang === "ar" ? "محرر الوصف (Ctrl+E)" : "Prompt editor (Ctrl+E)"}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 ml-auto">
                     {prompt && (
@@ -2904,6 +2937,16 @@ export default function ImageWorkspacePage() {
               .catch((err) => console.error("Failed to attach reference file:", err));
           }}
           isAr={lang === "ar"}
+        />
+
+        {/* Prompt Editor (Ctrl+E) Modal */}
+        <PromptEditorModal
+          isOpen={showPromptEditorModal}
+          onClose={() => setShowPromptEditorModal(false)}
+          initialPrompt={prompt}
+          onApply={(p) => setPrompt(p)}
+          mediaType="image"
+          lang={lang}
         />
       </div>
 

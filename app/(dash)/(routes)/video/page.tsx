@@ -13,7 +13,7 @@ import {
   Play, Download, Trash2, Heart, Copy, MoreHorizontal,
   ExternalLink, RefreshCw, Share2,
   type LucideIcon, Languages, Volume2, Palette, Plus, AudioLines, Shapes,
-  ZoomIn, Music, Minus, MinusCircle, Repeat,
+  ZoomIn, Music, Minus, MinusCircle, Repeat, SquarePen,
 } from "lucide-react";
 
 import { useLanguage } from "@/lib/use-language";
@@ -38,6 +38,7 @@ import { getFallbackUrls } from "@/lib/utils";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
+import { PromptEditorModal } from "@/components/PromptEditorModal";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 import { HOOK_CHARACTERS } from "@/lib/hook-studio-config";
 
@@ -2175,9 +2176,22 @@ function VideoPageInner() {
   }, [fetchWithAuth, isAuthLoaded, isSignedIn]);
 
   // Prompt fields
-  const [prompt,         setPrompt]         = useState("");
-  const [negPrompt,      setNegPrompt]      = useState("");
-  const [showNegPrompt,  setShowNegPrompt]  = useState(false);
+  const [prompt,                setPrompt]                = useState("");
+  const [negPrompt,             setNegPrompt]             = useState("");
+  const [showNegPrompt,         setShowNegPrompt]         = useState(false);
+  const [showPromptEditorModal, setShowPromptEditorModal] = useState(false);
+
+  // Global keyboard shortcut for Prompt Editor (Ctrl+E / Cmd+E)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        setShowPromptEditorModal((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Output controls — reset when model changes
   const [duration,    setDuration]    = useState<number | null>(DEFAULT_MODEL.capabilities.durations[0] ?? null);
@@ -2670,8 +2684,8 @@ function VideoPageInner() {
 
     if (isVeo31FixedEightSecond && duration !== 8) {
       setDuration(8);
-    } else if (!isVeo31FixedEightSecond && duration == null && caps.durations.includes(8)) {
-      setDuration(8);
+    } else if (durationChoices.length > 0 && (duration == null || !durationChoices.includes(duration))) {
+      setDuration(durationChoices.includes(8) ? 8 : durationChoices[0]);
     }
 
     if (sound) setSound(false);
@@ -2679,6 +2693,7 @@ function VideoPageInner() {
     aspectRatio,
     caps.durations,
     duration,
+    durationChoices,
     isVeo31FixedEightSecond,
     isGoogleVeoModel,
     isLegacyGoogleVeo3Model,
@@ -4215,6 +4230,23 @@ function VideoPageInner() {
                   </div>
                 </div>
               )}
+
+              {/* Prompt Editor (Ctrl+E) Button with Tooltip */}
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={() => setShowPromptEditorModal(true)}
+                  className="flex items-center justify-center w-7 h-7 rounded-full bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/10 transition-all"
+                  aria-label={lang === "ar" ? "محرر ومساعد الوصف (Ctrl+E)" : "Prompt editor (Ctrl+E)"}
+                  title={lang === "ar" ? "محرر ومساعد الوصف (Ctrl+E)" : "Prompt editor (Ctrl+E)"}
+                >
+                  <SquarePen size={13} strokeWidth={2} />
+                </button>
+                {/* Tooltip on Hover */}
+                <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-20 whitespace-nowrap bg-neutral-900/95 text-slate-200 border border-white/15 text-[11px] font-medium px-2.5 py-1 rounded-md shadow-xl backdrop-blur-md">
+                  {lang === "ar" ? "محرر الوصف (Ctrl+E)" : "Prompt editor (Ctrl+E)"}
+                </div>
+              </div>
 
               <button
                 type="button"
@@ -5820,27 +5852,6 @@ function VideoPageInner() {
                   </button>
                 </div>
               )}
-
-              {/* -- Negative Prompt ------------------------------------------- */}
-              {caps.has_negative_prompt && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
-                    {t("Negative Prompt")}
-                  </label>
-                  <textarea
-                    value={negPrompt}
-                    onChange={e => setNegPrompt(e.target.value)}
-                    placeholder={t("Things to avoid…")}
-                    rows={3}
-                    className="w-full bg-transparent rounded-lg px-3 py-2 text-[12px] outline-none resize-none"
-                    style={{
-                      background: "rgba(255,255,255,0.03)",
-                      border:     "1px solid rgba(255,255,255,0.06)",
-                      color:      "#94a3b8",
-                    }}
-                  />
-                </div>
-              )}
             </div>
           )}
 
@@ -5852,7 +5863,7 @@ function VideoPageInner() {
           {/* -- Veo 3.1 — Duration buttons (Google spec: 4 / 6 / 8 only) ---- */}
 
           {/* -- Duration ---------------------------------------------------- */}
-          {durationChoices.length > 0 && duration != null && (
+          {durationChoices.length > 0 && (
             <div className="flex flex-col gap-2">
               <label htmlFor="duration-select" className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Duration
@@ -5861,7 +5872,7 @@ function VideoPageInner() {
                 <select
                   id="duration-select"
                   aria-label={t("Duration")}
-                  value={duration}
+                  value={duration ?? durationChoices[0]}
                   onChange={e => setDuration(Number(e.target.value))}
                   className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg text-[13px] outline-none cursor-pointer"
                   style={{
@@ -6453,27 +6464,6 @@ function VideoPageInner() {
                   style={{ left: loop ? "calc(100% - 18px)" : 2 }}
                 />
               </button>
-            </div>
-          )}
-
-          {/* -- Negative Prompt --------------------------------------------- */}
-          {caps.has_negative_prompt && (
-            <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
-                {t("Negative Prompt")}
-              </label>
-              <textarea
-                value={negPrompt}
-                onChange={e => setNegPrompt(e.target.value)}
-                placeholder={t("Things to avoid…")}
-                rows={3}
-                className="w-full bg-transparent rounded-lg px-3 py-2 text-[12px] outline-none resize-none"
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border:     "1px solid rgba(255,255,255,0.06)",
-                  color:      "#94a3b8",
-                }}
-              />
             </div>
           )}
 
@@ -7198,6 +7188,16 @@ function VideoPageInner() {
             .catch((err) => console.error("Failed to attach reference file:", err));
         }}
         isAr={lang === "ar"}
+      />
+
+      {/* Prompt Editor (Ctrl+E) Modal */}
+      <PromptEditorModal
+        isOpen={showPromptEditorModal}
+        onClose={() => setShowPromptEditorModal(false)}
+        initialPrompt={prompt}
+        onApply={(p) => setPrompt(p)}
+        mediaType="video"
+        lang={lang}
       />
     </div>
   );
