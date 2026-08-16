@@ -13,7 +13,7 @@ import {
   Play, Download, Trash2, Heart, Copy, MoreHorizontal,
   ExternalLink, RefreshCw, Share2,
   type LucideIcon, Languages, Volume2, Palette, Plus, AudioLines, Shapes,
-  ZoomIn, Music,
+  ZoomIn, Music, Minus, MinusCircle, Repeat,
 } from "lucide-react";
 
 import { useLanguage } from "@/lib/use-language";
@@ -1047,6 +1047,9 @@ function useVideoTranslation() {
       "AI-generated audio track - included": "مسار صوتي مولد بالذكاء الاصطناعي - متضمن",
       "included": "متضمن",
       "Negative Prompt": "الوصف السلبي (Negative Prompt)",
+      "Negative prompt": "الوصف السلبي (Negative Prompt)",
+      "Loop / Ping-Pong": "تكرار حلقي (Loop / Ping-Pong)",
+      "Seamless looping playback": "تشغيل متكرر وسلس بدون فواصل",
       "Things to avoid…": "أشياء يجب تجنبها…",
       "Each element needs 2–4 images. Reference it in your prompt as @element_name.": "يحتاج كل عنصر إلى 2-4 صور. أشر إليه في الوصف الخاص بك كـ @اسم_العنصر.",
       "Name (e.g. hero, car, logo)": "الاسم (مثل: بطل، سيارة، شعار)",
@@ -1830,6 +1833,7 @@ const LIPSYNC_MODELS: WaveSpeedVideoModel[] = [
       max_reference_audios: 0,
       max_reference_audio_total_seconds: 0,
       has_negative_prompt: false,
+      has_loop: false,
       has_seed: false,
       has_cfg_scale: false,
       has_sound: true,
@@ -1868,6 +1872,7 @@ const LIPSYNC_MODELS: WaveSpeedVideoModel[] = [
       max_reference_audios: 0,
       max_reference_audio_total_seconds: 0,
       has_negative_prompt: false,
+      has_loop: false,
       has_seed: false,
       has_cfg_scale: false,
       has_sound: true,
@@ -2170,8 +2175,9 @@ function VideoPageInner() {
   }, [fetchWithAuth, isAuthLoaded, isSignedIn]);
 
   // Prompt fields
-  const [prompt,    setPrompt]    = useState("");
-  const [negPrompt, setNegPrompt] = useState("");
+  const [prompt,         setPrompt]         = useState("");
+  const [negPrompt,      setNegPrompt]      = useState("");
+  const [showNegPrompt,  setShowNegPrompt]  = useState(false);
 
   // Output controls — reset when model changes
   const [duration,    setDuration]    = useState<number | null>(DEFAULT_MODEL.capabilities.durations[0] ?? null);
@@ -2180,6 +2186,7 @@ function VideoPageInner() {
   const [resolution,  setResolution]  = useState<string | null>(DEFAULT_MODEL.capabilities.resolutions[0] ?? null);
 
   // Advanced controls
+  const [loop,          setLoop]          = useState(false);
   const [cfgScale,      setCfgScale]      = useState(0.5);
   const [sound,         setSound]         = useState(false);
   const [shotType,      setShotType]      = useState<"intelligent" | "customize">("intelligent");
@@ -3464,6 +3471,10 @@ function VideoPageInner() {
       if (caps.has_negative_prompt && negPrompt.trim()) {
         payload.negative_prompt = negPrompt.trim();
       }
+      if (caps.has_loop && loop) {
+        payload.loop = true;
+        payload.ping_pong = true;
+      }
       if (caps.has_cfg_scale) {
         payload.cfg_scale = cfgScale;
       }
@@ -4135,6 +4146,40 @@ function VideoPageInner() {
               className="w-full bg-transparent outline-none text-[13.5px] sm:text-[14px] resize-y min-h-[64px] max-h-[220px] p-1.5 leading-relaxed overflow-y-auto custom-scrollbar"
               style={{ color: "#f8fafc" }}
             />
+
+            {/* Negative Prompt Expandable Box */}
+            {caps.has_negative_prompt && (showNegPrompt || negPrompt.length > 0) && (
+              <div className="w-full mt-2 pt-2 border-t border-white/[0.08] flex flex-col gap-1.5 animate-fadeIn">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex items-center justify-center w-4 h-4 rounded-full bg-red-500/20 text-red-400 text-[11px] font-bold">
+                      <Minus size={10} strokeWidth={3} />
+                    </span>
+                    <span className="font-semibold text-[11.5px] text-slate-300">
+                      {t("Negative Prompt")}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNegPrompt(false);
+                      setNegPrompt("");
+                    }}
+                    className="p-1 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors"
+                    title={lang === "ar" ? "إغلاق الوصف السلبي" : "Close negative prompt"}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+                <textarea
+                  rows={2}
+                  value={negPrompt}
+                  onChange={e => setNegPrompt(e.target.value)}
+                  placeholder={t("Things to avoid…")}
+                  className="w-full bg-white/[0.03] rounded-lg border border-white/[0.08] outline-none text-[12.5px] p-2 leading-relaxed text-slate-200 placeholder:text-slate-500 resize-none focus:border-red-500/40 transition-colors"
+                />
+              </div>
+            )}
           </div>
 
           {/* Bottom Section inside Card: Action Toolbar */}
@@ -4147,6 +4192,30 @@ function VideoPageInner() {
                   : <Sparkles size={14} />
                 }
               </div>
+
+              {/* Negative Prompt Circle Tool Button with Tooltip */}
+              {caps.has_negative_prompt && (
+                <div className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => setShowNegPrompt(prev => !prev)}
+                    className={`flex items-center justify-center w-7 h-7 rounded-full transition-all ${
+                      showNegPrompt || negPrompt
+                        ? "bg-red-500/25 text-red-300 border border-red-500/50 shadow-sm"
+                        : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/10"
+                    }`}
+                    aria-label={t("Negative prompt")}
+                    title={t("Negative prompt")}
+                  >
+                    <Minus size={13} strokeWidth={2.5} />
+                  </button>
+                  {/* Tooltip on Hover */}
+                  <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-20 whitespace-nowrap bg-neutral-900/95 text-slate-200 border border-white/15 text-[11px] font-medium px-2.5 py-1 rounded-md shadow-xl backdrop-blur-md">
+                    {t("Negative prompt")}
+                  </div>
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={() => {
@@ -5728,6 +5797,50 @@ function VideoPageInner() {
                   </button>
                 </div>
               )}
+
+              {/* -- Loop / Ping-Pong ------------------------------------------- */}
+              {caps.has_loop && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Repeat size={13} style={{ color: "#94a3b8" }} />
+                    <div className="flex flex-col">
+                      <span className="text-[12px]" style={{ color: "#a1a1aa" }}>{t("Loop / Ping-Pong")}</span>
+                      <span className="text-[10px]" style={{ color: "#94a3b8" }}>{t("Seamless looping playback")}</span>
+                    </div>
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={loop}
+                    aria-label={t("Toggle Loop")}
+                    onClick={() => setLoop(v => !v)}
+                    className="relative w-10 h-5 rounded-full transition-all flex-shrink-0"
+                    style={{ background: loop ? hexA(selectedModel.family_color, 0.7) : "rgba(255,255,255,0.08)" }}
+                  >
+                    <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all" style={{ left: loop ? "calc(100% - 18px)" : 2 }} />
+                  </button>
+                </div>
+              )}
+
+              {/* -- Negative Prompt ------------------------------------------- */}
+              {caps.has_negative_prompt && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
+                    {t("Negative Prompt")}
+                  </label>
+                  <textarea
+                    value={negPrompt}
+                    onChange={e => setNegPrompt(e.target.value)}
+                    placeholder={t("Things to avoid…")}
+                    rows={3}
+                    className="w-full bg-transparent rounded-lg px-3 py-2 text-[12px] outline-none resize-none"
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      border:     "1px solid rgba(255,255,255,0.06)",
+                      color:      "#94a3b8",
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -6317,16 +6430,42 @@ function VideoPageInner() {
             </div>
           )}
 
+          {/* -- Loop / Ping-Pong ------------------------------------------- */}
+          {caps.has_loop && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Repeat size={13} style={{ color: "#94a3b8" }} />
+                <div className="flex flex-col">
+                  <span className="text-[12px]" style={{ color: "#a1a1aa" }}>{t("Loop / Ping-Pong")}</span>
+                  <span className="text-[10px]" style={{ color: "#94a3b8" }}>{t("Seamless looping playback")}</span>
+                </div>
+              </div>
+              <button
+                role="switch"
+                aria-checked={loop}
+                aria-label={t("Toggle Loop")}
+                onClick={() => setLoop(v => !v)}
+                className="relative w-9 h-5 rounded-full transition-all flex-shrink-0"
+                style={{ background: loop ? hexA(selectedModel.family_color, 0.6) : "rgba(255,255,255,0.08)" }}
+              >
+                <span
+                  className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                  style={{ left: loop ? "calc(100% - 18px)" : 2 }}
+                />
+              </button>
+            </div>
+          )}
+
           {/* -- Negative Prompt --------------------------------------------- */}
           {caps.has_negative_prompt && (
             <div className="flex flex-col gap-2">
               <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
-                Negative Prompt
+                {t("Negative Prompt")}
               </label>
               <textarea
                 value={negPrompt}
                 onChange={e => setNegPrompt(e.target.value)}
-                placeholder="Things to avoid…"
+                placeholder={t("Things to avoid…")}
                 rows={3}
                 className="w-full bg-transparent rounded-lg px-3 py-2 text-[12px] outline-none resize-none"
                 style={{

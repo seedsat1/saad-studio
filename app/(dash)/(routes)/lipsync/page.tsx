@@ -52,75 +52,11 @@ function fileToDataURL(file: File): Promise<string> {
   });
 }
 
-interface WaveSpeedVideoModel {
-  id: string;
-  name: string;
-  family: string;
-  family_label: string;
-  family_color: string;
-  badge?: string;
-  description: string;
-  api_route: string;
-  route_confirmed: boolean;
-}
+import { getCentralizedDynamicLipsyncModels, CURATED_GEMINI_TTS_VOICES, type DynamicLipsyncModel } from "@/lib/model-definition-registry";
 
-const LIPSYNC_MODELS: WaveSpeedVideoModel[] = [
-  {
-    id: "sync-lipsync-3",
-    name: "LipSync 3",
-    family: "sync",
-    family_label: "Sync",
-    family_color: "#6366f1",
-    badge: "NEW",
-    description: "High-fidelity video and audio lip-sync. Provide a source video and a speech recording.",
-    api_route: "sync/lipsync-3",
-    route_confirmed: true,
-  },
-  {
-    id: "kling-ai-avatar-pro",
-    name: "Kling AI Avatar 2.0",
-    family: "kling",
-    family_label: "Kling",
-    family_color: "#06b6d4",
-    badge: "PRO",
-    description: "Sync avatar lips to audio. Provide a clear face portrait image and an audio recording.",
-    api_route: "kling/ai-avatar-pro",
-    route_confirmed: true,
-  },
-  {
-    id: "infinitalk-from-audio",
-    name: "Infinitalk API-AI lip-sync generator",
-    family: "other",
-    family_label: "Infinitalk",
-    family_color: "#10b981",
-    badge: "PRO",
-    description: "Speech to video talking head lip-sync generator. Provide a clear face portrait image and an audio recording.",
-    api_route: "infinitalk/from-audio",
-    route_confirmed: true,
-  },
-  {
-    id: "bytedance-seedance-2",
-    name: "Seedance 2.0",
-    family: "seedance",
-    family_label: "Seedance",
-    family_color: "#f59e0b",
-    badge: "NEW",
-    description: "Audio-driven reference video generation. Provide reference image/video and audio source.",
-    api_route: "bytedance/seedance-2",
-    route_confirmed: true,
-  },
-  {
-    id: "bytedance-seedance-2-fast",
-    name: "Seedance 2.0 Fast",
-    family: "seedance",
-    family_label: "Seedance",
-    family_color: "#ec4899",
-    badge: "FAST",
-    description: "Faster audio-driven reference video generation. Provide reference image/video and audio source.",
-    api_route: "bytedance/seedance-2-fast",
-    route_confirmed: true,
-  }
-];
+type WaveSpeedVideoModel = DynamicLipsyncModel;
+
+const LIPSYNC_MODELS: WaveSpeedVideoModel[] = getCentralizedDynamicLipsyncModels();
 
 function getFileContentType(file: File): string {
   const name = file.name.toLowerCase();
@@ -292,38 +228,7 @@ function LipsyncStudioPageInner() {
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const GEMINI_VOICES = [
-    { id: "Sulafat", name: "Sulafat (أنثى - Warm)" },
-    { id: "Zephyr", name: "Zephyr (أنثى - Bright)" },
-    { id: "Puck", name: "Puck (ذكر - Upbeat)" },
-    { id: "Charon", name: "Charon (ذكر - Informative)" },
-    { id: "Kore", name: "Kore (أنثى - Firm)" },
-    { id: "Fenrir", name: "Fenrir (ذكر - Excitable)" },
-    { id: "Leda", name: "Leda (أنثى - Youthful)" },
-    { id: "Orus", name: "Orus (ذكر - Firm)" },
-    { id: "Aoede", name: "Aoede (أنثى - Breezy)" },
-    { id: "Callirrhoe", name: "Callirrhoe (أنثى - Easy-going)" },
-    { id: "Autonoe", name: "Autonoe (أنثى - Bright)" },
-    { id: "Enceladus", name: "Enceladus (ذكر - Breathy)" },
-    { id: "Iapetus", name: "Iapetus (ذكر - Clear)" },
-    { id: "Umbriel", name: "Umbriel (ذكر - Easy-going)" },
-    { id: "Algieba", name: "Algieba (ذكر - Smooth)" },
-    { id: "Despina", name: "Despina (أنثى - Smooth)" },
-    { id: "Erinome", name: "Erinome (أنثى - Clear)" },
-    { id: "Algenib", name: "Algenib (ذكر - Gravelly)" },
-    { id: "Rasalgethi", name: "Rasalgethi (ذكر - Informative)" },
-    { id: "Laomedeia", name: "Laomedeia (أنثى - Upbeat)" },
-    { id: "Achernar", name: "Achernar (أنثى - Soft)" },
-    { id: "Alnilam", name: "Alnilam (ذكر - Firm)" },
-    { id: "Schedar", name: "Schedar (أنثى - Even)" },
-    { id: "Gacrux", name: "Gacrux (أنثى - Mature)" },
-    { id: "Pulcherrima", name: "Pulcherrima (أنثى - Forward)" },
-    { id: "Achird", name: "Achird (ذكر - Friendly)" },
-    { id: "Zubenelgenubi", name: "Zubenelgenubi (ذكر - Casual)" },
-    { id: "Vindemiatrix", name: "Vindemiatrix (أنثى - Gentle)" },
-    { id: "Sadachbia", name: "Sadachbia (ذكر - Lively)" },
-    { id: "Sadaltager", name: "Sadaltager (ذكر - Knowledgeable)" }
-  ];
+  const GEMINI_VOICES = CURATED_GEMINI_TTS_VOICES;
 
   // Close dropdown on click outside
   useEffect(() => {

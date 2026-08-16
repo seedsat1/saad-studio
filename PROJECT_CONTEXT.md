@@ -1,3 +1,60 @@
+#### Latest task: Add Negative Prompt UI with (-) button and Loop / Ping-Pong support across video models (2026-08-16)
+- Status: Completed.
+- Affected files: `lib/video-model-registry.ts`, `lib/model-definition-registry.ts`, `app/(dash)/(routes)/video/page.tsx`, `app/api/video/route.ts`, `app/admin/models/page.tsx`, `app/admin/model-test/page.tsx`, `test/model-definition-registry.test.ts`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - Added `has_loop` capability flag to `VideoModelCapabilities` in `lib/video-model-registry.ts` and `"loop"` to `ModelCapabilityKey` in `lib/model-definition-registry.ts`.
+  - Enabled `has_negative_prompt: true` and `has_loop: true` across all supporting models (Kling 3.0, Kling O3, Kling V3 Turbo, Kling 2.6, Seedance 2.5, Seedance 2.0, Minimax H3, Minimax Hailuo 2.3, xAI Grok).
+  - In `app/(dash)/(routes)/video/page.tsx`, added a circular `(-)` Negative Prompt button in the prompt action toolbar (with dark tooltip badge matching user design) and an expandable Negative Prompt input box below the main prompt textarea.
+  - Added Loop / Ping-Pong toggle switches to both the Kling 3.0 section and Generic controls section, with full Arabic & English localization.
+  - Forwarded `negative_prompt` and `loop`/`ping_pong` in `app/api/video/route.ts` across `mapToWavespeedInput` and all exact model payload mappings.
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts` passed: 35 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+- Decision: Provide direct in-toolbar toggle `(-)` with tooltip for Negative Prompt and synchronize with sidebar controls and API payload builders.
+
+#### Latest task: Central Model Consumer Migration Batch 2B (2026-08-16)
+- Status: Completed. Migrated Lipsync Studio and Text to Speech (TTS) to Central Model Definition without changing pricing, credits, routing, provider execution, task ids, or API response shapes.
+- Affected files: `lib/model-definition-registry.ts`, `app/(dash)/(routes)/lipsync/page.tsx`, `app/api/generate/audio/route.ts`, `test/model-definition-registry.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added Central Lipsync model definitions (`CURATED_LIPSYNC_MODELS`, `DynamicLipsyncModel`, `getCentralizedDynamicLipsyncModels`) and TTS model definitions (`CURATED_TTS_MODELS`, `CURATED_GEMINI_TTS_VOICES`, `CURATED_ELEVENLABS_TTS_VOICES`, `DynamicTTSModel`, `getCentralizedDynamicTTSModels`) to `lib/model-definition-registry.ts`.
+  - Lipsync Studio (`/lipsync`) now consumes central dynamic lipsync models and central Gemini TTS voice definitions without local duplicated constants.
+  - `/api/generate/audio` synchronizes runtime normalization sets (`GOOGLE_GEMINI_TTS_MODELS`, `GOOGLE_GEMINI_TTS_VOICES`) with Central Model Definitions.
+  - Reclassified 4 fixed tools/bridges (Voice Dubbing/Clone, Video Upscale, Face Swap, Smart CLI) from `NOT_CENTRALIZED` to `NO_MODEL_CONFIG` as they are single-action tools or protocol bridges without mutable model selection.
+- Verification:
+  - `npm run test:run -- test/model-definition-registry.test.ts` passed: 11 tests.
+  - Full suite (`test/model-definition-registry.test.ts`, `test/product-feature-registry.test.ts`, `test/runtime-routing.test.ts`, `test/pricing-core.test.ts`, `test/storage-runtime.test.ts`) passed: 47 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+  - Scoped `git diff --check` passed with 0 errors.
+- Feature centralization status after Batch 2B:
+  - FULLY_CENTRALIZED: 10 (+2: Lipsync Studio, Text to Speech (TTS))
+  - PARTIALLY_CENTRALIZED: 5 (Hook Studio, Transitions, AI Canvas, Cinema Flow, Agent Studio)
+  - NOT_CENTRALIZED: 0 (All true model consumers centralized!)
+  - NO_MODEL_CONFIG: 16 (+4: Voice Dubbing/Clone, Video Upscale, Face Swap, Smart CLI)
+  - UNKNOWN: 9
+- Decision: All true model consumers across all modalities (Image, Video, Audio/Music, 3D, Lipsync, TTS) are now FULLY_CENTRALIZED in `lib/model-definition-registry.ts`.
+
+#### Latest task: Central Model Consumer Migration Batch 2A (2026-08-16)
+- Status: Completed. Migrated Text to Music and 3D Studio to Central Model Definition without changing pricing, credits, routing, provider execution, task ids, or API response shapes.
+- Affected files: `lib/model-definition-registry.ts`, `app/api/models/route.ts`, `app/(dash)/(routes)/music/page.tsx`, `app/(dash)/(routes)/3d/page.tsx`, `test/model-definition-registry.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added central Audio/Music and 3D model definitions, parameters, and central resolvers (`getCentralizedDynamicMusicModels`, `getCentralizedDynamicThreeDModels`) to `lib/model-definition-registry.ts`.
+  - Music Studio (`/music`) now consumes central dynamic music models and overlays duration/limit/capability definitions from Central Model Definition.
+  - 3D Studio (`/3d`) now consumes central dynamic 3D models and mode options from Central Model Definition.
+  - `/api/models` synchronizes active audio models with Central Model Definitions while preserving source metadata and pricing.
+  - `lib/three-d-models.ts` retains runtime/provider endpoint mapping and routing bindings without duplicate model definition sources.
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts` passed: 9 tests.
+  - `npx vitest run test/model-definition-registry.test.ts test/product-feature-registry.test.ts test/runtime-routing.test.ts test/pricing-core.test.ts test/storage-runtime.test.ts` passed: 45 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+  - Scoped `git diff --check` passed with 0 errors.
+- Feature centralization status after Batch 2A:
+  - FULLY_CENTRALIZED: 8 (+2: Text to Music, 3D Studio)
+  - PARTIALLY_CENTRALIZED: 5
+  - NOT_CENTRALIZED: 6 (-2)
+  - NO_MODEL_CONFIG: 12
+  - UNKNOWN: 9
+- Decision: Text to Music and 3D Studio are FULLY_CENTRALIZED for model definitions and capabilities.
+
 #### Latest task: Fix upscale scale factor mapping to strictly respect chosen scale (2026-08-16)
 - Status: Completed.
 - Affected files: `app/api/generate/upscale/route.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.

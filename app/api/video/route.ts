@@ -527,7 +527,12 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
   if (typeof payload.prompt === "string") out.prompt = payload.prompt;
   if (typeof payload.duration === "number") out.duration = payload.duration;
   else if (typeof payload.duration === "string") out.duration = Number.parseInt(payload.duration, 10);
-  if (typeof payload.negative_prompt === "string") out.negative_prompt = payload.negative_prompt;
+  if (typeof payload.negative_prompt === "string" && payload.negative_prompt.trim()) {
+    out.negative_prompt = payload.negative_prompt.trim();
+  }
+  if (payload.loop === true || payload.ping_pong === true || payload.is_loop === true) {
+    out.loop = true;
+  }
   if (typeof payload.cfg_scale === "number") out.cfg_scale = payload.cfg_scale;
 
   const requestedAspect =
@@ -650,6 +655,8 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     exact.resolution = resolution === "2k" ? "2k" : "768p";
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
     exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(5, duration)) : 5;
+    if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
+    if (out.loop === true) exact.loop = true;
     return exact;
   }
 
@@ -676,6 +683,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     if (startImage) exact.image = startImage;
     if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
     if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
+    if (out.loop === true) exact.loop = true;
     if (finalImage) exact.end_image = finalImage;
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
     exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(3, duration)) : 5;
@@ -713,25 +721,20 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
       null;
     const exact: Record<string, unknown> = {};
     if (startImage) exact.image = startImage;
-    const rawMultiPrompt = Array.isArray(payload.multi_prompt) ? (payload.multi_prompt as unknown[]) : null;
-    const hasMultiPromptInput = rawMultiPrompt !== null;
+    else throw new ValidationError("Kling V3 Turbo requires an image.");
+    if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
+    if (out.loop === true) exact.loop = true;
+    const rawMultiPrompt = payload.multi_prompt;
+    const hasMultiPromptInput = Array.isArray(rawMultiPrompt);
     const multiPrompt = hasMultiPromptInput
-      ? rawMultiPrompt
+      ? (rawMultiPrompt as Array<Record<string, unknown>>)
           .slice(0, 6)
-          .map((item: unknown, index: number) => {
+          .map((item, index) => {
             if (!item || typeof item !== "object") return null;
-            const record = item as Record<string, unknown>;
-            const prompt = typeof record.prompt === "string" ? record.prompt.trim() : "";
-            const rawDuration = typeof record.duration === "number"
-              ? record.duration
-              : typeof record.duration === "string"
-                ? Number.parseInt(record.duration, 10)
-                : NaN;
-            if (!prompt || !Number.isFinite(rawDuration)) {
-              throw new ValidationError(`Kling V3 Turbo multi_prompt item ${index + 1} requires prompt and duration.`);
-            }
-            const duration = Math.floor(rawDuration);
-            if (duration < 1) {
+            const prompt = typeof item.prompt === "string" ? item.prompt.trim() : "";
+            if (!prompt) return null;
+            const duration = typeof item.duration === "number" ? item.duration : Number.parseInt(String(item.duration || "1"), 10);
+            if (!Number.isFinite(duration) || duration <= 0) {
               throw new ValidationError(`Kling V3 Turbo multi_prompt item ${index + 1} duration must be at least 1 second.`);
             }
             return { prompt, duration };
@@ -779,6 +782,8 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
       null;
     const exact: Record<string, unknown> = {};
     if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
+    if (out.loop === true) exact.loop = true;
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
     const normalizedDuration = Number.isFinite(duration) ? Math.min(15, Math.max(3, duration)) : 5;
     if (route?.includes("-pro/image-to-video")) {
@@ -834,6 +839,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     const exact: Record<string, unknown> = {};
     if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
     if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
+    if (out.loop === true) exact.loop = true;
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
     exact.duration = duration >= 8 ? 10 : 5;
     if (typeof out.cfg_scale === "number" && Number.isFinite(out.cfg_scale)) {
@@ -869,6 +875,8 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     const exact: Record<string, unknown> = {};
     if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
     else throw new ValidationError("Seedance 2.5 requires a prompt.");
+    if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
+    if (out.loop === true) exact.loop = true;
     if (referenceAudios.length > 0 && referenceImages.length === 0 && referenceVideos.length === 0) {
       throw new ValidationError("Seedance 2.5 reference audio cannot be provided alone. Add at least one reference image or video.");
     }
@@ -902,6 +910,8 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
       null;
     const exact: Record<string, unknown> = {};
     if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
+    if (out.loop === true) exact.loop = true;
     if (startImage) exact.image = startImage;
     else throw new ValidationError("Seedance 2.5 Image-to-Video requires an image.");
     if (finalImage) exact.last_image = finalImage;
@@ -933,6 +943,8 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
       null;
     const exact: Record<string, unknown> = {};
     if (typeof out.prompt === "string") exact.prompt = out.prompt;
+    if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
+    if (out.loop === true) exact.loop = true;
     if (startImage) exact.image = startImage;
     if (finalImage) exact.last_image = finalImage;
     if (typeof out.aspect_ratio === "string" && out.aspect_ratio !== "adaptive") exact.aspect_ratio = out.aspect_ratio;

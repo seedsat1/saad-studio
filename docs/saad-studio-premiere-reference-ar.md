@@ -1,3 +1,29 @@
+## توحيد موديلات Lipsync Studio و TTS في Central Model Definition - Batch 2B (2026-08-16)
+
+- تم تحويل ميزتي **Lipsync Studio** و **Text to Speech (TTS)** إلى `FULLY_CENTRALIZED` من حيث تعريف الموديلات والخصائص العامة (Model Capabilities):
+  - **Lipsync Studio**: أصبحت موديلات Lipsync الخمسة (Sync 3, Kling Avatar 2.0, Infinitalk, Seedance 2, Seedance 2 Fast) تُعرَّف مركزياً عبر [`lib/model-definition-registry.ts`](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/model-definition-registry.ts) مع إدارة وسائط الإدخال (`acceptedMedia`: `video` أو `image_or_video`) وحدود المراجع.
+  - **Text to Speech (TTS)**: أصبحت موديلات ElevenLabs و Google Gemini TTS الـ 4، وقوائم الأصوات الـ 30 الرسمية تُعرَّف مركزياً وتستهلكها واجهات Lipsync و Canvas و Cinema Flow.
+- تم تصحيح تصنيف الأدوات الثابتة الأربعة (Voice Dubbing/Clone, Video Upscale, Face Swap, Smart CLI) من `NOT_CENTRALIZED` إلى `NO_MODEL_CONFIG` لكونها Tool Actions ثابتة أو Protocol Bridges وليست Model Selectors متعددة.
+- توزيع حالات Central Model Configuration بعد اكتمال Batch 2B:
+  - **FULLY_CENTRALIZED: 10** (Create Image, Inpaint, Cinematic Styles, Create Video, Draw to Video, Edit Video, Text to Music, 3D Studio, **Lipsync Studio**, **Text to Speech (TTS)**)
+  - **PARTIALLY_CENTRALIZED: 5** (Hook Studio, Transitions, AI Canvas, Cinema Flow, Agent Studio)
+  - **NOT_CENTRALIZED: 0** (تم توحيد جميع الـ Model Consumers الحقيقيين بنسبة 100%)
+  - **NO_MODEL_CONFIG: 16**
+  - **UNKNOWN: 9**
+
+## توحيد موديلات الموسيقى و3D Studio في Central Model Definition - Batch 2A (2026-08-16)
+
+- تم تحويل ميزتي **Text to Music** و **3D Studio** إلى `FULLY_CENTRALIZED` من حيث تعريف الموديلات والخصائص العامة (Model Capabilities):
+  - **Text to Music**: أصبحت موديلات Google Lyria (Pro و Fast/Clip) تعرَّف مركزياً عبر [`lib/model-definition-registry.ts`](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/model-definition-registry.ts) مع دعم كامل لخيارات المدد الزمنية، وعدد الصور المرجعية (10 صور)، وخيارات البرومبت والكلمات (`lyrics` و `force_instrumental`).
+  - **3D Studio**: أصبحت موديلات الـ 3D (Tripo3D 2.5, Hunyuan3D 3.1, Hunyuan3D 3, Meshy 6, Hyper3D Rodin 2) وأنماط توليدها (`text`, `image`, `multiview`, `sketch`) تعرَّف مركزياً وتستهلكها الواجهة عبر resolver مركزي موحد.
+- لم يتم المساس بأسعار الكريديت، أو توجيه الـ Routing، أو إعدادات المزودين (KIE standby)، أو هياكل استجابة الـ API.
+- توزيع حالات الموديلات المركزية بعد Batch 2A:
+  - FULLY_CENTRALIZED: 8
+  - PARTIALLY_CENTRALIZED: 5
+  - NOT_CENTRALIZED: 6
+  - NO_MODEL_CONFIG: 12
+  - UNKNOWN: 9
+
 ## ضبط دقة معامِل التكبير upscale scale بدقة حقيقية (2026-08-16)
 
 - تم إلغاء أي تخمين أو تداخل بين خيار الـ Scale والخيار الافتراضي في مسار `/api/generate/upscale`.

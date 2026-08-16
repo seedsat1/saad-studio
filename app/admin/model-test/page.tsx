@@ -692,6 +692,7 @@ function wsModelToRegistryModel(m: VideoModel): WaveSpeedVideoModel {
       max_reference_audios: 0,
       max_reference_audio_total_seconds: 0,
       has_negative_prompt:  false,
+      has_loop:             false,
       has_seed:             false,
       has_cfg_scale:        false,
       has_sound:            false,

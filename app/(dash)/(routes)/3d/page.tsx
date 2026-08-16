@@ -10,52 +10,12 @@ import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
+import { getCentralizedDynamicThreeDModels, type DynamicThreeDModel } from "@/lib/model-definition-registry";
 
 // ─── Model definitions ────────────────────────────────────────────────────────
-const MODELS = [
-  {
-    id:    "tripo3d-2.5",
-    label: "Tripo3D 2.5",
-    badge: "RECOMMENDED",
-    badgeColor: "bg-violet-500",
-    modes: ["image", "multiview"] as const,
-    price: "$0.10",
-  },
-  {
-    id:    "hunyuan3d-3.1",
-    label: "Hunyuan3D 3.1",
-    badge: "NEW",
-    badgeColor: "bg-emerald-500",
-    modes: ["text", "image"] as const,
-    price: "$0.0225",
-  },
-  {
-    id:    "hunyuan3d-3",
-    label: "Hunyuan3D 3",
-    badge: null,
-    badgeColor: "",
-    modes: ["text", "image", "sketch"] as const,
-    price: "$0.375",
-  },
-  {
-    id:    "meshy-6",
-    label: "Meshy 6",
-    badge: null,
-    badgeColor: "",
-    modes: ["text", "image"] as const,
-    price: "$0.20",
-  },
-  {
-    id:    "hyper3d-rodin-2",
-    label: "Hyper3D Rodin 2",
-    badge: "PRO",
-    badgeColor: "bg-amber-500",
-    modes: ["text", "image"] as const,
-    price: "$0.40",
-  },
-] as const;
+const MODELS = getCentralizedDynamicThreeDModels();
 
-type ModelId = typeof MODELS[number]["id"];
+type ModelId = string;
 type InputMode = "text" | "image" | "multiview" | "sketch";
 
 const THREE_D_CREDITS: Record<string, number> = {

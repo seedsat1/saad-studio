@@ -20,6 +20,7 @@ import Heading from "@/components/heading";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { getCentralizedDynamicMusicModels, type DynamicMusicModel } from "@/lib/model-definition-registry";
 
 // ─── Music Models ─────────────────────────────────────────────────────────────
 const MUSIC_BASE_CREDITS: Record<string, number> = {
@@ -32,32 +33,9 @@ function calcMusicCredits(modelId: string, duration: number): number {
   return base;
 }
 
-const MUSIC_MODELS = [
-  {
-    id: "google/lyria-3-pro/music",
-    label: "Google Lyria Pro",
-    sublabel: "Professional-grade music generation",
-    badge: "NEW",
-    group: "Google",
-    avatar: "🎼",
-    hasLyrics: true,
-    maxDuration: 300,
-    defaultDuration: 60,
-  },
-  {
-    id: "google/lyria-3-clip/music",
-    label: "Google Lyria Fast",
-    sublabel: "Stable & rapid music generation",
-    badge: "HOT",
-    group: "Google",
-    avatar: "🎶",
-    hasLyrics: true,
-    maxDuration: 180,
-    defaultDuration: 30,
-  },
-] as const;
+const MUSIC_MODELS = getCentralizedDynamicMusicModels();
 
-type MusicModel = (typeof MUSIC_MODELS)[number];
+type MusicModel = DynamicMusicModel;
 
 // ─── Duration Options ──────────────────────────────────────────────────────
 const DURATION_OPTIONS = [15, 30, 60, 90, 120, 180, 240];

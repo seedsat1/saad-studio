@@ -34,6 +34,8 @@ function hasActiveKie(kieKey: string | undefined): boolean {
   return Boolean(kieKey) && isFinalProviderExecutionAllowed("kie");
 }
 
+import { CURATED_GEMINI_TTS_VOICES, CURATED_TTS_MODELS } from "@/lib/model-definition-registry";
+
 const WS_TTS_MODEL = "elevenlabs/multilingual-v2";
 const WS_VIDEO2AUDIO_MODEL = "wavespeed-ai/mmaudio-v2";
 const VALID_ELEVENLABS_MUSIC_FORMATS = new Set(['mp3_standard','mp3_high_quality','wav_16khz','wav_22khz','wav_24khz','wav_cd_quality']);
@@ -66,12 +68,10 @@ const GOOGLE_GEMINI_TTS_MODELS = new Set([
   "gemini-3.1-flash-tts-preview",
   "gemini-2.5-flash-preview-tts",
   "gemini-2.5-pro-preview-tts",
+  ...CURATED_TTS_MODELS.filter((m) => m.provider === "google").map((m) => m.id),
 ]);
 const GOOGLE_GEMINI_TTS_VOICES = new Set([
-  "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe",
-  "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi",
-  "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi",
-  "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
+  ...CURATED_GEMINI_TTS_VOICES.map((v) => v.id),
 ]);
 
 interface AudioRequestBody {

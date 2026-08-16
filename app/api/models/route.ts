@@ -32,6 +32,8 @@ export async function GET() {
     const activeAudioModels = allModels
       .filter((m) => m.type === "audio" && m.isActive !== false)
       .map((m) => {
+        const centralDef = modelDefinitions.find((def) => def.modelId === m.id || def.sourceModelId === m.id);
+        const displayName = centralDef ? centralDef.displayName : m.name;
         let desc = m.notes || "";
         if (m.id === "google/lyria-3-pro/music") {
           desc = "Google · Pro Preview";
@@ -40,10 +42,10 @@ export async function GET() {
         }
         return {
           id: m.id,
-          name: m.name,
+          name: displayName,
           desc: desc,
           creditCost: m.userCreditsRate,
-          isActive: m.isActive,
+          isActive: centralDef ? centralDef.status === "active" : m.isActive,
         };
       })
       .map(withAudioSourceMetadata);

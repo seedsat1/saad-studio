@@ -3,11 +3,31 @@ import { describe, expect, it } from "vitest";
 import {
   applyCentralDefinitionsToImageModels,
   applyCentralDefinitionsToVideoModels,
+  applyCentralDefinitionsToMusicModels,
+  applyCentralDefinitionsToThreeDModels,
+  applyCentralDefinitionsToLipsyncModels,
+  applyCentralDefinitionsToTTSModels,
   applyCentralDefinitionToImageModel,
   applyCentralDefinitionToVideoModel,
+  applyCentralDefinitionToMusicModel,
+  applyCentralDefinitionToThreeDModel,
+  applyCentralDefinitionToLipsyncModel,
+  applyCentralDefinitionToTTSModel,
   buildCentralModelDefinitions,
+  getCentralizedDynamicMusicModels,
+  getCentralizedDynamicThreeDModels,
+  getCentralizedDynamicLipsyncModels,
+  getCentralizedDynamicTTSModels,
   getModelDefinitionParameterOptions,
+  CURATED_MUSIC_MODELS,
+  CURATED_THREE_D_MODELS,
+  CURATED_LIPSYNC_MODELS,
+  CURATED_TTS_MODELS,
   type CentralModelDefinition,
+  type DynamicMusicModel,
+  type DynamicThreeDModel,
+  type DynamicLipsyncModel,
+  type DynamicTTSModel,
 } from "@/lib/model-definition-registry";
 import type { DynamicImageModel, DynamicVideoModel } from "@/lib/dynamic-model-loader";
 
@@ -55,6 +75,7 @@ const videoModel: DynamicVideoModel = {
     max_reference_audios: 0,
     max_reference_audio_total_seconds: 0,
     has_negative_prompt: false,
+    has_loop: false,
     has_seed: false,
     has_cfg_scale: false,
     has_sound: true,
@@ -101,23 +122,44 @@ function withChangedVideoCapabilities(definition: CentralModelDefinition): Centr
 }
 
 describe("central model definition registry", () => {
-  it("builds one central definition per model with pricing and routing references only", () => {
-    const definitions = buildCentralModelDefinitions({ imageModels: [imageModel], videoModels: [videoModel] });
+  it("builds central definitions for image, video, audio, and 3d models", () => {
+    const definitions = buildCentralModelDefinitions({
+      imageModels: [imageModel],
+      videoModels: [videoModel],
+      musicModels: CURATED_MUSIC_MODELS,
+      threeDModels: CURATED_THREE_D_MODELS,
+    });
 
-    expect(definitions).toHaveLength(2);
-    expect(definitions[0]).toMatchObject({
-      modelId: "gpt-image-2-text-to-image",
-      displayName: "GPT Image 2",
+    expect(definitions.length).toBeGreaterThanOrEqual(4);
+
+    // Check image
+    const imgDef = definitions.find((d) => d.modelId === "gpt-image-2-text-to-image");
+    expect(imgDef).toMatchObject({
       modality: "image",
-      pricingRef: "gpt-image-2-text-to-image",
-      routingRef: "gpt-image-2-text-to-image",
       definitionSource: "central",
     });
-    expect(definitions[1]).toMatchObject({
-      modelId: "bytedance-seedance-v2-t2v",
+
+    // Check video
+    const vidDef = definitions.find((d) => d.modelId === "bytedance-seedance-v2-t2v");
+    expect(vidDef).toMatchObject({
+      modality: "video",
       sourceModelId: "bytedance/seedance-2.0/text-to-video",
-      pricingRef: "bytedance/seedance-2.0/text-to-video",
-      routingRef: "bytedance/seedance-2.0/text-to-video",
+    });
+
+    // Check music
+    const musicDef = definitions.find((d) => d.modelId === "google/lyria-3-pro/music");
+    expect(musicDef).toMatchObject({
+      modality: "audio",
+      displayName: "Google Lyria Pro",
+      runtimeSource: "google",
+    });
+
+    // Check 3d
+    const threeDDef = definitions.find((d) => d.modelId === "tripo3d-2.5");
+    expect(threeDDef).toMatchObject({
+      modality: "3d",
+      displayName: "Tripo3D 2.5",
+      runtimeSource: "wavespeed",
     });
   });
 
@@ -147,6 +189,129 @@ describe("central model definition registry", () => {
     expect(consumerModel.capabilities.durations).toEqual([5, 10, 15]);
     expect(consumerModel.capabilities.aspect_ratios).toEqual(["16:9", "9:16", "21:9"]);
     expect(consumerModel.capabilities.max_reference_images).toBe(8);
+  });
+
+  it("propagates music definition changes (durations, limits, lyrics) directly to Music consumers", () => {
+    const rawMusic = CURATED_MUSIC_MODELS[0];
+    const [definition] = buildCentralModelDefinitions({ musicModels: [rawMusic] });
+
+    const changedDef: CentralModelDefinition = {
+      ...definition,
+      displayName: "Google Lyria Pro Extended",
+      capabilities: {
+        ...definition.capabilities,
+        lyrics: false,
+      },
+      parameters: definition.parameters.map((p) =>
+        p.id === "duration" ? { ...p, options: [30, 60, 120, 600] } : p,
+      ),
+      limits: {
+        ...definition.limits,
+        maxDuration: 600,
+        maxReferenceImages: 20,
+      },
+      defaults: {
+        ...definition.defaults,
+        duration: 120,
+      },
+      inputs: {
+        ...definition.inputs,
+        referenceImages: { supported: true, min: 0, max: 20, required: false },
+      },
+    };
+
+    const consumerMusic = applyCentralDefinitionToMusicModel(rawMusic, changedDef);
+
+    expect(consumerMusic.label).toBe("Google Lyria Pro Extended");
+    expect(consumerMusic.hasLyrics).toBe(false);
+    expect(consumerMusic.durations).toEqual([30, 60, 120, 600]);
+    expect(consumerMusic.maxDuration).toBe(600);
+    expect(consumerMusic.defaultDuration).toBe(120);
+    expect(consumerMusic.maxReferenceImages).toBe(20);
+  });
+
+  it("propagates 3D definition changes (modes, display name) directly to 3D consumers", () => {
+    const raw3D = CURATED_THREE_D_MODELS[0];
+    const [definition] = buildCentralModelDefinitions({ threeDModels: [raw3D] });
+
+    const changedDef: CentralModelDefinition = {
+      ...definition,
+      displayName: "Tripo3D 2.5 Ultra",
+      parameters: definition.parameters.map((p) =>
+        p.id === "mode" ? { ...p, options: ["image", "multiview", "sketch"] } : p,
+      ),
+    };
+
+    const consumer3D = applyCentralDefinitionToThreeDModel(raw3D, changedDef);
+
+    expect(consumer3D.label).toBe("Tripo3D 2.5 Ultra");
+    expect(consumer3D.modes).toEqual(["image", "multiview", "sketch"]);
+  });
+
+  it("resolves centralized dynamic music and 3d models via dedicated getters", () => {
+    const musicModels = getCentralizedDynamicMusicModels();
+    expect(musicModels.length).toBe(2);
+    expect(musicModels[0].id).toBe("google/lyria-3-pro/music");
+    expect(musicModels[0].label).toBe("Google Lyria Pro");
+
+    const threeDModels = getCentralizedDynamicThreeDModels();
+    expect(threeDModels.length).toBe(5);
+    expect(threeDModels.map((m) => m.id)).toEqual([
+      "tripo3d-2.5",
+      "hunyuan3d-3.1",
+      "hunyuan3d-3",
+      "meshy-6",
+      "hyper3d-rodin-2",
+    ]);
+
+    const lipsyncModels = getCentralizedDynamicLipsyncModels();
+    expect(lipsyncModels.length).toBe(5);
+    expect(lipsyncModels[0].id).toBe("sync-lipsync-3");
+
+    const ttsModels = getCentralizedDynamicTTSModels();
+    expect(ttsModels.length).toBe(5);
+    expect(ttsModels.some((m) => m.id === "elevenlabs/text-to-speech-multilingual-v2")).toBe(true);
+    expect(ttsModels.some((m) => m.id === "gemini-3.1-flash-tts-preview")).toBe(true);
+  });
+
+  it("propagates lipsync definition changes (display name, acceptedMedia, route) directly to Lipsync consumers", () => {
+    const rawLipsync = CURATED_LIPSYNC_MODELS[0];
+    const [definition] = buildCentralModelDefinitions({ lipsyncModels: [rawLipsync] });
+
+    const changedDef: CentralModelDefinition = {
+      ...definition,
+      displayName: "LipSync 3 Ultra Pro",
+      sourceModelId: "sync/lipsync-3-ultra",
+      parameters: definition.parameters.map((p) =>
+        p.id === "acceptedMedia" ? { ...p, options: ["image_or_video"] } : p,
+      ),
+    };
+
+    const consumerLipsync = applyCentralDefinitionToLipsyncModel(rawLipsync, changedDef);
+
+    expect(consumerLipsync.name).toBe("LipSync 3 Ultra Pro");
+    expect(consumerLipsync.api_route).toBe("sync/lipsync-3-ultra");
+    expect(consumerLipsync.acceptedMedia).toBe("image_or_video");
+  });
+
+  it("propagates TTS definition changes (display name, voices, defaultVoice) directly to TTS consumers", () => {
+    const rawTTS = CURATED_TTS_MODELS[1]; // Gemini 3.1 Flash Live
+    const [definition] = buildCentralModelDefinitions({ ttsModels: [rawTTS] });
+
+    const changedDef: CentralModelDefinition = {
+      ...definition,
+      displayName: "Gemini 3.1 Live Custom Voices",
+      defaults: { ...definition.defaults, voice: "Zephyr" },
+      parameters: definition.parameters.map((p) =>
+        p.id === "voice" ? { ...p, options: ["Zephyr", "Puck"] } : p,
+      ),
+    };
+
+    const consumerTTS = applyCentralDefinitionToTTSModel(rawTTS, changedDef);
+
+    expect(consumerTTS.name).toBe("Gemini 3.1 Live Custom Voices");
+    expect(consumerTTS.defaultVoice).toBe("Zephyr");
+    expect(consumerTTS.voices.map((v) => v.id)).toEqual(["Zephyr", "Puck"]);
   });
 
   it("keeps UI/runtime parity by resolving migrated consumers from the same central definition", () => {
