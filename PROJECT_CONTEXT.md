@@ -1,3 +1,14 @@
+#### Latest task: Fix admin generations 500 error and CSP violation on blocked error strings (2026-08-16)
+- Status: Completed.
+- Affected files: `app/api/admin/generations/route.ts`, `app/admin/page.tsx`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - Sanitized `rawUrl` in `/api/admin/generations`: if output contains error messages (e.g., Google safety block error or upload fail string), it marks `status: "failed"` and sets `outputUrl: null` rather than treating the error string as a media URL.
+  - Added `isValidMediaUrl` in `app/admin/page.tsx` for both generation card grid and the modal preview. Invalid URLs now render a clean fallback error card instead of passing raw error strings to `<img src>` or `<video src>`, eliminating CSP violations and console errors.
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts` passed: 36 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+- Decision: Handle all blocked or failed generation outputs cleanly in the UI and API layer.
+
 #### Latest task: Restore full Admin Dashboard and relocate Control Center as dedicated sub-page (2026-08-16)
 - Status: Completed.
 - Affected files: `app/admin/page.tsx`, `app/admin/control-center/page.tsx`, `PROJECT_CONTEXT.md`.

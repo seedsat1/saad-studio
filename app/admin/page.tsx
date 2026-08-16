@@ -310,7 +310,22 @@ const NAV_ITEMS = [
   { id: "logs", label: "System Logs", icon: ScrollText },
 ];
 
-// ─── REUSABLE MINI COMPONENTS ────────────────────────────────────────────────
+function isValidMediaUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== "string") return false;
+  const t = url.trim();
+  if (
+    t.startsWith("error:") ||
+    t.startsWith("failed:") ||
+    t.startsWith("task:") ||
+    t.startsWith("{") ||
+    t.includes("violates the following") ||
+    t.includes("Input blocked") ||
+    t.includes("error")
+  ) {
+    return false;
+  }
+  return t.startsWith("http://") || t.startsWith("https://") || t.startsWith("/") || t.startsWith("data:") || t.startsWith("blob:");
+}
 
 function AssetIcon({ type }: { type: string }) {
   const cfg: Record<string, { icon: React.ReactNode; cls: string }> = {
@@ -1694,31 +1709,34 @@ export default function AdminDashboard() {
                           });
                         }}
                       >
-                        {gen.outputUrl ? (
+                        {isValidMediaUrl(gen.outputUrl) ? (
                           gen.type === "video" ? (
                             <video
-                              src={gen.outputUrl}
+                              src={gen.outputUrl!}
                               controls
                               className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
                               preload="metadata"
                             />
                           ) : (
                             <img
-                              src={gen.outputUrl}
+                              src={gen.outputUrl!}
                               alt="Generated media preview"
                               className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
                               loading="lazy"
                             />
                           )
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-slate-800/60">
-                            <Code2 className="w-10 h-10 text-slate-600" />
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-850 p-3 text-center">
+                            <AlertTriangle className="w-8 h-8 text-amber-500/70 mb-1" />
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              {gen.status === "failed" ? "Failed / Blocked" : "No Preview"}
+                            </span>
                           </div>
                         )}
                         <div className="absolute top-2 left-2">
                           <AssetIcon type={gen.type === "video" ? "VIDEO" : "IMAGE"} />
                         </div>
-                        {gen.outputUrl && (
+                        {isValidMediaUrl(gen.outputUrl) && (
                           <div className="absolute left-2 bottom-2 rounded-md border border-white/25 bg-black/45 px-2 py-0.5 text-[10px] font-semibold text-white">
                             Preview
                           </div>
@@ -2725,21 +2743,29 @@ export default function AdminDashboard() {
                 <p className="text-sm text-slate-300">{generationPreview.prompt}</p>
               </div>
               <div className="flex-1 min-h-0 bg-slate-900/40">
-                {isVideoGenerationPreview ? (
-                  <div className="w-full h-full flex items-center justify-center p-3">
-                    <video src={generationPreview.url} controls className="max-h-full w-auto max-w-full rounded-lg border border-slate-700" />
-                  </div>
-                ) : isAudioGenerationPreview ? (
-                  <div className="w-full h-full flex items-center justify-center p-6">
-                    <audio src={generationPreview.url} controls className="w-full max-w-2xl" />
-                  </div>
+                {isValidMediaUrl(generationPreview.url) ? (
+                  isVideoGenerationPreview ? (
+                    <div className="w-full h-full flex items-center justify-center p-3">
+                      <video src={generationPreview.url} controls className="max-h-full w-auto max-w-full rounded-lg border border-slate-700" />
+                    </div>
+                  ) : isAudioGenerationPreview ? (
+                    <div className="w-full h-full flex items-center justify-center p-6">
+                      <audio src={generationPreview.url} controls className="w-full max-w-2xl" />
+                    </div>
+                  ) : (
+                    <div className="w-full h-full overflow-auto p-3 flex items-start justify-center">
+                      <img
+                        src={generationPreview.url}
+                        alt="Generated content preview"
+                        className="max-w-full h-auto rounded-lg border border-slate-700"
+                      />
+                    </div>
+                  )
                 ) : (
-                  <div className="w-full h-full overflow-auto p-3 flex items-start justify-center">
-                    <img
-                      src={generationPreview.url}
-                      alt="Generated content preview"
-                      className="max-w-full h-auto rounded-lg border border-slate-700"
-                    />
+                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-slate-400">
+                    <AlertTriangle className="w-12 h-12 text-amber-400 mb-3" />
+                    <p className="text-sm font-semibold text-slate-200">Unable to preview output media</p>
+                    <p className="text-xs text-slate-400 max-w-md mt-1 font-mono">{generationPreview.url}</p>
                   </div>
                 )}
               </div>

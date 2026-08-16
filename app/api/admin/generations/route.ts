@@ -25,20 +25,41 @@ export async function GET() {
 
     const payload = generations.map((g) => {
       const rawUrl = g.outputUrl || g.mediaUrl;
-      const hasTaskPrefix = rawUrl?.startsWith("task:");
+      const isErrorString = typeof rawUrl === "string" && (
+        rawUrl.startsWith("error:") ||
+        rawUrl.startsWith("failed:") ||
+        rawUrl.startsWith("task:") ||
+        rawUrl.includes("violates the following") ||
+        rawUrl.startsWith("{")
+      );
       
-      const objectKey = (!rawUrl || hasTaskPrefix) ? null : rawUrl;
-      const resolvedUrl = objectKey ? normalizeMediaUrl(objectKey) : null;
-      const storageKeyMatch = objectKey?.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/(.+)/i);
-      const publicPreviewUrl = storageKeyMatch
-        ? defaultProvider.getPublicUrl(storageKeyMatch[1], storageKeyMatch[2])
-        : resolvedUrl;
+      const hasTaskPrefix = rawUrl?.startsWith("task:");
+      const isFailed = isErrorString || g.status === "failed" || g.status === "error";
+      
+      let resolvedUrl: string | null = null;
+      let publicPreviewUrl: string | null = null;
+      let objectKey: string | null = null;
+
+      if (rawUrl && !isErrorString) {
+        objectKey = rawUrl;
+        try {
+          resolvedUrl = normalizeMediaUrl(objectKey);
+          const storageKeyMatch = objectKey?.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/(.+)/i);
+          publicPreviewUrl = storageKeyMatch
+            ? defaultProvider.getPublicUrl(storageKeyMatch[1], storageKeyMatch[2])
+            : resolvedUrl;
+        } catch {
+          resolvedUrl = null;
+          publicPreviewUrl = null;
+        }
+      }
       
       const provider = g.providerName || getProviderFor(g.modelUsed);
       const type = (g.type as "image" | "video" | null) ?? inferType(g.assetType);
-      const status =
-        (g.status as string | null) ??
-        (objectKey ? "completed" : hasTaskPrefix ? "processing" : "unknown");
+      const status = isFailed
+        ? "failed"
+        : (g.status as string | null) ??
+          (resolvedUrl ? "completed" : hasTaskPrefix ? "processing" : "unknown");
 
       return {
         id: g.id,
@@ -56,6 +77,7 @@ export async function GET() {
         resolvedUrl,
         provider,
         publicPreviewUrl,
+        errorMessage: isErrorString ? rawUrl : null,
       };
     });
 
