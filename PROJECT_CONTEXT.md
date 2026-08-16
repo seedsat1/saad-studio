@@ -1,3 +1,17 @@
+#### Latest task: Restore full Admin Dashboard and relocate Control Center as dedicated sub-page (2026-08-16)
+- Status: Completed.
+- Affected files: `app/admin/page.tsx`, `app/admin/control-center/page.tsx`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - Restored full original Admin Dashboard to `app/admin/page.tsx` with all tabs intact:
+    - Overview, User Management, Security & Monitor, Financials & Transactions, Email Center, Visual CMS, API Keys Manager, and System Logs.
+  - Relocated Aggregation Layer Control Center to dedicated sub-page `/admin/control-center`.
+  - Added direct links in the Admin sidebar under Advanced Tools to:
+    - Admin Control Center (`/admin/control-center`), AI Models Registry (`/admin/models`), Routing & Providers (`/admin/routing`), Subscriber Analytics, CMS, and Page Builder.
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts` passed: 36 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+- Decision: Keep `/admin` as the comprehensive management dashboard while preserving `/admin/control-center` as a dedicated aggregation layer tool.
+
 #### Latest task: Route all Minimax/Hailuo models directly through WaveSpeed API (2026-08-16)
 - Status: Completed.
 - Affected files: `lib/video-model-registry.ts`, `app/api/video/route.ts`, `PROJECT_CONTEXT.md`.
