@@ -654,7 +654,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "768p";
     exact.resolution = resolution === "2k" ? "2k" : "768p";
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
-    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(5, duration)) : 5;
+    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(4, duration)) : 5;
     if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
     if (out.loop === true) exact.loop = true;
     return exact;

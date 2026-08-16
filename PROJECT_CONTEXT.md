@@ -1,3 +1,30 @@
+#### Latest task: Ensure Quality / Resolution selector renders and supports Minimax H3 2K / 768p (2026-08-16)
+- Status: Completed.
+- Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - Ensured the Quality dropdown is always rendered for any model supporting resolutions (`resolutionChoices.length > 0`) without depending on a strict non-null state.
+  - Formatted resolution options correctly to show `2K` (for `2k`), `4K`, `std`, `pro`, `768p`, `720p`, `1080p`.
+  - Added Quality buttons to mobile settings drawer.
+  - Automatically synced `resolution` state to `resolutionChoices[0]` if the current value is invalid or null when switching models.
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts` passed: 35 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+- Decision: Guarantee Quality / Resolution selector presence and proper label formatting for all resolution-capable models.
+
+#### Latest task: Update Minimax H3 to exact WaveSpeed OpenAPI specification (2026-08-16)
+- Status: Completed.
+- Affected files: `lib/video-model-registry.ts`, `app/api/video/route.ts`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - Mapped exact official specification for Minimax H3:
+    - Durations: `[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]` (4s to 15s).
+    - Aspect ratios: `["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]`.
+    - Resolutions: `["768p", "2k"]`.
+    - Reference limits: Up to 9 images, up to 3 videos (15s total), up to 3 audios (15s total).
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts` passed: 35 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+- Decision: Match OpenAPI/WaveSpeed specs exactly without hardcoding incomplete subsets.
+
 #### Latest task: Remove redundant Negative Prompt textareas from sidebar in video page (2026-08-16)
 - Status: Completed.
 - Affected files: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.

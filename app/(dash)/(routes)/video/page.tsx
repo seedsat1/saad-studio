@@ -2678,7 +2678,7 @@ function VideoPageInner() {
       setResolution("720p");
     } else if (isLegacyGoogleVeo3Model && resolution?.toLowerCase() === "1080p" && aspectRatio === "9:16") {
       setAspectRatio("16:9");
-    } else if (resolutionChoices.length > 0 && resolution && !resolutionChoices.includes(resolution)) {
+    } else if (resolutionChoices.length > 0 && (!resolution || !resolutionChoices.includes(resolution))) {
       setResolution(resolutionChoices[0]);
     }
 
@@ -5939,7 +5939,7 @@ function VideoPageInner() {
           )}
 
           {/* -- Quality ----------------------------------------------------- */}
-          {resolutionChoices.length > 0 && resolution != null && (
+          {resolutionChoices.length > 0 && (
             <div className="flex flex-col gap-2">
               <label htmlFor="quality-select" className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Quality
@@ -5948,7 +5948,7 @@ function VideoPageInner() {
                 <select
                   id="quality-select"
                   aria-label={t("Quality")}
-                  value={resolution}
+                  value={resolution ?? resolutionChoices[0]}
                   onChange={e => setResolution(e.target.value)}
                   className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg text-[13px] outline-none cursor-pointer"
                   style={{
@@ -5959,7 +5959,7 @@ function VideoPageInner() {
                 >
                   {resolutionChoices.map(r => (
                     <option key={r} value={r} style={{ background: "#0a1220", color: "#e2e8f0" }}>
-                      {r === "std" ? "std" : r === "pro" ? "pro" : r.toLowerCase() === "4k" ? "4K" : r}
+                      {r === "std" ? "std" : r === "pro" ? "pro" : r.toLowerCase() === "4k" ? "4K" : r.toLowerCase() === "2k" ? "2K" : r}
                     </option>
                   ))}
                 </select>
@@ -6935,6 +6935,29 @@ function VideoPageInner() {
                       onChange={setAspectRatio}
                       accent={selectedModel.family_color}
                     />
+                  </div>
+                )}
+
+                {/* Quality / Resolution (mobile) */}
+                {resolutionChoices.length > 0 && (
+                  <div className="mb-4">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>Quality</label>
+                    <div className="flex flex-wrap gap-2">
+                      {resolutionChoices.map(r => (
+                        <button
+                          key={r}
+                          onClick={() => setResolution(r)}
+                          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                          style={{
+                            background: (resolution ?? resolutionChoices[0]) === r ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)",
+                            color: (resolution ?? resolutionChoices[0]) === r ? selectedModel.family_color : "#a1a1aa",
+                            border: `1px solid ${(resolution ?? resolutionChoices[0]) === r ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}`,
+                          }}
+                        >
+                          {r === "std" ? "std" : r === "pro" ? "pro" : r.toLowerCase() === "4k" ? "4K" : r.toLowerCase() === "2k" ? "2K" : r}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
