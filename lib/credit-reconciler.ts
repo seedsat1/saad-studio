@@ -250,10 +250,11 @@ export function evaluateUserReconciliation(
       );
 
       // Determine if a monthly refresh is due:
-      // A refresh is due if current time is on or past currentWindowEnd OR storedCreditsExpireAt is past
+      // A refresh is due if storedCreditsExpireAt is past OR user has not been renewed for currentWindowStart
+      const lastRenewal = user.lastCreditRenewal ? new Date(user.lastCreditRenewal) : null;
       const isWindowOverdue = Boolean(
         (storedCreditsExpireAt && storedCreditsExpireAt.getTime() <= now.getTime()) ||
-        now.getTime() >= currentWindowEnd.getTime()
+        (!lastRenewal || lastRenewal.getTime() < currentWindowStart.getTime())
       );
 
       if (!isWindowOverdue) {
@@ -293,7 +294,7 @@ export function evaluateUserReconciliation(
       const debtAfter = debtBefore - advanceDeduction;
 
       // Target cycle window to advance to
-      const targetWindowEnd = now.getTime() >= currentWindowEnd.getTime() ? nextWindowEnd : currentWindowEnd;
+      const targetWindowEnd = currentWindowEnd;
       const targetWindowStart = currentWindowStart;
       const cycleId = `annual:${user.id}:${targetWindowStart.toISOString().slice(0, 10)}:${targetWindowEnd.toISOString().slice(0, 10)}`;
 

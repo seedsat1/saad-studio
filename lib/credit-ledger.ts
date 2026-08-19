@@ -6,6 +6,7 @@ import { WELCOME_SIGNUP_CREDITS } from "@/lib/credits-config";
 import { SAAD_PLANS } from "@/lib/pricing-models";
 import { isStorageConfigured, uploadUrlToStorage } from "@/lib/supabase-storage";
 import { maybeSendLowCreditAlert } from "@/lib/notifications";
+import { runCreditReconciliation } from "@/lib/credit-reconciler";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -125,104 +126,14 @@ export async function tryCreateCreditLedgerEntry(
 
 // ─── Credit Expiry & Renewal ─────────────────────────────────────────────────
 
-/**
- * Check if the user's credits have expired. If the user has an active annual
- * subscription and 30 days have passed, auto-renew their credits.
- * For monthly subscribers, expired credits are reset to 0.
- * Called automatically before every spendCredits().
- */
 export async function handleCreditExpiry(userId: string): Promise<void> {
-  const user = await prismadb.user.findUnique({ where: { id: userId } });
-  if (!user?.creditsExpireAt) return; // no expiry set → welcome/admin credits, skip
-
-  const now = new Date();
-  if (user.creditsExpireAt > now) return; // not expired yet
-
-  // Credits have expired — check if user has an active subscription (annual OR monthly)
-  const subscription = await prismadb.userSubscription.findUnique({
-    where: { userId },
-    select: {
-      billingInterval: true,
-      planId: true,
-      stripePriceId: true,
-      stripeCurrentPeriodEnd: true,
-    },
-  });
-
-  // STRICT TIMING: subscription is active only if stripeCurrentPeriodEnd is
-  // still in the future. NO grace period — not a day, not an hour.
-  const isSubscriptionActive =
-    subscription?.stripePriceId &&
-    subscription?.stripeCurrentPeriodEnd &&
-    subscription.stripeCurrentPeriodEnd.getTime() > now.getTime();
-
-  // Only annual subscribers get auto-renewed every 30 days.
-  // Monthly subscribers must pay again — their credits expire and stay at 0.
-  if (isSubscriptionActive && subscription?.billingInterval === "annual" && subscription?.planId) {
-    const plan = SAAD_PLANS.find((p) => p.id === subscription.planId);
-    const monthlyCredits = plan?.credits ?? user.monthlyCredits;
-
-    if (monthlyCredits > 0) {
-      const advanceBalance = Math.max(0, Math.floor(user.creditAdvanceBalance ?? 0));
-      const advanceDeduction = Math.min(advanceBalance, monthlyCredits);
-      const remainingAdvance = advanceBalance - advanceDeduction;
-
-      await prismadb.user.update({
-        where: { id: userId },
-        data: {
-          creditBalance: monthlyCredits - advanceDeduction,
-          monthlyCredits,
-          creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
-          lastCreditRenewal: now,
-          creditAdvanceBalance: remainingAdvance,
-          ...(remainingAdvance <= 0
-            ? {
-                creditAdvanceRequestedAt: null,
-                creditAdvanceCycleEnd: null,
-              }
-            : {}),
-        },
-      });
-
-      await tryCreateCreditLedgerEntry(prismadb, {
-        userId,
-        delta: monthlyCredits - advanceDeduction,
-        reason: "annual_monthly_renewal",
-      });
-
-      if (advanceDeduction > 0) {
-        await tryCreateCreditLedgerEntry(prismadb, {
-          userId,
-          delta: -advanceDeduction,
-          reason: "annual_advance_repayment",
-        });
-      }
-
-      return;
-    }
-  }
-
-  // No active subscription — expire credits
-  const expiredCredits = user.creditBalance;
-  await prismadb.user.update({
-    where: { id: userId },
-    data: {
-      creditBalance: 0,
-      monthlyCredits: 0,
-      creditsExpireAt: null,
-      lastCreditRenewal: null,
-      creditAdvanceBalance: 0,
-      creditAdvanceRequestedAt: null,
-      creditAdvanceCycleEnd: null,
-    },
-  });
-
-  if (expiredCredits > 0) {
-    await tryCreateCreditLedgerEntry(prismadb, {
-      userId,
-      delta: -expiredCredits,
-      reason: "monthly_credits_expired",
-    });
+  if (!userId) return;
+  try {
+    await runCreditReconciliation({ targetUserId: userId, dryRun: false });
+  } catch (error) {
+    console.error(`[handleCreditExpiry] Reconciliation failed for user ${userId}:`, error);
+    // If reconciliation failed, fail fast or re-throw so unverified credits cannot be spent
+    throw error;
   }
 }
 

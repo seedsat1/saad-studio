@@ -21,11 +21,13 @@ const {
 const tx = {
   user: {
     findUnique: mockUserFindUnique,
+    findMany: vi.fn(async () => []),
     update: mockUserUpdate,
     updateMany: mockUserUpdateMany,
   },
   userSubscription: {
     findUnique: mockUserSubscriptionFindUnique,
+    findMany: vi.fn(async () => []),
   },
   generation: {
     findUnique: vi.fn(async () => ({ id: "g1", cost: 10, isFlagged: false })),
@@ -51,11 +53,13 @@ vi.mock("@/lib/prismadb", () => {
       },
       user: {
         findUnique: mockUserFindUnique,
+        findMany: vi.fn(async () => []),
         update: mockUserUpdate,
         updateMany: mockUserUpdateMany,
       },
       userSubscription: {
         findUnique: mockUserSubscriptionFindUnique,
+        findMany: vi.fn(async () => []),
       },
       creditLedgerEntry: {
         create: mockCreditLedgerEntryCreate,
