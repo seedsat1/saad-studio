@@ -48,7 +48,25 @@
 
 ---
 
-#### Latest task: Admin UI & Navigation Consistency Normalization (2026-08-19)
+#### Latest task: Dynamic Model Resolution, Image Generation Speed Optimization & Video First-Frame Gallery Preview (2026-08-20)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Universal Model Addition & Canonical Route Resolution:
+     - Enabled dynamic AI model registration in `/admin/models` with robust mapping of text/image routes.
+     - Implemented `aspect-only` input shape for strict models (e.g. Grok Imagine).
+     - Added unconditional atomic deletion API (`DELETE /api/admin/models`) with confirmation modal and UI actions.
+  2. Image Generation Response Speed & Instant UI Display:
+     - Sped up WaveSpeed image polling from 2500ms intervals to 600ms initial + 1000ms intervals.
+     - Decoupled storage persistence in `/image` page to display generated images in the UI in 0ms without blocking.
+  3. Video Gallery First-Frame Automatic Preview:
+     - Updated `VideoHistoryList` to append `#t=0.001` to video URLs and trigger automatic `onLoadedMetadata` seek.
+     - Ensured video gallery cards render their crisp first frame immediately instead of showing blank/black boxes.
+  4. Verification:
+     - TypeScript `tsc --noEmit`: 0 errors.
+     - Vitest suite: 14/14 tests green.
+     - Clean git commit pushed to `main`.
+
+#### Previous task: Admin UI & Navigation Consistency Normalization (2026-08-19)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Universal AdminShell Encapsulation:
