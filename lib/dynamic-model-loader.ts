@@ -5,6 +5,7 @@ import { VIDEO_MODEL_REGISTRY, orderVideoModelsForDisplay, type WaveSpeedVideoMo
 export interface DynamicImageModel extends ImageModel {
   isActive?: boolean;
   isCustom?: boolean;
+  isDeleted?: boolean;
   text_api_route?: string;
   image_api_route?: string;
 }
@@ -13,6 +14,7 @@ export interface DynamicVideoModel extends WaveSpeedVideoModel {
   isActive?: boolean;
   creditCost?: number;
   isCustom?: boolean;
+  isDeleted?: boolean;
   text_api_route?: string;
   image_api_route?: string;
 }
@@ -34,7 +36,8 @@ const BLOCKED_DYNAMIC_VIDEO_IDS = new Set([
 function mergeCuratedImageModel(curated: ImageModel, existing?: DynamicImageModel): DynamicImageModel {
   return {
     ...curated,
-    isActive: existing?.isActive ?? (curated as DynamicImageModel).isActive ?? true,
+    isActive: existing?.isDeleted ? false : (existing?.isActive ?? (curated as DynamicImageModel).isActive ?? true),
+    isDeleted: existing?.isDeleted ?? false,
     creditCost: existing?.creditCost ?? curated.creditCost,
   };
 }
@@ -42,7 +45,8 @@ function mergeCuratedImageModel(curated: ImageModel, existing?: DynamicImageMode
 function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: DynamicVideoModel): DynamicVideoModel {
   return {
     ...curated,
-    isActive: existing?.isActive ?? (curated as DynamicVideoModel).isActive ?? true,
+    isActive: existing?.isDeleted ? false : (existing?.isActive ?? (curated as DynamicVideoModel).isActive ?? true),
+    isDeleted: existing?.isDeleted ?? false,
     creditCost: existing?.creditCost ?? (curated as DynamicVideoModel).creditCost,
   };
 }
@@ -50,11 +54,13 @@ function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: Dynamic
 export function normalizeDynamicImageModels(models: DynamicImageModel[]): DynamicImageModel[] {
   const existingById = new Map(models.map((model) => [model.id.toLowerCase(), model]));
   const curatedIds = new Set(IMAGE_MODELS.map((model) => model.id.toLowerCase()));
-  const normalized: DynamicImageModel[] = IMAGE_MODELS.map((model) => mergeCuratedImageModel(model, existingById.get(model.id.toLowerCase())));
+  const normalized: DynamicImageModel[] = IMAGE_MODELS
+    .map((model) => mergeCuratedImageModel(model, existingById.get(model.id.toLowerCase())))
+    .filter((model) => !model.isDeleted);
 
   for (const model of models) {
     const id = model.id.toLowerCase();
-    if (curatedIds.has(id) || BLOCKED_DYNAMIC_IMAGE_IDS.has(id)) continue;
+    if (model.isDeleted || curatedIds.has(id) || BLOCKED_DYNAMIC_IMAGE_IDS.has(id)) continue;
     if (/gemini-3(?:\.1)?-.*preview/i.test(model.id)) continue;
     normalized.push(model);
   }
@@ -65,11 +71,13 @@ export function normalizeDynamicImageModels(models: DynamicImageModel[]): Dynami
 export function normalizeDynamicVideoModels(models: DynamicVideoModel[]): DynamicVideoModel[] {
   const existingById = new Map(models.map((model) => [model.id.toLowerCase(), model]));
   const curatedIds = new Set(VIDEO_MODEL_REGISTRY.map((model) => model.id.toLowerCase()));
-  const normalized: DynamicVideoModel[] = VIDEO_MODEL_REGISTRY.map((model) => mergeCuratedVideoModel(model, existingById.get(model.id.toLowerCase())));
+  const normalized: DynamicVideoModel[] = VIDEO_MODEL_REGISTRY
+    .map((model) => mergeCuratedVideoModel(model, existingById.get(model.id.toLowerCase())))
+    .filter((model) => !model.isDeleted);
 
   for (const model of models) {
     const id = model.id.toLowerCase();
-    if (curatedIds.has(id) || BLOCKED_DYNAMIC_VIDEO_IDS.has(id)) continue;
+    if (model.isDeleted || curatedIds.has(id) || BLOCKED_DYNAMIC_VIDEO_IDS.has(id)) continue;
     normalized.push(model);
   }
 
