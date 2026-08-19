@@ -43,6 +43,8 @@ export async function GET() {
       videoModels: videoModels.map(withVideoSourceMetadata),
       modelDefinitions,
       pendingModelChanges: knowledge.modelChanges.filter((change) => change.status === "proposed"),
+      knowledgeDrafts: knowledge.drafts || [],
+      knowledgeSources: knowledge.sources || [],
       auditLog,
       versionToken: versionState.versionToken,
       versionState,

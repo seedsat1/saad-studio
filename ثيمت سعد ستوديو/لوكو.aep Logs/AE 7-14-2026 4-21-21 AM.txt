@@ -1,0 +1,22 @@
+Adobe After Effects v26.2.1 Windows 64 render log for project “لوكو.aep”
+
+Rendering started on 7/14/2026 at 4:21:21 AM
+
+  7/14/2026 4:21:22 AM: Starting composition “ريلز 4”.
+
+  Output To: C:\Users\PC\Desktop\ثيمت سعد ستوديو\الفراعنة.mp4    7/14/2026 4:22:07 AM: Finished composition “ريلز 4”.
+
+
+  7/14/2026 4:22:07 AM: Starting composition “ريلز 3”.
+
+  Output To: C:\Users\PC\Desktop\ثيمت سعد ستوديو\كارتون.mp4    7/14/2026 4:22:48 AM: Finished composition “ريلز 3”.
+
+
+  7/14/2026 4:22:48 AM: Starting composition “ريلز 2”.
+
+  Output To: C:\Users\PC\Desktop\ثيمت سعد ستوديو\كهرمانة.mp4    7/14/2026 4:23:30 AM: Finished composition “ريلز 2”.
+
+
+  Total Time Elapsed: 2 Min, 9 Sec
+Log closed on 7/14/2026 at 4:23:31 AM
+

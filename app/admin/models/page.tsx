@@ -30,10 +30,135 @@ import {
   HelpCircle,
   Check,
   Plus,
+  Boxes,
+  Globe,
+  Plug,
+  Scissors,
+  Film,
+  Mic2,
+  Eraser,
+  PenTool,
+  Palette,
+  Crop,
+  Blend,
+  Shapes,
+  Drama,
+  Lightbulb,
+  Aperture,
+  Monitor,
+  Music,
+  Headphones,
+  Radio,
+  Volume2,
+  Bot,
+  Clapperboard,
+  ScanFace,
+  Paintbrush,
+  GalleryHorizontalEnd,
+  Wand2,
 } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import type { DynamicImageModel, DynamicVideoModel } from "@/lib/dynamic-model-loader";
 import type { CentralModelDefinition } from "@/lib/model-definition-registry";
+
+interface PlatformSurfaceItem {
+  id: string;
+  name: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+  modality: "video" | "image" | "audio" | "3d" | "edit";
+  badge?: string;
+}
+
+interface PlatformSurfaceCategory {
+  category: string;
+  badge: string;
+  color: string;
+  items: PlatformSurfaceItem[];
+}
+
+const ALL_PLATFORM_SURFACES: PlatformSurfaceCategory[] = [
+  {
+    category: "Video Studio & Tools (استوديو الفيديو)",
+    badge: "18 FEATURES",
+    color: "text-orange-400 border-orange-500/30 bg-orange-500/10",
+    items: [
+      { id: "/video", name: "Create Video", desc: "Text-to-video generation", icon: VideoIcon, modality: "video" },
+      { id: "/hook-studio", name: "Hook Studio", desc: "Viral scripts, hooks, and AI short-form videos", icon: Clapperboard, modality: "video", badge: "NEW" },
+      { id: "/agent-studio", name: "Agent Studio", desc: "AI agent orchestrator & custom skills workflow", icon: Bot, modality: "video", badge: "NEW" },
+      { id: "/cinema-flow", name: "Cinema Flow", desc: "AI Creative Agent workspace", icon: Bot, modality: "video", badge: "NEW" },
+      { id: "/video-edit", name: "Cinema Edit", desc: "Iterative & stateful video editing", icon: Sparkles, modality: "video", badge: "NEW" },
+      { id: "/storyboard", name: "Storyboard Studio", desc: "Create cinematic production boards", icon: Clapperboard, modality: "video", badge: "READY" },
+      { id: "/apps/tool/cinematic-styles", name: "Cinematic Styles", desc: "Apply stylized motion presets to clips", icon: Blend, modality: "video", badge: "READY" },
+      { id: "/apps/tool/transitions", name: "Transitions", desc: "Generate styled scene transitions", icon: Blend, modality: "video", badge: "READY" },
+      { id: "/apps/tool/draw-to-video", name: "Draw to Video", desc: "Draw, add, remove, replace and animate elements", icon: PenTool, modality: "video", badge: "NEW" },
+      { id: "/edit", name: "Edit Video", desc: "Advanced AI timeline editing", icon: Scissors, modality: "video" },
+      { id: "/video-extend", name: "Video Extend", desc: "Upload a clip and extend its duration", icon: Film, modality: "video", badge: "NEW" },
+      { id: "/lipsync", name: "Lipsync Studio", desc: "Audio-driven facial animation", icon: Mic2, modality: "video" },
+      { id: "/clipcraft-studio", name: "ClipCraft Studio", desc: "Auto captions, reframe, AI dubbing, & translation", icon: Sparkles, modality: "video", badge: "NEW" },
+      { id: "/video-upscale", name: "Video Upscale", desc: "Enhance resolution to 4K/8K", icon: Aperture, modality: "video" },
+      { id: "/canvas", name: "AI Canvas", desc: "Build complete creative workflows from one visual workspace", icon: Monitor, modality: "video", badge: "NEW" },
+      { id: "/3d", name: "3D Studio", desc: "Generate and edit premium 3D models with AI", icon: ThreeDIcon, modality: "video", badge: "NEW" },
+      { id: "/assist", name: "Assist", desc: "Your AI co-pilot, chatbot, and agent assistant", icon: Bot, modality: "video", badge: "NEW" },
+      { id: "/smart-cli", name: "Smart CLI", desc: "AI terminal and hosted MCP connector for Claude", icon: Plug, modality: "video", badge: "NEW" },
+    ],
+  },
+  {
+    category: "Image Studio & Tools (استوديو الصور)",
+    badge: "13 FEATURES",
+    color: "text-pink-400 border-pink-500/30 bg-pink-500/10",
+    items: [
+      { id: "/image", name: "Create Image", desc: "Generate stunning AI images instantly", icon: Wand2, modality: "image", badge: "TOP" },
+      { id: "/prompt", name: "Prompt", desc: "Private prompt and result library", icon: GalleryHorizontalEnd, modality: "image", badge: "NEW" },
+      { id: "/prompt-extractor", name: "Prompt Extractor", desc: "Extract prompts from images", icon: ScanFace, modality: "image", badge: "NEW" },
+      { id: "/cinema-studio-image", name: "Cinema Studio Image 2.0", desc: "Cinematic quality image generation", icon: Clapperboard, modality: "image", badge: "NEW" },
+      { id: "/relight", name: "Relight", desc: "Relight any image with AI precision", icon: Lightbulb, modality: "image", badge: "NEW" },
+      { id: "/inpaint", name: "Inpaint", desc: "Fill and repair areas seamlessly", icon: PenTool, modality: "image" },
+      { id: "/upscale", name: "Image Upscale", desc: "4K AI upscaling & enhancement", icon: Aperture, modality: "image" },
+      { id: "/face-swap", name: "Face Swap", desc: "Swap faces with pixel accuracy", icon: Drama, modality: "image" },
+      { id: "/character-swap", name: "Character Swap", desc: "Transform any character seamlessly", icon: Shapes, modality: "image" },
+      { id: "/draw-to-edit", name: "Draw to Edit", desc: "Paint your edits directly on canvas", icon: Paintbrush, modality: "image" },
+    ],
+  },
+  {
+    category: "Audio Studio (استوديو الصوتيات والموسيقى)",
+    badge: "6 FEATURES",
+    color: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+    items: [
+      { id: "/audio", name: "Text to Music", desc: "Generate full tracks from prompts", icon: Music, modality: "audio" },
+      { id: "/voice-cloning", name: "Voice Cloning", desc: "Clone any voice in seconds", icon: Mic2, modality: "audio" },
+      { id: "/sound-effects", name: "Sound Effects", desc: "Create custom SFX & foley", icon: Volume2, modality: "audio" },
+      { id: "/podcast", name: "Podcast Studio", desc: "Professional podcast production", icon: Radio, modality: "audio" },
+      { id: "/music-stems", name: "Music Stems", desc: "Isolate and extract stems", icon: Headphones, modality: "audio" },
+      { id: "/lyrics", name: "Lyrics Writer", desc: "AI-powered songwriting", icon: PenTool, modality: "audio" },
+    ],
+  },
+  {
+    category: "Edit Studio (أدوات التعديل والمعالجة)",
+    badge: "6 FEATURES",
+    color: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10",
+    items: [
+      { id: "/background-remove", name: "Background Remove", desc: "Remove backgrounds instantly", icon: Eraser, modality: "edit" },
+      { id: "/ai-inpainting", name: "AI Inpainting", desc: "Fill and fix any area", icon: Wand2, modality: "edit" },
+      { id: "/upscale-enhance", name: "Upscale & Enhance", desc: "4K upscaling AI", icon: Sparkles, modality: "edit" },
+      { id: "/style-transfer", name: "Style Transfer", desc: "Apply any artistic style", icon: Blend, modality: "edit" },
+      { id: "/smart-crop", name: "Smart Crop", desc: "AI-powered composition", icon: Crop, modality: "edit" },
+      { id: "/colorize", name: "Colorize", desc: "Colorize B&W media", icon: Palette, modality: "edit" },
+    ],
+  },
+  {
+    category: "Standalone & Navigation Pages (القائمة الرئيسية)",
+    badge: "GLOBAL",
+    color: "text-amber-400 border-amber-500/30 bg-amber-500/10",
+    items: [
+      { id: "/adobe-plugin", name: "Adobe Plugin", desc: "Premiere Pro CEP Extension & Panel Integration", icon: Plug, modality: "video" },
+      { id: "/cinematic-styles", name: "Cinematic Styles", desc: "Direct cinematic motion presets hub", icon: Blend, modality: "video" },
+      { id: "/transitions", name: "Transitions", desc: "Direct scene transition maker", icon: Blend, modality: "video" },
+      { id: "/gallery", name: "Gallery", desc: "Community showcase & asset gallery", icon: GalleryHorizontalEnd, modality: "image" },
+      { id: "/explore", name: "Explore", desc: "Global AI creations explorer", icon: Globe, modality: "video" },
+    ],
+  },
+];
 
 type ModelRegistryAuditEvent = {
   id: string;
@@ -146,6 +271,58 @@ export default function AdminModelsPage() {
   const [newMaxRefImages, setNewMaxRefImages] = useState<number>(4);
   const [newCreditCost, setNewCreditCost] = useState<number>(10);
   const [newIsActive, setNewIsActive] = useState<boolean>(true);
+  const [selectedStudioPages, setSelectedStudioPages] = useState<string[]>(["/video"]);
+  const [surfaceSearchQuery, setSurfaceSearchQuery] = useState<string>("");
+  const [activeCategoryTab, setActiveCategoryTab] = useState<string>("ALL");
+  const [knowledgeDrafts, setKnowledgeDrafts] = useState<any[]>([]);
+  const [selectedDraftId, setSelectedDraftId] = useState<string>("");
+
+  const handleAutofillFromKnowledge = (draftId: string) => {
+    setSelectedDraftId(draftId);
+    if (!draftId) return;
+    const draft = knowledgeDrafts.find((d) => d.id === draftId);
+    if (!draft) return;
+
+    const modelIdField = draft.fields?.find((f: any) => f.key === "modelId" || f.key === "name" || f.key === "title");
+    const modalityField = draft.fields?.find((f: any) => f.key === "modality" || f.key === "type");
+    const resolutionsField = draft.fields?.find((f: any) => f.key.includes("resolution") || f.key.includes("quality"));
+    const durationsField = draft.fields?.find((f: any) => f.key.includes("duration"));
+    const aspectRatiosField = draft.fields?.find((f: any) => f.key.includes("aspect"));
+    const maxRefField = draft.fields?.find((f: any) => f.key.includes("reference") || f.key.includes("max"));
+
+    if (draft.provider) setNewProvider(draft.provider);
+    if (modelIdField?.value) {
+      setNewModelId(modelIdField.value);
+      const inferredName = modelIdField.value.split(/[/_-]/).filter(Boolean).map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+      setNewModelName(inferredName);
+      setNewTextRoute(modelIdField.value);
+      if (modelIdField.value.includes("text-to-video")) {
+        setNewImageRoute(modelIdField.value.replace("text-to-video", "image-to-video"));
+      } else if (modelIdField.value.includes("text-to-image")) {
+        setNewImageRoute(modelIdField.value.replace("text-to-image", "edit"));
+      }
+    }
+    if (modalityField?.value === "image") {
+      setNewModality("image");
+      setSelectedStudioPages(["image"]);
+    } else {
+      setNewModality("video");
+      setSelectedStudioPages(["video"]);
+    }
+    if (resolutionsField?.value) {
+      setNewResolutions(resolutionsField.value);
+    }
+    if (durationsField?.value) {
+      setNewDurations(durationsField.value);
+    }
+    if (aspectRatiosField?.value) {
+      const parsed = aspectRatiosField.value.split(/[,;\s]+/).map((s: string) => s.trim()).filter(Boolean);
+      if (parsed.length > 0) setNewAspectRatios(parsed);
+    }
+    if (maxRefField?.value && !isNaN(Number(maxRefField.value))) {
+      setNewMaxRefImages(Number(maxRefField.value));
+    }
+  };
 
   const handleCreateCustomModel = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,6 +382,7 @@ export default function AdminModelsPage() {
       setNewModelId("");
       setNewTextRoute("");
       setNewImageRoute("");
+      setSelectedDraftId("");
       await loadModels();
     } catch (err: any) {
       console.error("[AdminModels] Create error:", err);
@@ -220,7 +398,7 @@ export default function AdminModelsPage() {
       setError(null);
       const res = await fetch("/api/admin/models", { cache: "no-store" });
       if (!res.ok) throw new Error(`Failed to load models (HTTP ${res.status})`);
-      const data: ModelsApiResponse = await res.json();
+      const data: ModelsApiResponse & { knowledgeDrafts?: any[] } = await res.json();
       if (data.error) throw new Error(data.error);
 
       setImageModels(data.imageModels || []);
@@ -228,6 +406,9 @@ export default function AdminModelsPage() {
       setModelDefinitions(data.modelDefinitions || []);
       setAuditLog(data.auditLog || []);
       setVersionToken(data.versionToken || null);
+      if (Array.isArray(data.knowledgeDrafts)) {
+        setKnowledgeDrafts(data.knowledgeDrafts);
+      }
     } catch (err: any) {
       console.error("[AdminModels] Load error:", err);
       setError(err.message || "Failed to load model registry");
@@ -1124,64 +1305,294 @@ export default function AdminModelsPage() {
             </div>
           </div>
         )}
-        {/* Add New Custom Model Modal */}
+        {/* Add New Custom Model Modal - Large, Spacious & Intelligent */}
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto">
-            <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-6 shadow-2xl my-8">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 md:p-6 overflow-y-auto">
+            <div className="w-full max-w-4xl bg-zinc-900 border border-zinc-700/80 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl my-6 max-h-[92vh] overflow-y-auto">
               {/* Modal Header */}
               <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-indigo-950/80 border border-indigo-800 text-indigo-400">
-                    <Plus className="w-5 h-5" />
+                  <div className="p-2.5 rounded-xl bg-indigo-950/80 border border-indigo-700/80 text-indigo-400">
+                    <Plus className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-zinc-100">Add New AI Model / إضافة موديل جديد</h3>
-                    <p className="text-xs text-zinc-400 mt-0.5">
-                      Register a unified model with intelligent background auto-dispatch (Text vs Image/Edit).
+                    <h3 className="text-xl font-bold text-zinc-100 flex items-center gap-2">
+                      <span>Add & Configure AI Model</span>
+                      <span className="text-zinc-500 text-sm font-normal">/</span>
+                      <span className="text-indigo-400 text-base font-semibold">إضافة وضبط موديل ذكاء اصطناعي</span>
+                    </h3>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      Register a production-ready model with Knowledge Hub default autofill and background auto-dispatch.
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
+              {/* ⚡ SECTION 1: Knowledge Hub Auto-Fill (تعبئة المواصفات المستخرجة من التوثيق) */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-zinc-950 border border-indigo-800/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-indigo-300 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>Autofill Defaults from Knowledge Hub / تعبئة المواصفات من صفحة التوثيق</span>
+                  </span>
+                  <Link
+                    href="/admin/knowledge"
+                    target="_blank"
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 underline flex items-center gap-1"
+                  >
+                    <span>Knowledge Hub Docs</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
+                </div>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={selectedDraftId}
+                    onChange={(e) => handleAutofillFromKnowledge(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-lg bg-zinc-900 border border-indigo-800/80 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="">-- Choose imported document to autofill specs (اختر توثيق مستورد) --</option>
+                    {knowledgeDrafts.map((draft: any) => {
+                      const modelField = draft.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
+                      return (
+                        <option key={draft.id} value={draft.id}>
+                          {draft.provider?.toUpperCase()} · {modelField?.value || draft.id} ({draft.fields?.length || 0} extracted specs)
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {selectedDraftId && (
+                    <span className="px-2.5 py-1.5 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] font-semibold flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Autofilled!</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {addError && (
-                <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+                <div className="p-3.5 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
                   <span>{addError}</span>
                 </div>
               )}
 
-              <form onSubmit={handleCreateCustomModel} className="space-y-4 text-xs">
-                {/* Modality & Provider Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={handleCreateCustomModel} className="space-y-6 text-xs">
+                {/* 🎯 SECTION 2: Target Studios & Display Placement (ظهور الموديل في كافة استوديوهات وأدوات المنصة) */}
+                <div className="space-y-3 p-4 rounded-xl bg-zinc-950 border border-zinc-800">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <label className="text-zinc-100 font-bold text-xs flex items-center gap-2">
+                        <Boxes className="w-4 h-4 text-indigo-400" />
+                        <span>Target Studios & Feature Pages / في أي صفحات وأدوات يظهر الموديل؟</span>
+                        <span className="text-rose-400">*</span>
+                      </label>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                        حدد أي استوديو أو أداة فرعية ترغب في إتاحة هذا الموديل داخلها للمشتركين.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-full bg-indigo-950/80 border border-indigo-700/80 text-indigo-300 font-mono text-[11px] font-bold">
+                        {selectedStudioPages.length} Selected / محدد
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudioPages(ALL_PLATFORM_SURFACES.flatMap((c) => c.items.map((i) => i.id)))}
+                        className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] transition-colors"
+                      >
+                        Select All (الكل)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudioPages(["/video"])}
+                        className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-[11px] transition-colors"
+                      >
+                        Reset (إعادة ضبط)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Filter & Search Bar */}
+                  <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                    <div className="relative flex-1 w-full">
+                      <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Search across all 40+ pages & tools (ابحث في جميع الأدوات والصفحات)..."
+                        value={surfaceSearchQuery}
+                        onChange={(e) => setSurfaceSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-500 text-xs focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                      {["ALL", "Video", "Image", "Audio", "Edit", "Standalone"].map((cat) => (
+                        <button
+                          type="button"
+                          key={cat}
+                          onClick={() => setActiveCategoryTab(cat)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors whitespace-nowrap ${
+                            activeCategoryTab === cat
+                              ? "bg-indigo-600 text-white font-semibold shadow-xs"
+                              : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Categorized Surfaces Display */}
+                  <div className="space-y-4 max-h-64 overflow-y-auto pr-1">
+                    {ALL_PLATFORM_SURFACES.filter((cat) => {
+                      if (activeCategoryTab === "Video") return cat.category.includes("Video");
+                      if (activeCategoryTab === "Image") return cat.category.includes("Image");
+                      if (activeCategoryTab === "Audio") return cat.category.includes("Audio");
+                      if (activeCategoryTab === "Edit") return cat.category.includes("Edit");
+                      if (activeCategoryTab === "Standalone") return cat.category.includes("Standalone");
+                      return true;
+                    }).map((category) => {
+                      const filteredItems = category.items.filter(
+                        (item) =>
+                          !surfaceSearchQuery.trim() ||
+                          item.name.toLowerCase().includes(surfaceSearchQuery.toLowerCase()) ||
+                          item.desc.toLowerCase().includes(surfaceSearchQuery.toLowerCase()) ||
+                          item.id.toLowerCase().includes(surfaceSearchQuery.toLowerCase())
+                      );
+                      if (filteredItems.length === 0) return null;
+
+                      return (
+                        <div key={category.category} className="space-y-2">
+                          <div className="flex items-center justify-between border-b border-zinc-800/80 pb-1">
+                            <span className="text-[11px] font-bold text-zinc-300 flex items-center gap-2">
+                              <span>{category.category}</span>
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${category.color}`}>
+                                {category.badge}
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const ids = category.items.map((i) => i.id);
+                                const allIn = ids.every((id) => selectedStudioPages.includes(id));
+                                if (allIn) {
+                                  setSelectedStudioPages(selectedStudioPages.filter((id) => !ids.includes(id)));
+                                } else {
+                                  setSelectedStudioPages(Array.from(new Set([...selectedStudioPages, ...ids])));
+                                }
+                              }}
+                              className="text-[10px] text-indigo-400 hover:text-indigo-300 underline"
+                            >
+                              {category.items.every((i) => selectedStudioPages.includes(i.id)) ? "Deselect Group" : "Select Group"}
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {filteredItems.map((item) => {
+                              const isSelected = selectedStudioPages.includes(item.id);
+                              const Icon = item.icon;
+                              return (
+                                <button
+                                  type="button"
+                                  key={item.id}
+                                  onClick={() => {
+                                    let next: string[];
+                                    if (isSelected) {
+                                      next = selectedStudioPages.filter((p) => p !== item.id);
+                                      if (next.length === 0) next = [item.id];
+                                    } else {
+                                      next = [...selectedStudioPages, item.id];
+                                    }
+                                    setSelectedStudioPages(next);
+                                    if (item.modality === "image") setNewModality("image");
+                                    else if (item.modality === "video") setNewModality("video");
+                                  }}
+                                  className={`p-2 rounded-xl border text-left flex items-start gap-2.5 transition-all ${
+                                    isSelected
+                                      ? "bg-indigo-950/70 border-indigo-500 shadow-xs ring-1 ring-indigo-500/30"
+                                      : "bg-zinc-900/80 border-zinc-800 hover:border-zinc-700 text-zinc-400"
+                                  }`}
+                                >
+                                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${isSelected ? "bg-indigo-600 text-white" : "bg-zinc-800 text-zinc-400"}`}>
+                                    <Icon className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className={`font-semibold text-xs truncate ${isSelected ? "text-indigo-100" : "text-zinc-200"}`}>
+                                        {item.name}
+                                      </span>
+                                      {item.badge && (
+                                        <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                                          {item.badge}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-zinc-500 block truncate">{item.desc}</span>
+                                    <span className="text-[9px] font-mono text-zinc-600 block truncate">{item.id}</span>
+                                  </div>
+                                  <div className="flex-shrink-0 pt-0.5">
+                                    <div
+                                      className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${
+                                        isSelected ? "bg-indigo-600 border-indigo-500 text-white" : "border-zinc-700 bg-zinc-950"
+                                      }`}
+                                    >
+                                      {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 🏷️ SECTION 3: Identity & Provider Settings */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-zinc-300 font-medium mb-1">
-                      Modality / نوع الوسائط <span className="text-rose-400">*</span>
+                    <label className="block text-zinc-300 font-semibold mb-1">
+                      Display Name / الاسم الظاهر للمشترك <span className="text-rose-400">*</span>
                     </label>
-                    <select
-                      value={newModality}
-                      onChange={(e) => setNewModality(e.target.value as "video" | "image")}
-                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500"
-                    >
-                      <option value="video">Video Model (استوديو الفيديو)</option>
-                      <option value="image">Image Model (استوديو الصور)</option>
-                    </select>
+                    <input
+                      type="text"
+                      placeholder="e.g. Kling V3.5 Pro"
+                      value={newModelName}
+                      onChange={(e) => setNewModelName(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 text-xs"
+                      required
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-zinc-300 font-medium mb-1">
+                    <label className="block text-zinc-300 font-semibold mb-1">
+                      Model ID / المعرف الفريد <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. kwaivgi/kling-v3.5-pro"
+                      value={newModelId}
+                      onChange={(e) => setNewModelId(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-xs"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-300 font-semibold mb-1">
                       Provider / المزود التقني <span className="text-rose-400">*</span>
                     </label>
                     <select
                       value={newProvider}
                       onChange={(e) => setNewProvider(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 text-xs"
                     >
                       <option value="wavespeed">WaveSpeed (Active Provider)</option>
                       <option value="google">Google Veo / Imagen (Active)</option>
@@ -1193,50 +1604,17 @@ export default function AdminModelsPage() {
                   </div>
                 </div>
 
-                {/* Identity & Display Name */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-zinc-300 font-medium mb-1">
-                      Display Name / الاسم الظاهر للمشترك <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Kling V3.5 Pro"
-                      value={newModelName}
-                      onChange={(e) => setNewModelName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500"
-                      required
-                    />
-                    <span className="text-[10px] text-zinc-500 mt-0.5 block">الاسم الموحد الذي يظهر في الاستوديو للمستخدمين.</span>
-                  </div>
-
-                  <div>
-                    <label className="block text-zinc-300 font-medium mb-1">
-                      Model ID / المعرف الفريد <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. kwaivgi/kling-v3.5-pro"
-                      value={newModelId}
-                      onChange={(e) => setNewModelId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono"
-                      required
-                    />
-                    <span className="text-[10px] text-zinc-500 mt-0.5 block">المعرف الثابت في قاعدة البيانات ونظام التسعير.</span>
-                  </div>
-                </div>
-
-                {/* Unified Sub-Routes (Auto-Dispatch) */}
-                <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+                {/* 🔄 SECTION 4: Unified Sub-Routes (التوجيه التلقائي الذكي في الخلفية) */}
+                <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-indigo-300 text-xs flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-indigo-400" />
-                      Unified Sub-Routes (التوجيه التلقائي الذكي في الخلفية)
+                    <span className="font-bold text-indigo-300 text-xs flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-indigo-400" />
+                      <span>Unified Sub-Routes (التوجيه التلقائي الذكي بين النص والصورة)</span>
                     </span>
-                    <span className="text-[10px] text-zinc-400">يعمل بدون إرباك المشترك</span>
+                    <span className="text-[11px] text-zinc-500">يعمل بدون إرباك المشترك</span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-zinc-400 font-medium mb-1">
                         Text Route (مسار النص فقط)
@@ -1246,9 +1624,9 @@ export default function AdminModelsPage() {
                         placeholder="e.g. kwaivgi/kling-v3.5-pro/text-to-video"
                         value={newTextRoute}
                         onChange={(e) => setNewTextRoute(e.target.value)}
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                        className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
                       />
-                      <span className="text-[10px] text-zinc-500 mt-0.5 block">يُشغّل عند كتابة برومبت نصي فقط.</span>
+                      <span className="text-[10px] text-zinc-500 mt-1 block">يُشغّل تلقائياً عند كتابة برومبت نصي بدون رفع صورة.</span>
                     </div>
 
                     <div>
@@ -1260,55 +1638,181 @@ export default function AdminModelsPage() {
                         placeholder="e.g. kwaivgi/kling-v3.5-pro/image-to-video"
                         value={newImageRoute}
                         onChange={(e) => setNewImageRoute(e.target.value)}
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                        className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
                       />
-                      <span className="text-[10px] text-zinc-500 mt-0.5 block">يُشغّل تلقائياً عند رفع صورة بداية أو مراجع.</span>
+                      <span className="text-[10px] text-zinc-500 mt-1 block">يُشغّل تلقائياً عند قيام المشترك برفع صورة بداية أو مراجع.</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Capabilities & Durations */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-zinc-300 font-medium mb-1">Durations (المدد بالثواني)</label>
+                {/* 📐 SECTION 5: Visual Aspect Ratios (اختيار الأبعاد والنسب البصرية) */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-zinc-200 font-bold text-xs flex items-center gap-2">
+                      <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
+                      <span>Supported Aspect Ratios / الأبعاد والنسب المدعومة</span>
+                    </label>
+                    <span className="text-[11px] text-zinc-500">انقر لتحديد أو إلغاء أي نسبة</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                    {[
+                      { value: "1:1", label: "1:1 Square", w: 18, h: 18 },
+                      { value: "16:9", label: "16:9 Landscape", w: 24, h: 13 },
+                      { value: "9:16", label: "9:16 Portrait", w: 13, h: 24 },
+                      { value: "4:3", label: "4:3 Standard", w: 20, h: 15 },
+                      { value: "3:4", label: "3:4 Vertical", w: 15, h: 20 },
+                      { value: "2:3", label: "2:3 Portrait", w: 14, h: 21 },
+                      { value: "3:2", label: "3:2 Photo", w: 21, h: 14 },
+                      { value: "21:9", label: "21:9 Ultrawide", w: 28, h: 12 },
+                      { value: "1:4", label: "1:4 Ultra-tall", w: 8, h: 26 },
+                      { value: "1:8", label: "1:8 Skyscraper", w: 6, h: 28 },
+                    ].map((ratio) => {
+                      const isSelected = newAspectRatios.includes(ratio.value);
+                      return (
+                        <button
+                          type="button"
+                          key={ratio.value}
+                          onClick={() => {
+                            let next: string[];
+                            if (isSelected) {
+                              next = newAspectRatios.filter((r) => r !== ratio.value);
+                              if (next.length === 0) next = [ratio.value];
+                            } else {
+                              next = [...newAspectRatios, ratio.value];
+                            }
+                            setNewAspectRatios(next);
+                          }}
+                          className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all ${
+                            isSelected
+                              ? "bg-indigo-950/70 border-indigo-500 text-white shadow-xs"
+                              : "bg-zinc-950 border-zinc-800 hover:border-zinc-700 text-zinc-400"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              style={{ width: `${ratio.w}px`, height: `${ratio.h}px` }}
+                              className={`border-2 rounded-xs flex-shrink-0 ${
+                                isSelected ? "border-indigo-400 bg-indigo-500/20" : "border-zinc-600"
+                              }`}
+                            />
+                            <span className="font-mono text-xs font-semibold">{ratio.value}</span>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ⏱️ & 📺 SECTION 6: Durations & Resolutions Chips */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Durations */}
+                  <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2.5">
+                    <label className="block text-zinc-300 font-semibold text-xs">
+                      Durations (المدد المتاحة بالثواني)
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[5, 10, 15, 20, 30, 60].map((dur) => {
+                        const parsed = newDurations.split(",").map((s) => parseInt(s.trim(), 10)).filter(Boolean);
+                        const isIncluded = parsed.includes(dur);
+                        return (
+                          <button
+                            type="button"
+                            key={dur}
+                            onClick={() => {
+                              let next: number[];
+                              if (isIncluded) {
+                                next = parsed.filter((d) => d !== dur);
+                                if (next.length === 0) next = [dur];
+                              } else {
+                                next = [...parsed, dur].sort((a, b) => a - b);
+                              }
+                              setNewDurations(next.join(", "));
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold border transition-all ${
+                              isIncluded
+                                ? "bg-indigo-950 border-indigo-500 text-indigo-300"
+                                : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                            }`}
+                          >
+                            {dur}s
+                          </button>
+                        );
+                      })}
+                    </div>
                     <input
                       type="text"
                       placeholder="e.g. 5, 10, 15"
                       value={newDurations}
                       onChange={(e) => setNewDurations(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                      className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 font-mono text-[11px] focus:outline-none focus:border-indigo-500"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-zinc-300 font-medium mb-1">Resolutions (الدقات المتاحة)</label>
+                  {/* Resolutions */}
+                  <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2.5">
+                    <label className="block text-zinc-300 font-semibold text-xs">
+                      Resolutions (الدقات المتاحة)
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {["720p", "1080p", "2K", "4K", "1K", "HD"].map((res) => {
+                        const parsed = newResolutions.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+                        const isIncluded = parsed.includes(res.toLowerCase());
+                        return (
+                          <button
+                            type="button"
+                            key={res}
+                            onClick={() => {
+                              let next: string[];
+                              if (isIncluded) {
+                                next = newResolutions.split(",").map((s) => s.trim()).filter((s) => s.toLowerCase() !== res.toLowerCase());
+                                if (next.length === 0) next = [res];
+                              } else {
+                                next = [...newResolutions.split(",").map((s) => s.trim()).filter(Boolean), res];
+                              }
+                              setNewResolutions(next.join(", "));
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold border transition-all ${
+                              isIncluded
+                                ? "bg-indigo-950 border-indigo-500 text-indigo-300"
+                                : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                            }`}
+                          >
+                            {res}
+                          </button>
+                        );
+                      })}
+                    </div>
                     <input
                       type="text"
                       placeholder="e.g. 720p, 1080p, 4K"
                       value={newResolutions}
                       onChange={(e) => setNewResolutions(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                      className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 font-mono text-[11px] focus:outline-none focus:border-indigo-500"
                     />
                   </div>
+                </div>
 
+                {/* 💰 SECTION 7: Pricing & Instant Publication */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-zinc-800">
                   <div>
-                    <label className="block text-zinc-300 font-medium mb-1">Max Reference Images</label>
+                    <label className="block text-zinc-300 font-semibold mb-1">
+                      Max Reference Images (الحد الأقصى للمراجع)
+                    </label>
                     <input
                       type="number"
                       min="0"
                       max="10"
                       value={newMaxRefImages}
                       onChange={(e) => setNewMaxRefImages(parseInt(e.target.value, 10) || 0)}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 text-[11px]"
+                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500"
                     />
                   </div>
-                </div>
 
-                {/* Pricing & Status */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-zinc-800/80">
                   <div>
-                    <label className="block text-zinc-300 font-medium mb-1">
-                      Base Credit Cost / سعر النقاط للمشترك <span className="text-rose-400">*</span>
+                    <label className="block text-zinc-300 font-semibold mb-1">
+                      Base Credit Cost (سعر النقاط للمشترك) <span className="text-rose-400">*</span>
                     </label>
                     <input
                       type="number"
@@ -1316,7 +1820,7 @@ export default function AdminModelsPage() {
                       min="0"
                       value={newCreditCost}
                       onChange={(e) => setNewCreditCost(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 font-bold text-amber-400"
+                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-amber-400 font-bold text-sm focus:outline-none focus:border-indigo-500"
                       required
                     />
                   </div>
@@ -1324,12 +1828,12 @@ export default function AdminModelsPage() {
                   <div className="flex items-center gap-3 pt-6">
                     <input
                       type="checkbox"
-                      id="new-model-active"
+                      id="new-model-active-check"
                       checked={newIsActive}
                       onChange={(e) => setNewIsActive(e.target.checked)}
                       className="w-4 h-4 text-indigo-600 rounded bg-zinc-900 border-zinc-700"
                     />
-                    <label htmlFor="new-model-active" className="text-zinc-200 font-medium cursor-pointer">
+                    <label htmlFor="new-model-active-check" className="text-zinc-200 font-medium text-xs cursor-pointer">
                       Publish Active Immediately (نشر الموديل مفعل فوراً)
                     </label>
                   </div>
@@ -1341,14 +1845,14 @@ export default function AdminModelsPage() {
                     type="button"
                     onClick={() => setShowAddModal(false)}
                     disabled={addingModel}
-                    className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors"
+                    className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-xs transition-colors"
                   >
                     Cancel / إلغاء
                   </button>
                   <button
                     type="submit"
                     disabled={addingModel}
-                    className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-md transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg transition-colors disabled:opacity-50"
                   >
                     {addingModel ? (
                       <>
@@ -1358,7 +1862,7 @@ export default function AdminModelsPage() {
                     ) : (
                       <>
                         <Check className="w-4 h-4" />
-                        <span>Save & Register Model / حفظ وتفعيل</span>
+                        <span>Save & Register Model / حفظ وتفعيل الموديل</span>
                       </>
                     )}
                   </button>

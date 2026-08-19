@@ -13524,12 +13524,18 @@
 - Affected files:
   - `lib/admin/knowledge-hub.ts`: Auto-creates dynamic video and image models when publishing new model change proposals instead of throwing unmapped errors.
   - `lib/dynamic-model-loader.ts`: Enhanced `DynamicImageModel` and `DynamicVideoModel` with `text_api_route`, `image_api_route`, and `isCustom` flags.
-  - `app/api/admin/models/route.ts`: Added support in POST handler for explicit `newModel` creation payloads with atomic concurrency and audit logging.
-  - `app/admin/models/page.tsx`: Added top toolbar `+ Add Model` action and built modal supporting Unified Model configuration (Display Name, ID, Provider, Modality, Text Route, Image/Edit Route, Durations, Resolutions, Aspect Ratios, Max Ref Images, Credit Cost, and Instant Activation).
+  - `app/api/admin/models/route.ts`: Added support in POST handler for explicit `newModel` creation payloads with atomic concurrency and audit logging; returned `knowledgeDrafts` in GET response for client autofill.
+  - `app/admin/models/page.tsx`: Redesigned Add Model dialog into a large, spacious modal (`max-w-4xl`) featuring:
+    1. Knowledge Hub 1-click default autofill bar.
+    2. Comprehensive 45-Platform Surfaces categorized multi-select dropdown (Video Studio 18 features, Image Studio 10 features, Audio Studio 6 features, Edit Studio 6 features, Standalone navigation pages) with search, group select, and active badges matching the platform's top navbar exactly.
+    3. Visual interactive Aspect Ratios picker with geometric box previews and toggles (1:1, 16:9, 9:16, 4:3, 3:4, 2:3, 3:2, 21:9, 1:4, 1:8).
+    4. Interactive Duration and Resolution preset chips with custom input.
+    5. Unified sub-routes (Text Route vs Image/Edit Route) with background auto-dispatch.
   - `app/api/video/route.ts`: Generalised intelligent background sub-route dispatch for dynamic models based on input presence (`hasImage` -> `image_api_route`, text-only -> `text_api_route`).
   - `PROJECT_CONTEXT.md`.
 - Verification:
   - `npx.cmd tsc --noEmit` passed with 0 errors.
-  - Vitest test suites (`admin-knowledge-hub.test.ts`, `models-backend-hardening.test.ts`, `adobe-plugin-admin-control-plane.test.ts`) passed: 25/25 tests.
+  - Vitest test suites (`admin-knowledge-hub.test.ts`, `models-backend-hardening.test.ts`) passed: 10/10 tests.
+
 
 
