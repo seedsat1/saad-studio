@@ -7,7 +7,7 @@ export interface WaveSpeedImageRouteConfig {
   maxReferenceImages: number;
   outputCountField?: "num_images" | "max_images";
   maxOutputImages: number;
-  inputShape: "aspect-resolution" | "seedream-pro" | "seedream-lite-size" | "size";
+  inputShape: "aspect-resolution" | "seedream-pro" | "seedream-lite-size" | "size" | "aspect-only";
 }
 
 function normalizeSeedream5ProResolution(value: unknown): "1k" | "2k" {
@@ -222,11 +222,11 @@ export function resolveWaveSpeedImageModelRoute(
     const edit = hasReferenceImages || id.includes("image-to-image") || id.includes("edit");
     return {
       model: edit ? "grok-imagine/image-to-image" : "grok-imagine/text-to-image",
-      referenceField: edit ? "images" : undefined,
+      referenceField: edit ? "image" : undefined,
       requiresReference: edit,
-      maxReferenceImages: edit ? 4 : 0,
-      maxOutputImages: 4,
-      inputShape: "size",
+      maxReferenceImages: edit ? 1 : 0,
+      maxOutputImages: 1,
+      inputShape: "aspect-only",
     };
   }
 
@@ -252,7 +252,7 @@ export function resolveWaveSpeedImageModelRoute(
       requiresReference: false,
       maxReferenceImages: hasReferenceImages ? 4 : 0,
       maxOutputImages: 4,
-      inputShape: "size",
+      inputShape: "aspect-resolution",
     };
   }
 
@@ -276,15 +276,16 @@ export function buildWaveSpeedImageInput(
   const input: Record<string, unknown> = {
     prompt: params.prompt,
     output_format: "jpeg",
-    enable_base64_output: false,
-    enable_sync_mode: false,
   };
 
   if (params.negativePrompt) {
     input.negative_prompt = params.negativePrompt;
   }
 
-  if (config.inputShape === "aspect-resolution" || config.inputShape === "seedream-pro") {
+  if (config.inputShape === "aspect-only" || config.model.includes("grok")) {
+    const ar = String(params.aspectRatio || "1:1").trim();
+    input.aspect_ratio = ar === "auto" ? "1:1" : ar;
+  } else if (config.inputShape === "aspect-resolution" || config.inputShape === "seedream-pro") {
     input.aspect_ratio = params.aspectRatio === "auto" ? undefined : params.aspectRatio;
     input.resolution = config.inputShape === "seedream-pro"
       ? normalizeSeedream5ProResolution(requestedQuality)
@@ -293,6 +294,8 @@ export function buildWaveSpeedImageInput(
     input.size = normalizeSeedream5LiteSize(requestedQuality);
   } else {
     input.size = normalizeWaveSpeedImageSize(params.aspectRatio, requestedQuality);
+    input.enable_base64_output = false;
+    input.enable_sync_mode = false;
   }
 
   const refs = (params.referenceUrls ?? []).slice(0, config.maxReferenceImages);

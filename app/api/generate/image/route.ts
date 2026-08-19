@@ -912,7 +912,9 @@ export async function POST(req: NextRequest) {
           const submitJson = await submitRes.json().catch(() => null) as Record<string, unknown> | null;
           const taskId = ((submitJson?.data as Record<string, unknown> | undefined)?.id ?? submitJson?.id) as string | undefined;
           if (!submitRes.ok || !taskId) {
-            throw new Error(`WaveSpeed submit failed for ${waveSpeedImageRoute.model} (${submitRes.status})`);
+            const detailMsg = (submitJson?.message || submitJson?.msg || submitJson?.error || submitJson?.detail) as string | undefined;
+            console.error(`[generate/image] WaveSpeed submit error (${submitRes.status}):`, submitJson);
+            throw new Error(`WaveSpeed submit failed for ${waveSpeedImageRoute.model} (${submitRes.status}): ${detailMsg || "Invalid payload"}`);
           }
           return taskId;
         }),
