@@ -16,6 +16,9 @@ import {
   Languages,
   Music2,
   Film,
+  Play,
+  Sparkles,
+  Layers,
 } from "lucide-react";
 import type { MediaItem } from "@/components/MediaGrid";
 import { useLanguage } from "@/lib/use-language";
@@ -368,27 +371,51 @@ function VideoHistoryPreview({
 }) {
   const fallbackUrls = getFallbackUrls(item.src);
   const posterUrl = (item as any).posterUrl || item.poster || fallbackUrls[0];
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const vid = videoRef.current;
+    if (!vid) return;
+    if (vid.paused) {
+      vid.play().then(() => setIsPlaying(true)).catch(() => {});
+    } else {
+      vid.pause();
+      setIsPlaying(false);
+    }
+  };
 
   return (
     <div
-      onClick={() => onInspect(item)}
-      className="group relative h-full w-full cursor-pointer overflow-hidden rounded-[14px] bg-black"
+      onClick={togglePlay}
+      className="group relative h-full w-full cursor-pointer overflow-hidden rounded-[14px] bg-black flex items-center justify-center"
     >
       {hasPlayableVideo(item) ? (
-        <video
-          src={item.src}
-          poster={posterUrl}
-          playsInline
-          muted
-          loop
-          onMouseEnter={(e) => {
-            void (e.target as HTMLVideoElement).play().catch(() => {});
-          }}
-          onMouseLeave={(e) => {
-            (e.target as HTMLVideoElement).pause();
-          }}
-          className="h-full w-full object-cover"
-        />
+        <>
+          <video
+            ref={videoRef}
+            src={item.src}
+            poster={posterUrl}
+            playsInline
+            loop
+            preload="metadata"
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => setIsPlaying(false)}
+            className="h-full w-full object-cover"
+          />
+          {!isPlaying && (
+            <div
+              onClick={togglePlay}
+              className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/10 transition-colors pointer-events-auto z-20"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md border border-white/20 shadow-2xl transition-transform hover:scale-110">
+                <Play className="h-6 w-6 fill-white translate-x-0.5" />
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-zinc-500">
           <Film className="h-10 w-10 opacity-40" />
@@ -514,9 +541,70 @@ export function VideoHistoryList({
                   <span>{item.model || "Video Model"}</span>
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed line-clamp-6">
+                <p className="text-xs text-slate-300 leading-relaxed line-clamp-4">
                   {item.prompt || "Generated video"}
                 </p>
+
+                {/* Reference Inputs */}
+                {Boolean(item.startImageUrl || item.endImageUrl || (item.referenceImageUrls && item.referenceImageUrls.length > 0)) && (
+                  <div className="pt-2.5 border-t border-white/5 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-[10.5px] font-semibold text-slate-400">
+                      <Sparkles className="h-3 w-3 text-cyan-400" />
+                      <span>{lang === "ar" ? "المدخلات المرجعية" : "Reference Inputs"}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {item.startImageUrl && (
+                        <a
+                          href={item.startImageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="group/ref relative h-10 w-10 overflow-hidden rounded-lg border border-cyan-500/40 bg-black/50 hover:border-cyan-400 transition"
+                          title="Start Frame"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={item.startImageUrl} alt="Start Frame" className="h-full w-full object-cover" />
+                          <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[7.5px] text-cyan-300 font-bold text-center leading-tight py-0.5">
+                            Start
+                          </span>
+                        </a>
+                      )}
+                      {item.endImageUrl && (
+                        <a
+                          href={item.endImageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="group/ref relative h-10 w-10 overflow-hidden rounded-lg border border-indigo-500/40 bg-black/50 hover:border-indigo-400 transition"
+                          title="End Frame"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={item.endImageUrl} alt="End Frame" className="h-full w-full object-cover" />
+                          <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[7.5px] text-indigo-300 font-bold text-center leading-tight py-0.5">
+                            End
+                          </span>
+                        </a>
+                      )}
+                      {item.referenceImageUrls?.filter(url => url !== item.startImageUrl && url !== item.endImageUrl).map((url, idx) => (
+                        <a
+                          key={idx}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="group/ref relative h-10 w-10 overflow-hidden rounded-lg border border-white/15 bg-black/50 hover:border-cyan-400 transition"
+                          title={`Reference ${idx + 1}`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt={`Ref ${idx + 1}`} className="h-full w-full object-cover" />
+                          <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[7.5px] text-slate-300 font-bold text-center leading-tight py-0.5">
+                            Ref {idx + 1}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-500 font-mono">

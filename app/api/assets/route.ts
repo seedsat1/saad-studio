@@ -236,6 +236,7 @@ export async function GET(req: NextRequest) {
         ["reference_video_urls", "referenceVideoUrls", "video_urls", "videoUrls", "reference_videos", "referenceVideos"],
         3,
       );
+
       const referenceAudioUrls = collectStringArray(
         payload,
         ["reference_audio_urls", "referenceAudioUrls", "audio_urls", "audioUrls", "reference_audios", "referenceAudios"],
@@ -344,6 +345,26 @@ export async function GET(req: NextRequest) {
         const dimensions = type === "image" ? galleryImageDimensions(row.resolution, row.aspectRatio) : {};
         const posterIsVideoFrame = type === "video" && row.posterStatus === "ready_video_frame";
         const videoPoster = videoPosterUrl(row.id, type, row.posterUrl);
+
+        const payload = row.generationRequestSnapshot?.requestPayload as any;
+        const startImageUrl = firstString(payload, ["first_frame_url", "firstFrameUrl", "image", "image_url", "imageUrl", "startFrame"]) ?? undefined;
+        const endImageUrl = firstString(payload, ["last_frame_url", "lastFrameUrl", "end_image", "endImage", "last_image", "lastImage", "endFrame"]) ?? undefined;
+        const referenceImageUrls = collectStringArray(
+          payload,
+          ["reference_image_urls", "referenceImageUrls", "image_urls", "imageUrls", "reference_images", "referenceImages"],
+          9,
+        );
+        const referenceVideoUrls = collectStringArray(
+          payload,
+          ["reference_video_urls", "referenceVideoUrls", "video_urls", "videoUrls", "reference_videos", "referenceVideos"],
+          3,
+        );
+        const referenceAudioUrls = collectStringArray(
+          payload,
+          ["reference_audio_urls", "referenceAudioUrls", "audio_urls", "audioUrls", "reference_audios", "referenceAudios"],
+          3,
+        );
+
         return {
           id: row.id,
           type,
@@ -374,6 +395,11 @@ export async function GET(req: NextRequest) {
           cost: row.cost,
           isFavorite: Boolean(row.isFavorite),
           providerRequestId: row.providerRequestId ?? undefined,
+          startImageUrl,
+          endImageUrl,
+          referenceImageUrls,
+          referenceVideoUrls,
+          referenceAudioUrls,
         };
       });
 

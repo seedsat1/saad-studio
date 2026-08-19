@@ -32,6 +32,11 @@ export interface MediaItem {
   creditsRefunded?: boolean;
   gradient?: string;       // Tailwind gradient classes for placeholder bg
   createdAt?: Date;
+  startImageUrl?: string;
+  endImageUrl?: string;
+  referenceImageUrls?: string[];
+  referenceVideoUrls?: string[];
+  referenceAudioUrls?: string[];
 }
 
 interface MediaGridProps {

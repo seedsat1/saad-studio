@@ -1550,7 +1550,15 @@ function VideoPageInner() {
   }, [referenceImages]);
 
   // Generation state
-  type PendingTask = { model: WaveSpeedVideoModel; promptText: string; ratio: string; duration: number | null };
+  type PendingTask = {
+    model: WaveSpeedVideoModel;
+    promptText: string;
+    ratio: string;
+    duration: number | null;
+    startImageUrl?: string;
+    endImageUrl?: string;
+    referenceImageUrls?: string[];
+  };
   const [pendingTasks,    setPendingTasks]    = useState<Map<string, PendingTask>>(new Map());
   const [isSubmitting,    setIsSubmitting]    = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -1596,6 +1604,11 @@ function VideoPageInner() {
       gradient: model ? (FAMILY_GRADIENTS[model.family] ?? "from-slate-900 via-slate-800 to-slate-900") : "from-slate-900 via-slate-800 to-slate-900",
       isFavorite: Boolean(asset.isFavorite),
       createdAt: asset.createdAt ? new Date(asset.createdAt) : new Date(),
+      startImageUrl: typeof asset.startImageUrl === "string" ? asset.startImageUrl : undefined,
+      endImageUrl: typeof asset.endImageUrl === "string" ? asset.endImageUrl : undefined,
+      referenceImageUrls: Array.isArray(asset.referenceImageUrls) ? asset.referenceImageUrls : undefined,
+      referenceVideoUrls: Array.isArray(asset.referenceVideoUrls) ? asset.referenceVideoUrls : undefined,
+      referenceAudioUrls: Array.isArray(asset.referenceAudioUrls) ? asset.referenceAudioUrls : undefined,
     };
   }, [allModels]);
 
@@ -2022,7 +2035,7 @@ function VideoPageInner() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const { addAsset } = useAssetStore();
 
-  const startPolling = useCallback((taskId: string, ctx: { model: WaveSpeedVideoModel; promptText: string; ratio: string; duration: number | null }) => {
+  const startPolling = useCallback((taskId: string, ctx: PendingTask) => {
     if (pollRefs.current.has(taskId) || completedTaskRefs.current.has(taskId)) {
       return;
     }
@@ -2074,6 +2087,9 @@ function VideoPageInner() {
             providerRequestId: taskId,
             gradient: FAMILY_GRADIENTS[ctx.model.family] ?? "from-slate-900 via-slate-800 to-slate-900",
             createdAt: new Date(),
+            startImageUrl: ctx.startImageUrl,
+            endImageUrl: ctx.endImageUrl,
+            referenceImageUrls: ctx.referenceImageUrls,
           };
           const alreadyKnownUrl = resultUrlsRef.current.has(videoUrl);
           setResults(prev => {
@@ -2928,7 +2944,33 @@ function VideoPageInner() {
               ? payload.last_image
               : undefined,
       });
-      setPendingTasks(prev => new Map(prev).set(data.taskId!, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration }));
+      const capturedStartImageUrl = typeof payload.image === "string"
+        ? payload.image
+        : typeof payload.first_frame_url === "string"
+          ? payload.first_frame_url
+          : undefined;
+      const capturedEndImageUrl = typeof payload.end_image === "string"
+        ? payload.end_image
+        : typeof payload.last_frame_url === "string"
+          ? payload.last_frame_url
+          : typeof payload.last_image === "string"
+            ? payload.last_image
+            : undefined;
+      const capturedReferenceImageUrls = Array.isArray(payload.reference_image_urls)
+        ? payload.reference_image_urls.filter((value): value is string => typeof value === "string").slice(0, 9)
+        : [];
+
+      const pendingTaskInfo: PendingTask = {
+        model: selectedModel,
+        promptText: basePrompt,
+        ratio: _capturedRatio,
+        duration: capturedDuration,
+        startImageUrl: capturedStartImageUrl,
+        endImageUrl: capturedEndImageUrl,
+        referenceImageUrls: capturedReferenceImageUrls,
+      };
+
+      setPendingTasks(prev => new Map(prev).set(data.taskId!, pendingTaskInfo));
       // Persist task so it survives a page refresh
       try {
         const raw = localStorage.getItem("ff_video_pending_jobs");
@@ -2938,7 +2980,7 @@ function VideoPageInner() {
         localStorage.setItem("ff_video_pending_jobs", JSON.stringify(list));
       } catch {}
       setIsSubmitting(false);
-      startPolling(data.taskId, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration });
+      startPolling(data.taskId, pendingTaskInfo);
     } catch (err) {
       setGenerationError(getSafeErrorMessage(err));
       setIsSubmitting(false);

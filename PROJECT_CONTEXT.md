@@ -13505,3 +13505,17 @@
 - Verification:
   - `npx.cmd vitest run test/audio-dynamic-pricing.test.ts test/tts-character-pricing.test.ts test/audio-suite-hardening.test.ts test/pricing-core.test.ts` passed: 35/35 tests.
   - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+
+#### Latest task: Video Studio Manual Playback Control & Reference Inputs Restoration (2026-08-19)
+- Status: Completed. Disabled unwanted auto-playback on mouse hover and video generation, introduced manual click-to-play with clean centered Play button overlay, and restored reference inputs preview (Start Frame, End Frame, Reference Images) on video cards and history payloads.
+- Affected files: `components/MediaGrid.tsx`, `components/video/VideoHistoryList.tsx`, `app/api/assets/route.ts`, `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`.
+- Behavior:
+  - In `components/video/VideoHistoryList.tsx` (`VideoHistoryPreview`), removed `onMouseEnter` / `onMouseLeave` automatic `.play()` calls. Added a centered Play button overlay when paused and enabled click-to-play / click-to-pause with loop and metadata preloading.
+  - In `components/MediaGrid.tsx`, updated `MediaItem` interface with reference fields (`startImageUrl`, `endImageUrl`, `referenceImageUrls`, `referenceVideoUrls`, `referenceAudioUrls`).
+  - In `app/api/assets/route.ts`, parsed and returned `startImageUrl`, `endImageUrl`, `referenceImageUrls`, `referenceVideoUrls`, and `referenceAudioUrls` from the request JSON snapshots in the asset list response.
+  - In `app/(dash)/(routes)/video/page.tsx`, mapped reference inputs into `MediaItem` and `PendingTask` so references are retained both during active generation polling and across loaded history.
+  - In `components/video/VideoHistoryList.tsx`, rendered a clean "Reference Inputs / المدخلات المرجعية" preview strip in each card's details sidebar showing labeled thumbnails for Start Frame, End Frame, and Ref images.
+- Verification:
+  - `npx.cmd tsc --noEmit` passed with 0 errors.
+  - Vitest test suites executed and verified.
+
