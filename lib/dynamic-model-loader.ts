@@ -4,11 +4,17 @@ import { VIDEO_MODEL_REGISTRY, orderVideoModelsForDisplay, type WaveSpeedVideoMo
 
 export interface DynamicImageModel extends ImageModel {
   isActive?: boolean;
+  isCustom?: boolean;
+  text_api_route?: string;
+  image_api_route?: string;
 }
 
 export interface DynamicVideoModel extends WaveSpeedVideoModel {
   isActive?: boolean;
   creditCost?: number;
+  isCustom?: boolean;
+  text_api_route?: string;
+  image_api_route?: string;
 }
 
 const BLOCKED_DYNAMIC_IMAGE_IDS = new Set([

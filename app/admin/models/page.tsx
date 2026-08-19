@@ -29,6 +29,7 @@ import {
   Box as ThreeDIcon,
   HelpCircle,
   Check,
+  Plus,
 } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import type { DynamicImageModel, DynamicVideoModel } from "@/lib/dynamic-model-loader";
@@ -127,6 +128,91 @@ export default function AdminModelsPage() {
   // Catalog Sync Modal
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
+  // Add Custom Model Modal
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addingModel, setAddingModel] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [newModelName, setNewModelName] = useState("");
+  const [newModelId, setNewModelId] = useState("");
+  const [newModality, setNewModality] = useState<"video" | "image">("video");
+  const [newProvider, setNewProvider] = useState<string>("wavespeed");
+  const [newFamily, setNewFamily] = useState<string>("custom");
+  const [newTextRoute, setNewTextRoute] = useState("");
+  const [newImageRoute, setNewImageRoute] = useState("");
+  const [newDurations, setNewDurations] = useState<string>("5, 10");
+  const [newResolutions, setNewResolutions] = useState<string>("720p, 1080p");
+  const [newAspectRatios, setNewAspectRatios] = useState<string[]>(["16:9", "9:16", "1:1"]);
+  const [newMaxRefImages, setNewMaxRefImages] = useState<number>(4);
+  const [newCreditCost, setNewCreditCost] = useState<number>(10);
+  const [newIsActive, setNewIsActive] = useState<boolean>(true);
+
+  const handleCreateCustomModel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newModelName.trim() || !newModelId.trim()) {
+      setAddError("Model Display Name and Model ID are required.");
+      return;
+    }
+
+    try {
+      setAddingModel(true);
+      setAddError(null);
+
+      const parsedDurations = newDurations
+        .split(",")
+        .map((s) => parseInt(s.trim(), 10))
+        .filter((n) => !isNaN(n) && n > 0);
+
+      const parsedResolutions = newResolutions
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const payload = {
+        newModel: {
+          id: newModelId.trim(),
+          name: newModelName.trim(),
+          modality: newModality,
+          provider: newProvider,
+          family: newFamily.trim() || "custom",
+          api_route: newTextRoute.trim() || newModelId.trim(),
+          text_api_route: newTextRoute.trim() || newModelId.trim(),
+          image_api_route: newImageRoute.trim() || undefined,
+          durations: parsedDurations.length > 0 ? parsedDurations : [5, 10],
+          resolutions: parsedResolutions.length > 0 ? parsedResolutions : ["720p", "1080p"],
+          aspectRatios: newAspectRatios.length > 0 ? newAspectRatios : ["16:9", "9:16", "1:1"],
+          maxRefImages: newMaxRefImages,
+          creditCost: newCreditCost,
+          isActive: newIsActive,
+        },
+        expectedVersionToken: versionToken,
+      };
+
+      const res = await fetch("/api/admin/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Failed to create model (HTTP ${res.status})`);
+      }
+
+      setActionNotice(`Model "${newModelName}" successfully created and added to platform!`);
+      setShowAddModal(false);
+      setNewModelName("");
+      setNewModelId("");
+      setNewTextRoute("");
+      setNewImageRoute("");
+      await loadModels();
+    } catch (err: any) {
+      console.error("[AdminModels] Create error:", err);
+      setAddError(err.message || "Failed to create model.");
+    } finally {
+      setAddingModel(false);
+    }
+  };
 
   const loadModels = useCallback(async () => {
     try {
@@ -354,6 +440,16 @@ export default function AdminModelsPage() {
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>Optimistic Concurrency Active</span>
             </div>
+            <button
+              onClick={() => {
+                setAddError(null);
+                setShowAddModal(true);
+              }}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Add Model</span>
+            </button>
             <button
               onClick={() => setShowSyncModal(true)}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-amber-300 transition-colors border border-zinc-700"
@@ -1025,6 +1121,249 @@ export default function AdminModelsPage() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+        {/* Add New Custom Model Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto">
+            <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-6 shadow-2xl my-8">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-indigo-950/80 border border-indigo-800 text-indigo-400">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-zinc-100">Add New AI Model / إضافة موديل جديد</h3>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Register a unified model with intelligent background auto-dispatch (Text vs Image/Edit).
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {addError && (
+                <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                  <span>{addError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleCreateCustomModel} className="space-y-4 text-xs">
+                {/* Modality & Provider Selection */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-zinc-300 font-medium mb-1">
+                      Modality / نوع الوسائط <span className="text-rose-400">*</span>
+                    </label>
+                    <select
+                      value={newModality}
+                      onChange={(e) => setNewModality(e.target.value as "video" | "image")}
+                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="video">Video Model (استوديو الفيديو)</option>
+                      <option value="image">Image Model (استوديو الصور)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-300 font-medium mb-1">
+                      Provider / المزود التقني <span className="text-rose-400">*</span>
+                    </label>
+                    <select
+                      value={newProvider}
+                      onChange={(e) => setNewProvider(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="wavespeed">WaveSpeed (Active Provider)</option>
+                      <option value="google">Google Veo / Imagen (Active)</option>
+                      <option value="openai">OpenAI (Standby)</option>
+                      <option value="byteplus">BytePlus (Standby)</option>
+                      <option value="kie">KIE.ai (Standby)</option>
+                      <option value="custom">Custom Provider</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Identity & Display Name */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-zinc-300 font-medium mb-1">
+                      Display Name / الاسم الظاهر للمشترك <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Kling V3.5 Pro"
+                      value={newModelName}
+                      onChange={(e) => setNewModelName(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500"
+                      required
+                    />
+                    <span className="text-[10px] text-zinc-500 mt-0.5 block">الاسم الموحد الذي يظهر في الاستوديو للمستخدمين.</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-300 font-medium mb-1">
+                      Model ID / المعرف الفريد <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. kwaivgi/kling-v3.5-pro"
+                      value={newModelId}
+                      onChange={(e) => setNewModelId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono"
+                      required
+                    />
+                    <span className="text-[10px] text-zinc-500 mt-0.5 block">المعرف الثابت في قاعدة البيانات ونظام التسعير.</span>
+                  </div>
+                </div>
+
+                {/* Unified Sub-Routes (Auto-Dispatch) */}
+                <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-indigo-300 text-xs flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-indigo-400" />
+                      Unified Sub-Routes (التوجيه التلقائي الذكي في الخلفية)
+                    </span>
+                    <span className="text-[10px] text-zinc-400">يعمل بدون إرباك المشترك</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-zinc-400 font-medium mb-1">
+                        Text Route (مسار النص فقط)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. kwaivgi/kling-v3.5-pro/text-to-video"
+                        value={newTextRoute}
+                        onChange={(e) => setNewTextRoute(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                      />
+                      <span className="text-[10px] text-zinc-500 mt-0.5 block">يُشغّل عند كتابة برومبت نصي فقط.</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-zinc-400 font-medium mb-1">
+                        Image/Edit Route (مسار الصورة والتعديل)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. kwaivgi/kling-v3.5-pro/image-to-video"
+                        value={newImageRoute}
+                        onChange={(e) => setNewImageRoute(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                      />
+                      <span className="text-[10px] text-zinc-500 mt-0.5 block">يُشغّل تلقائياً عند رفع صورة بداية أو مراجع.</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Capabilities & Durations */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-zinc-300 font-medium mb-1">Durations (المدد بالثواني)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 5, 10, 15"
+                      value={newDurations}
+                      onChange={(e) => setNewDurations(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-300 font-medium mb-1">Resolutions (الدقات المتاحة)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 720p, 1080p, 4K"
+                      value={newResolutions}
+                      onChange={(e) => setNewResolutions(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-300 font-medium mb-1">Max Reference Images</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={newMaxRefImages}
+                      onChange={(e) => setNewMaxRefImages(parseInt(e.target.value, 10) || 0)}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 text-[11px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Pricing & Status */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-zinc-800/80">
+                  <div>
+                    <label className="block text-zinc-300 font-medium mb-1">
+                      Base Credit Cost / سعر النقاط للمشترك <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={newCreditCost}
+                      onChange={(e) => setNewCreditCost(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 font-bold text-amber-400"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-6">
+                    <input
+                      type="checkbox"
+                      id="new-model-active"
+                      checked={newIsActive}
+                      onChange={(e) => setNewIsActive(e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 rounded bg-zinc-900 border-zinc-700"
+                    />
+                    <label htmlFor="new-model-active" className="text-zinc-200 font-medium cursor-pointer">
+                      Publish Active Immediately (نشر الموديل مفعل فوراً)
+                    </label>
+                  </div>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    disabled={addingModel}
+                    className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors"
+                  >
+                    Cancel / إلغاء
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addingModel}
+                    className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-md transition-colors disabled:opacity-50"
+                  >
+                    {addingModel ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Registering Model...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Save & Register Model / حفظ وتفعيل</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

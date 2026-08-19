@@ -2276,9 +2276,18 @@ export async function POST(req: Request) {
       modelRoute === "gpt-image-2-text-to-image";
 
     const dynamicVideoModels = await getCentralizedDynamicVideoModels();
-    const dynamicVideoModel = dynamicVideoModels.find(
-      (m) => (m.api_route === modelRoute || m.id === modelRoute) && m.isActive !== false
+    let dynamicVideoModel = dynamicVideoModels.find(
+      (m) => (m.api_route === modelRoute || m.id === modelRoute || m.text_api_route === modelRoute || m.image_api_route === modelRoute) && m.isActive !== false
     );
+
+    // Intelligent background sub-route dispatch for unified dynamic models
+    if (dynamicVideoModel) {
+      if (hasImage && dynamicVideoModel.image_api_route) {
+        modelRoute = dynamicVideoModel.image_api_route;
+      } else if (!hasImage && dynamicVideoModel.text_api_route) {
+        modelRoute = dynamicVideoModel.text_api_route;
+      }
+    }
 
     let kieModel = (isDirectGoogleVeo31Route || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);
     let wavespeedRoute: string | undefined = wavespeedFallbackMap[modelRoute];
@@ -2287,9 +2296,9 @@ export async function POST(req: Request) {
     }
 
     if (dynamicVideoModel) {
-      const isWaveSpeed = dynamicVideoModel.family === "hailuo" || dynamicVideoModel.family === "seedance";
+      const isWaveSpeed = dynamicVideoModel.family === "hailuo" || dynamicVideoModel.family === "seedance" || dynamicVideoModel.isCustom;
       if (isWaveSpeed) {
-        wavespeedRoute = dynamicVideoModel.api_route;
+        wavespeedRoute = dynamicVideoModel.api_route || modelRoute;
         kieModel = undefined;
       } else {
         kieModel = resolveKieVideoModel(dynamicVideoModel.api_route) || dynamicVideoModel.id;

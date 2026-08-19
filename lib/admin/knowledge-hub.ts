@@ -560,7 +560,20 @@ export async function reviewKnowledgeModelChangeAtomic(params: {
         updated = true;
         return applyChangeFieldsToVideoModel(model, change.fields);
       });
-      if (!updated) throw new Error(`Model ${change.modelId} was not found in production model registries.`);
+
+      if (!updated) {
+        // Auto-create new dynamic model directly from knowledge proposal
+        const isVideo = change.fields.some(f => f.field.includes("duration")) ||
+          /video|kling|seedance|hailuo|veo|sora|minimax/i.test(change.modelId);
+
+        if (isVideo) {
+          const newVideoModel = createNewDynamicVideoModelFromChange(change);
+          nextVideoModels.push(newVideoModel);
+        } else {
+          const newImageModel = createNewDynamicImageModelFromChange(change);
+          nextImageModels.push(newImageModel);
+        }
+      }
 
       await saveDynamicImageModels(nextImageModels);
       await saveDynamicVideoModels(nextVideoModels);
@@ -857,6 +870,93 @@ function applyChangeFieldsToVideoModel(model: import("@/lib/dynamic-model-loader
     if (field.field === "inputs.referenceImages.max" && Number.isFinite(Number(field.newValue))) next.capabilities.max_reference_images = Number(field.newValue);
   }
   return next;
+}
+
+function inferModelNameFromId(id: string): string {
+  const parts = id.split(/[/_-]/).filter(Boolean);
+  return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+}
+
+function inferFamilyFromId(id: string): string {
+  const lower = id.toLowerCase();
+  if (lower.includes("kling")) return "kling";
+  if (lower.includes("seedance") || lower.includes("bytedance") || lower.includes("seedream")) return "seedance";
+  if (lower.includes("hailuo") || lower.includes("minimax")) return "hailuo";
+  if (lower.includes("wan")) return "wan";
+  if (lower.includes("veo") || lower.includes("google") || lower.includes("gemini")) return "google";
+  if (lower.includes("sora") || lower.includes("dall-e") || lower.includes("openai")) return "openai";
+  if (lower.includes("grok") || lower.includes("flux")) return "grok";
+  return "custom";
+}
+
+function createNewDynamicVideoModelFromChange(change: KnowledgeModelChange): import("@/lib/dynamic-model-loader").DynamicVideoModel {
+  const name = inferModelNameFromId(change.modelId);
+  const family = inferFamilyFromId(change.modelId);
+  const base: import("@/lib/dynamic-model-loader").DynamicVideoModel = {
+    id: change.modelId,
+    name,
+    api_route: change.modelId,
+    family,
+    family_label: family.toUpperCase(),
+    family_color: "#6366f1",
+    badge: "NEW",
+    description: `Registered from Knowledge Hub extraction for ${name}`,
+    route_confirmed: true,
+    capabilities: {
+      requires_image: false,
+      optional_image: true,
+      requires_video: false,
+      optional_video: false,
+      has_end_frame: false,
+      aspect_ratios: ["16:9", "9:16", "1:1"],
+      sizes: [],
+      durations: [5, 10],
+      resolutions: ["720p", "1080p"],
+      quality_param: "resolution",
+      max_reference_images: 4,
+      max_reference_videos: 0,
+      max_reference_video_total_seconds: 0,
+      max_reference_audios: 0,
+      max_reference_audio_total_seconds: 0,
+      has_negative_prompt: false,
+      has_loop: false,
+      has_seed: false,
+      has_cfg_scale: false,
+      has_sound: false,
+      sound_param: "generate_audio",
+      has_shot_type: false,
+      has_multi_prompt: false,
+      has_element_list: false,
+      has_scene_control: false,
+      has_orientation: false,
+      has_omni_tabs: false,
+    },
+    creditCost: 10,
+    isActive: true,
+    isCustom: true,
+  };
+  return applyChangeFieldsToVideoModel(base, change.fields);
+}
+
+function createNewDynamicImageModelFromChange(change: KnowledgeModelChange): import("@/lib/dynamic-model-loader").DynamicImageModel {
+  const label = inferModelNameFromId(change.modelId);
+  const group = inferFamilyFromId(change.modelId);
+  const base: import("@/lib/dynamic-model-loader").DynamicImageModel = {
+    id: change.modelId,
+    label,
+    sublabel: "Knowledge Hub · Custom",
+    badge: "NEW",
+    group: group.charAt(0).toUpperCase() + group.slice(1),
+    inputType: "text-to-image",
+    aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
+    qualityParam: ["1K", "2K"],
+    creditCost: 2,
+    maxImages: 4,
+    maxRefImages: 4,
+    isActive: true,
+    isCustom: true,
+  };
+  return applyChangeFieldsToImageModel(base, change.fields);
 }
 
 async function fetchKnowledgePage(url: string): Promise<KnowledgeImportedPage> {

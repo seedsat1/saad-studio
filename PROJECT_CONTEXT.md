@@ -13519,3 +13519,17 @@
   - `npx.cmd tsc --noEmit` passed with 0 errors.
   - Vitest test suites executed and verified.
 
+#### Latest task: Dynamic Model Creation, Knowledge Hub Auto-Publishing & Unified Route Auto-Dispatch (2026-08-19)
+- Status: Completed. Delivered full dynamic model creation capabilities from the UI with zero code deployments required, linked Knowledge Hub documentation publishing directly to production model creation, and implemented intelligent background sub-route dispatch (auto-switching Text Route vs Image/Edit Route seamlessly without confusing subscribers).
+- Affected files:
+  - `lib/admin/knowledge-hub.ts`: Auto-creates dynamic video and image models when publishing new model change proposals instead of throwing unmapped errors.
+  - `lib/dynamic-model-loader.ts`: Enhanced `DynamicImageModel` and `DynamicVideoModel` with `text_api_route`, `image_api_route`, and `isCustom` flags.
+  - `app/api/admin/models/route.ts`: Added support in POST handler for explicit `newModel` creation payloads with atomic concurrency and audit logging.
+  - `app/admin/models/page.tsx`: Added top toolbar `+ Add Model` action and built modal supporting Unified Model configuration (Display Name, ID, Provider, Modality, Text Route, Image/Edit Route, Durations, Resolutions, Aspect Ratios, Max Ref Images, Credit Cost, and Instant Activation).
+  - `app/api/video/route.ts`: Generalised intelligent background sub-route dispatch for dynamic models based on input presence (`hasImage` -> `image_api_route`, text-only -> `text_api_route`).
+  - `PROJECT_CONTEXT.md`.
+- Verification:
+  - `npx.cmd tsc --noEmit` passed with 0 errors.
+  - Vitest test suites (`admin-knowledge-hub.test.ts`, `models-backend-hardening.test.ts`, `adobe-plugin-admin-control-plane.test.ts`) passed: 25/25 tests.
+
+
