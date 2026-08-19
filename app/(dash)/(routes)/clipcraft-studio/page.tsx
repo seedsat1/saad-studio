@@ -41,6 +41,8 @@ import {
   Volume2
 } from "lucide-react";
 import { FloatingParticles } from "@/components/FloatingParticles";
+import { VoiceLibraryModal } from "@/components/voices/VoiceLibraryModal";
+import { VOICE_CATALOG } from "@/lib/voice-catalog";
 
 const FALLBACK_LANGUAGES = [
   { code: "en-US", label: "English (United States)" },
@@ -350,6 +352,7 @@ export default function ClipCraftStudioPage() {
   const [editPrompt, setEditPrompt] = useState("");
   const [brandTemplateId, setBrandTemplateId] = useState("");
   const [dubbingVoice, setDubbingVoice] = useState("Omar");
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
 
   // Audiogram form options
   const [waveformTemplate, setWaveformTemplate] = useState("wave");
@@ -1328,30 +1331,38 @@ export default function ClipCraftStudioPage() {
 
           <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider">Voices</span>
-              <button className="text-[9px] text-indigo-400 font-bold hover:underline">More Voices</button>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Voice Actors / أصوات المتحدثين</span>
+              <button
+                type="button"
+                onClick={() => setShowVoiceModal(true)}
+                className="text-[10px] text-[#f5cb68] font-bold hover:underline flex items-center gap-1 transition-transform hover:scale-105"
+              >
+                <span>Browse Voices ({VOICE_CATALOG.length})</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
             </div>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { name: "Omar", label: "Natural", image: "/omar_avatar.png" },
-                { name: "Layla", label: "Warm", image: "/layla_avatar.png" },
-                { name: "Hamed", label: "Deep", image: "/hamed_avatar.png" },
-                { name: "Sera", label: "Soft", image: "/sera_avatar.png" }
+                { name: "Johnny Kid", label: "Calm Narrator", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" },
+                { name: "Addison 2.0", label: "Australian", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" },
+                { name: "طارق (Tariq)", label: "عربي فصحى", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80" },
+                { name: "ليلى (Layla)", label: "عربي دافئ", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" }
               ].map((vc, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => setDubbingVoice(vc.name)}
                   className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
                     dubbingVoice === vc.name
-                      ? "bg-indigo-500/10 border-indigo-500/50 text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.2)]"
-                      : "bg-slate-900/60 border-slate-900 text-slate-400 hover:border-slate-800 hover:bg-slate-900/80"
+                      ? "bg-[#f5cb68]/15 border-[#f5cb68] text-[#f5cb68] shadow-[0_0_12px_rgba(245,203,104,0.2)]"
+                      : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-slate-900/80"
                   }`}
                 >
-                  <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-850 bg-slate-950 flex items-center justify-center mb-1">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-700 bg-slate-950 flex items-center justify-center mb-1">
                     <img src={vc.image} alt={vc.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="text-[10px] font-bold truncate w-full">{vc.name}</div>
-                  <div className="text-[8px] text-slate-505 truncate w-full">{vc.label}</div>
+                  <div className="text-[8px] text-slate-500 truncate w-full">{vc.label}</div>
                 </button>
               ))}
             </div>
@@ -2797,6 +2808,14 @@ export default function ClipCraftStudioPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Interactive Voice Library Modal */}
+      <VoiceLibraryModal
+        isOpen={showVoiceModal}
+        onClose={() => setShowVoiceModal(false)}
+        onSelectVoice={(v) => setDubbingVoice(v.name)}
+        selectedVoiceId={dubbingVoice}
+      />
     </div>
   );
 }

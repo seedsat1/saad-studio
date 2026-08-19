@@ -30,6 +30,8 @@ import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { getFallbackUrls } from "@/lib/utils";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
+import { VoiceLibraryModal } from "@/components/voices/VoiceLibraryModal";
+import { VOICE_CATALOG } from "@/lib/voice-catalog";
 
 
 
@@ -220,6 +222,7 @@ function LipsyncStudioPageInner() {
   const [audioTab, setAudioTab] = useState<"upload" | "tts">("upload");
   const [ttsText, setTtsText] = useState("");
   const [ttsVoice, setTtsVoice] = useState("Sulafat");
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [resolution, setResolution] = useState<"480p" | "720p" | "1080p">("1080p");
   
   // Custom audio player state
@@ -951,19 +954,21 @@ function LipsyncStudioPageInner() {
                       placeholder="Type the script to convert into speech audio and auto-sync to avatar..."
                       className="w-full rounded-xl bg-black/30 border border-white/5 px-3 py-2 text-xs outline-none focus:border-cyan-500/30 resize-none text-slate-200 text-left"
                     />
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Default Voice:</span>
-                      <select
-                        value={ttsVoice}
-                        onChange={(e) => setTtsVoice(e.target.value)}
-                        className="bg-black/60 border border-white/5 rounded-lg px-2.5 py-1 text-[10px] outline-none text-slate-300 font-semibold focus:border-cyan-500/30 cursor-pointer"
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Selected Voice:</span>
+                        <span className="px-2 py-0.5 rounded-md bg-cyan-950/80 border border-cyan-700/60 text-cyan-300 font-bold text-[10px]">
+                          {ttsVoice}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowVoiceModal(true)}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-[#f5cb68] hover:bg-[#eabf55] text-zinc-950 font-bold text-[10px] shadow-sm transition-transform hover:scale-105"
                       >
-                        {GEMINI_VOICES.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.name}
-                          </option>
-                        ))}
-                      </select>
+                        <Volume2 className="w-3 h-3 stroke-[2.5]" />
+                        <span>Browse Voices Library ({VOICE_CATALOG.length})</span>
+                      </button>
                     </div>
                   </div>
                 )}
@@ -1316,6 +1321,16 @@ function LipsyncStudioPageInner() {
           onClose={() => setInspectorAsset(null)}
         />
       )}
+
+      {/* Voice Library Modal */}
+      <VoiceLibraryModal
+        isOpen={showVoiceModal}
+        onClose={() => setShowVoiceModal(false)}
+        onSelectVoice={(v) => {
+          setTtsVoice(v.geminiVoiceId || v.name);
+        }}
+        selectedVoiceId={ttsVoice}
+      />
     </div>
   );
 }
