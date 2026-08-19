@@ -13531,6 +13531,7 @@
     3. Visual interactive Aspect Ratios picker with geometric box previews and toggles (1:1, 16:9, 9:16, 4:3, 3:4, 2:3, 3:2, 21:9, 1:4, 1:8).
     4. Interactive Duration and Resolution preset chips with custom input.
     5. Unified sub-routes (Text Route vs Image/Edit Route) with background auto-dispatch.
+    6. Contextual Modality Auto-Adaptation: Selecting Modality (Video, Image, Audio, Edit, 3D) or Autofilling from Knowledge Hub automatically switches relevant parameter controls, visible studio categories, track durations, and resolution/quality fields without manual clutter.
   - `app/api/video/route.ts`: Generalised intelligent background sub-route dispatch for dynamic models based on input presence (`hasImage` -> `image_api_route`, text-only -> `text_api_route`).
   - `PROJECT_CONTEXT.md`.
 - Verification:

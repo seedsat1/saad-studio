@@ -271,11 +271,51 @@ export default function AdminModelsPage() {
   const [newMaxRefImages, setNewMaxRefImages] = useState<number>(4);
   const [newCreditCost, setNewCreditCost] = useState<number>(10);
   const [newIsActive, setNewIsActive] = useState<boolean>(true);
+  const [newBadge, setNewBadge] = useState<string>("NEW");
+  const [newPinToTop, setNewPinToTop] = useState<boolean>(false);
   const [selectedStudioPages, setSelectedStudioPages] = useState<string[]>(["/video"]);
   const [surfaceSearchQuery, setSurfaceSearchQuery] = useState<string>("");
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>("ALL");
   const [knowledgeDrafts, setKnowledgeDrafts] = useState<any[]>([]);
   const [selectedDraftId, setSelectedDraftId] = useState<string>("");
+
+  const handleModalitySelect = (targetModality: "video" | "image" | "audio" | "edit" | "3d") => {
+    if (targetModality === "image") {
+      setNewModality("image");
+      setActiveCategoryTab("Image");
+      setSelectedStudioPages(["/image"]);
+      setNewCreditCost(2);
+      setNewResolutions("1K, 2K, 4K");
+      setNewAspectRatios(["1:1", "16:9", "9:16", "4:3", "3:4"]);
+    } else if (targetModality === "audio") {
+      setNewModality("video");
+      setActiveCategoryTab("Audio");
+      setSelectedStudioPages(["/audio"]);
+      setNewCreditCost(4);
+      setNewDurations("15, 30, 60, 120");
+      setNewResolutions("320kbps MP3, High-Res WAV");
+    } else if (targetModality === "edit") {
+      setNewModality("image");
+      setActiveCategoryTab("Edit");
+      setSelectedStudioPages(["/background-remove"]);
+      setNewCreditCost(3);
+      setNewResolutions("1080p, 4K");
+    } else if (targetModality === "3d") {
+      setNewModality("video");
+      setActiveCategoryTab("Video");
+      setSelectedStudioPages(["/3d"]);
+      setNewCreditCost(15);
+      setNewResolutions("GLB, OBJ, USDZ");
+    } else {
+      setNewModality("video");
+      setActiveCategoryTab("Video");
+      setSelectedStudioPages(["/video"]);
+      setNewCreditCost(10);
+      setNewDurations("5, 10");
+      setNewResolutions("720p, 1080p");
+      setNewAspectRatios(["16:9", "9:16", "1:1"]);
+    }
+  };
 
   const handleAutofillFromKnowledge = (draftId: string) => {
     setSelectedDraftId(draftId);
@@ -352,6 +392,7 @@ export default function AdminModelsPage() {
           modality: newModality,
           provider: newProvider,
           family: newFamily.trim() || "custom",
+          badge: newBadge || "NEW",
           api_route: newTextRoute.trim() || newModelId.trim(),
           text_api_route: newTextRoute.trim() || newModelId.trim(),
           image_api_route: newImageRoute.trim() || undefined,
@@ -1305,59 +1346,60 @@ export default function AdminModelsPage() {
             </div>
           </div>
         )}
-        {/* Add New Custom Model Modal - Large, Spacious & Intelligent */}
+
+        {/* Add New Custom Model Modal - Large Full-Page & Intelligent Multi-Route */}
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 md:p-6 overflow-y-auto">
-            <div className="w-full max-w-4xl bg-zinc-900 border border-zinc-700/80 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl my-6 max-h-[92vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/90 backdrop-blur-xl p-3 sm:p-6 md:p-10 overflow-y-auto">
+            <div className="w-full max-w-7xl bg-zinc-900 border border-zinc-700/90 rounded-3xl p-6 sm:p-10 space-y-8 shadow-2xl my-4">
               {/* Modal Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-indigo-950/80 border border-indigo-700/80 text-indigo-400">
-                    <Plus className="w-6 h-6" />
+              <div className="flex items-center justify-between pb-5 border-b border-zinc-800">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-indigo-950/90 border border-indigo-700/80 text-indigo-400 shadow-md">
+                    <Plus className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-zinc-100 flex items-center gap-2">
-                      <span>Add & Configure AI Model</span>
+                    <h3 className="text-2xl font-black text-zinc-100 flex items-center gap-3">
+                      <span>Add & Configure AI Model (Full Page Studio)</span>
                       <span className="text-zinc-500 text-sm font-normal">/</span>
-                      <span className="text-indigo-400 text-base font-semibold">إضافة وضبط موديل ذكاء اصطناعي</span>
+                      <span className="text-indigo-400 text-lg font-bold">إضافة وضبط موديل ذكاء اصطناعي شامل</span>
                     </h3>
                     <p className="text-xs text-zinc-400 mt-1">
-                      Register a production-ready model with Knowledge Hub default autofill and background auto-dispatch.
+                      Full-page control with dual-route background dispatch, Knowledge Hub sync, target surfaces, family grouping, and priority placement.
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                  className="p-2 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
               {/* ⚡ SECTION 1: Knowledge Hub Auto-Fill (تعبئة المواصفات المستخرجة من التوثيق) */}
-              <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-zinc-950 border border-indigo-800/60 space-y-2">
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950/50 via-purple-950/30 to-zinc-950 border border-indigo-700/70 space-y-3 shadow-lg">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-indigo-300 flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span>Autofill Defaults from Knowledge Hub / تعبئة المواصفات من صفحة التوثيق</span>
+                    <span>Autofill Defaults from Knowledge Hub / تعبئة المواصفات المستخرجة تلقائياً من التوثيق</span>
                   </span>
                   <Link
                     href="/admin/knowledge"
                     target="_blank"
-                    className="text-[11px] text-indigo-400 hover:text-indigo-300 underline flex items-center gap-1"
+                    className="text-xs text-indigo-400 hover:text-indigo-300 underline flex items-center gap-1 font-semibold"
                   >
                     <span>Knowledge Hub Docs</span>
-                    <ExternalLink className="w-3 h-3" />
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </Link>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-center gap-3">
                   <select
                     value={selectedDraftId}
                     onChange={(e) => handleAutofillFromKnowledge(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg bg-zinc-900 border border-indigo-800/80 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500"
+                    className="w-full sm:flex-1 px-4 py-2.5 rounded-xl bg-zinc-900 border border-indigo-700/80 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500 font-medium"
                   >
-                    <option value="">-- Choose imported document to autofill specs (اختر توثيق مستورد) --</option>
+                    <option value="">-- Choose imported document to autofill specs (اختر توثيق مستورد لتعبئة الحقول) --</option>
                     {knowledgeDrafts.map((draft: any) => {
                       const modelField = draft.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
                       return (
@@ -1368,8 +1410,8 @@ export default function AdminModelsPage() {
                     })}
                   </select>
                   {selectedDraftId && (
-                    <span className="px-2.5 py-1.5 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] font-semibold flex items-center gap-1">
-                      <Check className="w-3.5 h-3.5" />
+                    <span className="px-3 py-2 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                      <Check className="w-4 h-4" />
                       <span>Autofilled!</span>
                     </span>
                   )}
@@ -1377,41 +1419,41 @@ export default function AdminModelsPage() {
               </div>
 
               {addError && (
-                <div className="p-3.5 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
-                  <span>{addError}</span>
+                <div className="p-4 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center gap-2.5">
+                  <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0" />
+                  <span className="font-medium">{addError}</span>
                 </div>
               )}
 
-              <form onSubmit={handleCreateCustomModel} className="space-y-6 text-xs">
+              <form onSubmit={handleCreateCustomModel} className="space-y-8 text-xs">
                 {/* 🎯 SECTION 2: Target Studios & Display Placement (ظهور الموديل في كافة استوديوهات وأدوات المنصة) */}
-                <div className="space-y-3 p-4 rounded-xl bg-zinc-950 border border-zinc-800">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="space-y-4 p-5 rounded-2xl bg-zinc-950 border border-zinc-800">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <label className="text-zinc-100 font-bold text-xs flex items-center gap-2">
+                      <label className="text-zinc-100 font-bold text-sm flex items-center gap-2">
                         <Boxes className="w-4 h-4 text-indigo-400" />
                         <span>Target Studios & Feature Pages / في أي صفحات وأدوات يظهر الموديل؟</span>
                         <span className="text-rose-400">*</span>
                       </label>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                      <p className="text-xs text-zinc-400 mt-0.5">
                         حدد أي استوديو أو أداة فرعية ترغب في إتاحة هذا الموديل داخلها للمشتركين.
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-1 rounded-full bg-indigo-950/80 border border-indigo-700/80 text-indigo-300 font-mono text-[11px] font-bold">
+                      <span className="px-3 py-1.5 rounded-full bg-indigo-950/90 border border-indigo-700/80 text-indigo-300 font-mono text-xs font-bold">
                         {selectedStudioPages.length} Selected / محدد
                       </span>
                       <button
                         type="button"
                         onClick={() => setSelectedStudioPages(ALL_PLATFORM_SURFACES.flatMap((c) => c.items.map((i) => i.id)))}
-                        className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] transition-colors"
+                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors"
                       >
                         Select All (الكل)
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedStudioPages(["/video"])}
-                        className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-[11px] transition-colors"
+                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs font-medium transition-colors"
                       >
                         Reset (إعادة ضبط)
                       </button>
@@ -1419,26 +1461,26 @@ export default function AdminModelsPage() {
                   </div>
 
                   {/* Filter & Search Bar */}
-                  <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
                     <div className="relative flex-1 w-full">
-                      <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
-                        placeholder="Search across all 40+ pages & tools (ابحث في جميع الأدوات والصفحات)..."
+                        placeholder="Search across all 45 pages & tools (ابحث في جميع الأدوات والصفحات)..."
                         value={surfaceSearchQuery}
                         onChange={(e) => setSurfaceSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-500 text-xs focus:outline-none focus:border-indigo-500"
+                        className="w-full pl-10 pr-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-500 text-xs focus:outline-none focus:border-indigo-500"
                       />
                     </div>
-                    <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                    <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
                       {["ALL", "Video", "Image", "Audio", "Edit", "Standalone"].map((cat) => (
                         <button
                           type="button"
                           key={cat}
                           onClick={() => setActiveCategoryTab(cat)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors whitespace-nowrap ${
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap ${
                             activeCategoryTab === cat
-                              ? "bg-indigo-600 text-white font-semibold shadow-xs"
+                              ? "bg-indigo-600 text-white shadow-sm"
                               : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
                           }`}
                         >
@@ -1449,7 +1491,7 @@ export default function AdminModelsPage() {
                   </div>
 
                   {/* Categorized Surfaces Display */}
-                  <div className="space-y-4 max-h-64 overflow-y-auto pr-1">
+                  <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
                     {ALL_PLATFORM_SURFACES.filter((cat) => {
                       if (activeCategoryTab === "Video") return cat.category.includes("Video");
                       if (activeCategoryTab === "Image") return cat.category.includes("Image");
@@ -1469,10 +1511,10 @@ export default function AdminModelsPage() {
 
                       return (
                         <div key={category.category} className="space-y-2">
-                          <div className="flex items-center justify-between border-b border-zinc-800/80 pb-1">
-                            <span className="text-[11px] font-bold text-zinc-300 flex items-center gap-2">
+                          <div className="flex items-center justify-between border-b border-zinc-800/80 pb-1.5">
+                            <span className="text-xs font-bold text-zinc-300 flex items-center gap-2">
                               <span>{category.category}</span>
-                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${category.color}`}>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${category.color}`}>
                                 {category.badge}
                               </span>
                             </span>
@@ -1487,13 +1529,13 @@ export default function AdminModelsPage() {
                                   setSelectedStudioPages(Array.from(new Set([...selectedStudioPages, ...ids])));
                                 }
                               }}
-                              className="text-[10px] text-indigo-400 hover:text-indigo-300 underline"
+                              className="text-xs text-indigo-400 hover:text-indigo-300 underline font-medium"
                             >
                               {category.items.every((i) => selectedStudioPages.includes(i.id)) ? "Deselect Group" : "Select Group"}
                             </button>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                             {filteredItems.map((item) => {
                               const isSelected = selectedStudioPages.includes(item.id);
                               const Icon = item.icon;
@@ -1513,36 +1555,36 @@ export default function AdminModelsPage() {
                                     if (item.modality === "image") setNewModality("image");
                                     else if (item.modality === "video") setNewModality("video");
                                   }}
-                                  className={`p-2 rounded-xl border text-left flex items-start gap-2.5 transition-all ${
+                                  className={`p-2.5 rounded-2xl border text-left flex items-start gap-3 transition-all ${
                                     isSelected
-                                      ? "bg-indigo-950/70 border-indigo-500 shadow-xs ring-1 ring-indigo-500/30"
+                                      ? "bg-indigo-950/80 border-indigo-500 shadow-sm ring-1 ring-indigo-500/40"
                                       : "bg-zinc-900/80 border-zinc-800 hover:border-zinc-700 text-zinc-400"
                                   }`}
                                 >
-                                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${isSelected ? "bg-indigo-600 text-white" : "bg-zinc-800 text-zinc-400"}`}>
-                                    <Icon className="w-3.5 h-3.5" />
+                                  <div className={`p-2 rounded-xl flex-shrink-0 ${isSelected ? "bg-indigo-600 text-white" : "bg-zinc-800 text-zinc-400"}`}>
+                                    <Icon className="w-4 h-4" />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-1">
-                                      <span className={`font-semibold text-xs truncate ${isSelected ? "text-indigo-100" : "text-zinc-200"}`}>
+                                      <span className={`font-bold text-xs truncate ${isSelected ? "text-indigo-100" : "text-zinc-200"}`}>
                                         {item.name}
                                       </span>
                                       {item.badge && (
-                                        <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
                                           {item.badge}
                                         </span>
                                       )}
                                     </div>
-                                    <span className="text-[10px] text-zinc-500 block truncate">{item.desc}</span>
-                                    <span className="text-[9px] font-mono text-zinc-600 block truncate">{item.id}</span>
+                                    <span className="text-[11px] text-zinc-500 block truncate">{item.desc}</span>
+                                    <span className="text-[10px] font-mono text-zinc-600 block truncate">{item.id}</span>
                                   </div>
-                                  <div className="flex-shrink-0 pt-0.5">
+                                  <div className="flex-shrink-0 pt-1">
                                     <div
-                                      className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${
+                                      className={`w-4 h-4 rounded border flex items-center justify-center ${
                                         isSelected ? "bg-indigo-600 border-indigo-500 text-white" : "border-zinc-700 bg-zinc-950"
                                       }`}
                                     >
-                                      {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                      {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                                     </div>
                                   </div>
                                 </button>
@@ -1555,208 +1597,392 @@ export default function AdminModelsPage() {
                   </div>
                 </div>
 
-                {/* 🏷️ SECTION 3: Identity & Provider Settings */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 🏷️ SECTION 3: Modality, Identity, Grouping & Priority Settings */}
+                <div className="space-y-5 p-5 rounded-2xl bg-zinc-950 border border-zinc-800">
                   <div>
-                    <label className="block text-zinc-300 font-semibold mb-1">
-                      Display Name / الاسم الظاهر للمشترك <span className="text-rose-400">*</span>
+                    <label className="block text-zinc-200 font-bold text-xs mb-2">
+                      Model Modality / نوع النموذج والوسائط <span className="text-rose-400">*</span>
                     </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Kling V3.5 Pro"
-                      value={newModelName}
-                      onChange={(e) => setNewModelName(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 text-xs"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-zinc-300 font-semibold mb-1">
-                      Model ID / المعرف الفريد <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. kwaivgi/kling-v3.5-pro"
-                      value={newModelId}
-                      onChange={(e) => setNewModelId(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-xs"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-zinc-300 font-semibold mb-1">
-                      Provider / المزود التقني <span className="text-rose-400">*</span>
-                    </label>
-                    <select
-                      value={newProvider}
-                      onChange={(e) => setNewProvider(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 text-xs"
-                    >
-                      <option value="wavespeed">WaveSpeed (Active Provider)</option>
-                      <option value="google">Google Veo / Imagen (Active)</option>
-                      <option value="openai">OpenAI (Standby)</option>
-                      <option value="byteplus">BytePlus (Standby)</option>
-                      <option value="kie">KIE.ai (Standby)</option>
-                      <option value="custom">Custom Provider</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* 🔄 SECTION 4: Unified Sub-Routes (التوجيه التلقائي الذكي في الخلفية) */}
-                <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-indigo-300 text-xs flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-indigo-400" />
-                      <span>Unified Sub-Routes (التوجيه التلقائي الذكي بين النص والصورة)</span>
-                    </span>
-                    <span className="text-[11px] text-zinc-500">يعمل بدون إرباك المشترك</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-zinc-400 font-medium mb-1">
-                        Text Route (مسار النص فقط)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. kwaivgi/kling-v3.5-pro/text-to-video"
-                        value={newTextRoute}
-                        onChange={(e) => setNewTextRoute(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
-                      />
-                      <span className="text-[10px] text-zinc-500 mt-1 block">يُشغّل تلقائياً عند كتابة برومبت نصي بدون رفع صورة.</span>
-                    </div>
-
-                    <div>
-                      <label className="block text-zinc-400 font-medium mb-1">
-                        Image/Edit Route (مسار الصورة والتعديل)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. kwaivgi/kling-v3.5-pro/image-to-video"
-                        value={newImageRoute}
-                        onChange={(e) => setNewImageRoute(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
-                      />
-                      <span className="text-[10px] text-zinc-500 mt-1 block">يُشغّل تلقائياً عند قيام المشترك برفع صورة بداية أو مراجع.</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 📐 SECTION 5: Visual Aspect Ratios (اختيار الأبعاد والنسب البصرية) */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-zinc-200 font-bold text-xs flex items-center gap-2">
-                      <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
-                      <span>Supported Aspect Ratios / الأبعاد والنسب المدعومة</span>
-                    </label>
-                    <span className="text-[11px] text-zinc-500">انقر لتحديد أو إلغاء أي نسبة</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-                    {[
-                      { value: "1:1", label: "1:1 Square", w: 18, h: 18 },
-                      { value: "16:9", label: "16:9 Landscape", w: 24, h: 13 },
-                      { value: "9:16", label: "9:16 Portrait", w: 13, h: 24 },
-                      { value: "4:3", label: "4:3 Standard", w: 20, h: 15 },
-                      { value: "3:4", label: "3:4 Vertical", w: 15, h: 20 },
-                      { value: "2:3", label: "2:3 Portrait", w: 14, h: 21 },
-                      { value: "3:2", label: "3:2 Photo", w: 21, h: 14 },
-                      { value: "21:9", label: "21:9 Ultrawide", w: 28, h: 12 },
-                      { value: "1:4", label: "1:4 Ultra-tall", w: 8, h: 26 },
-                      { value: "1:8", label: "1:8 Skyscraper", w: 6, h: 28 },
-                    ].map((ratio) => {
-                      const isSelected = newAspectRatios.includes(ratio.value);
-                      return (
-                        <button
-                          type="button"
-                          key={ratio.value}
-                          onClick={() => {
-                            let next: string[];
-                            if (isSelected) {
-                              next = newAspectRatios.filter((r) => r !== ratio.value);
-                              if (next.length === 0) next = [ratio.value];
-                            } else {
-                              next = [...newAspectRatios, ratio.value];
-                            }
-                            setNewAspectRatios(next);
-                          }}
-                          className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all ${
-                            isSelected
-                              ? "bg-indigo-950/70 border-indigo-500 text-white shadow-xs"
-                              : "bg-zinc-950 border-zinc-800 hover:border-zinc-700 text-zinc-400"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div
-                              style={{ width: `${ratio.w}px`, height: `${ratio.h}px` }}
-                              className={`border-2 rounded-xs flex-shrink-0 ${
-                                isSelected ? "border-indigo-400 bg-indigo-500/20" : "border-zinc-600"
-                              }`}
-                            />
-                            <span className="font-mono text-xs font-semibold">{ratio.value}</span>
-                          </div>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* ⏱️ & 📺 SECTION 6: Durations & Resolutions Chips */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Durations */}
-                  <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2.5">
-                    <label className="block text-zinc-300 font-semibold text-xs">
-                      Durations (المدد المتاحة بالثواني)
-                    </label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[5, 10, 15, 20, 30, 60].map((dur) => {
-                        const parsed = newDurations.split(",").map((s) => parseInt(s.trim(), 10)).filter(Boolean);
-                        const isIncluded = parsed.includes(dur);
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                      {[
+                        { id: "video", label: "🎬 Video (فيديو)", desc: "Video Studio" },
+                        { id: "image", label: "🖼️ Image (صور)", desc: "Image Studio" },
+                        { id: "audio", label: "🎙️ Audio (صوت)", desc: "Music & Voice" },
+                        { id: "edit", label: "✂️ Edit (تعديل)", desc: "Inpaint & Upscale" },
+                        { id: "3d", label: "🧊 3D (ثلاثي أبعاد)", desc: "3D Studio" },
+                      ].map((mod) => {
+                        const isCurrentActive =
+                          (mod.id === "video" && newModality === "video" && activeCategoryTab !== "Audio" && !selectedStudioPages.includes("/3d")) ||
+                          (mod.id === "image" && newModality === "image" && activeCategoryTab !== "Edit") ||
+                          (mod.id === "audio" && activeCategoryTab === "Audio") ||
+                          (mod.id === "edit" && activeCategoryTab === "Edit") ||
+                          (mod.id === "3d" && selectedStudioPages.includes("/3d"));
                         return (
                           <button
                             type="button"
-                            key={dur}
-                            onClick={() => {
-                              let next: number[];
-                              if (isIncluded) {
-                                next = parsed.filter((d) => d !== dur);
-                                if (next.length === 0) next = [dur];
-                              } else {
-                                next = [...parsed, dur].sort((a, b) => a - b);
-                              }
-                              setNewDurations(next.join(", "));
-                            }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold border transition-all ${
-                              isIncluded
-                                ? "bg-indigo-950 border-indigo-500 text-indigo-300"
-                                : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                            key={mod.id}
+                            onClick={() => handleModalitySelect(mod.id as any)}
+                            className={`p-3 rounded-2xl border text-center transition-all ${
+                              isCurrentActive
+                                ? "bg-indigo-600 border-indigo-400 text-white font-bold shadow-md ring-2 ring-indigo-500/40"
+                                : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"
                             }`}
                           >
-                            {dur}s
+                            <span className="block text-xs font-bold">{mod.label}</span>
+                            <span className="block text-[10px] opacity-75 mt-0.5">{mod.desc}</span>
                           </button>
                         );
                       })}
                     </div>
-                    <input
-                      type="text"
-                      placeholder="e.g. 5, 10, 15"
-                      value={newDurations}
-                      onChange={(e) => setNewDurations(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 font-mono text-[11px] focus:outline-none focus:border-indigo-500"
-                    />
                   </div>
 
-                  {/* Resolutions */}
-                  <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2.5">
-                    <label className="block text-zinc-300 font-semibold text-xs">
-                      Resolutions (الدقات المتاحة)
+                  {/* Identity Row 1: Name, ID, Provider */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-zinc-300 font-semibold mb-1">
+                        Display Name / الاسم الظاهر للمشترك <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Seedance 2.5 Turbo"
+                        value={newModelName}
+                        onChange={(e) => setNewModelName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 text-xs"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-zinc-300 font-semibold mb-1">
+                        Model ID / المعرف الفريد <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. bytedance/seedance-2.5-turbo"
+                        value={newModelId}
+                        onChange={(e) => setNewModelId(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-xs"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-zinc-300 font-semibold mb-1">
+                        Provider / المزود التقني <span className="text-rose-400">*</span>
+                      </label>
+                      <select
+                        value={newProvider}
+                        onChange={(e) => setNewProvider(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 text-xs"
+                      >
+                        <option value="wavespeed">WaveSpeed (Active Provider)</option>
+                        <option value="google">Google Veo / Imagen (Active)</option>
+                        <option value="openai">OpenAI (Standby)</option>
+                        <option value="byteplus">BytePlus (Standby)</option>
+                        <option value="kie">KIE.ai (Standby)</option>
+                        <option value="custom">Custom Provider</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Identity Row 2: Family/Group, Badge, Pin to Top */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-zinc-800/80">
+                    <div>
+                      <label className="block text-zinc-300 font-semibold mb-1">
+                        Group / العائلة والمجموعة في القائمة <span className="text-rose-400">*</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={["seedance", "hailuo", "google", "kling", "wan", "sora", "seedream", "flux"].includes(newFamily.toLowerCase()) ? newFamily.toLowerCase() : "custom"}
+                          onChange={(e) => {
+                            if (e.target.value !== "custom") setNewFamily(e.target.value);
+                          }}
+                          className="flex-1 px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="seedance">🟢 Seedance (ByteDance)</option>
+                          <option value="hailuo">🟠 Minimax / Hailuo</option>
+                          <option value="google">🔵 Google Imagen / Veo</option>
+                          <option value="kling">🟣 Kling Engines</option>
+                          <option value="wan">🔴 Wan 2.2 / 2.5</option>
+                          <option value="sora">⚪ OpenAI Sora</option>
+                          <option value="seedream">🟢 Seedream Edit</option>
+                          <option value="flux">🟣 FLUX.2</option>
+                          <option value="custom">✍️ Custom Group (مجموعة مخصصة)</option>
+                        </select>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Or enter custom group name (e.g. Wan 2.5)..."
+                        value={newFamily}
+                        onChange={(e) => setNewFamily(e.target.value)}
+                        className="w-full mt-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 placeholder-zinc-600 text-xs focus:outline-none focus:border-indigo-500 font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-zinc-300 font-semibold mb-1">
+                        Badge / شارة التمييز في القائمة
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {["TOP", "NEW", "FAST", "PRO", "4K", "NONE"].map((badgeOption) => {
+                          const isSel = (badgeOption === "NONE" && !newBadge) || newBadge === badgeOption;
+                          return (
+                            <button
+                              type="button"
+                              key={badgeOption}
+                              onClick={() => setNewBadge(badgeOption === "NONE" ? "" : badgeOption)}
+                              className={`py-2 rounded-xl text-xs font-bold border transition-all ${
+                                isSel
+                                  ? badgeOption === "TOP"
+                                    ? "bg-amber-500 text-black border-amber-400 shadow-sm"
+                                    : badgeOption === "FAST"
+                                    ? "bg-sky-500 text-white border-sky-400 shadow-sm"
+                                    : badgeOption === "PRO"
+                                    ? "bg-purple-600 text-white border-purple-400 shadow-sm"
+                                    : "bg-emerald-600 text-white border-emerald-400 shadow-sm"
+                                  : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                              }`}
+                            >
+                              {badgeOption}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-zinc-300 font-semibold mb-1">
+                        Display Placement / أولوية الظهور في القمة
+                      </label>
+                      <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between gap-2 mt-1">
+                        <div>
+                          <span className="font-bold text-xs text-zinc-200 block">Pin to Top of Dropdown</span>
+                          <span className="text-[10px] text-zinc-500 block">إظهار الموديل في بداية القائمة للمشتركين</span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={newPinToTop}
+                          onChange={(e) => setNewPinToTop(e.target.checked)}
+                          className="w-5 h-5 text-indigo-600 rounded bg-zinc-950 border-zinc-700"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 🔄 SECTION 4: Dual Sub-Route Dropdowns (التوجيه التلقائي مع منسدلتين لاختيار المسارات) */}
+                <div className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-indigo-300 text-sm flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-indigo-400" />
+                      <span>Dual Sub-Routes (منسدلتان لتحديد مسار النص ومسار الصورة والتعديل)</span>
+                    </span>
+                    <span className="text-xs text-zinc-400">يعمل بالخلفية بدون إرباك المشترك</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Dropdown 1: Text Route */}
+                    <div className="space-y-2 p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+                      <label className="block text-indigo-300 font-bold text-xs flex items-center justify-between">
+                        <span>1. Primary / Text Route Dropdown (مسار النص)</span>
+                        <span className="text-[10px] text-zinc-500">للنصوص والبرومبت</span>
+                      </label>
+                      <select
+                        value={newTextRoute}
+                        onChange={(e) => setNewTextRoute(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-indigo-800/60 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="">-- Choose from imported routes / اختر من المسارات المستوردة --</option>
+                        {knowledgeDrafts.map((d: any) => {
+                          const mField = d.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
+                          const route = mField?.value || d.id;
+                          return (
+                            <option key={`text-${d.id}`} value={route}>
+                              [Imported Draft] {d.provider?.toUpperCase()} · {route}
+                            </option>
+                          );
+                        })}
+                        {videoModels.slice(0, 10).map((vm) => (
+                          <option key={`vm-text-${vm.id}`} value={vm.api_route}>
+                            [Video Registry] {vm.name} ({vm.api_route})
+                          </option>
+                        ))}
+                        {imageModels.slice(0, 10).map((im) => (
+                          <option key={`im-text-${im.id}`} value={im.id}>
+                            [Image Registry] {im.label} ({im.id})
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Or custom text route: e.g. kwaivgi/kling-v3.5-pro/text-to-video"
+                        value={newTextRoute}
+                        onChange={(e) => setNewTextRoute(e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                      />
+                    </div>
+
+                    {/* Dropdown 2: Image/Edit Route */}
+                    <div className="space-y-2 p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+                      <label className="block text-indigo-300 font-bold text-xs flex items-center justify-between">
+                        <span>2. Secondary / Image/Edit Route Dropdown (مسار الصورة والتعديل)</span>
+                        <span className="text-[10px] text-zinc-500">للصور والمراجع</span>
+                      </label>
+                      <select
+                        value={newImageRoute}
+                        onChange={(e) => setNewImageRoute(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-indigo-800/60 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="">-- Choose from imported routes / اختر من المسارات المستوردة --</option>
+                        {knowledgeDrafts.map((d: any) => {
+                          const mField = d.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
+                          let route = mField?.value || d.id;
+                          if (route.includes("text-to-video")) route = route.replace("text-to-video", "image-to-video");
+                          else if (route.includes("text-to-image")) route = route.replace("text-to-image", "edit");
+                          return (
+                            <option key={`img-${d.id}`} value={route}>
+                              [Imported Draft] {d.provider?.toUpperCase()} · {route}
+                            </option>
+                          );
+                        })}
+                        {videoModels.filter(m => m.api_route.includes("image") || m.api_route.includes("edit")).slice(0, 10).map((vm) => (
+                          <option key={`vm-img-${vm.id}`} value={vm.api_route}>
+                            [Video Registry] {vm.name} ({vm.api_route})
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Or custom edit route: e.g. kwaivgi/kling-v3.5-pro/image-to-video"
+                        value={newImageRoute}
+                        onChange={(e) => setNewImageRoute(e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 📐 SECTION 5: Visual Aspect Ratios (Only for Video/Image/Edit) */}
+                {activeCategoryTab !== "Audio" && (
+                  <div className="space-y-3 p-5 rounded-2xl bg-zinc-950 border border-zinc-800">
+                    <div className="flex items-center justify-between">
+                      <label className="text-zinc-100 font-bold text-sm flex items-center gap-2">
+                        <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
+                        <span>Supported Aspect Ratios / الأبعاد والنسب المدعومة</span>
+                      </label>
+                      <span className="text-xs text-zinc-500">انقر لتحديد أو إلغاء أي نسبة</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                      {[
+                        { value: "1:1", label: "1:1 Square", w: 20, h: 20 },
+                        { value: "16:9", label: "16:9 Landscape", w: 26, h: 14 },
+                        { value: "9:16", label: "9:16 Portrait", w: 14, h: 26 },
+                        { value: "4:3", label: "4:3 Standard", w: 22, h: 16 },
+                        { value: "3:4", label: "3:4 Vertical", w: 16, h: 22 },
+                        { value: "2:3", label: "2:3 Portrait", w: 15, h: 23 },
+                        { value: "3:2", label: "3:2 Photo", w: 23, h: 15 },
+                        { value: "21:9", label: "21:9 Ultrawide", w: 30, h: 13 },
+                        { value: "1:4", label: "1:4 Ultra-tall", w: 9, h: 28 },
+                        { value: "1:8", label: "1:8 Skyscraper", w: 7, h: 32 },
+                      ].map((ratio) => {
+                        const isSelected = newAspectRatios.includes(ratio.value);
+                        return (
+                          <button
+                            type="button"
+                            key={ratio.value}
+                            onClick={() => {
+                              let next: string[];
+                              if (isSelected) {
+                                next = newAspectRatios.filter((r) => r !== ratio.value);
+                                if (next.length === 0) next = [ratio.value];
+                              } else {
+                                next = [...newAspectRatios, ratio.value];
+                              }
+                              setNewAspectRatios(next);
+                            }}
+                            className={`p-3 rounded-2xl border flex items-center justify-between gap-2.5 transition-all ${
+                              isSelected
+                                ? "bg-indigo-950/80 border-indigo-500 text-white shadow-sm ring-1 ring-indigo-500/40"
+                                : "bg-zinc-900 border-zinc-800 hover:border-zinc-700 text-zinc-400"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                style={{ width: `${ratio.w}px`, height: `${ratio.h}px` }}
+                                className={`border-2 rounded-xs flex-shrink-0 ${
+                                  isSelected ? "border-indigo-400 bg-indigo-500/30" : "border-zinc-600"
+                                }`}
+                              />
+                              <span className="font-mono text-xs font-bold">{ratio.value}</span>
+                            </div>
+                            {isSelected && <Check className="w-4 h-4 text-indigo-400 flex-shrink-0 stroke-[3]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ⏱️ & 📺 SECTION 6: Contextual Durations & Resolutions Chips */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Durations (Hidden for Image-only models) */}
+                  {newModality !== "image" && (
+                    <div className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3">
+                      <label className="block text-zinc-200 font-bold text-xs">
+                        {activeCategoryTab === "Audio" ? "Audio Track Durations (مدد الصوت والموسيقى بالثواني)" : "Video Durations (المدد بالثواني)"}
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {(activeCategoryTab === "Audio" ? [15, 30, 60, 120, 180, 300] : [5, 10, 15, 20, 30, 60]).map((dur) => {
+                          const parsed = newDurations.split(",").map((s) => parseInt(s.trim(), 10)).filter(Boolean);
+                          const isIncluded = parsed.includes(dur);
+                          return (
+                            <button
+                              type="button"
+                              key={dur}
+                              onClick={() => {
+                                let next: number[];
+                                if (isIncluded) {
+                                  next = parsed.filter((d) => d !== dur);
+                                  if (next.length === 0) next = [dur];
+                                } else {
+                                  next = [...parsed, dur].sort((a, b) => a - b);
+                                }
+                                setNewDurations(next.join(", "));
+                              }}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold border transition-all ${
+                                isIncluded
+                                  ? "bg-indigo-600 border-indigo-400 text-white shadow-sm"
+                                  : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                              }`}
+                            >
+                              {dur}s
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="e.g. 5, 10, 15"
+                        value={newDurations}
+                        onChange={(e) => setNewDurations(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 font-mono text-xs focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Resolutions / Output Quality */}
+                  <div className={`p-5 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3 ${newModality === "image" ? "md:col-span-2" : ""}`}>
+                    <label className="block text-zinc-200 font-bold text-xs">
+                      {activeCategoryTab === "Audio" ? "Audio Bitrate & Quality (جودة الصوت والصيغ)" : "Resolutions & Quality (الدقات المتاحة)"}
                     </label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {["720p", "1080p", "2K", "4K", "1K", "HD"].map((res) => {
+                    <div className="flex flex-wrap gap-2">
+                      {(activeCategoryTab === "Audio"
+                        ? ["128kbps MP3", "320kbps MP3", "High-Res WAV", "Stems", "Multi-track"]
+                        : newModality === "image"
+                        ? ["1K", "2K", "4K", "8K", "HD", "Standard", "Pro"]
+                        : ["720p", "1080p", "2K", "4K", "HD"]
+                      ).map((res) => {
                         const parsed = newResolutions.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
                         const isIncluded = parsed.includes(res.toLowerCase());
                         return (
@@ -1773,9 +1999,9 @@ export default function AdminModelsPage() {
                               }
                               setNewResolutions(next.join(", "));
                             }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold border transition-all ${
+                            className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold border transition-all ${
                               isIncluded
-                                ? "bg-indigo-950 border-indigo-500 text-indigo-300"
+                                ? "bg-indigo-600 border-indigo-400 text-white shadow-sm"
                                 : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700"
                             }`}
                           >
@@ -1789,13 +2015,13 @@ export default function AdminModelsPage() {
                       placeholder="e.g. 720p, 1080p, 4K"
                       value={newResolutions}
                       onChange={(e) => setNewResolutions(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 font-mono text-[11px] focus:outline-none focus:border-indigo-500"
+                      className="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 font-mono text-xs focus:outline-none focus:border-indigo-500"
                     />
                   </div>
                 </div>
 
                 {/* 💰 SECTION 7: Pricing & Instant Publication */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-zinc-800">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 p-5 rounded-2xl bg-zinc-950 border border-zinc-800">
                   <div>
                     <label className="block text-zinc-300 font-semibold mb-1">
                       Max Reference Images (الحد الأقصى للمراجع)
@@ -1806,7 +2032,7 @@ export default function AdminModelsPage() {
                       max="10"
                       value={newMaxRefImages}
                       onChange={(e) => setNewMaxRefImages(parseInt(e.target.value, 10) || 0)}
-                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500"
                     />
                   </div>
 
@@ -1820,7 +2046,7 @@ export default function AdminModelsPage() {
                       min="0"
                       value={newCreditCost}
                       onChange={(e) => setNewCreditCost(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-amber-400 font-bold text-sm focus:outline-none focus:border-indigo-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-amber-400 font-black text-base focus:outline-none focus:border-indigo-500"
                       required
                     />
                   </div>
@@ -1831,28 +2057,28 @@ export default function AdminModelsPage() {
                       id="new-model-active-check"
                       checked={newIsActive}
                       onChange={(e) => setNewIsActive(e.target.checked)}
-                      className="w-4 h-4 text-indigo-600 rounded bg-zinc-900 border-zinc-700"
+                      className="w-5 h-5 text-indigo-600 rounded bg-zinc-900 border-zinc-700"
                     />
-                    <label htmlFor="new-model-active-check" className="text-zinc-200 font-medium text-xs cursor-pointer">
+                    <label htmlFor="new-model-active-check" className="text-zinc-200 font-bold text-xs cursor-pointer">
                       Publish Active Immediately (نشر الموديل مفعل فوراً)
                     </label>
                   </div>
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+                <div className="flex items-center justify-end gap-4 pt-5 border-t border-zinc-800">
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
                     disabled={addingModel}
-                    className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-xs transition-colors"
+                    className="px-6 py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-xs transition-colors"
                   >
                     Cancel / إلغاء
                   </button>
                   <button
                     type="submit"
                     disabled={addingModel}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-2.5 px-8 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xl transition-colors disabled:opacity-50"
                   >
                     {addingModel ? (
                       <>
