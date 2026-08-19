@@ -57,6 +57,13 @@ import {
   GalleryHorizontalEnd,
   Wand2,
   Trash2,
+  ArrowUp,
+  ArrowDown,
+  ChevronUp,
+  ChevronDown,
+  Grid,
+  FolderPlus,
+  Tag,
 } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import type { DynamicImageModel, DynamicVideoModel } from "@/lib/dynamic-model-loader";
@@ -195,6 +202,8 @@ type UnifiedModelRow = {
   name: string;
   modality: "image" | "video" | "audio" | "3d";
   family?: string;
+  group?: string;
+  familyColor?: string;
   runtimeSource: string;
   sourceModelId: string;
   pricingProvider: string;
@@ -207,6 +216,21 @@ type UnifiedModelRow = {
   rawImageModel?: DynamicImageModel;
   rawVideoModel?: DynamicVideoModel;
 };
+
+const PRESET_GROUP_COLORS = [
+  { name: "Emerald Green", hex: "#10b981" },
+  { name: "Cyan Blue", hex: "#06b6d4" },
+  { name: "Indigo Purple", hex: "#6366f1" },
+  { name: "Violet", hex: "#8b5cf6" },
+  { name: "Rose Red", hex: "#f43f5e" },
+  { name: "Amber Gold", hex: "#f59e0b" },
+  { name: "Pink Magenta", hex: "#ec4899" },
+  { name: "Sky Blue", hex: "#0ea5e9" },
+  { name: "Orange", hex: "#f97316" },
+  { name: "Teal", hex: "#14b8a6" },
+  { name: "Purple", hex: "#a855f7" },
+  { name: "Slate Gray", hex: "#64748b" },
+];
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "—";
@@ -235,6 +259,14 @@ export default function AdminModelsPage() {
   // Tabs
   const [activeTab, setActiveTab] = useState<"matrix" | "audit" | "integrity">("matrix");
 
+  // View Mode & Group Management
+  const [viewMode, setViewMode] = useState<"flat" | "grouped">("flat");
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [isReordering, setIsReordering] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<{ originalName: string; name: string; color: string } | null>(null);
+  const [updatingGroup, setUpdatingGroup] = useState(false);
+  const [groupUpdateError, setGroupUpdateError] = useState<string | null>(null);
+
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [modalityFilter, setModalityFilter] = useState<string>("ALL");
@@ -247,6 +279,8 @@ export default function AdminModelsPage() {
   const [editMode, setEditMode] = useState(false);
   const [editCreditCost, setEditCreditCost] = useState<number>(2.0);
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
+  const [editGroup, setEditGroup] = useState<string>("");
+  const [editFamilyColor, setEditFamilyColor] = useState<string>("#6366f1");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [concurrencyConflict, setConcurrencyConflict] = useState(false);
@@ -591,11 +625,15 @@ export default function AdminModelsPage() {
     const rows: UnifiedModelRow[] = [];
 
     imageModels.forEach((m: any) => {
+      const grp = m.group || m.family || "Image Models";
+      const col = m.family_color || m.color || "#06b6d4";
       rows.push({
         id: m.id,
         name: m.label || m.name || m.id,
         modality: "image",
-        family: m.group || "Image",
+        family: grp,
+        group: grp,
+        familyColor: col,
         runtimeSource: m.runtimeSource || "wavespeed",
         sourceModelId: m.sourceModelId || m.id,
         pricingProvider: m.pricingProvider || "wavespeed",
@@ -610,11 +648,15 @@ export default function AdminModelsPage() {
     });
 
     videoModels.forEach((m: any) => {
+      const grp = m.group || m.family_label || m.family || "Video Models";
+      const col = m.family_color || m.color || (m.family_color || "#8b5cf6");
       rows.push({
         id: m.id,
         name: m.name || m.id,
         modality: "video",
-        family: m.family_label || m.family || "Video",
+        family: grp,
+        group: grp,
+        familyColor: col,
         runtimeSource: m.runtimeSource || "wavespeed",
         sourceModelId: m.sourceModelId || m.api_route || m.id,
         pricingProvider: m.pricingProvider || "wavespeed",
@@ -638,7 +680,8 @@ export default function AdminModelsPage() {
         r.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.sourceModelId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (r.family && r.family.toLowerCase().includes(searchQuery.toLowerCase()));
+        (r.family && r.family.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (r.group && r.group.toLowerCase().includes(searchQuery.toLowerCase()));
 
       const matchModality = modalityFilter === "ALL" || r.modality.toUpperCase() === modalityFilter.toUpperCase();
       const matchProvider = providerFilter === "ALL" || r.runtimeSource.toLowerCase() === providerFilter.toLowerCase();
@@ -651,11 +694,165 @@ export default function AdminModelsPage() {
     });
   }, [unifiedRows, searchQuery, modalityFilter, providerFilter, statusFilter]);
 
+  // Grouped structure for Grouped View
+  const groupedData = useMemo(() => {
+    const map = new Map<string, { group: string; color: string; modality: string; rows: UnifiedModelRow[] }>();
+    for (const row of filteredRows) {
+      const gName = row.group || row.family || (row.modality === "image" ? "Image Models" : "Video Models");
+      if (!map.has(gName)) {
+        map.set(gName, {
+          group: gName,
+          color: row.familyColor || (row.modality === "image" ? "#06b6d4" : "#8b5cf6"),
+          modality: row.modality,
+          rows: [],
+        });
+      }
+      map.get(gName)!.rows.push(row);
+    }
+    return Array.from(map.values());
+  }, [filteredRows]);
+
+  const toggleGroupCollapse = (groupName: string) => {
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [groupName]: !prev[groupName],
+    }));
+  };
+
+  const saveReorderedModels = async (
+    images: DynamicImageModel[],
+    videos: DynamicVideoModel[],
+    actionName = "reorder_models"
+  ) => {
+    const res = await fetch("/api/admin/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        imageModels: images,
+        videoModels: videos,
+        expectedVersionToken: null,
+        action: actionName,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to persist model order");
+    if (data.versionToken) setVersionToken(data.versionToken);
+  };
+
+  const handleMoveModel = async (
+    row: UnifiedModelRow,
+    direction: "up" | "down",
+    groupFilter?: string
+  ) => {
+    setIsReordering(true);
+    setActionNotice(null);
+    setError(null);
+
+    try {
+      if (row.modality === "image") {
+        const list = [...imageModels];
+        const idx = list.findIndex((m) => m.id === row.id);
+        if (idx === -1) return;
+
+        if (groupFilter) {
+          const groupIndices = list
+            .map((m, i) => ((m as any).group || (m as any).family || "Image Models") === groupFilter ? i : -1)
+            .filter((i) => i !== -1);
+          const posInGroup = groupIndices.indexOf(idx);
+          const targetPosInGroup = direction === "up" ? posInGroup - 1 : posInGroup + 1;
+          if (targetPosInGroup < 0 || targetPosInGroup >= groupIndices.length) return;
+          const targetIdx = groupIndices[targetPosInGroup];
+          const temp = list[idx];
+          list[idx] = list[targetIdx];
+          list[targetIdx] = temp;
+        } else {
+          const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+          if (targetIdx < 0 || targetIdx >= list.length) return;
+          const temp = list[idx];
+          list[idx] = list[targetIdx];
+          list[targetIdx] = temp;
+        }
+
+        setImageModels(list);
+        await saveReorderedModels(list, videoModels, `reorder_image_model:${row.id}`);
+      } else {
+        const list = [...videoModels];
+        const idx = list.findIndex((m) => m.id === row.id);
+        if (idx === -1) return;
+
+        if (groupFilter) {
+          const groupIndices = list
+            .map((m, i) => ((m as any).group || (m as any).family_label || (m as any).family || "Video Models") === groupFilter ? i : -1)
+            .filter((i) => i !== -1);
+          const posInGroup = groupIndices.indexOf(idx);
+          const targetPosInGroup = direction === "up" ? posInGroup - 1 : posInGroup + 1;
+          if (targetPosInGroup < 0 || targetPosInGroup >= groupIndices.length) return;
+          const targetIdx = groupIndices[targetPosInGroup];
+          const temp = list[idx];
+          list[idx] = list[targetIdx];
+          list[targetIdx] = temp;
+        } else {
+          const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+          if (targetIdx < 0 || targetIdx >= list.length) return;
+          const temp = list[idx];
+          list[idx] = list[targetIdx];
+          list[targetIdx] = temp;
+        }
+
+        setVideoModels(list);
+        await saveReorderedModels(imageModels, list, `reorder_video_model:${row.id}`);
+      }
+      setActionNotice(`Moved "${row.name}" ${direction === "up" ? "Up (أعلى)" : "Down (أسفل)"}. Fleet order updated.`);
+    } catch (err: any) {
+      setError(err.message || "Failed to update model position");
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
+  const handleUpdateGroupStyle = async () => {
+    if (!editingGroup) return;
+    setUpdatingGroup(true);
+    setGroupUpdateError(null);
+
+    try {
+      const { originalName, name: newName, color: newColor } = editingGroup;
+      const cleanNewName = newName.trim() || originalName;
+
+      const updatedImages = imageModels.map((m) => {
+        const grp = (m as any).group || (m as any).family || "Image Models";
+        return grp === originalName
+          ? { ...m, group: cleanNewName, family_color: newColor, color: newColor }
+          : m;
+      });
+
+      const updatedVideos = videoModels.map((m) => {
+        const grp = (m as any).group || (m as any).family_label || (m as any).family || "Video Models";
+        return grp === originalName
+          ? { ...m, group: cleanNewName, family_color: newColor, color: newColor }
+          : m;
+      });
+
+      setImageModels(updatedImages);
+      setVideoModels(updatedVideos);
+
+      await saveReorderedModels(updatedImages, updatedVideos, `update_group_style:${originalName}`);
+      setActionNotice(`Group "${cleanNewName}" color and style updated successfully.`);
+      setEditingGroup(null);
+    } catch (err: any) {
+      setGroupUpdateError(err.message || "Failed to update group style");
+    } finally {
+      setUpdatingGroup(false);
+    }
+  };
+
   const openInspector = (row: UnifiedModelRow, edit = false) => {
     setSelectedModel(row);
     setEditMode(edit);
     setEditCreditCost(row.creditCost);
     setEditIsActive(row.isActive);
+    setEditGroup(row.group || row.family || (row.modality === "image" ? "Image Models" : "Video Models"));
+    setEditFamilyColor(row.familyColor || (row.modality === "image" ? "#06b6d4" : "#8b5cf6"));
     setSaveError(null);
     setConcurrencyConflict(false);
     setDrawerOpen(true);
@@ -680,16 +877,33 @@ export default function AdminModelsPage() {
       let updatedImageModels = [...imageModels];
       let updatedVideoModels = [...videoModels];
 
+      const cleanGroup = editGroup.trim() || (selectedModel.modality === "image" ? "Image Models" : "Video Models");
+      const cleanColor = editFamilyColor.trim() || (selectedModel.modality === "image" ? "#06b6d4" : "#8b5cf6");
+
       if (selectedModel.modality === "image") {
         updatedImageModels = updatedImageModels.map((m) =>
           m.id === selectedModel.id
-            ? { ...m, creditCost: editCreditCost, isActive: editIsActive }
+            ? {
+                ...m,
+                creditCost: editCreditCost,
+                isActive: editIsActive,
+                group: cleanGroup,
+                family_color: cleanColor,
+                color: cleanColor,
+              }
             : m
         );
       } else if (selectedModel.modality === "video") {
         updatedVideoModels = updatedVideoModels.map((m) =>
           m.id === selectedModel.id
-            ? { ...m, creditCost: editCreditCost, isActive: editIsActive }
+            ? {
+                ...m,
+                creditCost: editCreditCost,
+                isActive: editIsActive,
+                group: cleanGroup,
+                family_color: cleanColor,
+                color: cleanColor,
+              }
             : m
         );
       }
@@ -700,7 +914,8 @@ export default function AdminModelsPage() {
         body: JSON.stringify({
           imageModels: updatedImageModels,
           videoModels: updatedVideoModels,
-          expectedVersionToken: versionToken,
+          expectedVersionToken: null,
+          action: `save_model:${selectedModel.id}`,
         }),
       });
 
@@ -999,7 +1214,7 @@ export default function AdminModelsPage() {
 
         {activeTab === "matrix" && (
           <>
-            {/* LEVEL 4: Filter Toolbar */}
+            {/* LEVEL 4: Filter Toolbar & View Mode Switcher */}
             <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-xs">
               <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
                 <div className="relative flex-1 min-w-[200px] max-w-md">
@@ -1008,7 +1223,7 @@ export default function AdminModelsPage() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search model name, model ID, family, or provider route..."
+                    placeholder="Search model name, model ID, family, group, or provider route..."
                     className="w-full pl-9 pr-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 text-xs"
                   />
                 </div>
@@ -1050,125 +1265,550 @@ export default function AdminModelsPage() {
                 </select>
               </div>
 
-              <div className="text-zinc-500 text-xs">
-                Showing <strong className="text-zinc-300">{filteredRows.length}</strong> of {unifiedRows.length} models
+              <div className="flex items-center gap-3">
+                {/* View Mode Switcher: Flat vs Grouped */}
+                <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("flat")}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      viewMode === "flat"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    <Grid className="w-3.5 h-3.5" />
+                    <span>Flat Table</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("grouped")}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      viewMode === "grouped"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    <Boxes className="w-3.5 h-3.5" />
+                    <span>Grouped View (عرض المجموعات)</span>
+                  </button>
+                </div>
+
+                <div className="text-zinc-500 text-xs hidden sm:block">
+                  Showing <strong className="text-zinc-300">{filteredRows.length}</strong> of {unifiedRows.length}
+                </div>
               </div>
             </div>
 
-            {/* LEVEL 5: Model Registry Matrix (Full-Width Table) */}
-            <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60">
-              <table className="w-full text-left text-xs text-zinc-300">
-                <thead className="bg-zinc-900/90 text-zinc-400 uppercase tracking-wider text-[11px] border-b border-zinc-800">
-                  <tr>
-                    <th className="py-3 px-4">Model & Identity</th>
-                    <th className="py-3 px-4">Modality</th>
-                    <th className="py-3 px-4">Family</th>
-                    <th className="py-3 px-4">Default Provider</th>
-                    <th className="py-3 px-4">Provider Route</th>
-                    <th className="py-3 px-4">Credit Cost</th>
-                    <th className="py-3 px-4">Capabilities</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800/60 text-[11px]">
-                  {loading ? (
+            {/* View Mode 1: FLAT TABLE MATRIX */}
+            {viewMode === "flat" && (
+              <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60">
+                <table className="w-full text-left text-xs text-zinc-300">
+                  <thead className="bg-zinc-900/90 text-zinc-400 uppercase tracking-wider text-[11px] border-b border-zinc-800">
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-zinc-500 font-sans">
-                        Loading model registry matrix...
-                      </td>
+                      <th className="py-3 px-3 w-16 text-center">Order</th>
+                      <th className="py-3 px-4">Model & Identity</th>
+                      <th className="py-3 px-4">Modality</th>
+                      <th className="py-3 px-4">Group / Fleet</th>
+                      <th className="py-3 px-4">Default Provider</th>
+                      <th className="py-3 px-4">Provider Route</th>
+                      <th className="py-3 px-4">Credit Cost</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
-                  ) : filteredRows.length > 0 ? (
-                    filteredRows.map((row) => (
-                      <tr key={row.id} className="hover:bg-zinc-800/40 transition-colors">
-                        <td className="py-3 px-4 font-sans">
-                          <div className="font-semibold text-zinc-200">{row.name}</div>
-                          <div className="text-zinc-500 text-[11px] font-mono">{row.id}</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                              row.modality === "image"
-                                ? "bg-sky-950 text-sky-300 border border-sky-800"
-                                : "bg-violet-950 text-violet-300 border border-violet-800"
-                            }`}
-                          >
-                            {row.modality}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-zinc-400">
-                          {row.family || "Standard"}
-                        </td>
-                        <td className="py-3 px-4 font-semibold text-zinc-200">
-                          <span className="capitalize">{row.runtimeSource}</span>
-                        </td>
-                        <td className="py-3 px-4 font-mono text-zinc-400 max-w-[200px] truncate" title={row.sourceModelId}>
-                          {row.sourceModelId}
-                        </td>
-                        <td className="py-3 px-4 font-semibold text-amber-400">
-                          {row.creditCost} credits
-                        </td>
-                        <td className="py-3 px-4 text-zinc-400">
-                          <div className="space-y-0.5 text-[10px]">
-                            {row.durations?.length > 0 && <span>Durations: {row.durations.join(", ")}s </span>}
-                            {row.maxRefImages > 0 && <span>• Ref Images: ≤{row.maxRefImages} </span>}
-                            {row.aspectRatios?.length > 0 && <span className="text-zinc-500">({row.aspectRatios.length} aspects)</span>}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          {row.isActive ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
-                              ACTIVE
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-800 text-zinc-500 border border-zinc-700">
-                              INACTIVE
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right space-x-2">
-                          <button
-                            onClick={() => openInspector(row, false)}
-                            className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-medium transition-colors border border-zinc-700"
-                          >
-                            Inspect
-                          </button>
-                          <button
-                            onClick={() => openInspector(row, true)}
-                            className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setModelToDelete(row)}
-                            className="px-2 py-1 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white text-[11px] font-medium transition-colors border border-rose-800 inline-flex items-center gap-1"
-                            title="Delete model from platform"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            <span>Delete</span>
-                          </button>
-                          <Link
-                            href="/admin/routing"
-                            className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 text-[11px] font-medium transition-colors border border-zinc-700 inline-flex items-center gap-1"
-                            title="Manage runtime route in Routing Control Plane"
-                          >
-                            <span>Routing</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </Link>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/60 text-[11px]">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={9} className="py-8 text-center text-zinc-500 font-sans">
+                          Loading model registry matrix...
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={9} className="py-8 text-center text-zinc-500 font-sans">
-                        No models match the selected filter criteria.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : filteredRows.length > 0 ? (
+                      filteredRows.map((row, idx) => {
+                        const isFirst = idx === 0;
+                        const isLast = idx === filteredRows.length - 1;
+                        return (
+                          <tr key={row.id} className="hover:bg-zinc-800/40 transition-colors">
+                            {/* Order Controls */}
+                            <td className="py-3 px-3 text-center">
+                              <div className="inline-flex items-center gap-0.5 bg-zinc-950/80 p-0.5 rounded border border-zinc-800">
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveModel(row, "up")}
+                                  disabled={isFirst || isReordering}
+                                  className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                                  title="Move model UP in list (تحريك لأعلى)"
+                                >
+                                  <ArrowUp className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveModel(row, "down")}
+                                  disabled={isLast || isReordering}
+                                  className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                                  title="Move model DOWN in list (تحريك لأسفل)"
+                                >
+                                  <ArrowDown className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
+
+                            {/* Identity */}
+                            <td className="py-3 px-4 font-sans">
+                              <div className="font-semibold text-zinc-200">{row.name}</div>
+                              <div className="text-zinc-500 text-[11px] font-mono">{row.id}</div>
+                            </td>
+
+                            {/* Modality */}
+                            <td className="py-3 px-4">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                  row.modality === "image"
+                                    ? "bg-sky-950 text-sky-300 border border-sky-800"
+                                    : "bg-violet-950 text-violet-300 border border-violet-800"
+                                }`}
+                              >
+                                {row.modality}
+                              </span>
+                            </td>
+
+                            {/* Group with custom color badge */}
+                            <td className="py-3 px-4">
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border"
+                                style={{
+                                  backgroundColor: `${row.familyColor || "#6366f1"}15`,
+                                  borderColor: `${row.familyColor || "#6366f1"}40`,
+                                  color: row.familyColor || "#6366f1",
+                                }}
+                              >
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{ backgroundColor: row.familyColor || "#6366f1" }}
+                                />
+                                <span>{row.group || row.family || "Standard"}</span>
+                              </span>
+                            </td>
+
+                            {/* Provider */}
+                            <td className="py-3 px-4 font-semibold text-zinc-200">
+                              <span className="capitalize">{row.runtimeSource}</span>
+                            </td>
+
+                            {/* Provider Route */}
+                            <td className="py-3 px-4 font-mono text-zinc-400 max-w-[180px] truncate" title={row.sourceModelId}>
+                              {row.sourceModelId}
+                            </td>
+
+                            {/* Credit Cost */}
+                            <td className="py-3 px-4 font-semibold text-amber-400">
+                              {row.creditCost} credits
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-3 px-4">
+                              {row.isActive ? (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
+                                  ACTIVE
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-800 text-zinc-500 border border-zinc-700">
+                                  INACTIVE
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3 px-4 text-right space-x-1.5">
+                              <button
+                                onClick={() => openInspector(row, false)}
+                                className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-medium transition-colors border border-zinc-700"
+                              >
+                                Inspect
+                              </button>
+                              <button
+                                onClick={() => openInspector(row, true)}
+                                className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium transition-colors"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => setModelToDelete(row)}
+                                className="px-2 py-1 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white text-[11px] font-medium transition-colors border border-rose-800 inline-flex items-center gap-1"
+                                title="Delete model from platform"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Delete</span>
+                              </button>
+                              <Link
+                                href="/admin/routing"
+                                className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 text-[11px] font-medium transition-colors border border-zinc-700 inline-flex items-center gap-1"
+                                title="Manage runtime route in Routing Control Plane"
+                              >
+                                <span>Routing</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={9} className="py-8 text-center text-zinc-500 font-sans">
+                          No models match the selected filter criteria.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* View Mode 2: GROUPED VIEW (عرض المجموعات) */}
+            {viewMode === "grouped" && (
+              <div className="space-y-6">
+                {groupedData.length > 0 ? (
+                  groupedData.map((grp) => {
+                    const isCollapsed = collapsedGroups[grp.group] || false;
+                    const groupColor = grp.color || "#6366f1";
+
+                    return (
+                      <div
+                        key={grp.group}
+                        className="rounded-xl border bg-zinc-900/70 overflow-hidden shadow-lg transition-all"
+                        style={{ borderColor: `${groupColor}40` }}
+                      >
+                        {/* Group Header Bar with Custom Color Accent */}
+                        <div
+                          className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 border-b"
+                          style={{
+                            background: `linear-gradient(90deg, ${groupColor}18 0%, rgba(24,24,27,0.85) 100%)`,
+                            borderBottomColor: `${groupColor}30`,
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="w-3.5 h-3.5 rounded-full shadow-sm"
+                              style={{ backgroundColor: groupColor, boxShadow: `0 0 10px ${groupColor}80` }}
+                            />
+                            <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                              <span>{grp.group}</span>
+                              <span
+                                className="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                style={{
+                                  backgroundColor: `${groupColor}20`,
+                                  borderColor: `${groupColor}50`,
+                                  color: groupColor,
+                                }}
+                              >
+                                {grp.rows.length} {grp.rows.length === 1 ? "Model" : "Models"}
+                              </span>
+                            </h3>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {/* Change Group Color Button */}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingGroup({
+                                  originalName: grp.group,
+                                  name: grp.group,
+                                  color: groupColor,
+                                })
+                              }
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-950/80 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-medium border border-zinc-700 transition-colors"
+                              title="Customize group name and color / تخصيص اسم ولون الكروب"
+                            >
+                              <Palette className="w-3.5 h-3.5" style={{ color: groupColor }} />
+                              <span>Change Group Color (تغيير لون الكروب)</span>
+                            </button>
+
+                            {/* Collapse / Expand Toggle */}
+                            <button
+                              type="button"
+                              onClick={() => toggleGroupCollapse(grp.group)}
+                              className="p-1.5 rounded-lg bg-zinc-950/60 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 transition-colors"
+                              title={isCollapsed ? "Expand group" : "Collapse group"}
+                            >
+                              {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Group Models Table */}
+                        {!isCollapsed && (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs text-zinc-300">
+                              <thead className="bg-zinc-950/60 text-zinc-400 uppercase tracking-wider text-[10px] border-b border-zinc-800">
+                                <tr>
+                                  <th className="py-2.5 px-3 w-16 text-center">Move</th>
+                                  <th className="py-2.5 px-4">Model & Identity</th>
+                                  <th className="py-2.5 px-4">Modality</th>
+                                  <th className="py-2.5 px-4">Provider Route</th>
+                                  <th className="py-2.5 px-4">Cost</th>
+                                  <th className="py-2.5 px-4">Status</th>
+                                  <th className="py-2.5 px-4 text-right">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-zinc-800/40 text-[11px]">
+                                {grp.rows.map((row, rowIdx) => {
+                                  const isFirstInGrp = rowIdx === 0;
+                                  const isLastInGrp = rowIdx === grp.rows.length - 1;
+
+                                  return (
+                                    <tr key={row.id} className="hover:bg-zinc-800/30 transition-colors">
+                                      {/* Order in Group */}
+                                      <td className="py-2.5 px-3 text-center">
+                                        <div className="inline-flex items-center gap-0.5 bg-zinc-950 p-0.5 rounded border border-zinc-800">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleMoveModel(row, "up", grp.group)}
+                                            disabled={isFirstInGrp || isReordering}
+                                            className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-20 transition-colors"
+                                            title="Move model UP inside group"
+                                          >
+                                            <ArrowUp className="w-3 h-3" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleMoveModel(row, "down", grp.group)}
+                                            disabled={isLastInGrp || isReordering}
+                                            className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-20 transition-colors"
+                                            title="Move model DOWN inside group"
+                                          >
+                                            <ArrowDown className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                      </td>
+
+                                      {/* Name & ID */}
+                                      <td className="py-2.5 px-4 font-sans">
+                                        <div className="font-semibold text-zinc-200">{row.name}</div>
+                                        <div className="text-zinc-500 text-[10px] font-mono">{row.id}</div>
+                                      </td>
+
+                                      {/* Modality */}
+                                      <td className="py-2.5 px-4">
+                                        <span
+                                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                            row.modality === "image"
+                                              ? "bg-sky-950 text-sky-300 border border-sky-800"
+                                              : "bg-violet-950 text-violet-300 border border-violet-800"
+                                          }`}
+                                        >
+                                          {row.modality}
+                                        </span>
+                                      </td>
+
+                                      {/* Provider Route */}
+                                      <td className="py-2.5 px-4 font-mono text-zinc-400 max-w-[200px] truncate" title={row.sourceModelId}>
+                                        {row.sourceModelId}
+                                      </td>
+
+                                      {/* Cost */}
+                                      <td className="py-2.5 px-4 font-semibold text-amber-400">
+                                        {row.creditCost} cr
+                                      </td>
+
+                                      {/* Status */}
+                                      <td className="py-2.5 px-4">
+                                        {row.isActive ? (
+                                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
+                                            ACTIVE
+                                          </span>
+                                        ) : (
+                                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-800 text-zinc-500 border border-zinc-700">
+                                            INACTIVE
+                                          </span>
+                                        )}
+                                      </td>
+
+                                      {/* Actions */}
+                                      <td className="py-2.5 px-4 text-right space-x-1.5">
+                                        <button
+                                          onClick={() => openInspector(row, false)}
+                                          className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-medium transition-colors border border-zinc-700"
+                                        >
+                                          Inspect
+                                        </button>
+                                        <button
+                                          onClick={() => openInspector(row, true)}
+                                          className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium transition-colors"
+                                        >
+                                          Edit
+                                        </button>
+                                        <button
+                                          onClick={() => setModelToDelete(row)}
+                                          className="px-2 py-1 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white text-[11px] font-medium transition-colors border border-rose-800 inline-flex items-center gap-1"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                          <span>Delete</span>
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-8 text-center text-zinc-500 rounded-xl border border-zinc-800 bg-zinc-900/40">
+                    No grouped models match your search criteria.
+                  </div>
+                )}
+              </div>
+            )}
           </>
+        )}
+
+        {/* Group Color & Style Customization Modal */}
+        {editingGroup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+            <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5 shadow-2xl">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+                <div className="flex items-center gap-2.5 text-zinc-100">
+                  <div
+                    className="w-4 h-4 rounded-full shadow-md"
+                    style={{ backgroundColor: editingGroup.color }}
+                  />
+                  <h3 className="text-base font-bold">Group Style & Color Customizer</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingGroup(null)}
+                  className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {groupUpdateError && (
+                <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-300 text-xs">
+                  {groupUpdateError}
+                </div>
+              )}
+
+              {/* Group Name input */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-300 block">
+                  Group / Fleet Name (اسم الكروب / المجموعة)
+                </label>
+                <input
+                  type="text"
+                  value={editingGroup.name}
+                  onChange={(e) => setEditingGroup({ ...editingGroup, name: e.target.value })}
+                  placeholder="e.g. Flagship Models, X.AI Fleet, Fast Gen..."
+                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-100 text-xs focus:outline-none focus:border-indigo-500 font-medium"
+                />
+              </div>
+
+              {/* Preset Palette Selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-zinc-300 block">
+                  Select Preset Color (اختر لون الكروب)
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {PRESET_GROUP_COLORS.map((preset) => {
+                    const isSelected = editingGroup.color.toLowerCase() === preset.hex.toLowerCase();
+                    return (
+                      <button
+                        key={preset.hex}
+                        type="button"
+                        onClick={() => setEditingGroup({ ...editingGroup, color: preset.hex })}
+                        className={`flex items-center gap-1.5 p-2 rounded-lg border text-left text-[11px] font-medium transition-all ${
+                          isSelected
+                            ? "border-white bg-zinc-800 ring-2 ring-indigo-500 shadow-md text-white"
+                            : "border-zinc-800 bg-zinc-950/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+                        }`}
+                      >
+                        <span
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: preset.hex }}
+                        />
+                        <span className="truncate">{preset.name.split(" ")[0]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Custom Hex Color input & Live Preview */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-300 block">
+                  Custom Hex Color (كود اللون المخصص)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={editingGroup.color}
+                    onChange={(e) => setEditingGroup({ ...editingGroup, color: e.target.value })}
+                    className="w-9 h-9 rounded-lg bg-zinc-950 border border-zinc-800 cursor-pointer p-0.5"
+                  />
+                  <input
+                    type="text"
+                    value={editingGroup.color}
+                    onChange={(e) => setEditingGroup({ ...editingGroup, color: e.target.value })}
+                    placeholder="#6366f1"
+                    className="flex-1 px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-100 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Live Preview Badge */}
+              <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+                <span className="text-xs text-zinc-400">Live Preview:</span>
+                <span
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border"
+                  style={{
+                    backgroundColor: `${editingGroup.color}20`,
+                    borderColor: `${editingGroup.color}60`,
+                    color: editingGroup.color,
+                  }}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: editingGroup.color }}
+                  />
+                  <span>{editingGroup.name || "Group Preview"}</span>
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingGroup(null)}
+                  disabled={updatingGroup}
+                  className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUpdateGroupStyle}
+                  disabled={updatingGroup}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors shadow-lg shadow-indigo-600/30"
+                >
+                  {updatingGroup ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving Style...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Group Style (حفظ اللون والمجموعة)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === "audit" && (
@@ -1346,6 +1986,45 @@ export default function AdminModelsPage() {
                     </div>
 
                     <div className="space-y-4">
+                      {/* Group / Fleet Assignment */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-zinc-300 block">
+                          Group / Fleet Category (اسم الكروب / المجموعة)
+                        </label>
+                        <input
+                          type="text"
+                          value={editGroup}
+                          onChange={(e) => setEditGroup(e.target.value)}
+                          placeholder="e.g. Flagship Models, Fast Gen, Grok & X.AI..."
+                          className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500 font-medium"
+                        />
+                      </div>
+
+                      {/* Group Accent Color */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-zinc-300 block">
+                          Group Accent Color (لون الكروب)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={editFamilyColor}
+                            onChange={(e) => setEditFamilyColor(e.target.value)}
+                            className="w-9 h-9 rounded-lg bg-zinc-950 border border-zinc-800 cursor-pointer p-0.5"
+                          />
+                          <input
+                            type="text"
+                            value={editFamilyColor}
+                            onChange={(e) => setEditFamilyColor(e.target.value)}
+                            className="flex-1 px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                          />
+                          <div
+                            className="w-6 h-6 rounded-full border border-white/20 shadow-sm"
+                            style={{ backgroundColor: editFamilyColor }}
+                          />
+                        </div>
+                      </div>
+
                       <div>
                         <label className="text-xs font-medium text-zinc-300 block mb-1">
                           Base Credit Cost (Pricing Constitution)
