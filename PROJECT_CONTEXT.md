@@ -48,20 +48,21 @@
 
 ---
 
-#### Latest task: Mouse Drag and Drop Model Reordering & Cross-Group Movement (2026-08-20)
+#### Latest task: Model Group Harmonization, Kling Divider Fix & Manual Reordering Hardening (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. Smooth Mouse Drag-and-Drop Reordering:
-     - Implemented native HTML5 Drag and Drop across both **Flat Table** and **Grouped View**.
-     - Added dedicated `GripVertical` handle on every model row for intuitive grab-and-drag interactions.
-     - Provided real-time visual drop target feedback (highlighted borders, active drop indicator, dragging opacity).
-  2. Cross-Group Drag & Drop:
-     - Dragging a model into another group container automatically moves the model into that group, inheriting its family color and updating its sequence.
-     - Persists new order and group associations in real-time in the background without UI lag or reloading.
+  1. Kling Model Group Harmonization & Divider Fix:
+     - Fixed model grouping in `app/(dash)/(routes)/video/page.tsx` and `lib/dynamic-model-loader.ts` to key groups consistently by normalized group names (`groupName.toLowerCase().replace(/[^a-z0-9]+/g, "-")`).
+     - Unified `Kling 3.0 Pro`, `Kling 3.0`, `Kling O3`, `Kling V3 Turbo`, and `Kling 2.6` under the exact same "Kling" family and group without unwanted divider breaks.
+  2. Manual Reordering Hardening in Grouped & Flat Views:
+     - Fixed `handleMoveModel` case-insensitive group matching (`filterKey = groupFilter.trim().toLowerCase()`) ensuring Up/Down arrows accurately target adjacent models inside any active group.
+     - Updated drag-and-drop model drops to synchronize `group`, `family`, `family_label`, and `family_color` uniformly across dynamic storage.
   3. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest suite: 14/14 tests green.
      - Clean git commit pushed to `main`.
+
+#### Previous task: Mouse Drag and Drop Model Reordering & Cross-Group Movement (2026-08-20)
 
 #### Previous task: Expanded Model Capabilities Editor, Dynamic Upgrades & Knowledge Hub Auto-Sync (2026-08-20)
 - Status: Completed & Verified (PASS).
