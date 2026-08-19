@@ -33,9 +33,9 @@
 13. **Knowledge Hub**: `/admin/knowledge` (SSRF-protected documentation ingestion, hash verification).
 14. **Models & Features Registries**: `/admin/models` & `/admin/features` (First-class catalog linkage).
 15. **Content & CMS Hub**: `/admin/cms` (Exploration, Discovery, Apps, Presets, Voice Samples editors).
-16. **Audio Suite**: `/audio` (WaveSpeed & Google engines, exact character pricing formula $\max(1, \lceil \text{chars} \times 0.0034 \rceil)$, zero-credit cached preview playback).
+16. **Audio Suite**: `/audio` (WaveSpeed & Google engines, exact character pricing formula $\max(1, \lceil \text{chars} \times 0.0034 \rceil)$, zero-credit cached preview playback, Sound Studio default view, full Arabic RTL translation, permanent zero-latency cloud audio samples registry).
 17. **Adobe CEP Ecosystem & Admin Control Plane**: `/admin/plugin` + `/api/plugin/version` + `/saadstudio-version.json` (Dynamic PostgreSQL `PlatformConfig` source of truth, HMAC token revocation denylist, version 3.0.0 bundle alignment).
-18. **Final Production Release**: Full Vitest 650/650 pass, TypeScript 0 errors, production build pass, clean git diff, deployed to `main` (`07956b0`).
+18. **Final Production Release**: Full Vitest pass, TypeScript 0 errors, production build pass, clean git diff, deployed to `main`.
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
 - **PHASE 1 (P1 — Active Generation Integrity)**: Job Queue Worker Isolation & Stuck Generation Auto-Recovery with deterministic failure timeout and auto-refund.
