@@ -281,6 +281,13 @@ export default function AdminModelsPage() {
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
   const [editGroup, setEditGroup] = useState<string>("");
   const [editFamilyColor, setEditFamilyColor] = useState<string>("#6366f1");
+  const [editAspectRatios, setEditAspectRatios] = useState<string[]>(["16:9", "9:16", "1:1"]);
+  const [editDurations, setEditDurations] = useState<string>("5, 10");
+  const [editResolutions, setEditResolutions] = useState<string>("720p, 1080p");
+  const [editMaxRefImages, setEditMaxRefImages] = useState<number>(4);
+  const [editTextRoute, setEditTextRoute] = useState<string>("");
+  const [editImageRoute, setEditImageRoute] = useState<string>("");
+  const [editKnowledgeDraftId, setEditKnowledgeDraftId] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [concurrencyConflict, setConcurrencyConflict] = useState(false);
@@ -846,6 +853,54 @@ export default function AdminModelsPage() {
     }
   };
 
+  const handleAutofillEditFromKnowledge = (selectedId: string) => {
+    setEditKnowledgeDraftId(selectedId);
+    if (!selectedId) return;
+
+    // 1. Check if source
+    const source = knowledgeSources.find((s) => s.id === selectedId || s.name === selectedId);
+    if (source) {
+      const cleanRoute = getKnowledgeRoute(source);
+      const isEdit = source.name.toLowerCase().includes("edit") || source.url?.toLowerCase().includes("edit");
+      if (isEdit) {
+        setEditImageRoute(cleanRoute);
+      } else {
+        setEditTextRoute(cleanRoute);
+      }
+      setActionNotice(`Auto-populated route "${cleanRoute}" from Knowledge Source "${source.name}".`);
+      return;
+    }
+
+    // 2. Check if draft
+    const draft = knowledgeDrafts.find((d) => d.id === selectedId);
+    if (!draft) return;
+
+    const resolutionsField = draft.fields?.find((f: any) => f.key.includes("resolution") || f.key.includes("quality"));
+    const durationsField = draft.fields?.find((f: any) => f.key.includes("duration"));
+    const aspectRatiosField = draft.fields?.find((f: any) => f.key.includes("aspect"));
+    const maxRefField = draft.fields?.find((f: any) => f.key.includes("reference") || f.key.includes("max"));
+    const apiRouteField = draft.fields?.find((f: any) => f.key === "api_route" || f.key === "route" || f.key === "modelId");
+
+    if (resolutionsField?.value) {
+      setEditResolutions(resolutionsField.value);
+    }
+    if (durationsField?.value) {
+      setEditDurations(durationsField.value);
+    }
+    if (aspectRatiosField?.value) {
+      const aspects = aspectRatiosField.value.split(/[,;\s]+/).map((s: string) => s.trim()).filter(Boolean);
+      if (aspects.length > 0) setEditAspectRatios(aspects);
+    }
+    if (maxRefField?.value) {
+      const val = parseInt(maxRefField.value, 10);
+      if (!Number.isNaN(val)) setEditMaxRefImages(val);
+    }
+    if (apiRouteField?.value) {
+      setEditTextRoute(apiRouteField.value);
+    }
+    setActionNotice(`Auto-synced model capabilities and routes from Knowledge Draft "${getKnowledgeDisplayTitle(draft)}".`);
+  };
+
   const openInspector = (row: UnifiedModelRow, edit = false) => {
     setSelectedModel(row);
     setEditMode(edit);
@@ -853,6 +908,13 @@ export default function AdminModelsPage() {
     setEditIsActive(row.isActive);
     setEditGroup(row.group || row.family || (row.modality === "image" ? "Image Models" : "Video Models"));
     setEditFamilyColor(row.familyColor || (row.modality === "image" ? "#06b6d4" : "#8b5cf6"));
+    setEditAspectRatios(row.aspectRatios?.length ? [...row.aspectRatios] : ["16:9", "9:16", "1:1"]);
+    setEditDurations(row.durations?.length ? row.durations.join(", ") : "5, 10");
+    setEditResolutions(row.resolutions?.length ? row.resolutions.join(", ") : (row.modality === "image" ? "1K, 2K, 4K" : "720p, 1080p"));
+    setEditMaxRefImages(typeof row.maxRefImages === "number" ? row.maxRefImages : 4);
+    setEditTextRoute(row.sourceModelId || row.id);
+    setEditImageRoute((row.rawImageModel?.image_api_route || (row.rawVideoModel as any)?.image_api_route) || "");
+    setEditKnowledgeDraftId("");
     setSaveError(null);
     setConcurrencyConflict(false);
     setDrawerOpen(true);
@@ -880,6 +942,16 @@ export default function AdminModelsPage() {
       const cleanGroup = editGroup.trim() || (selectedModel.modality === "image" ? "Image Models" : "Video Models");
       const cleanColor = editFamilyColor.trim() || (selectedModel.modality === "image" ? "#06b6d4" : "#8b5cf6");
 
+      const parsedDurations = editDurations
+        .split(/[,;\s]+/)
+        .map((s) => parseInt(s.replace(/[^0-9]/g, ""), 10))
+        .filter((n) => !Number.isNaN(n) && n > 0);
+
+      const parsedResolutions = editResolutions
+        .split(/[,;]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
       if (selectedModel.modality === "image") {
         updatedImageModels = updatedImageModels.map((m) =>
           m.id === selectedModel.id
@@ -890,6 +962,12 @@ export default function AdminModelsPage() {
                 group: cleanGroup,
                 family_color: cleanColor,
                 color: cleanColor,
+                aspectRatios: editAspectRatios.length > 0 ? editAspectRatios : (m.aspectRatios || ["16:9", "9:16", "1:1"]),
+                qualityParam: parsedResolutions.length > 0 ? parsedResolutions : (m.qualityParam || ["1K", "2K"]),
+                maxRefImages: editMaxRefImages,
+                text_api_route: editTextRoute.trim() || (m as any).text_api_route || m.id,
+                image_api_route: editImageRoute.trim() || undefined,
+                upstreamModelId: editTextRoute.trim() || m.upstreamModelId || m.id,
               }
             : m
         );
@@ -903,6 +981,16 @@ export default function AdminModelsPage() {
                 group: cleanGroup,
                 family_color: cleanColor,
                 color: cleanColor,
+                capabilities: {
+                  ...(m.capabilities || {}),
+                  aspect_ratios: editAspectRatios.length > 0 ? editAspectRatios : (m.capabilities?.aspect_ratios || ["16:9", "9:16", "1:1"]),
+                  durations: parsedDurations.length > 0 ? parsedDurations : (m.capabilities?.durations || [5, 10]),
+                  resolutions: parsedResolutions.length > 0 ? parsedResolutions : (m.capabilities?.resolutions || ["720p", "1080p"]),
+                  max_reference_images: editMaxRefImages,
+                },
+                text_api_route: editTextRoute.trim() || (m as any).text_api_route || m.api_route || m.id,
+                image_api_route: editImageRoute.trim() || undefined,
+                api_route: editTextRoute.trim() || m.api_route || m.id,
               }
             : m
         );
@@ -928,7 +1016,7 @@ export default function AdminModelsPage() {
         throw new Error(resJson.error || "Failed to save model configuration");
       }
 
-      setActionNotice(`Model configuration saved for "${selectedModel.name}".`);
+      setActionNotice(`Model capabilities & configuration saved for "${selectedModel.name}".`);
       closeDrawer();
       await loadModels();
     } catch (err: any) {
@@ -1925,14 +2013,14 @@ export default function AdminModelsPage() {
         {/* LEVEL 6: Model Inspector & Safe Editor Slide-Over Drawer */}
         {drawerOpen && selectedModel && (
           <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="w-full max-w-xl h-full bg-zinc-900 border-l border-zinc-800 p-6 shadow-2xl flex flex-col justify-between overflow-y-auto">
+            <div className="w-full max-w-2xl h-full bg-zinc-900 border-l border-zinc-800 p-6 shadow-2xl flex flex-col justify-between overflow-y-auto">
               <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
                   <div className="flex items-center gap-2">
                     <SlidersHorizontal className="w-5 h-5 text-indigo-400" />
                     <h2 className="text-lg font-bold text-zinc-100">
-                      {editMode ? "Safe Model Configuration Editor" : "Model Registry Inspector"}
+                      {editMode ? "Model Capability & Registry Editor (محرر وتحديث الموديل)" : "Model Registry Inspector"}
                     </h2>
                   </div>
                   <button
@@ -1964,45 +2052,69 @@ export default function AdminModelsPage() {
 
                 {/* Edit Form or Read-only Inspection */}
                 {editMode ? (
-                  <div className="space-y-4">
+                  <div className="space-y-5">
+                    {/* Knowledge Hub Sync Bar */}
+                    <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-800/60 space-y-2">
+                      <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs">
+                        <Sparkles className="w-4 h-4 text-indigo-400" />
+                        <span>Auto-Sync Specs from Knowledge Hub (واخذ المرجع من Knowledge)</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400">
+                        Select a researched model draft or API documentation source to automatically update aspect ratios, resolutions, durations, and routes.
+                      </p>
+                      <select
+                        value={editKnowledgeDraftId}
+                        onChange={(e) => handleAutofillEditFromKnowledge(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="">-- Choose Knowledge Reference / Source --</option>
+                        {allImportedKnowledge.map((k) => (
+                          <option key={k.id} value={k.id}>
+                            {k.name} ({k.route})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
                     {/* Current -> Proposed Diff */}
                     <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-3">
                       <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 block">
                         Configuration Transition Preview
                       </span>
                       <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                        <div className="p-2 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
-                          <span className="text-[10px] text-zinc-500 block uppercase font-sans">Current</span>
+                        <div className="p-2.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 space-y-1">
+                          <span className="text-[10px] text-zinc-500 block uppercase font-sans font-bold">Current State</span>
                           <div>Cost: <strong>{selectedModel.creditCost}</strong> credits</div>
                           <div>Status: <strong>{selectedModel.isActive ? "ACTIVE" : "INACTIVE"}</strong></div>
+                          <div>Aspects: <strong>{selectedModel.aspectRatios?.length || 0}</strong> ratios</div>
                         </div>
 
-                        <div className="p-2 rounded bg-indigo-950/40 border border-indigo-800/60 text-indigo-300">
-                          <span className="text-[10px] text-indigo-400 block uppercase font-sans">Proposed</span>
+                        <div className="p-2.5 rounded bg-indigo-950/40 border border-indigo-800/60 text-indigo-300 space-y-1">
+                          <span className="text-[10px] text-indigo-400 block uppercase font-sans font-bold">Proposed State</span>
                           <div>Cost: <strong className="text-emerald-400">{editCreditCost}</strong> credits</div>
                           <div>Status: <strong className="text-emerald-400">{editIsActive ? "ACTIVE" : "INACTIVE"}</strong></div>
+                          <div>Aspects: <strong className="text-emerald-400">{editAspectRatios.length}</strong> ratios</div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-4">
-                      {/* Group / Fleet Assignment */}
+                    {/* Group / Fleet Assignment & Color */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-zinc-300 block">
-                          Group / Fleet Category (اسم الكروب / المجموعة)
+                        <label className="text-xs font-semibold text-zinc-300 block">
+                          Group / Fleet Category (اسم الكروب)
                         </label>
                         <input
                           type="text"
                           value={editGroup}
                           onChange={(e) => setEditGroup(e.target.value)}
-                          placeholder="e.g. Flagship Models, Fast Gen, Grok & X.AI..."
+                          placeholder="e.g. Flagship Models, Fast Gen, Grok..."
                           className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500 font-medium"
                         />
                       </div>
 
-                      {/* Group Accent Color */}
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-zinc-300 block">
+                        <label className="text-xs font-semibold text-zinc-300 block">
                           Group Accent Color (لون الكروب)
                         </label>
                         <div className="flex items-center gap-2">
@@ -2019,15 +2131,188 @@ export default function AdminModelsPage() {
                             className="flex-1 px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
                           />
                           <div
-                            className="w-6 h-6 rounded-full border border-white/20 shadow-sm"
+                            className="w-6 h-6 rounded-full border border-white/20 shadow-sm flex-shrink-0"
                             style={{ backgroundColor: editFamilyColor }}
                           />
                         </div>
                       </div>
+                    </div>
 
+                    {/* 1. ASPECT RATIOS (النسب) */}
+                    <div className="space-y-2 p-3.5 rounded-xl bg-zinc-950 border border-zinc-800">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-zinc-300">
+                          Supported Aspect Ratios (النسب المدعومة)
+                        </label>
+                        <span className="text-[11px] text-zinc-500">{editAspectRatios.length} selected</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "1:2", "2:1"].map((ratio) => {
+                          const isSelected = editAspectRatios.includes(ratio);
+                          return (
+                            <button
+                              key={ratio}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setEditAspectRatios(editAspectRatios.filter((r) => r !== ratio));
+                                } else {
+                                  setEditAspectRatios([...editAspectRatios, ratio]);
+                                }
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                                isSelected
+                                  ? "bg-indigo-600 border-indigo-500 text-white shadow-sm"
+                                  : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                              }`}
+                            >
+                              {ratio}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 2. DURATIONS / TIME (الوقت والمدد) */}
+                    {selectedModel.modality === "video" && (
+                      <div className="space-y-2 p-3.5 rounded-xl bg-zinc-950 border border-zinc-800">
+                        <label className="text-xs font-semibold text-zinc-300 block">
+                          Video Durations in Seconds (المدد الزمنية والوقت بالثواني)
+                        </label>
+                        <div className="flex flex-wrap gap-1.5 mb-1.5">
+                          {[3, 4, 5, 6, 8, 10, 12, 15, 20, 30].map((sec) => {
+                            const currentList = editDurations
+                              .split(/[,;\s]+/)
+                              .map((s) => parseInt(s.replace(/[^0-9]/g, ""), 10))
+                              .filter((n) => !Number.isNaN(n) && n > 0);
+                            const isSelected = currentList.includes(sec);
+                            return (
+                              <button
+                                key={sec}
+                                type="button"
+                                onClick={() => {
+                                  let updated = isSelected
+                                    ? currentList.filter((s) => s !== sec)
+                                    : [...currentList, sec];
+                                  updated = Array.from(new Set(updated)).sort((a, b) => a - b);
+                                  setEditDurations(updated.join(", "));
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                                  isSelected
+                                    ? "bg-purple-600 border-purple-500 text-white shadow-sm"
+                                    : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                                }`}
+                              >
+                                {sec}s
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <input
+                          type="text"
+                          value={editDurations}
+                          onChange={(e) => setEditDurations(e.target.value)}
+                          placeholder="e.g. 5, 10, 15"
+                          className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    )}
+
+                    {/* 3. RESOLUTIONS & QUALITY (الكوالتي والدقات) */}
+                    <div className="space-y-2 p-3.5 rounded-xl bg-zinc-950 border border-zinc-800">
+                      <label className="text-xs font-semibold text-zinc-300 block">
+                        Supported Resolutions & Qualities (الكوالتي والدقات المدعومة)
+                      </label>
+                      <div className="flex flex-wrap gap-1.5 mb-1.5">
+                        {(selectedModel.modality === "image"
+                          ? ["1K", "2K", "4K", "std", "pro", "hd", "high"]
+                          : ["720p", "1080p", "2K", "4K", "std", "pro"]
+                        ).map((res) => {
+                          const currentList = editResolutions.split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+                          const isSelected = currentList.includes(res);
+                          return (
+                            <button
+                              key={res}
+                              type="button"
+                              onClick={() => {
+                                const updated = isSelected
+                                  ? currentList.filter((s) => s !== res)
+                                  : [...currentList, res];
+                                setEditResolutions(Array.from(new Set(updated)).join(", "));
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                                isSelected
+                                  ? "bg-emerald-600 border-emerald-500 text-white shadow-sm"
+                                  : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                              }`}
+                            >
+                              {res}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <input
+                        type="text"
+                        value={editResolutions}
+                        onChange={(e) => setEditResolutions(e.target.value)}
+                        placeholder="e.g. 720p, 1080p, 4K or std, pro"
+                        className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    {/* 4. MAX REFERENCE IMAGES (الصور المرجعية) */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-300 block">
+                        Max Reference Images Allowed (الحد الأقصى للصور المرجعية)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="16"
+                        value={editMaxRefImages}
+                        onChange={(e) => setEditMaxRefImages(parseInt(e.target.value, 10) || 0)}
+                        className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    {/* 5. RUNTIME EXECUTION ROUTES */}
+                    <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 block">
+                        Runtime Execution Routes (مسارات التوجيه والتنفيذ)
+                      </span>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[11px] text-zinc-400 block mb-1">
+                            Primary / Text-to-{selectedModel.modality === "image" ? "Image" : "Video"} API Route:
+                          </label>
+                          <input
+                            type="text"
+                            value={editTextRoute}
+                            onChange={(e) => setEditTextRoute(e.target.value)}
+                            placeholder="e.g. byteplus/seedwave-v1 or grok-imagine/text-to-image"
+                            className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-zinc-400 block mb-1">
+                            Image-to-{selectedModel.modality === "image" ? "Image" : "Video"} / Edit Route (Optional):
+                          </label>
+                          <input
+                            type="text"
+                            value={editImageRoute}
+                            onChange={(e) => setEditImageRoute(e.target.value)}
+                            placeholder="e.g. byteplus/seedwave-v1/image-to-video (leave empty if unified)"
+                            className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Credit Cost & Active Checkbox */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                       <div>
-                        <label className="text-xs font-medium text-zinc-300 block mb-1">
-                          Base Credit Cost (Pricing Constitution)
+                        <label className="text-xs font-semibold text-zinc-300 block mb-1">
+                          Base Credit Cost (Pricing Engine)
                         </label>
                         <input
                           type="number"
@@ -2039,16 +2324,16 @@ export default function AdminModelsPage() {
                         />
                       </div>
 
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-950 border border-zinc-800">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-950 border border-zinc-800 sm:mt-5">
                         <input
                           type="checkbox"
                           id="model-active-check"
                           checked={editIsActive}
                           onChange={(e) => setEditIsActive(e.target.checked)}
-                          className="w-4 h-4 text-indigo-600 rounded bg-zinc-900 border-zinc-700"
+                          className="w-4 h-4 text-indigo-600 rounded bg-zinc-900 border-zinc-700 cursor-pointer"
                         />
                         <label htmlFor="model-active-check" className="text-xs font-medium text-zinc-200 cursor-pointer">
-                          Model Active & Routable in Platform
+                          Model Active & Routable
                         </label>
                       </div>
                     </div>
