@@ -12,7 +12,7 @@ import { isStorageConfigured, uploadBufferToStorage } from "@/lib/supabase-stora
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 import { normalizeMediaUrl } from "@/lib/storage";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
-import { buildWaveSpeedImageInput, resolveWaveSpeedImageModelRoute } from "@/lib/wavespeed-image-routing";
+import { buildWaveSpeedImageInput, resolveWaveSpeedImageModelRoute, normalizeWaveSpeedModelEndpoint, type WaveSpeedImageRouteConfig } from "@/lib/wavespeed-image-routing";
 import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
 import {
   formatGoogleImagePrompt,
@@ -569,10 +569,59 @@ export async function POST(req: NextRequest) {
     const hasReferenceImages = Boolean(imageUrl || imageUrlsParam?.length);
     let effectiveModelId = resolveFlux2Variant(modelId, hasReferenceImages, quality);
     effectiveModelId = resolveSeedream5ProVariant(effectiveModelId, hasReferenceImages);
-    let waveSpeedImageRoute = resolveWaveSpeedImageModelRoute(effectiveModelId, hasReferenceImages, Number(numImages) || 1);
-    let isWaveSpeedImageModel = Boolean(waveSpeedImageRoute);
-    let openAIImageModel = getOpenAIImageModel(effectiveModelId);
-    let googleImageModel = getGoogleImageModel(effectiveModelId);
+
+    const dynamicModels = await getCentralizedDynamicImageModels();
+    const dynamicModel = dynamicModels.find(
+      (m) =>
+        (m.id.toLowerCase() === modelId.toLowerCase() ||
+         m.id.toLowerCase() === effectiveModelId.toLowerCase() ||
+         m.label.toLowerCase() === modelId.toLowerCase() ||
+         (m.upstreamModelId && m.upstreamModelId.toLowerCase() === modelId.toLowerCase()) ||
+         (m.text_api_route && m.text_api_route.toLowerCase() === modelId.toLowerCase())) &&
+        m.isActive !== false
+    );
+
+    let waveSpeedImageRoute: WaveSpeedImageRouteConfig | null = null;
+    let isWaveSpeedImageModel = false;
+    let openAIImageModel: string | null = null;
+    let googleImageModel: string | null = null;
+
+    if (dynamicModel) {
+      const targetApiRoute = hasReferenceImages && dynamicModel.image_api_route
+        ? dynamicModel.image_api_route
+        : (dynamicModel.text_api_route || dynamicModel.upstreamModelId || dynamicModel.id);
+
+      const isGoogle = /^(google|gemini|imagen)/i.test(targetApiRoute) || /google/i.test(dynamicModel.group || "");
+      const isOpenAI = /^(openai|dall-e)/i.test(targetApiRoute) || /openai/i.test(dynamicModel.group || "");
+
+      if (isGoogle) {
+        googleImageModel = targetApiRoute;
+      } else if (isOpenAI) {
+        openAIImageModel = targetApiRoute;
+      } else {
+        const canonicalRoute = resolveWaveSpeedImageModelRoute(targetApiRoute, hasReferenceImages, Number(numImages) || 1);
+        if (canonicalRoute) {
+          waveSpeedImageRoute = canonicalRoute;
+        } else {
+          const cleanModel = normalizeWaveSpeedModelEndpoint(targetApiRoute, hasReferenceImages);
+          waveSpeedImageRoute = {
+            model: cleanModel,
+            referenceField: (hasReferenceImages || (dynamicModel.maxRefImages && dynamicModel.maxRefImages > 0)) ? "images" : undefined,
+            requiresReference: Boolean(hasReferenceImages && dynamicModel.image_api_route),
+            maxReferenceImages: dynamicModel.maxRefImages ?? (hasReferenceImages ? 4 : 0),
+            maxOutputImages: dynamicModel.maxImages ?? 4,
+            inputShape: cleanModel.includes("grok") ? "aspect-only" : "size",
+          };
+        }
+        isWaveSpeedImageModel = true;
+      }
+    } else {
+      waveSpeedImageRoute = resolveWaveSpeedImageModelRoute(effectiveModelId, hasReferenceImages, Number(numImages) || 1);
+      isWaveSpeedImageModel = Boolean(waveSpeedImageRoute);
+      openAIImageModel = getOpenAIImageModel(effectiveModelId);
+      googleImageModel = getGoogleImageModel(effectiveModelId);
+    }
+
     const legacyImageProvider = openAIImageModel ? "openai" : googleImageModel ? "google" : "wavespeed";
     const legacyImageRoute = openAIImageModel || googleImageModel || waveSpeedImageRoute?.model || effectiveModelId;
     const routingDecision = await resolveRuntimeProviderRoute({
@@ -599,46 +648,6 @@ export async function POST(req: NextRequest) {
         isWaveSpeedImageModel = true;
         openAIImageModel = null;
         googleImageModel = null;
-      }
-    }
-
-    const dynamicModels = await getCentralizedDynamicImageModels();
-    const dynamicModel = dynamicModels.find(
-      (m) =>
-        (m.id.toLowerCase() === effectiveModelId.toLowerCase() ||
-         m.label.toLowerCase() === effectiveModelId.toLowerCase() ||
-         (m.upstreamModelId && m.upstreamModelId.toLowerCase() === effectiveModelId.toLowerCase())) &&
-        m.isActive !== false
-    );
-
-    if (dynamicModel && !isWaveSpeedImageModel && !openAIImageModel && !googleImageModel) {
-      const targetApiRoute = hasReferenceImages && dynamicModel.image_api_route
-        ? dynamicModel.image_api_route
-        : (dynamicModel.text_api_route || dynamicModel.upstreamModelId || dynamicModel.id);
-
-      const isGoogle = /^(google|gemini|imagen)/i.test(targetApiRoute) || /google/i.test(dynamicModel.group || "");
-      const isOpenAI = /^(openai|dall-e)/i.test(targetApiRoute) || /openai/i.test(dynamicModel.group || "");
-
-      if (isGoogle) {
-        googleImageModel = targetApiRoute;
-      } else if (isOpenAI) {
-        openAIImageModel = targetApiRoute;
-      } else {
-        const canonicalRoute = resolveWaveSpeedImageModelRoute(targetApiRoute, hasReferenceImages, Number(numImages) || 1);
-        if (canonicalRoute) {
-          waveSpeedImageRoute = canonicalRoute;
-        } else {
-          // Universal dynamic WaveSpeed route for custom models registered in admin portal
-          waveSpeedImageRoute = {
-            model: targetApiRoute,
-            referenceField: (hasReferenceImages || (dynamicModel.maxRefImages && dynamicModel.maxRefImages > 0)) ? "images" : undefined,
-            requiresReference: Boolean(hasReferenceImages && dynamicModel.image_api_route),
-            maxReferenceImages: dynamicModel.maxRefImages ?? (hasReferenceImages ? 4 : 0),
-            maxOutputImages: dynamicModel.maxImages ?? 4,
-            inputShape: "size",
-          };
-        }
-        isWaveSpeedImageModel = true;
       }
     }
 

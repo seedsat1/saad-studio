@@ -180,25 +180,28 @@ export function resolveWaveSpeedImageModelRoute(
     };
   }
 
-  if (id === "grok-imagine/text-to-image") {
-    return {
-      model: "x-ai/grok-imagine-image-quality/text-to-image",
-      maxReferenceImages: 0,
-      outputCountField: "num_images",
-      maxOutputImages: 4,
-      inputShape: "aspect-resolution",
-    };
-  }
+  // Grok Imagine (x-ai) official WaveSpeed endpoints
+  if (
+    id === "grok-imagine" ||
+    id === "grok-imagine/text-to-image" ||
+    id === "grok-imagine/image-to-image" ||
+    id.includes("grok-imagine") ||
+    id.includes("grok")
+  ) {
+    const edit = hasReferenceImages || id.includes("image-to-image") || id.includes("edit");
+    const isV2 = id.includes("v2.0") || id.includes("v2");
+    const targetModel = isV2
+      ? (edit ? "x-ai/grok-imagine-image-v2.0/edit" : "x-ai/grok-imagine-image-v2.0/text-to-image")
+      : (edit ? "x-ai/grok-imagine-image-quality/edit" : "x-ai/grok-imagine-image-quality/text-to-image");
 
-  if (id === "grok-imagine/image-to-image") {
     return {
-      model: "x-ai/grok-imagine-image-quality/edit",
-      referenceField: "image",
-      requiresReference: true,
-      maxReferenceImages: 1,
+      model: targetModel,
+      referenceField: edit ? "image" : undefined,
+      requiresReference: edit,
+      maxReferenceImages: edit ? 1 : 0,
       outputCountField: "num_images",
       maxOutputImages: 4,
-      inputShape: "aspect-resolution",
+      inputShape: "aspect-only",
     };
   }
 
@@ -210,23 +213,6 @@ export function resolveWaveSpeedImageModelRoute(
       maxReferenceImages: hasReferenceImages ? 3 : 0,
       maxOutputImages: 12,
       inputShape: "size",
-    };
-  }
-
-  if (
-    id === "grok-imagine/text-to-image"
-    || id === "grok-imagine/image-to-image"
-    || id.includes("grok-imagine")
-    || id.includes("grok")
-  ) {
-    const edit = hasReferenceImages || id.includes("image-to-image") || id.includes("edit");
-    return {
-      model: edit ? "grok-imagine/image-to-image" : "grok-imagine/text-to-image",
-      referenceField: edit ? "image" : undefined,
-      requiresReference: edit,
-      maxReferenceImages: edit ? 1 : 0,
-      maxOutputImages: 1,
-      inputShape: "aspect-only",
     };
   }
 
@@ -245,18 +231,57 @@ export function resolveWaveSpeedImageModelRoute(
   }
 
   // Universal fallback for custom endpoints registered via admin portal (e.g. provider/model-path)
-  if (modelId.includes("/")) {
-    return {
-      model: modelId.trim(),
-      referenceField: hasReferenceImages ? "images" : undefined,
-      requiresReference: false,
-      maxReferenceImages: hasReferenceImages ? 4 : 0,
-      maxOutputImages: 4,
-      inputShape: "aspect-resolution",
-    };
+  if (modelId.includes("/") || modelId.includes("-")) {
+    const cleanModel = normalizeWaveSpeedModelEndpoint(modelId, hasReferenceImages);
+    if (cleanModel.includes("/")) {
+      return {
+        model: cleanModel,
+        referenceField: hasReferenceImages ? "images" : undefined,
+        requiresReference: false,
+        maxReferenceImages: hasReferenceImages ? 4 : 0,
+        maxOutputImages: 4,
+        inputShape: cleanModel.includes("grok") ? "aspect-only" : "aspect-resolution",
+      };
+    }
   }
 
   return null;
+}
+
+export function normalizeWaveSpeedModelEndpoint(route: string, hasReferenceImages = false): string {
+  let clean = route.trim().replace(/^https?:\/\/[^\/]+\/api\/v3\//i, "");
+
+  if (!clean.includes("/") && clean.startsWith("x-ai-")) {
+    clean = clean.replace(/^x-ai-/, "x-ai/");
+  } else if (!clean.includes("/") && clean.startsWith("bytedance-")) {
+    clean = clean.replace(/^bytedance-/, "bytedance/");
+  } else if (!clean.includes("/") && clean.startsWith("alibaba-")) {
+    clean = clean.replace(/^alibaba-/, "alibaba/");
+  } else if (!clean.includes("/") && clean.startsWith("kwaivgi-")) {
+    clean = clean.replace(/^kwaivgi-/, "kwaivgi/");
+  } else if (!clean.includes("/") && clean.startsWith("wavespeed-ai-")) {
+    clean = clean.replace(/^wavespeed-ai-/, "wavespeed-ai/");
+  }
+
+  if (clean.includes("/") && !clean.endsWith("/text-to-image") && !clean.endsWith("/edit") && !clean.endsWith("/image-to-image")) {
+    if (clean.endsWith("-text-to-image")) {
+      clean = clean.replace(/-text-to-image$/, "/text-to-image");
+    } else if (clean.endsWith("-edit")) {
+      clean = clean.replace(/-edit$/, "/edit");
+    } else if (clean.endsWith("-image-to-image")) {
+      clean = clean.replace(/-image-to-image$/, "/image-to-image");
+    }
+  }
+
+  if (clean.includes("grok")) {
+    const isEdit = hasReferenceImages || clean.includes("edit") || clean.includes("image-to-image");
+    if (clean.includes("v2.0") || clean.includes("v2")) {
+      return isEdit ? "x-ai/grok-imagine-image-v2.0/edit" : "x-ai/grok-imagine-image-v2.0/text-to-image";
+    }
+    return isEdit ? "x-ai/grok-imagine-image-quality/edit" : "x-ai/grok-imagine-image-quality/text-to-image";
+  }
+
+  return clean;
 }
 
 export function buildWaveSpeedImageInput(

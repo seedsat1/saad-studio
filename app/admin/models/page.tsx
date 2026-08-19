@@ -2414,8 +2414,11 @@ export default function AdminModelsPage() {
                         </label>
                         <span className="text-[11px] text-zinc-500">{editAspectRatios.length} selected</span>
                       </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "1:2", "2:1"].map((ratio) => {
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {[
+                          "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "2:1", "1:2",
+                          "21:9", "19.5:9", "9:19.5", "20:9", "9:20", "1:4", "1:8", "auto"
+                        ].map((ratio) => {
                           const isSelected = editAspectRatios.includes(ratio);
                           return (
                             <button
@@ -2439,6 +2442,16 @@ export default function AdminModelsPage() {
                           );
                         })}
                       </div>
+                      <input
+                        type="text"
+                        value={editAspectRatios.join(", ")}
+                        onChange={(e) => {
+                          const list = e.target.value.split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+                          setEditAspectRatios(list);
+                        }}
+                        placeholder="Custom ratios CSV: e.g. 1:1, 16:9, 9:16, 3:2, 2:3, 19.5:9, 9:19.5"
+                        className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                      />
                     </div>
 
                     {/* 2. DURATIONS / TIME (الوقت والمدد) */}
@@ -3328,18 +3341,25 @@ export default function AdminModelsPage() {
                       <span className="text-xs text-zinc-500">انقر لتحديد أو إلغاء أي نسبة</span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
                       {[
                         { value: "1:1", label: "1:1 Square", w: 20, h: 20 },
                         { value: "16:9", label: "16:9 Landscape", w: 26, h: 14 },
                         { value: "9:16", label: "9:16 Portrait", w: 14, h: 26 },
                         { value: "4:3", label: "4:3 Standard", w: 22, h: 16 },
                         { value: "3:4", label: "3:4 Vertical", w: 16, h: 22 },
-                        { value: "2:3", label: "2:3 Portrait", w: 15, h: 23 },
                         { value: "3:2", label: "3:2 Photo", w: 23, h: 15 },
+                        { value: "2:3", label: "2:3 Portrait", w: 15, h: 23 },
+                        { value: "2:1", label: "2:1 Wide", w: 26, h: 13 },
+                        { value: "1:2", label: "1:2 Tall", w: 13, h: 26 },
                         { value: "21:9", label: "21:9 Ultrawide", w: 30, h: 13 },
+                        { value: "19.5:9", label: "19.5:9 Modern Phone", w: 29, h: 13 },
+                        { value: "9:19.5", label: "9:19.5 Phone Story", w: 13, h: 29 },
+                        { value: "20:9", label: "20:9 Cinematic", w: 30, h: 13 },
+                        { value: "9:20", label: "9:20 Reels/TikTok", w: 13, h: 30 },
                         { value: "1:4", label: "1:4 Ultra-tall", w: 9, h: 28 },
                         { value: "1:8", label: "1:8 Skyscraper", w: 7, h: 32 },
+                        { value: "auto", label: "Auto Aspect", w: 20, h: 20 },
                       ].map((ratio) => {
                         const isSelected = newAspectRatios.includes(ratio.value);
                         return (
@@ -3356,25 +3376,37 @@ export default function AdminModelsPage() {
                               }
                               setNewAspectRatios(next);
                             }}
-                            className={`p-3 rounded-2xl border flex items-center justify-between gap-2.5 transition-all ${
+                            className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all ${
                               isSelected
                                 ? "bg-indigo-950/80 border-indigo-500 text-white shadow-sm ring-1 ring-indigo-500/40"
                                 : "bg-zinc-900 border-zinc-800 hover:border-zinc-700 text-zinc-400"
                             }`}
                           >
-                            <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
                               <div
                                 style={{ width: `${ratio.w}px`, height: `${ratio.h}px` }}
                                 className={`border-2 rounded-xs flex-shrink-0 ${
                                   isSelected ? "border-indigo-400 bg-indigo-500/30" : "border-zinc-600"
                                 }`}
                               />
-                              <span className="font-mono text-xs font-bold">{ratio.value}</span>
+                              <span className="font-mono text-xs font-bold truncate">{ratio.value}</span>
                             </div>
-                            {isSelected && <Check className="w-4 h-4 text-indigo-400 flex-shrink-0 stroke-[3]" />}
+                            {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0 stroke-[3]" />}
                           </button>
                         );
                       })}
+                    </div>
+                    <div className="pt-1">
+                      <input
+                        type="text"
+                        value={newAspectRatios.join(", ")}
+                        onChange={(e) => {
+                          const list = e.target.value.split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+                          setNewAspectRatios(list);
+                        }}
+                        placeholder="Custom aspect ratios CSV: e.g. 1:1, 16:9, 9:16, 3:2, 2:3, 19.5:9, 9:19.5, 20:9, 9:20"
+                        className="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                      />
                     </div>
                   </div>
                 )}
