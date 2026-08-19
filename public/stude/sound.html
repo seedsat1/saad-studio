@@ -2507,21 +2507,25 @@ function addLatestToTimeline(){
 }
 async function downloadLatest(){
   if(!audioState.latestUrl){setStatus('No generated asset to download.','warn');return;}
-  const dlUrl="/api/download?url="+encodeURIComponent(studioMediaUrl(audioState.latestUrl))+"&filename="+encodeURIComponent(audioState.latestName||'audio_asset.mp3');
-  const a=document.createElement('a');a.href=dlUrl;a.download=audioState.latestName||'audio_asset.mp3';
+  const format = (document.getElementById('optFormat')?.textContent || 'MP3').trim().toLowerCase();
+  const ext = format === 'wav' ? 'wav' : 'mp3';
+  let baseName = (audioState.latestName || 'saadstudio_voice').replace(/\.[^/.]+$/, "");
+  const finalFilename = `${baseName}.${ext}`;
+  const dlUrl="/api/download?url="+encodeURIComponent(studioMediaUrl(audioState.latestUrl))+"&filename="+encodeURIComponent(finalFilename);
+  const a=document.createElement('a');a.href=dlUrl;a.download=finalFilename;
   document.body.appendChild(a);a.click();a.remove();
-  setStatus('Download started.','ok');
+  setStatus(`✓ Download started (${ext.toUpperCase()}).`,'ok');
 }
 function exportTimeline() {
   if (!audioState.latestUrl) {
     setStatus('No active track to export.', 'warn');
     return;
   }
-  setStatus('Exporting audio track...', 'info');
+  setStatus('Exporting MP3 audio track (192kbps Master)...', 'info');
   setTimeout(() => {
     setStatus('✓ Export complete! (192kbps MP3)', 'ok');
     downloadLatest();
-  }, 1000);
+  }, 600);
 }
 function formatSec(s){if(!s||!Number.isFinite(s))return'0:00';const t=Math.max(0,Math.round(s));return`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;}
 

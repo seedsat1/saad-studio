@@ -6,6 +6,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { getFfmpegPath } from "@/lib/server/ffmpeg-path";
+import { isMp3Buffer, transcodeToMp3 } from "@/lib/server/audio-transcode";
 
 const execFileAsync = promisify(execFile);
 
@@ -123,22 +124,33 @@ export async function GET(req: NextRequest) {
     if (filename.toLowerCase().endsWith(".mp3")) targetExt = "mp3";
     else if (filename.toLowerCase().endsWith(".wav")) targetExt = "wav";
 
-    let fileBuffer = Buffer.from(await res.arrayBuffer());
+    let fileBuffer: Buffer = Buffer.from(await res.arrayBuffer());
     let responseContentType = res.headers.get("Content-Type") || "application/octet-stream";
 
     // Transcode audio on the fly if needed (MP3 <-> WAV)
-    if (targetExt && srcExt && srcExt !== targetExt && (srcExt === "mp3" || srcExt === "wav") && (targetExt === "mp3" || targetExt === "wav")) {
+    if (targetExt === "mp3" || (srcExt === "wav" && targetExt !== "wav")) {
       try {
-        console.log(`[DOWNLOAD_TRANSCODE] Transcoding from ${srcExt} to ${targetExt}`);
-        fileBuffer = (await transcodeAudio(fileBuffer, srcExt, targetExt)) as any;
-        responseContentType = targetExt === "wav" ? "audio/wav" : "audio/mpeg";
-        ext = `.${targetExt}`;
+        if (!isMp3Buffer(fileBuffer)) {
+          console.log(`[DOWNLOAD_TRANSCODE] Transcoding to MP3 (192kbps)`);
+          fileBuffer = (await transcodeToMp3(fileBuffer, { bitrate: "192k", sampleRate: 44100 })) as any;
+        }
+        responseContentType = "audio/mpeg";
+        ext = ".mp3";
+      } catch (transcodeErr) {
+        console.error("[DOWNLOAD_TRANSCODE_FAILED] Fallback to raw buffer", transcodeErr);
+      }
+    } else if (targetExt === "wav" && srcExt === "mp3") {
+      try {
+        console.log(`[DOWNLOAD_TRANSCODE] Transcoding to WAV`);
+        fileBuffer = (await transcodeAudio(fileBuffer, "mp3", "wav")) as any;
+        responseContentType = "audio/wav";
+        ext = ".wav";
       } catch (transcodeErr) {
         console.error("[DOWNLOAD_TRANSCODE_FAILED] Fallback to raw buffer", transcodeErr);
       }
     }
 
-    let finalFilename = filename.replace(/[\\\/:*?"<>|]/g, "_").trim() || "download";
+    let finalFilename = filename.replace(/[\\\/:*?"<>|]/g, "_").trim() || "audio_download.mp3";
     if (ext && !finalFilename.toLowerCase().endsWith(ext)) {
       const otherExt = ext === ".mp3" ? ".wav" : ".mp3";
       if (finalFilename.toLowerCase().endsWith(otherExt)) {
@@ -149,14 +161,12 @@ export async function GET(req: NextRequest) {
     }
 
     const headers = new Headers();
-    // Force browser to download the file directly using standard RFC 6266
     headers.set("Content-Disposition", `attachment; filename="${finalFilename}"; filename*=UTF-8''${encodeURIComponent(finalFilename)}`);
     headers.set("Content-Type", responseContentType);
-    
-    // Explicitly allow same-origin requests
+    headers.set("Cache-Control", "public, max-age=31536000, immutable");
     headers.set("Access-Control-Allow-Origin", "*");
 
-    return new Response(fileBuffer, {
+    return new Response(new Uint8Array(fileBuffer), {
       status: 200,
       headers,
     });
