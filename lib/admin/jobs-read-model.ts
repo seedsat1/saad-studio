@@ -32,9 +32,15 @@ export type UnifiedJobView = {
   routingSource: "control_center" | "legacy_fallback" | null;
   status: UnifiedJobStatus;
   rawStatus: string | null;
+  /** True numeric progress (0-100) supplied by provider/worker if available; null if unproven */
   progress: number | null;
+  /** True record creation timestamp in database */
   createdAt: string | null;
+  /** True record last update timestamp if tracked by model, else null */
+  updatedAt: string | null;
+  /** True execution start timestamp only if explicitly tracked by source, else null */
   startedAt: string | null;
+  /** True terminal completion timestamp only if explicitly tracked by source, else null */
   completedAt: string | null;
   error: string | null;
   creditsCharged: number | null;
@@ -167,10 +173,11 @@ export function mapGenerationToUnifiedJob(row: any, now: Date = new Date()): Uni
     routingSource: routingSourceFrom(routing?.routingSource),
     status,
     rawStatus: nullableString(row.status),
-    progress: status === "completed" || status === "failed" || status === "cancelled" ? 100 : null,
+    progress: null,
     createdAt: iso(row.createdAt),
-    startedAt: status === "queued" ? null : iso(row.createdAt),
-    completedAt: status === "completed" || status === "failed" ? iso(row.createdAt) : null,
+    updatedAt: null,
+    startedAt: null,
+    completedAt: null,
     error: failedReasonFrom(mediaUrl) ?? null,
     creditsCharged,
     mediaUrl: result,
@@ -200,10 +207,11 @@ export function mapTransitionJobToUnifiedJob(row: any, now: Date = new Date()): 
     routingSource: routingSourceFrom(routing?.routingSource) ?? "legacy_fallback",
     status,
     rawStatus: nullableString(row.status),
-    progress: progressFor(status),
+    progress: null,
     createdAt: iso(row.createdAt),
-    startedAt: status === "queued" ? null : iso(row.createdAt),
-    completedAt: terminalAt(status, row.updatedAt),
+    updatedAt: iso(row.updatedAt),
+    startedAt: null,
+    completedAt: null,
     error: nullableString(row.error),
     creditsCharged: toNumber(row.creditsCost),
     mediaUrl: result,
@@ -234,10 +242,11 @@ export function mapVariationJobToUnifiedJob(row: any, now: Date = new Date()): U
     routingSource: null,
     status,
     rawStatus: nullableString(row.status),
-    progress: progressFor(status),
+    progress: null,
     createdAt: iso(row.createdAt),
-    startedAt: status === "queued" ? null : iso(row.createdAt),
-    completedAt: terminalAt(status, row.updatedAt),
+    updatedAt: iso(row.updatedAt),
+    startedAt: null,
+    completedAt: null,
     error: nullableString(row.error),
     creditsCharged,
     mediaUrl: result,
@@ -265,10 +274,11 @@ export function mapReapJobToUnifiedJob(row: any, now: Date = new Date()): Unifie
     routingSource: null,
     status,
     rawStatus: nullableString(row.status),
-    progress: progressFor(status),
+    progress: null,
     createdAt: iso(row.createdAt),
-    startedAt: status === "queued" ? null : iso(row.createdAt),
-    completedAt: terminalAt(status, row.updatedAt),
+    updatedAt: iso(row.updatedAt),
+    startedAt: null,
+    completedAt: null,
     error: nullableString(row.error),
     creditsCharged: toNumber(row.creditsCost),
     mediaUrl: outputUrls[0] ?? null,
@@ -296,10 +306,11 @@ export function mapCinemaJobToUnifiedJob(row: any, now: Date = new Date()): Unif
     routingSource: null,
     status,
     rawStatus: nullableString(row.status),
-    progress: progressFor(status),
+    progress: null,
     createdAt: iso(row.createdAt),
-    startedAt: status === "queued" ? null : iso(row.createdAt),
-    completedAt: terminalAt(status, row.updatedAt),
+    updatedAt: iso(row.updatedAt),
+    startedAt: null,
+    completedAt: null,
     error: nullableString(row.error),
     creditsCharged: toNumber(row.creditsCost),
     mediaUrl: nullableString(row.resultUrl),
@@ -528,16 +539,6 @@ function failedReasonFrom(mediaUrl: string | null): string | null {
 
 function routingSourceFrom(value: unknown): UnifiedJobView["routingSource"] {
   return value === "control_center" || value === "legacy_fallback" ? value : null;
-}
-
-function terminalAt(status: UnifiedJobStatus, updatedAt: unknown): string | null {
-  return status === "completed" || status === "failed" || status === "cancelled" ? iso(updatedAt) : null;
-}
-
-function progressFor(status: UnifiedJobStatus): number | null {
-  if (status === "completed" || status === "failed" || status === "cancelled") return 100;
-  if (status === "processing") return 50;
-  return null;
 }
 
 function inferRefundState(status: UnifiedJobStatus, credits: number | null): UnifiedJobView["refundState"] {

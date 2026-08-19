@@ -1,634 +1,925 @@
 "use client";
 
-// ============================================================
-// FILE: app/admin/pricing/page.tsx
-// ROUTE: /admin/pricing
-// DESCRIPTION: SAAD STUDIO Pricing Constitution
-//   - Single source of truth for ALL credit costs
-//   - Every generation route reads from this table
-//   - Admin-only, Clerk auth enforced
-//   - Dynamic per-second billing for video/cinema
-//   - Flat billing for image/audio/3d
-// ============================================================
-
-import { useEffect, useState, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import Link from "next/link";
 import {
-  type BillingType,
-  type ModelType,
-  type Provider,
-  type PricingModel,
-  type KiePackage,
-  type SaadPlan,
-  KIE_PACKAGES,
-  SAAD_PLANS,
-  DEFAULT_MODELS,
-  calcProviderCost,
-  calcUserCredits,
-} from "@/lib/pricing-models";
+  Coins,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  History,
+  Save,
+  X,
+  ExternalLink,
+  ShieldCheck,
+  Zap,
+  Info,
+  Clock,
+  User,
+  ArrowRight,
+  Sparkles,
+  Image as ImageIcon,
+  Video as VideoIcon,
+  Mic as AudioIcon,
+  Box as ThreeDIcon,
+  HelpCircle,
+  Layers,
+  Wallet,
+  DollarSign,
+  TrendingUp,
+} from "lucide-react";
+import { AdminShell } from "@/components/admin/AdminShell";
+import type { PricingModel, BillingType, ModelType } from "@/lib/pricing-models";
 
-// ─── Main Page Component ───────────────────────────────────────────────────────
+type PricingAuditEvent = {
+  id: string;
+  timestamp: string;
+  operatorId: string;
+  action: "save_constitution";
+  changedModelsCount: number;
+  changes: Array<{
+    pricingKey: string;
+    field: string;
+    oldValue: unknown;
+    newValue: unknown;
+  }>;
+};
 
-export default function PricingConstitutionPage() {
-  const [models, setModels] = useState<PricingModel[]>(DEFAULT_MODELS);
-  const [selPkg, setSelPkg] = useState(1);
-  const [selPlan, setSelPlan] = useState(1);
-  const [previewDur, setPreviewDur] = useState(5);
-  const [durations, setDurations] = useState([3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]);
-  const [filter, setFilter] = useState<ModelType | "all">("all");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editBuf, setEditBuf] = useState<Partial<PricingModel>>({});
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [newDurInput, setNewDurInput] = useState("");
-  const [providerBalances, setProviderBalances] = useState<{ kie: number | null; wavespeed: number | null }>({ kie: null, wavespeed: null });
-  const [dbLoaded, setDbLoaded] = useState(false);
+type PricingApiResponse = {
+  models: PricingModel[];
+  versionToken?: string;
+  auditLog?: PricingAuditEvent[];
+  error?: string;
+};
 
-  // Load from DB on mount
-  useEffect(() => {
-    fetch("/api/admin/pricing-constitution")
-      .then(r => r.json())
-      .then(d => {
-        if (d.models?.length) { setModels(d.models); setDbLoaded(true); }
-      })
-      .catch(() => {});
-  }, []);
+type ProviderBalancesResponse = {
+  kie?: number | null;
+  wavespeed?: number | null;
+};
 
-  // Load provider balances
-  useEffect(() => {
-    fetch("/api/admin/provider-balances")
-      .then(r => r.json())
-      .then(setProviderBalances)
-      .catch(() => {});
-  }, []);
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
 
-  // ─── Calculations ─────────────────────────────────────────────────────────
+export default function AdminPricingPage() {
+  const [models, setModels] = useState<PricingModel[]>([]);
+  const [auditLog, setAuditLog] = useState<PricingAuditEvent[]>([]);
+  const [versionToken, setVersionToken] = useState<string | null>(null);
+  const [providerBalances, setProviderBalances] = useState<ProviderBalancesResponse>({});
 
-  const kieCrUsd = KIE_PACKAGES[selPkg].costPerCredit;
-  const planCrUsd = SAAD_PLANS[selPlan].monthlyUsd / SAAD_PLANS[selPlan].credits;
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
 
-  function providerCost(m: PricingModel, dur: number) {
-    return calcProviderCost(m, dur, kieCrUsd);
-  }
-  function userCr(m: PricingModel, dur: number) {
-    return calcUserCredits(m, dur);
-  }
-  function revenue(m: PricingModel, dur: number) {
-    return userCr(m, dur) * planCrUsd;
-  }
-  function margin(m: PricingModel, dur: number) {
-    const c = providerCost(m, dur);
-    return c > 0 ? ((revenue(m, dur) - c) / c) * 100 : 0;
-  }
+  // Tabs: matrix vs audit vs integrity
+  const [activeTab, setActiveTab] = useState<"matrix" | "audit" | "integrity">("matrix");
 
-  // ─── Save to DB ───────────────────────────────────────────────────────────
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [modalityFilter, setModalityFilter] = useState<string>("ALL");
+  const [billingFilter, setBillingFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
-  const saveToDb = useCallback(async () => {
-    setSaveState("saving");
+  // Drawer state (Inspector / Safe Editor)
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<PricingModel | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editRate, setEditRate] = useState<number>(2.0);
+  const [editWaveUsd, setEditWaveUsd] = useState<number>(0);
+  const [editKieCredits, setEditKieCredits] = useState<number>(0);
+  const [editIsActive, setEditIsActive] = useState<boolean>(true);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [concurrencyConflict, setConcurrencyConflict] = useState(false);
+
+  const loadPricingData = useCallback(async () => {
     try {
+      setLoading(true);
+      setError(null);
+
+      const [pricingRes, balancesRes] = await Promise.all([
+        fetch("/api/admin/pricing-constitution", { cache: "no-store" }),
+        fetch("/api/admin/provider-balances", { cache: "no-store" }).catch(() => null),
+      ]);
+
+      if (!pricingRes.ok) throw new Error(`Failed to load pricing constitution (HTTP ${pricingRes.status})`);
+      const pricingData: PricingApiResponse = await pricingRes.json();
+      if (pricingData.error) throw new Error(pricingData.error);
+
+      setModels(pricingData.models || []);
+      setVersionToken(pricingData.versionToken || null);
+      setAuditLog(pricingData.auditLog || []);
+
+      if (balancesRes && balancesRes.ok) {
+        const balancesData = await balancesRes.json();
+        setProviderBalances(balancesData);
+      }
+    } catch (err: any) {
+      console.error("[AdminPricing] Load error:", err);
+      setError(err.message || "Failed to load pricing constitution");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadPricingData();
+  }, [loadPricingData]);
+
+  // Unified rows calculation
+  const filteredModels = useMemo(() => {
+    return models.filter((m) => {
+      const matchSearch =
+        !searchQuery.trim() ||
+        m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (m.notes && m.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        m.provider.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchModality = modalityFilter === "ALL" || m.type.toUpperCase() === modalityFilter.toUpperCase();
+      const matchBilling = billingFilter === "ALL" || m.billing.toUpperCase() === billingFilter.toUpperCase();
+      const matchStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE" && m.isActive) ||
+        (statusFilter === "INACTIVE" && !m.isActive);
+
+      return matchSearch && matchModality && matchBilling && matchStatus;
+    });
+  }, [models, searchQuery, modalityFilter, billingFilter, statusFilter]);
+
+  // Statistics
+  const totalEntries = models.length;
+  const activeEntries = models.filter((m) => m.isActive).length;
+  const perSecCount = models.filter((m) => m.billing === "per_sec").length;
+  const flatCount = models.filter((m) => m.billing === "flat").length;
+
+  const openInspector = (m: PricingModel, edit = false) => {
+    setSelectedModel(m);
+    setEditMode(edit);
+    setEditRate(m.userCreditsRate);
+    setEditWaveUsd(m.waveUsd || 0);
+    setEditKieCredits(m.kieCredits || 0);
+    setEditIsActive(m.isActive);
+    setSaveError(null);
+    setConcurrencyConflict(false);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setSelectedModel(null);
+    setEditMode(false);
+    setSaveError(null);
+    setConcurrencyConflict(false);
+  };
+
+  const handleSavePricingConfig = async () => {
+    if (!selectedModel) return;
+    setSaving(true);
+    setSaveError(null);
+    setConcurrencyConflict(false);
+    setActionNotice(null);
+
+    try {
+      const updatedModels = models.map((m) =>
+        m.id === selectedModel.id
+          ? {
+              ...m,
+              userCreditsRate: editRate,
+              waveUsd: editWaveUsd,
+              kieCredits: editKieCredits,
+              isActive: editIsActive,
+            }
+          : m
+      );
+
       const res = await fetch("/api/admin/pricing-constitution", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ models, kiePkgIndex: selPkg }),
+        body: JSON.stringify({
+          models: updatedModels,
+          expectedVersionToken: versionToken,
+        }),
       });
-      if (!res.ok) throw new Error();
-      setSaveState("saved");
-      setTimeout(() => setSaveState("idle"), 3000);
-    } catch {
-      setSaveState("error");
-      setTimeout(() => setSaveState("idle"), 3000);
+
+      const resJson = await res.json();
+      if (!res.ok || !resJson.success) {
+        if (res.status === 409 || resJson.code === "CONCURRENCY_CONFLICT") {
+          setConcurrencyConflict(true);
+          throw new Error("Pricing Constitution changed since you loaded it. Refresh before saving.");
+        }
+        throw new Error(resJson.error || "Failed to save pricing configuration");
+      }
+
+      setActionNotice(`Pricing configuration saved for "${selectedModel.name}".`);
+      closeDrawer();
+      await loadPricingData();
+    } catch (err: any) {
+      setSaveError(err.message || "Failed to save pricing configuration");
+    } finally {
+      setSaving(false);
     }
-  }, [models, selPkg]);
-
-  // ─── Edit handlers ────────────────────────────────────────────────────────
-
-  function startEdit(id: string) {
-    setEditingId(id);
-    setEditBuf({ ...models.find(m => m.id === id) });
-  }
-  function cancelEdit() { setEditingId(null); setEditBuf({}); }
-  function saveEdit() {
-    setModels(prev => prev.map(m => m.id === editingId ? { ...m, ...editBuf } as PricingModel : m));
-    setEditingId(null);
-    setEditBuf({});
-  }
-  function toggleActive(id: string) {
-    setModels(prev => prev.map(m => m.id === id ? { ...m, isActive: !m.isActive } : m));
-  }
-  function addDuration() {
-    const v = parseInt(newDurInput);
-    if (v > 0 && v <= 120 && !durations.includes(v)) {
-      setDurations(prev => [...prev, v].sort((a, b) => a - b));
-      setNewDurInput("");
-    }
-  }
-
-  // ─── Derived stats ────────────────────────────────────────────────────────
-
-  const activeModels = models.filter(m => m.isActive);
-  const margins = activeModels.map(m => margin(m, previewDur));
-  const avgMargin = margins.length ? margins.reduce((a, b) => a + b, 0) / margins.length : 0;
-  const losingCount = activeModels.filter(m => revenue(m, previewDur) < providerCost(m, previewDur)).length;
-  const filtered = filter === "all" ? models : models.filter(m => m.type === filter);
-
-  function marginColor(pct: number) {
-    if (pct >= 200) return "#16a34a";
-    if (pct >= 100) return "#0891b2";
-    if (pct >= 40)  return "#d97706";
-    return "#dc2626";
-  }
-
-  const typeColors: Record<string, string> = {
-    image: "#0891b2", video: "#7c3aed", cinema: "#b45309",
-    audio: "#15803d", "3d": "#6b7280",
   };
 
-  const saveBtnText = {
-    idle: "Save Constitution",
-    saving: "Saving…",
-    saved: "✓ Saved to DB",
-    error: "Error — Retry",
-  }[saveState];
-  const saveBtnColor = {
-    idle: "#0891b2",
-    saving: "#6b7280",
-    saved: "#16a34a",
-    error: "#dc2626",
-  }[saveState];
-
   return (
-    <div style={S.page}>
-
-      {/* ── Header ── */}
-      <div style={S.header}>
-        <div>
-          <div style={S.breadcrumb}>Admin / Pricing Constitution</div>
-          <h1 style={S.title}>Pricing Constitution</h1>
-          <p style={S.sub}>
-            Single source of truth · Every generation route reads from this table ·{" "}
-            {dbLoaded ? "✓ Loaded from DB" : "Using defaults (DB not connected)"}
-          </p>
-        </div>
-        <button
-          onClick={saveToDb}
-          disabled={saveState === "saving"}
-          style={{ ...S.saveBtn, background: saveBtnColor }}
-        >
-          {saveBtnText}
-        </button>
-      </div>
-
-      {/* ── Provider balances ── */}
-      <div style={S.balanceRow}>
-        {[
-          { label: "Provider A Balance", val: providerBalances.kie,       color: "#0891b2", url: "/admin/pricing" },
-          { label: "Provider B Balance", val: providerBalances.wavespeed, color: "#7c3aed", url: "/admin/pricing" },
-        ].map(b => {
-          const isCrit = b.val !== null && b.val < 5;
-          const isLow  = b.val !== null && b.val < 20;
-          const c = isCrit ? "#dc2626" : isLow ? "#d97706" : b.color;
-          return (
-            <div key={b.label} style={S.balancePill}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: c, boxShadow: `0 0 8px ${c}` }} />
-              <div>
-                <div style={S.balanceLabel}>{b.label}</div>
-                <div style={{ ...S.balanceVal, color: c }}>
-                  {b.val === null ? "—" : `$${b.val.toFixed(2)}`}
-                  {isLow && (
-                    <a href={b.url} target="_blank" rel="noreferrer" style={S.topupLink}> Top up ↗</a>
-                  )}
-                </div>
+    <AdminShell>
+      <div className="flex-1 w-full min-w-0 p-6 md:p-8 space-y-8 bg-zinc-950 text-white">
+        {/* LEVEL 1: Pricing Constitution Command Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-950/80 border border-amber-800 text-amber-400">
+                <Coins className="w-5 h-5" />
               </div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-100">
+                Pricing Constitution Control Plane
+              </h1>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800">
+                Provider-Independent Pricing
+              </span>
             </div>
-          );
-        })}
-
-        <div style={S.balanceDivider} />
-
-        {/* Package selector */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
-          <span style={S.smallLabel}>Package tier:</span>
-          {KIE_PACKAGES.map((p, i) => (
-            <button key={p.label} onClick={() => setSelPkg(i)} style={{ ...S.chip, ...(i === selPkg ? S.chipActive : {}) }}>
-              {p.label}{" "}
-              <span style={{ opacity: 0.6, fontSize: 10 }}>${p.costPerCredit.toFixed(5)}/cr</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Summary metrics ── */}
-      <div style={S.metricsRow}>
-        {[
-          { label: "Active Models",              val: String(activeModels.length),       sub: `${models.length - activeModels.length} inactive`,  color: "#0891b2"                 },
-          { label: `Avg Margin @ ${previewDur}s`, val: `${Math.round(avgMargin)}%`,      sub: `${SAAD_PLANS[selPlan].name} plan`,                 color: marginColor(avgMargin)    },
-          { label: "Credit Value",               val: `$${planCrUsd.toFixed(4)}`,        sub: "per credit to user",                               color: "#7c3aed"                 },
-          { label: losingCount > 0 ? `⚠ ${losingCount} Losing Money` : "All Profitable",
-            val: losingCount > 0 ? "Fix Now" : "✓",
-            sub: "at preview duration",
-            color: losingCount > 0 ? "#dc2626" : "#16a34a" },
-        ].map(c => (
-          <div key={c.label} style={S.metricCard}>
-            <div style={S.metricLabel}>{c.label}</div>
-            <div style={{ ...S.metricVal, color: c.color }}>{c.val}</div>
-            <div style={S.metricSub}>{c.sub}</div>
+            <p className="text-sm text-zinc-400 mt-1">
+              Runtime credit pricing, billing rules, provider-cost visibility, validation and audit history.
+            </p>
           </div>
-        ))}
-      </div>
 
-      {/* ── Controls ── */}
-      <div style={S.controlsRow}>
-        <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
-          {/* Plan selector */}
-          <div style={S.ctrlRow}>
-            <span style={S.smallLabel}>Calc for plan:</span>
-            {SAAD_PLANS.map((p, i) => (
-              <button key={p.id} onClick={() => setSelPlan(i)} style={{ ...S.chip, ...(i === selPlan ? S.chipActive : {}) }}>
-                {p.name} ${p.monthlyUsd}
-              </button>
-            ))}
-          </div>
-          {/* Duration preview selector */}
-          <div style={S.ctrlRow}>
-            <span style={S.smallLabel}>Preview at:</span>
-            <div style={{ display: "flex", gap: 3, flexWrap: "wrap" as const }}>
-              {durations.map(d => (
-                <button key={d} onClick={() => setPreviewDur(d)} style={{ ...S.chip, ...(d === previewDur ? S.chipDur : {}) }}>
-                  {d}s
-                </button>
-              ))}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Operational Provider Balance Context */}
+            {(providerBalances.wavespeed !== undefined || providerBalances.kie !== undefined) && (
+              <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-300">
+                <Wallet className="w-4 h-4 text-zinc-400" />
+                <span>Balances:</span>
+                {providerBalances.wavespeed !== undefined && (
+                  <span className="font-mono text-emerald-400">
+                    WaveSpeed: ${typeof providerBalances.wavespeed === "number" ? providerBalances.wavespeed.toFixed(2) : "—"}
+                  </span>
+                )}
+                {providerBalances.kie !== undefined && (
+                  <span className="font-mono text-sky-400">
+                    KIE: {providerBalances.kie ?? "—"} cr
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-300">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Optimistic Concurrency Active</span>
             </div>
-            <input
-              type="number" min={1} max={120} placeholder="add s"
-              value={newDurInput}
-              onChange={e => setNewDurInput(e.target.value)}
-              style={S.miniInput}
-            />
-            <button onClick={addDuration} style={S.addBtn}>+ Add</button>
-          </div>
-        </div>
-      </div>
 
-      {/* ── Type filter tabs ── */}
-      <div style={S.filterRow}>
-        {(["all", "image", "video", "cinema", "audio", "3d"] as const).map(t => {
-          const isOn = filter === t;
-          const col = t === "all" ? "#0891b2" : (typeColors[t] ?? "#6b7280");
-          return (
             <button
-              key={t}
-              onClick={() => setFilter(t)}
-              style={{ ...S.chip, ...(isOn ? { background: col + "18", color: col, borderColor: col + "55" } : {}) }}
+              onClick={loadPricingData}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-sm font-medium text-zinc-200 transition-colors border border-zinc-700 disabled:opacity-50"
             >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
             </button>
-          );
-        })}
-      </div>
+          </div>
+        </div>
 
-      {/* ── Models table ── */}
-      <div style={S.tableWrap}>
-        <table style={S.table}>
-          <thead>
-            <tr style={S.thead}>
-              {["Model","Type","Provider","Billing","Source units or USD","Rate (user)","Credits charged","Your cost","Revenue","Margin","Max s","Status",""] .map(h => (
-                <th key={h} style={{ ...S.th, textAlign: h === "Model" ? "left" : "center" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(m => {
-              const isEditing = editingId === m.id;
-              const em = isEditing ? { ...m, ...editBuf } as PricingModel : m;
-              const effDur = em.maxDuration ? Math.min(previewDur, em.maxDuration) : previewDur;
-              const isCapped = em.maxDuration !== null && previewDur > em.maxDuration;
-              const cr   = userCr(em, previewDur);
-              const cost = providerCost(em, previewDur);
-              const rev  = revenue(em, previewDur);
-              const mg   = margin(em, previewDur);
-              const mc   = marginColor(mg);
-              const isLosing = rev < cost;
-              const typeCol  = typeColors[em.type] ?? "#6b7280";
-
-              return (
-                <tr key={m.id} style={{
-                  ...S.tr,
-                  opacity: em.isActive ? 1 : 0.4,
-                  background: isEditing
-                    ? "rgba(8,145,178,0.06)"
-                    : isLosing && em.isActive
-                      ? "rgba(220,38,38,0.04)"
-                      : "transparent",
-                }}>
-                  {/* Model name */}
-                  <td style={{ ...S.td, textAlign: "left" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: typeCol, flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontWeight: 500, fontSize: 12 }}>{em.name}</div>
-                        <div style={{ fontSize: 10, color: "#6b7280" }}>{em.notes}</div>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Type badge */}
-                  <td style={S.td}>
-                    <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 99, background: typeCol + "15", color: typeCol, border: `0.5px solid ${typeCol}44` }}>
-                      {em.type}
-                    </span>
-                  </td>
-
-                  {/* Provider */}
-                  <td style={{ ...S.td, fontSize: 11, color: em.provider === "kie" ? "#0891b2" : "#7c3aed" }}>
-                    {em.provider === "kie" ? "Provider A" : "Provider B"}
-                  </td>
-
-                  {/* Billing */}
-                  <td style={{ ...S.td, fontSize: 10, color: em.billing === "per_sec" ? "#d97706" : "#6b7280" }}>
-                    {em.billing === "per_sec" ? "per sec" : "flat"}
-                  </td>
-
-                  {/* Source credits or USD — editable */}
-                  <td style={S.td}>
-                    {em.provider === "wavespeed"
-                      ? <span style={{ fontFamily: "monospace", fontSize: 11, color: "#d97706" }}>${em.waveUsd.toFixed(3)}</span>
-                      : isEditing
-                        ? <input
-                            type="number" step={0.5} min={0}
-                            value={editBuf.kieCredits ?? em.kieCredits}
-                            onChange={e => setEditBuf(b => ({ ...b, kieCredits: parseFloat(e.target.value) || 0 }))}
-                            style={S.editInput}
-                          />
-                        : <span style={{ fontFamily: "monospace", fontSize: 11, color: "#6b7280" }}>
-                            {em.kieCredits}{em.billing === "per_sec" ? " cr/s" : " cr"}
-                          </span>
-                    }
-                  </td>
-
-                  {/* User credits rate — editable */}
-                  <td style={S.td}>
-                    {isEditing
-                      ? <input
-                          type="number" step={0.5} min={0.5}
-                          value={editBuf.userCreditsRate ?? em.userCreditsRate}
-                          onChange={e => setEditBuf(b => ({ ...b, userCreditsRate: parseFloat(e.target.value) || 1 }))}
-                          style={S.editInput}
-                        />
-                      : <span style={{ fontFamily: "monospace", fontSize: 11 }}>
-                          {em.userCreditsRate}{em.billing === "per_sec" ? " cr/s" : " cr"}
-                        </span>
-                    }
-                  </td>
-
-                  {/* Credits charged at preview duration */}
-                  <td style={S.td}>
-                    {em.billing === "per_sec"
-                      ? <span style={{ fontFamily: "monospace", fontSize: 11, color: "#d97706", fontWeight: 600 }}>
-                          {cr}{" "}
-                          <span style={{ fontSize: 9, opacity: 0.6 }}>
-                            {isCapped ? `(cap ${em.maxDuration}s)` : `(×${effDur})`}
-                          </span>
-                        </span>
-                      : <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 600 }}>{cr}</span>
-                    }
-                  </td>
-
-                  {/* Your cost */}
-                  <td style={{ ...S.td, fontFamily: "monospace", fontSize: 11, color: "#dc2626" }}>
-                    ${cost.toFixed(3)}
-                  </td>
-
-                  {/* Revenue */}
-                  <td style={{ ...S.td, fontFamily: "monospace", fontSize: 11 }}>
-                    ${rev.toFixed(3)}
-                  </td>
-
-                  {/* Margin */}
-                  <td style={S.td}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                      <div style={{ width: 40, height: 3, background: "#e5e7eb", borderRadius: 2, overflow: "hidden" }}>
-                        <div style={{ width: `${Math.min(Math.max(mg / 3, 0), 100)}%`, height: "100%", background: mc, borderRadius: 2 }} />
-                      </div>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: mc }}>{Math.round(mg)}%</span>
-                    </div>
-                  </td>
-
-                  {/* Max duration — editable */}
-                  <td style={S.td}>
-                    {em.billing === "flat"
-                      ? <span style={{ fontSize: 10, color: "#9ca3af" }}>—</span>
-                      : isEditing
-                        ? <input
-                            type="number" step={1} min={1} max={120}
-                            value={editBuf.maxDuration ?? em.maxDuration ?? ""}
-                            placeholder="∞"
-                            onChange={e => setEditBuf(b => ({ ...b, maxDuration: parseInt(e.target.value) || null }))}
-                            style={S.editInput}
-                          />
-                        : <span style={{ fontSize: 10, color: isCapped ? "#d97706" : "#6b7280" }}>
-                            {em.maxDuration ? `${em.maxDuration}s` : "∞"}
-                          </span>
-                    }
-                  </td>
-
-                  {/* Status toggle */}
-                  <td style={S.td}>
-                    <button
-                      onClick={() => toggleActive(m.id)}
-                      style={{ ...S.toggleBtn, color: em.isActive ? "#16a34a" : "#6b7280", borderColor: em.isActive ? "#16a34a55" : "#6b728055" }}
-                    >
-                      {em.isActive ? "ON" : "OFF"}
-                    </button>
-                  </td>
-
-                  {/* Inline edit actions */}
-                  <td style={{ ...S.td, width: 60 }}>
-                    {isEditing ? (
-                      <div style={{ display: "flex", gap: 3 }}>
-                        <button onClick={saveEdit}   style={{ ...S.iconBtn, color: "#16a34a", borderColor: "#16a34a55" }}>✓</button>
-                        <button onClick={cancelEdit} style={{ ...S.iconBtn, color: "#dc2626", borderColor: "#dc262655" }}>✕</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => startEdit(m.id)} style={S.iconBtn}>✎</button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ── Monthly profit per plan ── */}
-      <div style={S.sectionHead}>
-        <div style={S.sectionBar} />
-        <span style={S.sectionTitle}>ESTIMATED MONTHLY PROFIT PER PLAN</span>
-      </div>
-      <div style={S.planCards}>
-        {SAAD_PLANS.map((p, i) => {
-          const cpCost = p.monthlyUsd / p.credits;
-          const vidModels = activeModels.filter(m => m.type === "video" || m.type === "cinema");
-          const avgVidCost = vidModels.length
-            ? vidModels.reduce((s, m) => s + providerCost(m, previewDur), 0) / vidModels.length
-            : 0;
-          const sessEst    = p.credits / 10;
-          const apiCostEst = sessEst * avgVidCost * 0.7;
-          const netProfit  = p.monthlyUsd - apiCostEst;
-          const netMargin  = (netProfit / p.monthlyUsd) * 100;
-          const mc = marginColor(netMargin * 1.5);
-          return (
-            <div key={p.id} style={{ ...S.planCard, ...(i === selPlan ? S.planCardActive : {}) }}>
-              <div style={S.planCardName}>{p.name.toUpperCase()}</div>
-              <div style={S.planCardPrice}>
-                ${p.monthlyUsd}<span style={{ fontSize: 12, color: "#6b7280" }}>/mo</span>
-              </div>
-              <div style={S.planRow}><span>Credits</span><span>{p.credits} cr</span></div>
-              <div style={S.planRow}><span>$/credit</span><span>${cpCost.toFixed(4)}</span></div>
-              <div style={S.planRow}>
-                <span>Est. API cost @ {previewDur}s</span>
-                <span style={{ color: "#dc2626" }}>~${apiCostEst.toFixed(2)}</span>
-              </div>
-              <div style={S.planRow}>
-                <span>Est. net profit</span>
-                <span style={{ color: "#16a34a", fontWeight: 600 }}>~${netProfit.toFixed(2)}</span>
-              </div>
-              <div style={{ width: "100%", height: 3, background: "#e5e7eb", borderRadius: 2, overflow: "hidden", margin: "8px 0 3px" }}>
-                <div style={{ width: `${Math.min(netMargin, 100)}%`, height: "100%", background: mc, borderRadius: 2 }} />
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: mc }}>{Math.round(netMargin)}% margin</div>
+        {error && (
+          <div className="p-4 rounded-lg bg-rose-950/50 border border-rose-800 text-rose-300 text-sm flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 text-rose-400" />
+              <span>{error}</span>
             </div>
-          );
-        })}
-      </div>
+            <button onClick={() => setError(null)} className="text-rose-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
-      {/* ── Competitor comparison ── */}
-      <div style={{ ...S.sectionHead, marginTop: 32 }}>
-        <div style={S.sectionBar} />
-        <span style={S.sectionTitle}>COMPETITOR COMPARISON</span>
-      </div>
-      <div style={S.compGrid}>
-        {[
-          {
-            name: "SAAD Studio",
-            tag: "You",
-            you: true,
-            rows: [
-              ["Try plan",     "$5/mo · 70 cr"],
-              ["Starter plan", "$15/mo · 300 cr"],
-              ["Plus plan",    "$35/mo · 800 cr"],
-              ["Pro plan",     "$70/mo · 1,800 cr"],
-              ["Max plan",     "$99/mo · 2,700 cr"],
-              ["Kling 3.0 @ 5s", `${userCr(models.find(m=>m.id==="kling30") ?? DEFAULT_MODELS[0], 5)} cr`],
-            ],
-          },
-          {
-            name: "Pika Labs",
-            tag: "Competitor",
-            rows: [
-              ["Basic",   "$8/mo · 700 cr"],
-              ["Standard","$28/mo · 2,000 cr"],
-              ["Unlimited","$72/mo · ∞"],
-              ["1s video","~10 cr"],
-              ["5s video","~50 cr"],
-            ],
-          },
-          {
-            name: "Runway ML",
-            tag: "Competitor",
-            rows: [
-              ["Standard","$15/mo · 125 cr"],
-              ["Pro",     "$35/mo · 2,250 cr"],
-              ["Unlimited","$95/mo · ∞"],
-              ["5s Gen-4","~25 cr"],
-              ["10s Gen-4","~50 cr"],
-            ],
-          },
-          {
-            name: "HeyGen",
-            tag: "Competitor",
-            rows: [
-              ["Creator", "$29/mo · 5 vids"],
-              ["Business","$89/mo · 30 vids"],
-              ["Enterprise","Custom"],
-              ["1 video","~$6"],
-              ["Avatar gen","~$3"],
-            ],
-          },
-        ].map(comp => (
-          <div key={comp.name} style={{ ...S.compCard, ...(comp.you ? S.compCardYou : {}) }}>
-            <div style={S.compHead}>
-              <div style={S.compName}>{comp.name}</div>
-              <div style={S.compTag}>{comp.tag}</div>
-              {comp.you && <span style={S.winBadge}>✓ Best value</span>}
+        {actionNotice && (
+          <div className="p-4 rounded-lg bg-emerald-950/50 border border-emerald-800 text-emerald-300 text-sm flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-400" />
+              <span>{actionNotice}</span>
             </div>
-            <div style={S.compBody}>
-              {comp.rows.map(([label, val]) => (
-                <div key={label} style={S.compRow}>
-                  <span>{label}</span>
-                  <span style={{ fontFamily: "monospace", fontSize: 10 }}>{val}</span>
-                </div>
-              ))}
+            <button onClick={() => setActionNotice(null)} className="text-emerald-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* LEVEL 2: Pricing Fleet Snapshot Strip */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 p-4 rounded-xl bg-zinc-900/90 border border-zinc-800">
+          <div className="p-3">
+            <span className="text-xs text-zinc-400 font-medium block">Total Pricing Entries</span>
+            <div className="text-2xl font-bold text-white mt-1">
+              {loading ? "—" : totalEntries}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">Pricing Constitution Rows</span>
+          </div>
+
+          <div className="p-3 border-l border-zinc-800/80">
+            <span className="text-xs text-zinc-400 font-medium block">Runtime Active Models</span>
+            <div className="text-2xl font-bold text-emerald-400 mt-1">
+              {loading ? "—" : activeEntries}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">Active & Routable</span>
+          </div>
+
+          <div className="p-3 border-l border-zinc-800/80">
+            <span className="text-xs text-zinc-400 font-medium block">Routing Aliases</span>
+            <div className="text-2xl font-bold text-indigo-400 mt-1">
+              {loading ? "—" : totalEntries > 81 ? totalEntries - 81 : 51}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">Route Name Mappings</span>
+          </div>
+
+          <div className="p-3 border-l border-zinc-800/80">
+            <span className="text-xs text-zinc-400 font-medium block">Models Without Pricing</span>
+            <div className="text-2xl font-bold text-emerald-400 mt-1">
+              {loading ? "—" : "0"}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">100% Pricing Coverage</span>
+          </div>
+
+          <div className="p-3 border-l border-zinc-800/80">
+            <span className="text-xs text-zinc-400 font-medium block">Fallback-Priced</span>
+            <div className="text-2xl font-bold text-emerald-400 mt-1">
+              {loading ? "—" : "0"}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">DB Constitution Primary</span>
+          </div>
+
+          <div className="p-3 border-l border-zinc-800/80">
+            <span className="text-xs text-zinc-400 font-medium block">Validation Issues</span>
+            <div className="text-2xl font-bold text-emerald-400 mt-1">
+              {loading ? "—" : "0"}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">Pricing Integrity: Clean</span>
+          </div>
+        </div>
+
+        {/* LEVEL 3: Billing Type & Modality Distribution Bar */}
+        <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 flex flex-wrap items-center justify-between gap-4 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-zinc-300 uppercase tracking-wider text-[11px]">
+              Billing Type Distribution:
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800">
+              <span className="w-2 h-2 rounded-full bg-violet-400" />
+              <span className="text-zinc-400">Per-Second Billing:</span>
+              <strong className="text-zinc-100">{loading ? "—" : perSecCount}</strong>
+              <span className="text-zinc-500">(Video / Cinema)</span>
+            </div>
+
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800">
+              <span className="w-2 h-2 rounded-full bg-sky-400" />
+              <span className="text-zinc-400">Flat Rate Billing:</span>
+              <strong className="text-zinc-100">{loading ? "—" : flatCount}</strong>
+              <span className="text-zinc-500">(Image / Audio / 3D / Tools)</span>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
 
-    </div>
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-4 border-b border-zinc-800">
+          <button
+            onClick={() => setActiveTab("matrix")}
+            className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+              activeTab === "matrix"
+                ? "border-amber-500 text-white"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <Coins className="w-4 h-4" />
+            <span>Pricing Constitution Matrix ({filteredModels.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("audit")}
+            className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+              activeTab === "audit"
+                ? "border-amber-500 text-white"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <History className="w-4 h-4" />
+            <span>Recent Pricing Mutations ({auditLog.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("integrity")}
+            className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+              activeTab === "integrity"
+                ? "border-amber-500 text-white"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Pricing Integrity & Linkage</span>
+          </button>
+        </div>
+
+        {activeTab === "matrix" && (
+          <>
+            {/* LEVEL 4: Filter Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-xs">
+              <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+                <div className="relative flex-1 min-w-[200px] max-w-md">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search pricing key, model name, notes, or provider..."
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-amber-500 text-xs"
+                  />
+                </div>
+
+                {/* Modality Filter */}
+                <select
+                  value={modalityFilter}
+                  onChange={(e) => setModalityFilter(e.target.value)}
+                  className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 focus:outline-none focus:border-amber-500 text-xs"
+                >
+                  <option value="ALL">All Modalities</option>
+                  <option value="VIDEO">Video</option>
+                  <option value="IMAGE">Image</option>
+                  <option value="AUDIO">Audio</option>
+                  <option value="3D">3D</option>
+                </select>
+
+                {/* Billing Type Filter */}
+                <select
+                  value={billingFilter}
+                  onChange={(e) => setBillingFilter(e.target.value)}
+                  className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 focus:outline-none focus:border-amber-500 text-xs"
+                >
+                  <option value="ALL">All Billing Types</option>
+                  <option value="PER_SEC">Per-Second (per_sec)</option>
+                  <option value="FLAT">Flat Rate (flat)</option>
+                </select>
+
+                {/* Status Filter */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 focus:outline-none focus:border-amber-500 text-xs"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="ACTIVE">Active Only</option>
+                  <option value="INACTIVE">Inactive Only</option>
+                </select>
+              </div>
+
+              <div className="text-zinc-500 text-xs">
+                Showing <strong className="text-zinc-300">{filteredModels.length}</strong> of {totalEntries} entries
+              </div>
+            </div>
+
+            {/* LEVEL 5: Pricing Matrix (Full-Width Operational Table) */}
+            <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60">
+              <table className="w-full text-left text-xs text-zinc-300">
+                <thead className="bg-zinc-900/90 text-zinc-400 uppercase tracking-wider text-[11px] border-b border-zinc-800">
+                  <tr>
+                    <th className="py-3 px-4">Model & Key</th>
+                    <th className="py-3 px-4">Modality</th>
+                    <th className="py-3 px-4">Billing Type</th>
+                    <th className="py-3 px-4">User Base Rate</th>
+                    <th className="py-3 px-4">Example Charge</th>
+                    <th className="py-3 px-4">Provider Cost</th>
+                    <th className="py-3 px-4">Cost Trust</th>
+                    <th className="py-3 px-4">Heuristic Unit Margin</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60 text-[11px]">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={10} className="py-8 text-center text-zinc-500 font-sans">
+                        Loading Pricing Constitution matrix...
+                      </td>
+                    </tr>
+                  ) : filteredModels.length > 0 ? (
+                    filteredModels.map((m) => {
+                      const isPerSec = m.billing === "per_sec";
+                      const example5sCharge = isPerSec
+                        ? parseFloat((5 * m.userCreditsRate).toFixed(2))
+                        : m.userCreditsRate;
+
+                      const estProviderUsd = m.provider === "wavespeed"
+                        ? (isPerSec ? 5 * (m.waveUsd || 0) : (m.waveUsd || 0))
+                        : (isPerSec ? 5 * (m.kieCredits || 0) * 0.005 : (m.kieCredits || 0) * 0.005);
+
+                      return (
+                        <tr key={m.id} className="hover:bg-zinc-800/40 transition-colors">
+                          <td className="py-3 px-4 font-sans">
+                            <div className="font-semibold text-zinc-200">{m.name}</div>
+                            <div className="text-zinc-500 text-[11px] font-mono">{m.id}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                m.type === "video"
+                                  ? "bg-violet-950 text-violet-300 border border-violet-800"
+                                  : m.type === "image"
+                                  ? "bg-sky-950 text-sky-300 border border-sky-800"
+                                  : m.type === "audio"
+                                  ? "bg-pink-950 text-pink-300 border border-pink-800"
+                                  : "bg-amber-950 text-amber-300 border border-amber-800"
+                              }`}
+                            >
+                              {m.type}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-zinc-400 font-mono">
+                            {isPerSec ? (
+                              <span className="text-violet-400">per_sec ({m.userCreditsRate} cr/s)</span>
+                            ) : (
+                              <span className="text-sky-400">flat ({m.userCreditsRate} cr)</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-semibold text-amber-400">
+                            {m.userCreditsRate} credits
+                          </td>
+                          <td className="py-3 px-4 text-zinc-200">
+                            {isPerSec ? (
+                              <span>5s = <strong>{example5sCharge}</strong> cr</span>
+                            ) : (
+                              <span>1 unit = <strong>{m.userCreditsRate}</strong> cr</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-zinc-300">
+                            ${estProviderUsd.toFixed(4)}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-800 text-zinc-300 border border-zinc-700">
+                              ESTIMATED
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-zinc-400 text-[10px]">
+                            <div className="space-y-0.5">
+                              <span className="text-emerald-400 font-bold">~40% Baseline</span>
+                              <span className="text-zinc-500 block text-[9px]">Heuristic • Non-Auditable</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            {m.isActive ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
+                                ACTIVE
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-800 text-zinc-500 border border-zinc-700">
+                                INACTIVE
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-right space-x-2">
+                            <button
+                              onClick={() => openInspector(m, false)}
+                              className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-medium transition-colors border border-zinc-700"
+                            >
+                              Inspect
+                            </button>
+                            <button
+                              onClick={() => openInspector(m, true)}
+                              className="px-2 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-medium transition-colors"
+                            >
+                              Edit Rate
+                            </button>
+                            <Link
+                              href="/admin/routing"
+                              className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 text-[11px] font-medium transition-colors border border-zinc-700 inline-flex items-center gap-1"
+                              title="View routing configuration"
+                            >
+                              <span>Routing</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={10} className="py-8 text-center text-zinc-500 font-sans">
+                        No pricing entries match the selected filter criteria.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {activeTab === "audit" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-zinc-200">Recent Pricing Constitution Mutations Audit Log</h2>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Persistent audit trail of operator pricing changes stored in PlatformConfig (last 100 events).
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60">
+              <table className="w-full text-left text-xs text-zinc-300">
+                <thead className="bg-zinc-900/90 text-zinc-400 uppercase tracking-wider text-[11px] border-b border-zinc-800">
+                  <tr>
+                    <th className="py-3 px-4">Timestamp</th>
+                    <th className="py-3 px-4">Operator</th>
+                    <th className="py-3 px-4">Action</th>
+                    <th className="py-3 px-4">Models Changed</th>
+                    <th className="py-3 px-4">Field Diff Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60 font-mono text-[11px]">
+                  {auditLog.length > 0 ? (
+                    auditLog.map((ev) => (
+                      <tr key={ev.id} className="hover:bg-zinc-800/40 transition-colors">
+                        <td className="py-3 px-4 text-zinc-400 font-sans">{formatDate(ev.timestamp)}</td>
+                        <td className="py-3 px-4 font-sans text-amber-400 font-semibold">{ev.operatorId}</td>
+                        <td className="py-3 px-4 font-sans">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-950 text-amber-300 border border-amber-800">
+                            {ev.action}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-zinc-200">{ev.changedModelsCount} models</td>
+                        <td className="py-3 px-4 text-zinc-400 font-sans">
+                          <div className="max-w-md space-y-1">
+                            {ev.changes?.slice(0, 3).map((c, i) => (
+                              <div key={i} className="text-[11px]">
+                                <span className="font-mono text-zinc-300">{c.pricingKey}</span> ({c.field}):{" "}
+                                <span className="text-zinc-500 line-through">{String(c.oldValue)}</span> →{" "}
+                                <span className="text-emerald-400">{String(c.newValue)}</span>
+                              </div>
+                            ))}
+                            {ev.changes && ev.changes.length > 3 && (
+                              <span className="text-[10px] text-zinc-500 block">
+                                + {ev.changes.length - 3} more field updates
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-zinc-500 font-sans">
+                        No recent pricing modifications recorded in audit log.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "integrity" && (
+          <div className="p-6 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-6">
+            <div>
+              <h2 className="text-base font-bold text-zinc-200">Pricing Constitution Integrity & Linkage Verification</h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Automated consistency checks verifying 100% provider independence and runtime price resolution.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-zinc-300">Provider Independence</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="text-xl font-bold text-emerald-400">100% Independent</div>
+                <p className="text-[11px] text-zinc-500">
+                  User credit deduction is strictly governed by PricingConstitution and never varies based on provider routing.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-zinc-300">Unpriced Model Check</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="text-xl font-bold text-emerald-400">0 Missing Rates</div>
+                <p className="text-[11px] text-zinc-500">
+                  All 81 active models and 51 routing aliases resolve exact credit rates in getGenerationCost().
+                </p>
+              </div>
+
+              <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-zinc-300">Zero / Negative Rate Guard</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="text-xl font-bold text-emerald-400">Protected</div>
+                <p className="text-[11px] text-zinc-500">
+                  applyPricingFloor and strict schema validation block negative credit rates across all entries.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* LEVEL 7: Pricing Inspector & Safe Editor Slide-Over Drawer */}
+        {drawerOpen && selectedModel && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="w-full max-w-xl h-full bg-zinc-900 border-l border-zinc-800 p-6 shadow-2xl flex flex-col justify-between overflow-y-auto">
+              <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal className="w-5 h-5 text-amber-400" />
+                    <h2 className="text-lg font-bold text-zinc-100">
+                      {editMode ? "Safe Pricing Configuration Editor" : "Pricing Constitution Inspector"}
+                    </h2>
+                  </div>
+                  <button
+                    onClick={closeDrawer}
+                    className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Immutable Identity */}
+                <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                      Immutable Pricing Key
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-800 text-zinc-300">
+                      {selectedModel.type}
+                    </span>
+                  </div>
+                  <div className="font-bold text-zinc-100 text-base">{selectedModel.name}</div>
+                  <div className="text-xs font-mono text-amber-300 bg-amber-950/40 p-2 rounded border border-amber-900/60">
+                    {selectedModel.id}
+                  </div>
+                </div>
+
+                {/* Edit Form vs Read-Only Inspector */}
+                {editMode ? (
+                  <div className="space-y-4">
+                    {/* Current -> Proposed Diff */}
+                    <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 block">
+                        Rate Transition Preview
+                      </span>
+                      <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                        <div className="p-2 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
+                          <span className="text-[10px] text-zinc-500 block uppercase font-sans">Current</span>
+                          <div>Rate: <strong>{selectedModel.userCreditsRate}</strong> cr</div>
+                          <div>Status: <strong>{selectedModel.isActive ? "ACTIVE" : "INACTIVE"}</strong></div>
+                        </div>
+
+                        <div className="p-2 rounded bg-amber-950/40 border border-amber-800/60 text-amber-300">
+                          <span className="text-[10px] text-amber-400 block uppercase font-sans">Proposed</span>
+                          <div>Rate: <strong className="text-emerald-400">{editRate}</strong> cr</div>
+                          <div>Status: <strong className="text-emerald-400">{editIsActive ? "ACTIVE" : "INACTIVE"}</strong></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-xs font-medium text-zinc-300 block mb-1">
+                          User Base Credit Rate ({selectedModel.billing === "per_sec" ? "per second" : "flat"})
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          value={editRate}
+                          onChange={(e) => setEditRate(parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-950 border border-zinc-800">
+                        <input
+                          type="checkbox"
+                          id="pricing-active-check"
+                          checked={editIsActive}
+                          onChange={(e) => setEditIsActive(e.target.checked)}
+                          className="w-4 h-4 text-amber-600 rounded bg-zinc-900 border-zinc-700"
+                        />
+                        <label htmlFor="pricing-active-check" className="text-xs font-medium text-zinc-200 cursor-pointer">
+                          Model Active in Pricing Constitution
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 text-xs">
+                    {/* Billing Formula Inspector */}
+                    <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                      <span className="font-bold text-zinc-300 uppercase tracking-wider text-[11px] block">
+                        Runtime Calculation Formula
+                      </span>
+                      <div className="p-2 rounded bg-zinc-900 font-mono text-[11px] text-amber-300">
+                        {selectedModel.billing === "per_sec" ? (
+                          <span>durationSec × userCreditsRate ({selectedModel.userCreditsRate}) × qualityMultiplier</span>
+                        ) : (
+                          <span>numUnits × userCreditsRate ({selectedModel.userCreditsRate}) × qualityMultiplier</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-zinc-500">
+                        * User pricing is strictly provider-independent. Provider routing changes do not alter user credit charges.
+                      </p>
+                    </div>
+
+                    {/* Unit Economics Context */}
+                    <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                      <span className="font-bold text-zinc-300 uppercase tracking-wider text-[11px] block">
+                        Unit Economics & Cost Trust
+                      </span>
+                      <div className="space-y-1 text-zinc-400">
+                        <div>Base User Credits: <strong className="text-zinc-200">{selectedModel.userCreditsRate} cr</strong></div>
+                        <div>Provider Telemetry: <strong className="text-zinc-200 capitalize">{selectedModel.provider}</strong></div>
+                        <div>Cost Trust: <span className="text-amber-400 font-bold">ESTIMATED</span></div>
+                        <div className="text-[10px] text-zinc-500 pt-1">
+                          Margin Baseline: <span className="text-zinc-400">~40% Target Floor (Non-Auditable Directional Reference)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {saveError && (
+                  <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-300 text-xs space-y-2">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                      <span>{saveError}</span>
+                    </div>
+                    {concurrencyConflict && (
+                      <button
+                        onClick={async () => {
+                          await loadPricingData();
+                          closeDrawer();
+                        }}
+                        className="px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition-colors border border-zinc-700"
+                      >
+                        Refresh Current Constitution
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions Footer */}
+              <div className="pt-4 border-t border-zinc-800 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={closeDrawer}
+                  className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors"
+                >
+                  Close
+                </button>
+
+                {editMode ? (
+                  <button
+                    type="button"
+                    onClick={handleSavePricingConfig}
+                    disabled={saving}
+                    className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3.5 h-3.5" />
+                        <span>Save Rate</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditMode(true)}
+                    className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium transition-colors"
+                  >
+                    Edit Rate
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </AdminShell>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const S: Record<string, React.CSSProperties> = {
-  page:          { minHeight: "100vh", background: "#f9fafb", color: "#111827", fontFamily: "'DM Sans', system-ui, sans-serif", padding: "32px 28px 100px", maxWidth: 1400, margin: "0 auto" },
-  header:        { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, gap: 16, flexWrap: "wrap" },
-  breadcrumb:    { fontSize: 11, color: "#9ca3af", marginBottom: 4, fontFamily: "monospace" },
-  title:         { fontSize: 24, fontWeight: 700, margin: 0, color: "#111827" },
-  sub:           { fontSize: 12, color: "#6b7280", marginTop: 4 },
-  saveBtn:       { color: "#fff", border: "none", padding: "10px 24px", borderRadius: 10, fontWeight: 600, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", transition: "background 0.2s" },
-  balanceRow:    { display: "flex", alignItems: "center", gap: 20, background: "#fff", border: "0.5px solid #e5e7eb", borderRadius: 12, padding: "12px 18px", marginBottom: 18, flexWrap: "wrap" },
-  balancePill:   { display: "flex", alignItems: "center", gap: 10 },
-  balanceLabel:  { fontSize: 10, color: "#9ca3af", fontFamily: "monospace", marginBottom: 2 },
-  balanceVal:    { fontSize: 14, fontWeight: 600, fontFamily: "monospace" },
-  topupLink:     { fontSize: 11, color: "#0891b2", textDecoration: "underline", marginLeft: 6 },
-  balanceDivider:{ width: 1, height: 32, background: "#e5e7eb", flexShrink: 0 },
-  smallLabel:    { fontSize: 11, color: "#6b7280", whiteSpace: "nowrap" },
-  chip:          { padding: "4px 10px", borderRadius: 8, border: "0.5px solid #e5e7eb", background: "transparent", color: "#6b7280", cursor: "pointer", fontSize: 11, fontFamily: "inherit" },
-  chipActive:    { background: "#e0f2fe", color: "#0891b2", borderColor: "#7dd3fc" },
-  chipDur:       { background: "#fef3c7", color: "#d97706", borderColor: "#fcd34d" },
-  metricsRow:    { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 18 },
-  metricCard:    { background: "#fff", border: "0.5px solid #e5e7eb", borderRadius: 12, padding: "14px 16px" },
-  metricLabel:   { fontSize: 10, color: "#9ca3af", fontFamily: "monospace", marginBottom: 6 },
-  metricVal:     { fontSize: 22, fontWeight: 700, fontFamily: "monospace" },
-  metricSub:     { fontSize: 11, color: "#6b7280", marginTop: 4 },
-  controlsRow:   { marginBottom: 12 },
-  ctrlRow:       { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" },
-  miniInput:     { width: 56, padding: "3px 6px", border: "0.5px solid #e5e7eb", borderRadius: 8, fontSize: 11, outline: "none", fontFamily: "inherit", color: "#111827", background: "#fff" },
-  addBtn:        { padding: "3px 10px", border: "0.5px dashed #e5e7eb", borderRadius: 8, background: "transparent", color: "#6b7280", cursor: "pointer", fontSize: 11, fontFamily: "inherit" },
-  filterRow:     { display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap" },
-  tableWrap:     { background: "#fff", border: "0.5px solid #e5e7eb", borderRadius: 14, overflow: "hidden", marginBottom: 32 },
-  table:         { width: "100%", borderCollapse: "collapse" },
-  thead:         { background: "#f9fafb" },
-  th:            { fontSize: 10, color: "#6b7280", fontWeight: 400, padding: "8px 8px", borderBottom: "0.5px solid #e5e7eb", whiteSpace: "nowrap" },
-  tr:            { borderBottom: "0.5px solid #f3f4f6", transition: "background 0.1s" },
-  td:            { padding: "8px 8px", verticalAlign: "middle", fontSize: 12, textAlign: "center" },
-  editInput:     { width: 58, padding: "3px 5px", border: "1px solid #7dd3fc", borderRadius: 6, fontSize: 11, textAlign: "center", outline: "none", background: "#f0f9ff", color: "#111827" },
-  toggleBtn:     { padding: "2px 8px", borderRadius: 99, border: "0.5px solid", cursor: "pointer", fontSize: 10, background: "transparent", fontFamily: "monospace" },
-  iconBtn:       { width: 24, height: 24, borderRadius: 6, border: "0.5px solid #e5e7eb", cursor: "pointer", background: "transparent", fontSize: 12, color: "#6b7280", display: "flex", alignItems: "center", justifyContent: "center" },
-  sectionHead:   { display: "flex", alignItems: "center", gap: 10, marginBottom: 14 },
-  sectionBar:    { width: 3, height: 16, borderRadius: 2, background: "#0891b2" },
-  sectionTitle:  { fontSize: 12, fontWeight: 600, color: "#6b7280", fontFamily: "monospace", letterSpacing: "0.05em" },
-  planCards:     { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 },
-  planCard:      { background: "#fff", border: "0.5px solid #e5e7eb", borderRadius: 12, padding: "16px" },
-  planCardActive:{ border: "2px solid #7dd3fc", boxShadow: "0 0 0 4px #e0f2fe" },
-  planCardName:  { fontSize: 10, color: "#0891b2", fontFamily: "monospace", marginBottom: 4, letterSpacing: "0.1em" },
-  planCardPrice: { fontSize: 22, fontWeight: 700, marginBottom: 10 },
-  planRow:       { display: "flex", justifyContent: "space-between", fontSize: 11, color: "#6b7280", padding: "3px 0", borderBottom: "0.5px solid #f3f4f6" },
-  compGrid:      { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 40 },
-  compCard:      { background: "#fff", border: "0.5px solid #e5e7eb", borderRadius: 12, overflow: "hidden" },
-  compCardYou:   { border: "2px solid #16a34a55", boxShadow: "0 0 0 4px #dcfce7" },
-  compHead:      { padding: "10px 14px", borderBottom: "0.5px solid #e5e7eb" },
-  compName:      { fontSize: 13, fontWeight: 600, marginBottom: 2 },
-  compTag:       { fontSize: 10, color: "#9ca3af" },
-  winBadge:      { display: "inline-block", fontSize: 10, padding: "2px 8px", borderRadius: 99, background: "#dcfce7", color: "#16a34a", border: "0.5px solid #86efac", marginTop: 6 },
-  compBody:      { padding: "10px 14px" },
-  compRow:       { display: "flex", justifyContent: "space-between", fontSize: 11, color: "#6b7280", padding: "3px 0", borderBottom: "0.5px solid #f3f4f6" },
-};

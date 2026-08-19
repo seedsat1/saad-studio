@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getGenerationCost, getLegacyAudioAvatarUserCharge } from "@/lib/pricing";
+import { getGenerationCost, getLegacyAudioAvatarUserCharge, countAudioScriptCharacters, calculateTtsCredits, calculateMusicCredits, calculateSfxCredits } from "@/lib/pricing";
 import { getAudioActionCredits } from "@/lib/credit-pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setActualProviderUsage, setGenerationCompletedWithoutMedia, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
@@ -9,6 +9,7 @@ import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, get
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 import { isFinalProviderExecutionAllowed } from "@/lib/generation/runtime-safety";
+import { transcodeToMp3, ensureCanonicalMp3Url, validateAndNormalizeCloneAudio } from "@/lib/server/audio-transcode";
 
 export const runtime = "nodejs";
 
@@ -150,7 +151,51 @@ function parseBase64DataUrl(raw: string) {
 
 async function uploadDataUrlToWaveSpeed(dataUrl: string, apiKey: string): Promise<string> {
   const parsed = parseBase64DataUrl(dataUrl);
-  if (!parsed) return dataUrl;
+  if (!parsed) {
+    // If it's a relative /api/media/... path or local storage key
+    const match = dataUrl.match(/(?:^|\/)(?:api\/media\/)?(images|videos|audio|thumbnails|media)\/([^?#]+)/i);
+    if (match) {
+      try {
+        const { readObject } = await import("@/lib/storage");
+        const storageKey = `${match[1]}/${match[2]}`;
+        const readResult = await readObject({ objectKey: storageKey });
+        if (readResult?.response?.body) {
+          const body = readResult.response.body;
+          let buf: Buffer;
+          if (Buffer.isBuffer(body)) {
+            buf = body;
+          } else if (body instanceof Uint8Array) {
+            buf = Buffer.from(body);
+          } else if (typeof body?.arrayBuffer === "function") {
+            buf = Buffer.from(await body.arrayBuffer());
+          } else if (typeof body?.transformToByteArray === "function") {
+            buf = Buffer.from(await body.transformToByteArray());
+          } else if (body && typeof body[Symbol.asyncIterator] === "function") {
+            const chunks: Uint8Array[] = [];
+            for await (const chunk of body) {
+              chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+            }
+            buf = Buffer.concat(chunks);
+          } else {
+            return dataUrl;
+          }
+          const ext = storageKey.split(".").pop() || "bin";
+          const ct = readResult.response.contentType || (ext === "mp3" ? "audio/mpeg" : ext === "wav" ? "audio/wav" : "application/octet-stream");
+          const formData = new FormData();
+          formData.append("file", new Blob([new Uint8Array(buf)], { type: ct }), `audio-upload.${ext}`);
+          const uploadRes = await fetch(`${WAVESPEED_BASE_URL}/media/upload/binary`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${apiKey}` },
+            body: formData,
+          });
+          const uploadJson = await uploadRes.json().catch(() => null);
+          const url = uploadJson?.data?.download_url || uploadJson?.data?.url || uploadJson?.data?.downloadUrl;
+          if (url) return String(url);
+        }
+      } catch {}
+    }
+    return dataUrl;
+  }
 
   const buffer = Buffer.from(parsed.fileData, "base64");
   const formData = new FormData();
@@ -231,12 +276,14 @@ function isKieTtsModelSupported(model?: string): boolean {
 
 function resolveLipSyncModel(model?: string): string {
   const normalized = String(model || "").trim().toLowerCase();
-  if (normalized === KIE_FROM_AUDIO_MODEL || normalized === "infinitalk/from-audio") return KIE_FROM_AUDIO_MODEL;
-  if (normalized === KIE_AI_AVATAR_PRO_MODEL || normalized === "kling-ai-avatar-pro" || normalized === "kling/ai-avatar-pro") return KIE_AI_AVATAR_PRO_MODEL;
+  if (normalized === KIE_FROM_AUDIO_MODEL) return KIE_FROM_AUDIO_MODEL;
+  if (normalized === "infinitalk/from-audio") return KIE_FROM_AUDIO_MODEL;
+  if (normalized === KIE_AI_AVATAR_PRO_MODEL) return KIE_AI_AVATAR_PRO_MODEL;
+  if (normalized === "kling-ai-avatar-pro" || normalized === "kling/ai-avatar-pro") return KIE_AI_AVATAR_PRO_MODEL;
   if (normalized === KIE_SEEDANCE_2_MODEL) return KIE_SEEDANCE_2_MODEL;
   if (normalized === KIE_SEEDANCE_2_FAST_MODEL) return KIE_SEEDANCE_2_FAST_MODEL;
   // Route WaveSpeed-only lip-sync selection to a KIE equivalent.
-  if (normalized === WS_LIPSYNC_MODEL) return KIE_AI_AVATAR_PRO_MODEL;
+  if (normalized === WS_LIPSYNC_MODEL) return KIE_SEEDANCE_2_FAST_MODEL;
   return KIE_AI_AVATAR_PRO_MODEL;
 }
 
@@ -303,6 +350,62 @@ async function buildAudioChargeQuote(actionType: AudioRequestBody["actionType"],
   const durationSec = resolveQuoteDurationSec(actionType, body);
   const quality = resolveQuoteQuality(actionType, body);
   const units = resolveQuoteUnits(actionType, durationSec);
+
+  // Canonical Character-Based TTS Pricing (applies to Built-in TTS and Cloned Voice TTS)
+  if (actionType === "tts" || actionType === "voice-cloning") {
+    const text = body.text || body.prompt || "";
+    const charCount = countAudioScriptCharacters(text);
+    const finalCredits = calculateTtsCredits(charCount);
+    return {
+      chargeModelRef,
+      durationSec,
+      quote: {
+        actionType,
+        modelRef: chargeModelRef,
+        sourceCredits: finalCredits,
+        marginPercent: 0,
+        finalCredits,
+        pricingSource: "tts-character-pricing",
+        characterCount: charCount,
+      },
+    };
+  }
+
+  // Canonical Duration-Based Music Pricing
+  if (actionType === "music") {
+    const isSfxModel = String(body.model || "").trim().toLowerCase() === KIE_SOUND_EFFECT_V2_MODEL;
+    const finalCredits = isSfxModel ? calculateSfxCredits(durationSec) : calculateMusicCredits(durationSec);
+    return {
+      chargeModelRef,
+      durationSec,
+      quote: {
+        actionType,
+        modelRef: chargeModelRef,
+        sourceCredits: finalCredits,
+        marginPercent: 0,
+        finalCredits,
+        pricingSource: isSfxModel ? "sfx-duration-pricing" : "music-duration-pricing",
+      },
+    };
+  }
+
+  // Canonical Duration-Based Sound Effects Pricing (Video2Audio / SFX)
+  if (actionType === "video2audio") {
+    const finalCredits = calculateSfxCredits(durationSec);
+    return {
+      chargeModelRef,
+      durationSec,
+      quote: {
+        actionType,
+        modelRef: chargeModelRef,
+        sourceCredits: finalCredits,
+        marginPercent: 0,
+        finalCredits,
+        pricingSource: "sfx-duration-pricing",
+      },
+    };
+  }
+
   const dynamicQuote = await getLegacyAudioAvatarUserCharge(chargeModelRef, durationSec, units, quality);
 
   if (dynamicQuote && Number.isFinite(dynamicQuote.userCredits) && dynamicQuote.userCredits > 0) {
@@ -338,24 +441,6 @@ async function buildAudioChargeQuote(actionType: AudioRequestBody["actionType"],
         pricingSource: fallbackQuote?.source ?? "user-charge-fallback",
       },
     };
-  }
-
-  if (actionType === "tts") {
-    const fallback = getAudioActionCredits(actionType);
-    if (Number.isFinite(fallback) && fallback > 0) {
-      return {
-        chargeModelRef,
-        durationSec,
-        quote: {
-          actionType,
-          modelRef: chargeModelRef,
-          sourceCredits: fallback,
-          marginPercent: 0,
-          finalCredits: Math.ceil(fallback),
-          pricingSource: "user-charge-fallback",
-        },
-      };
-    }
   }
 
   return { chargeModelRef, durationSec, quote: null };
@@ -458,17 +543,22 @@ async function runGeminiTts(params: {
   const audio = extractGeminiAudio(json);
   if (!audio) throw new Error("Google Gemini TTS returned no audio.");
   const raw = Buffer.from(audio.data, "base64");
-  const buffer = audio.mimeType.toLowerCase().includes("wav") ? raw : pcmToWav(raw);
+  const initialBuffer = audio.mimeType.toLowerCase().includes("wav") ? raw : pcmToWav(raw);
+  const mp3Buffer = await transcodeToMp3(initialBuffer, {
+    bitrate: "192k",
+    sampleRate: 44100,
+    channels: 2,
+  });
   const url = await uploadBufferToStorage({
-    buffer,
-    contentType: "audio/wav",
+    buffer: mp3Buffer,
+    contentType: "audio/mpeg",
     userId: params.userId,
     assetType: "audio",
     generationId: `${params.generationId}-gemini-tts`,
-    fileName: "gemini-tts.wav",
+    fileName: "gemini-tts.mp3",
   });
   if (!url) throw new Error("Audio media storage is not configured.");
-  return url;
+  return url.startsWith("/") || url.startsWith("http") ? url : `/api/media/${url}`;
 }
 
 function buildUniqueCustomVoiceId(raw?: string): string {
@@ -1304,10 +1394,16 @@ export async function POST(req: NextRequest) {
                   wavespeedKey!,
                 );
 
+          const canonicalAudioUrl = await ensureCanonicalMp3Url({
+            rawUrlOrBuffer: audioUrl,
+            userId,
+            generationId: generationId || `tts_${Date.now()}`,
+            fileNamePrefix: "tts",
+          });
           if (generationId) {
-            await setGenerationMediaUrl(generationId, audioUrl);
+            await setGenerationMediaUrl(generationId, canonicalAudioUrl);
           }
-          return await finalize({ audioUrl, provider, chargedCredits: creditsToCharge }, 200);
+          return await finalize({ audioUrl: canonicalAudioUrl, provider, chargedCredits: creditsToCharge }, 200);
         } catch (error) {
           lastError = error instanceof Error ? error.message : "Unknown provider error.";
         }
@@ -1657,12 +1753,19 @@ export async function POST(req: NextRequest) {
         wavespeedKey!,
       );
 
+      const canonicalAudioUrl = await ensureCanonicalMp3Url({
+        rawUrlOrBuffer: audioUrl,
+        userId,
+        generationId: generationId || `voice_clone_${Date.now()}`,
+        fileNamePrefix: "voice_clone",
+      });
+
       if (generationId) {
-        await setGenerationMediaUrl(generationId, audioUrl);
+        await setGenerationMediaUrl(generationId, canonicalAudioUrl);
       }
       return await finalize(
         {
-          audioUrl,
+          audioUrl: canonicalAudioUrl,
           provider: "wavespeed",
           voiceId: customVoiceId,
           voiceName: clonedVoiceName || customVoiceId,

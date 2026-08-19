@@ -1,21 +1,42 @@
 "use client";
 
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
   BookOpen,
-  CheckCircle2,
-  ChevronRight,
-  Database,
-  ExternalLink,
-  FileText,
-  Globe2,
   RefreshCw,
+  Search,
   ShieldCheck,
-  Sparkles,
+  AlertTriangle,
+  CheckCircle2,
   XCircle,
+  X,
+  ExternalLink,
+  Layers,
+  ArrowRight,
+  Route,
+  Activity,
+  FileVideo,
+  FileCode,
+  Sliders,
+  History,
+  Lock,
+  Database,
+  Info,
+  Server,
+  Cloud,
+  FileText,
+  Sparkles,
+  Plus,
+  Eye,
+  Check,
+  ChevronRight,
+  Globe2,
+  Fingerprint,
+  Cpu,
 } from "lucide-react";
+import { AdminShell } from "@/components/admin/AdminShell";
+import type { KnowledgeAuditEvent } from "@/lib/admin/knowledge-hub";
 
 const KNOWLEDGE_PROVIDERS = [
   "google",
@@ -31,72 +52,87 @@ const KNOWLEDGE_PROVIDERS = [
 
 type KnowledgeProvider = (typeof KNOWLEDGE_PROVIDERS)[number];
 
-type KnowledgeResponse = {
+type KnowledgeSource = {
+  id: string;
+  provider: KnowledgeProvider;
+  name: string;
+  sourceType: string;
+  url: string | null;
+  status: string;
+  lastImportedAt: string | null;
+  lastCheckedAt: string | null;
+  contentHash: string | null;
+  version: string | null;
+  error: string | null;
+};
+
+type KnowledgeDocument = {
+  id: string;
+  sourceId: string;
+  sourceUrl: string | null;
+  title: string;
+  importedAt: string;
+  contentHash: string;
+  status: string;
+  rawContent?: string;
+  normalizedText: string;
+};
+
+type KnowledgeDraftField = {
+  key: string;
+  value: string;
+  confidence: "low" | "medium" | "high";
+  provenance: {
+    sourceUrl: string | null;
+    documentId: string;
+    section: string | null;
+  };
+};
+
+type KnowledgeDraft = {
+  id: string;
+  sourceId: string;
+  documentId: string;
+  provider: KnowledgeProvider;
+  status: "draft" | "approved" | "rejected";
+  extractedAt: string;
+  reviewedAt: string | null;
+  fields: KnowledgeDraftField[];
+};
+
+type KnowledgeModelChangeField = {
+  field: string;
+  oldValue: unknown;
+  newValue: unknown;
+  provenance: {
+    sourceUrl: string | null;
+    documentId: string;
+    section: string | null;
+    approvedAt: string | null;
+  };
+};
+
+type KnowledgeModelChange = {
+  id: string;
+  draftId: string;
+  documentId: string;
+  modelId: string;
+  status: "proposed" | "published" | "rejected";
+  createdAt: string;
+  reviewedAt: string | null;
+  publishedAt: string | null;
+  fields: KnowledgeModelChangeField[];
+};
+
+type KnowledgePayload = {
   ok: boolean;
   databaseAvailable: boolean;
-  sources: Array<{
-    id: string;
-    provider: KnowledgeProvider;
-    name: string;
-    sourceType: string;
-    url: string | null;
-    status: string;
-    lastImportedAt: string | null;
-    lastCheckedAt: string | null;
-    contentHash: string | null;
-    version: string | null;
-    error: string | null;
-  }>;
-  documents: Array<{
-    id: string;
-    sourceId: string;
-    sourceUrl: string | null;
-    title: string;
-    importedAt: string;
-    contentHash: string;
-    status: string;
-    normalizedText: string;
-  }>;
-  drafts: Array<{
-    id: string;
-    sourceId: string;
-    documentId: string;
-    provider: KnowledgeProvider;
-    status: "draft" | "approved" | "rejected";
-    extractedAt: string;
-    reviewedAt: string | null;
-    fields: Array<{
-      key: string;
-      value: string;
-      confidence: "low" | "medium" | "high";
-      provenance: {
-        sourceUrl: string | null;
-        documentId: string;
-        section: string | null;
-      };
-    }>;
-  }>;
-  modelChanges: Array<{
-    id: string;
-    draftId: string;
-    documentId: string;
-    modelId: string;
-    status: "proposed" | "published" | "rejected";
-    createdAt: string;
-    reviewedAt: string | null;
-    publishedAt: string | null;
-    fields: Array<{
-      field: string;
-      oldValue: unknown;
-      newValue: unknown;
-      provenance: {
-        sourceUrl: string | null;
-        documentId: string;
-        section: string | null;
-        approvedAt: string | null;
-      };
-    }>;
-  }>;
+  versionToken?: string;
+  sources: KnowledgeSource[];
+  documents: KnowledgeDocument[];
+  drafts: KnowledgeDraft[];
+  modelChanges: KnowledgeModelChange[];
+  auditLog?: KnowledgeAuditEvent[];
   summary: {
     sources: number;
     documents: number;
@@ -104,645 +140,1332 @@ type KnowledgeResponse = {
     approvedKnowledge: number;
     rejectedDrafts: number;
     importErrors: number;
-    proposedModelChanges?: number;
-    publishedModelChanges?: number;
+    providers: Record<KnowledgeProvider, number>;
+    proposedModelChanges: number;
+    publishedModelChanges: number;
   };
   error?: string;
 };
 
-type Tab = "sources" | "documents" | "drafts" | "model-changes";
-
-const emptyKnowledge: KnowledgeResponse = {
-  ok: true,
-  databaseAvailable: true,
-  sources: [],
-  documents: [],
-  drafts: [],
-  modelChanges: [],
-  summary: {
-    sources: 0,
-    documents: 0,
-    drafts: 0,
-    approvedKnowledge: 0,
-    rejectedDrafts: 0,
-    importErrors: 0,
-  },
-};
-
-const providerStyles: Record<string, string> = {
-  google: "border-sky-500/25 bg-sky-500/10 text-sky-300",
-  openai: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300",
-  wavespeed: "border-violet-500/25 bg-violet-500/10 text-violet-300",
-  byteplus: "border-orange-500/25 bg-orange-500/10 text-orange-300",
-  kie: "border-slate-500/25 bg-slate-500/10 text-slate-300",
-  elevenlabs: "border-pink-500/25 bg-pink-500/10 text-pink-300",
-  reap: "border-cyan-500/25 bg-cyan-500/10 text-cyan-300",
-  runninghub: "border-fuchsia-500/25 bg-fuchsia-500/10 text-fuchsia-300",
-  custom: "border-zinc-500/25 bg-zinc-500/10 text-zinc-300",
+const providerColors: Record<string, string> = {
+  google: "bg-sky-950/80 border-sky-800 text-sky-300",
+  openai: "bg-emerald-950/80 border-emerald-800 text-emerald-300",
+  wavespeed: "bg-violet-950/80 border-violet-800 text-violet-300",
+  byteplus: "bg-amber-950/80 border-amber-800 text-amber-300",
+  kie: "bg-indigo-950/80 border-indigo-800 text-indigo-300",
+  elevenlabs: "bg-pink-950/80 border-pink-800 text-pink-300",
+  reap: "bg-cyan-950/80 border-cyan-800 text-cyan-300",
+  runninghub: "bg-fuchsia-950/80 border-fuchsia-800 text-fuchsia-300",
+  custom: "bg-zinc-900 border-zinc-700 text-zinc-300",
 };
 
 export default function AdminKnowledgePage() {
-  const [data, setData] = useState<KnowledgeResponse>(emptyKnowledge);
+  const [data, setData] = useState<KnowledgePayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [importing, setImporting] = useState(false);
-  const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [provider, setProvider] = useState<KnowledgeProvider>("google");
-  const [url, setUrl] = useState("");
-  const [name, setName] = useState("");
-  const [tab, setTab] = useState<Tab>("sources");
-  const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
-  const [proposalModelId, setProposalModelId] = useState("");
+  const [conflictError, setConflictError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"sources" | "specifications" | "proposals" | "audit" | "integrity">("sources");
 
-  async function loadKnowledge() {
-    setLoading(true);
-    setError(null);
+  // Filter & Search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [providerFilter, setProviderFilter] = useState<string>("all");
+
+  // Safe Import Drawer
+  const [importDrawerOpen, setImportDrawerOpen] = useState(false);
+  const [importProvider, setImportProvider] = useState<KnowledgeProvider>("wavespeed");
+  const [importUrl, setImportUrl] = useState("");
+  const [importName, setImportName] = useState("");
+  const [importing, setImporting] = useState(false);
+
+  // Inspector Drawer
+  const [inspectingItem, setInspectingItem] = useState<{
+    type: "source" | "draft" | "proposal";
+    source?: KnowledgeSource;
+    document?: KnowledgeDocument;
+    draft?: KnowledgeDraft;
+    proposal?: KnowledgeModelChange;
+  } | null>(null);
+
+  // Proposal modal
+  const [proposingDraftId, setProposingDraftId] = useState<string | null>(null);
+  const [proposalModelId, setProposalModelId] = useState("");
+  const [proposing, setProposing] = useState(false);
+
+  // Publishing confirmation modal
+  const [publishingChange, setPublishingChange] = useState<KnowledgeModelChange | null>(null);
+  const [publishing, setPublishing] = useState(false);
+
+  // Action busy state
+  const [actionBusyId, setActionBusyId] = useState<string | null>(null);
+
+  const loadKnowledge = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/knowledge", { cache: "no-store" });
-      const body = (await response.json().catch(() => null)) as KnowledgeResponse | null;
-      if (!response.ok || !body) throw new Error(body?.error || `Knowledge HTTP ${response.status}`);
-      setData(body);
-      setSelectedDraftId((current) => current ?? body.drafts[0]?.id ?? null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load Knowledge Hub.");
+      setLoading(true);
+      setError(null);
+      setConflictError(null);
+      const res = await fetch("/api/admin/knowledge", { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to load Knowledge Hub.`);
+      const result: KnowledgePayload = await res.json();
+      if (!result.ok && result.error) throw new Error(result.error);
+      setData(result);
+    } catch (err: any) {
+      console.error("[AdminKnowledge] load error:", err);
+      setError(err.message || "Failed to load Knowledge Intelligence Control Plane.");
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function importSource() {
-    setImporting(true);
-    setError(null);
+  useEffect(() => {
+    loadKnowledge();
+  }, [loadKnowledge]);
+
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importUrl.trim()) return;
+
     try {
-      const response = await fetch("/api/admin/knowledge", {
+      setImporting(true);
+      setError(null);
+      setConflictError(null);
+
+      const res = await fetch("/api/admin/knowledge", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ provider, url, name }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: importProvider,
+          url: importUrl.trim(),
+          name: importName.trim() || undefined,
+          expectedVersionToken: data?.versionToken,
+        }),
       });
-      const body = (await response.json().catch(() => null)) as KnowledgeResponse | null;
-      if (!response.ok || !body?.ok) throw new Error(body?.error || `Import HTTP ${response.status}`);
+
+      const body = await res.json();
+
+      if (res.status === 409) {
+        setConflictError("Knowledge state changed since this workspace was loaded. Please refresh before saving.");
+        return;
+      }
+
+      if (!res.ok || !body.ok) {
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+
       setData(body);
-      setUrl("");
-      setName("");
-      setTab("drafts");
-      setSelectedDraftId(body.drafts[0]?.id ?? null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Import failed.");
+      setImportDrawerOpen(false);
+      setImportUrl("");
+      setImportName("");
+      setActiveTab("sources");
+    } catch (err: any) {
+      console.error("[AdminKnowledge] import error:", err);
+      setError(err.message || "Import failed.");
     } finally {
       setImporting(false);
     }
-  }
+  };
 
-  async function reviewDraft(draftId: string, status: "approved" | "rejected") {
-    setReviewingId(draftId);
-    setError(null);
+  const handleReviewDraft = async (draftId: string, status: "approved" | "rejected") => {
     try {
-      const response = await fetch("/api/admin/knowledge", {
+      setActionBusyId(draftId);
+      setError(null);
+      setConflictError(null);
+
+      const res = await fetch("/api/admin/knowledge", {
         method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ draftId, status }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          draftId,
+          status,
+          expectedVersionToken: data?.versionToken,
+        }),
       });
-      const body = (await response.json().catch(() => null)) as KnowledgeResponse | null;
-      if (!response.ok || !body?.ok) throw new Error(body?.error || `Review HTTP ${response.status}`);
+
+      const body = await res.json();
+
+      if (res.status === 409) {
+        setConflictError("Knowledge state changed since this workspace was loaded. Please refresh before saving.");
+        return;
+      }
+
+      if (!res.ok || !body.ok) {
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+
       setData(body);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Review update failed.");
+    } catch (err: any) {
+      console.error("[AdminKnowledge] draft review error:", err);
+      setError(err.message || "Draft review update failed.");
     } finally {
-      setReviewingId(null);
+      setActionBusyId(null);
     }
-  }
+  };
 
-  async function proposeModelChange(draftId: string) {
-    setReviewingId(draftId);
-    setError(null);
+  const handleProposeModelChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!proposingDraftId) return;
+
     try {
-      const response = await fetch("/api/admin/knowledge", {
+      setProposing(true);
+      setError(null);
+      setConflictError(null);
+
+      const res = await fetch("/api/admin/knowledge", {
         method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "propose_model_change", draftId, modelId: proposalModelId || undefined }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "propose_model_change",
+          draftId: proposingDraftId,
+          modelId: proposalModelId.trim() || undefined,
+          expectedVersionToken: data?.versionToken,
+        }),
       });
-      const body = (await response.json().catch(() => null)) as KnowledgeResponse | null;
-      if (!response.ok || !body?.ok) throw new Error(body?.error || `Proposal HTTP ${response.status}`);
+
+      const body = await res.json();
+
+      if (res.status === 409) {
+        setConflictError("Knowledge state changed since this workspace was loaded. Please refresh before saving.");
+        return;
+      }
+
+      if (!res.ok || !body.ok) {
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+
       setData(body);
+      setProposingDraftId(null);
       setProposalModelId("");
-      setTab("model-changes");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Model change proposal failed.");
+      setActiveTab("proposals");
+    } catch (err: any) {
+      console.error("[AdminKnowledge] proposal error:", err);
+      setError(err.message || "Model change proposal failed.");
     } finally {
-      setReviewingId(null);
+      setProposing(false);
     }
-  }
+  };
 
-  async function reviewModelChange(changeId: string, action: "publish_model_change" | "reject_model_change") {
-    setReviewingId(changeId);
-    setError(null);
+  const handleReviewModelChange = async (changeId: string, action: "publish_model_change" | "reject_model_change") => {
     try {
-      const response = await fetch("/api/admin/knowledge", {
+      if (action === "publish_model_change") setPublishing(true);
+      setActionBusyId(changeId);
+      setError(null);
+      setConflictError(null);
+
+      const res = await fetch("/api/admin/knowledge", {
         method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action, changeId }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          changeId,
+          expectedVersionToken: data?.versionToken,
+        }),
       });
-      const body = (await response.json().catch(() => null)) as KnowledgeResponse | null;
-      if (!response.ok || !body?.ok) throw new Error(body?.error || `Model change HTTP ${response.status}`);
+
+      const body = await res.json();
+
+      if (res.status === 409) {
+        setConflictError("Knowledge state changed since this workspace was loaded. Please refresh before saving.");
+        return;
+      }
+
+      if (!res.ok || !body.ok) {
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+
       setData(body);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Model change review failed.");
+      setPublishingChange(null);
+    } catch (err: any) {
+      console.error("[AdminKnowledge] review model change error:", err);
+      setError(err.message || "Model change review failed.");
     } finally {
-      setReviewingId(null);
+      setPublishing(false);
+      setActionBusyId(null);
     }
-  }
+  };
 
-  useEffect(() => {
-    void loadKnowledge();
-  }, []);
+  const sources = data?.sources || [];
+  const documents = data?.documents || [];
+  const drafts = data?.drafts || [];
+  const modelChanges = data?.modelChanges || [];
+  const auditEvents = data?.auditLog || [];
 
-  const selectedDraft = useMemo(
-    () => data.drafts.find((draft) => draft.id === selectedDraftId) ?? data.drafts[0] ?? null,
-    [data.drafts, selectedDraftId],
-  );
-  const selectedDocument = selectedDraft ? data.documents.find((document) => document.id === selectedDraft.documentId) : null;
+  const filteredSources = useMemo(() => {
+    return sources.filter((s) => {
+      const matchQuery =
+        !searchQuery.trim() ||
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.url?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.provider.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchProvider = providerFilter === "all" || s.provider === providerFilter;
+      return matchQuery && matchProvider;
+    });
+  }, [sources, searchQuery, providerFilter]);
 
-  const cards = [
-    { label: "Sources", value: data.summary.sources, icon: Globe2 },
-    { label: "Documents", value: data.summary.documents, icon: FileText },
-    { label: "Drafts", value: data.summary.drafts, icon: Sparkles },
-    { label: "Approved", value: data.summary.approvedKnowledge, icon: CheckCircle2 },
-    { label: "Model Changes", value: data.summary.proposedModelChanges ?? 0, icon: ChevronRight },
-    { label: "Rejected", value: data.summary.rejectedDrafts, icon: XCircle },
-    { label: "Import Errors", value: data.summary.importErrors, icon: AlertTriangle },
-  ];
+  const providerCounts: Record<string, number> = data?.summary?.providers || {};
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-6 px-5 py-7">
-        <header className="flex flex-col gap-4 border-b border-slate-800 pb-5 lg:flex-row lg:items-center lg:justify-between">
+    <AdminShell>
+      <div className="flex-1 w-full min-w-0 p-6 md:p-8 space-y-8 bg-zinc-950 text-white">
+        {/* LEVEL 1: Knowledge Command Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-cyan-300">
-              <BookOpen className="h-4 w-4" />
-              Knowledge Hub
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="p-2 rounded-lg bg-indigo-950/80 border border-indigo-800 text-indigo-400">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-100">
+                Knowledge Intelligence Control Plane
+              </h1>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-950/80 text-indigo-300 border border-indigo-800">
+                Admin Intelligence
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-800">
+                SSRF Protected
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-950/80 text-cyan-300 border border-cyan-800">
+                Optimistic Concurrency Active
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-950/80 text-violet-300 border border-violet-800">
+                Controlled Registry Publishing
+              </span>
             </div>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">Documentation Sources</h1>
-            <p className="mt-1 max-w-3xl text-sm text-slate-400">
-              Import documentation into reviewed Knowledge drafts, compare approved knowledge against current model definitions, then publish model configuration only after admin review.
+            <p className="text-sm text-zinc-400 mt-1">
+              Provider documentation ingestion, specification extraction, review, model-change intelligence, and controlled registry publishing.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href="/admin" className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800">
-              Admin Control Center
-            </Link>
-            <button onClick={() => void loadKnowledge()} className="inline-flex items-center gap-2 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-500/20">
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
-          </div>
-        </header>
 
-        <section className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-300" />
-            <div>
-              <p className="font-bold">Knowledge is not Runtime.</p>
-              <p className="mt-1 text-amber-100/80">
-                Approve هنا يعني approved knowledge فقط. لا يوجد auto-publish إلى Model Registry أو Routing أو Pricing.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-          {cards.map((card) => (
-            <div key={card.label} className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{card.label}</p>
-                <card.icon className="h-4 w-4 text-slate-500" />
-              </div>
-              <p className="mt-2 text-2xl font-bold text-white">{card.value}</p>
-            </div>
-          ))}
-        </section>
-
-        <section className="rounded-md border border-slate-800 bg-slate-900/45 p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <Database className="h-4 w-4 text-cyan-300" />
-            <h2 className="text-sm font-bold text-white">Add Source</h2>
-          </div>
-          <div className="grid gap-3 lg:grid-cols-[180px_1fr_1fr_auto]">
-            <select
-              value={provider}
-              onChange={(event) => setProvider(event.target.value as KnowledgeProvider)}
-              className="h-10 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200 outline-none focus:border-cyan-500"
-            >
-              {KNOWLEDGE_PROVIDERS.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-            <input
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-              placeholder="https://docs.provider.com/..."
-              className="h-10 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200 outline-none focus:border-cyan-500"
-            />
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Optional source name"
-              className="h-10 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200 outline-none focus:border-cyan-500"
-            />
+          <div className="flex flex-wrap items-center gap-3">
             <button
-              type="button"
-              onClick={importSource}
-              disabled={importing || !url.trim()}
-              className="h-10 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-4 text-xs font-bold text-cyan-200 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => setImportDrawerOpen(true)}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors disabled:opacity-50"
             >
-              {importing ? "Importing..." : "Import"}
+              <Plus className="w-4 h-4" />
+              <span>Import Documentation</span>
             </button>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">
-            Phase 2 still imports one safe HTTP/HTTPS URL. Approval alone does not publish production model configuration.
-          </p>
-        </section>
 
-        {error ? (
-          <div className="rounded-md border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>
-        ) : null}
-
-        <section className="flex flex-wrap gap-2">
-          {(["sources", "documents", "drafts", "model-changes"] as Tab[]).map((item) => (
             <button
-              key={item}
-              onClick={() => setTab(item)}
-              className={`h-9 rounded-md border px-3 text-xs font-bold capitalize ${
-                tab === item
-                  ? "border-cyan-500/40 bg-cyan-500/15 text-cyan-200"
-                  : "border-slate-700 bg-slate-950 text-slate-400 hover:bg-slate-900"
-              }`}
+              onClick={loadKnowledge}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-sm font-medium text-zinc-200 transition-colors border border-zinc-700 disabled:opacity-50"
             >
-              {item}
-            </button>
-          ))}
-        </section>
-
-        {tab === "sources" ? <SourcesTable sources={data.sources} loading={loading} /> : null}
-        {tab === "documents" ? <DocumentsTable documents={data.documents} loading={loading} /> : null}
-        {tab === "drafts" ? (
-          <section className="grid gap-5 lg:grid-cols-[380px_1fr]">
-            <DraftList drafts={data.drafts} selectedDraftId={selectedDraft?.id ?? null} onSelect={setSelectedDraftId} loading={loading} />
-            <DraftDetail
-              draft={selectedDraft}
-              document={selectedDocument}
-              reviewingId={reviewingId}
-              proposalModelId={proposalModelId}
-              onProposalModelIdChange={setProposalModelId}
-              onReview={(status) => selectedDraft && void reviewDraft(selectedDraft.id, status)}
-              onPropose={() => selectedDraft && void proposeModelChange(selectedDraft.id)}
-            />
-          </section>
-        ) : null}
-        {tab === "model-changes" ? (
-          <ModelChangesTable
-            changes={data.modelChanges}
-            loading={loading}
-            reviewingId={reviewingId}
-            onPublish={(changeId) => void reviewModelChange(changeId, "publish_model_change")}
-            onReject={(changeId) => void reviewModelChange(changeId, "reject_model_change")}
-          />
-        ) : null}
-      </div>
-    </main>
-  );
-}
-
-function SourcesTable({ sources, loading }: { sources: KnowledgeResponse["sources"]; loading: boolean }) {
-  return (
-    <section className="overflow-hidden rounded-md border border-slate-800 bg-slate-900/35">
-      <table className="w-full min-w-[1000px] text-left text-sm">
-        <thead className="border-b border-slate-800 bg-slate-950/70 text-[11px] uppercase tracking-wider text-slate-500">
-          <tr>
-            <th className="px-4 py-3">Provider</th>
-            <th className="px-4 py-3">Name</th>
-            <th className="px-4 py-3">Type</th>
-            <th className="px-4 py-3">URL</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Last Imported</th>
-            <th className="px-4 py-3">Version</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-800/70">
-          {loading ? (
-            <EmptyRow colSpan={7} label="Loading sources..." />
-          ) : sources.length ? (
-            sources.map((source) => (
-              <tr key={source.id} className="hover:bg-slate-800/25">
-                <td className="px-4 py-3"><ProviderBadge provider={source.provider} /></td>
-                <td className="px-4 py-3 font-semibold text-slate-200">{source.name}</td>
-                <td className="px-4 py-3 text-slate-400">{source.sourceType}</td>
-                <td className="px-4 py-3">
-                  {source.url ? <ExternalUrl href={source.url} /> : <span className="text-slate-600">None</span>}
-                </td>
-                <td className="px-4 py-3 text-slate-300">{source.status}</td>
-                <td className="px-4 py-3 text-slate-500">{formatDate(source.lastImportedAt)}</td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-500">{source.version ?? "-"}</td>
-              </tr>
-            ))
-          ) : (
-            <EmptyRow colSpan={7} label="No knowledge sources yet." />
-          )}
-        </tbody>
-      </table>
-    </section>
-  );
-}
-
-function DocumentsTable({ documents, loading }: { documents: KnowledgeResponse["documents"]; loading: boolean }) {
-  return (
-    <section className="overflow-hidden rounded-md border border-slate-800 bg-slate-900/35">
-      <table className="w-full min-w-[900px] text-left text-sm">
-        <thead className="border-b border-slate-800 bg-slate-950/70 text-[11px] uppercase tracking-wider text-slate-500">
-          <tr>
-            <th className="px-4 py-3">Title</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Imported</th>
-            <th className="px-4 py-3">Hash</th>
-            <th className="px-4 py-3">Source</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-800/70">
-          {loading ? (
-            <EmptyRow colSpan={5} label="Loading documents..." />
-          ) : documents.length ? (
-            documents.map((document) => (
-              <tr key={document.id} className="hover:bg-slate-800/25">
-                <td className="px-4 py-3">
-                  <p className="font-semibold text-slate-200">{document.title}</p>
-                  <p className="mt-1 line-clamp-1 text-xs text-slate-500">{document.normalizedText}</p>
-                </td>
-                <td className="px-4 py-3 text-slate-300">{document.status}</td>
-                <td className="px-4 py-3 text-slate-500">{formatDate(document.importedAt)}</td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-500">{document.contentHash.slice(0, 12)}</td>
-                <td className="px-4 py-3">{document.sourceUrl ? <ExternalUrl href={document.sourceUrl} /> : "-"}</td>
-              </tr>
-            ))
-          ) : (
-            <EmptyRow colSpan={5} label="No imported documents yet." />
-          )}
-        </tbody>
-      </table>
-    </section>
-  );
-}
-
-function DraftList({
-  drafts,
-  selectedDraftId,
-  onSelect,
-  loading,
-}: {
-  drafts: KnowledgeResponse["drafts"];
-  selectedDraftId: string | null;
-  onSelect: (id: string) => void;
-  loading: boolean;
-}) {
-  return (
-    <section className="rounded-md border border-slate-800 bg-slate-900/35 p-3">
-      <h2 className="mb-3 text-sm font-bold text-white">Extracted Drafts</h2>
-      <div className="space-y-2">
-        {loading ? (
-          <p className="px-2 py-8 text-center text-sm text-slate-500">Loading drafts...</p>
-        ) : drafts.length ? (
-          drafts.map((draft) => (
-            <button
-              key={draft.id}
-              onClick={() => onSelect(draft.id)}
-              className={`w-full rounded-md border px-3 py-3 text-left transition ${
-                selectedDraftId === draft.id
-                  ? "border-cyan-500/40 bg-cyan-500/10"
-                  : "border-slate-800 bg-slate-950/70 hover:bg-slate-900"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <ProviderBadge provider={draft.provider} />
-                <span className="text-xs text-slate-500">{draft.status}</span>
-              </div>
-              <p className="mt-2 text-sm font-semibold text-slate-200">{draft.fields.length} extracted fields</p>
-              <p className="mt-1 text-xs text-slate-500">{formatDate(draft.extractedAt)}</p>
-            </button>
-          ))
-        ) : (
-          <p className="px-2 py-8 text-center text-sm text-slate-500">No extraction drafts yet.</p>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function DraftDetail({
-  draft,
-  document,
-  reviewingId,
-  proposalModelId,
-  onProposalModelIdChange,
-  onReview,
-  onPropose,
-}: {
-  draft: KnowledgeResponse["drafts"][number] | null;
-  document: KnowledgeResponse["documents"][number] | null | undefined;
-  reviewingId: string | null;
-  proposalModelId: string;
-  onProposalModelIdChange: (value: string) => void;
-  onReview: (status: "approved" | "rejected") => void;
-  onPropose: () => void;
-}) {
-  if (!draft) {
-    return (
-      <section className="rounded-md border border-slate-800 bg-slate-900/35 p-8 text-center text-sm text-slate-500">
-        Select a draft to review.
-      </section>
-    );
-  }
-
-  return (
-    <section className="rounded-md border border-slate-800 bg-slate-900/35">
-      <div className="border-b border-slate-800 p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <ProviderBadge provider={draft.provider} />
-              <span className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-400">{draft.status}</span>
-            </div>
-            <h2 className="mt-3 text-lg font-bold text-white">{document?.title ?? "Knowledge Draft"}</h2>
-            <p className="mt-1 text-xs text-slate-500">Original source: {document?.sourceUrl ? <ExternalUrl href={document.sourceUrl} /> : "Unknown"}</p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              disabled={reviewingId === draft.id || draft.status === "approved"}
-              onClick={() => onReview("approved")}
-              className="inline-flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              Approve
-            </button>
-            <button
-              disabled={reviewingId === draft.id || draft.status === "rejected"}
-              onClick={() => onReview("rejected")}
-              className="inline-flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-200 hover:bg-red-500/20 disabled:opacity-50"
-            >
-              <XCircle className="h-4 w-4" />
-              Reject
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
             </button>
           </div>
         </div>
-        {draft.status === "approved" ? (
-          <div className="mt-4 grid gap-2 rounded-md border border-cyan-500/20 bg-cyan-500/5 p-3 md:grid-cols-[1fr_auto]">
-            <input
-              value={proposalModelId}
-              onChange={(event) => onProposalModelIdChange(event.target.value)}
-              placeholder="Optional modelId if it cannot be inferred from approved knowledge"
-              className="h-9 rounded-md border border-slate-700 bg-slate-950 px-3 text-xs text-slate-200 outline-none focus:border-cyan-500"
-            />
-            <button
-              disabled={reviewingId === draft.id}
-              onClick={onPropose}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-200 hover:bg-cyan-500/20 disabled:opacity-50"
-            >
-              <ChevronRight className="h-4 w-4" />
-              Propose Model Change
-            </button>
-          </div>
-        ) : null}
-      </div>
-      <div className="divide-y divide-slate-800">
-        {draft.fields.length ? (
-          draft.fields.map((field, index) => (
-            <div key={`${field.key}-${field.value}-${index}`} className="grid gap-3 p-4 lg:grid-cols-[180px_1fr_240px]">
+
+        {/* Conflict / Error Banners */}
+        {conflictError && (
+          <div className="p-4 rounded-lg bg-amber-950/80 border border-amber-800 text-amber-200 text-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-400" />
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{field.key}</p>
-                <p className="mt-1 text-xs text-slate-400">confidence: {field.confidence}</p>
-              </div>
-              <p className="text-sm leading-6 text-slate-200">{field.value}</p>
-              <div className="text-xs text-slate-500">
-                <p>document: {field.provenance.documentId.slice(0, 8)}</p>
-                <p>section: {field.provenance.section ?? "unknown"}</p>
-                {field.provenance.sourceUrl ? <ExternalUrl href={field.provenance.sourceUrl} /> : null}
+                <strong className="block font-bold">Optimistic Concurrency Conflict</strong>
+                <span>{conflictError}</span>
               </div>
             </div>
-          ))
-        ) : (
-          <p className="p-6 text-sm text-slate-500">No extracted fields. Document may need manual review.</p>
+            <button
+              onClick={loadKnowledge}
+              className="px-4 py-1.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-white text-xs font-semibold transition-colors"
+            >
+              Refresh Current Knowledge State
+            </button>
+          </div>
+        )}
+
+        {error && (
+          <div className="p-4 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-300 text-sm flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 text-rose-400" />
+              <span>Knowledge Operations Notice: {error}</span>
+            </div>
+            <button onClick={() => setError(null)} className="text-rose-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* LEVEL 2: Knowledge Snapshot Strip */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 p-4 rounded-xl bg-zinc-900/90 border border-zinc-800">
+          <div className="p-3">
+            <span className="text-xs text-zinc-400 font-medium block">Documentation Sources</span>
+            <div className="text-2xl font-bold text-white mt-1">
+              {loading ? "—" : data?.summary?.sources ?? "—"}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">Configured URLs / Docs</span>
+          </div>
+
+          <div className="p-3 border-l border-zinc-800/80">
+            <span className="text-xs text-zinc-400 font-medium block">Imported Documents</span>
+            <div className="text-2xl font-bold text-cyan-300 mt-1">
+              {loading ? "—" : data?.summary?.documents ?? "—"}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">Normalized SHA-256</span>
+          </div>
+
+          <div className="p-3 border-l border-zinc-800/80">
+            <span className="text-xs text-zinc-400 font-medium block">Pending Drafts</span>
+            <div className="text-2xl font-bold text-amber-300 mt-1">
+              {loading ? "—" : data?.summary?.drafts ?? "—"}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">Awaiting Admin Review</span>
+          </div>
+
+          <div className="p-3 border-l border-zinc-800/80">
+            <span className="text-xs text-zinc-400 font-medium block">Approved Drafts</span>
+            <div className="text-2xl font-bold text-emerald-400 mt-1">
+              {loading ? "—" : data?.summary?.approvedKnowledge ?? "—"}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">Ready for Model Proposals</span>
+          </div>
+
+          <div className="p-3 border-l border-zinc-800/80">
+            <span className="text-xs text-zinc-400 font-medium block">Model Proposals</span>
+            <div className="text-2xl font-bold text-indigo-300 mt-1">
+              {loading ? "—" : data?.summary?.proposedModelChanges ?? "—"}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">Pending Registry Publishing</span>
+          </div>
+
+          <div className="p-3 border-l border-zinc-800/80">
+            <span className="text-xs text-zinc-400 font-medium block">Published Changes</span>
+            <div className="text-2xl font-bold text-emerald-400 mt-1">
+              {loading ? "—" : data?.summary?.publishedModelChanges ?? "—"}
+            </div>
+            <span className="text-[11px] text-zinc-500 mt-0.5 block">Active in Model Registries</span>
+          </div>
+        </div>
+
+        {/* LEVEL 3: Knowledge Pipeline Infographic */}
+        <div className="p-5 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-200">
+                Knowledge Intelligence & Spec Extraction Pipeline
+              </h3>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-400">
+              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">NO VECTOR DB</span>
+              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">NO EMBEDDINGS</span>
+              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">NO RAG</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 text-xs">
+            <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-1">
+              <span className="text-[10px] text-zinc-500 font-bold block">1. INGESTION</span>
+              <strong className="text-zinc-200 block text-[11px]">Provider Docs</strong>
+              <p className="text-[10px] text-zinc-400">URL / Text Import</p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-1">
+              <span className="text-[10px] text-emerald-500 font-bold block">2. SECURITY</span>
+              <strong className="text-emerald-300 block text-[11px]">SSRF Guard</strong>
+              <p className="text-[10px] text-zinc-400">Private Host Block</p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-1">
+              <span className="text-[10px] text-cyan-500 font-bold block">3. NORMALIZATION</span>
+              <strong className="text-cyan-300 block text-[11px]">SHA-256 Hash</strong>
+              <p className="text-[10px] text-zinc-400">Script/Style Strip</p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-1">
+              <span className="text-[10px] text-indigo-500 font-bold block">4. EXTRACTION</span>
+              <strong className="text-indigo-300 block text-[11px]">Spec Drafts</strong>
+              <p className="text-[10px] text-zinc-400">Durations, Res, IDs</p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-1">
+              <span className="text-[10px] text-amber-500 font-bold block">5. GOVERNANCE</span>
+              <strong className="text-amber-300 block text-[11px]">Admin Review</strong>
+              <p className="text-[10px] text-zinc-400">Approve / Reject</p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-1">
+              <span className="text-[10px] text-violet-500 font-bold block">6. PROPOSAL</span>
+              <strong className="text-violet-300 block text-[11px]">Model Changes</strong>
+              <p className="text-[10px] text-zinc-400">Diff vs Production</p>
+            </div>
+            <div className="p-3 rounded-lg bg-zinc-950 border border-emerald-800/60 bg-emerald-950/20 space-y-1">
+              <span className="text-[10px] text-emerald-400 font-bold block">7. PUBLISHING</span>
+              <strong className="text-emerald-300 block text-[11px]">Model Registry</strong>
+              <p className="text-[10px] text-zinc-400">Dynamic Registry Live</p>
+            </div>
+          </div>
+        </div>
+
+        {/* LEVEL 4: Provider Knowledge Distribution */}
+        <div className="p-5 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-200">
+              Provider Knowledge Coverage
+            </h3>
+            <span className="text-[11px] text-zinc-400">
+              {sources.length} sources registered
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
+            {KNOWLEDGE_PROVIDERS.map((p) => {
+              const count = providerCounts[p] || 0;
+              const hasDocs = count > 0;
+              return (
+                <div
+                  key={p}
+                  className={`p-2.5 rounded-lg border text-center transition-colors ${
+                    hasDocs
+                      ? providerColors[p] || "bg-zinc-900 border-zinc-700 text-zinc-200"
+                      : "bg-zinc-950/60 border-zinc-800 text-zinc-600"
+                  }`}
+                >
+                  <span className="text-[11px] font-bold block truncate uppercase">{p}</span>
+                  <span className={`text-base font-extrabold block mt-0.5 ${hasDocs ? "text-white" : "text-zinc-600"}`}>
+                    {loading ? "—" : count}
+                  </span>
+                  <span className="text-[9px] block text-zinc-500">
+                    {hasDocs ? "Documented" : "No Sources"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* LEVEL 5: Multi-Tab Operations Workspace */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-4 border-b border-zinc-800">
+            <button
+              onClick={() => setActiveTab("sources")}
+              className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+                activeTab === "sources"
+                  ? "border-indigo-500 text-white"
+                  : "border-transparent text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>Documentation Sources ({sources.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("specifications")}
+              className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+                activeTab === "specifications"
+                  ? "border-indigo-500 text-white"
+                  : "border-transparent text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Sliders className="w-4 h-4" />
+              <span>Extracted Specifications ({drafts.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("proposals")}
+              className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+                activeTab === "proposals"
+                  ? "border-indigo-500 text-white"
+                  : "border-transparent text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>Model Change Proposals ({modelChanges.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("audit")}
+              className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+                activeTab === "audit"
+                  ? "border-indigo-500 text-white"
+                  : "border-transparent text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <History className="w-4 h-4" />
+              <span>Policy Audit Log ({auditEvents.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("integrity")}
+              className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+                activeTab === "integrity"
+                  ? "border-indigo-500 text-white"
+                  : "border-transparent text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Architecture & Integrity</span>
+            </button>
+          </div>
+
+          {/* TAB 1: Documentation Sources */}
+          {activeTab === "sources" && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by source name, provider, or URL..."
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <select
+                  value={providerFilter}
+                  onChange={(e) => setProviderFilter(e.target.value)}
+                  className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="all">All Providers</option>
+                  {KNOWLEDGE_PROVIDERS.map((p) => (
+                    <option key={p} value={p}>{p.toUpperCase()}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60">
+                <table className="w-full text-left text-xs text-zinc-300">
+                  <thead className="bg-zinc-900/90 text-zinc-400 uppercase tracking-wider text-[11px] border-b border-zinc-800">
+                    <tr>
+                      <th className="py-3 px-4">Provider</th>
+                      <th className="py-3 px-4">Source Identity</th>
+                      <th className="py-3 px-4">Source URL</th>
+                      <th className="py-3 px-4">Import Status</th>
+                      <th className="py-3 px-4">Last Imported</th>
+                      <th className="py-3 px-4">Content Fingerprint</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/60 text-[11px]">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-zinc-500">
+                          Synchronizing Knowledge Documentation...
+                        </td>
+                      </tr>
+                    ) : filteredSources.length > 0 ? (
+                      filteredSources.map((source) => {
+                        const associatedDoc = documents.find((d) => d.sourceId === source.id);
+                        const associatedDraft = drafts.find((d) => d.sourceId === source.id);
+                        return (
+                          <tr key={source.id} className="hover:bg-zinc-800/40 transition-colors">
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-800 text-zinc-200 border border-zinc-700">
+                                {source.provider}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-medium text-zinc-200">
+                              <div>{source.name}</div>
+                              <span className="text-[10px] text-zinc-500 font-mono">{source.id.slice(0, 10)}...</span>
+                            </td>
+                            <td className="py-3 px-4 font-mono text-zinc-400">
+                              {source.url ? (
+                                <a
+                                  href={source.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 hover:text-indigo-400 truncate max-w-xs block"
+                                >
+                                  <span className="truncate">{source.url}</span>
+                                  <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                </a>
+                              ) : (
+                                <span className="text-zinc-600">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                  source.status === "active"
+                                    ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
+                                    : "bg-amber-950 text-amber-400 border border-amber-800"
+                                }`}
+                              >
+                                {source.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-zinc-400 font-mono">
+                              {source.lastImportedAt ? new Date(source.lastImportedAt).toLocaleDateString() : "—"}
+                            </td>
+                            <td className="py-3 px-4 font-mono text-zinc-500">
+                              {source.contentHash ? source.contentHash.slice(0, 12) : "—"}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="inline-flex items-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    setInspectingItem({
+                                      type: "source",
+                                      source,
+                                      document: associatedDoc,
+                                      draft: associatedDraft,
+                                    })
+                                  }
+                                  className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition-colors inline-flex items-center gap-1"
+                                >
+                                  <Eye className="w-3 h-3" />
+                                  <span>Inspect</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-zinc-500">
+                          No provider documentation sources found. Click &quot;Import Documentation&quot; to begin.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: Extracted Specifications (Drafts Review) */}
+          {activeTab === "specifications" && (
+            <div className="space-y-4">
+              <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60">
+                <table className="w-full text-left text-xs text-zinc-300">
+                  <thead className="bg-zinc-900/90 text-zinc-400 uppercase tracking-wider text-[11px] border-b border-zinc-800">
+                    <tr>
+                      <th className="py-3 px-4">Provider</th>
+                      <th className="py-3 px-4">Draft Identity</th>
+                      <th className="py-3 px-4">Extracted Specifications</th>
+                      <th className="py-3 px-4">Review State</th>
+                      <th className="py-3 px-4 text-right">Admin Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/60 text-[11px]">
+                    {drafts.length > 0 ? (
+                      drafts.map((draft) => {
+                        const busy = actionBusyId === draft.id;
+                        return (
+                          <tr key={draft.id} className="hover:bg-zinc-800/40 transition-colors">
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-800 text-zinc-200 border border-zinc-700">
+                                {draft.provider}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono text-zinc-400">
+                              <div>{draft.id.slice(0, 12)}...</div>
+                              <span className="text-[10px] text-zinc-500">
+                                {new Date(draft.extractedAt).toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex flex-wrap gap-1.5 max-w-xl">
+                                {draft.fields.slice(0, 6).map((f, i) => (
+                                  <span
+                                    key={i}
+                                    className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 font-mono"
+                                  >
+                                    <strong className="text-indigo-400">{f.key}:</strong> {f.value}
+                                  </span>
+                                ))}
+                                {draft.fields.length > 6 && (
+                                  <span className="text-[10px] text-zinc-500 self-center">
+                                    +{draft.fields.length - 6} more
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                  draft.status === "approved"
+                                    ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
+                                    : draft.status === "rejected"
+                                    ? "bg-rose-950 text-rose-400 border border-rose-800"
+                                    : "bg-amber-950 text-amber-400 border border-amber-800"
+                                }`}
+                              >
+                                {draft.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="inline-flex items-center gap-2">
+                                {draft.status === "draft" && (
+                                  <>
+                                    <button
+                                      disabled={busy}
+                                      onClick={() => handleReviewDraft(draft.id, "approved")}
+                                      className="px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 inline-flex items-center gap-1"
+                                    >
+                                      <Check className="w-3 h-3" />
+                                      <span>Approve</span>
+                                    </button>
+                                    <button
+                                      disabled={busy}
+                                      onClick={() => handleReviewDraft(draft.id, "rejected")}
+                                      className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-rose-900/60 text-zinc-300 hover:text-rose-200 text-xs font-medium transition-colors disabled:opacity-50"
+                                    >
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
+
+                                {draft.status === "approved" && (
+                                  <button
+                                    onClick={() => setProposingDraftId(draft.id)}
+                                    className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors inline-flex items-center gap-1"
+                                  >
+                                    <Sparkles className="w-3 h-3" />
+                                    <span>Propose Model Change</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={() => setInspectingItem({ type: "draft", draft })}
+                                  className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors"
+                                >
+                                  <Eye className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-zinc-500">
+                          No specification drafts extracted yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: Model Change Proposals */}
+          {activeTab === "proposals" && (
+            <div className="space-y-4">
+              <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60">
+                <table className="w-full text-left text-xs text-zinc-300">
+                  <thead className="bg-zinc-900/90 text-zinc-400 uppercase tracking-wider text-[11px] border-b border-zinc-800">
+                    <tr>
+                      <th className="py-3 px-4">Target Model</th>
+                      <th className="py-3 px-4">Proposed Specification Changes</th>
+                      <th className="py-3 px-4">State</th>
+                      <th className="py-3 px-4">Created Date</th>
+                      <th className="py-3 px-4 text-right">Publishing Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/60 text-[11px]">
+                    {modelChanges.length > 0 ? (
+                      modelChanges.map((change) => {
+                        const busy = actionBusyId === change.id;
+                        return (
+                          <tr key={change.id} className="hover:bg-zinc-800/40 transition-colors">
+                            <td className="py-3 px-4 font-mono font-bold text-zinc-200">
+                              {change.modelId}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="space-y-1 max-w-lg">
+                                {change.fields.map((f, i) => (
+                                  <div key={i} className="text-[11px] flex items-center gap-2">
+                                    <span className="text-indigo-400 font-mono">{f.field}:</span>
+                                    <span className="line-through text-rose-400/80 truncate max-w-[120px]">
+                                      {JSON.stringify(f.oldValue)}
+                                    </span>
+                                    <span className="text-zinc-500">→</span>
+                                    <span className="text-emerald-400 font-semibold truncate max-w-[160px]">
+                                      {JSON.stringify(f.newValue)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                  change.status === "published"
+                                    ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
+                                    : change.status === "rejected"
+                                    ? "bg-rose-950 text-rose-400 border border-rose-800"
+                                    : "bg-indigo-950 text-indigo-300 border border-indigo-800"
+                                }`}
+                              >
+                                {change.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono text-zinc-400">
+                              {new Date(change.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="inline-flex items-center gap-2">
+                                {change.status === "proposed" && (
+                                  <>
+                                    <button
+                                      disabled={busy}
+                                      onClick={() => setPublishingChange(change)}
+                                      className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors disabled:opacity-50 inline-flex items-center gap-1"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                      <span>Publish to Registry</span>
+                                    </button>
+                                    <button
+                                      disabled={busy}
+                                      onClick={() => handleReviewModelChange(change.id, "reject_model_change")}
+                                      className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-rose-950 text-zinc-300 hover:text-rose-200 text-xs font-medium transition-colors disabled:opacity-50"
+                                    >
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
+
+                                {change.status === "published" && (
+                                  <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>Active in Registry</span>
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-zinc-500">
+                          No model change proposals created yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: Persistent Audit Trail */}
+          {activeTab === "audit" && (
+            <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/60">
+              <table className="w-full text-left text-xs text-zinc-300">
+                <thead className="bg-zinc-900/90 text-zinc-400 uppercase tracking-wider text-[11px] border-b border-zinc-800">
+                  <tr>
+                    <th className="py-3 px-4">Timestamp</th>
+                    <th className="py-3 px-4">Operator</th>
+                    <th className="py-3 px-4">Action</th>
+                    <th className="py-3 px-4">Affected Identity</th>
+                    <th className="py-3 px-4">Meaningful Change Summary</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60 text-[11px]">
+                  {auditEvents.length > 0 ? (
+                    auditEvents.map((event) => (
+                      <tr key={event.id} className="hover:bg-zinc-800/40 transition-colors">
+                        <td className="py-3 px-4 font-mono text-zinc-400 whitespace-nowrap">
+                          {new Date(event.timestamp).toLocaleString()}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-zinc-300">
+                          {event.operatorId}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-800 text-zinc-200 border border-zinc-700">
+                            {event.action}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-zinc-400">
+                          {event.modelId || event.sourceName || event.draftId?.slice(0, 10) || event.sourceId?.slice(0, 10) || "—"}
+                        </td>
+                        <td className="py-3 px-4 text-zinc-300">
+                          {event.summary || "—"}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-zinc-500">
+                        No Knowledge Hub audit events recorded yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* TAB 5: Architecture & Integrity */}
+          {activeTab === "integrity" && (
+            <div className="space-y-6">
+              <div className="p-6 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-6">
+                <div>
+                  <h2 className="text-base font-bold text-zinc-200">Knowledge Architecture & System Boundary Guarantees</h2>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Truthful architectural facts, model registry linkages, and operational separation of concerns.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-zinc-300">Vector / Embeddings Architecture</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-800 text-zinc-300">
+                        None / Absent
+                      </span>
+                    </div>
+                    <div className="text-sm font-bold text-zinc-200">Deterministic Pattern Extraction</div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      Knowledge Hub parses structured specs directly from raw documentation. No vector databases, embeddings, or RAG models are invoked.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-zinc-300">SSRF & Ingestion Guard</span>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div className="text-sm font-bold text-emerald-400">Strict Host Whitelist</div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      URL imports strictly block loopback, localhost, and private RFC-1918 subnets (10.x, 192.168.x, 172.16-31.x).
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-zinc-300">Registry Governance</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-950 text-indigo-300 border border-indigo-800">
+                        Dynamic Registry
+                      </span>
+                    </div>
+                    <div className="text-sm font-bold text-zinc-200">Controlled Publishing</div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      Approved knowledge drafts produce diff proposals that modify Dynamic Model Registries only upon explicit administrator confirmation.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Cross Control Plane Navigation */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                  <Link
+                    href="/admin/models"
+                    className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center justify-between"
+                  >
+                    <div>
+                      <strong className="text-xs text-zinc-200 block">Model Definition Registry</strong>
+                      <span className="text-[11px] text-zinc-500">Inspect live model parameters</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-zinc-500" />
+                  </Link>
+
+                  <Link
+                    href="/admin/routing"
+                    className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center justify-between"
+                  >
+                    <div>
+                      <strong className="text-xs text-zinc-200 block">Routing Control Plane</strong>
+                      <span className="text-[11px] text-zinc-500">Manage provider fallback rules</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-zinc-500" />
+                  </Link>
+
+                  <Link
+                    href="/admin/pricing"
+                    className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center justify-between"
+                  >
+                    <div>
+                      <strong className="text-xs text-zinc-200 block">Pricing Constitution</strong>
+                      <span className="text-[11px] text-zinc-500">Audit user credits and costs</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-zinc-500" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* SAFE IMPORT DRAWER (500–600px desktop, full mobile) */}
+        {importDrawerOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <form onSubmit={handleImportSubmit} className="w-full max-w-xl h-full bg-zinc-900 border-l border-zinc-800 p-6 shadow-2xl flex flex-col justify-between overflow-y-auto">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-indigo-400" />
+                    <h2 className="text-lg font-bold text-zinc-100">
+                      Import Provider Documentation
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setImportDrawerOpen(false)}
+                    className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4 text-xs">
+                  <div>
+                    <label className="block text-zinc-300 font-semibold mb-1.5">
+                      Target AI Provider
+                    </label>
+                    <select
+                      value={importProvider}
+                      onChange={(e) => setImportProvider(e.target.value as KnowledgeProvider)}
+                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 text-xs"
+                    >
+                      {KNOWLEDGE_PROVIDERS.map((p) => (
+                        <option key={p} value={p}>{p.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-300 font-semibold mb-1.5">
+                      Source Name / Title (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={importName}
+                      onChange={(e) => setImportName(e.target.value)}
+                      placeholder="e.g. WaveSpeed Video v2 API Reference"
+                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-300 font-semibold mb-1.5">
+                      Documentation URL (HTTPS / HTTP)
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      value={importUrl}
+                      onChange={(e) => setImportUrl(e.target.value)}
+                      placeholder="https://docs.wavespeed.ai/api/v1/video"
+                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 text-xs font-mono"
+                    />
+                    <span className="text-[11px] text-zinc-500 mt-1 block">
+                      Page is fetched, stripped of scripts/styles, normalized, and hashed with SHA-256.
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>SSRF Ingestion Protection</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      External documentation import is validated against private/local network targets. Max page size is capped at 240,000 characters.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-zinc-800 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setImportDrawerOpen(false)}
+                  className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={importing || !importUrl.trim()}
+                  className="inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                >
+                  {importing && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Start Import & Extraction</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* SOURCE / DRAFT INSPECTOR DRAWER */}
+        {inspectingItem && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="w-full max-w-2xl h-full bg-zinc-900 border-l border-zinc-800 p-6 shadow-2xl flex flex-col justify-between overflow-y-auto">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-5 h-5 text-indigo-400" />
+                    <h2 className="text-lg font-bold text-zinc-100">
+                      Knowledge Source Inspector
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => setInspectingItem(null)}
+                    className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {inspectingItem.source && (
+                  <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2 text-xs">
+                    <span className="text-zinc-500 font-bold uppercase text-[10px]">Source Details</span>
+                    <div className="text-sm font-bold text-zinc-200">{inspectingItem.source.name}</div>
+                    <div className="font-mono text-zinc-400 break-all">{inspectingItem.source.url}</div>
+                    <div className="flex items-center gap-4 text-[11px] text-zinc-500 pt-1">
+                      <span>Provider: <strong className="text-zinc-300 uppercase">{inspectingItem.source.provider}</strong></span>
+                      <span>Status: <strong className="text-emerald-400">{inspectingItem.source.status}</strong></span>
+                    </div>
+                  </div>
+                )}
+
+                {inspectingItem.draft && (
+                  <div className="space-y-3 text-xs">
+                    <span className="text-zinc-400 font-bold uppercase text-[11px]">
+                      Extracted Specification Fields ({inspectingItem.draft.fields.length})
+                    </span>
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                      {inspectingItem.draft.fields.map((f, i) => (
+                        <div key={i} className="p-3 rounded bg-zinc-950 border border-zinc-800 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <strong className="text-indigo-400 font-mono">{f.key}</strong>
+                            <span className="text-[10px] text-zinc-500">Confidence: {f.confidence}</span>
+                          </div>
+                          <div className="text-zinc-200 font-mono text-[11px]">{f.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {inspectingItem.document && (
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-400 font-bold uppercase text-[11px]">Normalized Text Preview</span>
+                      <span className="text-zinc-500 font-mono text-[10px]">
+                        Hash: {inspectingItem.document.contentHash.slice(0, 12)}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded bg-zinc-950 border border-zinc-800 font-mono text-[11px] text-zinc-400 max-h-48 overflow-y-auto whitespace-pre-wrap">
+                      {inspectingItem.document.normalizedText || "No normalized text available."}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-zinc-800 flex justify-end">
+                <button
+                  onClick={() => setInspectingItem(null)}
+                  className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold"
+                >
+                  Close Inspector
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PROPOSE MODEL CHANGE MODAL */}
+        {proposingDraftId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in">
+            <form onSubmit={handleProposeModelChange} className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-2xl space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-indigo-400" />
+                  <h3 className="font-bold text-zinc-100">Propose Model Specification Change</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProposingDraftId(null)}
+                  className="text-zinc-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Extract parameter options (durations, resolutions, aspect ratios) from this approved draft and create a formal proposal for the Dynamic Model Registry.
+              </p>
+
+              <div>
+                <label className="block text-xs text-zinc-300 font-semibold mb-1">
+                  Target Model ID (Leave blank to auto-infer from draft)
+                </label>
+                <input
+                  type="text"
+                  value={proposalModelId}
+                  onChange={(e) => setProposalModelId(e.target.value)}
+                  placeholder="e.g. wavespeed-seedream-v4"
+                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-500 text-xs font-mono"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setProposingDraftId(null)}
+                  className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={proposing}
+                  className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-50"
+                >
+                  {proposing && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Generate Proposal</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* PUBLISH CONFIRMATION MODAL */}
+        {publishingChange && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in">
+            <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-2xl space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-950 border border-amber-800 text-amber-400">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-zinc-100 text-base">Confirm Registry Publishing</h3>
+                  <p className="text-xs text-zinc-400">Target Model: <strong className="text-zinc-200 font-mono">{publishingChange.modelId}</strong></p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2 text-xs">
+                <span className="text-zinc-400 font-bold uppercase text-[10px]">Specifications to be applied live:</span>
+                <div className="space-y-1.5 pt-1">
+                  {publishingChange.fields.map((f, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2 p-2 rounded bg-zinc-900 border border-zinc-800/80 font-mono text-[11px]">
+                      <span className="text-indigo-400">{f.field}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="line-through text-rose-400/80">{JSON.stringify(f.oldValue)}</span>
+                        <span className="text-zinc-500">→</span>
+                        <span className="text-emerald-400 font-bold">{JSON.stringify(f.newValue)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-amber-950/40 border border-amber-900/60 text-xs text-amber-300/90 leading-relaxed">
+                <strong>Warning:</strong> Publishing modifies the Dynamic Model Registry in production. Pricing and Routing configurations remain unchanged.
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPublishingChange(null)}
+                  className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={publishing}
+                  onClick={() => handleReviewModelChange(publishingChange.id, "publish_model_change")}
+                  className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold disabled:opacity-50"
+                >
+                  {publishing && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Publish to Dynamic Registry</span>
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
-    </section>
+    </AdminShell>
   );
-}
-
-function ModelChangesTable({
-  changes,
-  loading,
-  reviewingId,
-  onPublish,
-  onReject,
-}: {
-  changes: KnowledgeResponse["modelChanges"];
-  loading: boolean;
-  reviewingId: string | null;
-  onPublish: (changeId: string) => void;
-  onReject: (changeId: string) => void;
-}) {
-  return (
-    <section className="overflow-hidden rounded-md border border-slate-800 bg-slate-900/35">
-      <table className="w-full min-w-[1000px] text-left text-sm">
-        <thead className="border-b border-slate-800 bg-slate-950/70 text-[11px] uppercase tracking-wider text-slate-500">
-          <tr>
-            <th className="px-4 py-3">Model</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Diff</th>
-            <th className="px-4 py-3">Created</th>
-            <th className="px-4 py-3 text-right">Review</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-800/70">
-          {loading ? (
-            <EmptyRow colSpan={5} label="Loading model changes..." />
-          ) : changes.length ? (
-            changes.map((change) => (
-              <tr key={change.id} className="hover:bg-slate-800/25">
-                <td className="px-4 py-3 font-mono text-xs font-bold text-slate-100">{change.modelId}</td>
-                <td className="px-4 py-3 text-slate-300">{change.status}</td>
-                <td className="px-4 py-3">
-                  <div className="space-y-1">
-                    {change.fields.map((field) => (
-                      <div key={`${change.id}-${field.field}`} className="font-mono text-[11px] text-slate-400">
-                        <span className="text-cyan-300">{field.field}</span>: {JSON.stringify(field.oldValue)} -&gt; {JSON.stringify(field.newValue)}
-                      </div>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-slate-500">{formatDate(change.createdAt)}</td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      disabled={change.status !== "proposed" || reviewingId === change.id}
-                      onClick={() => onPublish(change.id)}
-                      className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
-                    >
-                      Publish
-                    </button>
-                    <button
-                      disabled={change.status !== "proposed" || reviewingId === change.id}
-                      onClick={() => onReject(change.id)}
-                      className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-200 hover:bg-red-500/20 disabled:opacity-50"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <EmptyRow colSpan={5} label="No proposed model changes yet." />
-          )}
-        </tbody>
-      </table>
-    </section>
-  );
-}
-
-function ProviderBadge({ provider }: { provider: string }) {
-  return (
-    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase ${providerStyles[provider] ?? providerStyles.custom}`}>
-      {provider}
-    </span>
-  );
-}
-
-function ExternalUrl({ href }: { href: string }) {
-  return (
-    <a href={href} target="_blank" rel="noreferrer" className="inline-flex max-w-[360px] items-center gap-1 truncate text-xs text-cyan-300 hover:text-cyan-200">
-      <span className="truncate">{href}</span>
-      <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
-    </a>
-  );
-}
-
-function EmptyRow({ colSpan, label }: { colSpan: number; label: string }) {
-  return (
-    <tr>
-      <td colSpan={colSpan} className="px-4 py-12 text-center text-slate-500">
-        {label}
-      </td>
-    </tr>
-  );
-}
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }

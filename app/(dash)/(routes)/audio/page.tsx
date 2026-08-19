@@ -16,6 +16,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useLanguage } from "@/lib/use-language";
 import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
+import { calculateMusicCredits } from "@/lib/pricing";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,14 @@ interface Track {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+
+const LIP_SYNC_MODELS: { id: string; name: string }[] = [
+  { id: "sync/lipsync-3", name: "LipSync 3" },
+  { id: "infinitalk/from-audio", name: "Infinitalk LipSync" },
+  { id: "kling/ai-avatar-pro", name: "Kling AI Avatar Pro" },
+  { id: "bytedance/seedance-2", name: "Seedance 2" },
+  { id: "bytedance/seedance-2-fast", name: "Seedance 2 Fast" },
+];
 
 const GENRE_CHIPS = ["Cinematic", "Lo-Fi", "EDM", "Pop", "Jazz", "Arabic", "Ambient", "Synthwave", "Gaming"];
 const GENRES = ["Cinematic", "Lo-Fi", "EDM", "Pop", "Jazz", "Arabic", "Ambient", "Synthwave", "Gaming", "Classical", "R&B", "Rock", "Hip-Hop", "Country"];
@@ -553,8 +562,9 @@ export default function AudioPage() {
     const hasLyrics = verse.trim() || chorus.trim() || bridge.trim();
     if ((!prompt.trim() && !hasLyrics) || isGenerating) return;
 
+    const dynamicRequiredCredits = calculateMusicCredits(dur);
     const gate = await guardGeneration({
-      requiredCredits: 20,
+      requiredCredits: dynamicRequiredCredits,
       action: "music:generate",
     });
     if (!gate.ok) {
@@ -732,6 +742,7 @@ export default function AudioPage() {
         <audio
           ref={audioRef}
           src={currentAudioSrc}
+          preload="none"
           onLoadedMetadata={e => setAudioDuration(e.currentTarget.duration)}
           onTimeUpdate={e => setCurrentTime(e.currentTarget.currentTime)}
           onEnded={() => {
@@ -1235,7 +1246,7 @@ export default function AudioPage() {
                       {isGenerating ? (
                         <><RefreshCw className="h-5 w-5 animate-spin" /> {t("Generating Your Track...")}</>
                       ) : (
-                        <><Sparkles className="h-5 w-5" /> {t("Generate Music · 20 cr")}</>
+                        <><Sparkles className="h-5 w-5" /> {language === "ar" ? `توليد الموسيقى · ${calculateMusicCredits(dur)} نقطة` : `Generate Music · ${calculateMusicCredits(dur)} cr`}</>
                       )}
                     </span>
                   </button>

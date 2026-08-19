@@ -5,6 +5,14 @@ vi.mock("@/lib/prismadb", () => ({
   default: {
     generation: {
       findMany: vi.fn(async () => []),
+      findUnique: vi.fn(async () => ({ modelUsed: "bytedance/seedance-2" })),
+      update: vi.fn(async () => ({})),
+    },
+    generationRequestSnapshot: {
+      findUnique: vi.fn(async () => null),
+    },
+    providerUsageRecord: {
+      updateMany: vi.fn(async () => ({})),
     },
   },
 }));

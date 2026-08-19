@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/is-admin";
 import {
   getStorageProviderDescriptors,
@@ -8,10 +9,13 @@ import {
   objectKeyFor,
   readStorageRuntimeConfig,
   resolveMediaObject,
-  sanitizeStorageRuntimeConfig,
-  validateActiveWriteProvider,
-  writeStorageRuntimeConfig,
 } from "@/lib/storage";
+import {
+  getStorageRuntimeVersionToken,
+  loadStorageAuditLog,
+  saveStorageRuntimeConfigAtomic,
+  StorageConcurrencyError,
+} from "@/lib/storage/storage-hardening";
 
 export const dynamic = "force-dynamic";
 
@@ -61,10 +65,17 @@ export async function GET() {
   }
 
   try {
-    const config = await readStorageRuntimeConfig();
+    const [config, versionToken, auditLog] = await Promise.all([
+      readStorageRuntimeConfig(),
+      getStorageRuntimeVersionToken(),
+      loadStorageAuditLog(),
+    ]);
+
     return NextResponse.json({
       ok: true,
       config,
+      versionToken,
+      auditLog,
       summary: buildSummary(config),
       checkedAt: new Date().toISOString(),
     });
@@ -80,22 +91,36 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
+    const { userId } = auth();
+    const operatorId = userId || "clerk_admin";
+
     const body = await req.json().catch(() => ({}));
-    const requested = sanitizeStorageRuntimeConfig(body);
-    const validation = validateActiveWriteProvider(requested.activeWriteProvider);
-    if (!validation.ok) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
+    const expectedVersionToken = typeof body?.expectedVersionToken === "string" ? body.expectedVersionToken : null;
+
+    const result = await saveStorageRuntimeConfigAtomic({
+      input: {
+        activeWriteProvider: body.activeWriteProvider,
+        mediaDeliveryMode: body.mediaDeliveryMode,
+        legacyReadEnabled: body.legacyReadEnabled,
+      },
+      expectedVersionToken,
+      operatorId,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      config: result.config,
+      versionToken: result.versionToken,
+      auditLog: result.auditLog,
+      summary: buildSummary(result.config),
+    });
+  } catch (error: any) {
+    if (error instanceof StorageConcurrencyError) {
+      return NextResponse.json({ error: error.message, code: "STORAGE_CONCURRENCY_CONFLICT" }, { status: 409 });
     }
 
-    const config = await writeStorageRuntimeConfig({
-      activeWriteProvider: requested.activeWriteProvider,
-      mediaDeliveryMode: requested.mediaDeliveryMode,
-      legacyReadEnabled: requested.legacyReadEnabled,
-    });
-    return NextResponse.json({ ok: true, config, summary: buildSummary(config) });
-  } catch (error) {
     console.error("[admin-storage] PATCH error:", error);
-    return NextResponse.json({ error: "Failed to save storage policy" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to save storage policy" }, { status: 500 });
   }
 }
 

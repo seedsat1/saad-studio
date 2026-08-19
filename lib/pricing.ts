@@ -12,6 +12,7 @@
 import { DEFAULT_MODELS, KIE_PACKAGES, applyPricingFloor, calcUserCredits, type PricingModel } from "@/lib/pricing-models";
 import prismadb from "@/lib/prismadb";
 import { isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
+import { resolveCanonicalProviderTariff, type ProviderCostEstimateInput, type TariffProvenanceRecord } from "@/lib/provider-tariff-registry";
 
 // â”€â”€â”€ In-memory cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -839,102 +840,101 @@ export function getGenerationCostSync(
 }
 
 /**
- * Estimates the provider cost in USD for a given model, duration, and resolution/quality.
- * Uses cached models.
+ * Estimates the provider operating cost in USD using the canonical provider tariff registry.
+ *
+ * Invariants:
+ * 1. WaveSpeed execution -> WaveSpeed tariff ONLY (never leaks to KIE).
+ * 2. Google execution -> Google tariff ONLY.
+ * 3. BytePlus execution -> BytePlus tariff ONLY.
+ * 4. OpenAI execution -> OpenAI tariff ONLY.
+ * 5. ElevenLabs execution -> ElevenLabs tariff ONLY.
+ * 6. Reap execution -> Reap tariff ONLY.
+ * 7. KIE execution -> KIE Standby tariff ONLY.
  */
 export function estimateProviderCostSync(
-  modelRef: string,
+  modelRefOrInput: string | ProviderCostEstimateInput,
   durationSec = 5,
   quality?: string | null,
   numUnits = 1,
-): { usd: number | null; source: "actual" | "estimated" | "unknown" } {
-  const units = Math.max(1, Math.floor(Number.isFinite(numUnits) ? numUnits : 1));
-  const total = (usd: number): number => parseFloat((usd * units).toFixed(4));
-  const modelLower = (modelRef || "").toLowerCase();
-
-  // 1. Reap/ClipCraft costing
-  if (modelLower.includes("reap") || modelLower.includes("clipcraft")) {
-    let ratePerMin = 0.05; // Default for captions/audiogram
-    if (modelLower.includes("dubbing") || modelLower.includes("translation")) {
-      ratePerMin = 0.12;
-    } else if (modelLower.includes("reframe")) {
-      ratePerMin = 0.08;
-    } else if (modelLower.includes("transcription")) {
-      ratePerMin = 0.03;
-    } else if (modelLower.includes("edit-videos")) {
-      ratePerMin = 0.15;
-    }
-    const durationMin = durationSec / 60;
-    return { usd: total(parseFloat((durationMin * ratePerMin).toFixed(4))), source: "estimated" };
+  options?: {
+    providerName?: string | null;
+    providerModel?: string | null;
+    providerRoute?: string | null;
+    resolution?: string | null;
+  }
+): { usd: number | null; source: "actual" | "estimated" | "unknown"; tariffKey?: string; provenance?: TariffProvenanceRecord } {
+  let input: ProviderCostEstimateInput;
+  if (typeof modelRefOrInput === "object" && modelRefOrInput !== null) {
+    input = modelRefOrInput;
+  } else {
+    input = {
+      modelRef: modelRefOrInput,
+      durationSec,
+      quality,
+      numUnits,
+      providerName: options?.providerName,
+      providerModel: options?.providerModel,
+      providerRoute: options?.providerRoute,
+      resolution: options?.resolution,
+    };
   }
 
-  const googleVideoUsd = getGoogleVideoProviderUsd(modelRef, durationSec, quality);
-  if (googleVideoUsd !== null) {
-    return { usd: total(googleVideoUsd), source: "actual" };
-  }
+  const result = resolveCanonicalProviderTariff(input, (ref) => {
+    const models = _cachedModels ?? DEFAULT_MODELS;
+    const constitutionId = resolveConstitutionId(ref, models);
+    const m = models.find((item) => item.id === constitutionId && item.isActive);
+    if (!m) return null;
+    return { provider: m.provider, billing: m.billing, kieCredits: m.kieCredits, waveUsd: m.waveUsd };
+  });
 
-  const seedance25Usd = getSeedance25ProviderUsd(modelRef, durationSec, quality);
-  if (seedance25Usd !== null) {
-    return { usd: total(seedance25Usd), source: "actual" };
-  }
+  return {
+    usd: result.usd,
+    source: result.source,
+    tariffKey: result.tariffKey,
+    provenance: result.provenance,
+  };
+}
 
-  const minimaxH3Usd = getMinimaxH3ProviderUsd(modelRef, durationSec, quality);
-  if (minimaxH3Usd !== null) {
-    return { usd: total(minimaxH3Usd), source: "actual" };
-  }
+/**
+ * Canonical character counting for audio script text.
+ * Normalizes Unicode NFC, standardizes CRLF, trims leading/trailing whitespace.
+ */
+export function countAudioScriptCharacters(text?: string | null): number {
+  if (!text) return 0;
+  return text
+    .normalize("NFC")
+    .replace(/\r\n/g, "\n")
+    .trim()
+    .length;
+}
 
-  // 2. BytePlus/Dreamina/Seedance costing
-  const isSeedance2Route =
-    modelRef === "bytedance/dreamina-v3.0/text-to-video-720p" ||
-    modelRef === "bytedance/seedance-v2/text-to-video" ||
-    modelRef === "bytedance/seedance-v2/text-to-video-fast" ||
-    modelRef === "bytedance/seedance-v2/text-to-video-mini" ||
-    modelRef.includes("bytedance/seedance-2.0") ||
-    modelRef.includes("dreamina-seedance") ||
-    modelRef.includes("seedance2");
+/**
+ * Canonical TTS character-based customer credit pricing.
+ * Credits = max(1, ceil(characterCount * 0.0034))
+ * Benchmark: ~1 CR per 294 chars ($0.00017 / char target value). Minimum 1 CR.
+ */
+export function calculateTtsCredits(textOrCount?: string | number | null): number {
+  const count = typeof textOrCount === "number" ? textOrCount : countAudioScriptCharacters(textOrCount);
+  if (count <= 0) return 1;
+  return Math.max(1, Math.ceil(count * 0.0034));
+}
 
-  if (isSeedance2Route) {
-    const bpResolution = String(quality || "720p").toLowerCase();
-    let bpTokensPerSec = 12000;
-    if (bpResolution.includes("480")) bpTokensPerSec = 6000;
-    else if (bpResolution.includes("1080")) bpTokensPerSec = 30000;
-    else if (bpResolution.includes("4k")) bpTokensPerSec = 70000;
-    const bpTokens = durationSec * bpTokensPerSec;
-    const isMini = modelLower.includes("mini");
-    const ratePerToken = isMini ? 0.0000021 : 0.0000043;
-    const bpEstimatedCost = bpTokens * ratePerToken;
-    return { usd: total(bpEstimatedCost), source: "estimated" };
-  }
+/**
+ * Canonical Music duration-based customer credit pricing.
+ * Credits = max(4, ceil(2 + durationSec * 0.12))
+ * Acceptance: 15s=4CR, 30s=6CR, 60s=10CR, 90s=13CR, 120s=17CR, 180s=24CR, 240s=31CR, 300s=38CR.
+ */
+export function calculateMusicCredits(durationSec?: number | null): number {
+  const dur = Number.isFinite(Number(durationSec)) && Number(durationSec) > 0 ? Number(durationSec) : 30;
+  return Math.max(4, Math.ceil(2 + dur * 0.12));
+}
 
-  const models = _cachedModels ?? DEFAULT_MODELS;
-  const constitutionId = resolveConstitutionId(modelRef, models);
-  const model = models.find((m) => m.id === constitutionId && m.isActive);
-
-  if (!model) {
-    if (modelRef.includes("assist") || modelRef.includes("chat") || modelRef.includes("gemini-3-pro") || modelRef.includes("gpt")) {
-      return { usd: total(0.002), source: "estimated" };
-    }
-    if (modelRef.includes("transition")) {
-      return { usd: total(0.02), source: "estimated" };
-    }
-    if (modelRef.includes("image") || modelRef.includes("banana") || modelRef.includes("rmbg") || modelRef.includes("upscale") || modelRef.includes("face-swap")) {
-      return { usd: total(durationSec * 0.01), source: "estimated" };
-    }
-    if (modelRef.includes("elevenlabs") || modelRef.includes("audio") || modelRef.includes("voice") || modelRef.includes("tts")) {
-      return { usd: total(durationSec * 0.01), source: "estimated" };
-    }
-    return { usd: null, source: "unknown" };
-  }
-
-  if (model.provider === "wavespeed") {
-    const usd = model.billing === "per_sec" ? durationSec * model.waveUsd : model.waveUsd;
-    return { usd: total(usd), source: "estimated" };
-  }
-
-  // KIE provider
-  const multiplier = qualityMultiplierForModel(modelRef, quality);
-  const baseCredits = model.billing === "per_sec" ? durationSec * model.kieCredits : model.kieCredits;
-  const kieCredits = baseCredits * multiplier;
-  const usd = kieCredits * 0.005;
-  return { usd: total(usd), source: "estimated" };
+/**
+ * Canonical Sound Effects duration-based customer credit pricing.
+ * Credits = max(2, ceil(2 + durationSec * 0.25))
+ * Acceptance: 2s=3CR, 5s=4CR, 10s=5CR, 15s=6CR, 22s=8CR.
+ */
+export function calculateSfxCredits(durationSec?: number | null): number {
+  const dur = Number.isFinite(Number(durationSec)) && Number(durationSec) > 0 ? Number(durationSec) : 5;
+  return Math.max(2, Math.ceil(2 + dur * 0.25));
 }

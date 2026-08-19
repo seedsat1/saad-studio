@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -47,11 +47,25 @@ export default function PluginPage() {
   const isAr = lang === "ar";
   const [activeHostApp, setActiveHostApp] = useState<"ppro" | "ae" | "ps">("ppro");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [liveVersion, setLiveVersion] = useState("3.0.0");
+  const [liveDownloadUrl, setLiveDownloadUrl] = useState("/downloads/SaadStudio-Setup.exe");
+  const [liveFileSize, setLiveFileSize] = useState("33.6 MB");
+
+  useEffect(() => {
+    fetch("/api/plugin/version")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.version) setLiveVersion(data.version);
+        if (data?.downloads?.url) setLiveDownloadUrl(data.downloads.url);
+        if (data?.downloads?.fileSize) setLiveFileSize(data.downloads.fileSize);
+      })
+      .catch(() => {});
+  }, []);
 
   const GDRIVE_URL = "https://drive.google.com/drive/folders/1fQAHUoH5EFyczLuQjQKEdcoLupN9n12a?usp=sharing";
 
   const DOWNLOAD_LINKS = {
-    setupExe: "/downloads/SaadStudio-Setup.exe",
+    setupExe: liveDownloadUrl,
     googleDriveModels: GDRIVE_URL,
   };
 
@@ -77,7 +91,7 @@ export default function PluginPage() {
             className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-gradient-to-r from-amber-500/15 via-violet-500/15 to-blue-500/15 border border-amber-500/30 text-amber-300 text-sm font-semibold shadow-lg shadow-amber-500/10"
           >
             <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-            <span>{t("Official Adobe Extension Suite v2.0.0", "إضافة سعد استوديو المعتمدة لبرامج أدوبي v2.0.0")}</span>
+            <span>{t(`Official Adobe Extension Suite v${liveVersion}`, `إضافة سعد استوديو المعتمدة لبرامج أدوبي v${liveVersion}`)}</span>
           </motion.div>
 
           <motion.h1
@@ -213,7 +227,7 @@ export default function PluginPage() {
                   className="flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base shadow-xl shadow-amber-500/25 transition-all hover:scale-[1.02]"
                 >
                   <Download className="w-5 h-5" />
-                  <span>{t("Download SaadStudio-Setup.exe (97.5 MB)", "تحميل SaadStudio-Setup.exe (97.5 ميجابايت)")}</span>
+                  <span>{t("Download SaadStudio-Setup.exe (33.6 MB)", "تحميل SaadStudio-Setup.exe (33.6 ميجابايت)")}</span>
                 </a>
               </div>
             </motion.div>

@@ -113,7 +113,7 @@ const SEED_CATEGORIES: CmsCategory[] = [
     _id: uid(), id: "enhance-style", title: "Enhance & Style", description: "Perfect your photos with AI enhancement and styling",
     tools: [
       { _id: uid(), id: "skin-enhancer", title: "Skin Enhancer", description: "Natural, realistic skin textures", href: "/apps/tool/skin-enhancer", badge: "PRO", gradient: "from-rose-600/30 to-pink-900/30" },
-      { _id: uid(), id: "beauty2-studio", title: "Beauty2 Studio", description: "Full beauty, makeup, hairstyle, and outfit transformations", href: "/beauty2.html", badge: "NEW", gradient: "from-violet-600/30 to-purple-900/30" },
+      { _id: uid(), id: "beauty2-studio", title: "Beauty2 Studio", description: "Full beauty, makeup, hairstyle, and outfit transformations", href: "/apps/tool/makeup", badge: "NEW", gradient: "from-violet-600/30 to-purple-900/30" },
       { _id: uid(), id: "relight-app", title: "Relight", description: "Adjust lighting position, color & brightness", href: "/apps/tool/relight-app", badge: "PRO", gradient: "from-amber-600/30 to-orange-900/30" },
       { _id: uid(), id: "outfit-swap", title: "Outfit Swap", description: "Try on any outfit with a single photo", href: "/apps/tool/outfit-swap", badge: "TOP", gradient: "from-cyan-600/30 to-teal-900/30" },
       { _id: uid(), id: "style-snap", title: "Style Snap", description: "Instant style variations of your look", href: "/apps/tool/style-snap", badge: "", gradient: "from-pink-600/30 to-fuchsia-900/30" },

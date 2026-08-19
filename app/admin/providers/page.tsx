@@ -3,50 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  Cpu,
   CreditCard,
-  ExternalLink,
-  KeyRound,
+  DollarSign,
   RefreshCw,
   Route,
   Server,
   ShieldCheck,
-  Wallet,
-  XCircle,
 } from "lucide-react";
 
-type ProviderStatus = "online" | "offline" | "standby";
-
-type ProviderRow = {
-  id: string;
-  providerName: string;
-  shortName: string;
-  status: ProviderStatus;
-  operationalStatus: string;
-  enabled: boolean;
-  allowRouting: boolean;
-  allowFallback: boolean;
-  futureProvider: boolean;
-  routingEligible: boolean;
-  apiConfigured: boolean;
-  healthCheck: string;
-  lastCheck: string;
-  lastError: string | null;
-  modelsCount: number;
-  activeRoutes: number;
-  fallbackUsage: number;
-  monthlyRequests: number;
-  estimatedCostUsd: number;
-  balance: { amount: number; unit: string; source: string } | null;
-  billingUrl: string;
-  modalities: string[];
-  supportsBalance: boolean;
-  healthMode: string;
-  notes: string;
-};
+import { AdminShell } from "@/components/admin/AdminShell";
+import { ProviderFleetStrip } from "@/components/admin/providers/ProviderFleetStrip";
+import { ProviderCard, type ProviderRow, type ProviderStatus } from "@/components/admin/providers/ProviderCard";
+import { ProviderAnalytics } from "@/components/admin/providers/ProviderAnalytics";
+import { ProviderMatrix } from "@/components/admin/providers/ProviderMatrix";
+import { ProviderDrawer } from "@/components/admin/providers/ProviderDrawer";
 
 type ProvidersResponse = {
   ok: boolean;
@@ -64,47 +34,14 @@ type ProvidersResponse = {
   error?: string;
 };
 
-const SOURCE_STYLES: Record<string, string> = {
-  google: "border-sky-500/25 bg-sky-500/10 text-sky-300",
-  openai: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300",
-  byteplus: "border-orange-500/25 bg-orange-500/10 text-orange-300",
-  wavespeed: "border-violet-500/25 bg-violet-500/10 text-violet-300",
-  kie: "border-slate-500/25 bg-slate-500/10 text-slate-300",
-  elevenlabs: "border-pink-500/25 bg-pink-500/10 text-pink-300",
-  reap: "border-cyan-500/25 bg-cyan-500/10 text-cyan-300",
-};
-
-function sourceClass(id: string) {
-  return SOURCE_STYLES[id] ?? "border-slate-500/25 bg-slate-500/10 text-slate-300";
-}
-
-function formatUsd(value: number) {
-  return `$${value.toFixed(value >= 10 ? 2 : 4)}`;
-}
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatBalance(row: ProviderRow) {
-  if (!row.balance) return "Unavailable";
-  const amount = row.balance.unit === "USD" ? formatUsd(row.balance.amount) : `${row.balance.amount.toLocaleString()} ${row.balance.unit}`;
-  return `${amount} (${row.balance.source})`;
-}
-
 export default function AdminProvidersPage() {
   const [rows, setRows] = useState<ProviderRow[]>([]);
   const [summary, setSummary] = useState<ProvidersResponse["summary"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | ProviderStatus>("all");
+  const [selectedProvider, setSelectedProvider] = useState<ProviderRow | null>(null);
+  const [checkedAt, setCheckedAt] = useState<string | null>(null);
 
   const loadProviders = async () => {
     setLoading(true);
@@ -115,6 +52,7 @@ export default function AdminProvidersPage() {
       if (!res.ok || !data?.ok) throw new Error(data?.error || `Providers HTTP ${res.status}`);
       setRows(data.providers || []);
       setSummary(data.summary);
+      setCheckedAt(data.checkedAt);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load providers.");
       setRows([]);
@@ -133,203 +71,160 @@ export default function AdminProvidersPage() {
     return rows.filter((row) => row.status === statusFilter);
   }, [rows, statusFilter]);
 
-  const statCards = [
-    { label: "Providers", value: summary?.totalProviders ?? rows.length, icon: Server },
-    { label: "Online", value: summary?.onlineProviders ?? rows.filter((row) => row.status === "online").length, icon: Activity },
-    { label: "Configured", value: summary?.configuredProviders ?? rows.filter((row) => row.apiConfigured).length, icon: KeyRound },
-    { label: "Active Routes", value: summary?.totalActiveRoutes ?? rows.reduce((sum, row) => sum + row.activeRoutes, 0), icon: Route },
-    { label: "30d Requests", value: summary?.monthlyRequests ?? rows.reduce((sum, row) => sum + row.monthlyRequests, 0), icon: Cpu },
-    { label: "30d Cost", value: formatUsd(summary?.estimatedCostUsd ?? rows.reduce((sum, row) => sum + row.estimatedCostUsd, 0)), icon: Wallet },
-  ];
+  // Compute fleet counts
+  const totalProviders = rows.length;
+  const onlineProviders = rows.filter((r) => r.status === "online").length;
+  const standbyProviders = rows.filter((r) => r.status === "standby").length;
+  const offlineProviders = rows.filter((r) => r.status === "offline").length;
+  const configuredProviders = rows.filter((r) => r.apiConfigured).length;
+  const routingEligibleProviders = rows.filter((r) => r.routingEligible).length;
+  const totalModels = summary?.totalModels ?? rows.reduce((sum, r) => sum + r.modelsCount, 0);
+  const totalActiveRoutes = summary?.totalActiveRoutes ?? rows.reduce((sum, r) => sum + r.activeRoutes, 0);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-[1500px] px-6 py-7 space-y-6">
-        <header className="flex flex-col gap-4 border-b border-slate-800 pb-5 lg:flex-row lg:items-center lg:justify-between">
+    <AdminShell activeRoute="/admin/providers">
+      {/* Full-Width Workspace (No restrictive centered containers) */}
+      <div className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* ── HEADER ── */}
+        <header className="flex flex-col gap-4 border-b border-slate-800/80 pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-cyan-300">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
               <Server className="h-4 w-4" />
-              Provider Management
+              Provider Fleet Console
             </div>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">Sources Control Inventory</h1>
-            <p className="mt-1 max-w-3xl text-sm text-slate-400">
-              Central provider status for API configuration, model counts, active routes, usage, cost, and balances.
+            <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Providers Operations</h1>
+            <p className="mt-1 text-sm text-slate-400">
+              مراقبة أسطول المزودين: التحقق من جاهزية المفاتيح، أهلية التوجيه، البصمة التشغيلية، ومتابعة الأرصدة الحية.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Link href="/admin" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800">
-              Admin Dashboard
+            <Link
+              href="/admin/routing"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-500/20 shadow-sm"
+            >
+              <Route className="h-3.5 w-3.5" />
+              Routing Engine
             </Link>
-            <Link href="/admin/routing" className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-500/20">
-              Routing <ExternalLink className="h-3.5 w-3.5" />
+            <Link
+              href="/admin/pricing"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20 shadow-sm"
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              Pricing Core
             </Link>
-            <Link href="/admin/pricing" className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/20">
-              Pricing <CreditCard className="h-3.5 w-3.5" />
+            <Link
+              href="/admin/provider-costs"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20 shadow-sm"
+            >
+              <DollarSign className="h-3.5 w-3.5" />
+              Costs Ledger
             </Link>
-            <button onClick={() => void loadProviders()} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800">
+            <button
+              type="button"
+              onClick={() => void loadProviders()}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 disabled:opacity-60 transition shadow-sm"
+            >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </button>
           </div>
         </header>
 
-        <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-          {statCards.map((item) => (
-            <div key={item.label} className="rounded-lg border border-slate-800 bg-slate-900/55 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{item.label}</p>
-                <item.icon className="h-4 w-4 text-slate-500" />
-              </div>
-              <p className="mt-2 text-2xl font-bold text-white">{item.value}</p>
-            </div>
-          ))}
+        {error && (
+          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+            {error}
+          </div>
+        )}
+
+        {/* ── LEVEL 1: FLEET COMMAND STRIP ── */}
+        <ProviderFleetStrip
+          totalProviders={totalProviders}
+          onlineProviders={onlineProviders}
+          standbyProviders={standbyProviders}
+          offlineProviders={offlineProviders}
+          configuredProviders={configuredProviders}
+          routingEligibleProviders={routingEligibleProviders}
+          totalModels={totalModels}
+          totalActiveRoutes={totalActiveRoutes}
+        />
+
+        {/* ── LEVEL 2: ANALYTICS FIRST (Enterprise Visual Operations Deck) ── */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-white">Provider Fleet Telemetry & Analytics</h2>
+            <span className="text-xs text-slate-500">
+              {checkedAt ? `Last check: ${new Date(checkedAt).toLocaleTimeString()}` : "Verifying..."}
+            </span>
+          </div>
+          <ProviderAnalytics providers={rows} />
         </section>
 
-        <section className="flex flex-col gap-3 rounded-lg border border-slate-800 bg-slate-900/45 p-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            {["all", "online", "standby", "offline"].map((status) => (
+        {/* ── FILTER CONTROLS ── */}
+        <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-2">Filter Cards:</span>
+            {(["all", "online", "standby", "offline"] as const).map((status) => (
               <button
                 key={status}
-                  onClick={() => setStatusFilter(status as "all" | ProviderStatus)}
-                className={`h-9 rounded-lg border px-3 text-xs font-semibold capitalize ${
+                type="button"
+                onClick={() => setStatusFilter(status)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold capitalize transition ${
                   statusFilter === status
-                    ? "border-cyan-500/40 bg-cyan-500/15 text-cyan-200"
-                    : "border-slate-700 bg-slate-950 text-slate-400 hover:bg-slate-900"
+                    ? "border border-cyan-500/40 bg-cyan-500/20 text-cyan-200"
+                    : "border border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                 }`}
               >
                 {status}
               </button>
             ))}
           </div>
-          <p className="text-xs text-slate-500">
-            Health currently verifies server configuration. Live provider pings stay isolated in provider-specific checks.
-          </p>
+
+          <span className="text-xs font-semibold text-slate-400 pr-2 tabular-nums">
+            Showing {filteredRows.length} of {rows.length} sources
+          </span>
         </section>
 
-        {error && (
-          <div className="rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {error}
-          </div>
-        )}
-
-        <section className="overflow-hidden rounded-lg border border-slate-800 bg-slate-900/35">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1320px] text-left text-sm">
-              <thead className="border-b border-slate-800 bg-slate-950/70 text-[11px] uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Provider</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Enabled</th>
-                  <th className="px-4 py-3">Allow Routing</th>
-                  <th className="px-4 py-3">Allow Fallback</th>
-                  <th className="px-4 py-3">API Configured</th>
-                  <th className="px-4 py-3">Health Check</th>
-                  <th className="px-4 py-3">Last Check</th>
-                  <th className="px-4 py-3">Last Error</th>
-                  <th className="px-4 py-3">Models</th>
-                  <th className="px-4 py-3">Active Routes</th>
-                  <th className="px-4 py-3">Fallback</th>
-                  <th className="px-4 py-3">30d Requests</th>
-                  <th className="px-4 py-3">Est. Cost</th>
-                  <th className="px-4 py-3">Balance / Credits</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/70">
-                {loading ? (
-                  <tr>
-                    <td colSpan={15} className="px-4 py-12 text-center text-slate-500">
-                      <RefreshCw className="mx-auto mb-3 h-5 w-5 animate-spin" />
-                      Loading providers...
-                    </td>
-                  </tr>
-                ) : filteredRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={15} className="px-4 py-12 text-center text-slate-500">
-                      No providers match the current filter.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredRows.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-800/25">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase ${sourceClass(row.id)}`}>{row.shortName}</span>
-                          <a href={row.billingUrl} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-slate-300">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        </div>
-                        <div className="mt-2 font-semibold text-slate-100">{row.providerName}</div>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {row.modalities.map((modality) => (
-                            <span key={modality} className="rounded border border-slate-800 bg-slate-950 px-1.5 py-0.5 text-[10px] uppercase text-slate-500">
-                              {modality}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase ${
-                          row.status === "online"
-                            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
-                            : row.status === "standby"
-                            ? "border-amber-500/25 bg-amber-500/10 text-amber-300"
-                            : "border-red-500/25 bg-red-500/10 text-red-300"
-                        }`}>
-                          {row.status === "online" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${row.enabled ? "text-emerald-300" : "text-slate-500"}`}>
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                          {row.enabled ? "Enabled" : "Disabled"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs font-semibold ${row.allowRouting ? "text-emerald-300" : "text-slate-500"}`}>
-                          {row.allowRouting ? "YES" : "NO"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs font-semibold ${row.allowFallback ? "text-emerald-300" : "text-slate-500"}`}>
-                          {row.allowFallback ? "YES" : "NO"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${row.apiConfigured ? "text-emerald-300" : "text-amber-300"}`}>
-                          <KeyRound className="h-3.5 w-3.5" />
-                          {row.apiConfigured ? "Configured" : "Missing"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <code className="rounded border border-slate-800 bg-slate-950 px-2 py-1 text-[11px] text-cyan-200">{row.healthCheck}</code>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-400">{formatDate(row.lastCheck)}</td>
-                      <td className="px-4 py-3">
-                        {row.lastError ? (
-                          <div className="flex max-w-[240px] items-start gap-1.5 text-xs text-amber-300">
-                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-                            <span className="line-clamp-2">{row.lastError}</span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-600">None</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-sm text-slate-200">{row.modelsCount}</td>
-                      <td className="px-4 py-3 font-mono text-sm text-slate-200">{row.activeRoutes}</td>
-                      <td className="px-4 py-3 font-mono text-sm text-slate-500">{row.fallbackUsage}</td>
-                      <td className="px-4 py-3 font-mono text-sm text-slate-200">{row.monthlyRequests}</td>
-                      <td className="px-4 py-3 font-mono text-sm text-rose-300">{formatUsd(row.estimatedCostUsd)}</td>
-                      <td className="px-4 py-3 text-xs text-slate-300">{formatBalance(row)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+        {/* ── LEVEL 3: SUMMARY OPERATIONAL CARDS (Clean, fast summary) ── */}
+        <section className="space-y-3">
+          {loading ? (
+            <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-12 text-center text-slate-400">
+              <RefreshCw className="mx-auto mb-3 h-6 w-6 animate-spin text-cyan-400" />
+              Loading operational provider telemetry...
+            </div>
+          ) : filteredRows.length === 0 ? (
+            <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-8 text-center text-slate-500">
+              No providers match the selected filter.
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredRows.map((provider) => (
+                <ProviderCard
+                  key={provider.id}
+                  provider={provider}
+                  onInspect={(p) => setSelectedProvider(p)}
+                />
+              ))}
+            </div>
+          )}
         </section>
+
+        {/* ── LEVEL 4: FULL-WIDTH PROVIDER INVENTORY MATRIX (Dense Technical Diagnostics) ── */}
+        <section className="pt-2">
+          <ProviderMatrix
+            providers={filteredRows}
+            onInspect={(p) => setSelectedProvider(p)}
+          />
+        </section>
+
+        {/* ── LEVEL 5: SLIDE-OVER DETAIL DRAWER ── */}
+        <ProviderDrawer
+          provider={selectedProvider}
+          onClose={() => setSelectedProvider(null)}
+        />
+
       </div>
-    </main>
+    </AdminShell>
   );
 }

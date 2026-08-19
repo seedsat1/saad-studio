@@ -1,0 +1,88 @@
+import { describe, it, expect } from "vitest";
+import {
+  countAudioScriptCharacters,
+  calculateTtsCredits,
+  calculateMusicCredits,
+  calculateSfxCredits,
+} from "@/lib/pricing";
+import { getAudioActionCredits } from "@/lib/credit-pricing";
+
+describe("Audio Suite Unified Dynamic Pricing Suite", () => {
+  // ── 1. MUSIC DURATION ACCEPTANCE TABLE ──
+  const MUSIC_ACCEPTANCE_TABLE: Array<{ sec: number; expectedCredits: number }> = [
+    { sec: 15, expectedCredits: 4 },
+    { sec: 30, expectedCredits: 6 },
+    { sec: 60, expectedCredits: 10 },
+    { sec: 90, expectedCredits: 13 },
+    { sec: 120, expectedCredits: 17 },
+    { sec: 180, expectedCredits: 24 },
+    { sec: 240, expectedCredits: 31 },
+    { sec: 300, expectedCredits: 38 },
+  ];
+
+  it("verifies the exact canonical Music pricing acceptance table: max(4, ceil(2 + durationSec * 0.12))", () => {
+    for (const row of MUSIC_ACCEPTANCE_TABLE) {
+      const calculated = calculateMusicCredits(row.sec);
+      expect(calculated).toBe(row.expectedCredits);
+
+      const actionCredits = getAudioActionCredits("music", row.sec);
+      expect(actionCredits).toBe(row.expectedCredits);
+
+      const payloadCredits = getAudioActionCredits("music", { duration: row.sec });
+      expect(payloadCredits).toBe(row.expectedCredits);
+    }
+  });
+
+  // ── 2. SOUND EFFECTS DURATION ACCEPTANCE TABLE ──
+  const SFX_ACCEPTANCE_TABLE: Array<{ sec: number; expectedCredits: number }> = [
+    { sec: 2, expectedCredits: 3 },
+    { sec: 5, expectedCredits: 4 },
+    { sec: 10, expectedCredits: 5 },
+    { sec: 15, expectedCredits: 6 },
+    { sec: 22, expectedCredits: 8 },
+  ];
+
+  it("verifies the exact canonical Sound Effects pricing acceptance table: max(2, ceil(2 + durationSec * 0.25))", () => {
+    for (const row of SFX_ACCEPTANCE_TABLE) {
+      const calculated = calculateSfxCredits(row.sec);
+      expect(calculated).toBe(row.expectedCredits);
+
+      const actionCredits = getAudioActionCredits("video2audio", row.sec);
+      expect(actionCredits).toBe(row.expectedCredits);
+
+      const payloadCredits = getAudioActionCredits("video2audio", { duration: row.sec });
+      expect(payloadCredits).toBe(row.expectedCredits);
+    }
+  });
+
+  // ── 3. TTS CHARACTER PRICING PRESERVATION ──
+  it("preserves canonical TTS character-based pricing: max(1, ceil(characterCount * 0.0034))", () => {
+    expect(calculateTtsCredits(1)).toBe(1);
+    expect(calculateTtsCredits(10)).toBe(1);
+    expect(calculateTtsCredits(100)).toBe(1);
+    expect(calculateTtsCredits(250)).toBe(1);
+    expect(calculateTtsCredits(500)).toBe(2);
+    expect(calculateTtsCredits(627)).toBe(3);
+    expect(calculateTtsCredits(1000)).toBe(4);
+    expect(calculateTtsCredits(2000)).toBe(7);
+    expect(calculateTtsCredits(5000)).toBe(17);
+  });
+
+  // ── 4. CLONED VOICE TTS USES SAME CANONICAL FORMULA ──
+  it("verifies Cloned Voice TTS uses the same canonical character-based formula", () => {
+    const text627 = "A".repeat(627);
+    expect(getAudioActionCredits("voice-cloning", text627)).toBe(3);
+    expect(getAudioActionCredits("voice-cloning", { text: text627 })).toBe(3);
+  });
+
+  // ── 5. DEFAULT FALLBACK SANITY CHECKS ──
+  it("handles empty / undefined inputs with sensible safe minimums", () => {
+    expect(calculateMusicCredits(null)).toBe(6); // default 30s -> 6 CR
+    expect(calculateMusicCredits(undefined)).toBe(6);
+    expect(calculateMusicCredits(0)).toBe(6);
+
+    expect(calculateSfxCredits(null)).toBe(4); // default 5s -> 4 CR
+    expect(calculateSfxCredits(undefined)).toBe(4);
+    expect(calculateSfxCredits(0)).toBe(4);
+  });
+});

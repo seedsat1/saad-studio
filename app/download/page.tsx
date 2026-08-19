@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2, Download, Settings } from 'lucide-react';
 
 interface PluginInfo {
@@ -12,25 +12,44 @@ interface PluginInfo {
   setupUrl: string;
 }
 
-const PLUGIN_INFO: PluginInfo = {
-  version: '1.0.0',
+const DEFAULT_PLUGIN_INFO: PluginInfo = {
+  version: '3.0.0',
   releaseDate: new Date().toLocaleDateString('ar-EG'),
-  fileSize: '45.2 MB',
-  setupSize: '119.6 MB',
+  fileSize: '33.5 MB',
+  setupSize: '33.6 MB',
   downloadUrl: '/api/download/saadstudio.zxp',
-  setupUrl: '/api/download/setup.exe'
+  setupUrl: '/downloads/SaadStudio-Setup.exe'
 };
 
 export default function DownloadPage() {
+  const [pluginInfo, setPluginInfo] = useState<PluginInfo>(DEFAULT_PLUGIN_INFO);
   const [isDownloading, setIsDownloading] = useState<'plugin' | 'setup' | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/plugin/version')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.version) {
+          setPluginInfo({
+            version: data.version,
+            releaseDate: data.releaseDate || new Date().toLocaleDateString('ar-EG'),
+            fileSize: data.downloads?.fileSize || '33.5 MB',
+            setupSize: data.downloads?.fileSize || '33.6 MB',
+            downloadUrl: data.downloads?.zxpUrl || '/api/download/saadstudio.zxp',
+            setupUrl: data.downloads?.url || '/downloads/SaadStudio-Setup.exe',
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleDownload = async (type: 'plugin' | 'setup') => {
     try {
       setIsDownloading(type);
       setDownloadProgress(0);
 
-      const url = type === 'plugin' ? PLUGIN_INFO.downloadUrl : PLUGIN_INFO.setupUrl;
+      const url = type === 'plugin' ? pluginInfo.downloadUrl : pluginInfo.setupUrl;
       const filename = type === 'plugin' ? 'SaadStudio.zxp' : 'SaadStudio-Setup.exe';
 
       const response = await fetch(url);
@@ -75,11 +94,11 @@ export default function DownloadPage() {
           <div className="bg-slate-700/30 rounded-lg p-6 mb-6 space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-slate-400">الإصدار:</span>
-              <span className="text-white font-semibold">{PLUGIN_INFO.version}</span>
+              <span className="text-white font-semibold">{pluginInfo.version}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-400">تاريخ الإصدار:</span>
-              <span className="text-white font-semibold">{PLUGIN_INFO.releaseDate}</span>
+              <span className="text-white font-semibold">{pluginInfo.releaseDate}</span>
             </div>
           </div>
 
@@ -95,7 +114,7 @@ export default function DownloadPage() {
                 ملف الإضافة للتثبيت المباشر
               </p>
               <div className="text-slate-400 text-xs mb-4">
-                الحجم: {PLUGIN_INFO.fileSize}
+                الحجم: {pluginInfo.fileSize}
               </div>
               <button
                 onClick={() => handleDownload('plugin')}
@@ -138,7 +157,7 @@ export default function DownloadPage() {
                 برنامج مساعد للتثبيت التلقائي
               </p>
               <div className="text-slate-400 text-xs mb-4">
-                الحجم: {PLUGIN_INFO.setupSize}
+                الحجم: {pluginInfo.setupSize}
               </div>
               <button
                 onClick={() => handleDownload('setup')}

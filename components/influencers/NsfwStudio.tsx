@@ -112,15 +112,16 @@ export function NsfwStudio({
       } else {
         const fullPrompt = prompt.includes("@") ? prompt : `${selectedHandle} ${prompt}`;
         const referenceUrl = referenceFile ? await uploadMediaFile(referenceFile) : null;
-        const res = await fetch("/api/image/generate", {
+        const res = await fetch("/api/generate/image", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: fullPrompt,
-            model: referenceUrl ? resolveImageModelForReference(selectedModel) : selectedModel,
+            modelId: referenceUrl ? resolveImageModelForReference(selectedModel) : selectedModel,
             imageUrl: referenceUrl || undefined,
             aspectRatio: "9:16",
             quality: "1K",
+            feature: "influencers-nsfw",
           }),
         });
         const data = await res.json().catch(() => null);

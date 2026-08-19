@@ -1644,10 +1644,11 @@ function previewVmVoice(id,name,ev){
   try{
     const cleanId=id.replace(/^gemini:/,'');
     const lang=_vmActiveLangs[id]||'ar';
-    const cacheKey=`${id}_${lang}`;
     let url=_vmPreviewCache[cacheKey]||(isGeminiVoiceId(id)?`/api/voice-sample?voice=${encodeURIComponent(cleanId)}&lang=${lang}`:`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`);
     _vmPreviewCache[cacheKey]=url;
+    saveVmPreviewCache();
     _vmPreviewAudio=new Audio(studioMediaUrl(url));
+    _vmPreviewAudio.preload='none';
     _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();updateQuickVoiceButtons(null);};
     _vmPreviewAudio.onerror=()=>{_vmPlayingId=null;renderVmGrid();updateQuickVoiceButtons(null);setStatus('Voice preview failed.','err');};
     _vmPreviewAudio.play().catch(error=>{

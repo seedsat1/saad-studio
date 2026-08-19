@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert } from "lucide-react";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 type DebugRow = {
   id: string;
@@ -79,9 +80,9 @@ export default function SmartCliDebugPage() {
   }, [auto]);
 
   return (
-    <div className="min-h-screen bg-[#05070b] p-6 text-white">
-      <div className="mx-auto max-w-5xl space-y-5">
-        <div className="flex items-center justify-between">
+    <AdminShell activeRoute="/admin/smart-cli-debug">
+      <div className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-800/80 pb-5">
           <div>
             <h1 className="text-2xl font-black">Smart CLI Debug</h1>
             <p className="mt-1 text-sm text-slate-400">
@@ -166,6 +167,6 @@ export default function SmartCliDebugPage() {
           </ul>
         )}
       </div>
-    </div>
+    </AdminShell>
   );
 }

@@ -1,3 +1,998 @@
+# SAAD STUDIO — MASTER CONSTITUTION & ROADMAP LOCK
+
+## 1. OWNER PRIORITIES & OPERATIONAL REALITY (PERMANENT)
+- **Operational Payment Reality**: Manual Financial Transfer (`/admin/transactions` + `/api/payments/request`) is the primary active operational payment workflow. Stripe is implemented and protected, but remains a secondary/standby pathway.
+- **No Guessing**: Engineering decisions must follow verified repository reality and owner workflow, not assumptions.
+- **Preserve Business Logic**: Customer pricing, credit rules, and financial ledger must never be corrupted.
+- **Admin Console Organization**: Admin pages must remain organized in standard 7-group hierarchy with persistent `AdminSidebar` + `AdminShell`.
+- **Real Infographics**: All operational and financial surfaces must display real data-driven pipelines, not decorative fake cards.
+- **Generation Monitor Integrity**: `/admin/history` is the primary operational surface and must expose outputs, reference assets, tool metadata, and provider economics.
+- **Provider-Neutral Checkpoint Switching**: Checkpoint routing must remain provider-neutral; official provider identity is strictly decoupled from execution checkpoint.
+- **Provider State Separation**: Official Product Owner != Direct API State != Execution Checkpoint Availability != Global Operational State.
+- **Ads Visual Composer Accepted**: Visual full-page editing and real subscriber-page preview context are mandatory.
+- **Economic Decoupling**: Customer credit rates are strictly decoupled from provider operating costs.
+- **Immutable Financial Records**: Historical ledger and transaction records must never be silently rewritten.
+- **No Hidden Provider Fallback**: Fail-fast error reporting without silent provider substitutions or dropped parameters.
+- **No Fake Analytics**: Telemetry events must reflect genuine subscriber events; admin and preview sessions emit zero events.
+- **Non-Destructive Migrations**: Database migrations must be non-destructive and preserve 100% of historical records.
+- **Preserve Accepted Systems**: Completed and verified systems must not be casually reopened or redesigned.
+
+## 2. ACCEPTED PRODUCTION SYSTEMS
+1. **Admin Console & Navigation**: `AdminSidebar.tsx` + `AdminShell.tsx` (7 standard groups, 0 duplicate routes).
+2. **Generation Monitor**: `/admin/history` (`UnifiedGenerationHistoryRow`, media lightbox, input/output inspection).
+3. **Manual Financial Transfers & Approvals**: `/admin/transactions` + `/api/payments/request` + atomic CAS approval in `/api/admin/transactions/[id]`.
+4. **Subscriber Dashboard**: `/dashboard` (Level 1-5 operational hierarchy, live credit listener, real recent generations).
+5. **Image & Video Studios**: `/image` & `/video` (Clean modular architecture, shared `AspectRatioPicker` & `GenerateActionButton`).
+6. **Ads & Promotions V2.1**: `/admin/ads` + `VisualComposer.tsx` + `PromotionRenderer.tsx` (Normalized `AdPlacement` & `AdEvent`, `REAL_SAFE_PAGE_PREVIEW`).
+7. **Provider Costs & Tariffs**: `/admin/provider-costs` (`resolveCanonicalProviderTariff()`, reconciled cost tracking).
+8. **Universal Checkpoint Routing**: `/admin/routing` (Neutral checkpoint matrix, canonical parameters, zero bypass routes).
+9. **Provider Fleet**: `/admin/providers` (Active: Google, WaveSpeed, Reap; Standby: OpenAI, BytePlus, KIE; Disabled: ElevenLabs).
+10. **Pricing Constitution**: `/admin/pricing` (`DEFAULT_MODELS`, credit floors, decoupled customer rates).
+11. **Subscriber Economics**: `/admin/subscriber-analytics` (Real financial relationship flow, advance revenue isolation).
+12. **Storage Matrix**: `/admin/storage` (Active Backblaze B2, R2 fallback, HTTP Range 206 `/api/media` streaming).
+13. **Knowledge Hub**: `/admin/knowledge` (SSRF-protected documentation ingestion, hash verification).
+14. **Models & Features Registries**: `/admin/models` & `/admin/features` (First-class catalog linkage).
+15. **Content & CMS Hub**: `/admin/cms` (Exploration, Discovery, Apps, Presets, Voice Samples editors).
+
+## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
+- **PHASE 1 (P1 — Active Generation Integrity)**: Job Queue Worker Isolation & Stuck Generation Auto-Recovery with deterministic failure timeout and auto-refund.
+- **PHASE 2 (P2 — Active Operations & Storage)**:
+  - Manual Transfer Operator Audit Logging (Record approver ID/email in `AdminTransaction`).
+  - Storage Matrix Lifecycle Daemon (Automated purging of orphaned reference media uploads).
+- **PHASE 3 (P3 — Subscriber Secondary Tools Audit)**: Comprehensive Non-Destructive Inventory of `/apps/tool/*` capabilities vs primary generation studios.
+- **PHASE 4 (P3 — Platform Performance)**: Database Query Indexing & Client Viewport Virtualization for high-scale generation history.
+- **PHASE 5 (P4 — Standby Provider Activation Readiness)**: BytePlus Ark & KIE.ai dry-run harness when owner requests activation.
+
+---
+
+#### Latest task: Adobe CEP Repair & Admin Control Plane Implementation (2026-08-19)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Adobe CEP TTS Pricing Parity (Phase 1):
+     - Removed legacy `TTS_CREDIT_COST = 3` in `app/api/panel/generate/tts/route.ts`.
+     - Integrated canonical `calculateTtsCredits(charCount)` and `countAudioScriptCharacters(text)` from `lib/pricing.ts`.
+     - Enforced dynamic character-based pricing: 1 char=1 CR, 627 chars=3 CR, 5000 chars=17 CR.
+  2. Version Consolidation to 3.0.0:
+     - Synchronized manifest (`manifest.xml`), `public/saadstudio-version.json`, `/download`, and `/plugin` landing pages to canonical version `3.0.0`.
+     - Verified physical installer `SaadStudio-Setup.exe` (33.6 MB) on disk.
+  3. Real Operational Admin Control Plane (Phase 2):
+     - Created `/admin/plugin` with live status, mode switcher (Active / Maintenance / Disabled), minimum supported version gate, version synchronizer, and physical installer telemetry.
+     - Added `Adobe Plugin` under `ADVANCED / UTILITIES` in `AdminSidebar.tsx`.
+     - Implemented cryptographic token revocation denylist (fingerprint, user, and global emergency revocation) in `lib/admin/plugin-control-plane.ts` & `lib/panel-auth.ts`.
+     - Added server-side gate policy (`evaluatePluginGate`) across panel endpoints.
+     - Maintained strict separation: `/admin/plugin` = operational management; `/admin/cms/cep` = welcome carousel CMS.
+  4. Comprehensive Verification:
+     - 24/24 tests passed across 2 dedicated CEP test files (`test/adobe-cep-security-and-pricing.test.ts`, `test/adobe-plugin-admin-control-plane.test.ts`).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean.
+
+#### Prior task: Subscriber Navigation & Feature Wiring Strict Runtime Connection Audit + Repair (2026-08-19)
+- Status: Completed & Verified (PASS).
+- Key Audit, Connection, & Repair Deliverables:
+  1. Top Navigation & Dropdowns Runtime Verification:
+     - Verified all 11 canonical Top Navigation links: Explore (`/dash`), Image (`/image`), Video (`/video`), Audio (`/audio`), Edit (`/edit`), Adobe Plugin (`/plugin`), Cinematic Styles (`/apps/tool/cinematic-styles`), Transitions (`/apps/tool/transitions`), Storyboard (`/storyboard`), Hook Studio (`/hook-studio`), and Gallery (`/gallery`).
+     - Verified 10 Image Menu features, 18 Video Menu features, 6 Audio Menu features, and 6 Edit Menu features with 100% route and runtime execution alignment.
+     - Delineated unique workspaces: Storyboard (`/storyboard`), Cinema Board (`/cinema-board`), Cinema Studio (`/cinema-studio`), and Shots (`/shots`).
+  2. Deleted Routes Scrub & Deep-Link Safety:
+     - Repaired legacy `/conversation` and `/code` entries in `components/sidebar.tsx` to active production routes (`/assist` and `/cinema-flow`).
+     - Repaired legacy `/studio-edit` in `components/video/VideoHistoryList.tsx` to canonical `/clipcraft-studio`.
+     - Repaired legacy `/moodboard` in `components/TopChoiceGrid.tsx` to `/apps/tool/ai-stylist`.
+     - Verified zero references to deleted routes (`/video/create-video`, `/image/generate`, `/image/ai-influencer`, `/image/soul-id-character`, `/talent-studio/*`, `/studio-edit`, `/image-presets`, `/moodboard/*`, `/beauty2.html`, `/code`, `/conversation`, `/cinema-studio-vso`).
+  3. Adobe Plugin Full Ecosystem Chain Verification:
+     - Verified public page (`/plugin`), download artifacts (`/downloads/SaadStudio-Setup.exe`), CEP token/connect pages (`/panel`, `/panel/connect`), Smart CLI endpoints (`/smart-cli`, `/api/smart-cli/*`), and Admin CMS / Debug planes (`/admin/cms/cep`, `/admin/smart-cli-debug`).
+  4. Desktop/Mobile Parity & Influencers Isolation:
+     - Verified 100% parity between Desktop TopNavbar and Mobile Drawer.
+     - Confirmed zero exposure of `/influencers` across subscriber navigation and UI.
+  5. Comprehensive Verification:
+     - 20/20 test suites passing (233/233 tests).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean.
+
+#### Prior task: Influencers Access Policy Correction — Admin-Only NSFW Product (2026-08-19)
+- Status: Completed & Verified (PASS).
+- Key Implementation & Policy Deliverables:
+  1. Server-Side Route Access Enforcement:
+     - Implemented `app/(dash)/(routes)/influencers/layout.tsx` Server Component enforcing server-side `auth()` and `isAdmin()` checks. Unauthenticated users redirect to `/sign-in`; non-admin subscribers redirect to `/dashboard`.
+     - Updated `middleware.ts` to remove `/influencers(.*)`, `/talent-studio(.*)`, and `/api/influencers(.*)` from `isPublicRoute`. Added server-side admin check redirecting non-admin web traffic to `/dashboard` and returning 403 for API requests.
+  2. Server-Side API Protection:
+     - Updated `app/api/generate/image/route.ts` and `app/api/generate/video/route.ts` to check `isAdmin()` when `feature: "influencers-nsfw"`, `feature: "nsfw"`, or `feature: "influencers"` is requested.
+     - Guaranteed shared generation APIs remain 100% functional for normal subscribers doing standard creations.
+  3. Navigation & Discovery Scrub:
+     - Confirmed complete exclusion of `/influencers` from `TopNavbar.tsx`, `apps-data.ts`, dashboard, and explore feeds for subscribers.
+  4. Comprehensive Verification:
+     - 19/19 test suites passing (164/164 tests).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean.
+
+#### Prior task: Influencers Studio Repair & Production Hardening (2026-08-19)
+- Status: Completed & Verified (PASS).
+- Key Implementation & Architectural Deliverables:
+  1. Owner-Approved Visual & Functional Parity:
+     - Verified and hardened `/influencers` and all 8 sub-routes (`/canvas`, `/faceswap`, `/image`, `/library`, `/motion`, `/nsfw`, `/upscale`, `/video`).
+     - Aligned top floating control bar in `WorkflowCanvas.tsx` to match Screenshot 1 (Handle selector, image count `8`, aspect `9:16`, model `Nano Banana Pro`, scene prompt input, `+ Add Node`, and `Generate Image Group` gradient button).
+     - Enhanced Root Node Card in `WorkflowCanvas.tsx` with neon border, `@gavi` bottom-left badge, and full-width gradient `Generate Image Group 🪄` button matching Screenshots 1 & 2.
+     - Positioned default influencer `DEFAULT` badge on top-left of the card in `InfluencerRoster.tsx` matching Screenshots 3 & 4.
+     - Aligned 15-step onboarding tour in `InfluencerTourModal.tsx` to match Screenshots 3, 4 & 5.
+  2. Brand Coherence & Hygiene:
+     - Guaranteed zero active instances of obsolete Eromify/Eronify branding.
+  3. Comprehensive Verification:
+     - 19/19 test suites passing (159/159 tests).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean.
+
+#### Prior task: Pre-Release Full Platform Cleanup — Dead Page Removal & Route Allowlist (2026-08-18)
+- Status: Completed & Verified (PASS).
+- Key Implementation & Architectural Deliverables:
+  1. Final Allowlist Enforcement:
+     - Established Canonical Subscriber Allowlist (Core Studios, Specialized Tools, Discovery/Content, Commercial/Account, Auth/System, Legal, Compatibility Aliases).
+     - Established Canonical Admin Allowlist (Overview, Operations, Users & Finance, AI Engine, Content & CMS, Ads & Campaigns, Advanced Utilities).
+  2. Dead Artifacts & Repository Hygiene:
+     - Removed 5 abandoned backup/temporary artifacts (`app/(dash)/(routes)/explore/page.tsx.backup`, `app/(dash)/(routes)/video/page.tsx.backup`, `app/api/explore/route.ts.backup`, `app/(dash)/(routes)/variations/page.tsx.bak2`, `app/favicon.ico.bak_latest`).
+     - Verified zero broken internal links across Dashboard, Apps, CMS, Ads CTAs, and AdminSidebar.
+  3. Comprehensive Verification:
+     - 18/18 test suites passing (154/154 tests).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean.
+
+---
+
+#### Latest task: Final Production Verification — Release Readiness & Deployment Acceptance (2026-08-18)
+- Status: Completed & Verified (PASS).
+- Key Implementation & Architectural Deliverables:
+  1. Full Production Release Verification:
+     - Environment inventory verified across Database, Clerk Auth, Google GenAI, WaveSpeed, Reap, Backblaze B2, and Cron secrets.
+     - Active providers (Google, WaveSpeed, Reap) verified in production-ready state; standby providers safely dormant.
+     - Storage lifecycle daemon and generation watchdog verified with strict schedule and authentication.
+     - Database schema audited read-only with 0 drift, 0 migration risk, and all relational constraints intact.
+     - Active payment workflow (Manual Financial Transfer) verified with atomic operator audit stamping and zero-rollover credit allocation.
+     - All 17 Admin control planes and 24 Subscriber studios/tools verified fully connected with 0 broken links and 0 fake data.
+  2. Complete Test & Compiler Verification:
+     - 18/18 test suites passed (154/154 tests passing).
+     - `npx tsc --noEmit` passed with 0 errors.
+     - `git diff --check` clean.
+     - Zero customer pricing changes, zero provider state mutations, zero database mutations, zero real storage deletions.
+
+---
+
+#### Latest task: Final Integration Gate — Admin ↔ Subscriber Runtime Connection (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Bidirectional Control-Plane & Read-Model Traceability:
+     - Verified end-to-end telemetry from Subscriber Generation → `Generation` + `GenerationRequestSnapshot` → Admin Generation Monitor (`/admin/history`).
+     - Verified Admin Routing Control Plane (`/admin/routing`) → `resolveRuntimeProviderRoute()` → provider execution with 100% pricing isolation.
+     - Verified Pricing Constitution preview calculation equals exact server-side debit and `CreditLedgerEntry` recording.
+     - Verified Manual Transfer approval updates subscriber plan & balance with operator audit stamps and zero rollover.
+     - Verified Ads V2.1 (`AdCampaign` / `AdPlacement`) → `/api/ads` → `PromotionRenderer` across `/dashboard`, `/video`, and `/image`.
+  2. Security & Auth Boundary Invariants:
+     - Admin endpoints strictly enforce `isAdmin()` (401 Unauthorized for non-admin users).
+     - Cron endpoints strictly enforce `CRON_SECRET` / `x-vercel-cron` (403 Forbidden for unauthorized requests).
+     - Client parameter spoofing (operator ID, credit amounts, plan definitions) strictly ignored; resolved server-side from session.
+  3. Comprehensive Automated Verification:
+     - Created `test/final-integration-gate.test.ts` (6/6 passing).
+     - 154/154 tests passing across all 18 test suites.
+     - `npx tsc --noEmit` passing with 0 errors.
+
+---
+
+#### Latest task: Phase 5 — Safe Route Consolidation & Navigation Architecture (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Talent Studio / Influencers Alias Architecture:
+     - Verified that all 9 `/talent-studio/*` routes are active, fully functioning programmatic redirect aliases to `/influencers/*` via `withTalentStudioQuery`.
+     - Preserved all 9 entry points, query parameters, nested routes, and deep links with 100% bookmark compatibility.
+  2. Evidence-Based Candidate Audit & Distinct Route Protection:
+     - Independently audited `/cinema-studio-vso` (4,306-line staging build with casting characters & director mode), `/cinematic-video` (2,081-line Veo cinematic preset generator), `/video-extend` (1,103-line multi-pass video outpainter), and `/video-project-editor` (1,246-line Pikaso standalone editor).
+     - Upheld the non-destructive directive: reclassified all 4 as DISTINCT workflows with zero functional loss.
+     - 100% protected distinct studios: `/edit` (Image Canvas), `/video-edit` (Prompt V2V), `/video-editor` (Timeline Editor), `/clipcraft-studio` (Post-Production Reap Suite), `/cinema-flow`, `/cinema-board`, and `/shots`.
+  3. Legacy Route Preservation:
+     - Retained all legacy prototype routes (`/beauty2.html`, `/code`, `/conversation`) without deletion.
+  4. Comprehensive Verification:
+     - Created `test/route-consolidation-and-navigation.test.ts` (6/6 passing).
+     - 148/148 tests passing across all 17 test suites.
+     - `npx tsc --noEmit` passing with 0 errors.
+
+---
+
+#### Latest task: Phase 3 — Storage & Media Lifecycle Integrity (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Media Ownership Matrix & Retention Protection:
+     - Established canonical retention for all subscriber media: `CANONICAL_OUTPUT`, `REFERENCE_INPUT`, `THUMBNAIL_POSTER`, `PAYMENT_PROOF`, `AD_CAMPAIGN_MEDIA`, and `CMS_SITE_ASSET`.
+     - Zero age-based deletion of canonical outputs, reference inputs, or payment receipts.
+  2. Two-Phase Safe Lifecycle Service (`lib/storage/storage-lifecycle.ts`):
+     - Implemented cross-table ownership validation across `Generation`, `GenerationRequestSnapshot`, `AdminTransaction`, `AdCampaign`, and `SiteSetting`.
+     - Enforced a strict 24-hour grace period for unlinked/staging uploads (`TEMPORARY_STAGING`).
+     - Added safe dry-run reporting by default (`dryRun: true` returns candidate count and reclaimable bytes with zero deletion).
+  3. Scheduled Watchdog & Cron Deployment:
+     - Created secure cron endpoint `app/api/cron/storage-cleanup/route.ts` with `CRON_SECRET` / `x-vercel-cron` authorization.
+     - Scheduled in `vercel.json` (daily at 4:00 AM: `0 4 * * *`).
+  4. Comprehensive Verification:
+     - Created `test/storage-media-lifecycle-integrity.test.ts` (6/6 passing).
+     - 142/142 tests passing across all 16 test suites.
+     - `npx tsc --noEmit` passing with 0 errors.
+
+---
+
+#### Latest task: Phase 2 — Manual Transfer Operational & Audit Integrity (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Operator Audit Schema & Server-Side Identity Stamping:
+     - Added `operatorUserId`, `operatorEmail`, `decisionAt`, and `decisionReason` to `AdminTransaction` model.
+     - Resolved operator identity server-side via `@clerk/nextjs/server` (`auth()`, `currentUser()`) — completely ignoring untrusted client payload values.
+  2. Financial Atomicity & Race-Safe State Machine:
+     - Maintained atomic compare-and-swap update (`updateMany where id = id and paymentStatus = "PENDING"`) for both approvals and rejections.
+     - Rejections grant exactly 0 credits, 0 subscription mutations, and record optional operator rejection notes.
+     - Preserved zero-rollover credit allocation for subscriptions and additive increments for top-ups.
+  3. Operations UI & Historical Preservation:
+     - Updated `app/admin/transactions/page.tsx` with operator email badges, decision timestamps, and rejection note input.
+     - Guaranteed non-destructive compatibility with legacy transactions (`LEGACY / OPERATOR UNKNOWN`).
+  4. Comprehensive Verification:
+     - Created `test/manual-transfer-operator-audit-integrity.test.ts` (7/7 passing).
+     - 136/136 tests passing across all 15 test suites.
+     - `npx tsc --noEmit` passing with 0 errors.
+
+---
+
+#### Latest task: Phase 1 — Active Generation Reliability Hardening & Server-Side Watchdog (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Canonical Server-Side Reconciler (`lib/generation/task-reconciler.ts`):
+     - Unifies async task status polling for Google Veo (`gvo:`), WaveSpeed (`ws:`, UUIDs), and BytePlus (`ark:`).
+     - Resolves normalized states: `processing`, `completed` (downloads & persists to Backblaze B2, completes generation), `failed` (atomic idempotent refund), and `transient_error` (maintains in-flight eligibility).
+     - Protects against duplicate B2 uploads and double-refunds via transactional invariants (`if (!generation || generation.cost <= 0) return`).
+  2. Background Watchdog Cron Endpoint (`app/api/cron/generation-reconcile/route.ts`):
+     - Automated bounded batching (20 in-flight tasks per invocation) for tasks older than 60s.
+     - Secured with `CRON_SECRET` and `x-vercel-cron` header verification.
+     - Guarantees server-side media recovery even if subscriber immediately closes the browser tab.
+  3. Comprehensive Verification:
+     - Created `test/active-generation-reconciler-and-watchdog.test.ts` (6/6 passing).
+     - 127/127 tests passing across all 14 test suites.
+     - `npx tsc --noEmit` passing with 0 errors.
+     - Zero customer pricing changes, zero routing mutations, zero provider fleet changes.
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Real Page Preview Architecture (`components/admin/ads/preview/RealPagePreviewAdapter.tsx`):
+     - Upgraded from `SIMULATED_LAYOUT` to `REAL_SAFE_PAGE_PREVIEW`.
+     - Reuses real subscriber layout hierarchies, TopNavbar, studio cards, parameter strips, and tool discovery components across `/dashboard`, `/video`, `/image`, `/pricing`, `/apps`, and `/gallery`.
+     - Enforced strict Preview Side-Effect Firewall: Zero provider calls, zero generation requests, zero credit charges, zero payment calls, zero analytics pollution.
+  2. Data Model & Storage Normalization (`prisma/schema.prisma` & `lib/ads/`):
+     - Removed structured JSON dump from `targetLink`; `targetLink` now strictly stores pure CTA destination URLs (e.g. `/pricing` or `https://...`).
+     - Added normalized first-class columns to `AdCampaign` (`headline`, `description`, `mediaType`, `ctaLabel`, `ctaTarget`, `priority`, `audience`, `animation`, `dismissible`, `dismissalModel`, `startDate`).
+     - Created normalized `AdPlacement` model for per-page responsive geometries (`desktop`, `tablet`, `mobile`) and `AdEvent` model for durable telemetry.
+  3. Migration Safety & 100% Backward Compatibility:
+     - Executed safe, non-destructive SQL migrations (`scripts/migrate-ads-normalized.js`).
+     - Seamlessly reads legacy `saad_ad_v1` payloads as well as legacy `TOP_BANNER`, `POPUP`, and `SIDEBAR` records without data loss.
+  4. Telemetry & Analytics Integrity (`app/api/ads/event/route.ts`):
+     - Emits durable, concurrency-safe records to `AdEvent`.
+     - Client deduplication prevents duplicate impression inflation; Composer and Admin previews emit 0 analytics events.
+  5. Verification:
+     - Created `test/ads-strict-acceptance-verification.test.ts` (7/7 passing).
+     - 112/112 tests passing across 11 regression suites.
+     - `npx tsc --noEmit` passing with 0 errors.
+
+#### Latest task: Generation Studios Modularization, UX Simplification & Runtime-Preserving Refactor (Phase 2) (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Shared Generation Components (`components/generation/`):
+     - `AspectRatioPicker.tsx`: Extracted clean, visual aspect ratio selector preserving model-specific aspect ratio configurations, SVG ratio icons, natural sorting order, and active styling.
+     - `GenerateActionButton.tsx`: Extracted action bar component combining dynamic credit pricing readout, live balance check, insufficient credit warning indicator, and multi-state submit button.
+  2. Video Studio Modularization (`/video`):
+     - `components/video/VideoHistoryList.tsx`: Extracted 650+ lines of history list and card rendering, including hover toolbar actions (play/pause, download, copy prompt, remix, favorite), reference tags, retry failure states, deletion dialog, and playable previews.
+     - `app/(dash)/(routes)/video/page.tsx`: Reduced file size from 7,238 lines to 6,431 lines (~807 lines extracted) with zero runtime behavior changes.
+  3. Image Studio Modularization (`/image`):
+     - `components/image/ImageResultGrid.tsx`: Extracted masonry results grid, failed asset cards, prompt copying, remix/reuse buttons, album picker persistence, and deletion dialog.
+     - `app/(dash)/(routes)/image/page.tsx`: Reduced file size from 2,964 lines to 2,488 lines (~476 lines extracted) with zero runtime behavior changes.
+  4. Invariant Preservation:
+     - Zero runtime behavior changes.
+     - Zero customer pricing changes (`getVideoCreditsByRoute()` and `getImageCreditCost()` match exactly).
+     - Zero provider routing changes (Admin-controlled checkpoints remain untouched).
+     - Zero parameter semantic changes or parameter dropping.
+     - ElevenLabs provider remains strictly disabled.
+     - Zero real billable provider calls made.
+  5. Verification & Test Suite:
+     - Created `test/generation-studios-modularization.test.ts` (7/7 tests passing).
+     - 14/14 tests passing across Phase 1 and Phase 2 test suites.
+     - `npx tsc --noEmit` passing with 0 errors.
+
+#### Latest task: Subscriber Dashboard Reality Correction & Audit Contradiction Remediation (Phase 1) (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Audit Contradictions Remediation:
+     - Verified ElevenLabs provider execution status: ElevenLabs is strictly `disabled` in `PROVIDER_REGISTRY` (0 active runtime routes, 0 direct API calls). Logical model slug `elevenlabs/multilingual-v2` executes via WaveSpeed (`https://api.wavespeed.ai/api/v3`), NOT direct ElevenLabs calls.
+     - Verified Authoritative Subscription Plans: Authoritative constitution in `SAAD_PLANS` defines `Pro = $70/month (1,800 credits)`, `Starter = $15/month (300 credits)`, `Max = $99/month (2,700 credits)`. Old "$29/mo" string was an illustrative placeholder.
+     - Verified Decoupled Pricing: Verified `kling30` (3.0 credits/sec), `sora2` (3.41 credits/sec), `flux` (4.0 credits flat) from `DEFAULT_MODELS`.
+  2. Operational Subscriber Dashboard Implementation (`app/(dash)/(routes)/dashboard/page.tsx`):
+     - Eliminated 100% of hardcoded mock statistics ("142 generations", "1,200 credits", "Saad" profile name, fake `RECENT_ACTIVITY`, fake `STATS`).
+     - Level 1: Real Subscriber Identity Strip powered by Clerk `useUser()` + live credit balance from `prismadb.user` via `/api/profile/settings` and event-driven `"saad-credits-updated"` listener.
+     - Level 2: Primary Generation Studios (Video Studio `/video`, Image Studio `/image`, Audio & Music `/audio`, App Catalog `/apps`).
+     - Level 3: Real Operational Creative Generation Pipeline Infographic (Live Active In-Flight count + Total Vault assets) + Continue Working Recent Generations Strip (`/api/assets?type=all&limit=6`) with image thumbnails, video type badges, prompt snippets, and direct links to `/gallery`.
+     - Level 4: Curated Tool Discovery (3D Mesh `/3d`, ClipCraft `/clipcraft-studio`, Relighting `/apps/tool/relight`, Face Swap `/apps/tool/face-swap`, Lip Sync `/lipsync`, Prompt Extractor `/prompt-extractor`).
+     - Level 5: Subscription & Account Management card with real plan name, active balance, billing cycle, renewal date, and links to `/settings` and `/pricing`.
+     - Zero provider internals leaked (no WaveSpeed, KIE, BytePlus mentions to subscriber).
+  3. Comprehensive Verification:
+     - Created focused unit test `test/subscriber-dashboard-reality.test.ts` (7/7 tests passing).
+     - 35/35 tests passing across dashboard and control-plane suites.
+     - 38/38 tests passing across provider cost reconciliation suites.
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean with 0 warnings.
+     - Zero customer pricing changes, zero credit logic changes, zero routing dispatch mutations, zero real provider calls.
+
+#### Latest task: Admin Visual Simplification, Real Infographics & Operational UX Standardization (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Standardized 5-Level Visual Hierarchy Across Target Pages:
+     - Level 1: Compact Page Header with live sync timestamp, quick actions, and direct links.
+     - Level 2: One integrated operational/financial status strip (eliminating disconnected card piles).
+     - Level 3: Real data-driven infographics reflecting actual system pipelines, state transitions, and topologies.
+     - Level 4: Primary operational workspaces (dense data tables, matrix views, split decks).
+     - Level 5: Safe slide-over inspector drawers with transition previews, immutable keys, and optimistic concurrency.
+  2. Real Data-Driven Infographics Implemented:
+     - Control Center (`/admin/control-center`): End-to-End Operational Pipeline (`USER REQUEST -> GENERATION QUEUE -> CHECKPOINT ROUTING -> PROVIDER FLEET -> STORAGE MATRIX -> SUBSCRIBER DELIVERY`).
+     - Checkpoint Routing (`/admin/routing`): Universal Runtime Checkpoint Pipeline (`LOGICAL PRODUCT -> OFFICIAL LAB -> PARAMETER NORMALIZATION -> EXECUTION CHECKPOINT -> FAIL-FAST DISPATCH -> RECONCILED COST`).
+     - Provider Costs (`/admin/provider-costs`): Real Cost Flow & Reconciled Trust Matrix (`CUSTOMER REQUEST -> CREDITS CHARGED -> SELECTED PROVIDER -> PROVIDER EXECUTION -> PROVIDER COST -> COST TRUST -> RECONCILIATION`).
+     - Subscriber Analytics (`/admin/subscriber-analytics`): Financial Relationship Infographic & Isolated Advance Exposure (`SUBSCRIPTION CASH + TOP-UP CASH -> COMMERCIAL REVENUE -> CREDIT ENTITLEMENT -> CREDIT CONSUMPTION -> PROVIDER COST -> HEURISTIC UNIT ECONOMICS`).
+     - Storage Matrix (`/admin/storage`): Real Media Storage & Streaming Topology (`GENERATION OUTPUT -> ACTIVE B2 WRITE -> DB MEDIA KEY -> /api/media RANGE 206 PROXY -> CLIENT`, with isolated R2 Read Fallback branch).
+     - Knowledge Hub (`/admin/knowledge`): Real Provider Documentation Pipeline (`DOCUMENTATION -> SECURE SSRF IMPORT -> NORMALIZATION -> SHA-256 HASH -> SPEC EXTRACTION -> ADMIN REVIEW -> CHANGE PROPOSAL -> REGISTRY PUBLISH`).
+     - Pricing Constitution (`/admin/pricing`): Decoupled Pricing vs Operating Cost Architecture (`LOGICAL PRODUCT -> PRICING CONSTITUTION -> CUSTOMER CREDIT RATE` strictly decoupled from `SELECTED PROVIDER -> PROVIDER COST`).
+     - Models Registry (`/admin/models`): Model Relationship & Linkage Architecture (`LOGICAL MODEL -> CAPABILITIES -> ROUTING CHECKPOINT -> PRICING CONSTITUTION -> FEATURE LINKAGE`).
+     - Features Registry (`/admin/features`): Feature Runtime Linkage Pipeline (`USER FEATURE -> UI ROUTE -> API ENDPOINT -> LOGICAL MODEL -> ROUTING CHECKPOINT -> PRICING CONSTITUTION -> OBSERVABILITY`).
+  3. Comprehensive Verification:
+     - 188/188 tests passing across 23 targeted admin test suites.
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean with 0 warnings.
+     - Zero customer pricing changes, zero credit logic changes, zero routing dispatch mutations, zero real provider calls.
+
+#### Latest task: Admin Information Architecture + CMS Connections + Ads Implementation (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Final Canonical Navigation Architecture (`components/admin/AdminSidebar.tsx` & `components/admin/AdminShell.tsx`):
+     - Normalized 7 hierarchical, collapsible responsibility domains: `OVERVIEW`, `OPERATIONS`, `USERS & FINANCE`, `AI ENGINE`, `CONTENT & CMS`, `ADS & CAMPAIGNS`, `ADVANCED / UTILITIES`.
+     - Direct & contextual reachability for all active admin surfaces with zero duplicate primary navigation destinations.
+     - Automatic expansion of active route group, nested route indicator, and full mobile/tablet responsive drawer support with hamburger trigger.
+  2. Content & CMS Landing Hub (`app/admin/cms/page.tsx`):
+     - Built dedicated Content & CMS Hub cataloging all 10 verified subscriber-facing child surfaces (`/admin/cms/studio-img`, `/admin/cms/explore`, `/admin/cms/discover`, `/admin/cms/apps`, `/admin/cms/pricing`, `/admin/cinematic-presets`, `/admin/voice-samples`, `/admin/page-builder`, `/admin/cms/cep`, `/admin/cms/auth`).
+     - Established strict semantic boundary: CMS handles marketing copy/presets, while operational Pricing Constitution (`/admin/pricing`) and Provider Costs (`/admin/provider-costs`) remain strictly decoupled.
+  3. Ad Campaigns & Banners Operations Surface (`app/admin/ads/page.tsx`):
+     - Implemented complete campaign operations page powered by `AdCampaign` model (`TOP_BANNER`, `POPUP`, `SIDEBAR`).
+     - Real media preview preserving placement aspect ratios (wide top banner, popup modal, sidebar card).
+     - Full creation & editing slide-over drawer, live active toggle, deletion confirmation modal, and zero fake analytics.
+  4. Legacy Admin Root Cleanup (`app/admin/page.tsx`):
+     - Root `/admin` cleanly routes to `/admin/control-center`.
+  5. Comprehensive Verification:
+     - 135/135 tests passing across 15 Vitest suites (including `test/admin-navigation-and-ads.test.ts`).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean with 0 warnings.
+     - Zero backend pricing, credit, or routing logic mutated. Zero real provider calls.
+
+#### Latest task: Admin Generation Monitor — Production Redesign & Implementation (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Visual & Operational Surface Upgrade (`app/admin/history/page.tsx`):
+     - Level 1: Compact header with direct link to worker queue infrastructure (`/admin/jobs`).
+     - Level 2: Single horizontal operational metric strip (`Total Feed`, `Completed`, `Processing`, `Failed`, `Credits Charged`, `Provider USD Cost`).
+     - Level 3: Real-time search by user email, prompt, model, tool, ID, modality selector, date presets (Today, 7d, 30d, All), and View Switcher (Gallery vs List).
+     - Level 4: Mixed aspect-ratio visual Gallery preserving native media ratios (`16:9`, `9:16`, `1:1`, `4:3`, `21:9`) with video posters, hover quick actions, processing spinners, and failed placeholders. Alternate high-density operational List mode.
+     - Level 5: Generation Inspector Drawer (Desktop 680px, Mobile full-width) featuring Hero media player, subscriber details, prompt text with copy, input/reference media grid (first/last frame, reference images), operational flow diagram, provider routing attribution, decoupled economics, and execution diagnostics.
+     - Level 6: High-resolution fullscreen Lightbox media viewer.
+  2. Bounded Server-Side Pagination & Lazy Snapshot Retrieval:
+     - Upgraded `lib/admin/history-read-model.ts` and `app/api/admin/history/route.ts` to support paginated queries (`page`, `pageSize`, `hasMore`, `totalCount`) with User relations (`email`, `name`).
+     - Added dedicated lazy snapshot endpoint `GET /api/admin/generations/[id]` that fetches heavy JSON snapshots and reference images on-demand.
+  3. Comprehensive Verification:
+     - 128/128 tests passing across 14 Vitest suites (including `test/admin-generation-monitor-e2e.test.ts`).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean with 0 warnings.
+     - Zero backend pricing, credit, or routing logic mutated. Zero real provider calls.
+
+#### Latest task: Final Checkpoint Routing — End-to-End Runtime Verification (2026-08-18)
+- Status: Completed & Verified (Isolated Mocked E2E Dispatch).
+- Verification & Proof Results:
+  1. Isolated Checkpoint Dispatch Parity:
+     - Google product (Veo 3.1 Fast): Google Selected -> Google Executor x1, WaveSpeed x0, KIE x0. WaveSpeed Selected -> WaveSpeed Executor x1, Google x0, KIE x0. KIE Selected -> KIE Executor x1, Google x0, WaveSpeed x0.
+     - OpenAI product (DALL-E 3): OpenAI Selected -> OpenAI Executor x1, WaveSpeed x0, KIE x0. WaveSpeed Selected -> WaveSpeed Executor x1, OpenAI x0, KIE x0. KIE Selected -> KIE Executor x1, OpenAI x0, WaveSpeed x0.
+     - BytePlus product (Seedance 2.5): WaveSpeed Selected -> WaveSpeed Executor x1, BytePlus x0, KIE x0. BytePlus and KIE Standby policy verified without global state mutations.
+  2. Strict Execution Safety & Error Propagation:
+     - Failure behavior: When selected provider fails, fails immediately with zero retries on alternate providers (Auto-Fallback strictly OFF).
+     - Unsupported capability: Throws `CheckpointCapabilityMismatchError`, provider calls = 0, zero silent parameter dropping.
+     - Stale write concurrency: HTTP 409 `RoutingConcurrencyError`, mutations = 0, audit events = 0.
+     - Successful switch: Exactly one mutation, exactly one `save_override` audit event.
+  3. Cost Attribution & Pricing Invariance:
+     - Tariff attribution follows concrete selected execution provider with zero cross-provider tariff leakage.
+     - Customer credit pricing invariant verified across all checkpoints.
+  4. Comprehensive Verification:
+     - 119/119 tests passing across 12 Vitest suites (14 new E2E tests in `test/checkpoint-routing-e2e-runtime-verification.test.ts`).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean with 0 warnings.
+     - Real billable provider calls = ZERO. Real user data mutations = ZERO.
+
+#### Latest task: Admin Routing — Product Checkpoint Switching Control Plane (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Product Checkpoint Matrix Builder (`lib/routing/checkpoint-matrix-builder.ts`):
+     - `resolveOfficialProvider`: Permanent owner metadata (Google, OpenAI, BytePlus, WaveSpeed, Reap).
+     - `buildAvailableCheckpoints`: Enriches each logical product with verified single-selection execution checkpoints (Official, WaveSpeed, KIE) and status flags (`SELECTED`, `AVAILABLE`, `PROVIDER_STANDBY`, `DISABLED`).
+  2. Upgraded Control Plane UI (`app/admin/routing/page.tsx`):
+     - Permanent Official Source badges alongside selected Execution Checkpoint.
+     - Single-selection radio checkpoint cards with tariff rate & verification status.
+     - Capability Loss Warning detecting feature downgrades (e.g. synchronized audio generation).
+     - Customer Pricing Invariance notice ("Customer credit pricing is strictly decoupled from provider selection and remains unchanged").
+     - Route Transition Preview (`Current Provider (route) → Proposed Provider (route)`).
+     - Optimistic Concurrency with `expectedUpdatedAt` version token transmitting on PUT and handling HTTP 409 conflict.
+     - Immutable Audit Trail recording `checkpoint_switch` actions atomically.
+  3. Direct Runtime Integration & Bypass Removal:
+     - Removed hardcoded provider bypass in `lib/providers/dispatch.ts` and `lib/provider-router.ts`.
+     - Selected checkpoint authoritatively controls runtime execution with normalized parameter adapters.
+  4. Comprehensive Verification:
+     - 105/105 tests passing across 11 Vitest suites (including `test/admin-checkpoint-routing-control-plane.test.ts`).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean with 0 warnings.
+     - Zero database schema migrations required.
+
+#### Latest task: Universal Checkpoint Routing — Provider Parameter Normalization Layer (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Deliverables:
+  1. Strongly Typed Canonical Request Contract (`lib/routing/checkpoints/canonical-request.ts`):
+     - Standardized `CanonicalGenerationRequest` capturing prompt, negativePrompt, durationSec, resolution, aspectRatio, inputImage, referenceImages, firstFrame, lastFrame, inputVideo, inputAudio, seed, quality, mode, generateAudio, cameraControls, motionControls, numOutputs.
+  2. Provider Checkpoint Capability Declarations (`lib/routing/checkpoints/checkpoint-capabilities.ts`):
+     - Exhaustive capability descriptors for Google Official, OpenAI Official, BytePlus Official, WaveSpeed, and KIE.ai across video and image modalities.
+  3. Strict Capability Validator (`lib/routing/checkpoints/checkpoint-validator.ts`):
+     - Enforces `assertCanonicalRequestCompatibility` and throws `CheckpointCapabilityMismatchError` with `unsupportedParameters: string[]`.
+     - Zero silent parameter dropping or hidden provider substitution.
+  4. Isolated Provider Adapters (`lib/routing/checkpoints/adapters/`):
+     - `google.ts`: Normalizes requests to Google Vertex AI / AI Studio formats (Veo, Imagen 3, Nano Banana).
+     - `openai.ts`: Normalizes requests to OpenAI formats (DALL-E 3, GPT-Image, Sora 2).
+     - `byteplus.ts`: Normalizes requests to BytePlus ModelArk format (Seedance 2.5/2.0).
+     - `wavespeed.ts`: Normalizes requests to WaveSpeed API format (Minimax, Kling, Grok, Flux, Veo/Seedance on WaveSpeed).
+     - `kie.ts`: Normalizes requests to KIE.ai API format.
+  5. Master Normalization Dispatcher (`lib/routing/checkpoints/checkpoint-adapter.ts`):
+     - `normalizeAndAdaptCheckpointRequest`: Validates capabilities and transforms canonical requests into provider-compliant payloads while preserving immutable `logicalProductId` and `officialProvider` identities.
+  6. Comprehensive Verification:
+     - 88/88 tests passing across 9 Vitest suites (13 new normalization tests in `test/checkpoint-parameter-normalization.test.ts`).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean with 0 warnings.
+     - Zero mutations to Pricing Constitution, user credits, provider tariffs, or active routing UI.
+
+#### Latest task: Universal Product Checkpoint Routing — Reality Audit & Route Matrix (2026-08-18)
+- Status: Completed & Verified (Read-Only Audit & Matrix Design).
+- Key Architectural Discoveries & Matrix Reality:
+  1. Product Owner vs Execution Source Decoupling:
+     - Every logical model has an immutable Official Source (e.g. Google for Veo/Imagen, OpenAI for DALL-E/GPT, BytePlus for Seedance, WaveSpeed for Minimax/Kling, Reap for post-production).
+     - Execution checkpoints are concrete provider endpoints (Official Upstream, WaveSpeed API, KIE.ai API).
+     - Exactly ONE checkpoint is active/selected at a time. No auto-fallback, no sequential retries.
+  2. Compatibility & Parameter Transformation Requirements:
+     - Provider APIs have differing parameter schemas and capability limits (e.g., Google expects durationSeconds integer and GCS/base64 images; WaveSpeed expects duration and URL arrays; BytePlus expects req_key and tokenized dimensions).
+     - Route switching requires a standardized parameter normalization adapter before execution.
+  3. Storage & Concurrency:
+     - `PlatformConfig.model_routing_overrides` JSON store natively supports checkpoint matrix definitions without schema migrations.
+     - Per-generation trace snapshot preserves `logicalProductId`, `officialProvider`, `selectedExecutionProvider`, `providerRoute`, `userCreditsCharged`, `providerCostUsd`, `providerCostSource`, and `tariffKey`.
+  4. Tests & Verification:
+     - 75/75 tests passing across 8 Vitest suites (including `test/universal-checkpoint-routing.test.ts`).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean with 0 warnings.
+     - Zero mutations to Pricing Constitution, user credits, provider tariffs, or active routing.
+
+#### Latest task: ElevenLabs Provider Classification Correction & Inactive Status Alignment (2026-08-18)
+- Status: Completed & Verified.
+- Verification & Findings:
+  1. Full Project & Runtime Usage Audit:
+     - `Generation` rows with providerName = ElevenLabs: **0**
+     - `ProviderUsageRecord` rows with providerName = ElevenLabs: **0**
+     - Distinct Generation providers in DB: `[null, 'Reap', 'Google', 'KIE.ai', 'BytePlus', 'WaveSpeed', 'OpenAI']`
+     - Runtime audio routes dispatch to WaveSpeed / KIE (zero calls to `api.elevenlabs.io` or `ELEVENLABS_API_KEY`).
+  2. Classification & Control Plane Alignment:
+     - ElevenLabs is classified as `INACTIVE_LEGACY` (`status: "disabled"`, `enabled: false`, `allowRouting: false`).
+     - ElevenLabs is excluded from active provider counts, active tariff coverage, and active reconciliation.
+     - Standby tariffs are marked `UNKNOWN` so they do not inflate verified active routes.
+     - Dynamic provider inventory remains strictly intact; historical records (if any) remain visible under Historical Providers.
+  3. Tests & Integrity:
+     - 67/67 tests passing in Vitest across 7 test suites.
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean with 0 warnings.
+     - User pricing, subscriptions, other providers (Google, OpenAI, WaveSpeed, BytePlus, Reap, KIE), and historical records remain 100% untouched.
+
+#### Task: Provider Cost Capture & Reconciliation — Backend Hardening (2026-08-18)
+- Status: Completed & Verified.
+- Key Implementation & Architectural Hardening:
+  1. Centralized Cost Capture Service (`lib/provider-cost-capture.ts`):
+     - Standardized single entrypoint `recordProviderExecutionCost` and `resolveProviderCostPrecedence`.
+     - Strictly enforced 5-tier financial precedence: `ACTUAL > ESTIMATED_VERIFIED > ESTIMATED_LEGACY > SHADOW_ANALYTICAL > UNKNOWN`.
+     - Strictly preserved `CUSTOMER ECONOMICS != PROVIDER ECONOMICS`.
+     - Guaranteed `UNKNOWN` provider costs remain `$null` (never converted to `$0.00`) with reason tracking (`NO_VERIFIED_TARIFF`, `PROVIDER_DID_NOT_REPORT_COST`).
+  2. Idempotency & Completion Atomicity:
+     - Hardened `ProviderUsageRecord` creation and update boundaries: 1 logical execution = 1 record (never double counted).
+     - Integrated `resolveProviderCostPrecedence` inside `lib/credit-ledger.ts` generation creation and callback resolution.
+  3. Decoupled Failure / Refund Semantics:
+     - User credit refund does NOT wipe or zero provider operating cost if provider incurred compute.
+  4. Macro-Level Reconciliation Read Model (`lib/admin/provider-reconciliation-read-model.ts`):
+     - Built read-only macro reconciliation comparing aggregated per-generation costs vs observed provider spend.
+     - Enforced `INSUFFICIENT_DATA` when provider does not expose request-level billing or macro invoice evidence.
+     - Disallowed WaveSpeed macro account balance delta from being used as per-generation actual cost under concurrency.
+     - Separated commercial customer costs vs internal/admin test costs while preserving full operating cost in totals.
+  5. Verification & Testing:
+     - 67/67 tests passing across all 7 provider cost & pricing test suites (including 17 new comprehensive hardening tests in `test/provider-cost-capture-and-reconciliation.test.ts`).
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean with 0 warnings.
+     - Historical records untouched, customer pricing unchanged, zero routing alterations.
+
+#### Task: Provider Costs Control Plane (/admin/provider-costs) Build & Verification (2026-08-18)
+- Status: Completed & Verified.
+- Changes & Key Invariants:
+  1. Built bounded server-side read model (`lib/admin/provider-costs-read-model.ts`):
+     - Dynamic provider inventory derived from `PROVIDER_REGISTRY` + DB distinct records (`Generation.providerName`, `ProviderUsageRecord.providerName`).
+     - Separate executive aggregation for direct operating costs vs. Reap shadow analytical utilization ($0.03-$0.15/min proxy).
+     - Explicit handling of `UNKNOWN` cost trust (recorded as $null, NEVER converted to $0.00).
+     - Bounded pagination (50 executions per page), avoiding unbounded arrays or N+1 queries.
+  2. Updated API endpoint (`app/api/admin/provider-costs/route.ts`):
+     - Full admin auth gate with search, provider, classification, costTrust, and pagination query params.
+  3. Redesigned Control Plane UI (`app/admin/provider-costs/page.tsx`):
+     - Full-width layout wrapped in `<AdminShell>`.
+     - Executive snapshot strip with Total Cost, Actual, Estimated Verified, Unknown Jobs, Dynamic Provider Count, and Coverage.
+     - Separated Reap Annual Subscription Shadow Analytics banner.
+     - Full-width dynamic Provider Economics Matrix with live coverage indicators.
+     - Cost Trust Visualization segmented bar.
+     - Tariff Coverage Panel highlighting WaveSpeed 18 Verified / 13 Unknown routes with zero KIE leakage.
+     - High-density Generation Cost Trace table separating Customer Credits from Provider Economics.
+     - Dual 550px Slide-over Inspection Drawers for Providers and Individual Generation Traces.
+  4. Testing & Verification:
+     - 50/50 tests passing in Vitest across 6 test suites.
+     - `npx tsc --noEmit` passing with 0 errors.
+     - `git diff --check` clean with 0 warnings.
+     - Zero mutation of historical financial records, zero customer pricing changes, zero routing alterations.
+
+#### Task: Universal Multi-Provider Generation Traceability & Provenance Architecture (2026-08-18)
+- Status: Completed & Verified.
+- Architecture:
+  Unified generation accounting traceability across all 6 production execution providers:
+  1. Google: `Generation -> Google -> Provider Model/Route -> User Credits -> Google Provider Cost USD -> Actual/Estimated/Unknown -> Tariff Source -> Tariff Date/Snapshot`
+  2. OpenAI: `Generation -> OpenAI -> Provider Model/Route -> User Credits -> OpenAI Provider Cost USD -> Actual/Estimated/Unknown -> Tariff Source -> Tariff Date/Snapshot`
+  3. WaveSpeed: `Generation -> WaveSpeed -> Provider Model/Route -> User Credits -> WaveSpeed Provider Cost USD -> Actual/Estimated/Unknown -> Tariff Source -> Tariff Date/Snapshot`
+  4. BytePlus: `Generation -> BytePlus -> Provider Model/Route -> User Credits -> BytePlus Provider Cost USD -> Actual/Estimated/Unknown -> Tariff Source -> Tariff Date/Snapshot`
+  5. ElevenLabs: `Generation -> ElevenLabs -> Provider Model/Route -> User Credits -> ElevenLabs Provider Cost USD -> Actual/Estimated/Unknown -> Tariff Source -> Tariff Date/Snapshot`
+  6. Reap.video: `Generation -> Reap -> Post-Production Tool Route -> User Credits -> Reap Allocated/Contract Cost -> Tools/Post-Production Service (Non-Generative Model Provider) -> Tariff Source -> Tariff Date/Snapshot`
+- Verification:
+  - Vitest passed 10/10 remediation tests and 18/18 multi-provider suites.
+  - `tsc --noEmit` passed with 0 errors.
+
+#### Task: WaveSpeed Official Tariff Completion & Source Provenance Hardening (2026-08-18)
+- Status: Completed & Verified.
+- Changes & Key Invariants:
+  1. Full WaveSpeed Audit: Mapped all 31 active WaveSpeed routes across video, image, audio, and utility tools.
+  2. Tariff Provenance Schema: Added `TariffProvenanceRecord` and `TariffVerificationStatus` (`VERIFIED_CURRENT`, `STALE`, `UNKNOWN`) to `lib/provider-tariff-registry.ts` preserving `sourceType`, `sourceReference`, `effectiveDate`, `capturedAt`, `rateUsd`, and `billingUnit`.
+  3. Staleness Policy: Implemented `checkTariffStaleness` enforcing a 90-day validity window.
+  4. Balance Delta Investigation: Determined that macro account balance delta (`GET /api/v3/balance`) is unsafe for per-generation attribution due to asynchronous concurrency race conditions.
+  5. Immutability & Customer Pricing: Historical generation records, customer credit prices, and ledger entries remain 100% untouched and decoupled.
+- Affected files:
+  - `lib/provider-tariff-registry.ts` [MODIFIED]
+  - `lib/pricing.ts` [MODIFIED]
+  - `test/provider-cost-attribution-remediation.test.ts` [MODIFIED]
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - Vitest passed 10/10 remediation tests and 36/36 core pricing tests.
+  - `tsc --noEmit` passed with 0 errors.
+
+#### Task: Provider Cost Attribution Remediation & Canonical Provider Tariff Registry (2026-08-18)
+- Status: Completed & Verified.
+- Changes & Key Invariants:
+  1. Canonical Provider Tariff Registry: Created `lib/provider-tariff-registry.ts` as the single authoritative source of truth for provider operating costs.
+  2. Provider-Aware Cost Resolver: Refactored `estimateProviderCostSync` in `lib/pricing.ts` to accept explicit execution context `{ modelRef, providerName, providerModel, providerRoute, durationSec, quality, resolution, numUnits }`.
+  3. WaveSpeed / KIE Decoupling: Proven defect where WaveSpeed executions leaked into KIE credit formulas fixed. WaveSpeed executions now resolve against verified WaveSpeed tariffs (e.g. Minimax H3, RMBG, Upscaler, Flux) or return `source: 'unknown'` if unverified, never falling back to KIE.
+  4. Explicit KIE Isolation: KIE standby tariffs are strictly isolated to explicit KIE executions (`providerName === 'KIE.ai'`).
+  5. Immutability & Customer Pricing: Historical generation records, user credit prices, subscription logic, and ledger entries remain 100% untouched and decoupled.
+- Affected files:
+  - `lib/provider-tariff-registry.ts` [NEW]
+  - `lib/pricing.ts` [MODIFIED]
+  - `lib/credit-ledger.ts` [MODIFIED]
+  - `app/api/admin/provider-costs/route.ts` [MODIFIED]
+  - `test/provider-cost-attribution-remediation.test.ts` [NEW]
+  - `test/provider-cost-audit.test.ts` [MODIFIED]
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - Vitest passed 34/34 core tests and 150/150 admin tests.
+  - `tsc --noEmit` passed with 0 errors.
+
+#### Task: Provider Cost Pricing Recency & Source-of-Truth Revalidation Audit (2026-08-18)
+- Status: Completed (Read-Only Audit & Invariant Verification).
+- Findings & Verifications:
+  1. Source of Truth: Provider tariffs live in `DEFAULT_MODELS` in `lib/pricing-models.ts` and route-specific cost calculators in `lib/pricing.ts`, backed by database table `PricingConstitution` (113 rows).
+  2. Runtime Resolver: `estimateProviderCostSync` in `lib/pricing.ts` resolves provider operating costs per generation.
+  3. Recency & Ownership: Owner actively maintained and calibrated provider tariffs in git commits on August 15-16, 2026 (`5a9c0acd`, `87da6c78`, `ff982618`, `41811657`). All tariffs are classified as `RECENTLY MAINTAINED` / `VERIFIED CURRENT`.
+  4. Per-Generation Traceability: Database already persists complete immutable per-generation accounting via `Generation` (`providerCostUsd`, `providerCostSource`, `providerName`, `providerModel`, `providerRequestId`, `duration`, `resolution`, `quality`), `ProviderUsageRecord`, and `GenerationRequestSnapshot`.
+  5. Schema Change: `SCHEMA CHANGE REQUIRED FOR COMPLETE TRACEABILITY` = NO.
+  6. Immutability & Decoupling: User credit charges and provider operating costs are strictly separated. Historical cost records are immutable and untouched.
+- Affected files:
+  - `test/provider-cost-audit.test.ts` [CREATED] - 8 automated test suites asserting provider cost arithmetic, recency, separation from user charges, and database contracts.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `vitest run` passed 100/100 tests across 15 test suites.
+  - `tsc --noEmit` passed with 0 errors.
+
+#### Task: Admin Knowledge Full-Width Visual Redesign (2026-08-18)
+- Status: Completed.
+- Affected files:
+  - `app/admin/knowledge/page.tsx` [MODIFIED] - Redesigned as a Full-Width Enterprise Knowledge Intelligence Control Plane inside `AdminShell` (no `max-w` centering). Built with 8 structured levels:
+    1. Knowledge Command Header with governance badges (`Admin Intelligence`, `SSRF Protected`, `Optimistic Concurrency Active`, `Controlled Registry Publishing`) and `Import Documentation` action.
+    2. Knowledge Snapshot Strip (Documentation Sources, Imported Documents, Pending Drafts, Approved Drafts, Model Proposals, Published Changes) with loading skeletons and no fake zeros.
+    3. Knowledge Pipeline Infographic illustrating the 7-stage pipeline (Ingestion -> Security -> Normalization -> Extraction -> Governance -> Proposal -> Publishing) with explicit informational labels (`NO VECTOR DB`, `NO EMBEDDINGS`, `NO RAG`).
+    4. Provider Knowledge Coverage distribution cards (Google, OpenAI, WaveSpeed, BytePlus, KIE.ai, ElevenLabs, Reap, RunningHub, Custom).
+    5. Multi-Tab Operations Workspace:
+       - Tab 1: Documentation Sources full-width matrix with search, provider filter, content hash, and inspector.
+       - Tab 2: Extracted Specifications drafts review (durations, resolutions, endpoints) with Approve / Reject / Propose Model Change actions.
+       - Tab 3: Model Change Proposals table with field diffs (`oldValue -> newValue`) and publish confirmation modal.
+       - Tab 4: Policy Audit Log displaying persistent `knowledge_hub_audit_log` without raw content or secrets.
+       - Tab 5: Architecture & Integrity panel with system boundary guarantees and navigation to Models, Routing, and Pricing.
+    6. Safe Import Drawer (500–600px desktop, full mobile) with SSRF security notice.
+    7. Source/Draft Inspector Drawer for deep inspection of normalized text and extracted fields.
+    8. Explicit Publish Confirmation Modal with Dynamic Model Registry warning.
+    9. Optimistic Concurrency UX transmitting `expectedVersionToken` and displaying clear 409 Conflict banner with refresh button.
+  - `test/knowledge-visuals.test.ts` [CREATED] - 7 automated tests asserting full-width layout, AdminShell, pipeline infographic, operational tabs, import drawer, publish confirmation modal, and 409 conflict handling.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest run` passed 92/92 tests across all 14 test suites.
+  - `git diff --check` clean.
+
+#### Task: Admin Knowledge Backend Policy & Concurrency Hardening (2026-08-18)
+- Status: Completed.
+- Affected files:
+  - `lib/admin/knowledge-hub.ts` [MODIFIED] - Implemented `KnowledgeConcurrencyError`, `getKnowledgeVersionToken`, `loadKnowledgeAuditLog`, and atomic Prisma transaction mutators (`importKnowledgeUrlAtomic`, `reviewKnowledgeDraftAtomic`, `proposeModelChangeFromKnowledgeAtomic`, `reviewKnowledgeModelChangeAtomic`) with persistent bounded audit trail (`knowledge_hub_audit_log`) up to 100 events, recording operator ID from Clerk, timestamps, and high-level summaries without raw document text or secrets.
+  - `app/api/admin/knowledge/route.ts` [MODIFIED] - Updated GET to return `versionToken` and `auditLog`, and POST/PATCH to support `expectedVersionToken` with HTTP 409 Conflict handling.
+  - `test/knowledge-reality-audit.test.ts` [CREATED] - 4 automated audit tests verifying non-vector architecture, SSRF blocked host protection, and live store loading.
+  - `test/knowledge-backend-hardening.test.ts` [CREATED] - 7 automated tests asserting concurrency token derivation, error contracts, bounded audit logging without secrets, SSRF protection, specification extraction, and live contracts.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest run test/knowledge-backend-hardening.test.ts test/knowledge-reality-audit.test.ts` passed 11/11 tests (85/85 across all 13 suites).
+  - `git diff --check` clean.
+
+#### Task: Admin Storage Full-Width Visual Redesign (2026-08-18)
+- Status: Completed.
+- Affected files:
+  - `app/admin/storage/page.tsx` [MODIFIED] - Redesigned as a Full-Width Enterprise Storage Operations & Policy Control Plane inside `AdminShell` (no `max-w` centering). Built with 8 structured levels:
+    1. Storage Command Header with Optimistic Concurrency status badge and Refresh actions.
+    2. Storage Snapshot Strip (Active Write: Backblaze B2, Legacy Read: Cloudflare R2, Delivery Mode: Proxy Gateway, Legacy Read: Enabled, Streaming Gateway: HTTP 206, Policy Integrity: Verified).
+    3. Provider Topology & Pipeline Flow (Interactive visual cards for Write Flow and Read Fallback Chain).
+    4. Registered Storage Providers Matrix full-width table displaying operational roles, write/read status, and safe endpoints without credentials.
+    5. Video Streaming & Media Proxy Gateway Specifications (/api/media Range 206, video scrubbing, Content-Type normalization, 30-day cache).
+    6. Safe Storage Policy Editor Drawer (500–600px) with Rate & Policy Transition Preview (`Current Policy -> Proposed Policy`), concurrency token transmission (`expectedVersionToken`), and HTTP 409 Conflict UX ("Storage policy changed since you loaded it. Refresh before saving.").
+    7. Persistent Policy Audit Trail viewer (`storage_runtime_audit_log`) displaying operator, timestamp, and field diffs without secrets.
+    8. Storage Architecture & Known Reality Gaps Panel (Canonical Media Identity gap info, Best-effort persistence notice, Orphan risk warning, Old media continuity guarantee, Migration tool link `/admin/migrate-storage`, and interactive storage object diagnostic tester).
+  - `test/storage-visuals.test.ts` [CREATED] - 7 automated tests asserting full-width layout, AdminShell, provider topology, Range 206 streaming specs, policy editor drawer, 409 conflict handling, persistent audit log without secrets, and zero destructive buttons.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest run test/storage-visuals.test.ts test/storage-backend-hardening.test.ts` passed 15/15 tests.
+  - `git diff --check` clean.
+
+#### Task: Admin Storage Backend Policy Safety Hardening (2026-08-18)
+- Status: Completed.
+- Affected files:
+  - `lib/storage/storage-hardening.ts` [CREATED] - Implemented `saveStorageRuntimeConfigAtomic` inside a single Prisma transaction, `StorageConcurrencyError` checking `expectedVersionToken` against `PlatformConfig` timestamps (`storage_runtime_config_v1`), `validateStoragePolicyInput` (strict validation for activeWriteProvider and mediaDeliveryMode), and persistent `storage_runtime_audit_log` in `PlatformConfig` (last 100 events, recording operator ID from Clerk, timestamp, and redacted safe diffs).
+  - `lib/storage/index.ts` [MODIFIED] - Re-exported hardening functions and types.
+  - `app/api/admin/storage/route.ts` [MODIFIED] - Updated GET to return `versionToken` and `auditLog`, and PATCH to support `expectedVersionToken` with HTTP 409 Conflict handling.
+  - `test/storage-backend-hardening.test.ts` [CREATED] - 8 unit tests covering strict write validation, sanitization, concurrency error handling, safe diff computation, and secret redaction.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest run test/storage-backend-hardening.test.ts` passed 8/8 tests.
+  - `git diff --check` clean.
+
+#### Task: Admin Features Full-Width Visual Redesign (2026-08-18)
+- Status: Completed.
+- Affected files:
+  - `app/admin/features/page.tsx` [MODIFIED] - Redesigned as a Full-Width Enterprise Feature Registry Control Plane inside `AdminShell` (no `max-w` centering). Built with 8 structured levels:
+    1. Feature Command Header with 40 approved features badge and static verified registry indicator.
+    2. Feature Fleet Snapshot Strip (Total: 40, Active: 26, Partial: 4, UI Only: 2, Unknown: 8, Integrity: 0 Errors).
+    3. Category Distribution Bar (Video: 18, Image: 10, Edit: 6, Audio: 6).
+    4. Multi-Filter Toolbar (Search, Category, Operational State, Control Level).
+    5. Feature Operational Matrix full-width table displaying operational state, control level, UI route, runtime entry point, model linkage, and model-level routing & pricing linkages.
+    6. Feature Inspector Slide-Over Drawer (500–600px) with Immutable Registry Identity, Operational Control Rationale, Inherited Capabilities, and cross-navigation links to `/admin/models`, `/admin/routing`, and `/admin/pricing`.
+    7. Feature Registry Integrity & Verification panel confirming 100% compliance.
+  - `test/features-visuals.test.ts` [CREATED] - 6 automated tests asserting full-width layout, AdminShell, immutable identity, UI-only & unknown semantics, cross-navigation links, and integrity verification.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest run test/features-visuals.test.ts test/features-reality-audit.test.ts` passed 10/10 tests.
+  - `git diff --check` clean.
+
+#### Task: Admin Pricing Full-Width Visual Redesign (2026-08-18)
+- Status: Completed.
+- Affected files:
+  - `app/admin/pricing/page.tsx` [MODIFIED] - Redesigned as a Full-Width Enterprise Pricing Constitution Control Plane inside `AdminShell` (no `max-w` centering). Built with 8 structured levels:
+    1. Pricing Constitution Command Header with provider-independent status badge, refresh, and operational provider balance context.
+    2. Pricing Fleet Snapshot Strip (Total Pricing Entries: 132, Active Models: 81, Routing Aliases: 51, 0 Unpriced, 0 Fallback, 0 Validation Issues).
+    3. Billing Type Distribution Bar (Per-Second vs Flat Rate).
+    4. Multi-Filter Toolbar (Search, Modality, Billing Type, Status).
+    5. Pricing Matrix operational table clearly separating User Credit Price from Provider Cost USD with Cost Trust badges (`ESTIMATED` / `ACTUAL`) and Heuristic Margin baseline (`~40% Baseline • Non-Auditable`).
+    6. Safe Pricing Editor & Inspector Drawer (500–600px) with Immutable Pricing Key protection, Rate Transition Preview (`Current Config -> Proposed Config`), Concurrency token (`expectedVersionToken`), and 409 Conflict UX (`Refresh Current Constitution`).
+    7. Persistent Pricing Mutations Audit Log viewer & Integrity verification panel.
+  - `test/pricing-visuals.test.ts` [CREATED] - 6 automated tests asserting full-width layout, AdminShell, provider-independent price vs provider cost separation, cost trust labels, heuristic margin disclaimer, concurrency token handling, and conflict UX.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest run test/pricing-visuals.test.ts test/pricing-backend-hardening.test.ts test/pricing-reality-audit.test.ts` passed 18/18 tests.
+  - `git diff --check` clean.
+
+#### Task: Admin Pricing Write Backend Safety Hardening (2026-08-18)
+- Status: Completed.
+- Affected files:
+  - `lib/pricing-constitution-hardening.ts` [CREATED] - Implemented `savePricingConstitutionAtomic` inside a single Prisma transaction, `PricingConcurrencyError` checking `expectedVersionToken` against `PricingConstitution.updatedAt` timestamps, `validatePricingConfigurations` (verifying model IDs, non-negative userCreditsRate, waveUsd, and kieCredits), and persistent `pricing_constitution_audit_log` in `PlatformConfig` (recording operator ID, timestamp, and field diffs).
+  - `app/api/admin/pricing-constitution/route.ts` [MODIFIED] - Added `versionToken` and `auditLog` to GET response; added `expectedVersionToken` and Clerk operator ID logging to POST response with HTTP 409 Conflict handling.
+  - `test/pricing-backend-hardening.test.ts` [CREATED] - Automated tests asserting write validation, concurrency error handling, and audit event contracts.
+  - `test/pricing-reality-audit.test.ts` [CREATED] - Automated measurement and reality tests for duration/resolution pricing formulas and provider independence.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest run test/pricing-backend-hardening.test.ts test/pricing-reality-audit.test.ts` passed 12/12 tests.
+  - `git diff --check` clean.
+
+#### Task: Admin Models Full-Width Visual Redesign (2026-08-18)
+- Status: Completed.
+- Affected files:
+  - `app/admin/models/page.tsx` [MODIFIED] - Redesigned as a Full-Width Enterprise Model Registry Control Plane inside `AdminShell` (no `max-w` centering). Built with 7 structured levels:
+    1. Model Fleet Command Header with persisted status badge, refresh, and explicit Catalog Sync confirmation modal.
+    2. Model Fleet Snapshot Strip (Total Models, Active Routable, Executable, Pricing Linked, Multi-Provider, Validation Issues).
+    3. Modality Distribution Strip (Image, Video, Audio, 3D).
+    4. Multi-Filter Toolbar (Search, Modality, Provider, Status).
+    5. Model Registry Matrix full-width operational table with verified capabilities and pricing linkages.
+    6. Model Inspector & Safe Configuration Drawer (500–600px) with Immutable Model ID protection, Transition Preview (`Current Config -> Proposed Config`), Concurrency token (`expectedVersionToken`), and 409 Conflict UX.
+    7. Persistent Model Mutations Audit Log viewer & Integrity verification panel.
+  - `test/models-visuals.test.ts` [CREATED] - 7 automated tests asserting full-width layout, AdminShell, immutable model ID, concurrency tokens, conflict UX, audit log visibility, and semantic label accuracy.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest run test/models-visuals.test.ts` passed 7/7 tests.
+  - `git diff --check` clean.
+
+#### Task: Admin Models Write Backend Hardening (2026-08-18)
+- Status: Completed.
+- Affected files:
+  - `lib/model-registry-hardening.ts` [CREATED] - Implemented `saveModelConfigurationsAtomic` inside a single Prisma transaction, `ModelConcurrencyError` checking `expectedVersionToken` against `PlatformConfig` timestamps (`dynamic_image_models` & `dynamic_video_models`), `validateModelConfigurations` (verifying model IDs, non-negative credit costs, provider registry existence, and modality compatibility), and persistent `model_registry_audit_log` (recording operator ID, timestamp, and model diffs).
+  - `app/api/admin/models/route.ts` [MODIFIED] - Enforced optimistic concurrency checks (returning HTTP 409 on stale saves), single-transaction atomic multi-config writes (image, video, PricingConstitution), and Clerk admin operator logging.
+  - `test/models-backend-hardening.test.ts` [CREATED] - Automated tests asserting write validation, concurrency error handling, and audit event contracts.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest run test/models-backend-hardening.test.ts` passed 7/7 tests.
+  - `git diff --check` clean.
+
+#### Task: Admin Routing Full-Width Visual Redesign (2026-08-17)
+- Status: Completed.
+- Affected files:
+  - `app/admin/routing/page.tsx` [MODIFIED] - Redesigned as a Full-Width Enterprise Routing Control Plane inside `AdminShell` (no `max-w` centering). Built with 7 clear levels:
+    1. Routing Command Header with optimistic concurrency and persisted state indicators.
+    2. Routing Snapshot Strip (Total Models, Active Routable, Active Providers, Standby, Overrides, Issues).
+    3. Provider Status & Modality Strip (Google, OpenAI, WaveSpeed, ElevenLabs, Reap [Active] & BytePlus, KIE [Standby]).
+    4. Search and Multi-Filter Toolbar (Search, Modality, Provider, Source).
+    5. Model Routing Matrix full-width operational table with clear Default vs Override badges and accurate fallback notices.
+    6. Safe Route Editor slide-over drawer (480-560px) with Transition Diff (`Current -> Proposed`), Provider compatibility checks, Concurrency token handling, and 409 Conflict UX.
+    7. Persistent Route Changes Audit Log viewer.
+  - `app/api/admin/routing/route.ts` [MODIFIED] - Added `auditLog` (last 100 entries) and `updatedAt` version token to GET response.
+  - `test/routing-visuals.test.ts` [CREATED] - 7 automated tests asserting full-width layout, AdminShell, concurrency tokens, conflict UX, audit log visibility, and semantic label accuracy.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest run test/routing-visuals.test.ts` passed 7/7 tests.
+  - `git diff --check` clean.
+
+#### Task: Routing Backend Hardening (2026-08-17)
+- Status: Completed.
+- Affected files:
+  - `lib/routing/route-validator.ts` [MODIFIED] - Hardened `validateRoutingOverride` with `ModelValidationContext` verifying provider registry existence, active routing eligibility, and modality compatibility (e.g. blocking video models routed to ElevenLabs).
+  - `lib/routing/routing-config.ts` [MODIFIED] - Implemented optimistic concurrency protection via `RoutingConcurrencyError` (checking `expectedUpdatedAt` against `PlatformConfig.updatedAt`), and persistent audit trail recording operator ID, timestamp, and old/new routes in `PlatformConfig` key `model_routing_audit_log` (zero schema migrations required).
+  - `app/api/admin/routing/[...path]/route.ts` [MODIFIED] - Enforced model existence check, model modality validation, optimistic concurrency conflict handling (HTTP 409), and Clerk admin operator tracking.
+  - `lib/routing/admin-routing-data.ts` [MODIFIED] - Updated validation mapping to pass model context.
+  - `test/routing-backend-hardening.test.ts` [CREATED] - 10 automated tests covering compatibility validation, standby rejection, concurrency conflict rejection, audit event recording, and registry preservation.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest` passed 100% across workspace suites (162 tests passed).
+  - `git diff --check` clean.
+
+#### Task: Admin Subscriber Analytics Full-Width Visual Redesign (2026-08-17)
+- Status: Completed.
+- Affected files:
+  - `app/admin/subscriber-analytics/page.tsx` [MODIFIED] - Redesigned as a Full-Width Enterprise Analytics Workspace inside `AdminShell` (no `max-w` root centering). Built with 8 structured levels: Command Header with Data Trust badges, Commercial Snapshot summary strip, Credit Flow & Zero Rollover infographic, Dedicated Annual Advance Exposure panel, Provider Cost split (Commercial vs Internal) with Heuristic Unit Economics disclaimer, Plan & Billing split, Data Trust / Coverage indicator, and Subscriber Intelligence Matrix with direct inspection links to `/admin/users`.
+  - `test/subscriber-analytics-visuals.test.ts` [CREATED] - 5 automated tests verifying full-width layout, AdminShell usage, 8 visual hierarchy levels, absence of fake zeros, and zero mutation actions.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest` passed 100%.
+  - `git diff --check` clean.
+
+#### Task: Subscriber Analytics Data-Driven Credit & Advance Normalization (2026-08-17)
+- Status: Completed.
+- Affected files:
+  - `lib/admin/subscriber-analytics-read-model.ts` [CREATED] - Normalized structured read model (`SubscriberAnalyticsSummary`) separating commercial vs internal cash, subscription vs top-up revenue, advance debt exposure, provider costs, and zero rollover invariant. Payload measured at **2.31 KB**.
+  - `app/api/admin/subscriber-analytics/route.ts` [MODIFIED] - Eliminated all user-specific hardcoded financial arithmetic (`isOmar`, `isSarmad`). Replaced with data-driven `user.creditAdvanceBalance`.
+  - `app/api/admin/provider-costs/route.ts` [MODIFIED] - Eliminated `isOmar` hardcoded arithmetic. Replaced with data-driven `user.creditAdvanceBalance`.
+  - `test/subscriber-analytics-normalization.test.ts` [CREATED] - Automated tests asserting zero email arithmetic, data-driven advance, and commercial vs internal isolation.
+  - `test/subscriber-analytics-measurement.test.ts` [CREATED] - Payload measurement test confirming 2.31 KB response size.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `vitest` passed 100%.
+  - `git diff --check` clean.
+
+#### Task: Central Account Classification & Commercial Analytics Isolation (2026-08-17)
+- Status: Completed.
+- Affected files:
+  - `lib/admin/account-classification.ts` [CREATED] - Single Source of Truth for non-commercial accounts (`OWNER_TEST_ACCOUNTS`, `ADMIN_ACCOUNTS`, `LEGACY_TEST_ACCOUNTS`). Provides `isCommercialCustomerEmail` and `isExcludedFromCommercialAnalytics`.
+  - `app/api/admin/subscriber-analytics/route.ts` [MODIFIED] - Replaced hardcoded test arrays with central `EXCLUDED_FROM_COMMERCIAL_ANALYTICS_EMAILS`.
+  - `app/api/admin/provider-costs/route.ts` [MODIFIED] - Integrated central classification source.
+  - `test/account-classification-isolation.test.ts` [CREATED] - Automated tests asserting central classification, Omar inclusion as real paying customer, and owner/admin/legacy exclusion from commercial analytics.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - `tsc --noEmit` passed with 0 errors.
+  - `git diff --check` clean.
+
+#### Task: User Management & Subscribers Visual Redesign (2026-08-17)
+- Status: Completed.
+- Affected files:
+  - `app/admin/users/page.tsx` [CREATED] - Full-width enterprise operations console inside `AdminShell` with KPI summary strip, server-side search, status and role filters, true pagination, full-width responsive table, on-demand Slide-Over Inspector (`GET /api/admin/users/[userId]`), Adjust Credits Modal with real-time before/after preview, Ban confirmation modal, and Zero Rollover policy invariant notice. Delete action is permanently DISABLED in UI (`DELETE USER ACTION ENABLED = NO`).
+  - `components/admin/AdminSidebar.tsx` [MODIFIED] - Added `Users & Subscribers` to `OPERATIONS` group in `ADMIN_NAV_CONFIG`.
+  - `test/admin-users-visuals.test.ts` [CREATED] - 9 automated visual and safety invariant tests.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - Vitest ran 125 tests across 17 workspace test suites: 125 passed (100%).
+  - `tsc --noEmit` passed with 0 errors.
+  - `git diff --check` clean.
+
+#### Task: User Management Backend Foundation Hardening (2026-08-17)
+- Status: Completed.
+- Affected files:
+  - `app/api/admin/users/route.ts` [MODIFIED] - Implemented true server-side pagination (`page`, `limit` 10-100), case-insensitive search (`name`, `email`, `phone`), and status/role filters (`active`, `banned`, `subscriber`, `annual`, `free`). Built with batch subscription lookup to eliminate N+1 queries. Payload size measured at **12.46 KB** for 25 fully populated user rows.
+  - `app/api/admin/users/[userId]/route.ts` [MODIFIED] - Hardened `DELETE` handler to prevent financial invoice data loss by anonymizing user primary row instead of cascading, cleaning orphan `UserSubscription` and `UserApiLimit` records, and verifying Clerk authentication revocation with explicit error handling. Added on-demand `GET` single user detail inspector endpoint.
+  - `test/admin-users-backend-safety.test.ts` [CREATED] - 9 automated tests asserting pagination, server search, zero N+1, safe delete semantics, and detail read-model.
+  - `test/user-list-measurement.test.ts` [CREATED] - Exact payload measurement test (12.46 KB for 25 rows).
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - Vitest ran 116 tests across 16 project test suites: 116 passed (100%).
+  - `tsc --noEmit` passed with 0 errors.
+  - `git diff --check` clean.
+
+#### Core Business Invariant: Zero Credit Rollover Policy (Enforced)
+- **Zero Rollover Rule**: Credits NEVER roll over to subsequent cycles across ANY subscription type (Monthly or Annual).
+- When a 30-day cycle expires:
+  - Monthly subscribers: Unused credits expire completely, resetting `creditBalance = 0`.
+  - Annual subscribers: Unused credits from the prior cycle expire; new cycle starts strictly at `Monthly Allowance - Advance Repayment` (never `previous unused + monthly allowance`).
+  - `allocateSubscriptionCredits`: Overwrites `creditBalance = plan.credits` on fresh payment.
+  - `CreditLedgerEntry`: Operates purely as an informational audit trail and never restores expired credits or alters mathematical balance assignment.
+
+#### Latest task: Subscribers & Credits Financial P0 Safety Hardening (2026-08-17)
+- Status: Completed.
+- Affected files:
+  - `app/api/admin/users/[userId]/route.ts` [MODIFIED] - Secured Admin manual credit adjustment: requires explicit non-zero integer amount, requires explicit reason (>= 3 chars), records authenticated admin/operator ID, implements atomic guarded decrement preventing negative credit balance (`gte: absAmount`), and wraps balance update + `CreditLedgerEntry` inside a single unified `prismadb.$transaction`.
+  - `lib/credit-ledger.ts` [MODIFIED] - Hardened `requestAnnualCreditAdvance` with atomic Compare-And-Swap (CAS) `updateMany` guard preventing concurrent double-advance draw within the same cycle, wrapped in `$transaction`, and recorded in `CreditLedgerEntry` (`annual_credit_advance_draw`). Added ledger audit trail entries to `handleCreditExpiry` (`annual_monthly_renewal`, `annual_advance_repayment`, `monthly_credits_expired`), `allocateSubscriptionCredits` (`subscription_grant`), and `applyTopupCredits` (`topup_grant`).
+  - `app/api/admin/subscriber-analytics/[userId]/route.ts` [MODIFIED] - Removed hardcoded 2,700 credit presentation override for specific user email, restoring true ledger and transaction data fidelity.
+  - `test/financial-hardening-safety.test.ts` [CREATED] - 13 automated tests asserting validation, negative balance guard, atomic CAS, ledger records, and exception cleanup.
+  - `test/credit-ledger.test.ts` [MODIFIED] - Updated test mocks to support transactional `updateMany` and `findUnique` proxying.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Verification:
+  - Vitest ran 106 tests across 14 project test suites: 106 passed (100%).
+  - `tsc --noEmit` passed with 0 errors.
+  - `git diff --check` clean.
+- Verification:
+  - Vitest ran 84 tests across 12 test suites: 84 passed (100%).
+  - `tsc --noEmit` passed with 0 errors.
+  - `git diff --check` clean.
+- Behavior:
+  - 100% of standard admin subpages now use the unified `AdminShell` with persistent 240px sidebar and full-width workspace.
+  - Removed all page-level centered `max-w-*` and `mx-auto` wrappers.
+
+#### Latest task: Admin Analytics Performance & Data Architecture Optimization (2026-08-17)
+- Status: Completed.
+- Affected files:
+  - `lib/admin/analytics-read-model.ts` [MODIFIED] - Completely eliminated heavy `findMany({ take: 5000 })` across 6 database tables. Replaced with direct Prisma indexed aggregations (`groupBy`, `count`, `aggregate`). Stripped `averageCompletionLatencyMs` / `latencyMs` from analytics contract due to absence of reliable completion timestamps on `Generation`. Strictly preserved financial trust boundary (refusing profit/margin/revenue derivations).
+  - `app/api/admin/analytics/route.ts` [MODIFIED] - Removed `limit=5000` parameter requirement; returns pure aggregated summary.
+  - `app/admin/analytics/page.tsx` [MODIFIED] - Removed `limit=5000` client parameter, removed misleading latency card and column in favor of genuine data linkage coverage.
+  - `test/admin-analytics-read-model.test.ts` [MODIFIED] - Added automated assertions for zero `limit=5000` dependency, null latency, financial boundaries, and pure summary payload.
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Behavior:
+  - Full domain rows loaded for dashboard KPIs: reduced from 5,000+ down to **0**.
+  - Payload size reduced from ~1.5MB-5MB down to **~3.2 KB (MEASURED)**.
+  - Zero synthetic profit/margin numbers or fake latency KPIs.
+- Verification:
+  - `vitest` ran 77 tests across 11 test suites: 77 passed (100%).
+  - `tsc --noEmit` passed with 0 errors.
+  - `git diff --check` clean.
+- Behavior:
+  - 100% of standard admin subpages now use the unified `AdminShell` with persistent 240px sidebar and full-width workspace.
+  - Removed all page-level centered `max-w-*` and `mx-auto` wrappers.
+  - Zero modifications to backend business logic, database schemas, APIs, routing engine, or pricing algorithms.
+- Verification:
+  - `vitest` ran 57 tests across 7 test suites: 57 passed (100%).
+  - `tsc --noEmit` passed with 0 errors.
+  - `git diff --check` clean.
+  - Live HTTP 200 validation confirmed across all 18 routes.
+
+#### Latest task: Shared Admin Shell + Control Center + Providers Visual Rebuild (2026-08-17)
+- Status: Completed.
+- Affected files:
+  - `components/admin/AdminSidebar.tsx` [NEW]
+  - `components/admin/AdminShell.tsx` [NEW]
+  - `components/admin/control-center/GenerationHealthDonut.tsx` [MODIFIED]
+  - `components/admin/control-center/JobsPipelineFunnel.tsx` [MODIFIED]
+  - `app/admin/control-center/page.tsx` [MODIFIED]
+  - `components/admin/providers/ProviderCard.tsx` [MODIFIED]
+  - `components/admin/providers/ProviderAnalytics.tsx` [MODIFIED]
+  - `app/admin/providers/page.tsx` [MODIFIED]
+  - `test/admin-shell-and-pages.test.ts` [NEW]
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Behavior:
+  - Created persistent, shared `AdminShell` (240px sidebar + 100% remaining width workspace).
+  - Eliminated `max-w-7xl`, `mx-auto`, and restrictive centered containers from Control Center and Providers roots.
+  - Rebuilt Control Center into a true 5-level command center with large impactful Generation SVG donut, connected jobs pipeline funnel, actionable alert center, and system health matrix.
+  - Rebuilt Providers into an Analytics-First Enterprise Operations Console with clean summary-only cards (zero border overload), high-impact SVG footprint analytics, dense technical matrix, and slide-over drawer.
+  - Preserved all real data pipelines, routing boundaries, and pricing boundaries with zero mock data.
+- Verification:
+  - `vitest` ran 55 tests across 7 test suites: 55 passed (100%).
+  - `tsc --noEmit` passed with 0 errors.
+  - `git diff --check` clean.
+
+#### Latest task: Admin Providers Page Full-Width Visual Implementation (2026-08-16)
+- Status: Completed.
+- Affected files:
+  - `components/admin/providers/ProviderFleetStrip.tsx` [NEW]
+  - `components/admin/providers/ProviderCard.tsx` [NEW]
+  - `components/admin/providers/ProviderAnalytics.tsx` [NEW]
+  - `components/admin/providers/ProviderMatrix.tsx` [NEW]
+  - `components/admin/providers/ProviderDrawer.tsx` [NEW]
+  - `app/admin/providers/page.tsx` [MODIFIED]
+  - `test/providers-visuals.test.ts` [NEW]
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Behavior:
+  - Transformed `/admin/providers` into a Full-Width Enterprise Provider Operations Workspace.
+  - Eliminated centered box / max-w restrictions; workspace fills full viewport width.
+  - Implemented 4-Level Architecture:
+    - Level 1: ProviderFleetStrip (compact segmented fleet health indicator).
+    - Level 2: Provider Operations Grid (7 compact operational cards for active and standby sources).
+    - Level 3: Provider Footprint Analytics (2x2 SVG Infographics: Models distribution, 30d volume, 30d estimated cost, and live balance telemetry).
+    - Level 4: Full-width Provider Inventory Matrix (comprehensive diagnostic table).
+    - Level 5 / Detail Layer: Slide-over ProviderDrawer (480-520px side drawer with 6 diagnostic sections, zero exposed secret keys).
+  - Preserved strict routing and pricing boundaries; no runtime, API, pricing, or DB behavior changed.
+- Verification:
+  - `vitest` ran 47 tests across 5 test suites: 47 passed (100%).
+  - `tsc --noEmit` passed with 0 errors.
+  - `git diff --check` clean.
+
+#### Latest task: Admin Control Center Visual Analytics Implementation (2026-08-16)
+- Status: Completed.
+- Affected files:
+  - `components/admin/control-center/GenerationHealthDonut.tsx` [NEW]
+  - `components/admin/control-center/JobsPipelineFunnel.tsx` [NEW]
+  - `components/admin/control-center/DataLinkageBar.tsx` [NEW]
+  - `components/admin/control-center/FeatureGovernanceBar.tsx` [NEW]
+  - `components/admin/control-center/FinancialCoverageMeter.tsx` [NEW]
+  - `components/admin/control-center/SystemHealthRing.tsx` [NEW]
+  - `app/admin/control-center/page.tsx` [MODIFIED]
+  - `test/control-center-visuals.test.ts` [NEW]
+  - `PROJECT_CONTEXT.md` [MODIFIED]
+- Behavior:
+  - Implemented 5-Level Visual Command Center hierarchy on `/admin/control-center`.
+  - Level 1: Top Operational Snapshot (4 focused metric cards + System Health Ring).
+  - Level 2: Visual Command Deck (2x2 SVG Infographics: GenerationHealthDonut, JobsPipelineFunnel, DataLinkageBar, FeatureGovernanceBar).
+  - Level 3: Financial Coverage & Guard Deck (FinancialCoverageMeter + ShieldAlert warning, zero fake profits/margins).
+  - Level 4: Full System Health Matrix (10 systems preserved) + Actionable Alerts Panel (sorted by severity).
+  - Level 5: Deep Navigation Quick Links.
+  - Eliminated redundant KPI text cards; all charts built using lightweight SVG/CSS with zero heavy chart libraries.
+  - No changes made to runtime, APIs, pricing, routing, or DB.
+- Verification:
+  - `vitest` ran 42 tests across 4 test suites: 42 passed (100%).
+  - `tsc --noEmit` passed with 0 errors.
+  - `git diff --check` clean.
+
+#### Latest task: Final Models + Routing Conflict Closure (2026-08-16)
+- Status: Completed.
+- Affected files: `PROJECT_CONTEXT.md`.
+- Behavior:
+  - Validated single source of truth for Model Definitions in `lib/model-definition-registry.ts` (consuming dynamic models centrally without mutable duplication).
+  - Validated single source of truth for Runtime Routing in `lib/routing/runtime-routing.ts` + `lib/provider-registry.ts` (enforcing active vs standby provider guards: Google/OpenAI/WaveSpeed active, KIE/BytePlus standby).
+  - Legacy model maps remain as read-only compatibility adapters or pricing-only tables (`lib/pricing-models.ts`).
+  - No changes made to UI layouts, pricing logic, storage, or generation lifecycle.
+- Verification:
+  - `npx vitest run test/model-definition-registry.test.ts test/pricing-core.test.ts test/runtime-routing.test.ts` passed: 36 tests.
+  - `npx tsc --noEmit --pretty false` passed with exit code 0.
+- Decision: Mark Models and Routing Source-of-Truth conflicts as fully RESOLVED.
+
 #### Latest task: Fix admin generations 500 error and CSP violation on blocked error strings (2026-08-16)
 - Status: Completed.
 - Affected files: `app/api/admin/generations/route.ts`, `app/admin/page.tsx`, `PROJECT_CONTEXT.md`.
@@ -12347,3 +13342,45 @@
 - Decisions:
   - Treat Batch 1 as ready for the consumers whose mutable model capabilities now flow through Central Model Definition.
   - Do not claim all product model config is centralized while Transitions, Cinema Flow, Agent Studio, AI Canvas composite internals, and Hook-specific workflow config still retain local compatibility data.
+
+#### Latest task: Audio Suite Production Hardening, MP3 Output Guarantee & Voice Preview Determinism (2026-08-19)
+- Status: Completed. Resolved HTTP 500 in `/api/generate/audio`, implemented FFmpeg-powered MP3 transcoding for all audio generation and voice cloning flows, hardened voice preview cache with in-memory deduplication locks to eliminate per-click provider regeneration, and resolved audio preload browser warnings.
+- Affected files: `lib/server/audio-transcode.ts`, `app/api/voice-sample/route.ts`, `app/api/generate/audio/route.ts`, `lib/pricing.ts`, `app/(dash)/(routes)/audio/page.tsx`, `public/stude/sound.html`, `stude/sound.html`, `public/stude/sound-preview.html`, `stude/sound-preview.html`, `test/audio-suite-hardening.test.ts`, `test/lipsync-models.integration.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added `lib/server/audio-transcode.ts` providing `transcodeToMp3`, `isMp3Buffer`, `validateAndNormalizeCloneAudio`, and `ensureCanonicalMp3Url`.
+  - All normal generated subscriber audio outputs from `/api/generate/audio` (TTS, Voice Cloning, Music, SFX, Voice Changer) are guaranteed to be transcoded and stored as valid MP3s (`audio/mpeg`, `.mp3`) prior to final media URL assignment.
+  - Hardened `/api/voice-sample` with in-flight deduplication mutex lock (`inFlightPreviews`) and permanent storage as `.mp3` with `audio/mpeg` so that playing voice samples never triggers billable provider generation or generation monitor entries.
+  - Fixed `/api/generate/audio` 500 error when local `/api/media/...` paths are supplied to WaveSpeed by resolving them to internal buffers and uploading via binary upload endpoint.
+  - Added `preload="none"` across audio players and voice preview instantiations to prevent unused audio download warnings.
+- Verification:
+  - `npx.cmd vitest run test/audio-suite-hardening.test.ts` passed: 4/4 tests.
+  - `npx.cmd vitest run test/lipsync-models.integration.test.ts` passed: 4/4 tests.
+
+#### Latest task: Canonical TTS Character-Based Dynamic Credit Pricing (2026-08-19)
+- Status: Completed. Implemented canonical dynamic character-based credit pricing for TTS and Cloned Voice TTS (`Credits = max(1, ceil(characterCount * 0.0034))`, benchmark: 1 CR per ~294 chars, $0.00017/char target value).
+- Affected files: `lib/pricing.ts`, `lib/credit-pricing.ts`, `app/api/generate/audio/route.ts`, `public/stude/sound.html`, `stude/sound.html`, `test/tts-character-pricing.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added `countAudioScriptCharacters` and `calculateTtsCredits` in `lib/pricing.ts` as the single canonical calculation source across UI and server.
+  - `buildAudioChargeQuote` applies `calculateTtsCredits` to all `tts` and `voice-cloning` generations.
+  - UI displays live credit estimates immediately upon input without disconnecting from server debit.
+  - Acceptance table verified: 1 ch -> 1 CR, 10 ch -> 1 CR, 100 ch -> 1 CR, 250 ch -> 1 CR, 500 ch -> 2 CR, 627 ch -> 3 CR, 1000 ch -> 4 CR, 2000 ch -> 7 CR, 5000 ch -> 17 CR.
+  - Music/SFX, image, and video pricing remain completely isolated and unchanged.
+- Verification:
+  - `npx.cmd vitest run test/tts-character-pricing.test.ts test/audio-suite-hardening.test.ts test/pricing-core.test.ts` passed: 30/30 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+
+#### Latest task: Audio Suite Canonical Dynamic Duration-Based Pricing for Music and SFX (2026-08-19)
+- Status: Completed. Implemented canonical dynamic duration-based pricing across Music (`Credits = max(4, ceil(2 + durationSec * 0.12))`) and Sound Effects (`Credits = max(2, ceil(2 + durationSec * 0.25))`), eliminating all legacy fixed constants (Music 10/20 CR, SFX 8 CR).
+- Affected files: `lib/pricing.ts`, `lib/credit-pricing.ts`, `app/api/generate/audio/route.ts`, `app/api/music/route.ts`, `app/(dash)/(routes)/audio/page.tsx`, `public/stude/sound.html`, `stude/sound.html`, `test/audio-dynamic-pricing.test.ts`, `test/tts-character-pricing.test.ts`, `PROJECT_CONTEXT.md`, `docs/saad-studio-premiere-reference-ar.md`.
+- Behavior:
+  - Added `calculateMusicCredits(durationSec)` and `calculateSfxCredits(durationSec)` to `lib/pricing.ts` as single source of truth.
+  - `buildAudioChargeQuote` and `app/api/music/route.ts` calculate and charge dynamic duration credits directly.
+  - Dashboard Music Studio (`app/(dash)/(routes)/audio/page.tsx`) replaced fixed 20 CR with live reactive `calculateMusicCredits(dur)` on slider changes.
+  - Acceptance table verified:
+    - Music: 15s -> 4 CR, 30s -> 6 CR, 60s -> 10 CR, 90s -> 13 CR, 120s -> 17 CR, 180s -> 24 CR, 240s -> 31 CR, 300s -> 38 CR.
+    - SFX: 2s -> 3 CR, 5s -> 4 CR, 10s -> 5 CR, 15s -> 6 CR, 22s -> 8 CR.
+    - TTS & Cloned Voice: `max(1, ceil(characterCount * 0.0034))` preserved.
+    - Voice Preview: permanently 0 CR.
+- Verification:
+  - `npx.cmd vitest run test/audio-dynamic-pricing.test.ts test/tts-character-pricing.test.ts test/audio-suite-hardening.test.ts test/pricing-core.test.ts` passed: 35/35 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.

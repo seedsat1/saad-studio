@@ -12,18 +12,22 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const filters: HistoryFilterInput = {
+    page: searchParams.get("page"),
+    pageSize: searchParams.get("pageSize"),
     dateFrom: searchParams.get("dateFrom"),
     dateTo: searchParams.get("dateTo"),
     featureId: searchParams.get("featureId"),
     provider: searchParams.get("provider"),
     modelId: searchParams.get("modelId"),
+    modality: searchParams.get("modality"),
     status: searchParams.get("status"),
     creditState: searchParams.get("creditState"),
     hasError: searchParams.get("hasError"),
     hasProviderCost: searchParams.get("hasProviderCost"),
+    userEmail: searchParams.get("userEmail"),
     query: searchParams.get("query"),
   };
-  const limit = Number(searchParams.get("limit") ?? 100);
+  const limit = Number(searchParams.get("pageSize") ?? searchParams.get("limit") ?? 50);
   const result = await loadUnifiedHistory(filters, limit);
 
   return NextResponse.json({

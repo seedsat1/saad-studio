@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
 import { loadAdminRoutingData } from "@/lib/routing/admin-routing-data";
+import { loadRoutingAuditLog } from "@/lib/routing/routing-config";
 
 export const dynamic = "force-dynamic";
 
@@ -10,14 +11,20 @@ export async function GET() {
   }
 
   try {
-    const data = await loadAdminRoutingData();
+    const [data, auditLog] = await Promise.all([
+      loadAdminRoutingData(),
+      loadRoutingAuditLog(),
+    ]);
+
     return NextResponse.json({
       ok: true,
       databaseAvailable: data.databaseAvailable,
       configSource: data.configSource,
+      updatedAt: data.configState?.overrides?.updatedAt || null,
       warning: data.warning,
       routing: data.rows,
       providers: data.providers,
+      auditLog,
       summary: {
         totalModels: data.rows.length,
         enabledModels: data.rows.filter((row) => row.enabled).length,

@@ -97,18 +97,7 @@ export async function dispatchDirectImage(input: DispatchImageInput): Promise<Di
     modality: "image",
     legacyRoute: { provider: legacyProviderName, route: input.modelId },
   });
-  const directRoutingDecision: RuntimeRoutingDecision =
-    routingDecision.effectiveProvider === "google" || routingDecision.effectiveProvider === "openai"
-      ? routingDecision
-      : {
-          modelId: input.modelId,
-          modality: "image",
-          routingSource: "legacy_fallback",
-          effectiveProvider: legacyProviderName,
-          providerRoute: input.modelId,
-          route: { provider: legacyProviderName, route: input.modelId },
-          reason: `Routing resolved ${routingDecision.effectiveProvider}, which is not handled by direct image dispatch.`,
-        };
+  const directRoutingDecision = routingDecision;
 
   const result = await runInlineGeneration({
     modelId: input.modelId,
@@ -128,7 +117,7 @@ export async function dispatchDirectImage(input: DispatchImageInput): Promise<Di
     failureCreditAction: "rollback",
     logPrefix: "dispatch-direct-image",
     execute: async ({ generationId }) => {
-      // 3) Call the provider adapter
+      // 3) Call the provider adapter with selected provider
       const imageResult = await generateImage({
         modelId: directRoutingDecision.providerRoute,
         prompt: cleanPrompt,
@@ -138,7 +127,7 @@ export async function dispatchDirectImage(input: DispatchImageInput): Promise<Di
         negativePrompt: input.negativePrompt,
         imageUrl: input.imageUrl,
         imageUrls: input.imageUrls,
-      });
+      }, directRoutingDecision.effectiveProvider);
 
     // 4) Persist each URL to R2 (best-effort — falls back to source URL)
       const persistedUrls: string[] = [];
@@ -206,18 +195,7 @@ export async function dispatchDirectVideo(input: DispatchVideoInput): Promise<Di
     modality: "video",
     legacyRoute: { provider: legacyProviderName, route: input.modelId },
   });
-  const directRoutingDecision: RuntimeRoutingDecision =
-    routingDecision.effectiveProvider === "google" || routingDecision.effectiveProvider === "byteplus"
-      ? routingDecision
-      : {
-          modelId: input.modelId,
-          modality: "video",
-          routingSource: "legacy_fallback",
-          effectiveProvider: legacyProviderName,
-          providerRoute: input.modelId,
-          route: { provider: legacyProviderName, route: input.modelId },
-          reason: `Routing resolved ${routingDecision.effectiveProvider}, which is not handled by direct video dispatch.`,
-        };
+  const directRoutingDecision = routingDecision;
 
   const result = await runInlineGeneration({
     modelId: input.modelId,
@@ -256,7 +234,7 @@ export async function dispatchDirectVideo(input: DispatchVideoInput): Promise<Di
         referenceAudioUrls: input.referenceAudioUrls,
         generationType: input.generationType,
         enableAudio: input.enableAudio,
-      });
+      }, directRoutingDecision.effectiveProvider);
 
       const persistedUrl = await persistProviderUrl({
         url: videoResult.urls[0],

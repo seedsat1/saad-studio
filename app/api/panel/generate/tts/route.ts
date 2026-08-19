@@ -7,15 +7,16 @@ import {
   spendCredits,
 } from "@/lib/credit-ledger";
 import { sanitizePrompt } from "@/lib/security";
+import { calculateTtsCredits, countAudioScriptCharacters } from "@/lib/pricing";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
+import { evaluatePluginGate } from "@/lib/admin/plugin-control-plane";
+import { verifyPanelTokenAsync } from "@/lib/panel-auth";
 
 export const maxDuration = 120;
 export const dynamic = "force-dynamic";
 
-const TTS_CREDIT_COST = 3;
 const KIE_BASE_URL = "https://api.kie.ai/api/v1";
 const KIE_TTS_MODEL = "elevenlabs/text-to-speech-multilingual-v2";
-// Panel TTS is a separate lightweight panel action; keep its intentional fixed charge independent from the main /api/generate/audio TTS legacy price.
 
 // ElevenLabs voice IDs for multilingual-v2
 const VOICE_IDS: Record<string, string> = {
@@ -67,10 +68,15 @@ async function pollKie(
 }
 
 export async function POST(req: NextRequest) {
+  const gate = await evaluatePluginGate(req, { isGeneration: true });
+  if (!gate.allowed) {
+    return NextResponse.json({ error: gate.error, code: gate.code }, { status: gate.status || 503 });
+  }
+
   const token = extractPanelToken(req);
   if (!token) return NextResponse.json({ error: "Missing Authorization header." }, { status: 401 });
 
-  const verified = verifyPanelToken(token);
+  const verified = await verifyPanelTokenAsync(token);
   if (!verified) return NextResponse.json({ error: "Invalid or expired panel token." }, { status: 401 });
 
   const rate = hitRateLimit({
@@ -91,6 +97,9 @@ export async function POST(req: NextRequest) {
   const text = sanitizePrompt(String(body.text ?? "")).slice(0, 4000);
   if (!text) return NextResponse.json({ error: "text is required." }, { status: 400 });
 
+  const characterCount = countAudioScriptCharacters(text);
+  const creditsToCharge = calculateTtsCredits(characterCount);
+
   const voiceKey = String(body.voiceId ?? "rachel").toLowerCase();
   const voiceId = VOICE_IDS[voiceKey] ?? VOICE_IDS.rachel;
   const speed = Math.max(0.5, Math.min(2.0, Number(body.speed ?? 1.0)));
@@ -101,7 +110,7 @@ export async function POST(req: NextRequest) {
   try {
     const { generationId: gid, remainingCredits } = await spendCredits({
       userId,
-      credits: TTS_CREDIT_COST,
+      credits: creditsToCharge,
       prompt: text.slice(0, 100),
       assetType: "audio",
       modelUsed: "tts",
@@ -144,13 +153,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       audioUrl,
-      creditsUsed: TTS_CREDIT_COST,
+      creditsUsed: creditsToCharge,
+      characterCount,
       balanceAfter: remainingCredits,
     });
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
       return NextResponse.json(
-        { error: "Insufficient credits.", requiredCredits: TTS_CREDIT_COST },
+        { error: "Insufficient credits.", requiredCredits: creditsToCharge },
         { status: 402 },
       );
     }

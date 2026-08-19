@@ -19,9 +19,9 @@ const routes = [
         color: "text-sky-500"
     },
     {
-        label: 'Conversation',
+        label: 'Assist',
         icon: MessageSquare,
-        href: '/conversation',
+        href: '/assist',
         color: "text-violet-500",
     },
     {
@@ -48,18 +48,17 @@ const routes = [
         color: "text-cyan-400",
         href: '/clipcraft-studio',
     },
-
     {
-        label: 'Music Generation',
-        icon: Music,
+        label: 'Cinema Flow',
+        icon: Sparkles,
         color: "text-emerald-500",
-        href: '/music',
+        href: '/cinema-flow',
     },
     {
-        label: 'Code Generation',
-        icon: Code,
-        color: "text-green-700",
-        href: '/code',
+        label: 'Storyboard',
+        icon: FileText,
+        color: "text-amber-500",
+        href: '/storyboard',
     },
     {
         label: 'Settings',

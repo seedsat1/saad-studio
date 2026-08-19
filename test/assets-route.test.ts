@@ -18,6 +18,7 @@ vi.mock("../lib/prismadb", () => ({
   default: {
     generation: {
       findMany: vi.fn(),
+      count: vi.fn(),
     },
   },
 }));
@@ -48,6 +49,7 @@ describe("Assets API Endpoint", () => {
     ];
 
     vi.mocked(prismadb.generation.findMany).mockResolvedValue(mockGenerations as any);
+    vi.mocked(prismadb.generation.count).mockResolvedValue(1 as any);
 
     const req = new NextRequest("http://localhost/api/assets?type=video");
     const response = await assetsHandler(req);

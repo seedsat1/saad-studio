@@ -19,9 +19,6 @@ const isPublicRoute = createRouteMatcher([
   '/audio(.*)',
   '/character(.*)',
   '/characters(.*)',
-  '/influencers(.*)',
-  '/talent-studio(.*)',
-  '/api/influencers(.*)',
   '/music(.*)',
   '/code(.*)',
   '/conversation(.*)',
@@ -260,6 +257,22 @@ export default clerkMiddleware(async (auth, req) => {
 
   const adminId = process.env.ADMIN_USER_ID;
   const isAdmin = isLocalDev || Boolean(adminId && auth().userId && auth().userId === adminId);
+
+  const isInfluencersPath =
+    pathname === "/influencers" ||
+    pathname.startsWith("/influencers/") ||
+    pathname.startsWith("/api/influencers");
+
+  if (isInfluencersPath && !isAdmin) {
+    if (pathname.startsWith("/api/")) {
+      return applySecurityHeaders(
+        NextResponse.json({ error: "Forbidden: Admin access only" }, { status: 403 }),
+        req
+      );
+    }
+    const dashboardUrl = new URL("/dashboard", req.url);
+    return applySecurityHeaders(NextResponse.redirect(dashboardUrl), req);
+  }
 
   if (slug && !isAdmin) {
     try {

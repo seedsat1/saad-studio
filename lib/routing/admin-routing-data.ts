@@ -11,6 +11,12 @@ import { loadRoutingDiagnosticsResult, loadRoutingOverridesResult } from "@/lib/
 import { evaluateFallbackRoutes, resolveEffectiveRoutingConfig } from "@/lib/routing/provider-router";
 import { validateRoutingOverride } from "@/lib/routing/route-validator";
 import { THREE_D_ROUTING_MODELS } from "@/lib/three-d-models";
+import {
+  resolveOfficialProvider,
+  buildAvailableCheckpoints,
+  type ExecutionCheckpointItem,
+} from "@/lib/routing/checkpoint-matrix-builder";
+import { getCheckpointCapability } from "@/lib/routing/checkpoints/checkpoint-capabilities";
 
 function defaultConfig(input: {
   modelId: string;
@@ -98,9 +104,34 @@ export async function loadAdminRoutingData() {
   const rows = defaults.map((defaultsRow) => {
     const override = overrides[defaultsRow.modelId];
     const effective = resolveEffectiveRoutingConfig(defaultsRow, override);
-    const validation = override ? validateRoutingOverride(override) : { ok: true, errors: [] };
+    const validation = override
+      ? validateRoutingOverride(override, {
+          modelId: defaultsRow.modelId,
+          modality: defaultsRow.modality,
+        })
+      : { ok: true, errors: [] };
+
+    const official = resolveOfficialProvider(defaultsRow.modelId, defaultsRow.modality);
+    const selectedProvider = effective.primaryRoute.provider;
+    const selectedRoute = effective.primaryRoute.route;
+    const availableCheckpoints = buildAvailableCheckpoints({
+      modelId: defaultsRow.modelId,
+      modality: defaultsRow.modality,
+      officialProvider: official.provider,
+      currentSelectedProvider: selectedProvider,
+      currentSelectedRoute: selectedRoute,
+    });
+    const capabilities = getCheckpointCapability(selectedProvider, defaultsRow.modality);
+
     return {
       ...effective,
+      logicalProductId: defaultsRow.modelId,
+      officialProvider: official.provider,
+      officialProviderName: official.name,
+      selectedExecutionProvider: selectedProvider,
+      selectedRoute,
+      availableCheckpoints,
+      capabilities,
       defaultRouting: defaultsRow,
       hasOverride: Boolean(override),
       configSource: override ? "persisted" : "default",

@@ -162,14 +162,18 @@ model GenerationRequestSnapshot {
 
 /// Financial transactions: subscriptions and credit purchases.
 model AdminTransaction {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan          String
-  amount        Float
-  credits       Int
-  paymentStatus String   @default("PENDING")
-  createdAt     DateTime @default(now())
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan           String
+  amount         Float
+  credits        Int
+  paymentStatus  String    @default("PENDING")
+  operatorUserId String?
+  operatorEmail  String?
+  decisionAt     DateTime?
+  decisionReason String?
+  createdAt      DateTime  @default(now())
 
   @@index([userId])
   @@index([paymentStatus])
@@ -221,19 +225,77 @@ model PageLayout {
 
 /// Dynamic ad campaigns rendered site-wide based on type and active status.
 model AdCampaign {
-  id         String    @id @default(cuid())
-  title      String
-  /// 'TOP_BANNER' | 'POPUP' | 'SIDEBAR'
-  type       String
-  mediaUrl   String?
-  targetLink String?
-  isActive   Boolean   @default(true)
-  expiresAt  DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id             String        @id @default(cuid())
+  title          String
+  headline       String?
+  description    String?
+  /// 'TOP_BANNER' | 'POPUP' | 'SIDEBAR' | 'CUSTOM'
+  type           String        @default("CUSTOM")
+  mediaUrl       String?
+  mediaType      String?       @default("image")
+  /// Pure CTA destination URL (e.g. '/pricing' or 'https://...')
+  targetLink     String?
+  ctaLabel       String?       @default("Explore Now")
+  ctaTarget      String?       @default("_self")
+  isActive       Boolean       @default(true)
+  priority       Int           @default(10)
+  audience       String        @default("ALL")
+  animation      String        @default("fade")
+  dismissible    Boolean       @default(true)
+  dismissalModel String        @default("session")
+  startDate      DateTime?
+  expiresAt      DateTime?
+  placements     AdPlacement[]
+  events         AdEvent[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([type])
   @@index([isActive])
+  @@index([priority])
+}
+
+/// Normalized per-page responsive placement geometries
+model AdPlacement {
+  id            String     @id @default(cuid())
+  campaignId    String
+  campaign      AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  route         String     // e.g. '/dashboard', '/video', 'ALL'
+  placementMode String     @default("FLOATING") // 'FLOW' | 'FLOATING'
+  anchor        String     @default("center")
+  desktopX      Float      @default(50)
+  desktopY      Float      @default(50)
+  desktopW      Float      @default(40)
+  desktopH      Float?
+  tabletX       Float?
+  tabletY       Float?
+  tabletW       Float?
+  tabletH       Float?
+  mobileX       Float?
+  mobileY       Float?
+  mobileW       Float?
+  mobileH       Float?
+  slotId        String?
+  zIndex        Int        @default(50)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([campaignId, route])
+  @@index([route])
+  @@index([campaignId])
+}
+
+/// Durable, concurrency-safe telemetry events for genuine impressions, clicks, dismissals
+model AdEvent {
+  id         String     @id @default(cuid())
+  campaignId String
+  campaign   AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  eventType  String     // 'impression' | 'click' | 'dismissal'
+  route      String
+  createdAt  DateTime   @default(now())
+
+  @@index([campaignId, eventType])
+  @@index([createdAt])
 }
 
 /// Public cinematic showcase feed rendered on /explore.

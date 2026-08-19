@@ -88,3 +88,14 @@ export {
   type StorageProviderId,
   type StorageProviderStatus,
 } from "./provider-registry";
+
+export {
+  STORAGE_RUNTIME_AUDIT_LOG_KEY,
+  StorageConcurrencyError,
+  getStorageRuntimeVersionToken,
+  loadStorageAuditLog,
+  validateStoragePolicyInput,
+  saveStorageRuntimeConfigAtomic,
+  type StorageFieldChange,
+  type StorageRuntimeAuditEvent,
+} from "./storage-hardening";

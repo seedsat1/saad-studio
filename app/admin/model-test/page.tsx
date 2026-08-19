@@ -27,6 +27,7 @@ import {
   Radio,
 } from "lucide-react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -735,103 +736,109 @@ export default function ModelTestPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* ── Header ── */}
-      <div className="sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/10 px-6 py-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
+    <AdminShell activeRoute="/admin/model-test">
+      <div className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* ── Header ── */}
+        <div className="bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/10 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-xl font-bold flex items-center gap-2">
-                <Zap className="w-5 h-5 text-yellow-400" />
-                Model Test Lab
-              </h1>
-              <p className="text-xs text-white/40 mt-0.5">
-                {VIDEO_MODEL_REGISTRY.length} core models · {WS_ONLY_MODELS.length} studio models · Live generation test
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                <h1 className="text-xl font-bold tracking-tight text-white">KIE Video Model Live Test Lab</h1>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                  {VIDEO_MODEL_REGISTRY.length + WS_ONLY_MODELS.length} Models Total
+                </span>
+              </div>
+              <p className="text-xs text-white/50 mt-0.5">
+                Real-time API testing for all {VIDEO_MODEL_REGISTRY.length} KIE Video Models + {WS_ONLY_MODELS.length} Studio Video Models with dynamic duration & polling.
               </p>
             </div>
-            <div className="text-xs text-white/30">
-              Showing <span className="text-white/70 font-semibold">{filtered.length}</span> / {VIDEO_MODEL_REGISTRY.length} KIE
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setExpandAll(e => !e)}
+                className="px-3 py-1.5 rounded-lg text-xs bg-white/10 hover:bg-white/15 text-white/80 transition-colors"
+              >
+                {expandAll ? "Collapse All" : "Expand All"}
+              </button>
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3 items-center">
-            {/* Search */}
+          {/* Filter Bar */}
+          <div className="flex flex-wrap items-center gap-2 mt-4">
             <input
               type="text"
-              placeholder="Search models…"
+              placeholder="Search model name or ID..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="flex-1 min-w-[160px] bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30"
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 w-52"
             />
-
-            {/* Family filter */}
-            <div className="flex items-center gap-1.5">
-              <Filter className="w-3.5 h-3.5 text-white/40" />
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-white/40">Family:</span>
               <select
                 value={filterFamily}
                 onChange={e => setFilterFamily(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500/50"
               >
-                <option value="all">All families</option>
+                <option value="all">All Families</option>
                 {FAMILIES.map(f => (
-                  <option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</option>
+                  <option key={f} value={f}>{f.toUpperCase()}</option>
                 ))}
               </select>
             </div>
-
-            {/* Input type filter */}
-            <select
-              value={filterInput}
-              onChange={e => setFilterInput(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
-            >
-              <option value="all">All input types</option>
-              <option value="t2v">Text → Video</option>
-              <option value="i2v">Image → Video</option>
-              <option value="motion">Motion Control</option>
-            </select>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-white/40">Input:</span>
+              <select
+                value={filterInput}
+                onChange={e => setFilterInput(e.target.value)}
+                className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500/50"
+              >
+                <option value="all">All Types</option>
+                <option value="t2v">Text → Video</option>
+                <option value="i2v">Image → Video</option>
+                <option value="motion">Motion Transfer</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ── Stats bar ── */}
-      <div className="max-w-5xl mx-auto px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Total Models",    value: VIDEO_MODEL_REGISTRY.length + WS_ONLY_MODELS.length,                                          color: "#06b6d4" },
-          { label: "Text → Video",    value: VIDEO_MODEL_REGISTRY.filter(m => !m.capabilities.requires_image && !m.capabilities.requires_video).length, color: "#8b5cf6" },
-          { label: "Image → Video",   value: VIDEO_MODEL_REGISTRY.filter(m => m.capabilities.requires_image).length,  color: "#f59e0b" },
-          { label: "WaveSpeed",       value: WS_ONLY_MODELS.length, color: "#10b981" },
-        ].map(s => (
-          <div key={s.label} className="bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3">
-            <div className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</div>
-            <div className="text-xs text-white/40 mt-0.5">{s.label}</div>
+        {/* ── Stats Strip ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Total Models",    value: VIDEO_MODEL_REGISTRY.length + WS_ONLY_MODELS.length,                                          color: "#06b6d4" },
+            { label: "Text → Video",    value: VIDEO_MODEL_REGISTRY.filter(m => !m.capabilities.requires_image && !m.capabilities.requires_video).length, color: "#8b5cf6" },
+            { label: "Image → Video",   value: VIDEO_MODEL_REGISTRY.filter(m => m.capabilities.requires_image).length,  color: "#f59e0b" },
+            { label: "WaveSpeed",       value: WS_ONLY_MODELS.length, color: "#10b981" },
+          ].map(s => (
+            <div key={s.label} className="bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3">
+              <div className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</div>
+              <div className="text-xs text-white/40 mt-0.5">{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── KIE Model list ── */}
+        <div className="w-full space-y-2">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">KIE Models</span>
+            <span className="text-xs text-white/30">({VIDEO_MODEL_REGISTRY.length} models · main /video page)</span>
           </div>
-        ))}
-      </div>
-
-      {/* ── KIE Model list ── */}
-      <div className="max-w-5xl mx-auto px-6 space-y-2">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">KIE Models</span>
-          <span className="text-xs text-white/30">({VIDEO_MODEL_REGISTRY.length} models · main /video page)</span>
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 text-white/30">No models match your filter.</div>
+          ) : (
+            filtered.map(m => <ModelTestCard key={m.id} model={m} />)
+          )}
         </div>
-        {filtered.length === 0 ? (
-          <div className="text-center py-16 text-white/30">No models match your filter.</div>
-        ) : (
-          filtered.map(m => <ModelTestCard key={m.id} model={m} />)
-        )}
-      </div>
 
-      {/* ── WaveSpeed-only model list ── */}
-      <div className="max-w-5xl mx-auto px-6 pb-16 space-y-2 mt-8">
-        <div className="flex items-center gap-2 mb-3">
-          <Radio className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Studio Models</span>
-          <span className="text-xs text-white/30">({WS_ONLY_MODELS.length} models · /api/generate/video legacy path)</span>
+        {/* ── WaveSpeed-only model list ── */}
+        <div className="w-full pb-16 space-y-2 mt-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Radio className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Studio Models</span>
+            <span className="text-xs text-white/30">({WS_ONLY_MODELS.length} models · /api/generate/video legacy path)</span>
+          </div>
+          {WS_ONLY_MODELS.map(m => <ModelTestCard key={m.id} model={m} />)}
         </div>
-        {WS_ONLY_MODELS.map(m => <ModelTestCard key={m.id} model={m} />)}
       </div>
-    </div>
+    </AdminShell>
   );
 }

@@ -69,6 +69,18 @@ export async function GET() {
           amount: t.amount,
           credits: t.credits,
           paymentStatus: t.paymentStatus,
+          operatorUserId: t.operatorUserId ?? null,
+          operatorEmail: t.operatorEmail ?? null,
+          decisionAt: t.decisionAt
+            ? t.decisionAt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : null,
+          decisionReason: t.decisionReason ?? null,
           createdAt: t.createdAt.toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",

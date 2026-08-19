@@ -213,4 +213,53 @@ describe("admin jobs read model", () => {
       bySource: { generation: 0, transition: 1, variation: 1, reap: 0, cinema: 0 },
     });
   });
+
+  it("enforces honest data semantics: no synthetic progress, no createdAt aliasing for startedAt/completedAt", () => {
+    const processingJob = mapTransitionJobToUnifiedJob({
+      id: "transition_proc",
+      userId: "u1",
+      presetId: "p1",
+      status: "processing",
+      taskId: "task_1",
+      creditsCost: 5,
+      resultUrl: null,
+      error: null,
+      payload: {},
+      createdAt: new Date("2026-08-15T11:00:00.000Z"),
+      updatedAt: new Date("2026-08-15T11:05:00.000Z"),
+      output: null,
+    }, now);
+
+    const completedGen = mapGenerationToUnifiedJob({
+      id: "gen_completed",
+      userId: "u1",
+      prompt: "hello",
+      mediaUrl: "https://cdn.test/out.mp4",
+      outputUrl: "https://cdn.test/out.mp4",
+      status: "completed",
+      assetType: "VIDEO",
+      modelUsed: "model",
+      cost: 10,
+      providerName: "WaveSpeed",
+      providerRequestId: "task_2",
+      createdAt: new Date("2026-08-15T10:00:00.000Z"),
+      providerUsageRecords: [],
+      generationRequestSnapshot: null,
+    }, now);
+
+    // Progress semantics: must be null, never 50 or 100
+    expect(processingJob.progress).toBeNull();
+    expect(completedGen.progress).toBeNull();
+
+    // Timestamp semantics: startedAt and completedAt must be null when unproven
+    expect(processingJob.startedAt).toBeNull();
+    expect(processingJob.completedAt).toBeNull();
+    expect(processingJob.createdAt).toBe("2026-08-15T11:00:00.000Z");
+    expect(processingJob.updatedAt).toBe("2026-08-15T11:05:00.000Z");
+
+    expect(completedGen.startedAt).toBeNull();
+    expect(completedGen.completedAt).toBeNull();
+    expect(completedGen.createdAt).toBe("2026-08-15T10:00:00.000Z");
+    expect(completedGen.updatedAt).toBeNull();
+  });
 });

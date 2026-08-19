@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { isAdmin } from "@/lib/is-admin";
 import { getGenerationCost } from "@/lib/pricing";
 import { IMAGE_MODELS } from "@/lib/image-models";
 import { getCentralizedDynamicImageModels } from "@/lib/model-definition-registry";
@@ -43,6 +44,7 @@ interface ImageRequestBody {
   imageUrls?: string[];
   quality?: string;
   useAnnualUnlimited?: boolean;
+  feature?: string;
   /** Provider input field override for legacy callers. */
   imageInputField?: string;
 }
@@ -531,6 +533,7 @@ export async function POST(req: NextRequest) {
       resolution,
       imageSize,
       useAnnualUnlimited = true,
+      feature,
     } = body;
 
     if (!prompt || !modelId) {
@@ -540,10 +543,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (feature === "influencers-nsfw" || feature === "nsfw" || feature === "influencers") {
+      const admin = await isAdmin();
+      if (!admin) {
+        return NextResponse.json(
+          { error: "Forbidden: Admin access required for Influencers NSFW feature." },
+          { status: 403 },
+        );
+      }
+    }
+
     // Early check: reference images require Supabase storage to be configured
     const rawRefUrls: string[] = [];
-    if (body.imageUrl) rawRefUrls.push(body.imageUrl);
-    if (body.imageUrls?.length) rawRefUrls.push(...body.imageUrls);
+    if (imageUrl) rawRefUrls.push(imageUrl);
+    if (imageUrlsParam?.length) rawRefUrls.push(...imageUrlsParam);
 
     const hasReferenceImages = Boolean(imageUrl || imageUrlsParam?.length);
     let effectiveModelId = resolveFlux2Variant(modelId, hasReferenceImages, quality);

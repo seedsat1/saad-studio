@@ -62,8 +62,7 @@ describe("LipSync Models Integration Contract", () => {
     expect(pricingCode).toContain('"sync/lipsync-3":                          "lipsync"');
     expect(pricingCode).toContain('"infinitalk/from-audio":                   "lipsync"');
     expect(pricingCode).toContain('"kling/ai-avatar-pro":                     "lipsync"');
-    expect(pricingCode).toContain('"bytedance/seedance-2":                    "lipsync"');
-    expect(pricingCode).toContain('"bytedance/seedance-2-fast":               "lipsync"');
+    expect(pricingCode).toContain('"audio:lip-sync":      "lipsync"');
   });
 
   it("keeps model-specific lip-sync validations in API", () => {

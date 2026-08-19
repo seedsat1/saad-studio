@@ -1,29 +1,33 @@
 {
   "name": "SaadStudio",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "displayName": "SaadStudio - Adobe Creative Cloud Extension",
   "description": "إضافة احترافية لـ Adobe Creative Cloud توفر أدوات متقدمة للتحرير والإنتاج",
-  "releaseDate": "2026-05-30",
+  "releaseDate": "2026-08-19",
   "compatibility": {
     "minVersion": "2022.0",
     "maxVersion": "2026.0",
-    "platforms": ["Windows", "macOS"]
+    "platforms": [
+      "Windows",
+      "macOS"
+    ]
   },
   "downloads": {
-    "url": "https://www.saadstudio.app/download/saadstudio.zxp",
-    "fileSize": "45.2 MB",
+    "url": "https://www.saadstudio.app/downloads/SaadStudio-Setup.exe",
+    "zxpUrl": "https://www.saadstudio.app/downloads/SaadStudio.zxp",
+    "fileSize": "33.6 MB",
     "fileHash": "to-be-computed",
-    "lastUpdated": "2026-05-30T00:00:00Z"
+    "lastUpdated": "2026-08-19T00:56:03.908Z"
   },
   "changelog": [
     {
-      "version": "1.0.0",
-      "date": "2026-05-30",
+      "version": "3.0.0",
+      "date": "2026-08-19",
       "changes": [
-        "🎉 الإصدار الأول",
-        "✨ أدوات تحرير متقدمة",
-        "🚀 أداء محسّن",
-        "🐛 إصلاح الأخطاء"
+        "🚀 ترقية شاملة لمعمارية الإضافة v3.0.0",
+        "🎯 توحيد تسعير الصوت وTTS مع منصة الويب",
+        "✨ تحسين مزامنة الشفاه والأدوات الصوتية",
+        "⚡ تحسين سرعة الاتصال ومعالجة المهام"
       ]
     }
   ],

@@ -92,9 +92,9 @@ const TOP_TOOLS = [
   {
     id: "soul-moodboard",
     image: "/explore/top-soul-moodboard.jpg",
-    name: "Soul Moodboard",
+    name: "AI Stylist",
     desc: "Style your AI characters with real fashion references and presets.",
-    href: "/moodboard",
+    href: "/apps/tool/ai-stylist",
     badge: "",
     accent: "#f43f5e",
     glow: "rgba(244,63,94,0.2)",

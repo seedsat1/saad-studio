@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/is-admin";
 import type { ModelRoutingOverride } from "@/lib/model-routing-registry";
 import { loadAdminRoutingData } from "@/lib/routing/admin-routing-data";
-import { resetRoutingOverride, saveRoutingDiagnostics, saveRoutingOverride } from "@/lib/routing/routing-config";
+import {
+  resetRoutingOverride,
+  saveRoutingDiagnostics,
+  saveRoutingOverride,
+  RoutingConcurrencyError,
+} from "@/lib/routing/routing-config";
 import { decideProviderRoute } from "@/lib/routing/provider-router";
 import { validateRoutingOverride } from "@/lib/routing/route-validator";
 
@@ -41,19 +47,49 @@ export async function PUT(req: Request, context: RouteContext) {
       return NextResponse.json({ error: "Invalid routing model id" }, { status: 400 });
     }
 
-    const body = (await req.json().catch(() => null)) as ModelRoutingOverride | null;
-    if (!body || typeof body !== "object") {
+    const row = await findRoutingRow(modelId);
+    if (!row) {
+      return NextResponse.json({ error: `Routing model not found: ${modelId}` }, { status: 404 });
+    }
+
+    const rawBody = (await req.json().catch(() => null)) as (ModelRoutingOverride & { expectedUpdatedAt?: string }) | null;
+    if (!rawBody || typeof rawBody !== "object") {
       return NextResponse.json({ error: "Invalid routing override payload" }, { status: 400 });
     }
 
-    const validation = validateRoutingOverride(body);
+    const { expectedUpdatedAt, ...overrideBody } = rawBody;
+
+    const validation = validateRoutingOverride(overrideBody, {
+      modelId: row.modelId,
+      modality: row.modality,
+    });
     if (!validation.ok) {
       return NextResponse.json({ error: "Invalid routing override", errors: validation.errors }, { status: 400 });
     }
 
-    await saveRoutingOverride(modelId, body);
-    const row = await findRoutingRow(modelId);
-    return NextResponse.json({ ok: true, routing: row });
+    let operatorId = "admin_session";
+    try {
+      const session = await auth();
+      if (session?.userId) operatorId = session.userId;
+    } catch {}
+
+    try {
+      await saveRoutingOverride(modelId, overrideBody, {
+        expectedUpdatedAt: expectedUpdatedAt || null,
+        operatorId,
+      });
+    } catch (err) {
+      if (err instanceof RoutingConcurrencyError) {
+        return NextResponse.json(
+          { error: err.message, code: "CONCURRENCY_CONFLICT" },
+          { status: 409 }
+        );
+      }
+      throw err;
+    }
+
+    const updatedRow = await findRoutingRow(modelId);
+    return NextResponse.json({ ok: true, routing: updatedRow });
   } catch (error) {
     console.error("[admin-routing] PUT error:", error);
     return NextResponse.json({ error: "Failed to save routing override" }, { status: 500 });
@@ -72,7 +108,13 @@ export async function POST(_req: Request, context: RouteContext) {
     }
 
     if (action === "reset") {
-      await resetRoutingOverride(modelId);
+      let operatorId = "admin_session";
+      try {
+        const session = await auth();
+        if (session?.userId) operatorId = session.userId;
+      } catch {}
+
+      await resetRoutingOverride(modelId, { operatorId });
       const row = await findRoutingRow(modelId);
       return NextResponse.json({ ok: true, routing: row });
     }

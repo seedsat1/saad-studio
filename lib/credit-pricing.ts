@@ -1,7 +1,7 @@
 import { IMAGE_MODELS, getImageCreditCost } from "@/lib/image-models";
 import { VIDEO_MODELS } from "@/lib/video-models";
 import { VIDEO_MODEL_REGISTRY, isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
-import { getGenerationCost, getGenerationCostSync } from "@/lib/pricing";
+import { getGenerationCost, getGenerationCostSync, calculateTtsCredits, calculateMusicCredits, calculateSfxCredits } from "@/lib/pricing";
 
 type VideoPayload = Record<string, unknown>;
 type ImagePricingOptions = {
@@ -548,16 +548,28 @@ export function get3DCredits(modelId: string, mode: string): number {
   return THREE_D_COST_MAP.get(combinedKey) ?? 0;
 }
 
-export function getAudioActionCredits(actionType: "tts" | "video2audio" | "music" | "voice-changer" | "dubbing" | "lip-sync" | "voice-cloning"): number {
+export function getAudioActionCredits(
+  actionType: "tts" | "video2audio" | "music" | "voice-changer" | "dubbing" | "lip-sync" | "voice-cloning",
+  textOrPayloadOrDuration?: string | number | { text?: string; prompt?: string; duration?: number; musicDuration?: number }
+): number {
+  if (actionType === "tts" || actionType === "voice-cloning") {
+    const text = typeof textOrPayloadOrDuration === "string" ? textOrPayloadOrDuration : typeof textOrPayloadOrDuration === "object" ? textOrPayloadOrDuration?.text || textOrPayloadOrDuration?.prompt : "";
+    if (text !== undefined) return calculateTtsCredits(text);
+  }
+  if (actionType === "music") {
+    const dur = typeof textOrPayloadOrDuration === "number" ? textOrPayloadOrDuration : typeof textOrPayloadOrDuration === "object" ? textOrPayloadOrDuration?.duration || textOrPayloadOrDuration?.musicDuration : 30;
+    return calculateMusicCredits(dur);
+  }
+  if (actionType === "video2audio") {
+    const dur = typeof textOrPayloadOrDuration === "number" ? textOrPayloadOrDuration : typeof textOrPayloadOrDuration === "object" ? textOrPayloadOrDuration?.duration : 5;
+    return calculateSfxCredits(dur);
+  }
   const dbCost = getGenerationCostSync(`audio:${actionType}`, 0, 1);
   if (dbCost > 0) return dbCost;
 
-  if (actionType === "tts") return 4;
-  if (actionType === "video2audio") return 8;
   if (actionType === "dubbing") return 8;
   if (actionType === "voice-changer") return 3;
   if (actionType === "lip-sync") return 6;
-  if (actionType === "voice-cloning") return 5;
   return 10;
 }
 

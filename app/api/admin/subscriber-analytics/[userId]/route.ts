@@ -274,8 +274,7 @@ export async function GET(req: Request, { params }: { params: { userId: string }
     // Calculations
     const totalPayments = userTxs.reduce((sum, t) => sum + t.amount, 0);
     const txCredits = userTxs.reduce((sum, t) => sum + t.credits, 0);
-    const isOmar = user.email === "omarworkimn@gmail.com";
-    const creditsGranted = txCredits + (isOmar ? 2700 : 0);
+    const creditsGranted = txCredits;
 
     const creditsRemaining = user.creditBalance;
     const gensBilled = userGens.reduce((sum, g) => sum + g.cost, 0);

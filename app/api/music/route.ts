@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getGenerationCost } from "@/lib/pricing";
+import { getGenerationCost, calculateMusicCredits } from "@/lib/pricing";
 
 export const maxDuration = 180; // 3 minutes timeout for polling minimax music generation
 import { InsufficientCreditsError, precheckGenerationPolicy, rollbackGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
@@ -126,7 +126,8 @@ export async function POST(req: Request) {
         ? routingDecision.providerRoute
         : model;
 
-    const creditsToCharge = await getGenerationCost(model, duration ?? 30);
+    const dbCost = await getGenerationCost(model, duration ?? 30);
+    const creditsToCharge = dbCost > 0 ? dbCost : calculateMusicCredits(duration ?? 30);
     if (creditsToCharge <= 0) {
       return new NextResponse("No credit configuration for this music model", { status: 400 });
     }

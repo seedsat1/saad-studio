@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getRegistry, saveRegistry } from "@/lib/voice-registry";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { transcodeToMp3 } from "@/lib/server/audio-transcode";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +12,10 @@ const GOOGLE_GEMINI_TTS_VOICES = new Set([
   "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
 ]);
 
-import { getRegistry, saveRegistry } from "@/lib/voice-registry";
-import { uploadBufferToStorage } from "@/lib/supabase-storage";
-
 const GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
+
+// Concurrency guard: deduplicate simultaneous first-click requests for the same voice+lang preview
+const inFlightPreviews = new Map<string, Promise<string>>();
 
 function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitsPerSample = 16): Buffer {
   const byteRate = (sampleRate * channels * bitsPerSample) / 8;
@@ -62,13 +65,13 @@ function toBrowserMediaUrl(value: string): string {
   return `/api/media/${mediaPath}`;
 }
 
-function wavResponse(buffer: Buffer): NextResponse {
+function mp3Response(buffer: Buffer): NextResponse {
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {
-      "Content-Type": "audio/wav",
+      "Content-Type": "audio/mpeg",
       "Content-Length": String(buffer.length),
-      "Cache-Control": "public, max-age=86400",
+      "Cache-Control": "public, max-age=31536000, immutable",
       "Accept-Ranges": "bytes",
     },
   });
@@ -135,6 +138,81 @@ const LANGUAGE_GENDERS: Record<string, { male: string; female: string }> = {
   it: { male: "maschile", female: "femminile" }
 };
 
+async function generateAndPersistPreview(exactVoice: string, exactLang: string, apiKey: string): Promise<string> {
+  const details = GOOGLE_GEMINI_TTS_VOICE_DETAILS[exactVoice] || { arabicName: exactVoice, gender: "أنثوي" };
+  const isFemale = details.gender === "أنثوي";
+  const genderStr = LANGUAGE_GENDERS[exactLang]?.[isFemale ? "female" : "male"] || (isFemale ? "female" : "male");
+  const template = LANGUAGE_PROMPTS[exactLang] || LANGUAGE_PROMPTS.ar;
+  const voiceLabel = exactLang === "ar" ? details.arabicName : exactVoice;
+  const prompt = template.replace("{voice}", voiceLabel).replace("{gender}", genderStr);
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: exactVoice },
+            },
+          },
+        },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Google TTS API failed with HTTP ${res.status}`);
+  }
+
+  const json = await res.json().catch(() => null);
+  const audio = extractGeminiAudio(json);
+  if (!audio) {
+    throw new Error("No audio payload returned from Gemini TTS");
+  }
+
+  const raw = Buffer.from(audio.data, "base64");
+  const initialBuffer = audio.mimeType.toLowerCase().includes("wav") ? raw : pcmToWav(raw);
+
+  // Transcode to clean canonical MP3
+  const mp3Buffer = await transcodeToMp3(initialBuffer, {
+    bitrate: "192k",
+    sampleRate: 44100,
+    channels: 2,
+  });
+
+  const uploadedUrl = await uploadBufferToStorage({
+    buffer: mp3Buffer,
+    contentType: "audio/mpeg",
+    userId: "admin_previews",
+    assetType: "audio",
+    generationId: `voice_preview_google_${exactVoice.toLowerCase()}_${exactLang}`,
+    fileName: `sample_${exactVoice.toLowerCase()}_${exactLang}.mp3`,
+  });
+
+  if (!uploadedUrl) {
+    throw new Error("Storage upload failed for voice preview");
+  }
+
+  const registryKey = `voice-preview:google:${exactVoice.toLowerCase()}:${exactLang}`;
+  const registry = getRegistry();
+  registry[registryKey] = uploadedUrl;
+  registry[`${exactVoice}_${exactLang}`] = uploadedUrl;
+  if (exactLang === "ar") {
+    registry[exactVoice] = uploadedUrl;
+  }
+  saveRegistry(registry);
+
+  return uploadedUrl;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const voiceParam = req.nextUrl.searchParams.get("voice") || "Sulafat";
@@ -145,17 +223,18 @@ export async function GET(req: NextRequest) {
     ) || "Sulafat";
 
     const exactLang = LANGUAGE_PROMPTS[langParam.toLowerCase()] ? langParam.toLowerCase() : "ar";
-    const registryKey = `${exactVoice}_${exactLang}`;
+    const canonicalKey = `voice-preview:google:${exactVoice.toLowerCase()}:${exactLang}`;
+    const legacyKey = `${exactVoice}_${exactLang}`;
 
-    // 1. Check persistent registry
+    // 1. Check persistent registry (ZERO provider calls for existing previews)
     const registry = getRegistry();
-    const storedUrl = registry[registryKey] || (exactLang === "ar" ? registry[exactVoice] : undefined);
+    const storedUrl = registry[canonicalKey] || registry[legacyKey] || (exactLang === "ar" ? registry[exactVoice] : undefined);
     if (storedUrl) {
       const targetUrl = toBrowserMediaUrl(storedUrl);
       return NextResponse.redirect(new URL(targetUrl, req.url));
     }
 
-    // 2. Try to generate on the fly using Google API key
+    // 2. Generate once if missing with deduplication lock
     const apiKey =
       process.env.GOOGLE_AI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
@@ -163,65 +242,21 @@ export async function GET(req: NextRequest) {
       process.env.GOOGLE_GENAI_API_KEY;
 
     if (apiKey) {
-      const details = GOOGLE_GEMINI_TTS_VOICE_DETAILS[exactVoice] || { arabicName: exactVoice, gender: "أنثوي" };
-      const isFemale = details.gender === "أنثوي";
-      const genderStr = LANGUAGE_GENDERS[exactLang][isFemale ? "female" : "male"];
-      const template = LANGUAGE_PROMPTS[exactLang];
-      const voiceLabel = exactLang === "ar" ? details.arabicName : exactVoice;
-      const prompt = template.replace("{voice}", voiceLabel).replace("{gender}", genderStr);
-
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "x-goog-api-key": apiKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              responseModalities: ["AUDIO"],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: exactVoice },
-                },
-              },
-            },
-          }),
-        }
-      );
-
-      if (res.ok) {
-        const json = await res.json().catch(() => null);
-        const audio = extractGeminiAudio(json);
-        if (audio) {
-          const raw = Buffer.from(audio.data, "base64");
-          const buffer = audio.mimeType.toLowerCase().includes("wav") ? raw : pcmToWav(raw);
-
-          const uploadedUrl = await uploadBufferToStorage({
-            buffer,
-            contentType: "audio/wav",
-            userId: "admin_previews",
-            assetType: "audio",
-            generationId: `voice_sample_${exactVoice.toLowerCase()}_${exactLang}`,
-            fileName: `sample_${exactVoice.toLowerCase()}_${exactLang}.wav`,
+      let previewPromise = inFlightPreviews.get(canonicalKey);
+      if (!previewPromise) {
+        previewPromise = generateAndPersistPreview(exactVoice, exactLang, apiKey)
+          .finally(() => {
+            inFlightPreviews.delete(canonicalKey);
           });
-
-          if (uploadedUrl) {
-            registry[registryKey] = uploadedUrl;
-            saveRegistry(registry);
-
-            const targetUrl = toBrowserMediaUrl(uploadedUrl);
-            return NextResponse.redirect(new URL(targetUrl, req.url));
-          }
-
-          return wavResponse(buffer);
-        }
+        inFlightPreviews.set(canonicalKey, previewPromise);
       }
+
+      const uploadedUrl = await previewPromise;
+      const targetUrl = toBrowserMediaUrl(uploadedUrl);
+      return NextResponse.redirect(new URL(targetUrl, req.url));
     }
 
-    // 3. Fallback to Sulafat's pre-rendered URL
+    // 3. Fallback to any existing pre-rendered voice URL
     const fallbackUrl = registry["Sulafat"] || Object.values(registry)[0];
     if (fallbackUrl) {
       const targetUrl = toBrowserMediaUrl(fallbackUrl);
@@ -229,7 +264,8 @@ export async function GET(req: NextRequest) {
     }
 
     return new NextResponse("Voice sample generation is not configured on the server.", { status: 503 });
-  } catch (error: any) {
-    return new NextResponse(error?.message || "Internal server error", { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return new NextResponse(message, { status: 500 });
   }
 }

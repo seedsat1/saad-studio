@@ -1660,10 +1660,11 @@ function previewVmVoice(id,name,ev){
   try{
     const cleanId=id.replace(/^gemini:/,'');
     const lang=_vmActiveLangs[id]||'ar';
-    const cacheKey=`${id}_${lang}`;
     let url=_vmPreviewCache[cacheKey]||(isGeminiVoiceId(id)?`/api/voice-sample?voice=${encodeURIComponent(cleanId)}&lang=${lang}`:`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`);
     _vmPreviewCache[cacheKey]=url;
+    saveVmPreviewCache();
     _vmPreviewAudio=new Audio(studioMediaUrl(url));
+    _vmPreviewAudio.preload='none';
     _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();updateQuickVoiceButtons(null);};
     _vmPreviewAudio.onerror=()=>{_vmPlayingId=null;renderVmGrid();updateQuickVoiceButtons(null);setStatus('Voice preview failed.','err');};
     _vmPreviewAudio.play().catch(error=>{
@@ -2260,11 +2261,40 @@ function setPrompt(text,mode){
   updatePromptMeters();
 }
 function autoGrow(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,150)+'px';}
+function countAudioScriptCharacters(text){
+  if(!text)return 0;
+  return text.normalize('NFC').replace(/\r\n/g,'\n').trim().length;
+}
+function calculateTtsCredits(text){
+  const count=countAudioScriptCharacters(text);
+  if(count<=0)return 1;
+  return Math.max(1, Math.ceil(count * 0.0034));
+}
+function calculateMusicCredits(durationSec){
+  const dur = Number.isFinite(Number(durationSec)) && Number(durationSec) > 0 ? Number(durationSec) : 30;
+  return Math.max(4, Math.ceil(2 + dur * 0.12));
+}
+function calculateSfxCredits(durationSec){
+  const dur = Number.isFinite(Number(durationSec)) && Number(durationSec) > 0 ? Number(durationSec) : 5;
+  return Math.max(2, Math.ceil(2 + dur * 0.25));
+}
 document.getElementById('promptInput').addEventListener('input',updatePromptMeters);
 function updatePromptMeters(){
   const input=document.getElementById('promptInput');
   const text=input?.value||'';
-  document.getElementById('charCount').textContent=text.length+' ch';
+  const count=countAudioScriptCharacters(text);
+  const charEl=document.getElementById('charCount');
+  if(charEl)charEl.textContent=count+' / 5000';
+  if(currentMode==='voice'){
+    const estCredits=calculateTtsCredits(text);
+    setCreditCostLabel(estCredits+' cr');
+  } else if(currentMode==='music'){
+    const estCredits=calculateMusicCredits(30);
+    setCreditCostLabel(estCredits+' cr');
+  } else if(currentMode==='sfx'){
+    const estCredits=calculateSfxCredits(5);
+    setCreditCostLabel(estCredits+' cr');
+  }
   scheduleAudioQuote();
 }
 function cycleLang(btn){
@@ -2287,9 +2317,19 @@ function cycleGeminiModel(btn){
 function getGeminiTtsModel(){return GEMINI_TTS_MODELS[_geminiTtsModelIndex]?.id||GEMINI_TTS_MODELS[0].id;}
 function setCreditCostLabel(text,tone){
   const el=document.getElementById('creditCost');
-  if(!el)return;
-  el.textContent=text;
-  el.style.color=tone==='err'?'var(--rose)':tone==='muted'?'var(--text-sec)':'#f5cf77';
+  if(el){
+    el.textContent=text;
+    el.style.color=tone==='err'?'var(--rose)':tone==='muted'?'var(--text-sec)':'#f5cf77';
+  }
+  const btn=document.getElementById('sendBtn');
+  if(btn){
+    const cleanCr=String(text||'').trim();
+    if(cleanCr && cleanCr!=='-- cr' && cleanCr!=='...'){
+      btn.textContent=`GENERATE AUDIO · ${cleanCr.toUpperCase()}`;
+    } else {
+      btn.textContent='GENERATE AUDIO';
+    }
+  }
 }
 function buildAudioQuoteParams(text){
   const params=new URLSearchParams();
@@ -2323,21 +2363,32 @@ function scheduleAudioQuote(){
 }
 async function refreshAudioQuote(){
   const text=(document.getElementById('promptInput')?.value||'').trim();
-  if(!text){_audioQuoteKey='';setCreditCostLabel('-- cr','muted');return;}
+  if(currentMode==='voice'){
+    const estCredits=calculateTtsCredits(text);
+    setCreditCostLabel(estCredits+' cr');
+  } else if(currentMode==='music'){
+    const estCredits=calculateMusicCredits(30);
+    setCreditCostLabel(estCredits+' cr');
+  } else if(currentMode==='sfx'){
+    const estCredits=calculateSfxCredits(5);
+    setCreditCostLabel(estCredits+' cr');
+  } else if(!text){
+    _audioQuoteKey='';
+    setCreditCostLabel('-- cr','muted');
+    return;
+  }
   const params=buildAudioQuoteParams(text);
   const key=currentMode+'|'+params.toString();
   if(key===_audioQuoteKey)return;
   _audioQuoteKey=key;
-  setCreditCostLabel('...', 'muted');
   try{
     const res=await fetch('/api/generate/audio?'+params.toString(),{cache:'no-store'});
     const json=await res.json().catch(()=>null);
     const credits=Number(json?.finalCredits);
-    if(!res.ok||!Number.isFinite(credits)||credits<=0)throw new Error(json?.error||'No quote');
-    setCreditCostLabel(Math.ceil(credits)+' cr');
-  }catch(_err){
-    setCreditCostLabel('-- cr','err');
-  }
+    if(res.ok && Number.isFinite(credits) && credits>0){
+      setCreditCostLabel(Math.ceil(credits)+' cr');
+    }
+  }catch(_err){}
 }
 function notifyCreditBalance(balance){
   if(!Number.isFinite(balance))return;

@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { isAdmin } from "@/lib/is-admin";
 import { DEFAULT_MODELS, SAAD_PLANS, type PricingModel } from "@/lib/pricing-models";
+import { EXCLUDED_FROM_COMMERCIAL_ANALYTICS_EMAILS } from "@/lib/admin/account-classification";
+import { loadSubscriberAnalyticsSummary } from "@/lib/admin/subscriber-analytics-read-model";
 
 // Define default test accounts to exclude by default
-const DEFAULT_TEST_ACCOUNTS = ["seedsat@googlemail.com", "cookwife5@gmail.com"];
+const DEFAULT_TEST_ACCOUNTS = EXCLUDED_FROM_COMMERCIAL_ANALYTICS_EMAILS;
 
 // Helper maps to resolve model ID to pricing models
 const MODEL_ALIAS_MAP: Record<string, string> = {
@@ -247,7 +249,7 @@ export async function GET(req: Request) {
     const filteredGens = generations.filter(g => userIds.has(g.userId));
     const filteredTrans = transitionJobs.filter(t => userIds.has(t.userId));
 
-    // 1. CALCULATE USER CREDIT VALUES (Payments / Granted)
+    // 1. CALCULATE USER CREDIT VALUES (Payments / Entitlement)
     const userCreditValues: Record<string, number> = {};
     const userGrantedMap: Record<string, number> = {};
     const userPaymentsMap: Record<string, number> = {};
@@ -256,12 +258,13 @@ export async function GET(req: Request) {
       const userTxs = allTxs.filter(t => t.userId === user.id);
       const totalPayments = userTxs.reduce((sum, t) => sum + t.amount, 0);
       const txCredits = userTxs.reduce((sum, t) => sum + t.credits, 0);
-      const isOmar = user.email === "omarworkimn@gmail.com";
-      const creditsGranted = txCredits + (isOmar ? 2700 : 0);
+      const advanceCredits = user.creditAdvanceBalance || 0;
+      // DATA-DRIVEN: Purchased credits + Outstanding Advance drawn across all subscribers
+      const totalCreditsEntitled = txCredits + advanceCredits;
 
       userPaymentsMap[user.id] = totalPayments;
-      userGrantedMap[user.id] = creditsGranted;
-      userCreditValues[user.id] = creditsGranted > 0 ? (totalPayments / creditsGranted) : 0;
+      userGrantedMap[user.id] = totalCreditsEntitled;
+      userCreditValues[user.id] = totalCreditsEntitled > 0 ? (totalPayments / totalCreditsEntitled) : 0;
     });
 
     // 2. PROCESS SUBSCRIBER ANALYTICS & MARGINS
@@ -717,10 +720,9 @@ export async function GET(req: Request) {
     // Warnings from integrity checks
     const dataIntegrityWarnings: Array<{ type: string; email: string; message: string }> = [];
     
-    // Check Sarmad warning
+    // Check missing subscription warnings
     subscribers.forEach(sub => {
-      const isSarmad = sub.email === "sfa770441@gmail.com";
-      if ((isSarmad || sub.planName === "FREE") && (sub.creditsConsumed > 500 || sub.creditsGranted > 500)) {
+      if (sub.planName === "FREE" && (sub.creditsConsumed > 500 || sub.creditsGranted > 500)) {
         dataIntegrityWarnings.push({
           type: "MISSING_SUBSCRIPTION",
           email: sub.email,
@@ -729,7 +731,10 @@ export async function GET(req: Request) {
       }
     });
 
+    const normalizedSummary = await loadSubscriberAnalyticsSummary().catch(() => null);
+
     return NextResponse.json({
+      normalizedSummary,
       summary,
       subscribers,
       profitabilityMatrix,

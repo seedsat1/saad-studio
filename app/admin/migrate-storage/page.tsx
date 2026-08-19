@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Database, CheckCircle2, XCircle, Loader2, Play, BarChart3, AlertTriangle } from "lucide-react";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 type StatsResult = { total: number; byTable: Record<string, number> };
 type BatchResult = {
@@ -85,10 +86,10 @@ export default function MigrateStoragePage() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <AdminShell activeRoute="/admin/migrate-storage">
+      <div className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 border-b border-slate-800/80 pb-5">
           <Database className="w-7 h-7 text-violet-400" />
           <div>
             <h1 className="text-2xl font-bold">ترحيل التخزين</h1>
@@ -203,6 +204,6 @@ export default function MigrateStoragePage() {
           </div>
         )}
       </div>
-    </div>
+    </AdminShell>
   );
 }

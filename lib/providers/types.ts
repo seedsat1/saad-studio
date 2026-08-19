@@ -4,7 +4,7 @@
  * implements the same generate* contract so the panel routes can dispatch
  * by modelId without caring which upstream actually runs the request. */
 
-export type ProviderId = "google" | "byteplus" | "openai" | "kie";
+export type ProviderId = "google" | "byteplus" | "openai" | "kie" | "wavespeed" | "reap";
 
 export interface ImageGenInput {
   modelId: string;

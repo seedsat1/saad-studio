@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Mic, Sparkles, RefreshCw, Play, Pause, CheckCircle2, AlertCircle, Volume2, Shield } from "lucide-react";
 import { getFallbackUrls } from "@/lib/utils";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 interface VoiceItem {
   id: string;
@@ -84,43 +85,44 @@ export default function AdminVoiceSamplesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090b10] text-slate-100 p-6 md:p-10 font-sans">
-      {/* Top Header */}
-      <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-slate-900/50 p-6 rounded-2xl border border-slate-800 backdrop-blur-xl shadow-2xl">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
-            <div className="w-full h-full bg-[#0d1017] rounded-[14px] flex items-center justify-center">
-              <Mic className="w-7 h-7 text-emerald-400" />
+    <AdminShell activeRoute="/admin/voice-samples">
+      <div className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* Top Header */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+              <div className="w-full h-full bg-[#0d1017] rounded-[10px] flex items-center justify-center">
+                <Mic className="w-6 h-6 text-emerald-400" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-extrabold bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 bg-clip-text text-transparent">
+                  استوديو الأدمن لتوليد وحفظ خامات الأصوات للمشتركين
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                  <Shield className="w-3 h-3" /> Admin Portal
+                </span>
+              </div>
+              <p className="text-sm text-slate-400 mt-1">
+                قم بتوليد ومعاينة خامات الأصوات الرسمية وحفظها في التخزين الدائم لتعمل فوراً لجميع المشتركين بدون تكلفة أو توليد تفاعلي.
+              </p>
             </div>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-extrabold bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 bg-clip-text text-transparent">
-                استوديو الأدمن لتوليد وحفظ خامات الأصوات للمشتركين
-              </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                <Shield className="w-3 h-3" /> Admin Portal
-              </span>
-            </div>
-            <p className="text-sm text-slate-400 mt-1">
-              قم بتوليد ومعاينة خامات الأصوات الرسمية وحفظها في التخزين الدائم لتعمل فوراً لجميع المشتركين بدون تكلفة أو توليد تفاعلي.
-            </p>
-          </div>
-        </div>
 
-        <button
-          onClick={fetchVoices}
-          disabled={loading}
-          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold flex items-center gap-2 transition border border-slate-700"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> تحديث القائمة
-        </button>
-      </div>
+          <button
+            onClick={fetchVoices}
+            disabled={loading}
+            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold flex items-center gap-2 transition border border-slate-700"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> تحديث القائمة
+          </button>
+        </div>
 
       {/* Status Alert Banner */}
       {statusMsg && (
         <div
-          className={`max-w-7xl mx-auto mb-6 p-4 rounded-xl flex items-center gap-3 border ${
+          className={`w-full mb-6 p-4 rounded-xl flex items-center gap-3 border ${
             statusMsg.type === "ok"
               ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-200"
               : statusMsg.type === "err"
@@ -140,7 +142,7 @@ export default function AdminVoiceSamplesPage() {
       )}
 
       {/* Main Voices Grid */}
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
             <RefreshCw className="w-8 h-8 animate-spin text-emerald-500" />
@@ -212,6 +214,7 @@ export default function AdminVoiceSamplesPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AdminShell>
   );
 }

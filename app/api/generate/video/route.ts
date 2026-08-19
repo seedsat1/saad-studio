@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { isAdmin } from "@/lib/is-admin";
 import { getVideoCreditsByModelIdAsync } from "@/lib/credit-pricing";
 import {
   InsufficientCreditsError,
@@ -57,6 +58,7 @@ interface VideoRequestBody {
   quality?: string;
   aspectRatio?: string;
   sound?: boolean;
+  feature?: string;
 }
 
 interface ProviderResult {
@@ -189,10 +191,20 @@ export async function POST(req: NextRequest) {
     }
 
     const body: VideoRequestBody = await req.json();
-    const { prompt, modelId, imageUrl, imageUrls, duration = 5, resolution, quality, aspectRatio = "16:9", sound = false } = body;
+    const { prompt, modelId, imageUrl, imageUrls, duration = 5, resolution, quality, aspectRatio = "16:9", sound = false, feature } = body;
 
     if (!prompt || !modelId) {
       return NextResponse.json({ error: "Missing required fields: prompt, modelId." }, { status: 400 });
+    }
+
+    if (feature === "influencers-nsfw" || feature === "nsfw" || feature === "influencers") {
+      const admin = await isAdmin();
+      if (!admin) {
+        return NextResponse.json(
+          { error: "Forbidden: Admin access required for Influencers NSFW feature." },
+          { status: 403 },
+        );
+      }
     }
 
     const precheck = await precheckGenerationPolicy({ prompt });

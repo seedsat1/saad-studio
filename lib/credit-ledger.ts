@@ -89,6 +89,40 @@ export async function ensureWelcomeCredits(userId: string) {
     },
   });
 }
+export type CreditLedgerReason =
+  | "generation_charge"
+  | "generation_refund_provider_failed"
+  | "generation_refund_blocked_result"
+  | "generation_refund_no_output"
+  | "generation_refund_partial_failure"
+  | "subscription_grant"
+  | "topup_grant"
+  | "annual_credit_advance_draw"
+  | "annual_advance_repayment"
+  | "annual_monthly_renewal"
+  | "monthly_credits_expired"
+  | (string & {});
+
+export async function tryCreateCreditLedgerEntry(
+  tx: any,
+  data: { userId: string; generationId?: string | null; delta: number; reason: CreditLedgerReason },
+): Promise<void> {
+  try {
+    if (tx?.creditLedgerEntry?.create) {
+      await tx.creditLedgerEntry.create({
+        data: {
+          userId: data.userId,
+          generationId: data.generationId ?? null,
+          delta: data.delta,
+          reason: data.reason,
+        },
+      });
+    }
+  } catch {
+    // Best-effort: do not break financial flow if table/client is not present
+  }
+}
+
 // ─── Credit Expiry & Renewal ─────────────────────────────────────────────────
 
 /**
@@ -149,11 +183,27 @@ export async function handleCreditExpiry(userId: string): Promise<void> {
             : {}),
         },
       });
+
+      await tryCreateCreditLedgerEntry(prismadb, {
+        userId,
+        delta: monthlyCredits - advanceDeduction,
+        reason: "annual_monthly_renewal",
+      });
+
+      if (advanceDeduction > 0) {
+        await tryCreateCreditLedgerEntry(prismadb, {
+          userId,
+          delta: -advanceDeduction,
+          reason: "annual_advance_repayment",
+        });
+      }
+
       return;
     }
   }
 
   // No active subscription — expire credits
+  const expiredCredits = user.creditBalance;
   await prismadb.user.update({
     where: { id: userId },
     data: {
@@ -166,6 +216,14 @@ export async function handleCreditExpiry(userId: string): Promise<void> {
       creditAdvanceCycleEnd: null,
     },
   });
+
+  if (expiredCredits > 0) {
+    await tryCreateCreditLedgerEntry(prismadb, {
+      userId,
+      delta: -expiredCredits,
+      reason: "monthly_credits_expired",
+    });
+  }
 }
 
 /**
@@ -222,6 +280,12 @@ export async function allocateSubscriptionCredits(
       creditAdvanceCycleEnd: null,
     },
   });
+
+  await tryCreateCreditLedgerEntry(prismadb, {
+    userId,
+    delta: plan.credits,
+    reason: "subscription_grant",
+  });
 }
 
 function sameCycleEnd(a: Date | null | undefined, b: Date | null | undefined): boolean {
@@ -243,97 +307,125 @@ export async function requestAnnualCreditAdvance(userId: string, requestedAmount
   await handleCreditExpiry(userId);
 
   const now = new Date();
-  const [user, subscription] = await Promise.all([
-    prismadb.user.findUnique({
+
+  return await prismadb.$transaction(async (tx) => {
+    const [user, subscription] = await Promise.all([
+      tx.user.findUnique({
+        where: { id: userId },
+        select: {
+          creditBalance: true,
+          monthlyCredits: true,
+          creditsExpireAt: true,
+          creditAdvanceBalance: true,
+          creditAdvanceCycleEnd: true,
+        },
+      }),
+      tx.userSubscription.findUnique({
+        where: { userId },
+        select: {
+          billingInterval: true,
+          planId: true,
+          stripePriceId: true,
+          stripeCurrentPeriodEnd: true,
+        },
+      }),
+    ]);
+
+    const isSubscriptionActive = Boolean(
+      subscription?.stripePriceId &&
+        subscription?.stripeCurrentPeriodEnd &&
+        subscription.stripeCurrentPeriodEnd.getTime() > now.getTime(),
+    );
+
+    if (!isSubscriptionActive || subscription?.billingInterval !== "annual") {
+      throw new CreditAdvanceError("annual_subscription_required", "Credit advance is available for active annual subscriptions only.");
+    }
+
+    // Restrict credit advance in the last two months (60 days) of the subscription
+    if (isWithinLastTwoMonthsOfSubscription(subscription?.stripeCurrentPeriodEnd, now)) {
+      throw new CreditAdvanceError(
+        "last_two_months_restriction",
+        "لا يمكن طلب السلفة خلال آخر شهرين من الاشتراك السنوي. (Credit advance is not available during the last two months of the annual subscription.)"
+      );
+    }
+
+    if (!user?.creditsExpireAt || user.creditsExpireAt.getTime() <= now.getTime()) {
+      throw new CreditAdvanceError("no_active_credit_cycle", "No active credit cycle is available for advance credits.");
+    }
+
+    if (sameCycleEnd(user.creditAdvanceCycleEnd, user.creditsExpireAt)) {
+      throw new CreditAdvanceError("already_requested_this_cycle", "Credit advance was already requested for this credit cycle.");
+    }
+
+    const planCredits = subscription.planId
+      ? (SAAD_PLANS.find((p) => p.id === subscription.planId)?.credits ?? 0)
+      : 0;
+    const monthlyCredits = Math.max(0, Math.floor(planCredits || user.monthlyCredits || 0));
+    if (monthlyCredits <= 0) {
+      throw new CreditAdvanceError("no_monthly_allowance", "No monthly allowance is configured for this annual subscription.");
+    }
+
+    const amount = requestedAmount == null
+      ? monthlyCredits
+      : Math.max(0, Math.floor(requestedAmount));
+
+    if (amount <= 0 || amount > monthlyCredits) {
+      throw new CreditAdvanceError("invalid_advance_amount", "Advance amount must be between 1 and the monthly allowance.");
+    }
+
+    // ATOMIC CAS UPDATE: Guard against concurrent requests claiming the same cycle
+    const updateClaim = await tx.user.updateMany({
+      where: {
+        id: userId,
+        OR: [
+          { creditAdvanceCycleEnd: null },
+          { creditAdvanceCycleEnd: { not: user.creditsExpireAt } },
+        ],
+      },
+      data: {
+        creditBalance: { increment: amount },
+        creditAdvanceBalance: { increment: amount },
+        creditAdvanceRequestedAt: now,
+        creditAdvanceCycleEnd: user.creditsExpireAt,
+      },
+    });
+
+    if (updateClaim.count === 0) {
+      throw new CreditAdvanceError("already_requested_this_cycle", "Credit advance was already requested for this credit cycle.");
+    }
+
+    const updated = await tx.user.findUnique({
       where: { id: userId },
       select: {
         creditBalance: true,
         monthlyCredits: true,
         creditsExpireAt: true,
         creditAdvanceBalance: true,
+        creditAdvanceRequestedAt: true,
         creditAdvanceCycleEnd: true,
       },
-    }),
-    prismadb.userSubscription.findUnique({
-      where: { userId },
-      select: {
-        billingInterval: true,
-        planId: true,
-        stripePriceId: true,
-        stripeCurrentPeriodEnd: true,
-      },
-    }),
-  ]);
+    });
 
-  const isSubscriptionActive = Boolean(
-    subscription?.stripePriceId &&
-      subscription?.stripeCurrentPeriodEnd &&
-      subscription.stripeCurrentPeriodEnd.getTime() > now.getTime(),
-  );
+    if (!updated) {
+      throw new Error("User not found after advance update");
+    }
 
-  if (!isSubscriptionActive || subscription?.billingInterval !== "annual") {
-    throw new CreditAdvanceError("annual_subscription_required", "Credit advance is available for active annual subscriptions only.");
-  }
+    await tryCreateCreditLedgerEntry(tx, {
+      userId,
+      delta: amount,
+      reason: `annual_credit_advance_draw: +${amount} cr`,
+    });
 
-  // Restrict credit advance in the last two months (60 days) of the subscription
-  if (isWithinLastTwoMonthsOfSubscription(subscription?.stripeCurrentPeriodEnd, now)) {
-    throw new CreditAdvanceError(
-      "last_two_months_restriction",
-      "لا يمكن طلب السلفة خلال آخر شهرين من الاشتراك السنوي. (Credit advance is not available during the last two months of the annual subscription.)"
-    );
-  }
-
-  if (!user?.creditsExpireAt || user.creditsExpireAt.getTime() <= now.getTime()) {
-    throw new CreditAdvanceError("no_active_credit_cycle", "No active credit cycle is available for advance credits.");
-  }
-
-  if (sameCycleEnd(user.creditAdvanceCycleEnd, user.creditsExpireAt)) {
-    throw new CreditAdvanceError("already_requested_this_cycle", "Credit advance was already requested for this credit cycle.");
-  }
-
-  const planCredits = subscription.planId
-    ? (SAAD_PLANS.find((p) => p.id === subscription.planId)?.credits ?? 0)
-    : 0;
-  const monthlyCredits = Math.max(0, Math.floor(planCredits || user.monthlyCredits || 0));
-  if (monthlyCredits <= 0) {
-    throw new CreditAdvanceError("no_monthly_allowance", "No monthly allowance is configured for this annual subscription.");
-  }
-
-  const amount = requestedAmount == null
-    ? monthlyCredits
-    : Math.max(0, Math.floor(requestedAmount));
-
-  if (amount <= 0 || amount > monthlyCredits) {
-    throw new CreditAdvanceError("invalid_advance_amount", "Advance amount must be between 1 and the monthly allowance.");
-  }
-
-  const updated = await prismadb.user.update({
-    where: { id: userId },
-    data: {
-      creditBalance: { increment: amount },
-      creditAdvanceBalance: { increment: amount },
-      creditAdvanceRequestedAt: now,
-      creditAdvanceCycleEnd: user.creditsExpireAt,
-    },
-    select: {
-      creditBalance: true,
-      monthlyCredits: true,
-      creditsExpireAt: true,
-      creditAdvanceBalance: true,
-      creditAdvanceRequestedAt: true,
-      creditAdvanceCycleEnd: true,
-    },
+    return {
+      credited: amount,
+      creditBalance: updated.creditBalance,
+      monthlyCredits: updated.monthlyCredits,
+      creditsExpireAt: updated.creditsExpireAt,
+      creditAdvanceBalance: updated.creditAdvanceBalance,
+      creditAdvanceRequestedAt: updated.creditAdvanceRequestedAt,
+      creditAdvanceCycleEnd: updated.creditAdvanceCycleEnd,
+    };
   });
-
-  return {
-    credited: amount,
-    creditBalance: updated.creditBalance,
-    monthlyCredits: updated.monthlyCredits,
-    creditsExpireAt: updated.creditsExpireAt,
-    creditAdvanceBalance: updated.creditAdvanceBalance,
-    creditAdvanceRequestedAt: updated.creditAdvanceRequestedAt,
-    creditAdvanceCycleEnd: updated.creditAdvanceCycleEnd,
-  };
 }
 
 /**
@@ -367,6 +459,12 @@ export async function applyTopupCredits(userId: string, credits: number): Promis
       creditsExpireAt: finalExpiry,
     },
   });
+
+  await tryCreateCreditLedgerEntry(prismadb, {
+    userId,
+    delta: safeCredits,
+    reason: "topup_grant",
+  });
 }
 
 type SpendCreditsInput = {
@@ -396,30 +494,6 @@ type SpendCreditsInput = {
   estimatedProviderCostUsd?: number | null;
 };
 
-type CreditLedgerReason =
-  | "generation_charge"
-  | "generation_refund_provider_failed"
-  | "generation_refund_blocked_result"
-  | "generation_refund_no_output"
-  | "generation_refund_partial_failure";
-
-async function tryCreateCreditLedgerEntry(
-  tx: typeof prismadb,
-  data: { userId: string; generationId?: string | null; delta: number; reason: CreditLedgerReason },
-): Promise<void> {
-  try {
-    await (tx as any).creditLedgerEntry.create({
-      data: {
-        userId: data.userId,
-        generationId: data.generationId ?? null,
-        delta: data.delta,
-        reason: data.reason,
-      },
-    });
-  } catch {
-    // Best-effort: do not break generation flow if the DB schema is not yet migrated.
-  }
-}
 
 function inferGenerationType(assetType: string): "image" | "video" {
   const t = String(assetType || "").toLowerCase();
@@ -473,24 +547,27 @@ async function resolveProviderTrackingFallback(input: {
 
   if (providerCostUsd === undefined || providerCostUsd === null) {
     try {
-      const { estimateProviderCostSync, loadModels, resolveConstitutionId } = await import("./pricing");
-      const models = await loadModels().catch(() => []);
-      const constId = resolveConstitutionId(input.modelUsed, models);
-      const model = models.find(m => m.id === constId);
-      
-      const isPerSec = model ? model.billing === "per_sec" : (modelLower.includes("video") || modelLower.includes("cinema") || modelLower.includes("seedance") || modelLower.includes("veo") || modelLower.includes("sora") || modelLower.includes("hailuo") || modelLower.includes("kling") || modelLower.includes("grok"));
-      
-      if (isPerSec && (input.duration === undefined || input.duration === null)) {
-        providerCostUsd = null;
-        providerCostSource = "unknown";
-      } else {
-        const durationSec = input.duration || 0;
-        const est = estimateProviderCostSync(input.modelUsed, durationSec, input.resolution || input.quality);
-        providerCostUsd = est.usd;
-        providerCostSource = est.source;
-        if (providerName === "KIE.ai" && est.usd !== null && providerCredits === null) {
-          providerCredits = est.usd / 0.005;
-        }
+      const { resolveProviderCostPrecedence } = await import("./provider-cost-capture");
+      const precedenceRes = resolveProviderCostPrecedence({
+        generationId: "preflight",
+        modelRef: input.modelUsed,
+        providerName,
+        providerModel,
+        providerRoute: (input as any).providerRoute || (input as any).routeModel,
+        durationSec: input.duration || 5,
+        quality: input.quality,
+        resolution: input.resolution,
+        actualCostUsd: input.providerCostSource === "actual" ? input.providerCostUsd : undefined,
+      });
+
+      providerCostUsd = precedenceRes.providerCostUsd;
+      providerCostSource = precedenceRes.providerCostSource;
+      providerName = precedenceRes.providerName;
+      if (precedenceRes.providerModel) {
+        providerModel = precedenceRes.providerModel;
+      }
+      if (providerName === "KIE.ai" && precedenceRes.providerCostUsd !== null && providerCredits === null) {
+        providerCredits = precedenceRes.providerCostUsd / 0.005;
       }
     } catch (e) {
       console.error("[resolveProviderTrackingFallback] Failed to estimate provider cost:", e);
@@ -1324,7 +1401,14 @@ export async function finalizeReapGeneration(projectId: string, duration: number
     if (actualDuration && actualDuration > 0) {
       try {
         const { estimateProviderCostSync } = await import("./pricing");
-        const est = estimateProviderCostSync(gen.modelUsed, actualDuration, gen.resolution || gen.quality);
+        const est = estimateProviderCostSync({
+          modelRef: gen.modelUsed,
+          providerName: gen.providerName || "Reap",
+          providerModel: gen.providerModel,
+          durationSec: actualDuration,
+          resolution: gen.resolution,
+          quality: gen.quality,
+        });
         actualCostUsd = est.usd;
         actualCostSource = "actual";
       } catch (e) {
@@ -1389,6 +1473,16 @@ export async function updateProviderUsageRecord(
           rawPayloadSafe: data.rawPayloadSafe !== undefined ? data.rawPayloadSafe : existing.rawPayloadSafe,
         }
       });
+      if (data.providerCostUsd !== undefined || data.providerCostSource !== undefined) {
+        await prismadb.generation.updateMany({
+          where: { id: generationId },
+          data: {
+            ...(data.providerCostUsd !== undefined ? { providerCostUsd: data.providerCostUsd } : {}),
+            ...(data.providerCostSource !== undefined ? { providerCostSource: data.providerCostSource } : {}),
+            ...(data.providerRequestId !== undefined ? { providerRequestId: data.providerRequestId } : {}),
+          },
+        }).catch(() => {});
+      }
     } else {
       const gen = await prismadb.generation.findUnique({
         where: { id: generationId },

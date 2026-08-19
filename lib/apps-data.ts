@@ -25,7 +25,7 @@ export const TOOL_ROUTE_MAP: Record<string, string> = {
   "variations-studio": "/variations",
   angles: "/variations#angles",
   shots: "/shots",
-  "beauty2-studio": "/beauty2.html",
+  "beauty2-studio": "/apps/tool/makeup",
   "storyboard-studio": "/storyboard",
   lipsync: "/lipsync",
   "clipcraft-studio": "/clipcraft-studio",
@@ -62,7 +62,7 @@ const APP_CATEGORIES_RAW: AppCategory[] = [
     href: "/apps/enhance-style",
     tools: [
       { id: "skin-enhancer", title: "Skin Enhancer", description: "Natural, realistic skin textures", href: "/apps/tool/skin-enhancer", badge: "PRO", gradient: "from-rose-600/30 to-pink-900/30" },
-      { id: "beauty2-studio", title: "Beauty2 Studio", description: "Full beauty, makeup, hairstyle, and outfit transformations", href: "/beauty2.html", badge: "NEW", gradient: "from-violet-600/30 to-purple-900/30" },
+      { id: "beauty2-studio", title: "Beauty2 Studio", description: "Full beauty, makeup, hairstyle, and outfit transformations", href: "/apps/tool/makeup", badge: "NEW", gradient: "from-violet-600/30 to-purple-900/30" },
       { id: "relight", title: "Relight", description: "AI-powered lighting adjustment for any photo", href: "/apps/tool/relight", badge: "PRO", gradient: "from-amber-600/30 to-orange-900/30" },
       { id: "makeup", title: "AI Makeup", description: "Professional AI-powered makeup in one click", href: "/apps/tool/makeup", badge: "TOP", gradient: "from-pink-600/30 to-rose-900/30" },
       { id: "style-snap", title: "Character Generation", description: "AI-powered character variations from any photo", href: "/apps/tool/style-snap", badge: "NEW", gradient: "from-cyan-600/30 to-indigo-900/30" },

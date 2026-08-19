@@ -42,7 +42,7 @@
         </Lifecycle>
         <UI>
           <Type>Panel</Type>
-          <Menu>Saad Studio 2.0.0</Menu>
+          <Menu>Saad Studio 3.0.0</Menu>
           <Geometry>
             <Size>
               <Width>600</Width>

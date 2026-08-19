@@ -19,11 +19,13 @@ export async function GET(req: NextRequest) {
     featureId: searchParams.get("featureId"),
     status: searchParams.get("status"),
   };
-  const limit = Number(searchParams.get("limit") ?? 5000);
-  const result = await loadUnifiedAnalytics(filters, limit);
+  const result = await loadUnifiedAnalytics(filters);
 
-  return NextResponse.json({
-    ...result,
-    checkedAt: new Date().toISOString(),
-  }, { status: result.ok ? 200 : 503 });
+  return NextResponse.json(
+    {
+      ...result,
+      checkedAt: new Date().toISOString(),
+    },
+    { status: result.ok ? 200 : 503 },
+  );
 }

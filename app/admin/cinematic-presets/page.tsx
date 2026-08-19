@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 interface PresetResult {
   id: string;
@@ -55,8 +56,8 @@ export default function CinematicPresetsAdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-4xl px-6 py-10">
+    <AdminShell activeRoute="/admin/cinematic-presets">
+      <div className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
         <Link
           href="/admin"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white"
@@ -181,7 +182,7 @@ export default function CinematicPresetsAdminPage() {
           </div>
         )}
       </div>
-    </div>
+    </AdminShell>
   );
 }
 

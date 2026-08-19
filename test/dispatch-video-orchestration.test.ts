@@ -23,6 +23,9 @@ vi.mock("@/lib/prismadb", () => ({
     user: {
       findUnique: vi.fn(),
     },
+    platformConfig: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
   },
 }));
 
@@ -102,6 +105,7 @@ describe("direct video dispatch orchestration", () => {
         durationSec: 8,
         quality: "720p",
       }),
+      "google",
     );
     expect(persistProviderUrlMock).toHaveBeenCalledWith({
       url: "https://provider.example/video.mp4",

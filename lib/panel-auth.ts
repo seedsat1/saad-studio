@@ -97,3 +97,44 @@ export function extractPanelToken(req: Request): string | null {
   const authHeader = req.headers.get("Authorization");
   return authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
 }
+
+/**
+ * Computes a deterministic SHA-256 fingerprint for token display and revocation without exposing secrets.
+ */
+export function computeTokenFingerprint(token: string): string {
+  if (!token || typeof token !== "string") return "";
+  const parts = token.split("_");
+  const signature = parts[parts.length - 1] || token;
+  return createHmac("sha256", "saad-fingerprint-salt").update(signature).digest("hex");
+}
+
+/**
+ * Full asynchronous token verification checking HMAC validity, expiration, and the server-side revocation denylist.
+ */
+export async function verifyPanelTokenAsync(token: string): Promise<{ userId: string } | null> {
+  const syncResult = verifyPanelToken(token);
+  if (!syncResult) return null;
+
+  try {
+    const { isTokenRevoked } = await import("@/lib/admin/plugin-control-plane");
+    const rest = token.slice(PREFIX.length);
+    const SIG_LEN = 43;
+    const sepIdx = rest.length - SIG_LEN - 1;
+    const payload = rest.slice(0, sepIdx);
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<string, unknown>;
+    const iat = Number(data?.iat) || 0;
+    const fingerprint = computeTokenFingerprint(token);
+
+    const revoked = await isTokenRevoked({
+      userId: syncResult.userId,
+      iat,
+      fingerprint,
+    });
+
+    if (revoked) return null;
+  } catch (err) {
+    console.warn("[panel-auth] Error checking token revocation:", err);
+  }
+
+  return syncResult;
+}

@@ -12,6 +12,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import { AdminShell } from "@/components/admin/AdminShell";
+
 type UnifiedJobStatus = "queued" | "processing" | "completed" | "failed" | "cancelled";
 type JobSourceType = "generation" | "transition" | "variation" | "reap" | "cinema";
 
@@ -159,7 +161,6 @@ export default function AdminAnalyticsPage() {
     if (featureId.trim()) params.set("featureId", featureId.trim());
     if (dateFrom) params.set("dateFrom", dateFrom);
     if (dateTo) params.set("dateTo", dateTo);
-    params.set("limit", "5000");
 
     try {
       const res = await fetch(`/api/admin/analytics?${params.toString()}`, { cache: "no-store" });
@@ -193,14 +194,14 @@ export default function AdminAnalyticsPage() {
     { label: "Processing", value: data?.overview.processing ?? 0, icon: Server },
     { label: "Success Rate", value: percent(data?.overview.successRate ?? null), icon: TrendingUp },
     { label: "Failure Rate", value: percent(data?.overview.failureRate ?? null), icon: AlertTriangle },
-    { label: "Avg Latency", value: formatMs(data?.overview.averageCompletionLatencyMs ?? null), icon: TrendingUp },
+    { label: "Link Coverage", value: percent(data?.dataQuality.providerUsageLinkCoverage ?? null), icon: TrendingUp },
     { label: "Stuck Jobs", value: data?.performance.stuckJobs ?? 0, icon: AlertTriangle },
   ];
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-[1720px] space-y-6 px-6 py-7">
-        <header className="flex flex-col gap-4 border-b border-slate-800 pb-5 lg:flex-row lg:items-center lg:justify-between">
+    <AdminShell activeRoute="/admin/analytics">
+      <div className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
+        <header className="flex flex-col gap-4 border-b border-slate-800/80 pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-cyan-300">
               <BarChart3 className="h-4 w-4" />
@@ -345,7 +346,7 @@ export default function AdminAnalyticsPage() {
           </aside>
         </section>
       </div>
-    </main>
+    </AdminShell>
   );
 }
 
@@ -362,8 +363,7 @@ function MetricSection({ title, rows, emptyLabel = "No rows." }: { title: string
               <th className="px-4 py-3">Completed</th>
               <th className="px-4 py-3">Failed</th>
               <th className="px-4 py-3">Processing</th>
-              <th className="px-4 py-3">Success</th>
-              <th className="px-4 py-3">Latency</th>
+              <th className="px-4 py-3">Success Rate</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/80">
@@ -375,11 +375,10 @@ function MetricSection({ title, rows, emptyLabel = "No rows." }: { title: string
                 <td className="px-4 py-3 text-red-300">{row.failed}</td>
                 <td className="px-4 py-3 text-cyan-300">{row.processing}</td>
                 <td className="px-4 py-3 text-slate-300">{percent(row.successRate)}</td>
-                <td className="px-4 py-3 text-slate-300">{formatMs(row.averageLatencyMs)}</td>
               </tr>
             ))}
             {!rows.length ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">{emptyLabel}</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">{emptyLabel}</td></tr>
             ) : null}
           </tbody>
         </table>

@@ -161,8 +161,8 @@ export function InfluencerRoster({
               className="group relative h-80 rounded-2xl border border-white/10 hover:border-pink-500/80 bg-[#0d0e17] overflow-hidden shadow-xl transition-all duration-300 flex flex-col justify-between cursor-pointer ring-0 hover:ring-2 hover:ring-pink-500/40 text-right"
             >
               {inf.isDefault && (
-                <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-lg bg-pink-500/90 text-white text-[10px] font-extrabold shadow-md">
-                  {copy.defaultBadge}
+                <div className="absolute top-3 left-3 z-20 px-2.5 py-1 rounded-md bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[10px] font-black uppercase tracking-wider shadow-md">
+                  {lang === "en" ? "DEFAULT" : copy.defaultBadge}
                 </div>
               )}
 

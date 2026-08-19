@@ -1,172 +1,38 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
-import prismadb from "@/lib/prismadb";
-import { estimateProviderCostSync } from "@/lib/pricing";
+import { getProviderCostsReadModel } from "@/lib/admin/provider-costs-read-model";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const isUserAdmin = await isAdmin();
     if (!isUserAdmin) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // 1. Calculate actualCreditValue per user to compute recognized revenue
-    const allUsers = await prismadb.user.findMany({ select: { id: true, email: true } });
-    const allTxs = await prismadb.adminTransaction.findMany({
-      where: { paymentStatus: "COMPLETED" },
-      select: { userId: true, amount: true, credits: true },
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search") || undefined;
+    const provider = searchParams.get("provider") || undefined;
+    const classification = searchParams.get("classification") || undefined;
+    const costTrust = searchParams.get("costTrust") || undefined;
+    const status = searchParams.get("status") || undefined;
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
+
+    const result = await getProviderCostsReadModel({
+      search,
+      provider,
+      classification,
+      costTrust,
+      status,
+      page,
+      pageSize,
     });
 
-    const userCreditValues: Record<string, number> = {};
-    allUsers.forEach((user) => {
-      const userTxs = allTxs.filter(t => t.userId === user.id);
-      const totalPayments = userTxs.reduce((sum, t) => sum + t.amount, 0);
-      const txCredits = userTxs.reduce((sum, t) => sum + t.credits, 0);
-      const isOmar = user.email === "omarworkimn@gmail.com";
-      const creditsGranted = txCredits + (isOmar ? 2700 : 0);
-
-      userCreditValues[user.id] = creditsGranted > 0 ? (totalPayments / creditsGranted) : 0;
-    });
-
-    // 2. Fetch last 1000 generations including user info and provider usage record
-    const generations = await prismadb.generation.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 1000,
-      include: {
-        user: {
-          select: {
-            email: true,
-          }
-        },
-        providerUsageRecords: {
-          take: 1
-        },
-        generationRequestSnapshot: true,
-      }
-    });
-
-    // 3. Map to final UI tracking format
-    const mapped = generations.map((gen) => {
-      const actualCreditValue = userCreditValues[gen.userId] || 0;
-      const revenue = gen.cost * actualCreditValue;
-
-      const usage = gen.providerUsageRecords[0] || null;
-      const snap = gen.generationRequestSnapshot || null;
-
-      let duration = usage ? usage.duration : (gen.duration ?? snap?.duration);
-      let resolution = usage ? usage.resolution : (gen.resolution ?? snap?.resolution);
-      let quality = usage ? usage.quality : (gen.quality ?? snap?.quality);
-      let aspectRatio = usage ? usage.aspectRatio : (gen.aspectRatio ?? snap?.aspectRatio);
-
-      let providerCostUsd = usage ? usage.providerCostUsd : (gen.providerCostUsd ?? snap?.estimatedProviderCostUsd);
-      let providerCostSource = usage ? usage.providerCostSource : (gen.providerCostSource ?? (snap?.estimatedProviderCostUsd !== null && snap?.estimatedProviderCostUsd !== undefined ? "estimated" : null));
-      let providerCredits = usage ? usage.providerCredits : gen.providerCredits;
-      let providerTokens = usage ? usage.providerTokens : gen.providerTokens;
-      let providerRequestId = usage ? usage.providerRequestId : gen.providerRequestId;
-      let providerName = usage ? usage.providerName : (gen.providerName ?? snap?.provider);
-      let providerModel = usage ? usage.providerModel : (gen.providerModel ?? snap?.model);
-
-      // Estimate only if we have sufficient details
-      if (providerCostUsd === null || providerCostUsd === undefined) {
-        const modelLower = gen.modelUsed.toLowerCase();
-        const isPerSec = modelLower.includes("video") || modelLower.includes("cinema") || modelLower.includes("seedance") || modelLower.includes("veo") || modelLower.includes("sora") || modelLower.includes("hailuo") || modelLower.includes("kling") || modelLower.includes("grok");
-        
-        if (isPerSec && (duration === null || duration === undefined)) {
-          providerCostUsd = null;
-          providerCostSource = "unknown";
-        } else {
-          const costEst = estimateProviderCostSync(gen.modelUsed, duration || 0, resolution || quality);
-          providerCostUsd = costEst.usd;
-          providerCostSource = costEst.source;
-        }
-      }
-
-      if (!providerCostSource) {
-        providerCostSource = "unknown";
-      }
-
-      // Re-calculate profit/margin strictly if cost source is not unknown
-      let profit: number | null = null;
-      let marginPercent: number | null = null;
-      if (providerCostSource !== "unknown" && providerCostUsd !== null && providerCostUsd !== undefined) {
-        profit = revenue - providerCostUsd;
-        if (revenue > 0) {
-          marginPercent = (profit / revenue) * 100;
-        } else {
-          marginPercent = providerCostUsd > 0 ? -100 : 0;
-        }
-      }
-
-      // Determine provider name
-      let provider = providerName;
-      if (!provider) {
-        const modelLower = (providerModel || gen.modelUsed || "").toLowerCase();
-        if (modelLower.includes("dreamina") || modelLower.includes("seedance") || modelLower.includes("byteplus") || modelLower.includes("bytedance")) {
-          provider = "BytePlus";
-        } else if (modelLower.includes("veo") || modelLower.includes("gemini") || modelLower.includes("google") || modelLower.includes("banana") || modelLower.includes("imagen")) {
-          provider = "Google";
-        } else if (modelLower.includes("wavespeed") || modelLower.includes("heartmula") || modelLower.includes("music") || modelLower.includes("transition")) {
-          provider = "WaveSpeed";
-        } else if (modelLower.includes("openai") || modelLower.includes("gpt") || modelLower.includes("sora") || modelLower.includes("dall-e")) {
-          provider = "OpenAI";
-        } else if (modelLower.includes("reap") || modelLower.includes("clipcraft")) {
-          provider = "Reap";
-        } else {
-          provider = "KIE.ai";
-        }
-      }
-
-      // Normalize generationType
-      const generationType = snap?.generationType ?? (gen.type ? (gen.type === "video" ? "text-to-video" : "text-to-image") : null);
-      let typeAbbr = "UNKNOWN";
-      if (generationType) {
-        const gt = generationType.toLowerCase();
-        if (gt.includes("text-to-video") || gt === "t2v") typeAbbr = "T2V";
-        else if (gt.includes("image-to-video") || gt === "i2v") typeAbbr = "I2V";
-        else if (gt.includes("text-to-image") || gt === "t2i") typeAbbr = "T2I";
-        else if (gt.includes("image-to-image") || gt === "i2i") typeAbbr = "I2I";
-        else if (gt.includes("audio") || gt.includes("music")) typeAbbr = "AUDIO";
-        else typeAbbr = generationType.toUpperCase();
-      } else {
-        const modelLower = gen.modelUsed.toLowerCase();
-        const assetLower = (gen.assetType || "").toLowerCase();
-        if (assetLower.includes("video") || modelLower.includes("video") || modelLower.includes("kling") || modelLower.includes("seedance") || modelLower.includes("veo")) {
-          typeAbbr = "T2V";
-        } else if (assetLower.includes("audio") || modelLower.includes("music")) {
-          typeAbbr = "AUDIO";
-        } else {
-          typeAbbr = "T2I";
-        }
-      }
-
-      return {
-        id: gen.id,
-        userEmail: gen.user?.email || "Unknown",
-        model: gen.modelUsed,
-        provider,
-        taskId: providerRequestId || null,
-        duration: duration || null,
-        resolution: resolution || null,
-        quality: quality || null,
-        creditsCharged: gen.cost || (snap?.userCreditsCharged ?? 0),
-        providerCostUsd: providerCostUsd !== null ? parseFloat(providerCostUsd.toFixed(4)) : null,
-        providerTokens: providerTokens || null,
-        providerCredits: providerCredits || null,
-        profit: profit !== null ? parseFloat(profit.toFixed(4)) : null,
-        margin: marginPercent !== null ? parseFloat(marginPercent.toFixed(2)) : null,
-        costSource: providerCostSource,
-        createdAt: gen.createdAt,
-        generationType: typeAbbr,
-        aspectRatio: aspectRatio || null,
-        requestPayload: snap?.requestPayload || null,
-      };
-    });
-
-    return NextResponse.json(mapped);
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("[api/admin/provider-costs] Error:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("[API_ADMIN_PROVIDER_COSTS_ERROR]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }

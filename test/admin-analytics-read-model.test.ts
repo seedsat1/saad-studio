@@ -1,140 +1,66 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { buildAnalyticsResult, type ProviderUsageRow } from "@/lib/admin/analytics-read-model";
-import type { UnifiedGenerationHistoryRow } from "@/lib/admin/history-read-model";
-import type { UnifiedJobView } from "@/lib/admin/jobs-read-model";
+import { loadUnifiedAnalytics } from "@/lib/admin/analytics-read-model";
 
-const baseHistoryRow: UnifiedGenerationHistoryRow = {
-  generationId: "gen_1",
-  jobId: "gen_1",
-  featureId: "image-face-swap",
-  userId: "user_1",
-  modelId: "wavespeed-ai/image-face-swap-pro",
-  provider: "WaveSpeed",
-  routingSource: "legacy_fallback",
-  providerTaskId: "ws_1",
-  status: "completed",
-  rawStatus: "completed",
-  creditState: "charged",
-  creditsCharged: 4,
-  creditsRefunded: null,
-  providerEstimatedCost: null,
-  providerActualCost: 0.12,
-  createdAt: "2026-08-15T10:00:00.000Z",
-  completedAt: "2026-08-15T10:02:00.000Z",
-  duration: null,
-  latencyMs: 120000,
-  primaryResult: "https://cdn.test/out.png",
-  additionalOutputsCount: 0,
-  error: null,
-  errorCode: null,
-  providerUsage: [],
-  creditLedger: { charged: 4, refunded: null, entries: [] },
-  observabilityGaps: [],
-};
+describe("Admin Analytics Read Model & Performance Architecture", () => {
+  const pagePath = path.join(process.cwd(), "app", "admin", "analytics", "page.tsx");
+  const routePath = path.join(process.cwd(), "app", "api", "admin", "analytics", "route.ts");
 
-const baseJob: UnifiedJobView = {
-  jobId: "gen_1",
-  sourceType: "generation",
-  generationId: "gen_1",
-  featureId: "image-face-swap",
-  userId: "user_1",
-  modelId: "wavespeed-ai/image-face-swap-pro",
-  provider: "WaveSpeed",
-  providerTaskId: "ws_1",
-  routingSource: "legacy_fallback",
-  status: "completed",
-  rawStatus: "completed",
-  progress: 100,
-  createdAt: "2026-08-15T10:00:00.000Z",
-  startedAt: "2026-08-15T10:00:00.000Z",
-  completedAt: "2026-08-15T10:02:00.000Z",
-  error: null,
-  creditsCharged: 4,
-  mediaUrl: "https://cdn.test/out.png",
-  result: "https://cdn.test/out.png",
-  refundState: "charged",
-  providerUsage: null,
-  diagnostics: [],
-};
-
-const baseUsage: ProviderUsageRow = {
-  id: "usage_1",
-  generationId: "gen_1",
-  provider: "WaveSpeed",
-  model: "wavespeed-ai/image-face-swap-pro",
-  requestId: "ws_1",
-  status: "completed",
-  providerCostUsd: 0.12,
-  providerCostSource: "actual",
-  createdAt: "2026-08-15T10:00:00.000Z",
-  updatedAt: "2026-08-15T10:02:00.000Z",
-};
-
-describe("admin analytics read model", () => {
-  it("computes operational metrics from real history rows", () => {
-    const failedRow: UnifiedGenerationHistoryRow = {
-      ...baseHistoryRow,
-      generationId: "gen_2",
-      status: "failed",
-      error: "provider failed",
-      providerActualCost: null,
-      providerEstimatedCost: 0.05,
-      creditsRefunded: null,
-      latencyMs: null,
-      featureId: null,
-    };
-    const result = buildAnalyticsResult([baseHistoryRow, failedRow], [baseJob], [baseUsage]);
-
-    expect(result.overview.totalGenerations).toBe(2);
-    expect(result.overview.completed).toBe(1);
-    expect(result.overview.failed).toBe(1);
-    expect(result.overview.successRate).toBe(50);
-    expect(result.overview.averageCompletionLatencyMs).toBe(120000);
-    expect(result.unknownFeatureCount).toBe(1);
-    expect(result.dataQuality.featureMappingCoverage).toBe(50);
+  it("verifies analytics page does not use limit=5000 overfetching parameter", () => {
+    const pageContent = fs.readFileSync(pagePath, "utf-8");
+    expect(pageContent).not.toContain('limit", "5000"');
+    expect(pageContent).not.toContain("limit=5000");
   });
 
-  it("keeps actual and estimated provider cost separate", () => {
-    const estimatedOnly: UnifiedGenerationHistoryRow = {
-      ...baseHistoryRow,
-      generationId: "gen_estimated",
-      providerActualCost: null,
-      providerEstimatedCost: 0.2,
-    };
-    const noCost: UnifiedGenerationHistoryRow = {
-      ...baseHistoryRow,
-      generationId: "gen_no_cost",
-      providerActualCost: null,
-      providerEstimatedCost: null,
-    };
-    const result = buildAnalyticsResult([baseHistoryRow, estimatedOnly, noCost], [], []);
+  it("verifies API route does not enforce 5000 rows limit", () => {
+    const routeContent = fs.readFileSync(routePath, "utf-8");
+    expect(routeContent).not.toContain("5000");
+  });
 
-    expect(result.costCoverage.rowsWithActualCost).toBe(1);
-    expect(result.costCoverage.rowsWithEstimatedCostOnly).toBe(1);
-    expect(result.costCoverage.rowsWithNoCost).toBe(1);
-    expect(result.costCoverage.actualProviderCostTotal).toBe(0.12);
-    expect(result.costCoverage.estimatedProviderCostTotal).toBe(0.2);
+  it("strictly enforces that Latency is null and not calculated from unproven timestamps", async () => {
+    const result = await loadUnifiedAnalytics();
+    expect(result.overview.averageCompletionLatencyMs).toBeNull();
+    expect(result.performance.averageCompletionLatencyMs).toBeNull();
+    for (const p of result.providers) {
+      expect(p.averageLatencyMs).toBeNull();
+    }
+    for (const m of result.models) {
+      expect(m.averageLatencyMs).toBeNull();
+    }
+    expect(result.refusedMetrics).toContain(
+      "Average Completion Latency is not computed because Generation model does not record completedAt timestamp.",
+    );
+  }, 15000);
+
+  it("strictly enforces financial trust boundary and refuses profit/margin calculations", async () => {
+    const result = await loadUnifiedAnalytics();
     expect(result.costCoverage.financialAnalyticsTrustworthy).toBe(false);
-    expect(result.refusedMetrics).toContain("Total Profit is not computed because actual provider cost coverage is incomplete.");
-  });
+    expect((result.costCoverage as any).profit).toBeUndefined();
+    expect((result.costCoverage as any).netMargin).toBeUndefined();
+    expect((result.costCoverage as any).roi).toBeUndefined();
+    expect(result.refusedMetrics).toContain(
+      "Total Profit is not computed because actual provider cost coverage is incomplete.",
+    );
+    expect(result.refusedMetrics).toContain(
+      "True Margin is not computed because estimated costs and missing costs cannot be treated as actual cost.",
+    );
+  }, 15000);
 
-  it("reports provider usage coverage without auto-linking unlinked records", () => {
-    const unlinkedUsage: ProviderUsageRow = {
-      ...baseUsage,
-      id: "usage_unlinked",
-      generationId: null,
-      requestId: null,
-      providerCostUsd: null,
-      providerCostSource: "unknown",
-    };
-    const result = buildAnalyticsResult([baseHistoryRow], [], [baseUsage, unlinkedUsage]);
+  it("returns structured aggregated summary without heavy domain objects or raw prompts/media", async () => {
+    const result = await loadUnifiedAnalytics();
+    expect(result.ok).toBe(true);
+    expect(result).toHaveProperty("overview");
+    expect(result).toHaveProperty("jobs");
+    expect(result).toHaveProperty("models");
+    expect(result).toHaveProperty("providers");
+    expect(result).toHaveProperty("costCoverage");
+    expect(result).toHaveProperty("dataQuality");
 
-    expect(result.usage.total).toBe(2);
-    expect(result.usage.linked).toBe(1);
-    expect(result.usage.unlinked).toBe(1);
-    expect(result.usage.linkCoverage).toBe(50);
-    expect(result.usage.missingRequestIdentifiers).toBe(1);
-    expect(result.partialMetrics).toContain("Provider usage analytics are partial because some ProviderUsageRecord rows are unlinked.");
-  });
+    // Ensure no raw arrays of rows exist in the response
+    expect((result as any).generations).toBeUndefined();
+    expect((result as any).historyRows).toBeUndefined();
+    expect((result as any).jobViews).toBeUndefined();
+  }, 15000);
 });

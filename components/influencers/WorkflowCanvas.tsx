@@ -1553,37 +1553,28 @@ export function WorkflowCanvas({
                 )}
 
                 {node.influencerHandle && !isText && (
-                  <div className="absolute left-3 top-3 px-3 py-1 rounded-xl bg-black/80 backdrop-blur-md text-white font-extrabold text-xs border border-white/10 dir-ltr">
+                  <div className="absolute left-3 bottom-14 px-3 py-1 rounded-xl bg-black/85 backdrop-blur-md text-white font-extrabold text-xs border border-white/10 dir-ltr z-10 shadow-lg">
                     {node.influencerHandle}
                   </div>
                 )}
 
                 {isRoot && (
-                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
+                  <div className="absolute bottom-3 left-3 right-3 z-10 flex flex-col gap-2">
                     <button
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
-                        replaceInputRef.current?.click();
+                        handleGenerateImageSet();
                       }}
-                      className="flex h-8 flex-1 items-center justify-center rounded-lg border border-white/10 bg-black/70 text-zinc-200 hover:bg-black/85"
-                      title={copy.replaceSource}
-                      aria-label={copy.replaceSource}
+                      disabled={batchGenerating || !node.imageUrl}
+                      className="w-full h-9 rounded-xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 hover:opacity-95 active:scale-[0.98] text-white text-xs font-bold shadow-lg shadow-pink-500/25 flex items-center justify-center gap-1.5 transition disabled:opacity-50"
                     >
-                      <Upload size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        updateNode(node.id, { imageUrl: undefined, publicImageUrl: undefined, status: "idle" });
-                      }}
-                      disabled={!node.imageUrl}
-                      className="flex h-8 flex-1 items-center justify-center rounded-lg border border-white/10 bg-black/70 text-zinc-200 hover:bg-black/85 disabled:opacity-40"
-                      title={copy.removeSource}
-                      aria-label={copy.removeSource}
-                    >
-                      <Trash2 size={13} />
+                      {batchGenerating ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Sparkles size={14} />
+                      )}
+                      <span>{isArabic ? "ولّد مجموعة صور 🪄" : "Generate Image Group 🪄"}</span>
                     </button>
                   </div>
                 )}
@@ -1752,132 +1743,116 @@ export function WorkflowCanvas({
         })}
       </div>
 
-      <div className="absolute bottom-4 left-4 right-4 z-30 mx-auto max-w-5xl rounded-2xl border border-white/10 bg-[#0d0f19]/95 p-3 shadow-2xl backdrop-blur-xl">
-        <div className="flex flex-col gap-3">
+      <div className="absolute top-4 left-4 right-4 z-30 mx-auto max-w-6xl rounded-2xl border border-white/10 bg-[#0d0f19]/95 p-2.5 shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="rounded-xl border border-white/10 bg-black/50 p-1 flex items-center gap-1">
-              {workflowModeOptions.map((mode) => {
-                const Icon = mode.icon;
-                return (
-                  <button
-                    key={`bottom-${mode.id}`}
-                    type="button"
-                    onClick={() => setWorkflowMode(mode.id)}
-                    className={cn(
-                      "h-8 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 transition",
-                      workflowMode === mode.id ? "bg-white text-black" : "text-zinc-400 hover:text-white hover:bg-white/10",
-                    )}
-                  >
-                    <Icon size={13} />
-                    {mode.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="text-[11px] text-zinc-500">
-              {workflowMode === "video" ? copy.videoModel : copy.imageModel}:{" "}
-              <span className="text-zinc-300">{workflowMode === "video" ? selectedVideoModel : selectedImageModel}</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-[120px_90px_90px_160px_1fr]">
-            <select
-              value={selectedHandle}
-              onChange={(event) => setSelectedHandle(event.target.value)}
-              className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs font-mono text-pink-300 outline-none dir-ltr"
-              aria-label={copy.activeTalent}
-            >
-              {Array.from(new Set([selectedHandle, ...influencerHandles])).map((handle) => (
-                <option key={handle} value={handle} className="bg-[#0d0f19] text-pink-300">
-                  {handle}
-                </option>
-              ))}
-            </select>
-            <select
-              value={batchCount}
-              onChange={(event) => setBatchCount(Number(event.target.value))}
-              className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs text-white outline-none"
-              aria-label={copy.imageCount}
-            >
-              {[4, 6, 8, 10, 12].map((count) => (
-                <option key={count} value={count} className="bg-[#0d0f19]">
-                  {count}
-                </option>
-              ))}
-            </select>
-            <select
-              value={aspectRatio}
-              onChange={(event) => setAspectRatio(event.target.value)}
-              className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs text-white outline-none"
-              aria-label={copy.aspect}
-            >
-              {["9:16", "1:1", "16:9", "3:4"].map((ratio) => (
-                <option key={ratio} value={ratio} className="bg-[#0d0f19]">
-                  {ratio}
-                </option>
-              ))}
-            </select>
-            <select
-              value={selectedImageModel}
-              onChange={(event) => setSelectedImageModel(event.target.value)}
-              className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs text-purple-200 outline-none"
-              aria-label={copy.imageModel}
-            >
-              {["Nano Banana Pro", "Seedream 5.0 Pro", "Flux 2 Pro", "GPT Image 2"].map((model) => (
-                <option key={model} value={model} className="bg-[#0d0f19]">
-                  {model}
-                </option>
-              ))}
-            </select>
-            <div className="hidden items-center justify-end gap-3 text-[11px] text-zinc-500 md:flex">
-              <span>
-                {nodes.length} {copy.nodes}
-              </span>
-              {canvasError && <span className="font-bold text-pink-300">{canvasError}</span>}
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              value={workflowMode === "video" ? videoPrompt : batchPrompt}
-              onChange={(event) => {
-                if (workflowMode === "video") setVideoPrompt(event.target.value);
-                else setBatchPrompt(event.target.value);
-              }}
-              placeholder={
-                workflowMode === "video"
-                  ? copy.videoPromptPlaceholder
-                  : isArabic
-                    ? "اكتب المشهد هنا - مثال: @gavi في مقهى فاخر، إضاءة سينمائية، لقطة عمودية"
-                    : "Describe the scene - e.g. @gavi in a luxury cafe, cinematic light, vertical shot"
-              }
-              className={cn(
-                "h-10 flex-1 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-white placeholder-zinc-600 outline-none focus:border-purple-500",
-                isArabic ? "text-right" : "text-left",
-              )}
-            />
-            {workflowMode === "video" && (
+            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
               <select
-                value={selectedVideoModel}
-                onChange={(event) => setSelectedVideoModel(event.target.value)}
-                className="h-10 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-purple-200 outline-none"
+                value={selectedHandle}
+                onChange={(event) => setSelectedHandle(event.target.value)}
+                className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs font-mono text-pink-300 outline-none dir-ltr font-bold"
+                aria-label={copy.activeTalent}
               >
-                {["Kling 3.0 Pro", "Seedance 2.0", "Kling 2.6"].map((model) => (
+                {Array.from(new Set([selectedHandle, ...influencerHandles])).map((handle) => (
+                  <option key={handle} value={handle} className="bg-[#0d0f19] text-pink-300">
+                    {handle}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={batchCount}
+                onChange={(event) => setBatchCount(Number(event.target.value))}
+                className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs text-white outline-none"
+                aria-label={copy.imageCount}
+              >
+                {[1, 4, 6, 8, 10, 12].map((count) => (
+                  <option key={count} value={count} className="bg-[#0d0f19]">
+                    {count} {isArabic ? "صور" : "images"}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={aspectRatio}
+                onChange={(event) => setAspectRatio(event.target.value)}
+                className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs text-white outline-none"
+                aria-label={copy.aspect}
+              >
+                {["9:16", "1:1", "16:9", "3:4"].map((ratio) => (
+                  <option key={ratio} value={ratio} className="bg-[#0d0f19]">
+                    {ratio}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={selectedImageModel}
+                onChange={(event) => setSelectedImageModel(event.target.value)}
+                className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs text-purple-200 outline-none font-semibold"
+                aria-label={copy.imageModel}
+              >
+                {["Nano Banana Pro", "Seedream 5.0 Pro", "Flux 2 Pro", "Google Imagen 4"].map((model) => (
                   <option key={model} value={model} className="bg-[#0d0f19]">
                     {model}
                   </option>
                 ))}
               </select>
-            )}
-            <button
-              type="button"
-              onClick={handlePromptGenerate}
-              disabled={batchGenerating}
-              className="h-10 px-5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              {batchGenerating ? <Loader2 size={14} className="animate-spin" /> : workflowMode === "video" ? <VideoIcon size={14} /> : <Sparkles size={14} />}
-              {workflowMode === "video" ? copy.toVideo : copy.generate}
-            </button>
+
+              <div className="relative flex-1 min-w-[220px]">
+                <input
+                  value={workflowMode === "video" ? videoPrompt : batchPrompt}
+                  onChange={(event) => {
+                    if (workflowMode === "video") setVideoPrompt(event.target.value);
+                    else setBatchPrompt(event.target.value);
+                  }}
+                  placeholder={
+                    workflowMode === "video"
+                      ? copy.videoPromptPlaceholder
+                      : isArabic
+                        ? "فكرة المجموعة - مثال: حملة أزياء فاخرة، أماكن مختلفة، صور واقعية للسوشيال ميديا"
+                        : "Group concept - e.g. luxury fashion campaign, different locations, realistic UGC"
+                  }
+                  dir="auto"
+                  className={cn(
+                    "h-9 w-full bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-white placeholder-zinc-500 outline-none focus:border-pink-500 transition",
+                    isArabic ? "text-right" : "text-left",
+                  )}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={openCreateMenu}
+                className="h-9 px-3.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs font-bold flex items-center gap-1.5 transition shrink-0"
+              >
+                <Plus size={14} />
+                <span>{isArabic ? "إضافة عقدة" : "Add Node"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePromptGenerate}
+                disabled={batchGenerating}
+                className="h-9 px-4 rounded-xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 hover:opacity-95 text-white text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-lg shadow-pink-500/25 shrink-0 transition"
+              >
+                {batchGenerating ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Sparkles size={14} />
+                )}
+                <span>{isArabic ? "ولّد مجموعة صور" : "Generate Group"}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] text-zinc-500 px-1">
+            <div className="flex items-center gap-3">
+              <span>{nodes.length} {copy.nodes}</span>
+              <span>•</span>
+              <span>{isArabic ? "نموذج الفيديو:" : "Video Model:"} <span className="text-zinc-300">{selectedVideoModel}</span></span>
+            </div>
+            {canvasError && <span className="font-bold text-pink-300">{canvasError}</span>}
           </div>
         </div>
       </div>

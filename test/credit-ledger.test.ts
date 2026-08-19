@@ -1,23 +1,38 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockUserFindUnique, mockUserUpdate, mockUserSubscriptionFindUnique } = vi.hoisted(() => {
+const {
+  mockUserFindUnique,
+  mockUserUpdate,
+  mockUserUpdateMany,
+  mockUserSubscriptionFindUnique,
+  mockGenerationUpdate,
+  mockCreditLedgerEntryCreate,
+} = vi.hoisted(() => {
   return {
     mockUserFindUnique: vi.fn(async () => null),
     mockUserUpdate: vi.fn(async () => ({})),
+    mockUserUpdateMany: vi.fn(async () => ({ count: 1 })),
     mockUserSubscriptionFindUnique: vi.fn(async () => null),
+    mockGenerationUpdate: vi.fn(async () => ({})),
+    mockCreditLedgerEntryCreate: vi.fn(async () => ({})),
   };
 });
 
 const tx = {
   user: {
-    update: vi.fn(async () => ({})),
+    findUnique: mockUserFindUnique,
+    update: mockUserUpdate,
+    updateMany: mockUserUpdateMany,
+  },
+  userSubscription: {
+    findUnique: mockUserSubscriptionFindUnique,
   },
   generation: {
     findUnique: vi.fn(async () => ({ id: "g1", cost: 10, isFlagged: false })),
-    update: vi.fn(async () => ({})),
+    update: mockGenerationUpdate,
   },
   creditLedgerEntry: {
-    create: vi.fn(async () => ({})),
+    create: mockCreditLedgerEntryCreate,
   },
 };
 
@@ -37,9 +52,13 @@ vi.mock("@/lib/prismadb", () => {
       user: {
         findUnique: mockUserFindUnique,
         update: mockUserUpdate,
+        updateMany: mockUserUpdateMany,
       },
       userSubscription: {
         findUnique: mockUserSubscriptionFindUnique,
+      },
+      creditLedgerEntry: {
+        create: mockCreditLedgerEntryCreate,
       },
     },
   };
@@ -208,17 +227,21 @@ describe("credit-ledger policy + refunds", () => {
       stripeCurrentPeriodEnd: new Date(now + 90 * 24 * 60 * 60 * 1000),
     };
 
-    mockUserFindUnique.mockResolvedValue(mockUser);
-    mockUserSubscriptionFindUnique.mockResolvedValue(mockSubscription);
-
-    mockUserUpdate.mockResolvedValueOnce({
-      creditBalance: 600,
-      monthlyCredits: 1000,
-      creditsExpireAt: mockUser.creditsExpireAt,
-      creditAdvanceBalance: 500,
-      creditAdvanceRequestedAt: new Date(),
-      creditAdvanceCycleEnd: mockUser.creditsExpireAt,
+    let advanceBalance = 0;
+    mockUserFindUnique.mockImplementation(async () => {
+      return {
+        ...mockUser,
+        creditBalance: 100 + advanceBalance,
+        creditAdvanceBalance: advanceBalance,
+        creditAdvanceCycleEnd: advanceBalance > 0 ? mockUser.creditsExpireAt : null,
+        creditAdvanceRequestedAt: advanceBalance > 0 ? new Date() : null,
+      };
     });
+    mockUserUpdateMany.mockImplementation(async () => {
+      advanceBalance = 500;
+      return { count: 1 };
+    });
+    mockUserSubscriptionFindUnique.mockResolvedValue(mockSubscription);
 
     const res = await requestAnnualCreditAdvance("u1", 500);
     expect(res.credited).toBe(500);

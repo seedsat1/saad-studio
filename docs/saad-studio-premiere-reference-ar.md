@@ -1,3 +1,20 @@
+## لوحة التحكم والعمليات لإضافة أدوبي (Adobe CEP Admin Control Plane) - Phase 2 (2026-08-19)
+
+- تم بناء لوحة تحكم تشغيلية متكاملة خاصة بإضافة أدوبي بريمير وأفتر إفكتس في مسار `/admin/plugin` تحت مجموعة `ADVANCED / UTILITIES` في `AdminSidebar`.
+- معمارية التحكم التشغيلي:
+  - **حالات التشغيل (Master Switch)**: `ACTIVE` (التشغيل الكامل)، `MAINTENANCE` (وضع الصيانة مع إيقاف التوليد وعرض رسالة للمستخدم)، `DISABLED` (التعطيل الشامل من جانب الخادم).
+  - **سياسة الإصدار الأدنى (Min Supported Version Gate)**: تطبيق حظر مباشر برمز `426 Upgrade Required` لأي إضافة إصدارها أقل من الحد الأدنى المعتمد في `/api/panel/generate/*`.
+  - **مزامنة الإصدار الموحدة**: ربط التعديل في لوحة التحكم بتحديث `PlatformConfig` في قاعدة البيانات وتحديث `public/saadstudio-version.json` وبوابة التنزيل `/download` تلقائياً.
+  - **إلغاء الجلسات وحظر الرموز (Token Revocation)**: دعم حظر رمز معين عبر بصمته المشفرة (`computeTokenFingerprint`)، أو حظر كافة جلسات مستخدم معين، أو تنفيذ إلغاء شامل عالمي لحالات الطوارئ مع الحفاظ على سرية `PANEL_TOKEN_SECRET`.
+  - **الفصل التام عن إدارة المحتوى**: صفحة `/admin/plugin` مخصصة للعمليات التشغيلية والأمان، بينما تظل `/admin/cms/cep` مخصصة لإدارة محتوى الكاروسيل الترحيبي فقط.
+
+## توحيد تسعير الصوت وTTS في إضافة أدوبي CEP مع المنصة - Phase 1 (2026-08-19)
+
+- تم إلغاء التسعير الثابت القديم (3 كريدت) في مسار `/api/panel/generate/tts`.
+- أصبح المسار يستهلك معادلة التسعير القياسية الموحدة `calculateTtsCredits(charCount)` من [`lib/pricing.ts`](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/pricing.ts):
+  $$\text{Credits} = \max(1, \lceil \text{characterCount} \times 0.0034 \rceil)$$
+- تم توحيد إصدار الحزمة إلى `3.0.0` عبر `manifest.xml` و `public/saadstudio-version.json` وصفحات الموقع.
+
 ## توحيد موديلات Lipsync Studio و TTS في Central Model Definition - Batch 2B (2026-08-16)
 
 - تم تحويل ميزتي **Lipsync Studio** و **Text to Speech (TTS)** إلى `FULLY_CENTRALIZED` من حيث تعريف الموديلات والخصائص العامة (Model Capabilities):
@@ -297,11 +314,15 @@
 ## Audio Playback and Gemini Voice Sample Contract (2026-08-11)
 
 - Voice sample generation must call Google's TTS-capable model `gemini-3.1-flash-tts-preview`; legacy `gemini-3.1-flash-live-preview` may be accepted only as an input alias and normalized before provider dispatch.
-- `/api/voice-sample` should prefer cached stored samples, generate missing samples on demand when a Google API key is configured, and return the generated WAV directly if storage persistence fails after a successful provider response.
+- `/api/voice-sample` delivers permanent MP3 audio previews (`audio/mpeg`, `.mp3`), guarantees deterministic cache keys with in-memory deduplication locks to prevent redundant provider requests on preview clicks, and serves directly from storage without charging subscriber credits or generating monitor entries.
+- All user audio outputs generated through `/api/generate/audio` (TTS, Voice Cloning, Music, SFX, Voice Changer) are guaranteed to be transcoded via FFmpeg and persisted as canonical MP3 assets (`audio/mpeg`, `.mp3`) prior to final media URL assignment.
+- TTS and Cloned Voice TTS calculate customer credit price dynamically using canonical character pricing: `Credits = max(1, ceil(characterCount * 0.0034))` (~1 CR per 294 characters based on $0.00017/char target value).
+- Music generation calculates customer credit price dynamically using canonical duration pricing: `Credits = max(4, ceil(2 + durationSec * 0.12))` (15s=4CR, 30s=6CR, 60s=10CR, 90s=13CR, 120s=17CR, 180s=24CR, 240s=31CR, 300s=38CR).
+- Sound Effects generation calculates customer credit price dynamically using canonical duration pricing: `Credits = max(2, ceil(2 + durationSec * 0.25))` (2s=3CR, 5s=4CR, 10s=5CR, 15s=6CR, 22s=8CR).
 - Browser-facing playback and downloads for Saad Studio media must pass old Supabase/R2/B2/raw storage URLs through the media fallback resolver so playable sources can fall back to B2, `/api/media/...`, and legacy R2 instead of requesting stale Supabase hosts directly.
 - `/api/generate/audio` must not reject valid `actionType="tts"` requests solely because the dynamic pricing quote is missing; after dynamic and legacy model quote lookup fail, it should bill through `getAudioActionCredits("tts")` as a safety fallback.
 - Standalone static Sound Studio pages must display audio generation pricing from `GET /api/generate/audio` and refresh the visible account balance after successful generation by reading `/api/editor/credits` and dispatching `saad-credits-updated` to the page/parent frame.
-- Legacy Supabase media URLs must prioritize `/api/media/...` for browser playback, and direct `<audio>`/`new Audio(...)` call sites should use `getFallbackUrls(...)[0]` so old saved audio never requests the deprecated Supabase host from the client.
+- Legacy Supabase media URLs must prioritize `/api/media/...` for browser playback, and direct `<audio>`/`new Audio(...)` call sites should use `getFallbackUrls(...)[0]` with `preload="none"` so audio is loaded on-demand without redundant download warnings.
 - Standalone static Sound Studio pages (`stude/sound*.html` and `public/stude/sound*.html`) must mirror the same contract locally: stored Supabase/R2/B2 URLs convert to `/api/media/...`, and Gemini TTS defaults to `gemini-3.1-flash-tts-preview`.
 - Cinema Studio voice preview and voice-clone audio controls must normalize generated `audioUrl` values before creating `Audio` elements or rendering `<audio>` tags.
 ## تعطيل وإزالة موديل DALL-E 3 من الواجهات والتسعير (2026-08-08)
