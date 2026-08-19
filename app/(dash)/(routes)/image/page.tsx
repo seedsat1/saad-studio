@@ -1582,38 +1582,33 @@ export default function ImageWorkspacePage() {
     const urls = normalizeImageResponseUrls(data);
     if (!urls.length) throw new Error("Generation completed but no image URL was returned");
 
-    // 2. Call /api/assets/persist for each result
-    const generationId = data.generationId || data.taskId || data.id; // try to get generationId from response
-    let persistedUrls: string[] = [];
-    if (generationId && urls.length) {
-      // Only persist the first image (main record), as backend saves additional ones
-      try {
-        const persistRes = await fetch("/api/assets/persist", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ generationId, mediaUrl: urls[0] }),
-        });
-        const persistData = await persistRes.json();
-        if (persistRes.ok && persistData.url) {
-          // Replace the first URL with the permanent one
-          persistedUrls = [persistData.url, ...urls.slice(1)];
-        } else {
-          persistedUrls = urls;
-        }
-      } catch {
-        persistedUrls = urls;
-      }
-    } else {
-      persistedUrls = urls;
-    }
-
-    const persistedRecords: Partial<ResultItem>[] = generationId && persistedUrls[0]
-      ? [{ id: String(generationId), originalUrl: persistedUrls[0], thumbnailUrl: `/api/assets/thumbnail?id=${encodeURIComponent(String(generationId))}` }]
+    // 2. Display results immediately in UI for instant feedback
+    const generationId = data.generationId || data.taskId || data.id;
+    const initialRecords: Partial<ResultItem>[] = generationId && urls[0]
+      ? [{ id: String(generationId), originalUrl: urls[0], thumbnailUrl: urls[0] }]
       : [];
+    addResultItems(urls, "create", selectedModel.label, prompt, aspectRatio, initialRecords);
 
-    // 3. Update UI state with permanent original URL(s); cards render thumbnailUrl when a DB id is available.
-    addResultItems(persistedUrls, "create", selectedModel.label, prompt, aspectRatio, persistedRecords);
-    void loadPersistedImages(0, "replace");
+    // 3. Persist to permanent storage in background non-blockingly
+    if (generationId && urls.length) {
+      void (async () => {
+        try {
+          const persistRes = await fetch("/api/assets/persist", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ generationId, mediaUrl: urls[0] }),
+          });
+          const persistData = await persistRes.json();
+          if (persistRes.ok && persistData.url) {
+            void loadPersistedImages(0, "replace");
+          }
+        } catch (err) {
+          console.warn("[image-persist] Background storage sync warning:", err);
+        }
+      })();
+    } else {
+      void loadPersistedImages(0, "replace");
+    }
   }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, loadPersistedImages, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId, selectedPalette]);
 
   const generateRelight = useCallback(async () => {

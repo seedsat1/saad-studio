@@ -472,9 +472,11 @@ async function generateGoogleImage(params: {
   return images.map((image) => ({ buffer: Buffer.from(image.data, "base64"), mimeType: image.mimeType }));
 }
 
-async function pollWaveSpeedImageTask(taskId: string, apiKey: string, maxAttempts = 60, intervalMs = 2500): Promise<string[]> {
+async function pollWaveSpeedImageTask(taskId: string, apiKey: string, maxAttempts = 90): Promise<string[]> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    // Initial quick check after 600ms, then every 1000ms
+    const waitTime = attempt === 0 ? 600 : 1000;
+    await new Promise((resolve) => setTimeout(resolve, waitTime));
 
     const resultRes = await fetch(
       `${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}/result`,

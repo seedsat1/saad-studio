@@ -369,10 +369,14 @@ function VideoHistoryPreview({
   onReusePrompt?: (item: MediaItem) => void;
   onDelete?: (id: string) => void;
 }) {
-  const fallbackUrls = getFallbackUrls(item.src);
-  const posterUrl = (item as any).posterUrl || item.poster || fallbackUrls[0];
+  const rawPoster = (item as any).posterUrl || item.poster || (item as any).thumbnailUrl || (item as any).inputImage;
+  const isImagePoster = typeof rawPoster === "string" && !rawPoster.endsWith(".mp4") && !rawPoster.endsWith(".webm");
+  const posterUrl = isImagePoster ? rawPoster : undefined;
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Append `#t=0.001` so that HTML5 video players seek to and render the first frame immediately!
+  const videoSrc = item.src && !item.src.includes("#") ? `${item.src}#t=0.001` : item.src;
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -395,11 +399,17 @@ function VideoHistoryPreview({
         <>
           <video
             ref={videoRef}
-            src={item.src}
+            src={videoSrc}
             poster={posterUrl}
             playsInline
             loop
-            preload="metadata"
+            preload="auto"
+            onLoadedMetadata={(e) => {
+              const vid = e.currentTarget;
+              if (vid.currentTime === 0) {
+                vid.currentTime = 0.001;
+              }
+            }}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onEnded={() => setIsPlaying(false)}
