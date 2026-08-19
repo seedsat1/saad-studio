@@ -414,7 +414,7 @@ export default function AudioPage() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
 
   // Suite Tab
-  const [suiteTab, setSuiteTab] = useState<"sound-studio" | "create-song" | "library">("create-song");
+  const [suiteTab, setSuiteTab] = useState<"sound-studio" | "create-song" | "library">("sound-studio");
 
   // Load library assets
   const [libraryAssets, setLibraryAssets] = useState<any[]>([]);

@@ -24,6 +24,9 @@ export default function AdminVoiceSamplesPage() {
   const [audioObj, setAudioObj] = useState<HTMLAudioElement | null>(null);
   const [statusMsg, setStatusMsg] = useState<{ text: string; type: "ok" | "err" | "info" } | null>(null);
 
+  const [batchGenerating, setBatchGenerating] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; voiceName: string } | null>(null);
+
   useEffect(() => {
     fetchVoices();
   }, []);
@@ -86,6 +89,35 @@ export default function AdminVoiceSamplesPage() {
     }
   };
 
+  const handleGenerateAllVoices = async () => {
+    if (batchGenerating) return;
+    setBatchGenerating(true);
+    const targetVoices = voices.filter(v => !v.isGenerated);
+    const listToProcess = targetVoices.length > 0 ? targetVoices : voices;
+    const total = listToProcess.length;
+
+    setStatusMsg({ text: `بدء توليد وحفظ كافة خامات الأصوات (${total} خامة) لجميع المشتركين...`, type: "info" });
+
+    let successCount = 0;
+    for (let i = 0; i < listToProcess.length; i++) {
+      const v = listToProcess[i];
+      setBatchProgress({ current: i + 1, total, voiceName: v.name });
+      try {
+        const res = await fetch("/api/admin/voice-samples", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ voiceId: v.cleanId }),
+        });
+        if (res.ok) successCount++;
+      } catch (e) {}
+    }
+
+    setBatchGenerating(false);
+    setBatchProgress(null);
+    setStatusMsg({ text: `✓ تم بنجاح توليد وحفظ ${successCount} من أصل ${total} خامة صوت لجميع المشتركين وتثبيتها بشكل دائم! 🚀`, type: "ok" });
+    fetchVoices();
+  };
+
   return (
     <AdminShell activeRoute="/admin/voice-samples">
       <div className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
@@ -112,13 +144,33 @@ export default function AdminVoiceSamplesPage() {
             </div>
           </div>
 
-          <button
-            onClick={fetchVoices}
-            disabled={loading}
-            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold flex items-center gap-2 transition border border-slate-700"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> تحديث القائمة
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleGenerateAllVoices}
+              disabled={batchGenerating || loading}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-zinc-950 text-sm font-extrabold flex items-center gap-2 transition shadow-lg hover:shadow-xl disabled:opacity-50"
+            >
+              {batchGenerating ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-zinc-950" />
+                  <span>جاري توليد ({batchProgress?.current}/{batchProgress?.total}) {batchProgress?.voiceName}...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-zinc-950 fill-zinc-950" />
+                  <span>توليد وحفظ جميع الأصوات دفعة واحدة ({voices.length})</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={fetchVoices}
+              disabled={loading || batchGenerating}
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold flex items-center gap-2 transition border border-slate-700"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> تحديث القائمة
+            </button>
+          </div>
         </div>
 
       {/* Status Alert Banner */}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { getRegistry, saveRegistry } from "@/lib/voice-registry";
+import { isMp3Buffer, transcodeToMp3 } from "@/lib/server/audio-transcode";
 
 export const runtime = "nodejs";
 
@@ -114,6 +115,72 @@ export async function GET() {
   }
 }
 
+async function generateAndSaveVoiceSample(voiceId: string, apiKey: string): Promise<string> {
+  const prompt = `اقرأ النص التالي بالعربية بصوت واضح وطبيعي ومناسب للجمهور العربي:\n\nمرحباً، هذا نموذج لمعاينة خامة الصوت الاصطناعي في سعد ستوديو.`;
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: voiceId },
+            },
+          },
+        },
+      }),
+    }
+  );
+
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const msg = json?.error?.message || `Google Gemini TTS error (${res.status})`;
+    throw new Error(msg);
+  }
+
+  const audio = extractGeminiAudio(json);
+  if (!audio) {
+    throw new Error("No audio data returned from Gemini TTS");
+  }
+
+  const raw = Buffer.from(audio.data, "base64");
+  const wavBuffer = audio.mimeType.toLowerCase().includes("wav") ? raw : pcmToWav(raw);
+  
+  let mp3Buffer: Buffer = wavBuffer;
+  try {
+    mp3Buffer = (await transcodeToMp3(wavBuffer, { bitrate: "192k", sampleRate: 44100 })) as any;
+  } catch (err) {
+    console.warn(`[VOICE_SAMPLES_ADMIN] MP3 transcode fallback for ${voiceId}:`, err);
+  }
+
+  const uploadedUrl = await uploadBufferToStorage({
+    buffer: mp3Buffer,
+    contentType: "audio/mpeg",
+    userId: "admin_previews",
+    assetType: "audio",
+    generationId: `voice_sample_${voiceId.toLowerCase()}`,
+    fileName: `sample_${voiceId.toLowerCase()}.mp3`,
+  });
+
+  if (uploadedUrl) {
+    const registry = getRegistry();
+    registry[voiceId] = uploadedUrl;
+    saveRegistry(registry);
+  }
+
+  return uploadedUrl
+    ? toBrowserMediaUrl(uploadedUrl)
+    : `/api/voice-sample?voice=${encodeURIComponent(voiceId)}`;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = auth();
@@ -122,8 +189,6 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const voiceId = String(body.voiceId || "Sulafat").replace(/^gemini:/i, "").trim();
-
     const apiKey =
       process.env.GOOGLE_AI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
@@ -134,62 +199,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Google API key not configured on server." }, { status: 500 });
     }
 
-    const prompt = `اقرأ النص التالي بالعربية بصوت واضح وطبيعي ومناسب للجمهور العربي:\n\nمرحباً، هذا نموذج لمعاينة خامة الصوت الاصطناعي في سعد ستوديو.`;
-
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "x-goog-api-key": apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseModalities: ["AUDIO"],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: voiceId },
-              },
-            },
-          },
-        }),
+    if (body.generateAll) {
+      const results: { voiceId: string; success: boolean; sampleUrl?: string; error?: string }[] = [];
+      
+      for (const [name] of GOOGLE_GEMINI_TTS_VOICES) {
+        try {
+          const sampleUrl = await generateAndSaveVoiceSample(name, apiKey);
+          results.push({ voiceId: name, success: true, sampleUrl });
+        } catch (err: any) {
+          results.push({ voiceId: name, success: false, error: err.message });
+        }
       }
-    );
 
-    const json = await res.json().catch(() => null);
-    if (!res.ok) {
-      const msg = json?.error?.message || `Google Gemini TTS error (${res.status})`;
-      return NextResponse.json({ error: msg }, { status: 502 });
+      return NextResponse.json({
+        success: true,
+        generatedCount: results.filter(r => r.success).length,
+        total: GOOGLE_GEMINI_TTS_VOICES.length,
+        results,
+      });
     }
 
-    const audio = extractGeminiAudio(json);
-    if (!audio) {
-      return NextResponse.json({ error: "No audio data returned from Gemini TTS" }, { status: 502 });
-    }
-
-    const raw = Buffer.from(audio.data, "base64");
-    const buffer = audio.mimeType.toLowerCase().includes("wav") ? raw : pcmToWav(raw);
-
-    const uploadedUrl = await uploadBufferToStorage({
-      buffer,
-      contentType: "audio/wav",
-      userId: "admin_previews",
-      assetType: "audio",
-      generationId: `voice_sample_${voiceId.toLowerCase()}`,
-      fileName: `sample_${voiceId.toLowerCase()}.wav`,
-    });
-
-    if (uploadedUrl) {
-      const registry = getRegistry();
-      registry[voiceId] = uploadedUrl;
-      saveRegistry(registry);
-    }
-
-    const finalSampleUrl = uploadedUrl
-      ? toBrowserMediaUrl(uploadedUrl)
-      : `/api/voice-sample?voice=${encodeURIComponent(voiceId)}`;
+    const voiceId = String(body.voiceId || "Sulafat").replace(/^gemini:/i, "").trim();
+    const finalSampleUrl = await generateAndSaveVoiceSample(voiceId, apiKey);
 
     return NextResponse.json({
       success: true,
