@@ -38,10 +38,12 @@ const BLOCKED_DYNAMIC_VIDEO_IDS = new Set([
 ]);
 
 function mergeCuratedImageModel(curated: ImageModel, existing?: DynamicImageModel): DynamicImageModel {
+  const group = existing?.group ?? curated.group ?? "Image Models";
+  const familyColor = existing?.family_color ?? existing?.color ?? (curated as any).family_color ?? (curated as any).color ?? "#06b6d4";
   return {
     ...curated,
-    group: existing?.group ?? curated.group ?? "Image Models",
-    family_color: existing?.family_color ?? existing?.color ?? (curated as any).family_color ?? (curated as any).color ?? "#06b6d4",
+    group,
+    family_color: familyColor,
     isActive: existing?.isDeleted ? false : (existing?.isActive ?? (curated as DynamicImageModel).isActive ?? true),
     isDeleted: existing?.isDeleted ?? false,
     creditCost: existing?.creditCost ?? curated.creditCost,
@@ -49,13 +51,19 @@ function mergeCuratedImageModel(curated: ImageModel, existing?: DynamicImageMode
 }
 
 function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: DynamicVideoModel): DynamicVideoModel {
+  const group = existing?.group ?? (curated as any).group ?? curated.family_label ?? curated.family ?? "Video Models";
+  const familyColor = existing?.family_color ?? existing?.color ?? curated.family_color ?? "#8b5cf6";
+  const familySlug = group.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   return {
     ...curated,
-    group: existing?.group ?? (curated as any).group ?? curated.family_label ?? curated.family ?? "Video Models",
-    family_color: existing?.family_color ?? existing?.color ?? curated.family_color ?? "#8b5cf6",
+    group,
+    family: familySlug,
+    family_label: group,
+    family_color: familyColor,
     isActive: existing?.isDeleted ? false : (existing?.isActive ?? (curated as DynamicVideoModel).isActive ?? true),
     isDeleted: existing?.isDeleted ?? false,
     creditCost: existing?.creditCost ?? (curated as DynamicVideoModel).creditCost,
+    capabilities: existing?.capabilities ? { ...curated.capabilities, ...existing.capabilities } : curated.capabilities,
   };
 }
 
@@ -114,10 +122,15 @@ export function normalizeDynamicVideoModels(models: DynamicVideoModel[]): Dynami
       if (curated) {
         orderedResult.push(mergeCuratedVideoModel(curated, model));
       } else {
+        const group = model.group || (model as any).family_label || (model as any).family || "Custom Video Fleet";
+        const familySlug = group.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        const familyColor = model.family_color || model.color || "#8b5cf6";
         orderedResult.push({
           ...model,
-          group: model.group || (model as any).family || "Custom Video Fleet",
-          family_color: model.family_color || model.color || "#8b5cf6",
+          group,
+          family: familySlug,
+          family_label: group,
+          family_color: familyColor,
         });
       }
       processedIds.add(id);

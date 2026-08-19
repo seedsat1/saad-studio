@@ -1186,16 +1186,17 @@ function VideoPageInner() {
       if (seenModelIds.has(m.id)) continue;
       seenModelIds.add(m.id);
 
-      const fam = m.family || "other";
-      if (!map.has(fam)) {
-        map.set(fam, {
-          family: fam,
-          family_label: m.family_label || (fam.charAt(0).toUpperCase() + fam.slice(1)),
-          family_color: m.family_color || "#7c3aed",
+      const groupName = (m.group || m.family_label || m.family || "Other").trim();
+      const groupKey = groupName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      if (!map.has(groupKey)) {
+        map.set(groupKey, {
+          family: groupKey,
+          family_label: groupName,
+          family_color: m.family_color || (m as any).color || "#06b6d4",
           models: [],
         });
       }
-      map.get(fam)!.models.push(m);
+      map.get(groupKey)!.models.push(m);
     }
     return Array.from(map.values());
   }, [dynamicVideoList]);

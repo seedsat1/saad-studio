@@ -766,8 +766,12 @@ export default function AdminModelsPage() {
         if (idx === -1) return;
 
         if (groupFilter) {
+          const filterKey = groupFilter.trim().toLowerCase();
           const groupIndices = list
-            .map((m, i) => ((m as any).group || (m as any).family || "Image Models") === groupFilter ? i : -1)
+            .map((m, i) => {
+              const g = ((m as any).group || (m as any).family || "Image Models").trim().toLowerCase();
+              return g === filterKey ? i : -1;
+            })
             .filter((i) => i !== -1);
           const posInGroup = groupIndices.indexOf(idx);
           const targetPosInGroup = direction === "up" ? posInGroup - 1 : posInGroup + 1;
@@ -792,8 +796,12 @@ export default function AdminModelsPage() {
         if (idx === -1) return;
 
         if (groupFilter) {
+          const filterKey = groupFilter.trim().toLowerCase();
           const groupIndices = list
-            .map((m, i) => ((m as any).group || (m as any).family_label || (m as any).family || "Video Models") === groupFilter ? i : -1)
+            .map((m, i) => {
+              const g = ((m as any).group || (m as any).family_label || (m as any).family || "Video Models").trim().toLowerCase();
+              return g === filterKey ? i : -1;
+            })
             .filter((i) => i !== -1);
           const posInGroup = groupIndices.indexOf(idx);
           const targetPosInGroup = direction === "up" ? posInGroup - 1 : posInGroup + 1;
@@ -849,7 +857,10 @@ export default function AdminModelsPage() {
           const [movedItem] = list.splice(fromIdx, 1);
           if (targetGroupName) {
             const targetColor = groupedData.find((g) => g.group === targetGroupName)?.color;
+            const targetSlug = targetGroupName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
             (movedItem as any).group = targetGroupName;
+            (movedItem as any).family = targetSlug;
+            (movedItem as any).family_label = targetGroupName;
             if (targetColor) {
               (movedItem as any).family_color = targetColor;
               (movedItem as any).color = targetColor;
@@ -869,7 +880,10 @@ export default function AdminModelsPage() {
           const [movedItem] = list.splice(fromIdx, 1);
           if (targetGroupName) {
             const targetColor = groupedData.find((g) => g.group === targetGroupName)?.color;
+            const targetSlug = targetGroupName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
             (movedItem as any).group = targetGroupName;
+            (movedItem as any).family = targetSlug;
+            (movedItem as any).family_label = targetGroupName;
             if (targetColor) {
               (movedItem as any).family_color = targetColor;
               (movedItem as any).color = targetColor;
@@ -898,6 +912,7 @@ export default function AdminModelsPage() {
     if (!draggedRow) return;
 
     const targetColor = groupedData.find((g) => g.group === targetGroupName)?.color;
+    const targetSlug = targetGroupName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
     setIsReordering(true);
     try {
@@ -907,6 +922,8 @@ export default function AdminModelsPage() {
         if (idx !== -1) {
           const [item] = list.splice(idx, 1);
           (item as any).group = targetGroupName;
+          (item as any).family = targetSlug;
+          (item as any).family_label = targetGroupName;
           if (targetColor) {
             (item as any).family_color = targetColor;
             (item as any).color = targetColor;
@@ -922,6 +939,8 @@ export default function AdminModelsPage() {
         if (idx !== -1) {
           const [item] = list.splice(idx, 1);
           (item as any).group = targetGroupName;
+          (item as any).family = targetSlug;
+          (item as any).family_label = targetGroupName;
           if (targetColor) {
             (item as any).family_color = targetColor;
             (item as any).color = targetColor;
@@ -950,18 +969,20 @@ export default function AdminModelsPage() {
     try {
       const { originalName, name: newName, color: newColor } = editingGroup;
       const cleanNewName = newName.trim() || originalName;
+      const origKey = originalName.trim().toLowerCase();
+      const newSlug = cleanNewName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
       const updatedImages = imageModels.map((m) => {
-        const grp = (m as any).group || (m as any).family || "Image Models";
-        return grp === originalName
-          ? { ...m, group: cleanNewName, family_color: newColor, color: newColor }
+        const grp = ((m as any).group || (m as any).family || "Image Models").trim().toLowerCase();
+        return grp === origKey
+          ? { ...m, group: cleanNewName, family: newSlug, family_label: cleanNewName, family_color: newColor, color: newColor }
           : m;
       });
 
       const updatedVideos = videoModels.map((m) => {
-        const grp = (m as any).group || (m as any).family_label || (m as any).family || "Video Models";
-        return grp === originalName
-          ? { ...m, group: cleanNewName, family_color: newColor, color: newColor }
+        const grp = ((m as any).group || (m as any).family_label || (m as any).family || "Video Models").trim().toLowerCase();
+        return grp === origKey
+          ? { ...m, group: cleanNewName, family: newSlug, family_label: cleanNewName, family_color: newColor, color: newColor }
           : m;
       });
 
