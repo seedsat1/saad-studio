@@ -64,6 +64,7 @@ import {
   Grid,
   FolderPlus,
   Tag,
+  GripVertical,
 } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import type { DynamicImageModel, DynamicVideoModel } from "@/lib/dynamic-model-loader";
@@ -263,6 +264,9 @@ export default function AdminModelsPage() {
   const [viewMode, setViewMode] = useState<"flat" | "grouped">("flat");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [isReordering, setIsReordering] = useState(false);
+  const [draggedModelId, setDraggedModelId] = useState<string | null>(null);
+  const [dragOverModelId, setDragOverModelId] = useState<string | null>(null);
+  const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
   const [editingGroup, setEditingGroup] = useState<{ originalName: string; name: string; color: string } | null>(null);
   const [updatingGroup, setUpdatingGroup] = useState(false);
   const [groupUpdateError, setGroupUpdateError] = useState<string | null>(null);
@@ -814,6 +818,127 @@ export default function AdminModelsPage() {
       setError(err.message || "Failed to update model position");
     } finally {
       setIsReordering(false);
+    }
+  };
+
+  const handleDragDropModel = async (
+    targetModelId: string,
+    targetGroupName?: string
+  ) => {
+    if (!draggedModelId || draggedModelId === targetModelId) {
+      setDraggedModelId(null);
+      setDragOverModelId(null);
+      setDragOverGroupId(null);
+      return;
+    }
+
+    const draggedRow = unifiedRows.find((r) => r.id === draggedModelId);
+    if (!draggedRow) return;
+
+    setIsReordering(true);
+    setActionNotice(null);
+    setError(null);
+
+    try {
+      if (draggedRow.modality === "image") {
+        const list = [...imageModels];
+        const fromIdx = list.findIndex((m) => m.id === draggedModelId);
+        const toIdx = list.findIndex((m) => m.id === targetModelId);
+
+        if (fromIdx !== -1 && toIdx !== -1) {
+          const [movedItem] = list.splice(fromIdx, 1);
+          if (targetGroupName) {
+            const targetColor = groupedData.find((g) => g.group === targetGroupName)?.color;
+            (movedItem as any).group = targetGroupName;
+            if (targetColor) {
+              (movedItem as any).family_color = targetColor;
+              (movedItem as any).color = targetColor;
+            }
+          }
+          list.splice(toIdx, 0, movedItem);
+          setImageModels(list);
+          await saveReorderedModels(list, videoModels, `drag_reorder_image:${draggedModelId}`);
+          setActionNotice(`Moved "${draggedRow.name}" smoothly via drag & drop.`);
+        }
+      } else {
+        const list = [...videoModels];
+        const fromIdx = list.findIndex((m) => m.id === draggedModelId);
+        const toIdx = list.findIndex((m) => m.id === targetModelId);
+
+        if (fromIdx !== -1 && toIdx !== -1) {
+          const [movedItem] = list.splice(fromIdx, 1);
+          if (targetGroupName) {
+            const targetColor = groupedData.find((g) => g.group === targetGroupName)?.color;
+            (movedItem as any).group = targetGroupName;
+            if (targetColor) {
+              (movedItem as any).family_color = targetColor;
+              (movedItem as any).color = targetColor;
+            }
+          }
+          list.splice(toIdx, 0, movedItem);
+          setVideoModels(list);
+          await saveReorderedModels(imageModels, list, `drag_reorder_video:${draggedModelId}`);
+          setActionNotice(`Moved "${draggedRow.name}" smoothly via drag & drop.`);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to reorder model via drag & drop");
+    } finally {
+      setIsReordering(false);
+      setDraggedModelId(null);
+      setDragOverModelId(null);
+      setDragOverGroupId(null);
+    }
+  };
+
+  const handleDropIntoGroup = async (targetGroupName: string) => {
+    if (!draggedModelId) return;
+
+    const draggedRow = unifiedRows.find((r) => r.id === draggedModelId);
+    if (!draggedRow) return;
+
+    const targetColor = groupedData.find((g) => g.group === targetGroupName)?.color;
+
+    setIsReordering(true);
+    try {
+      if (draggedRow.modality === "image") {
+        const list = [...imageModels];
+        const idx = list.findIndex((m) => m.id === draggedModelId);
+        if (idx !== -1) {
+          const [item] = list.splice(idx, 1);
+          (item as any).group = targetGroupName;
+          if (targetColor) {
+            (item as any).family_color = targetColor;
+            (item as any).color = targetColor;
+          }
+          list.push(item);
+          setImageModels(list);
+          await saveReorderedModels(list, videoModels, `move_to_group:${draggedModelId}`);
+          setActionNotice(`Moved "${draggedRow.name}" into group "${targetGroupName}".`);
+        }
+      } else {
+        const list = [...videoModels];
+        const idx = list.findIndex((m) => m.id === draggedModelId);
+        if (idx !== -1) {
+          const [item] = list.splice(idx, 1);
+          (item as any).group = targetGroupName;
+          if (targetColor) {
+            (item as any).family_color = targetColor;
+            (item as any).color = targetColor;
+          }
+          list.push(item);
+          setVideoModels(list);
+          await saveReorderedModels(imageModels, list, `move_to_group:${draggedModelId}`);
+          setActionNotice(`Moved "${draggedRow.name}" into group "${targetGroupName}".`);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to move model into group");
+    } finally {
+      setIsReordering(false);
+      setDraggedModelId(null);
+      setDragOverModelId(null);
+      setDragOverGroupId(null);
     }
   };
 
@@ -1417,10 +1542,48 @@ export default function AdminModelsPage() {
                         const isFirst = idx === 0;
                         const isLast = idx === filteredRows.length - 1;
                         return (
-                          <tr key={row.id} className="hover:bg-zinc-800/40 transition-colors">
-                            {/* Order Controls */}
+                          <tr
+                            key={row.id}
+                            draggable={true}
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData("text/plain", row.id);
+                              setDraggedModelId(row.id);
+                            }}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              if (draggedModelId && draggedModelId !== row.id) {
+                                setDragOverModelId(row.id);
+                              }
+                            }}
+                            onDragLeave={() => {
+                              if (dragOverModelId === row.id) setDragOverModelId(null);
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              handleDragDropModel(row.id);
+                            }}
+                            onDragEnd={() => {
+                              setDraggedModelId(null);
+                              setDragOverModelId(null);
+                              setDragOverGroupId(null);
+                            }}
+                            className={`transition-all ${
+                              draggedModelId === row.id
+                                ? "opacity-30 bg-indigo-950/60 border-2 border-dashed border-indigo-500"
+                                : dragOverModelId === row.id
+                                ? "border-t-2 border-indigo-500 bg-indigo-950/40 shadow-inner"
+                                : "hover:bg-zinc-800/40"
+                            }`}
+                          >
+                            {/* Order & Drag Handle */}
                             <td className="py-3 px-3 text-center">
                               <div className="inline-flex items-center gap-0.5 bg-zinc-950/80 p-0.5 rounded border border-zinc-800">
+                                <div
+                                  className="p-1 cursor-grab active:cursor-grabbing text-zinc-500 hover:text-indigo-400 transition-colors"
+                                  title="اسحب بالماوس لتغيير الترتيب بسهولة (Drag & Drop)"
+                                >
+                                  <GripVertical className="w-3.5 h-3.5" />
+                                </div>
                                 <button
                                   type="button"
                                   onClick={() => handleMoveModel(row, "up")}
@@ -1560,12 +1723,26 @@ export default function AdminModelsPage() {
                   groupedData.map((grp) => {
                     const isCollapsed = collapsedGroups[grp.group] || false;
                     const groupColor = grp.color || "#6366f1";
+                    const isGroupDropTarget = dragOverGroupId === grp.group;
 
                     return (
                       <div
                         key={grp.group}
-                        className="rounded-xl border bg-zinc-900/70 overflow-hidden shadow-lg transition-all"
-                        style={{ borderColor: `${groupColor}40` }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (draggedModelId) setDragOverGroupId(grp.group);
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverGroupId === grp.group) setDragOverGroupId(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          handleDropIntoGroup(grp.group);
+                        }}
+                        className={`rounded-xl border bg-zinc-900/70 overflow-hidden shadow-lg transition-all ${
+                          isGroupDropTarget ? "ring-2 ring-indigo-500 border-indigo-500 bg-indigo-950/20" : ""
+                        }`}
+                        style={{ borderColor: isGroupDropTarget ? undefined : `${groupColor}40` }}
                       >
                         {/* Group Header Bar with Custom Color Accent */}
                         <div
@@ -1631,7 +1808,7 @@ export default function AdminModelsPage() {
                             <table className="w-full text-left text-xs text-zinc-300">
                               <thead className="bg-zinc-950/60 text-zinc-400 uppercase tracking-wider text-[10px] border-b border-zinc-800">
                                 <tr>
-                                  <th className="py-2.5 px-3 w-16 text-center">Move</th>
+                                  <th className="py-2.5 px-3 w-20 text-center">Move</th>
                                   <th className="py-2.5 px-4">Model & Identity</th>
                                   <th className="py-2.5 px-4">Modality</th>
                                   <th className="py-2.5 px-4">Provider Route</th>
@@ -1646,10 +1823,48 @@ export default function AdminModelsPage() {
                                   const isLastInGrp = rowIdx === grp.rows.length - 1;
 
                                   return (
-                                    <tr key={row.id} className="hover:bg-zinc-800/30 transition-colors">
-                                      {/* Order in Group */}
+                                    <tr
+                                      key={row.id}
+                                      draggable={true}
+                                      onDragStart={(e) => {
+                                        e.dataTransfer.setData("text/plain", row.id);
+                                        setDraggedModelId(row.id);
+                                      }}
+                                      onDragOver={(e) => {
+                                        e.preventDefault();
+                                        if (draggedModelId && draggedModelId !== row.id) {
+                                          setDragOverModelId(row.id);
+                                        }
+                                      }}
+                                      onDragLeave={() => {
+                                        if (dragOverModelId === row.id) setDragOverModelId(null);
+                                      }}
+                                      onDrop={(e) => {
+                                        e.preventDefault();
+                                        handleDragDropModel(row.id, grp.group);
+                                      }}
+                                      onDragEnd={() => {
+                                        setDraggedModelId(null);
+                                        setDragOverModelId(null);
+                                        setDragOverGroupId(null);
+                                      }}
+                                      className={`transition-all ${
+                                        draggedModelId === row.id
+                                          ? "opacity-30 bg-indigo-950/60 border-2 border-dashed border-indigo-500"
+                                          : dragOverModelId === row.id
+                                          ? "border-t-2 border-indigo-500 bg-indigo-950/40 shadow-inner"
+                                          : "hover:bg-zinc-800/30"
+                                      }`}
+                                    >
+                                      {/* Order in Group & Drag Handle */}
                                       <td className="py-2.5 px-3 text-center">
                                         <div className="inline-flex items-center gap-0.5 bg-zinc-950 p-0.5 rounded border border-zinc-800">
+                                          <div
+                                            className="p-1 cursor-grab active:cursor-grabbing text-zinc-500 hover:text-indigo-400 transition-colors"
+                                            title="اسحب بالماوس لتغيير الترتيب داخل الكروب أو لنقله لكروب آخر (Drag & Drop)"
+                                          >
+                                            <GripVertical className="w-3.5 h-3.5" />
+                                          </div>
                                           <button
                                             type="button"
                                             onClick={() => handleMoveModel(row, "up", grp.group)}
