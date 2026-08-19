@@ -1432,60 +1432,6 @@ export default function AdminModelsPage() {
                 </button>
               </div>
 
-              {/* ⚡ SECTION 1: Knowledge Hub Auto-Fill (تعبئة المواصفات المستخرجة من التوثيق) */}
-              <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950/50 via-purple-950/30 to-zinc-950 border border-indigo-700/70 space-y-3 shadow-lg">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-indigo-300 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span>Autofill Defaults from Knowledge Hub / تعبئة المواصفات المستخرجة تلقائياً من التوثيق</span>
-                  </span>
-                  <Link
-                    href="/admin/knowledge"
-                    target="_blank"
-                    className="text-xs text-indigo-400 hover:text-indigo-300 underline flex items-center gap-1 font-semibold"
-                  >
-                    <span>Knowledge Hub Docs</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <select
-                    value={selectedDraftId}
-                    onChange={(e) => handleAutofillFromKnowledge(e.target.value)}
-                    className="w-full sm:flex-1 px-4 py-2.5 rounded-xl bg-zinc-900 border border-indigo-700/80 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500 font-medium"
-                  >
-                    <option value="">-- Choose imported document to autofill specs (اختر توثيق مستورد لتعبئة الحقول) --</option>
-                    {knowledgeSources.length > 0 && (
-                      <optgroup label="📚 Documentation Sources / مصادر التوثيق المستوردة">
-                        {knowledgeSources.map((source: any) => (
-                          <option key={`src-top-${source.id}`} value={source.id}>
-                            🟢 [{source.provider?.toUpperCase()}] {source.name}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    {knowledgeDrafts.length > 0 && (
-                      <optgroup label="📄 Extracted Drafts / المسودات المستخرجة">
-                        {knowledgeDrafts.map((draft: any) => {
-                          const modelField = draft.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
-                          return (
-                            <option key={`draft-top-${draft.id}`} value={draft.id}>
-                              📄 [{draft.provider?.toUpperCase()}] {modelField?.value || draft.id} ({draft.fields?.length || 0} extracted specs)
-                            </option>
-                          );
-                        })}
-                      </optgroup>
-                    )}
-                  </select>
-                  {selectedDraftId && (
-                    <span className="px-3 py-2 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs font-bold flex items-center gap-1.5 shadow-sm">
-                      <Check className="w-4 h-4" />
-                      <span>Autofilled!</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-
               {addError && (
                 <div className="p-4 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center gap-2.5">
                   <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0" />
