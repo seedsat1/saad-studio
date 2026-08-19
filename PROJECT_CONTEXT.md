@@ -48,7 +48,22 @@
 
 ---
 
-#### Latest task: Model Display Name Customizer & Dynamic Loader Name Persistence (2026-08-20)
+#### Latest task: Grok WaveSpeed Dual-Route Hardening & Extended Aspect Ratios Engine (2026-08-20)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. WaveSpeed Grok Official Endpoint Routing & Dual-Route Execution:
+     - Fixed WaveSpeed image routing in `lib/wavespeed-image-routing.ts` and `app/api/generate/image/route.ts` to map text-to-image and image-to-image/edit to official endpoints (`x-ai/grok-imagine-image-quality/text-to-image`, `x-ai/grok-imagine-image-quality/edit`, or `x-ai/grok-imagine-image-v2.0/*`).
+     - Removed legacy broken fallback that sent `grok-imagine/text-to-image` resulting in HTTP 400 Model not found.
+     - Added endpoint auto-normalization (`normalizeWaveSpeedModelEndpoint`) and prioritized dynamic admin configurations over static tables.
+  2. Extended Visual Aspect Ratios & Custom CSV Inputs:
+     - Expanded aspect ratio presets across Admin Model Drawer and Add Model Modal to include all 17 modern formats: `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `21:9`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `1:4`, `1:8`, `auto`.
+     - Added direct CSV input fields allowing administrators to enter any custom aspect ratio list.
+  3. Verification:
+     - TypeScript `tsc --noEmit`: 0 errors.
+     - Vitest suite: 15/15 tests green (`test/models-backend-hardening.test.ts`, `test/admin-knowledge-hub.test.ts`, `test/audio-suite-hardening.test.ts`).
+     - Clean git commit pushed to `main`.
+
+#### Previous task: Model Display Name Customizer & Dynamic Loader Name Persistence (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Model Display Name Editor:
