@@ -361,7 +361,7 @@ export async function DELETE(req: Request) {
     await saveModelConfigurationsAtomic({
       imageModels: finalImages,
       videoModels: finalVideos,
-      expectedVersionToken: body.expectedVersionToken || null,
+      expectedVersionToken: null,
       operatorId,
       action: `delete_model:${body.id}`,
     });
