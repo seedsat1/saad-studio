@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUser, useClerk } from "@clerk/nextjs";
 import {
   BarChart3,
   Boxes,
@@ -40,6 +41,9 @@ import {
   Menu,
   X,
   Lock,
+  LogOut,
+  User as UserIcon,
+  Loader2,
 } from "lucide-react";
 
 interface AdminSidebarProps {
@@ -260,6 +264,9 @@ export const ADMIN_NAV_CONFIG: NavGroup[] = [
 export function AdminSidebar({ activeRoute, isMobileOpen, onCloseMobile }: AdminSidebarProps) {
   const pathname = usePathname();
   const currentRoute = activeRoute || pathname || "";
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Find which group contains the current route
   const activeGroupId = useMemo(() => {
@@ -309,6 +316,29 @@ export function AdminSidebar({ activeRoute, isMobileOpen, onCloseMobile }: Admin
     return currentRoute === href || currentRoute.startsWith(`${href}/`);
   };
 
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await signOut({ redirectUrl: "/sign-in" });
+    } catch (error) {
+      console.error("[AdminSidebar] Failed to sign out:", error);
+      window.location.href = "/sign-in";
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
+  const adminName = isLoaded && user
+    ? (user.fullName || `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.username || "Saad Admin")
+    : "System Admin";
+
+  const adminEmail = isLoaded && user
+    ? (user.primaryEmailAddress?.emailAddress || "admin@saadstudio.com")
+    : "admin@saadstudio.com";
+
+  const adminAvatar = user?.imageUrl;
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -326,20 +356,26 @@ export function AdminSidebar({ activeRoute, isMobileOpen, onCloseMobile }: Admin
         }`}
       >
         {/* Brand Header */}
-        <div className="flex flex-col">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800/80">
+        <div className="flex flex-col flex-1 min-h-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800/80 flex-shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 font-black text-sm shadow-sm">
-                S
-              </div>
-              <div>
-                <span className="block text-xs font-bold text-white tracking-tight leading-none">
-                  SAAD STUDIO
-                </span>
-                <span className="text-[10px] text-cyan-400/80 font-mono tracking-wider font-semibold uppercase mt-0.5 block">
-                  Enterprise Control Plane
-                </span>
-              </div>
+              <Link href="/admin/control-center" className="flex items-center gap-2.5 group">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/30 bg-slate-900 overflow-hidden shadow-sm flex-shrink-0 group-hover:border-cyan-500/60 transition-colors">
+                  <img
+                    src="/icon-512.png"
+                    alt="Saad Studio Logo"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <span className="block text-xs font-bold text-white tracking-tight leading-none group-hover:text-cyan-300 transition-colors">
+                    SAAD STUDIO
+                  </span>
+                  <span className="text-[10px] text-cyan-400/80 font-mono tracking-wider font-semibold uppercase mt-0.5 block">
+                    Enterprise Control Plane
+                  </span>
+                </div>
+              </Link>
             </div>
 
             {/* Mobile close button */}
@@ -355,7 +391,7 @@ export function AdminSidebar({ activeRoute, isMobileOpen, onCloseMobile }: Admin
           </div>
 
           {/* Navigation Items with Collapsible Groups */}
-          <nav className="p-3 space-y-3 overflow-y-auto max-h-[calc(100vh-125px)] text-xs">
+          <nav className="p-3 space-y-3 overflow-y-auto flex-1 text-xs">
             {ADMIN_NAV_CONFIG.map((group) => {
               const isCollapsed = Boolean(collapsedGroups[group.id]);
               const containsActive = group.id === activeGroupId;
@@ -420,15 +456,88 @@ export function AdminSidebar({ activeRoute, isMobileOpen, onCloseMobile }: Admin
           </nav>
         </div>
 
-        {/* Footer Quick Return */}
-        <div className="p-3 border-t border-slate-800/80 bg-slate-950/90">
-          <Link
-            href="/admin/control-center"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-slate-800 bg-slate-900/60 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+        {/* Admin Profile & Authentication Footer */}
+        <div className="p-3 border-t border-slate-800/80 bg-slate-950/95 flex-shrink-0 space-y-2">
+          {/* Admin Identity Card */}
+          <div className="p-2.5 rounded-lg border border-slate-800/90 bg-slate-900/60 flex items-center gap-2.5">
+            <div className="relative flex-shrink-0">
+              {adminAvatar ? (
+                <img
+                  src={adminAvatar}
+                  alt={adminName}
+                  className="w-8 h-8 rounded-full object-cover border border-cyan-500/40"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-xs">
+                  {adminName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-950" />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-xs font-bold text-slate-200 truncate block">
+                  {adminName}
+                </span>
+                <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[8.5px] font-black uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                  ADMIN
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono truncate block" title={adminEmail}>
+                {adminEmail}
+              </span>
+            </div>
+          </div>
+
+          {/* Account Actions Grid */}
+          <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+            <Link
+              href="/admin/profile"
+              onClick={onCloseMobile}
+              className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                currentRoute === "/admin/profile"
+                  ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-300"
+                  : "bg-slate-900/40 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <UserIcon className="h-3.5 w-3.5 text-cyan-400" />
+              <span>My Profile</span>
+            </Link>
+
+            <Link
+              href="/admin/profile/security"
+              onClick={onCloseMobile}
+              className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                currentRoute.startsWith("/admin/profile/security")
+                  ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-300"
+                  : "bg-slate-900/40 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <Lock className="h-3.5 w-3.5 text-cyan-400" />
+              <span>Security</span>
+            </Link>
+          </div>
+
+          {/* Sign Out Button */}
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-rose-500/20 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 hover:border-rose-500/40 transition-colors disabled:opacity-50"
           >
-            <ShieldCheck className="h-4 w-4 text-cyan-400 flex-shrink-0" />
-            <span>Control Center</span>
-          </Link>
+            {isSigningOut ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-rose-400" />
+                <span>Signing out...</span>
+              </>
+            ) : (
+              <>
+                <LogOut className="h-3.5 w-3.5 text-rose-400" />
+                <span>Logout</span>
+              </>
+            )}
+          </button>
         </div>
       </aside>
     </>

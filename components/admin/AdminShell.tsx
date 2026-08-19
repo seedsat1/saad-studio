@@ -35,8 +35,9 @@ export function AdminShell({ activeRoute, children }: AdminShellProps) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <span className="text-xs font-black text-white tracking-wider">
-              SAAD STUDIO ADMIN
+            <span className="flex items-center gap-1.5 text-xs font-black text-white tracking-wider">
+              <img src="/icon-512.png" alt="Saad Studio Logo" className="w-5 h-5 rounded object-cover" />
+              <span>SAAD STUDIO ADMIN</span>
             </span>
           </div>
 
