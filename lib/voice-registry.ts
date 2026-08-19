@@ -11,25 +11,15 @@ export const GOOGLE_GEMINI_VOICE_NAMES = [
 ];
 
 export function getRegistry(): Record<string, string> {
-  const baseRegistry: Record<string, string> = {};
-
-  // Seed default permanent media URLs for all Gemini voices so they are guaranteed to exist on any serverless deployment
-  for (const v of GOOGLE_GEMINI_VOICE_NAMES) {
-    const url = `/api/media/audio/sample_${v.toLowerCase()}.mp3`;
-    baseRegistry[v] = url;
-    baseRegistry[`${v}_ar`] = url;
-    baseRegistry[`voice-preview:google:${v.toLowerCase()}:ar`] = url;
-  }
-
   try {
     if (fs.existsSync(REGISTRY_PATH)) {
       const fileData = JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf8"));
-      return { ...baseRegistry, ...fileData };
+      return fileData || {};
     }
   } catch (e) {
     console.error("Error reading registry:", e);
   }
-  return baseRegistry;
+  return {};
 }
 
 export function saveRegistry(registry: Record<string, string>) {

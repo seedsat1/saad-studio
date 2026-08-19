@@ -138,7 +138,11 @@ const LANGUAGE_GENDERS: Record<string, { male: string; female: string }> = {
   it: { male: "maschile", female: "femminile" }
 };
 
-async function generateAndPersistPreview(exactVoice: string, exactLang: string, apiKey: string): Promise<string> {
+async function generateAndPersistPreview(
+  exactVoice: string,
+  exactLang: string,
+  apiKey: string
+): Promise<{ buffer: Buffer; url?: string }> {
   const details = GOOGLE_GEMINI_TTS_VOICE_DETAILS[exactVoice] || { arabicName: exactVoice, gender: "أنثوي" };
   const isFemale = details.gender === "أنثوي";
   const genderStr = LANGUAGE_GENDERS[exactLang]?.[isFemale ? "female" : "male"] || (isFemale ? "female" : "male");
@@ -188,29 +192,32 @@ async function generateAndPersistPreview(exactVoice: string, exactLang: string, 
     channels: 2,
   });
 
-  const uploadedUrl = await uploadBufferToStorage({
-    buffer: mp3Buffer,
-    contentType: "audio/mpeg",
-    userId: "admin_previews",
-    assetType: "audio",
-    generationId: `voice_preview_google_${exactVoice.toLowerCase()}_${exactLang}`,
-    fileName: `sample_${exactVoice.toLowerCase()}_${exactLang}.mp3`,
-  });
+  let uploadedUrl: string | null = null;
+  try {
+    uploadedUrl = await uploadBufferToStorage({
+      buffer: mp3Buffer,
+      contentType: "audio/mpeg",
+      userId: "admin_previews",
+      assetType: "audio",
+      generationId: `voice_preview_google_${exactVoice.toLowerCase()}_${exactLang}`,
+      fileName: `sample_${exactVoice.toLowerCase()}_${exactLang}.mp3`,
+    });
 
-  if (!uploadedUrl) {
-    throw new Error("Storage upload failed for voice preview");
+    if (uploadedUrl) {
+      const registryKey = `voice-preview:google:${exactVoice.toLowerCase()}:${exactLang}`;
+      const registry = getRegistry();
+      registry[registryKey] = uploadedUrl;
+      registry[`${exactVoice}_${exactLang}`] = uploadedUrl;
+      if (exactLang === "ar") {
+        registry[exactVoice] = uploadedUrl;
+      }
+      saveRegistry(registry);
+    }
+  } catch (storageErr) {
+    console.warn("[voice-sample] Storage caching skipped:", storageErr);
   }
 
-  const registryKey = `voice-preview:google:${exactVoice.toLowerCase()}:${exactLang}`;
-  const registry = getRegistry();
-  registry[registryKey] = uploadedUrl;
-  registry[`${exactVoice}_${exactLang}`] = uploadedUrl;
-  if (exactLang === "ar") {
-    registry[exactVoice] = uploadedUrl;
-  }
-  saveRegistry(registry);
-
-  return uploadedUrl;
+  return { buffer: mp3Buffer, url: uploadedUrl || undefined };
 }
 
 export async function GET(req: NextRequest) {
@@ -226,15 +233,15 @@ export async function GET(req: NextRequest) {
     const canonicalKey = `voice-preview:google:${exactVoice.toLowerCase()}:${exactLang}`;
     const legacyKey = `${exactVoice}_${exactLang}`;
 
-    // 1. Check persistent registry (ZERO provider calls for existing previews)
+    // 1. Check persistent registry (redirect if valid hosted URL is available)
     const registry = getRegistry();
     const storedUrl = registry[canonicalKey] || registry[legacyKey] || (exactLang === "ar" ? registry[exactVoice] : undefined);
-    if (storedUrl) {
+    if (storedUrl && (storedUrl.startsWith("http://") || storedUrl.startsWith("https://"))) {
       const targetUrl = toBrowserMediaUrl(storedUrl);
       return NextResponse.redirect(new URL(targetUrl, req.url));
     }
 
-    // 2. Generate once if missing with deduplication lock
+    // 2. Generate on-demand & return MP3 stream directly with 200 OK
     const apiKey =
       process.env.GOOGLE_AI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
@@ -242,25 +249,8 @@ export async function GET(req: NextRequest) {
       process.env.GOOGLE_GENAI_API_KEY;
 
     if (apiKey) {
-      let previewPromise = inFlightPreviews.get(canonicalKey);
-      if (!previewPromise) {
-        previewPromise = generateAndPersistPreview(exactVoice, exactLang, apiKey)
-          .finally(() => {
-            inFlightPreviews.delete(canonicalKey);
-          });
-        inFlightPreviews.set(canonicalKey, previewPromise);
-      }
-
-      const uploadedUrl = await previewPromise;
-      const targetUrl = toBrowserMediaUrl(uploadedUrl);
-      return NextResponse.redirect(new URL(targetUrl, req.url));
-    }
-
-    // 3. Fallback to any existing pre-rendered voice URL
-    const fallbackUrl = registry["Sulafat"] || Object.values(registry)[0];
-    if (fallbackUrl) {
-      const targetUrl = toBrowserMediaUrl(fallbackUrl);
-      return NextResponse.redirect(new URL(targetUrl, req.url));
+      const result = await generateAndPersistPreview(exactVoice, exactLang, apiKey);
+      return mp3Response(result.buffer);
     }
 
     return new NextResponse("Voice sample generation is not configured on the server.", { status: 503 });
