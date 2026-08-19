@@ -48,26 +48,25 @@
 
 ---
 
-#### Latest task: Credit Reconciler Engine & Subscription Lifecycle Verification (2026-08-19)
+#### Latest task: Admin Dashboard Auth UI & Profile Management (2026-08-19)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. Stale Route `/cinema-studio-vso` Resolution:
-     - Identified stale `uiRoute: "/cinema-studio-vso"` on `image-cinema-studio-image-2` in `lib/product/feature-registry.ts` which caused Next.js prefetch 404 errors.
-     - Updated canonical `uiRoute` to `/cinema-studio`.
-     - Cleaned stale references in `middleware.ts` and `app/robots.ts`.
-     - Added automated regression test in `test/product-feature-registry.test.ts` asserting zero feature routes point to deleted routes.
-  2. Financial Transfer Integrity & Admin Transactions Fix:
-     - Identified root cause of blank `/admin/transactions` list: Prisma unmigrated operator columns (`operatorUserId`, `operatorEmail`, etc.) were causing `prismadb.adminTransaction.findMany()` to throw column missing errors caught silently.
-     - Applied explicit safe column select in `app/api/admin/transactions/route.ts` and update in `app/api/admin/transactions/[id]/route.ts`. Confirmed order `SS-MPMWHYUI-1K3` and all 16 transactions visible.
-     - Stripped prototype `{/* Demo toggle */}` buttons from `app/(dash)/(routes)/payment/page.tsx`.
-  3. Credit Reconciler Engine (`lib/credit-reconciler.ts`):
-     - Implemented 4 explicit branches (`MONTHLY_ACTIVE`, `MONTHLY_EXPIRED`, `ANNUAL_ACTIVE`, `ANNUAL_EXPIRED`).
-     - Established contractual annual anchor calculation derived from `stripeCurrentPeriodStart` anchor day (e.g. Day 26 for Omar), preventing date drift across cron runs.
-     - Preserved strict NO-ROLLOVER and annual advance debt repayment formula $\text{advanceDeduction} = \min(\text{debt}, \text{monthlyAllocation})$.
-     - Integrated `resolveCanonicalEffectiveBalance` into `app/api/admin/users/route.ts`.
-     - Implemented `app/api/cron/credit-reconcile/route.ts` protected by `CRON_SECRET` with dryRun support.
-     - Executed full live READ-ONLY dry-run on current production database (44 scanned, 19 monthly expired, 1 annual refresh for overdue seedsat2, 24 no-action including Omar and Saad Design). Zero production records mutated.
-     - Full Vitest suite: 91 test files, 674 tests passed. TypeScript check: 0 errors. Next.js production build: Succeeded (code 0).
+  1. Admin Identity & Logout in Sidebar:
+     - Updated `components/admin/AdminSidebar.tsx` to render the Admin identity card (Avatar with status indicator, Admin Full Name, Verified Email, and `ADMIN` badge).
+     - Integrated quick navigation links for `My Profile` (`/admin/profile`) and `Security` (`/admin/profile/security`).
+     - Integrated dedicated `Logout` action triggering Clerk's `signOut({ redirectUrl: "/sign-in" })`, terminating the active authentication session immediately.
+  2. Enterprise Admin Profile, Security & Brand Header:
+     - Updated `components/admin/AdminSidebar.tsx` header to use the official site logo `/icon-512.png` instead of the placeholder letter block.
+     - Updated `components/admin/AdminShell.tsx` mobile header to display `/icon-512.png`.
+     - Created `components/admin/AdminProfileView.tsx` with dedicated tabs for Profile and Security.
+     - Profile tab supports name updates and official Clerk avatar uploads (`user.setProfileImage({ file })`).
+     - Security tab provides official Clerk password updates (`user.updatePassword({ currentPassword, newPassword })`), active session display, and session termination.
+     - Mounted pages at `/admin/profile` and `/admin/profile/security`, protected by server-side `app/admin/layout.tsx` and `isAdmin()`.
+  3. Verification & Safety Invariants:
+     - TypeScript check: 0 errors (`npx tsc --noEmit`).
+     - Next.js production build: Succeeded (code 0, 235 static/dynamic routes compiled).
+     - Vitest test suites (`test/admin-auth-ui.test.ts`, `test/admin-shell-and-pages.test.ts`, `test/credit-ledger.test.ts`, `test/financial-hardening-safety.test.ts`): All Passed.
+     - Zero sensitive password hashes duplicated in PostgreSQL. Zero modifications to financial balances, Omar subscription, or pricing.
      - Updated `app/api/admin/transactions/route.ts` and `app/api/admin/transactions/[id]/route.ts` to use explicit select/update queries matching PostgreSQL table structure.
      - Audited order `SS-MPMWHYUI-1K3` in PostgreSQL: confirmed persisted as `PENDING`, `$3.00`, plan `podcast`.
      - Removed prototype demo status switcher (`Demo status:`) in `app/(dash)/(routes)/payment/page.tsx`.
