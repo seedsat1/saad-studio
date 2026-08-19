@@ -48,7 +48,19 @@
 
 ---
 
-#### Latest task: Subscriber Analytics 500 Fix, Real User Status Badges & Profile Advance Text (2026-08-19)
+#### Latest task: Profile Settings Partial Update & Admin Profile Sync Fix (2026-08-19)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Profile Settings Partial Update Support:
+     - Updated `app/api/profile/settings/route.ts` `PATCH` handler to allow partial updates (updating name without forcing email to be resent).
+     - Fixed 400 Bad Request error when updating profile from `AdminProfileView.tsx`.
+  2. Admin Profile View Sync:
+     - Updated `components/admin/AdminProfileView.tsx` to include `email: user.primaryEmailAddress?.emailAddress` alongside the updated name.
+  3. Verification:
+     - 0 TypeScript errors (`npx tsc --noEmit`).
+     - All admin auth & profile vitest tests passed.
+
+#### Previous task: Subscriber Analytics 500 Fix, Real User Status Badges & Profile Advance Text (2026-08-19)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. High-Performance Subscriber Analytics Route:

@@ -85,6 +85,7 @@ export function AdminProfileView({ initialTab = "profile" }: AdminProfileViewPro
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+          email: user.primaryEmailAddress?.emailAddress,
         }),
       }).catch(() => {});
 

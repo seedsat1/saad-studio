@@ -180,19 +180,34 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ notifications });
     }
 
-    const name = typeof body?.name === "string" ? body.name.trim() : "";
-    const email = typeof body?.email === "string" ? body.email.trim() : "";
-    const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
+    const updateData: { name?: string; email?: string; phone?: string | null } = {};
 
-    if (!name) return NextResponse.json({ error: "Name is required." }, { status: 400 });
-    if (!email) return NextResponse.json({ error: "Email is required." }, { status: 400 });
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "Invalid email format." }, { status: 400 });
+    if (typeof body?.name === "string") {
+      const trimmedName = body.name.trim();
+      if (!trimmedName) return NextResponse.json({ error: "Name cannot be empty." }, { status: 400 });
+      updateData.name = trimmedName;
+    }
+
+    if (typeof body?.email === "string") {
+      const trimmedEmail = body.email.trim();
+      if (!trimmedEmail) return NextResponse.json({ error: "Email cannot be empty." }, { status: 400 });
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        return NextResponse.json({ error: "Invalid email format." }, { status: 400 });
+      }
+      updateData.email = trimmedEmail;
+    }
+
+    if (typeof body?.phone === "string") {
+      updateData.phone = body.phone.trim() || null;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: "No valid profile fields provided to update." }, { status: 400 });
     }
 
     const updated = await prismadb.user.update({
       where: { id: userId },
-      data: { name, email, phone: phone || null },
+      data: updateData,
       select: { name: true, email: true, phone: true },
     });
 
