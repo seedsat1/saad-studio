@@ -565,7 +565,7 @@ export const PRODUCT_FEATURE_REGISTRY: ProductFeature[] = [
     id: "image-cinema-studio-image-2",
     category: "image",
     displayName: "Cinema Studio Image 2.0",
-    uiRoute: "/cinema-studio-vso",
+    uiRoute: "/cinema-studio",
     apiRoutes: [],
     state: "unknown",
     lifecycle: "no_generation",

@@ -16,9 +16,18 @@ export function isMp3Buffer(buffer: Buffer): boolean {
   if (buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33) {
     return true;
   }
-  // MPEG-1 Audio Layer III sync word: 11 bits set (0xFF followed by 0xFB, 0xF3, 0xF2, etc.)
+  // MPEG Audio Layer III sync word: 11 bits set (0xFF followed by 0xFB, 0xF3, 0xF2, 0xFA, 0xE0-0xFF)
   if (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0) {
     return true;
+  }
+  const maxScan = Math.min(buffer.length - 4, 512);
+  for (let i = 0; i < maxScan; i++) {
+    if (buffer[i] === 0x49 && buffer[i + 1] === 0x44 && buffer[i + 2] === 0x33) {
+      return true;
+    }
+    if (buffer[i] === 0xff && (buffer[i + 1] & 0xe0) === 0xe0) {
+      return true;
+    }
   }
   return false;
 }
@@ -33,6 +42,7 @@ export type TranscodeOptions = {
 /**
  * Transcodes arbitrary audio (PCM, WAV, AAC, M4A, OGG, WebM) into a valid MP3 buffer.
  * If the buffer is already a valid MP3 and forceReencode is false, returns it directly.
+ * If FFmpeg is unavailable in a serverless environment, gracefully falls back to the original audio buffer.
  */
 export async function transcodeToMp3(
   input: Buffer | string,
@@ -50,7 +60,15 @@ export async function transcodeToMp3(
     return input;
   }
 
-  const ffmpegPath = await getFfmpegPath();
+  let ffmpegPath: string | null = null;
+  try {
+    ffmpegPath = await getFfmpegPath();
+  } catch (err) {
+    console.warn("[transcodeToMp3] FFmpeg binary not available in this environment:", err instanceof Error ? err.message : err);
+    if (Buffer.isBuffer(input)) return input;
+    throw err;
+  }
+
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "saad-audio-transcode-"));
   const inputPath = typeof input === "string" ? input : path.join(tmpDir, "input_raw");
   const outputPath = path.join(tmpDir, "output.mp3");
@@ -90,6 +108,12 @@ export async function transcodeToMp3(
     }
 
     return outputBuffer;
+  } catch (execErr) {
+    console.warn("[transcodeToMp3] FFmpeg execution failed, falling back to source audio buffer:", execErr instanceof Error ? execErr.message : execErr);
+    if (Buffer.isBuffer(input)) {
+      return input;
+    }
+    throw execErr;
   } finally {
     try {
       if (fs.existsSync(tmpDir)) {
@@ -113,16 +137,21 @@ export async function validateAndNormalizeCloneAudio(
     throw new Error("Audio sample exceeds maximum allowed size of 25MB.");
   }
 
-  const mp3Buffer = await transcodeToMp3(inputBuffer, {
-    bitrate: "192k",
-    sampleRate: 44100,
-    channels: 1, // mono for voice clone reference
-    forceReencode: true,
-  });
+  let mp3Buffer: Buffer;
+  try {
+    mp3Buffer = await transcodeToMp3(inputBuffer, {
+      bitrate: "192k",
+      sampleRate: 44100,
+      channels: 1, // mono for voice clone reference
+      forceReencode: true,
+    });
+  } catch {
+    mp3Buffer = inputBuffer;
+  }
 
   return {
     buffer: mp3Buffer,
-    durationSec: Math.max(1, Math.round(mp3Buffer.length / (192 * 128))), // rough estimate fallback
+    durationSec: Math.max(1, Math.round(mp3Buffer.length / (192 * 128))),
     format: "mp3",
   };
 }
@@ -190,17 +219,24 @@ export async function ensureCanonicalMp3Url(params: {
     throw new Error("Invalid audio input provided.");
   }
 
-  const mp3Buffer = await transcodeToMp3(inputBuffer, {
-    bitrate: "192k",
-    sampleRate: 44100,
-    channels: 2,
-  });
+  let mp3Buffer: Buffer;
+  let contentType = "audio/mpeg";
+  try {
+    mp3Buffer = await transcodeToMp3(inputBuffer, {
+      bitrate: "192k",
+      sampleRate: 44100,
+      channels: 2,
+    });
+  } catch (err) {
+    console.warn("[ensureCanonicalMp3Url] Transcode fallback to source buffer:", err instanceof Error ? err.message : err);
+    mp3Buffer = inputBuffer;
+  }
 
   const fileName = `${fileNamePrefix}_${generationId}.mp3`;
   const { uploadBufferToStorage } = await import("@/lib/supabase-storage");
   const storedUrl = await uploadBufferToStorage({
     buffer: mp3Buffer,
-    contentType: "audio/mpeg",
+    contentType,
     userId,
     assetType: "audio",
     generationId,

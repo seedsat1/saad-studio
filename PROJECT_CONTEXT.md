@@ -48,7 +48,39 @@
 
 ---
 
-#### Latest task: Adobe CEP Repair & Admin Control Plane Implementation (2026-08-19)
+#### Latest task: Credit Reconciler Engine & Subscription Lifecycle Verification (2026-08-19)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Stale Route `/cinema-studio-vso` Resolution:
+     - Identified stale `uiRoute: "/cinema-studio-vso"` on `image-cinema-studio-image-2` in `lib/product/feature-registry.ts` which caused Next.js prefetch 404 errors.
+     - Updated canonical `uiRoute` to `/cinema-studio`.
+     - Cleaned stale references in `middleware.ts` and `app/robots.ts`.
+     - Added automated regression test in `test/product-feature-registry.test.ts` asserting zero feature routes point to deleted routes.
+  2. Financial Transfer Integrity & Admin Transactions Fix:
+     - Identified root cause of blank `/admin/transactions` list: Prisma unmigrated operator columns (`operatorUserId`, `operatorEmail`, etc.) were causing `prismadb.adminTransaction.findMany()` to throw column missing errors caught silently.
+     - Applied explicit safe column select in `app/api/admin/transactions/route.ts` and update in `app/api/admin/transactions/[id]/route.ts`. Confirmed order `SS-MPMWHYUI-1K3` and all 16 transactions visible.
+     - Stripped prototype `{/* Demo toggle */}` buttons from `app/(dash)/(routes)/payment/page.tsx`.
+  3. Credit Reconciler Engine (`lib/credit-reconciler.ts`):
+     - Implemented 4 explicit branches (`MONTHLY_ACTIVE`, `MONTHLY_EXPIRED`, `ANNUAL_ACTIVE`, `ANNUAL_EXPIRED`).
+     - Established contractual annual anchor calculation derived from `stripeCurrentPeriodStart` anchor day (e.g. Day 26 for Omar), preventing date drift across cron runs.
+     - Preserved strict NO-ROLLOVER and annual advance debt repayment formula $\text{advanceDeduction} = \min(\text{debt}, \text{monthlyAllocation})$.
+     - Integrated `resolveCanonicalEffectiveBalance` into `app/api/admin/users/route.ts`.
+     - Implemented `app/api/cron/credit-reconcile/route.ts` protected by `CRON_SECRET` with dryRun support.
+     - Executed full live READ-ONLY dry-run on current production database (44 scanned, 19 monthly expired, 1 annual refresh for overdue seedsat2, 24 no-action including Omar and Saad Design). Zero production records mutated.
+     - Full Vitest suite: 91 test files, 674 tests passed. TypeScript check: 0 errors. Next.js production build: Succeeded (code 0).
+     - Updated `app/api/admin/transactions/route.ts` and `app/api/admin/transactions/[id]/route.ts` to use explicit select/update queries matching PostgreSQL table structure.
+     - Audited order `SS-MPMWHYUI-1K3` in PostgreSQL: confirmed persisted as `PENDING`, `$3.00`, plan `podcast`.
+     - Removed prototype demo status switcher (`Demo status:`) in `app/(dash)/(routes)/payment/page.tsx`.
+  3. Subscription Credit Lifecycle Audit:
+     - Audited subscriber `Wathiq Mohmed` (`user_3CvhEbGCatXk0ciwYA3gCCSICny`) and confirmed expired period end (`2026-06-29`).
+     - Established requirement for scheduled credit expiration reconciler cron to prevent stale subscription credits remaining after period end.
+- Verification Results:
+  - Vitest: 89 test suites passed (666/666 tests).
+  - TypeScript: 0 errors (`npx tsc --noEmit --pretty false`).
+  - Production Build: PASS (233/233 static pages compiled successfully).
+  - Git Diff: CLEAN.
+
+#### Previous task: Adobe CEP Repair & Admin Control Plane Implementation (2026-08-19)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Adobe CEP TTS Pricing Parity (Phase 1):

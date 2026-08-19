@@ -15,6 +15,7 @@ import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "
 import { buildWaveSpeedImageInput, resolveWaveSpeedImageModelRoute } from "@/lib/wavespeed-image-routing";
 import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
 import {
+  formatGoogleImagePrompt,
   getGoogleImageUpstreamModel,
   normalizeGoogleImageAspectRatio,
   normalizeGoogleImageSize,
@@ -400,7 +401,8 @@ async function generateGoogleImage(params: {
   aspectRatio: string;
   quality?: string | null;
 }): Promise<Array<{ buffer: Buffer; mimeType: string }>> {
-  const input: Array<Record<string, unknown>> = [{ type: "text", text: sanitizePrompt(params.prompt, 5000) }];
+  const promptText = formatGoogleImagePrompt(params.prompt);
+  const input: Array<Record<string, unknown>> = [{ type: "text", text: promptText }];
   for (const ref of params.referenceUrls) {
     const inline = await imageUrlToInlineData(ref);
     input.push({ type: "image", mime_type: inline.mimeType, data: inline.data });
@@ -461,7 +463,11 @@ async function generateGoogleImage(params: {
     if (finishReason) {
       throw new Error(`Google image generation was blocked or did not output an image. Reason: ${finishReason}`);
     }
-    throw new Error(`Google completed but returned no image. Raw response: ${JSON.stringify(json)}`);
+    const stepText = (json as any)?.steps?.[0]?.content?.[0]?.text;
+    if (typeof stepText === "string" && stepText.trim()) {
+      throw new Error(`Google returned text description instead of an image. Ensure the prompt describes a visual scene.`);
+    }
+    throw new Error(`Google completed but returned no image artifact.`);
   }
   return images.map((image) => ({ buffer: Buffer.from(image.data, "base64"), mimeType: image.mimeType }));
 }

@@ -186,8 +186,6 @@ function isLocalDevRequest(req: Request) {
 
 function isLocalOnlyVideoRoute(pathname: string) {
   return (
-    pathname === "/cinema-studio-vso" ||
-    pathname.startsWith("/cinema-studio-vso/") ||
     pathname === "/cinematic-video" ||
     pathname.startsWith("/cinematic-video/")
   );

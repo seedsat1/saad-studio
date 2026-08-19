@@ -136,15 +136,11 @@ export async function PATCH(
       const now = new Date();
       // ── ATOMIC CLAIM + FULL DATABASE TRANSACTION ─────────────────────────
       const claimResult = await prismadb.$transaction(async (tx) => {
-        // Atomic compare-and-swap update with operator identity stamping
+        // Atomic compare-and-swap update
         const claim = await tx.adminTransaction.updateMany({
           where: { id, paymentStatus: "PENDING" },
           data: {
             paymentStatus: "COMPLETED",
-            operatorUserId: operator.operatorUserId,
-            operatorEmail: operator.operatorEmail,
-            decisionAt: now,
-            decisionReason: body?.reason || null,
           },
         });
 
@@ -315,15 +311,10 @@ export async function PATCH(
     }
 
     if (nextStatus === "FAILED") {
-      const now = new Date();
       const claim = await prismadb.adminTransaction.updateMany({
         where: { id, paymentStatus: "PENDING" },
         data: {
           paymentStatus: "FAILED",
-          operatorUserId: operator.operatorUserId,
-          operatorEmail: operator.operatorEmail,
-          decisionAt: now,
-          decisionReason: body?.reason || null,
         },
       });
 

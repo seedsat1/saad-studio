@@ -1035,13 +1035,6 @@ function PaymentPageContent() {
           {step === 3 && status !== "idle" && (
             <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
               <VerificationStatus status={status} rejectionReason={rejectionReason} onResubmit={handleResubmit} onNew={handleNew} />
-              {/* Demo toggle */}
-              <div className="mt-6 flex gap-2 flex-wrap justify-center opacity-30 hover:opacity-100 transition-opacity">
-                <span className="text-xs text-slate-600">{t("Demo status:")}</span>
-                {(["pending", "approved", "rejected"] as Status[]).map((s) => (
-                  <button key={s} onClick={() => setStatus(s)} className={`text-xs px-2.5 py-1 rounded-lg border ${status === s ? "border-violet-500 text-violet-400 bg-violet-500/10" : "border-slate-700 text-slate-500"}`}>{t(s)}</button>
-                ))}
-              </div>
             </motion.div>
           )}
 

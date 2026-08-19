@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
+import { resolveCanonicalEffectiveBalance } from "@/lib/credit-reconciler";
 
 export const dynamic = "force-dynamic";
 
@@ -131,6 +132,7 @@ export async function GET(req: NextRequest) {
     const now = Date.now();
 
     // 6. Merge Lightweight Payload
+    const nowDate = new Date(now);
     const users = dbUsers.map((u) => {
       const sub = subMap.get(u.id);
       const isSubActive = Boolean(
@@ -139,12 +141,24 @@ export async function GET(req: NextRequest) {
         new Date(sub.stripeCurrentPeriodEnd).getTime() > now
       );
 
+      const effective = resolveCanonicalEffectiveBalance(
+        {
+          creditBalance: u.creditBalance,
+          creditsExpireAt: u.creditsExpireAt,
+          monthlyCredits: u.monthlyCredits,
+          creditAdvanceBalance: u.creditAdvanceBalance,
+        },
+        sub,
+        nowDate
+      );
+
       return {
         id: u.id,
         name: u.name,
         email: u.email,
         phone: u.phone,
-        creditBalance: u.creditBalance,
+        creditBalance: effective.effectiveBalance,
+        rawCreditBalance: u.creditBalance,
         monthlyCredits: u.monthlyCredits,
         creditsExpireAt: u.creditsExpireAt,
         lastCreditRenewal: u.lastCreditRenewal,

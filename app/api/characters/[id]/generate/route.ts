@@ -8,14 +8,15 @@ import {
   saveAdditionalGenerationUrls,
   setGenerationMediaUrl,
   spendCredits,
+  precheckGenerationPolicy,
 } from "@/lib/credit-ledger";
-import { precheckGenerationPolicy } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import { fetchWithTimeout } from "@/lib/http";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { resolveProviderMediaUrl } from "@/lib/media/public-url-resolver";
 import {
+  formatGoogleImagePrompt,
   normalizeGoogleImageAspectRatio,
   normalizeGoogleImageSize,
 } from "@/lib/google-image-model-specs";
@@ -235,7 +236,8 @@ async function generateGoogleCharacterImages(params: {
   aspectRatio: string;
   quality: string;
 }): Promise<Array<{ buffer: Buffer; mimeType: string }>> {
-  const input: Array<Record<string, unknown>> = [{ type: "text", text: sanitizePrompt(params.prompt, 5000) }];
+  const promptText = formatGoogleImagePrompt(params.prompt);
+  const input: Array<Record<string, unknown>> = [{ type: "text", text: promptText }];
   for (const ref of params.referenceUrls.slice(0, MAX_CHARACTER_REFERENCE_IMAGES)) {
     const inline = await imageUrlToInlineData(ref);
     input.push({ type: "image", mime_type: inline.mimeType, data: inline.data });

@@ -137,3 +137,12 @@ export function normalizeGoogleImageModelConfig(model: ImageModel): ImageModel {
 export function getDefaultImageModel(models: ImageModel[]): ImageModel | undefined {
   return models.find((model) => model.id === DEFAULT_GOOGLE_IMAGE_MODEL_ID) ?? models[0];
 }
+
+export function formatGoogleImagePrompt(prompt: string): string {
+  const cleaned = String(prompt ?? "").trim();
+  if (!cleaned) return "Generate a high quality visual image.";
+  if (/^(generate|create|draw|paint|render|produce|an?\s+image|a\s+photo|a\s+picture|illustration|صورة|توليد|رسم)(\s+|$)/i.test(cleaned)) {
+    return cleaned;
+  }
+  return `Generate a detailed high quality visual image depicting: ${cleaned}`;
+}

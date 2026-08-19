@@ -148,4 +148,18 @@ describe("product feature registry", () => {
       expect(feature.lifecycleContract?.lifecycleType).toBe(feature.generationLifecycleType);
     }
   });
+
+  it("guarantees all feature uiRoutes point to valid approved routes and zero dead routes", () => {
+    const deadRoutes = ["/cinema-studio-vso", "/video/create-video", "/image/generate", "/talent-studio"];
+    for (const feature of PRODUCT_FEATURE_REGISTRY) {
+      if (typeof feature.uiRoute === "string") {
+        for (const dead of deadRoutes) {
+          expect(feature.uiRoute).not.toBe(dead);
+          expect(feature.uiRoute.startsWith(`${dead}/`)).toBe(false);
+        }
+      }
+    }
+    const cinemaFeature = PRODUCT_FEATURE_REGISTRY.find((f) => f.id === "image-cinema-studio-image-2");
+    expect(cinemaFeature?.uiRoute).toBe("/cinema-studio");
+  });
 });

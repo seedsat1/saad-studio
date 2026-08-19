@@ -52,11 +52,20 @@ export async function GET() {
   }
 
   try {
-  const transactions = await prismadb.adminTransaction.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    include: { user: { select: { email: true } } },
-  });
+    const transactions = await prismadb.adminTransaction.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        userId: true,
+        plan: true,
+        amount: true,
+        credits: true,
+        paymentStatus: true,
+        createdAt: true,
+        user: { select: { email: true } },
+      },
+    });
 
     return NextResponse.json(
       transactions.map((t) => {
@@ -69,10 +78,10 @@ export async function GET() {
           amount: t.amount,
           credits: t.credits,
           paymentStatus: t.paymentStatus,
-          operatorUserId: t.operatorUserId ?? null,
-          operatorEmail: t.operatorEmail ?? null,
-          decisionAt: t.decisionAt
-            ? t.decisionAt.toLocaleDateString("en-US", {
+          operatorUserId: (t as any).operatorUserId ?? null,
+          operatorEmail: (t as any).operatorEmail ?? null,
+          decisionAt: (t as any).decisionAt
+            ? (t as any).decisionAt.toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
                 year: "numeric",
@@ -80,7 +89,7 @@ export async function GET() {
                 minute: "2-digit",
               })
             : null,
-          decisionReason: t.decisionReason ?? null,
+          decisionReason: (t as any).decisionReason ?? null,
           createdAt: t.createdAt.toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
@@ -89,7 +98,8 @@ export async function GET() {
         };
       })
     );
-  } catch {
+  } catch (err) {
+    console.error("[admin/transactions] Error fetching transactions:", err);
     return NextResponse.json([]);
   }
 }

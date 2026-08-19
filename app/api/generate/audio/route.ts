@@ -9,7 +9,7 @@ import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, get
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 import { isFinalProviderExecutionAllowed } from "@/lib/generation/runtime-safety";
-import { transcodeToMp3, ensureCanonicalMp3Url, validateAndNormalizeCloneAudio } from "@/lib/server/audio-transcode";
+import { isMp3Buffer, transcodeToMp3, ensureCanonicalMp3Url, validateAndNormalizeCloneAudio } from "@/lib/server/audio-transcode";
 
 export const runtime = "nodejs";
 
@@ -544,18 +544,24 @@ async function runGeminiTts(params: {
   if (!audio) throw new Error("Google Gemini TTS returned no audio.");
   const raw = Buffer.from(audio.data, "base64");
   const initialBuffer = audio.mimeType.toLowerCase().includes("wav") ? raw : pcmToWav(raw);
-  const mp3Buffer = await transcodeToMp3(initialBuffer, {
-    bitrate: "192k",
-    sampleRate: 44100,
-    channels: 2,
-  });
+  let audioBuffer: Buffer;
+  try {
+    audioBuffer = await transcodeToMp3(initialBuffer, {
+      bitrate: "192k",
+      sampleRate: 44100,
+      channels: 2,
+    });
+  } catch {
+    audioBuffer = initialBuffer;
+  }
+  const isMp3 = isMp3Buffer(audioBuffer);
   const url = await uploadBufferToStorage({
-    buffer: mp3Buffer,
-    contentType: "audio/mpeg",
+    buffer: audioBuffer,
+    contentType: isMp3 ? "audio/mpeg" : "audio/wav",
     userId: params.userId,
     assetType: "audio",
     generationId: `${params.generationId}-gemini-tts`,
-    fileName: "gemini-tts.mp3",
+    fileName: isMp3 ? "gemini-tts.mp3" : "gemini-tts.wav",
   });
   if (!url) throw new Error("Audio media storage is not configured.");
   return url.startsWith("/") || url.startsWith("http") ? url : `/api/media/${url}`;

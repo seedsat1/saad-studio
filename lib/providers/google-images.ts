@@ -1,4 +1,4 @@
-﻿/** Google official image generation adapter.
+/** Google official image generation adapter.
  *
  * Supports:
  *   â€¢ Nano Banana (Gemini 2.5 Flash Image) â€” via @google/genai
@@ -12,6 +12,7 @@ import { GoogleGenAI } from "@google/genai";
 import type { ImageGenInput, ProviderResult } from "./types";
 import { ProviderError } from "./types";
 import {
+  formatGoogleImagePrompt,
   getGoogleImageUpstreamModel,
   normalizeGoogleImageAspectRatio,
   normalizeGoogleImageSize,
@@ -59,7 +60,8 @@ async function nanoBananaGenerate(model: string, input: ImageGenInput): Promise<
 
 async function nanoBananaGenerateOnce(model: string, input: ImageGenInput): Promise<string[]> {
   if (!KEY) throw new ProviderError("google", "config", "GOOGLE_API_KEY not set");
-  const blocks: Array<Record<string, unknown>> = [{ type: "text", text: input.prompt }];
+  const promptText = formatGoogleImagePrompt(input.prompt);
+  const blocks: Array<Record<string, unknown>> = [{ type: "text", text: promptText }];
 
   const refUrls = Array.from(new Set([...(input.imageUrls ?? []), ...(input.imageUrl ? [input.imageUrl] : [])]));
   for (const refUrl of refUrls) {
