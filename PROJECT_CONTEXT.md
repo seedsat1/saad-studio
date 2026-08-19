@@ -48,7 +48,20 @@
 
 ---
 
-#### Latest task: Model Group Harmonization, Kling Divider Fix & Manual Reordering Hardening (2026-08-20)
+#### Latest task: Model Display Name Customizer & Dynamic Loader Name Persistence (2026-08-20)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Model Display Name Editor:
+     - Added an editable "Model Display Name (اسم الموديل المعروض)" input field inside the Model Capability & Registry Editor drawer.
+     - Kept permanent Route ID immutable while giving admins 100% freedom to customize model labels/names.
+  2. Dynamic Model Loader Persistence:
+     - Updated `mergeCuratedImageModel` and `mergeCuratedVideoModel` to persist and prioritize customized display names (`label` / `name`).
+  3. Verification:
+     - TypeScript `tsc --noEmit`: 0 errors.
+     - Vitest suite: 14/14 tests green.
+     - Clean git commit pushed to `main`.
+
+#### Previous task: Model Group Harmonization, Kling Divider Fix & Manual Reordering Hardening (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Kling Model Group Harmonization & Divider Fix:
