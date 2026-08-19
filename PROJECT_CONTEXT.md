@@ -48,7 +48,24 @@
 
 ---
 
-#### Latest task: Dynamic Model Resolution, Image Generation Speed Optimization & Video First-Frame Gallery Preview (2026-08-20)
+#### Latest task: Model Fleet Reordering, Custom Grouping & Group Color Customizer (2026-08-20)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Model Reordering System (Move Up / Down):
+     - Added atomic reordering controls to `/admin/models` allowing moving models up and down within the flat matrix or inside their respective groups.
+     - Preserved custom order across `dynamic_image_models` and `dynamic_video_models`.
+  2. Custom Group Management & Group Color Customizer:
+     - Implemented dynamic group naming and custom group accent colors (`family_color`, `color`) with 12 preset colors + hex picker.
+     - Added Group Style Customizer modal allowing bulk color/name changes for entire model fleets.
+  3. Grouped Fleet View (عرض المجموعات):
+     - Added View Mode toggle (`Flat Table` vs `Grouped View`).
+     - Rendered collapsible group cards with custom color headers, count badges, and dedicated sub-table management.
+  4. Verification:
+     - TypeScript `tsc --noEmit`: 0 errors.
+     - Vitest suite: 14/14 tests green.
+     - Clean git commit pushed to `main`.
+
+#### Previous task: Dynamic Model Resolution, Image Generation Speed Optimization & Video First-Frame Gallery Preview (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Universal Model Addition & Canonical Route Resolution:
