@@ -281,6 +281,7 @@ export default function AdminModelsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<UnifiedModelRow | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState<string>("");
   const [editCreditCost, setEditCreditCost] = useState<number>(2.0);
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
   const [editGroup, setEditGroup] = useState<string>("");
@@ -1050,6 +1051,7 @@ export default function AdminModelsPage() {
   const openInspector = (row: UnifiedModelRow, edit = false) => {
     setSelectedModel(row);
     setEditMode(edit);
+    setEditName(row.name);
     setEditCreditCost(row.creditCost);
     setEditIsActive(row.isActive);
     setEditGroup(row.group || row.family || (row.modality === "image" ? "Image Models" : "Video Models"));
@@ -1070,6 +1072,7 @@ export default function AdminModelsPage() {
     setDrawerOpen(false);
     setSelectedModel(null);
     setEditMode(false);
+    setEditName("");
     setSaveError(null);
     setConcurrencyConflict(false);
   };
@@ -1085,8 +1088,10 @@ export default function AdminModelsPage() {
       let updatedImageModels = [...imageModels];
       let updatedVideoModels = [...videoModels];
 
+      const cleanName = editName.trim() || selectedModel.name;
       const cleanGroup = editGroup.trim() || (selectedModel.modality === "image" ? "Image Models" : "Video Models");
       const cleanColor = editFamilyColor.trim() || (selectedModel.modality === "image" ? "#06b6d4" : "#8b5cf6");
+      const cleanSlug = cleanGroup.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
       const parsedDurations = editDurations
         .split(/[,;\s]+/)
@@ -1103,9 +1108,12 @@ export default function AdminModelsPage() {
           m.id === selectedModel.id
             ? {
                 ...m,
+                label: cleanName,
                 creditCost: editCreditCost,
                 isActive: editIsActive,
                 group: cleanGroup,
+                family: cleanSlug,
+                family_label: cleanGroup,
                 family_color: cleanColor,
                 color: cleanColor,
                 aspectRatios: editAspectRatios.length > 0 ? editAspectRatios : (m.aspectRatios || ["16:9", "9:16", "1:1"]),
@@ -1122,9 +1130,12 @@ export default function AdminModelsPage() {
           m.id === selectedModel.id
             ? {
                 ...m,
+                name: cleanName,
                 creditCost: editCreditCost,
                 isActive: editIsActive,
                 group: cleanGroup,
+                family: cleanSlug,
+                family_label: cleanGroup,
                 family_color: cleanColor,
                 color: cleanColor,
                 capabilities: {
@@ -2267,23 +2278,44 @@ export default function AdminModelsPage() {
                   </button>
                 </div>
 
-                {/* Immutable Model Identity */}
-                <div className="p-4 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                {/* Model Identity / Name Editor */}
+                <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                      Immutable Registry Identity
+                      Model Identity & Display Name
                     </span>
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-zinc-800 text-zinc-300">
                       {selectedModel.modality}
                     </span>
                   </div>
-                  <div className="font-bold text-zinc-100 text-base">{selectedModel.name}</div>
-                  <div className="text-xs font-mono text-indigo-300 bg-indigo-950/40 p-2 rounded border border-indigo-900/60">
-                    {selectedModel.id}
+
+                  {editMode ? (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-200 flex items-center justify-between">
+                        <span>Model Display Name (اسم الموديل المعروض)</span>
+                        <span className="text-[10px] text-indigo-400">يمكنك تعديل الاسم بحرية</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="e.g. Kling 3.0 Pro, Midjourney V6..."
+                        className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm font-bold focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
+                  ) : (
+                    <div className="font-bold text-zinc-100 text-base">{selectedModel.name}</div>
+                  )}
+
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[10px] font-mono text-zinc-400 block uppercase">Permanent Route ID (معرف التوجيه الثابت):</span>
+                    <div className="text-xs font-mono text-indigo-300 bg-indigo-950/40 p-2 rounded border border-indigo-900/60">
+                      {selectedModel.id}
+                    </div>
+                    <span className="text-[10px] text-zinc-500 block">
+                      * Model ID is immutable to preserve routing, credits, and generation history.
+                    </span>
                   </div>
-                  <span className="text-[10px] text-zinc-500 block">
-                    * Model ID is permanently immutable to prevent breaking routing, pricing, and generation history.
-                  </span>
                 </div>
 
                 {/* Edit Form or Read-only Inspection */}

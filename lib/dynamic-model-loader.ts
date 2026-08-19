@@ -40,8 +40,10 @@ const BLOCKED_DYNAMIC_VIDEO_IDS = new Set([
 function mergeCuratedImageModel(curated: ImageModel, existing?: DynamicImageModel): DynamicImageModel {
   const group = existing?.group ?? curated.group ?? "Image Models";
   const familyColor = existing?.family_color ?? existing?.color ?? (curated as any).family_color ?? (curated as any).color ?? "#06b6d4";
+  const label = existing?.label ?? (existing as any)?.name ?? curated.label;
   return {
     ...curated,
+    label,
     group,
     family_color: familyColor,
     isActive: existing?.isDeleted ? false : (existing?.isActive ?? (curated as DynamicImageModel).isActive ?? true),
@@ -54,8 +56,10 @@ function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: Dynamic
   const group = existing?.group ?? (curated as any).group ?? curated.family_label ?? curated.family ?? "Video Models";
   const familyColor = existing?.family_color ?? existing?.color ?? curated.family_color ?? "#8b5cf6";
   const familySlug = group.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const name = existing?.name ?? (existing as any)?.label ?? curated.name;
   return {
     ...curated,
+    name,
     group,
     family: familySlug,
     family_label: group,
