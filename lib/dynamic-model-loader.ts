@@ -62,7 +62,11 @@ export function normalizeDynamicImageModels(models: DynamicImageModel[]): Dynami
     const id = model.id.toLowerCase();
     if (model.isDeleted || curatedIds.has(id) || BLOCKED_DYNAMIC_IMAGE_IDS.has(id)) continue;
     if (/gemini-3(?:\.1)?-.*preview/i.test(model.id)) continue;
-    normalized.push(model);
+    const sanitizedModel: DynamicImageModel = {
+      ...model,
+      inputType: (model.text_api_route || !model.image_api_route) ? "text-to-image" : (model.inputType || "text-to-image"),
+    };
+    normalized.push(sanitizedModel);
   }
 
   return normalized;

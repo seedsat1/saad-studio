@@ -1410,7 +1410,8 @@ export default function ImageWorkspacePage() {
       setAspectRatioDropdownOpen(false);
     }
   }, [aspectRatio, selectedModel.aspectRatios]);
-  const createNeedsImage = selectedModel.inputType !== "text-to-image";
+
+  const createNeedsImage = selectedModel.inputType === "image-to-image" && Boolean((selectedModel as any).requiresReference) && !(selectedModel as any).text_api_route;
   const selectedCharacter = useMemo(
     () => characters.find((character) => character.id === selectedCharacterId) || null,
     [characters, selectedCharacterId],

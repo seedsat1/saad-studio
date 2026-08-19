@@ -171,7 +171,7 @@ export async function POST(req: Request) {
         text_api_route: newModel.text_api_route?.trim() || newModel.api_route?.trim() || newModel.id.trim(),
         image_api_route: newModel.image_api_route?.trim() || undefined,
         group: newModel.family?.trim() || "Custom",
-        inputType: newModel.image_api_route ? "image-to-image" : "text-to-image",
+        inputType: newModel.image_api_route && !newModel.text_api_route ? "image-to-image" : "text-to-image",
         aspectRatios: Array.isArray(newModel.aspectRatios) && newModel.aspectRatios.length > 0 ? newModel.aspectRatios : ["16:9", "9:16", "1:1", "4:3", "3:4"],
         qualityParam: Array.isArray(newModel.resolutions) && newModel.resolutions.length > 0 ? newModel.resolutions : ["1K", "2K"],
         creditCost: Number(newModel.creditCost) || 2,
