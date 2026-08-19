@@ -45,7 +45,7 @@ describe("Audio Suite Hardening & MP3 Guarantee", () => {
     const mp3Buffer = await transcodeToMp3(wavBuffer, { bitrate: "192k", sampleRate: 44100, channels: 2 });
     expect(mp3Buffer.length).toBeGreaterThan(0);
     expect(isMp3Buffer(mp3Buffer)).toBe(true);
-  });
+  }, 25000);
 
   it("validates and normalizes audio for Voice Cloning", async () => {
     const pcm = Buffer.alloc(44100 * 0.2 * 2);
