@@ -277,50 +277,64 @@ export default function AdminModelsPage() {
   const [surfaceSearchQuery, setSurfaceSearchQuery] = useState<string>("");
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>("ALL");
   const [knowledgeDrafts, setKnowledgeDrafts] = useState<any[]>([]);
+  const [knowledgeSources, setKnowledgeSources] = useState<any[]>([]);
   const [selectedDraftId, setSelectedDraftId] = useState<string>("");
 
-  const handleModalitySelect = (targetModality: "video" | "image" | "audio" | "edit" | "3d") => {
-    if (targetModality === "image") {
-      setNewModality("image");
-      setActiveCategoryTab("Image");
-      setSelectedStudioPages(["/image"]);
-      setNewCreditCost(2);
-      setNewResolutions("1K, 2K, 4K");
-      setNewAspectRatios(["1:1", "16:9", "9:16", "4:3", "3:4"]);
-    } else if (targetModality === "audio") {
-      setNewModality("video");
-      setActiveCategoryTab("Audio");
-      setSelectedStudioPages(["/audio"]);
-      setNewCreditCost(4);
-      setNewDurations("15, 30, 60, 120");
-      setNewResolutions("320kbps MP3, High-Res WAV");
-    } else if (targetModality === "edit") {
-      setNewModality("image");
-      setActiveCategoryTab("Edit");
-      setSelectedStudioPages(["/background-remove"]);
-      setNewCreditCost(3);
-      setNewResolutions("1080p, 4K");
-    } else if (targetModality === "3d") {
-      setNewModality("video");
-      setActiveCategoryTab("Video");
-      setSelectedStudioPages(["/3d"]);
-      setNewCreditCost(15);
-      setNewResolutions("GLB, OBJ, USDZ");
-    } else {
-      setNewModality("video");
-      setActiveCategoryTab("Video");
-      setSelectedStudioPages(["/video"]);
-      setNewCreditCost(10);
-      setNewDurations("5, 10");
-      setNewResolutions("720p, 1080p");
-      setNewAspectRatios(["16:9", "9:16", "1:1"]);
+  const extractRouteFromSource = (s: any): string => {
+    if (!s) return "";
+    if (s.url) {
+      try {
+        const parsed = new URL(s.url);
+        const segments = parsed.pathname.split("/").filter(Boolean);
+        if (segments.length >= 1) {
+          return segments[segments.length - 1];
+        }
+      } catch {}
     }
+    return s.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "";
   };
 
-  const handleAutofillFromKnowledge = (draftId: string) => {
-    setSelectedDraftId(draftId);
-    if (!draftId) return;
-    const draft = knowledgeDrafts.find((d) => d.id === draftId);
+  const handleAutofillFromKnowledge = (selectedId: string) => {
+    setSelectedDraftId(selectedId);
+    if (!selectedId) return;
+
+    // Check if selectedId is a source
+    const source = knowledgeSources.find((s) => s.id === selectedId || s.name === selectedId);
+    if (source) {
+      if (source.provider) setNewProvider(source.provider);
+      setNewModelName(source.name);
+      const cleanRoute = extractRouteFromSource(source);
+      setNewModelId(cleanRoute);
+      
+      const isImg = source.name.toLowerCase().includes("image") || source.url?.toLowerCase().includes("image");
+      const isEdit = source.name.toLowerCase().includes("edit") || source.url?.toLowerCase().includes("edit");
+
+      if (isImg) {
+        setNewModality("image");
+        setActiveCategoryTab("Image");
+        setSelectedStudioPages(["/image"]);
+      } else {
+        setNewModality("video");
+        setActiveCategoryTab("Video");
+        setSelectedStudioPages(["/video"]);
+      }
+
+      if (isEdit) {
+        setNewImageRoute(cleanRoute);
+        // Find matching text source if exists
+        const matchingText = knowledgeSources.find(s => s.id !== source.id && (s.name.toLowerCase().includes("text") || !s.name.toLowerCase().includes("edit")));
+        if (matchingText) setNewTextRoute(extractRouteFromSource(matchingText));
+      } else {
+        setNewTextRoute(cleanRoute);
+        // Find matching edit source if exists
+        const matchingEdit = knowledgeSources.find(s => s.id !== source.id && s.name.toLowerCase().includes("edit"));
+        if (matchingEdit) setNewImageRoute(extractRouteFromSource(matchingEdit));
+      }
+      return;
+    }
+
+    // Check if selectedId is a draft
+    const draft = knowledgeDrafts.find((d) => d.id === selectedId);
     if (!draft) return;
 
     const modelIdField = draft.fields?.find((f: any) => f.key === "modelId" || f.key === "name" || f.key === "title");
@@ -344,10 +358,10 @@ export default function AdminModelsPage() {
     }
     if (modalityField?.value === "image") {
       setNewModality("image");
-      setSelectedStudioPages(["image"]);
+      setSelectedStudioPages(["/image"]);
     } else {
       setNewModality("video");
-      setSelectedStudioPages(["video"]);
+      setSelectedStudioPages(["/video"]);
     }
     if (resolutionsField?.value) {
       setNewResolutions(resolutionsField.value);
@@ -433,13 +447,51 @@ export default function AdminModelsPage() {
     }
   };
 
+  const handleModalitySelect = (targetModality: "video" | "image" | "audio" | "edit" | "3d") => {
+    if (targetModality === "image") {
+      setNewModality("image");
+      setActiveCategoryTab("Image");
+      setSelectedStudioPages(["/image"]);
+      setNewCreditCost(2);
+      setNewResolutions("1K, 2K, 4K");
+      setNewAspectRatios(["1:1", "16:9", "9:16", "4:3", "3:4"]);
+    } else if (targetModality === "audio") {
+      setNewModality("video");
+      setActiveCategoryTab("Audio");
+      setSelectedStudioPages(["/audio"]);
+      setNewCreditCost(4);
+      setNewDurations("15, 30, 60, 120");
+      setNewResolutions("320kbps MP3, High-Res WAV");
+    } else if (targetModality === "edit") {
+      setNewModality("image");
+      setActiveCategoryTab("Edit");
+      setSelectedStudioPages(["/background-remove"]);
+      setNewCreditCost(3);
+      setNewResolutions("1080p, 4K");
+    } else if (targetModality === "3d") {
+      setNewModality("video");
+      setActiveCategoryTab("Video");
+      setSelectedStudioPages(["/3d"]);
+      setNewCreditCost(15);
+      setNewResolutions("GLB, OBJ, USDZ");
+    } else {
+      setNewModality("video");
+      setActiveCategoryTab("Video");
+      setSelectedStudioPages(["/video"]);
+      setNewCreditCost(10);
+      setNewDurations("5, 10");
+      setNewResolutions("720p, 1080p");
+      setNewAspectRatios(["16:9", "9:16", "1:1"]);
+    }
+  };
+
   const loadModels = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const res = await fetch("/api/admin/models", { cache: "no-store" });
       if (!res.ok) throw new Error(`Failed to load models (HTTP ${res.status})`);
-      const data: ModelsApiResponse & { knowledgeDrafts?: any[] } = await res.json();
+      const data: ModelsApiResponse & { knowledgeDrafts?: any[]; knowledgeSources?: any[] } = await res.json();
       if (data.error) throw new Error(data.error);
 
       setImageModels(data.imageModels || []);
@@ -449,6 +501,9 @@ export default function AdminModelsPage() {
       setVersionToken(data.versionToken || null);
       if (Array.isArray(data.knowledgeDrafts)) {
         setKnowledgeDrafts(data.knowledgeDrafts);
+      }
+      if (Array.isArray(data.knowledgeSources)) {
+        setKnowledgeSources(data.knowledgeSources);
       }
     } catch (err: any) {
       console.error("[AdminModels] Load error:", err);
@@ -1400,14 +1455,27 @@ export default function AdminModelsPage() {
                     className="w-full sm:flex-1 px-4 py-2.5 rounded-xl bg-zinc-900 border border-indigo-700/80 text-zinc-200 text-xs focus:outline-none focus:border-indigo-500 font-medium"
                   >
                     <option value="">-- Choose imported document to autofill specs (اختر توثيق مستورد لتعبئة الحقول) --</option>
-                    {knowledgeDrafts.map((draft: any) => {
-                      const modelField = draft.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
-                      return (
-                        <option key={draft.id} value={draft.id}>
-                          {draft.provider?.toUpperCase()} · {modelField?.value || draft.id} ({draft.fields?.length || 0} extracted specs)
-                        </option>
-                      );
-                    })}
+                    {knowledgeSources.length > 0 && (
+                      <optgroup label="📚 Documentation Sources / مصادر التوثيق المستوردة">
+                        {knowledgeSources.map((source: any) => (
+                          <option key={`src-top-${source.id}`} value={source.id}>
+                            🟢 [{source.provider?.toUpperCase()}] {source.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {knowledgeDrafts.length > 0 && (
+                      <optgroup label="📄 Extracted Drafts / المسودات المستخرجة">
+                        {knowledgeDrafts.map((draft: any) => {
+                          const modelField = draft.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
+                          return (
+                            <option key={`draft-top-${draft.id}`} value={draft.id}>
+                              📄 [{draft.provider?.toUpperCase()}] {modelField?.value || draft.id} ({draft.fields?.length || 0} extracted specs)
+                            </option>
+                          );
+                        })}
+                      </optgroup>
+                    )}
                   </select>
                   {selectedDraftId && (
                     <span className="px-3 py-2 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs font-bold flex items-center gap-1.5 shadow-sm">
@@ -1789,29 +1857,57 @@ export default function AdminModelsPage() {
                       </label>
                       <select
                         value={newTextRoute}
-                        onChange={(e) => setNewTextRoute(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNewTextRoute(val);
+                          if (!newModelName.trim() && val) {
+                            const foundSrc = knowledgeSources.find((s) => extractRouteFromSource(s) === val || s.id === val || s.name === val);
+                            if (foundSrc) setNewModelName(foundSrc.name);
+                          }
+                          if (!newModelId.trim() && val) setNewModelId(val);
+                        }}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-indigo-800/60 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
                       >
                         <option value="">-- Choose from imported routes / اختر من المسارات المستوردة --</option>
-                        {knowledgeDrafts.map((d: any) => {
-                          const mField = d.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
-                          const route = mField?.value || d.id;
-                          return (
-                            <option key={`text-${d.id}`} value={route}>
-                              [Imported Draft] {d.provider?.toUpperCase()} · {route}
+                        {knowledgeSources.length > 0 && (
+                          <optgroup label="📚 Documentation Sources / مصادر التوثيق المستوردة">
+                            {knowledgeSources.map((s: any) => {
+                              const route = extractRouteFromSource(s);
+                              return (
+                                <option key={`src-text-${s.id}`} value={route}>
+                                  🟢 [{s.provider?.toUpperCase()}] {s.name} ({route})
+                                </option>
+                              );
+                            })}
+                          </optgroup>
+                        )}
+                        {knowledgeDrafts.length > 0 && (
+                          <optgroup label="📄 Knowledge Drafts / المسودات المستخرجة">
+                            {knowledgeDrafts.map((d: any) => {
+                              const mField = d.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
+                              const route = mField?.value || d.id;
+                              return (
+                                <option key={`text-${d.id}`} value={route}>
+                                  📄 [{d.provider?.toUpperCase()}] {route}
+                                </option>
+                              );
+                            })}
+                          </optgroup>
+                        )}
+                        <optgroup label="🎬 Video Registry (موديلات الفيديو القائمة)">
+                          {videoModels.slice(0, 10).map((vm) => (
+                            <option key={`vm-text-${vm.id}`} value={vm.api_route}>
+                              [Video] {vm.name} ({vm.api_route})
                             </option>
-                          );
-                        })}
-                        {videoModels.slice(0, 10).map((vm) => (
-                          <option key={`vm-text-${vm.id}`} value={vm.api_route}>
-                            [Video Registry] {vm.name} ({vm.api_route})
-                          </option>
-                        ))}
-                        {imageModels.slice(0, 10).map((im) => (
-                          <option key={`im-text-${im.id}`} value={im.id}>
-                            [Image Registry] {im.label} ({im.id})
-                          </option>
-                        ))}
+                          ))}
+                        </optgroup>
+                        <optgroup label="🖼️ Image Registry (موديلات الصور القائمة)">
+                          {imageModels.slice(0, 10).map((im) => (
+                            <option key={`im-text-${im.id}`} value={im.id}>
+                              [Image] {im.label} ({im.id})
+                            </option>
+                          ))}
+                        </optgroup>
                       </select>
                       <input
                         type="text"
@@ -1834,22 +1930,40 @@ export default function AdminModelsPage() {
                         className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-indigo-800/60 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
                       >
                         <option value="">-- Choose from imported routes / اختر من المسارات المستوردة --</option>
-                        {knowledgeDrafts.map((d: any) => {
-                          const mField = d.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
-                          let route = mField?.value || d.id;
-                          if (route.includes("text-to-video")) route = route.replace("text-to-video", "image-to-video");
-                          else if (route.includes("text-to-image")) route = route.replace("text-to-image", "edit");
-                          return (
-                            <option key={`img-${d.id}`} value={route}>
-                              [Imported Draft] {d.provider?.toUpperCase()} · {route}
+                        {knowledgeSources.length > 0 && (
+                          <optgroup label="📚 Documentation Sources / مصادر التوثيق المستوردة">
+                            {knowledgeSources.map((s: any) => {
+                              const route = extractRouteFromSource(s);
+                              return (
+                                <option key={`src-img-${s.id}`} value={route}>
+                                  🟢 [{s.provider?.toUpperCase()}] {s.name} ({route})
+                                </option>
+                              );
+                            })}
+                          </optgroup>
+                        )}
+                        {knowledgeDrafts.length > 0 && (
+                          <optgroup label="📄 Knowledge Drafts / المسودات المستخرجة">
+                            {knowledgeDrafts.map((d: any) => {
+                              const mField = d.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
+                              let route = mField?.value || d.id;
+                              if (route.includes("text-to-video")) route = route.replace("text-to-video", "image-to-video");
+                              else if (route.includes("text-to-image")) route = route.replace("text-to-image", "edit");
+                              return (
+                                <option key={`img-${d.id}`} value={route}>
+                                  📄 [{d.provider?.toUpperCase()}] {route}
+                                </option>
+                              );
+                            })}
+                          </optgroup>
+                        )}
+                        <optgroup label="🎬 Video Registry (موديلات الفيديو القائمة)">
+                          {videoModels.filter((m) => m.api_route.includes("image") || m.api_route.includes("edit") || m.api_route.includes("i2v")).slice(0, 10).map((vm) => (
+                            <option key={`vm-img-${vm.id}`} value={vm.api_route}>
+                              [Video] {vm.name} ({vm.api_route})
                             </option>
-                          );
-                        })}
-                        {videoModels.filter(m => m.api_route.includes("image") || m.api_route.includes("edit")).slice(0, 10).map((vm) => (
-                          <option key={`vm-img-${vm.id}`} value={vm.api_route}>
-                            [Video Registry] {vm.name} ({vm.api_route})
-                          </option>
-                        ))}
+                          ))}
+                        </optgroup>
                       </select>
                       <input
                         type="text"
