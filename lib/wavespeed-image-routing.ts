@@ -213,6 +213,23 @@ export function resolveWaveSpeedImageModelRoute(
     };
   }
 
+  if (
+    id === "grok-imagine/text-to-image"
+    || id === "grok-imagine/image-to-image"
+    || id.includes("grok-imagine")
+    || id.includes("grok")
+  ) {
+    const edit = hasReferenceImages || id.includes("image-to-image") || id.includes("edit");
+    return {
+      model: edit ? "grok-imagine/image-to-image" : "grok-imagine/text-to-image",
+      referenceField: edit ? "images" : undefined,
+      requiresReference: edit,
+      maxReferenceImages: edit ? 4 : 0,
+      maxOutputImages: 4,
+      inputShape: "size",
+    };
+  }
+
   const flux = id.match(/^flux-2\/(pro|flex|max)(?:-(text-to-image|image-to-image))?$/);
   if (flux) {
     const tier = flux[1];
@@ -222,6 +239,18 @@ export function resolveWaveSpeedImageModelRoute(
       referenceField: edit ? "images" : undefined,
       requiresReference: edit,
       maxReferenceImages: edit ? 3 : 0,
+      maxOutputImages: 4,
+      inputShape: "size",
+    };
+  }
+
+  // Universal fallback for custom endpoints registered via admin portal (e.g. provider/model-path)
+  if (modelId.includes("/")) {
+    return {
+      model: modelId.trim(),
+      referenceField: hasReferenceImages ? "images" : undefined,
+      requiresReference: false,
+      maxReferenceImages: hasReferenceImages ? 4 : 0,
       maxOutputImages: 4,
       inputShape: "size",
     };

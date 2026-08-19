@@ -622,15 +622,20 @@ export async function POST(req: NextRequest) {
       } else if (isOpenAI) {
         openAIImageModel = targetApiRoute;
       } else {
-        // Universal dynamic WaveSpeed route for custom models registered in admin portal
-        waveSpeedImageRoute = {
-          model: targetApiRoute,
-          referenceField: (hasReferenceImages || (dynamicModel.maxRefImages && dynamicModel.maxRefImages > 0)) ? "images" : undefined,
-          requiresReference: Boolean(hasReferenceImages && dynamicModel.image_api_route),
-          maxReferenceImages: dynamicModel.maxRefImages ?? (hasReferenceImages ? 4 : 0),
-          maxOutputImages: dynamicModel.maxImages ?? 4,
-          inputShape: "size",
-        };
+        const canonicalRoute = resolveWaveSpeedImageModelRoute(targetApiRoute, hasReferenceImages, Number(numImages) || 1);
+        if (canonicalRoute) {
+          waveSpeedImageRoute = canonicalRoute;
+        } else {
+          // Universal dynamic WaveSpeed route for custom models registered in admin portal
+          waveSpeedImageRoute = {
+            model: targetApiRoute,
+            referenceField: (hasReferenceImages || (dynamicModel.maxRefImages && dynamicModel.maxRefImages > 0)) ? "images" : undefined,
+            requiresReference: Boolean(hasReferenceImages && dynamicModel.image_api_route),
+            maxReferenceImages: dynamicModel.maxRefImages ?? (hasReferenceImages ? 4 : 0),
+            maxOutputImages: dynamicModel.maxImages ?? 4,
+            inputShape: "size",
+          };
+        }
         isWaveSpeedImageModel = true;
       }
     }
