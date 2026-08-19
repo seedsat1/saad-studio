@@ -291,6 +291,36 @@ body{
 .style-header{
   margin-top:8px;
 }
+.voice-style-wrap{
+  margin-bottom:12px;
+  width:100%;
+}
+.voice-style-select{
+  width:100%;
+  padding:8px 12px;
+  background:#141416;
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:8px;
+  color:#f0f0f5;
+  font-size:12px;
+  font-weight:600;
+  outline:none;
+  cursor:pointer;
+  transition:border-color .15s, background .15s;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 10px center;
+}
+.voice-style-select:hover, .voice-style-select:focus{
+  border-color:var(--accent);
+  background-color:#1c1c20;
+}
+.voice-style-select option{
+  background:#141416;
+  color:#f0f0f5;
+  padding:8px;
+}
 .style-controls{
   display:flex;
   flex-direction:column;
@@ -1117,6 +1147,15 @@ body{
               <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             </button>
           </div>
+        </div>
+
+        <div class="panel-header-gold style-header">VOICE STYLE</div>
+        <div class="voice-style-wrap">
+          <select id="voiceStyleSelect" class="voice-style-select" onchange="scheduleAudioQuote()">
+            <option value="Expressive" selected>Expressive</option>
+            <option value="Neutral">Neutral</option>
+            <option value="Consistent">Consistent</option>
+          </select>
         </div>
 
         <div class="panel-header-gold style-header">STYLE</div>
@@ -2640,9 +2679,10 @@ async function generateVoice(text){
       /* --- Catalog voice: Gemini Google TTS for Gemini voices, otherwise KIE ElevenLabs --- */
       const voiceId=_vmSelectedId||'21m00Tcm4TlvDq8ikWAM';
       const lc=getSelectedLangCode();
+      const voiceStyle=(document.getElementById('voiceStyleSelect')?.value||'Expressive').trim();
       const body=isGeminiVoiceId(voiceId)
-        ? {actionType:'tts',model:getGeminiTtsModel(),text,voice:voiceId.replace(/^gemini:/,''),speed:Math.max(0.7,Math.min(1.5,speed)),language_code:lc||'ar'}
-        : {actionType:'tts',model:'elevenlabs/text-to-speech-multilingual-v2',text,voice:voiceId,speed:Math.max(0.7,Math.min(1.5,speed)),stability:0.5,clarity:75,use_speaker_boost:true};
+        ? {actionType:'tts',model:getGeminiTtsModel(),text,voice:voiceId.replace(/^gemini:/,''),speed:Math.max(0.7,Math.min(1.5,speed)),style:voiceStyle,language_code:lc||'ar'}
+        : {actionType:'tts',model:'elevenlabs/text-to-speech-multilingual-v2',text,voice:voiceId,speed:Math.max(0.7,Math.min(1.5,speed)),style:voiceStyle,stability:0.5,clarity:75,use_speaker_boost:true};
       if(lc)body.language_code=lc;
       const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const json=await res.json();
