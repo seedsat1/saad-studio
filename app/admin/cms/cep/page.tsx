@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
   ExternalLink,
 } from "lucide-react";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 interface SlideBlock {
   id: string;
@@ -241,44 +242,39 @@ export default function CepCmsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[70vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
-      </div>
+      <AdminShell activeRoute="/admin/cms/cep">
+        <div className="flex h-[70vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+        </div>
+      </AdminShell>
     );
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6 text-zinc-100">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-5">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/admin"
-              className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors text-sm"
-            >
-              <ArrowLeft className="h-4 w-4" /> Admin Dashboard
-            </Link>
+    <AdminShell activeRoute="/admin/cms/cep">
+      <div className="w-full min-w-0 flex-1 p-8 max-w-6xl mx-auto space-y-6 text-zinc-100 pb-12">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-zinc-800 pb-5">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold tracking-tight">CEP Extension Hero Slides</h1>
+            <p className="text-sm text-zinc-400">
+              Manage the hero banner slides displayed on the homepage of Saad Studio Adobe CEP Extension panel in Premiere Pro.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">CEP Extension Hero Slides</h1>
-          <p className="text-sm text-zinc-400">
-            Manage the hero banner slides displayed on the homepage of Saad Studio Adobe CEP Extension panel in Premiere Pro.
-          </p>
-        </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-lg shadow-violet-600/15"
-        >
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-      </div>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-lg shadow-violet-600/15"
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
 
       {/* Messages */}
       {error && (
@@ -538,6 +534,7 @@ export default function CepCmsPage() {
           <Plus className="h-4 w-4" /> Add Slide Card
         </button>
       </div>
-    </div>
+      </div>
+    </AdminShell>
   );
 }

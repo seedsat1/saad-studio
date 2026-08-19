@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeMediaUrl } from "@/lib/storage";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 // ── Types (mirrored from lib/studio-img.ts) ──────────────────────────────────
 
@@ -265,20 +266,23 @@ export default function CmsStudioImgPage() {
 
   if (editingItem) {
     return (
-      <ItemEditor
-        item={editingItem}
-        allCategories={allCategories}
-        allModels={allModels}
-        onBack={() => setEditingId(null)}
-        onUpdate={(patch) => updateItem(editingItem.id, patch)}
-        onRefresh={refresh}
-      />
+      <AdminShell activeRoute="/admin/cms/studio-img">
+        <ItemEditor
+          item={editingItem}
+          allCategories={allCategories}
+          allModels={allModels}
+          onBack={() => setEditingId(null)}
+          onUpdate={(patch) => updateItem(editingItem.id, patch)}
+          onRefresh={refresh}
+        />
+      </AdminShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050911] text-slate-100">
-      <div className="border-b border-slate-800/60 bg-[#070d1a]/80 px-8 py-5 backdrop-blur">
+    <AdminShell activeRoute="/admin/cms/studio-img">
+      <div className="w-full min-w-0 flex-1 bg-[#050911] text-slate-100 pb-12">
+        <div className="border-b border-slate-800/60 bg-[#070d1a]/80 px-8 py-5 backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/40">
@@ -413,7 +417,8 @@ export default function CmsStudioImgPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AdminShell>
   );
 }
 

@@ -15,6 +15,7 @@ import {
   SortableContext, useSortable, arrayMove, verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 /* ══════════════════════════════════════════════════════════════════════════════
    TYPES
@@ -424,31 +425,28 @@ export default function PricingCmsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060c18] text-white">
-      {/* Header */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-white/10 bg-[#060c18]/90 backdrop-blur-xl px-6 py-3">
-        <div className="flex items-center gap-3">
-          <Link href="/admin" className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors">
-            <ArrowLeft className="h-3.5 w-3.5" /> Admin
-          </Link>
-          <span className="text-zinc-600">/</span>
-          <Link href="/admin/cms" className="text-xs text-zinc-400 hover:text-white transition-colors">CMS</Link>
-          <span className="text-zinc-600">/</span>
-          <h1 className="text-sm font-bold">Pricing & Payment</h1>
+    <AdminShell activeRoute="/admin/cms/pricing">
+      <div className="w-full min-w-0 flex-1 text-white pb-12">
+        {/* Header */}
+        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/10 bg-[#060c18]/90 backdrop-blur-xl px-6 py-3">
+          <div className="flex items-center gap-3">
+            <Link href="/admin/cms" className="text-xs text-zinc-400 hover:text-white transition-colors">CMS</Link>
+            <span className="text-zinc-600">/</span>
+            <h1 className="text-sm font-bold">Pricing &amp; Payment</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/pricing" target="_blank" className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors">
+              <Eye className="h-3.5 w-3.5" /> Preview
+            </Link>
+            <button onClick={handleSave} disabled={saving}
+              className={cn("flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-bold transition-all",
+                saved ? "bg-emerald-600 text-white" : "bg-violet-600 hover:bg-violet-500 text-white",
+                saving && "opacity-50")}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+              {saving ? "Saving..." : saved ? "Saved!" : "Save All"}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/pricing" target="_blank" className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors">
-            <Eye className="h-3.5 w-3.5" /> Preview
-          </Link>
-          <button onClick={handleSave} disabled={saving}
-            className={cn("flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-bold transition-all",
-              saved ? "bg-emerald-600 text-white" : "bg-violet-600 hover:bg-violet-500 text-white",
-              saving && "opacity-50")}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-            {saving ? "Saving..." : saved ? "Saved!" : "Save All"}
-          </button>
-        </div>
-      </div>
 
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-10">
 
@@ -591,8 +589,8 @@ export default function PricingCmsPage() {
             <Field label="Subtitle" value={paymentHero.subtitle} onChange={(v) => setPaymentHero({ ...paymentHero, subtitle: v })} />
           </div>
         </section>
-
       </div>
-    </div>
+      </div>
+    </AdminShell>
   );
 }

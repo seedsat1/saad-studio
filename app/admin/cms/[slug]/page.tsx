@@ -19,6 +19,7 @@ import {
   Upload, X, Sparkles, Pencil, Eye, Link2, Loader2,
   ArrowLeft, Monitor, Megaphone, ExternalLink,
 } from "lucide-react";
+import { AdminShell } from "@/components/admin/AdminShell";
 import { PRESETS } from "@/lib/cinematic-presets";
 import { normalizeMediaUrl } from "@/lib/storage";
 
@@ -1488,36 +1489,33 @@ export default function VisualCmsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      {/* Top Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-slate-950/95 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <a href="/admin" className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors text-sm">
-            <ArrowLeft className="h-4 w-4" /> Admin
-          </a>
-          <span className="text-zinc-700">/</span>
-          <div className="flex items-center gap-2">
-            <Monitor className="h-4 w-4 text-violet-400" />
-            <h1 className="text-sm font-bold">Visual Page Editor</h1>
-            <span className="text-[10px] bg-violet-500/20 text-violet-300 rounded-full px-2 py-0.5 font-bold capitalize">{slug || "Home"} Page</span>
+    <AdminShell activeRoute="/admin/cms">
+      <div className="w-full min-w-0 flex-1 text-white pb-12">
+        {/* Top Bar */}
+        <div className="sticky top-0 z-20 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-slate-950/95 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Monitor className="h-4 w-4 text-violet-400" />
+              <h1 className="text-sm font-bold">Visual Page Editor</h1>
+              <span className="text-[10px] bg-violet-500/20 text-violet-300 rounded-full px-2 py-0.5 font-bold capitalize">{slug || "Home"} Page</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {saveMsg && (
+              <span className={cn("text-xs font-semibold", saveMsg === "Saved!" ? "text-emerald-400" : "text-red-400")}>
+                {saveMsg}
+              </span>
+            )}
+            <a href={slug === "home" ? "/" : `/${slug}`} target="_blank" className="flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:border-white/25 transition-colors">
+              <Eye className="h-3.5 w-3.5" /> Preview
+            </a>
+            <button onClick={save} disabled={saving}
+              className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-50 transition-colors">
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {saving ? "Saving..." : "Save Page"}
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {saveMsg && (
-            <span className={cn("text-xs font-semibold", saveMsg === "Saved!" ? "text-emerald-400" : "text-red-400")}>
-              {saveMsg}
-            </span>
-          )}
-          <a href={slug === "home" ? "/" : `/${slug}`} target="_blank" className="flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:border-white/25 transition-colors">
-            <Eye className="h-3.5 w-3.5" /> Preview
-          </a>
-          <button onClick={save} disabled={saving}
-            className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-50 transition-colors">
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-            {saving ? "Saving..." : "Save Page"}
-          </button>
-        </div>
-      </div>
 
       {/* Instructions */}
       <div className="mx-auto max-w-[1400px] px-6 pt-6 pb-3">
@@ -1580,6 +1578,7 @@ export default function VisualCmsPage() {
           </SortableContext>
         </DndContext>
       </div>
-    </div>
+      </div>
+    </AdminShell>
   );
 }

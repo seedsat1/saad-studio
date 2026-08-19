@@ -31,6 +31,7 @@ import {
   Type,
   Link2,
 } from "lucide-react";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 /* ═══════════════════════════════════════════════════════════════════════
    TYPES
@@ -1315,35 +1316,33 @@ export default function PageBuilderPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* ═══ HEADER ═══ */}
-      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/95 backdrop-blur-sm px-6 py-4">
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center shadow-lg shadow-violet-900/50">
-              <Layers className="w-5 h-5 text-white" />
+    <AdminShell activeRoute="/admin/page-builder">
+      <div className="w-full min-w-0 flex-1 text-slate-100 pb-12">
+        {/* ═══ HEADER ═══ */}
+        <header className="sticky top-0 z-20 border-b border-slate-800/80 bg-slate-950/95 backdrop-blur-sm px-6 py-4">
+          <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center shadow-lg shadow-violet-900/50">
+                <Layers className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-base font-black text-white leading-none">Media Asset Manager</h1>
+                <p className="text-[11px] text-slate-500 mt-0.5">Transitions, Beauty Tools &amp; Promo Media</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-base font-black text-white leading-none">Media Asset Manager</h1>
-              <p className="text-[11px] text-slate-500 mt-0.5">Transitions, Beauty Tools & Promo Media</p>
+            <div className="flex items-center gap-3">
+              <a href="/apps/tool/transitions" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700 text-xs text-cyan-300 hover:text-cyan-200 hover:bg-slate-800 transition-colors">
+                <Eye className="w-3.5 h-3.5" /> Transitions
+              </a>
+              <a href="/beauty2.html" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700 text-xs text-pink-300 hover:text-pink-200 hover:bg-slate-800 transition-colors">
+                <Eye className="w-3.5 h-3.5" /> Beauty
+              </a>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <a href="/apps/tool/transitions" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700 text-xs text-cyan-300 hover:text-cyan-200 hover:bg-slate-800 transition-colors">
-              <Eye className="w-3.5 h-3.5" /> Transitions
-            </a>
-            <a href="/beauty2.html" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700 text-xs text-pink-300 hover:text-pink-200 hover:bg-slate-800 transition-colors">
-              <Eye className="w-3.5 h-3.5" /> Beauty
-            </a>
-            <a href="/admin" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-300 border border-slate-800 bg-slate-900/50 transition-colors">
-              <ArrowLeft className="w-3.5 h-3.5" /> Admin
-            </a>
-          </div>
-        </div>
-      </header>
+        </header>
 
-      {/* ═══ BODY ═══ */}
-      <div className="max-w-[1440px] mx-auto px-6 py-6 space-y-6">
+        {/* ═══ BODY ═══ */}
+        <div className="max-w-[1440px] mx-auto px-6 py-6 space-y-6">
         <StatsBar presets={presets} optionMedia={optionMedia} />
 
         {/* Section Tabs */}
@@ -1654,6 +1653,7 @@ export default function PageBuilderPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </AdminShell>
   );
 }

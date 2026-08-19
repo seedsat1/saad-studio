@@ -25,6 +25,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
+import { AdminShell } from "@/components/admin/AdminShell";
 import { VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
 
 type LabMode = "image" | "video" | "avatar";
@@ -440,9 +441,9 @@ export default function AdminGenerationLabPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#101010] text-white">
-      <div className="flex min-h-screen">
-        <aside className="w-[68px] border-r border-white/10 bg-[#0b0b0b] px-2 py-4">
+    <AdminShell activeRoute="/admin/generation-lab">
+      <div className="w-full min-w-0 flex-1 flex flex-col md:flex-row min-h-[calc(100vh-4rem)] bg-[#101010] text-white">
+        <aside className="w-full md:w-[68px] shrink-0 border-b md:border-b-0 md:border-r border-white/10 bg-[#0b0b0b] px-2 py-4">
           <div className="space-y-2">
             {sideItems.map((item) => {
               const Icon = item.icon;
@@ -754,7 +755,7 @@ export default function AdminGenerationLabPage() {
           </div>
         </div>
       )}
-    </div>
+    </AdminShell>
   );
 }
 

@@ -16,7 +16,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { CmsSidebar } from "@/components/admin/cms-sidebar";
+import { AdminShell } from "@/components/admin/AdminShell";
 import { cn } from "@/lib/utils";
 import { DEFAULT_EXPLORE_MODULES, type ExploreMedia, type ExploreModule, type ExploreModuleLayout } from "@/lib/explore-cms";
 
@@ -637,10 +637,8 @@ export default function ExploreCmsPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#050812] text-white">
-      <CmsSidebar />
-
-      <main className="flex-1 overflow-y-auto">
+    <AdminShell activeRoute="/admin/cms/explore">
+      <div className="w-full min-w-0 flex-1 text-white pb-12">
         <div className="mx-auto max-w-7xl space-y-6 px-6 py-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -1034,7 +1032,7 @@ export default function ExploreCmsPage() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </AdminShell>
   );
 }
