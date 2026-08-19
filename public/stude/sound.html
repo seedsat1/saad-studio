@@ -2851,6 +2851,136 @@ document.addEventListener('DOMContentLoaded', function(){
   // Select Liam as default selected voice on load so generation works out-of-the-box
   _vmSelectedId = 'LruHrtVF6PSyGItzMNHS';
   _vmSelectedGender = 'male';
+
+  // Apply language from URL param or default
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentLang = urlParams.get('lang') || localStorage.getItem('language') || 'ar';
+  applyStudioLanguage(currentLang);
+});
+
+function applyStudioLanguage(lang) {
+  const isAr = lang === 'ar';
+  document.documentElement.lang = isAr ? 'ar' : 'en';
+  document.documentElement.dir = isAr ? 'rtl' : 'ltr';
+
+  // Mode buttons
+  const modeBtns = document.querySelectorAll('.mode-btn');
+  if (modeBtns.length >= 3) {
+    modeBtns[0].childNodes[modeBtns[0].childNodes.length - 1].textContent = isAr ? ' الصوت' : ' Voice';
+    modeBtns[1].childNodes[modeBtns[1].childNodes.length - 1].textContent = isAr ? ' الموسيقى' : ' Music';
+    modeBtns[2].childNodes[modeBtns[2].childNodes.length - 1].textContent = isAr ? ' المؤثرات الصوتية' : ' Sound Effects';
+  }
+
+  // Column 1 - Voice selection
+  const voicePanelHeader = document.querySelector('#voiceSelectionCard .panel-header-gold');
+  if (voicePanelHeader) {
+    const titleSpan = voicePanelHeader.querySelector('span:first-child');
+    if (titleSpan) titleSpan.textContent = isAr ? 'اختيار الصوت' : 'VOICE SELECTION';
+    const allVoicesBtn = voicePanelHeader.querySelector('button span');
+    if (allVoicesBtn) allVoicesBtn.textContent = isAr ? 'كافة الأصوات 🌐' : 'ALL VOICES 🌐';
+  }
+
+  // Headers
+  const headers = document.querySelectorAll('.panel-header-gold.style-header');
+  headers.forEach(h => {
+    const txt = h.textContent.trim();
+    if (txt === 'VOICE STYLE' || txt === 'نمط الصوت') h.textContent = isAr ? 'نمط الصوت' : 'VOICE STYLE';
+    if (txt === 'STYLE' || txt === 'التحكم بالنبرة والسرعة') h.textContent = isAr ? 'التحكم بالنبرة والسرعة' : 'STYLE';
+    if (txt === 'SYSTEM' || txt === 'إعدادات النظام') h.textContent = isAr ? 'إعدادات النظام' : 'SYSTEM';
+  });
+
+  // Slider labels
+  const styleLabels = document.querySelectorAll('.style-meta label');
+  if (styleLabels.length >= 3) {
+    styleLabels[0].textContent = isAr ? 'طبقة الصوت' : 'Pitch';
+    styleLabels[1].textContent = isAr ? 'سرعة القراءة' : 'Speed';
+    styleLabels[2].textContent = isAr ? 'شدة التعبير' : 'Emotion';
+  }
+
+  // System controls labels
+  const sysLabels = document.querySelectorAll('.system-row label');
+  if (sysLabels.length >= 2) {
+    sysLabels[0].textContent = isAr ? 'اللغة' : 'Language';
+    sysLabels[1].textContent = isAr ? 'صيغة الملف' : 'Format';
+  }
+
+  // Center panel - Prompt
+  const promptHeaders = document.querySelectorAll('.panel-header-gold span');
+  promptHeaders.forEach(s => {
+    if (s.textContent.trim() === 'PROMPT' || s.textContent.trim() === 'النص / السكربت') {
+      s.textContent = isAr ? 'النص / السكربت' : 'PROMPT';
+    }
+  });
+
+  const promptInput = document.getElementById('promptInput');
+  if (promptInput) {
+    promptInput.placeholder = isAr
+      ? 'اكتب النص أو السكربت هنا ليتم تحويله إلى صوت واقعي ونقي بطبقات صوتية احترافية...'
+      : 'Generate high-quality voiceovers from your text with natural cadence and tone...';
+  }
+
+  const inputTypeLabel = document.querySelector('.input-type-label');
+  if (inputTypeLabel) {
+    inputTypeLabel.innerHTML = isAr ? 'نوع الإدخال: <b>نص | سيناريو</b>' : 'INPUT TYPE: <b>Text | Script</b>';
+  }
+
+  const sendBtn = document.getElementById('sendBtn');
+  if (sendBtn && !sendBtn.disabled) {
+    sendBtn.textContent = isAr ? 'توليد الصوت' : 'GENERATE AUDIO';
+  }
+
+  // Right column - Queue
+  const queueHeader = document.querySelector('.workspace-right .panel-header-gold span');
+  if (queueHeader) queueHeader.textContent = isAr ? 'قائمة التوليدات' : 'QUEUE';
+
+  // Bottom action buttons
+  const btnDl = document.getElementById('btnDl');
+  if (btnDl) {
+    const svg = btnDl.querySelector('svg');
+    btnDl.innerHTML = '';
+    if (svg) btnDl.appendChild(svg);
+    btnDl.appendChild(document.createTextNode(isAr ? ' تحميل' : ' DOWNLOAD'));
+  }
+  const btnShare = document.getElementById('btnAddTimeline');
+  if (btnShare) {
+    const svg = btnShare.querySelector('svg');
+    btnShare.innerHTML = '';
+    if (svg) btnShare.appendChild(svg);
+    btnShare.appendChild(document.createTextNode(isAr ? ' مشاركة' : ' SHARE'));
+  }
+  const exportBtns = document.querySelectorAll('.player-actions button');
+  if (exportBtns.length >= 3) {
+    const expBtn = exportBtns[2];
+    const svg = expBtn.querySelector('svg');
+    expBtn.innerHTML = '';
+    if (svg) expBtn.appendChild(svg);
+    expBtn.appendChild(document.createTextNode(isAr ? ' تخريج' : ' EXPORT'));
+  }
+
+  // Voice Modal titles & tabs
+  const vmTitle = document.querySelector('.vm-title');
+  if (vmTitle) vmTitle.textContent = isAr ? 'مكتبة الأصوات والمؤدين' : 'Voices';
+
+  const vmSearch = document.getElementById('vmSearch');
+  if (vmSearch) vmSearch.placeholder = isAr ? 'البحث بالاسم، اللهجة، النبرة...' : 'Search by name, accent...';
+
+  const vmTabAll = document.getElementById('vmTabAll');
+  if (vmTabAll) vmTabAll.textContent = isAr ? 'كافة الأصوات' : 'All voices';
+
+  const vmTabMy = document.getElementById('vmTabMy');
+  if (vmTabMy) vmTabMy.textContent = isAr ? 'أصواتي المخصصة' : 'My voices';
+
+  const vmTabFav = document.getElementById('vmTabFav');
+  if (vmTabFav) {
+    vmTabFav.innerHTML = (isAr ? 'المفضلة ' : 'Favorites ') + '<span class="vm-tab-badge" id="vmFavCount"></span>';
+    updateVmFavCount();
+  }
+}
+
+window.addEventListener('message', (event) => {
+  if (event.data && (event.data.type === 'CHANGE_LANGUAGE' || event.data.type === 'SET_LANGUAGE')) {
+    applyStudioLanguage(event.data.lang);
+  }
 });
 </script>
 </body>

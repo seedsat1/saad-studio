@@ -803,7 +803,7 @@ export default function AudioPage() {
       <div className="flex-1 min-h-0 flex flex-col">
         {suiteTab === "sound-studio" ? (
           <iframe
-            src="/stude/sound.html?embed=1"
+            src={`/stude/sound.html?embed=1&lang=${lang}`}
             className="flex-1 w-full border-0"
             style={{ display: "block" }}
             title="Audio Studio"
