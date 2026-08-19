@@ -48,7 +48,38 @@
 
 ---
 
-#### Latest task: Adobe CEP Podcast Live Refresh & Seamless Web Auth (2026-08-19)
+#### Latest task: Admin UI & Navigation Consistency Normalization (2026-08-19)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Universal AdminShell Encapsulation:
+     - Integrated `AdminShell` and canonical `AdminSidebar` across all 10 previously bypassing `/admin/*` pages:
+       - `app/admin/page-builder/page.tsx` (`activeRoute="/admin/page-builder"`)
+       - `app/admin/generation-lab/page.tsx` (`activeRoute="/admin/generation-lab"`)
+       - `app/admin/cms/pricing/page.tsx` (`activeRoute="/admin/cms/pricing"`)
+       - `app/admin/cms/[slug]/page.tsx` (`activeRoute="/admin/cms"`)
+       - `app/admin/cms/apps/page.tsx` (`activeRoute="/admin/cms/apps"`)
+       - `app/admin/cms/auth/page.tsx` (`activeRoute="/admin/cms/auth"`)
+       - `app/admin/cms/cep/page.tsx` (`activeRoute="/admin/cms/cep"`)
+       - `app/admin/cms/discover/page.tsx` (`activeRoute="/admin/cms/discover"`)
+       - `app/admin/cms/explore/page.tsx` (`activeRoute="/admin/cms/explore"`)
+       - `app/admin/cms/studio-img/page.tsx` (`activeRoute="/admin/cms/studio-img"`)
+  2. Local Navigation & Functional Invariants Preserved:
+     - Generation Lab: Retained 68px vertical modality selector (`Image`, `Video`, `Avatar`, `Audio`, `3D`, `Tools`) as local tool navigation.
+     - Page Builder: Retained `Transitions`, `Beauty Tools`, `Promo & Ads`, and `Announcement` local tabs.
+     - CMS subpages: Retained all local breadcrumbs, Save, Preview, Publish, media slots, and drag-and-drop section editors.
+  3. Redundant Global Navigation Removed:
+     - Eliminated standalone "← Admin" / "← Dashboard" bypass back-links and simplified `app/admin/cms/layout.tsx` to eliminate duplicate `CmsSidebar` renders.
+  4. Responsive & Sticky Elements Scoped:
+     - Scoped sticky toolbars to workspace (`z-20` within `AdminShell`).
+     - Applied `w-full min-w-0 flex-1` layout patterns preventing viewport-level horizontal overflow.
+  5. Verification:
+     - Created `test/admin-ui-consistency-and-layout.test.ts` (6/6 deterministic tests passed).
+     - Full Vitest suite: 93 test files passed (705/705 tests green).
+     - TypeScript: `npx tsc --noEmit` passed with 0 errors.
+     - Build: `npm run build` compiled 234 static and dynamic routes with 0 errors.
+     - Git: Clean diff, zero unhandled errors.
+
+#### Previous task: Adobe CEP Podcast Live Refresh & Seamless Web Auth (2026-08-19)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Podcast Automation Lock Screen Instant Refresh & Auto Focus:
