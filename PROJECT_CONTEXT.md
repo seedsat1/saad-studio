@@ -48,7 +48,22 @@
 
 ---
 
-#### Latest task: Expanded Model Capabilities Editor, Dynamic Upgrades & Knowledge Hub Auto-Sync (2026-08-20)
+#### Latest task: Mouse Drag and Drop Model Reordering & Cross-Group Movement (2026-08-20)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Smooth Mouse Drag-and-Drop Reordering:
+     - Implemented native HTML5 Drag and Drop across both **Flat Table** and **Grouped View**.
+     - Added dedicated `GripVertical` handle on every model row for intuitive grab-and-drag interactions.
+     - Provided real-time visual drop target feedback (highlighted borders, active drop indicator, dragging opacity).
+  2. Cross-Group Drag & Drop:
+     - Dragging a model into another group container automatically moves the model into that group, inheriting its family color and updating its sequence.
+     - Persists new order and group associations in real-time in the background without UI lag or reloading.
+  3. Verification:
+     - TypeScript `tsc --noEmit`: 0 errors.
+     - Vitest suite: 14/14 tests green.
+     - Clean git commit pushed to `main`.
+
+#### Previous task: Expanded Model Capabilities Editor, Dynamic Upgrades & Knowledge Hub Auto-Sync (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Expanded Model Configuration Drawer Editor:
