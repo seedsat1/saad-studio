@@ -526,17 +526,11 @@ function ModelDropdown({ selected, onSelect, models }: { selected: ImageModel; o
   const [query, setQuery] = useState("");
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
-  const grouped = useMemo(() => {
+  const filteredModels = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = q
-      ? models.filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || m.group.toLowerCase().includes(q))
+    return q
+      ? models.filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q))
       : models;
-    const map = new Map<string, ImageModel[]>();
-    for (const model of list) {
-      if (!map.has(model.group)) map.set(model.group, []);
-      map.get(model.group)?.push(model);
-    }
-    return Array.from(map.entries());
   }, [query, models]);
 
   const handleToggle = () => {
@@ -555,9 +549,8 @@ function ModelDropdown({ selected, onSelect, models }: { selected: ImageModel; o
         </div>
         <div className="min-w-0 flex-1 text-left">
           <p className="truncate text-xs font-semibold text-white">{selected.label}</p>
-          <p className="truncate text-[10px] text-zinc-400">{selected.sublabel || selected.id}</p>
         </div>
-        {selected.badge ? <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">{selected.badge}</span> : null}
+        {selected.badge ? <span className="rounded-full bg-lime-300 px-1.5 py-0.5 text-[8px] font-black uppercase text-black">{selected.badge}</span> : null}
         <ChevronDown className={cn("h-4 w-4 text-zinc-400 transition", open && "rotate-180")} />
       </button>
 
@@ -578,23 +571,19 @@ function ModelDropdown({ selected, onSelect, models }: { selected: ImageModel; o
                   <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Search model")} className="w-full bg-transparent text-xs text-white placeholder:text-zinc-400 focus:outline-none" />
                 </div>
               </div>
-              <div className="max-h-[320px] overflow-y-auto">
-                {grouped.map(([group, models], gi) => (
-                  <div key={group} className={cn(gi > 0 && "border-t border-white/10")}>
-                    <p className="px-3 pt-2 text-[9px] font-bold uppercase tracking-[0.15em] text-zinc-400">{t(group)}</p>
-                    {models.map((model) => (
-                      <button key={model.id} onClick={() => { onSelect(model); setOpen(false); }} className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.07]", selected.id === model.id && "bg-white/10")}>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex min-w-0 items-center gap-1.5">
-                            <p className="truncate text-xs font-semibold text-zinc-100">{model.label}</p>
-                            {model.badge ? <span className="shrink-0 rounded-full bg-lime-300 px-1.5 py-0.5 text-[8px] font-black uppercase text-black">{model.badge}</span> : null}
-                          </div>
-                          <p className="truncate text-[10px] text-zinc-400">{model.sublabel || model.id}</p>
-                        </div>
-                        {selected.id === model.id ? <Check className="h-3.5 w-3.5 text-pink-400" /> : null}
-                      </button>
-                    ))}
-                  </div>
+              <div className="max-h-[320px] overflow-y-auto divide-y divide-white/5">
+                {filteredModels.map((model) => (
+                  <button
+                    key={model.id}
+                    onClick={() => { onSelect(model); setOpen(false); }}
+                    className={cn("flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-white/[0.07] transition-colors", selected.id === model.id && "bg-white/10")}
+                  >
+                    <div className="min-w-0 flex-1 flex items-center gap-2">
+                      <p className="truncate text-xs font-semibold text-zinc-100">{model.label}</p>
+                      {model.badge ? <span className="shrink-0 rounded-full bg-lime-300 px-1.5 py-0.5 text-[8px] font-black uppercase text-black">{model.badge}</span> : null}
+                    </div>
+                    {selected.id === model.id ? <Check className="h-3.5 w-3.5 text-pink-400 shrink-0" /> : null}
+                  </button>
                 ))}
               </div>
             </motion.div>

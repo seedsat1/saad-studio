@@ -602,8 +602,38 @@ export async function POST(req: NextRequest) {
 
     const dynamicModels = await getCentralizedDynamicImageModels();
     const dynamicModel = dynamicModels.find(
-      (m) => m.id === effectiveModelId && m.isActive !== false
+      (m) =>
+        (m.id.toLowerCase() === effectiveModelId.toLowerCase() ||
+         m.label.toLowerCase() === effectiveModelId.toLowerCase() ||
+         (m.upstreamModelId && m.upstreamModelId.toLowerCase() === effectiveModelId.toLowerCase())) &&
+        m.isActive !== false
     );
+
+    if (dynamicModel && !isWaveSpeedImageModel && !openAIImageModel && !googleImageModel) {
+      const targetApiRoute = hasReferenceImages && dynamicModel.image_api_route
+        ? dynamicModel.image_api_route
+        : (dynamicModel.text_api_route || dynamicModel.upstreamModelId || dynamicModel.id);
+
+      const isGoogle = /^(google|gemini|imagen)/i.test(targetApiRoute) || /google/i.test(dynamicModel.group || "");
+      const isOpenAI = /^(openai|dall-e)/i.test(targetApiRoute) || /openai/i.test(dynamicModel.group || "");
+
+      if (isGoogle) {
+        googleImageModel = targetApiRoute;
+      } else if (isOpenAI) {
+        openAIImageModel = targetApiRoute;
+      } else {
+        // Universal dynamic WaveSpeed route for custom models registered in admin portal
+        waveSpeedImageRoute = {
+          model: targetApiRoute,
+          referenceField: (hasReferenceImages || (dynamicModel.maxRefImages && dynamicModel.maxRefImages > 0)) ? "images" : undefined,
+          requiresReference: Boolean(hasReferenceImages && dynamicModel.image_api_route),
+          maxReferenceImages: dynamicModel.maxRefImages ?? (hasReferenceImages ? 4 : 0),
+          maxOutputImages: dynamicModel.maxImages ?? 4,
+          inputShape: "size",
+        };
+        isWaveSpeedImageModel = true;
+      }
+    }
 
     if (!isWaveSpeedImageModel && !openAIImageModel && !googleImageModel) {
       return NextResponse.json(
@@ -628,9 +658,12 @@ export async function POST(req: NextRequest) {
           requestedUnits: numImages,
         })
       : { eligible: false, planId: null as string | null, reason: "disabled", dailyUsed: undefined };
-    const creditsToCharge = unlimited.eligible
+    let creditsToCharge = unlimited.eligible
       ? 0
       : await getGenerationCost(effectiveModelId, 5, numImages, chargeQuality);
+    if (!unlimited.eligible && creditsToCharge <= 0 && dynamicModel?.creditCost) {
+      creditsToCharge = Number(dynamicModel.creditCost) * (Number(numImages) || 1);
+    }
     if (!unlimited.eligible && creditsToCharge <= 0) {
       return NextResponse.json({ error: `No credit configuration for model: ${modelId}` }, { status: 400 });
     }
