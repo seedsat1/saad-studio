@@ -56,6 +56,7 @@ import {
   Paintbrush,
   GalleryHorizontalEnd,
   Wand2,
+  Trash2,
 } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import type { DynamicImageModel, DynamicVideoModel } from "@/lib/dynamic-model-loader";
@@ -253,6 +254,11 @@ export default function AdminModelsPage() {
   // Catalog Sync Modal
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
+  // Delete Model Modal
+  const [modelToDelete, setModelToDelete] = useState<UnifiedModelRow | null>(null);
+  const [deletingModel, setDeletingModel] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Add Custom Model Modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -747,6 +753,41 @@ export default function AdminModelsPage() {
     }
   };
 
+  const handleDeleteModel = async () => {
+    if (!modelToDelete) return;
+    setDeletingModel(true);
+    setDeleteError(null);
+
+    try {
+      const res = await fetch("/api/admin/models", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: modelToDelete.id,
+          modality: modelToDelete.modality,
+          expectedVersionToken: versionToken,
+        }),
+      });
+
+      const resJson = await res.json();
+      if (!res.ok || !resJson.success) {
+        throw new Error(resJson.error || "Failed to delete model");
+      }
+
+      setActionNotice(`Model "${modelToDelete.name}" deleted successfully.`);
+      const deletedId = modelToDelete.id;
+      setModelToDelete(null);
+      if (drawerOpen && selectedModel?.id === deletedId) {
+        closeDrawer();
+      }
+      await loadModels();
+    } catch (err: any) {
+      setDeleteError(err.message || "Failed to delete model");
+    } finally {
+      setDeletingModel(false);
+    }
+  };
+
   // Counts
   const totalCount = unifiedRows.length;
   const activeCount = unifiedRows.filter((r) => r.isActive).length;
@@ -1098,6 +1139,14 @@ export default function AdminModelsPage() {
                           >
                             Edit
                           </button>
+                          <button
+                            onClick={() => setModelToDelete(row)}
+                            className="px-2 py-1 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white text-[11px] font-medium transition-colors border border-rose-800 inline-flex items-center gap-1"
+                            title="Delete model from platform"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Delete</span>
+                          </button>
                           <Link
                             href="/admin/routing"
                             className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 text-[11px] font-medium transition-colors border border-zinc-700 inline-flex items-center gap-1"
@@ -1420,6 +1469,90 @@ export default function AdminModelsPage() {
                     Edit Configuration
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setModelToDelete(selectedModel)}
+                  className="px-3 py-2 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white text-xs font-medium transition-colors border border-rose-800 inline-flex items-center gap-1.5"
+                  title="Delete this model"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Model</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Model Confirmation Modal */}
+        {modelToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+            <div className="w-full max-w-md bg-zinc-900 border border-rose-900/80 rounded-2xl p-6 space-y-4 shadow-2xl">
+              <div className="flex items-center gap-3 text-rose-400">
+                <div className="p-2.5 rounded-xl bg-rose-950/90 border border-rose-800">
+                  <Trash2 className="w-6 h-6 flex-shrink-0" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-zinc-100">Delete AI Model / حذف الموديل؟</h3>
+                  <p className="text-[11px] text-zinc-400">This action will remove the model from the platform fleet.</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Model Name:</span>
+                  <span className="font-bold text-zinc-200">{modelToDelete.name}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Model ID:</span>
+                  <span className="font-mono text-zinc-300 text-[11px]">{modelToDelete.id}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Modality:</span>
+                  <span className="uppercase text-indigo-400 font-bold">{modelToDelete.modality}</span>
+                </div>
+              </div>
+
+              {deleteError && (
+                <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span>{deleteError}</span>
+                </div>
+              )}
+
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                هل أنت متأكد من حذف هذا الموديل نهائياً؟ سيتم حذفه من كافة القوائم واستوديوهات المنصة بشكل فوري.
+              </p>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModelToDelete(null);
+                    setDeleteError(null);
+                  }}
+                  disabled={deletingModel}
+                  className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium"
+                >
+                  Cancel (إلغاء)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteModel}
+                  disabled={deletingModel}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors shadow-lg shadow-rose-600/30"
+                >
+                  {deletingModel ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Confirm Delete (تأكيد الحذف)</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>

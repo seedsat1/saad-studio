@@ -292,3 +292,98 @@ export async function PUT(req: Request) {
     );
   }
 }
+
+export async function DELETE(req: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: {
+    id?: string;
+    modality?: "image" | "video";
+    expectedVersionToken?: string | null;
+  } = {};
+
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (!body.id) {
+    return NextResponse.json({ error: "Model ID is required for deletion." }, { status: 400 });
+  }
+
+  let operatorId = "admin_session";
+  try {
+    const session = await auth();
+    if (session?.userId) operatorId = session.userId;
+  } catch {}
+
+  try {
+    const currentImages = await getDynamicImageModels();
+    const currentVideos = await getDynamicVideoModels();
+    const cleanTargetId = body.id.trim().toLowerCase();
+
+    let finalImages = currentImages;
+    let finalVideos = currentVideos;
+    let deleted = false;
+
+    if (!body.modality || body.modality === "image") {
+      const filtered = currentImages.filter(
+        (m) => m.id.toLowerCase() !== cleanTargetId && m.label.toLowerCase() !== cleanTargetId
+      );
+      if (filtered.length !== currentImages.length) {
+        finalImages = filtered;
+        deleted = true;
+      }
+    }
+
+    if (!deleted && (!body.modality || body.modality === "video")) {
+      const filtered = currentVideos.filter(
+        (m) => m.id.toLowerCase() !== cleanTargetId && m.name.toLowerCase() !== cleanTargetId
+      );
+      if (filtered.length !== currentVideos.length) {
+        finalVideos = filtered;
+        deleted = true;
+      }
+    }
+
+    if (!deleted) {
+      finalImages = currentImages.filter(
+        (m) => m.id.toLowerCase() !== cleanTargetId && m.label.toLowerCase() !== cleanTargetId
+      );
+      finalVideos = currentVideos.filter(
+        (m) => m.id.toLowerCase() !== cleanTargetId && m.name.toLowerCase() !== cleanTargetId
+      );
+    }
+
+    await saveModelConfigurationsAtomic({
+      imageModels: finalImages,
+      videoModels: finalVideos,
+      expectedVersionToken: body.expectedVersionToken || null,
+      operatorId,
+      action: `delete_model:${body.id}`,
+    });
+
+    const newVersionState = await getModelConfigVersionState();
+
+    return NextResponse.json({
+      success: true,
+      message: `Model '${body.id}' deleted successfully.`,
+      versionToken: newVersionState.versionToken,
+    });
+  } catch (err: any) {
+    if (err instanceof ModelConcurrencyError) {
+      return NextResponse.json(
+        { error: err.message, code: "CONCURRENCY_CONFLICT" },
+        { status: 409 }
+      );
+    }
+    console.error("[admin-models] DELETE error:", err);
+    return NextResponse.json(
+      { error: err.message || "Failed to delete model" },
+      { status: 500 }
+    );
+  }
+}

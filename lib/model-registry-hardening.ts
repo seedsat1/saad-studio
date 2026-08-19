@@ -30,7 +30,7 @@ export type ModelRegistryAuditEvent = {
   id: string;
   timestamp: string;
   operatorId: string;
-  action: "save_models" | "sync_catalog";
+  action: "save_models" | "sync_catalog" | "delete_model" | string;
   changedModelsCount: number;
   changes: ModelFieldChange[];
 };
@@ -205,7 +205,7 @@ export async function saveModelConfigurationsAtomic(options: {
   videoModels: DynamicVideoModel[];
   expectedVersionToken?: string | null;
   operatorId?: string;
-  action?: "save_models" | "sync_catalog";
+  action?: "save_models" | "sync_catalog" | "delete_model" | string;
 }): Promise<{ success: boolean; changesCount: number }> {
   const currentVersion = await getModelConfigVersionState();
   if (options.expectedVersionToken && options.expectedVersionToken !== currentVersion.versionToken) {
