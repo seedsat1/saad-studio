@@ -1124,7 +1124,7 @@ body{
           <div class="style-row">
             <div class="style-meta">
               <label>Pitch</label>
-              <span class="style-val-label" id="pitchVal">Low ---|--- High</span>
+              <span class="style-val-label" id="pitchVal">0 st (50%)</span>
             </div>
             <div class="style-slider-wrap">
               <input type="range" min="0" max="100" value="50" class="gold-range" oninput="updatePitchLabel(this)">
@@ -1133,7 +1133,7 @@ body{
           <div class="style-row">
             <div class="style-meta">
               <label>Speed</label>
-              <span class="style-val-label" id="speedVal">Slow -|----- Fast</span>
+              <span class="style-val-label" id="speedVal">1.00x</span>
             </div>
             <div class="style-slider-wrap">
               <input type="range" min="70" max="150" value="100" class="gold-range" id="speedSlider" oninput="updateSpeedFromSlider(this)">
@@ -1142,7 +1142,7 @@ body{
           <div class="style-row">
             <div class="style-meta">
               <label>Emotion</label>
-              <span class="style-val-label" id="emotionVal">Soft --|-- Intense</span>
+              <span class="style-val-label" id="emotionVal">50% (Normal)</span>
             </div>
             <div class="style-slider-wrap">
               <input type="range" min="0" max="100" value="50" class="gold-range" oninput="updateEmotionLabel(this)">
@@ -2109,33 +2109,26 @@ function selectEmbeddedVoice(id, name, lang, desc, emoji, color, gender, el) {
 }
 
 function updatePitchLabel(slider) {
-  const val = slider.value;
-  let text = 'Low ---|--- High';
-  if (val < 35) text = 'Low -|----- High';
-  else if (val > 65) text = 'Low -----|- High';
-  document.getElementById('pitchVal').textContent = text;
+  const val = parseInt(slider.value, 10);
+  const semitones = Math.round((val - 50) / 4.16);
+  const sign = semitones > 0 ? '+' : '';
+  document.getElementById('pitchVal').textContent = `${sign}${semitones} st (${val}%)`;
 }
 
 function updateEmotionLabel(slider) {
-  const val = slider.value;
-  let text = 'Soft --|-- Intense';
-  if (val < 35) text = 'Soft -|--- Intense';
-  else if (val > 65) text = 'Soft ---|- Intense';
-  document.getElementById('emotionVal').textContent = text;
+  const val = parseInt(slider.value, 10);
+  let label = val < 35 ? 'Soft' : val > 65 ? 'Intense' : 'Normal';
+  document.getElementById('emotionVal').textContent = `${val}% (${label})`;
 }
 
 function updateSpeedFromSlider(slider) {
-  const val = slider.value;
-  const speedVal = (val / 100).toFixed(1);
+  const val = parseInt(slider.value, 10);
+  const speedVal = (val / 100).toFixed(2);
   const speedBtn = document.getElementById('optSpeed');
   if (speedBtn) {
     speedBtn.innerHTML = speedVal + 'x';
   }
-  let text = 'Slow -|----- Fast';
-  if (val < 90) text = 'Slow -|----- Fast';
-  else if (val >= 90 && val <= 110) text = 'Slow ---|--- Fast';
-  else text = 'Slow -----|- Fast';
-  document.getElementById('speedVal').textContent = text;
+  document.getElementById('speedVal').textContent = `${speedVal}x`;
   scheduleAudioQuote();
 }
 

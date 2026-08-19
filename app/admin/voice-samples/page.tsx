@@ -58,7 +58,9 @@ export default function AdminVoiceSamplesPage() {
       setPlayingVoice(null);
       setStatusMsg({ text: `فشل تشغيل المعاينة الصوتية لـ ${voice.name}`, type: "err" });
     };
-    newAudio.play();
+    newAudio.play().catch(() => {
+      // Audio play was safely interrupted by subsequent user click
+    });
     setAudioObj(newAudio);
     setPlayingVoice(voice.id);
   };
