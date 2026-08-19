@@ -1685,7 +1685,7 @@ function updateQuickVoiceButtons(playingId) {
   });
 }
 function previewVmVoice(id,name,ev){
-  ev.stopPropagation();
+  if(ev && ev.stopPropagation) ev.stopPropagation();
   if(_vmPlayingId===id){
     _vmPreviewAudio?.pause();
     _vmPlayingId=null;
@@ -1699,6 +1699,7 @@ function previewVmVoice(id,name,ev){
   try{
     const cleanId=id.replace(/^gemini:/,'');
     const lang=_vmActiveLangs[id]||'ar';
+    const cacheKey=id+'_'+lang;
     let url=_vmPreviewCache[cacheKey]||(isGeminiVoiceId(id)?`/api/voice-sample?voice=${encodeURIComponent(cleanId)}&lang=${lang}`:`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`);
     _vmPreviewCache[cacheKey]=url;
     saveVmPreviewCache();
@@ -1708,11 +1709,11 @@ function previewVmVoice(id,name,ev){
     _vmPreviewAudio.onerror=()=>{_vmPlayingId=null;renderVmGrid();updateQuickVoiceButtons(null);setStatus('Voice preview failed.','err');};
     _vmPreviewAudio.play().catch(error=>{
       _vmPlayingId=null;renderVmGrid();updateQuickVoiceButtons(null);
-      setStatus(`Voice preview failed: ${error.message}`,'err');
+      console.warn('Preview play interrupted:', error);
     });
   }catch(error){
     _vmPlayingId=null;renderVmGrid();updateQuickVoiceButtons(null);
-    setStatus(`Voice preview failed: ${error.message}`,'err');
+    console.error('Preview error:', error);
   }
 }
 
@@ -1734,17 +1735,17 @@ function openVmLangDropdown(voiceId, btnEl, event) {
   dropdown.dataset.voiceId = voiceId;
   
   const langs = [
+    { code: 'ar', label: 'sa Arabic' },
     { code: 'en', label: 'us English' },
     { code: 'es', label: 'es Spanish' },
-    { code: 'pt', label: 'pt Portuguese' },
-    { code: 'hi', label: 'in Hindi' },
-    { code: 'ar', label: 'sa Arabic' },
-    { code: 'ru', label: 'ru Russian' },
     { code: 'fr', label: 'fr French' },
     { code: 'de', label: 'de German' },
-    { code: 'ko', label: 'kr Korean' },
+    { code: 'ru', label: 'ru Russian' },
+    { code: 'it', label: 'it Italian' },
+    { code: 'pt', label: 'pt Portuguese' },
     { code: 'tr', label: 'tr Turkish' },
-    { code: 'it', label: 'it Italian' }
+    { code: 'ko', label: 'kr Korean' },
+    { code: 'hi', label: 'in Hindi' }
   ];
   
   const currentLang = _vmActiveLangs[voiceId] || 'ar';
@@ -1752,7 +1753,7 @@ function openVmLangDropdown(voiceId, btnEl, event) {
   dropdown.innerHTML = langs.map(l => {
     const isSelected = l.code === currentLang;
     const splitLabel = l.label.split(' ');
-    const codePrefix = splitLabel[0];
+    const codePrefix = splitLabel[0].toUpperCase();
     const restLabel = splitLabel.slice(1).join(' ');
     return `<div class="vm-lang-item ${isSelected ? 'selected' : ''}" onclick="selectVmPreviewLang('${voiceId}', '${l.code}', event)">`
       + `<span class="vm-lang-code-prefix">${codePrefix}</span> `
@@ -1775,7 +1776,7 @@ function openVmLangDropdown(voiceId, btnEl, event) {
 }
 
 function selectVmPreviewLang(voiceId, langCode, event) {
-  event.stopPropagation();
+  if (event && event.stopPropagation) event.stopPropagation();
   _vmActiveLangs[voiceId] = langCode;
   
   if (_vmPlayingId === voiceId) {
@@ -1786,6 +1787,12 @@ function selectVmPreviewLang(voiceId, langCode, event) {
   renderVmGrid();
   const dropdown = document.getElementById('vmLangGlobalDropdown');
   if (dropdown) dropdown.classList.remove('open');
+
+  // Trigger preview in the newly chosen language
+  const voice = VOICE_CATALOG.find(x => x.id === voiceId);
+  const voiceName = voice?.name || 'Voice';
+  const dummyEv = { stopPropagation: () => {} };
+  previewVmVoice(voiceId, voiceName, dummyEv);
 }
 
 
