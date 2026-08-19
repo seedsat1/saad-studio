@@ -159,60 +159,68 @@ const PODCAST_TEXT = {
     podcastLockDesc: "Lock in standard timeline cuts, camera angles auto-switching, audio diagnostics, and local caption generation.",
     podcastSubscribeBtn: "Subscribe for $3 / Month",
     podcastTrialBtn: "Start 7-Day Free Trial",
+    podcastRefreshBtn: "🔄 Refresh Subscription Status",
+    podcastRefreshChecking: "Checking status / جاري التحقق...",
+    podcastActivatedSuccess: "Podcast Automation active! Loading...",
+    podcastNotActiveYet: "Subscription not active yet. Please wait or recheck.",
     podcastSubscribedThankYou: "Thank you for subscribing! Refreshing...",
     trialClaimedSuccess: "7-Day Free Trial activated! Loading...",
     trialClaimFailed: "Failed to activate free trial. Please try again.",
   },
   ar: {
-    podcastAutomation: "\u0623\u062a\u0645\u062a\u0629 \u0627\u0644\u0628\u0648\u062f\u0643\u0627\u0633\u062a",
-    multiCam: "\u062a\u0639\u062f\u062f \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a",
-    autoCaptionsTitle: "\u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a\u0629",
-    synchronize: "\u0627\u0644\u0645\u0632\u0627\u0645\u0646\u0629",
-    oneClick: "\u0636\u063a\u0637\u0629 \u0648\u0627\u062d\u062f\u0629",
-    silenceRemoval: "\u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u0635\u0645\u062a",
-    silenceRemovalDesc: "\u0627\u0643\u062a\u0634\u0627\u0641 \u0648\u0625\u0632\u0627\u0644\u0629 \u0641\u062a\u0631\u0627\u062a \u0627\u0644\u0635\u0645\u062a \u0645\u0646 \u0627\u0644\u062a\u0627\u064a\u0645\u0644\u0627\u064a\u0646.",
-    multiCamAutoSwitch: "\u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a \u0628\u064a\u0646 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a",
-    multiCamDescription: "\u062d\u0644\u0644 \u0627\u0644\u062a\u0627\u064a\u0645\u0644\u0627\u064a\u0646 \u0627\u0644\u0646\u0634\u0637\u060c \u0631\u0627\u062c\u0639 \u062e\u0637\u0629 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a\u060c \u062b\u0645 \u0623\u0646\u0634\u0626 \u0646\u0633\u062e\u0629 \u0645\u0631\u0626\u064a\u0629.",
-    syncDescription: "\u0645\u0632\u0627\u0645\u0646\u0629 \u0627\u0644\u0635\u0648\u062a \u0648\u0627\u0644\u0641\u064a\u062f\u064a\u0648 \u0628\u062f\u0642\u0629.",
-    oneClickPodcastEdit: "\u062a\u062d\u0631\u064a\u0631 \u0627\u0644\u0628\u0648\u062f\u0643\u0627\u0633\u062a \u0628\u0636\u063a\u0637\u0629 \u0648\u0627\u062d\u062f\u0629",
-    autoDetect: "\u0627\u0643\u062a\u0634\u0627\u0641 \u062a\u0644\u0642\u0627\u0626\u064a",
-    arabic: "\u0627\u0644\u0639\u0631\u0628\u064a\u0629",
-    english: "\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629",
-    standard: "\u0642\u064a\u0627\u0633\u064a",
-    fast: "\u0633\u0631\u064a\u0639",
-    professional: "\u0627\u062d\u062a\u0631\u0627\u0641\u064a",
-    autoCaptionsSubtitle: "\u0625\u0646\u0634\u0626 \u062a\u0631\u062c\u0645\u0627\u062a \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u062a\u0639\u062f\u064a\u0644 \u0645\u062d\u0644\u064a\u064b\u0627 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 faster-whisper. \u0644\u0627 \u064a\u062a\u0645 \u0627\u0643\u062a\u0634\u0627\u0641 \u0648\u0625\u0632\u0627\u0644\u0629 \u0641\u062a\u0631\u0627\u062a \u0627\u0644\u0635\u0645\u062a \u0645\u0646 \u0627\u0644\u062a\u0627\u064a\u0645\u0644\u0627\u064a\u0646.",
-    language: "\u0627\u0644\u0644\u063a\u0629",
-    subtitlesLevel: "\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u0629",
-    engine: "\u0627\u0644\u0645\u062d\u0631\u0643",
-    level: "\u0627\u0644\u0645\u0633\u062a\u0648\u0649",
-    audio: "\u0627\u0644\u0635\u0648\u062a",
-    captions: "\u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a",
-    runtimeStatus: "\u062d\u0627\u0644\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644",
-    automaticA1: "\u062a\u0644\u0642\u0627\u0626\u064a (A1)",
-    waiting: "\u0628\u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u062a\u0634\u063a\u064a\u0644",
-    runtimeInstalled: "\u0628\u064a\u0626\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0645\u062b\u0628\u062a\u0629",
-    repairRuntime: "\u0625\u0635\u0644\u0627\u062d \u0628\u064a\u0626\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644",
-    installRuntime: "\u062a\u062b\u0628\u064a\u062a \u0628\u064a\u0626\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644",
-    ready: "\u062c\u0627\u0647\u0632",
-    repairRequired: "\u064a\u062a\u0637\u0644\u0628 \u0625\u0635\u0644\u0627\u062d\u064b\u0627",
-    notInstalled: "\u063a\u064a\u0631 \u0645\u062b\u0628\u062a",
-    unavailable: "\u063a\u064a\u0631 \u0645\u062a\u0627\u062d",
-    generatingCaptions: "\u062c\u0627\u0631\u064d \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a...",
-    generateCaptions: "\u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a",
-    oneClickSubtitle: "\u062a\u0634\u063a\u064a\u0644 \u0645\u0633\u0627\u0631 \u062a\u062d\u0631\u064a\u0631 \u0627\u0644\u0628\u0648\u062f\u0643\u0627\u0633\u062a (\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a -> \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a) \u0628\u0636\u063a\u0637\u0629 \u0648\u0627\u062d\u062f\u0629.",
-    autoCaptions: "\u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a\u0629",
-    generateAutoCaptions: "\u062a\u0648\u0644\u064a\u062f \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a\u0629",
-    fastMode: "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0633\u0631\u064a\u0639",
-    processingPipeline: "\u062c\u0627\u0631\u064d \u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0645\u0633\u0627\u0631...",
-    runOneClickEdit: "\u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u062a\u062d\u0631\u064a\u0631 \u0628\u0636\u063a\u0637\u0629 \u0648\u0627\u062d\u062f\u0629",
-    podcastLockTitle: "\u0645\u0637\u0644\u0648\u0628 \u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0623\u062a\u0645\u062a\u0629 \u0627\u0644\u0628\u0648\u062f\u0643\u0627\u0633\u062a",
-    podcastLockDesc: "\u0627\u0641\u062a\u062d \u0639\u0645\u0644\u064a\u0627\u062a \u0642\u0635 \u0627\u0644\u062a\u0627\u064a\u0645\u0644\u0627\u064a\u0646\u060c \u0648\u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a \u0644\u0632\u0648\u0627\u064a\u0627 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a\u060c \u0648\u062a\u0634\u062e\u064a\u0635\u0627\u062a \u0627\u0644\u0635\u0648\u062a\u060c \u0648\u062a\u0648\u0644\u064a\u062f \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a \u0627\u0644\u0645\u062d\u0644\u064a\u0629.",
-    podcastSubscribeBtn: "\u0627\u0634\u062a\u0631\u0643 \u0628\u0640 3$ / \u0634\u0647\u0631\u064a\u0627\u064b",
-    podcastTrialBtn: "\u0627\u0628\u062f\u0623 \u062a\u062c\u0631\u0628\u0629 \u0645\u062c\u0627\u0646\u064a\u0629 \u0644\u0645\u062f\u0629 7 \u0623\u064a\u0627\u0645",
-    podcastSubscribedThankYou: "\u0634\u0643\u0631\u064b\u0627 \u0644\u0627\u0634\u062a\u0631\u0627\u0643\u0643! \u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u062f\u064a\u062b...",
-    trialClaimedSuccess: "\u062a\u0645 \u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u062a\u062c\u0631\u0628\u0629 \u0627\u0644\u0645\u062c\u0627\u0646\u064a\u0629 \u0644\u0640 7 \u0623\u064a\u0627\u0645 \u0628\u0646\u062c\u0627\u062d! \u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0645\u064a\u0644...",
-    trialClaimFailed: "\u0641\u0634\u0644 \u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u062a\u062c\u0631\u0628\u0629 \u0627\u0644\u0645\u062c\u0627\u0646\u064a\u0629. \u064a\u0631\u062c\u064a \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0627\u062d\u0642\u0627\u064b.",
+    podcastAutomation: "أتمتة البودكاست",
+    multiCam: "تعدد الكاميرات",
+    autoCaptionsTitle: "الترجمات التلقائية",
+    synchronize: "المزامنة",
+    oneClick: "ضغطة واحدة",
+    silenceRemoval: "إزالة الصمت",
+    silenceRemovalDesc: "اكتشاف وإزالة فترات الصمت من التايملين.",
+    multiCamAutoSwitch: "التبديل التلقائي بين الكاميرات",
+    multiCamDescription: "حلل التايملين النشط، راجع خطة الكاميرات، ثم أنشئ نسخة مرئية.",
+    syncDescription: "مزامنة الصوت والفيديو بدقة.",
+    oneClickPodcastEdit: "تحرير البودكاست بضغطة واحدة",
+    autoDetect: "اكتشاف تلقائي",
+    arabic: "العربية",
+    english: "الإنجليزية",
+    standard: "قياسي",
+    fast: "سريع",
+    professional: "احترافي",
+    autoCaptionsSubtitle: "إنشئ ترجمات قابلة للتعديل محليًا باستخدام faster-whisper. لا يتم اكتشاف وإزالة فترات الصمت من التايملين.",
+    language: "اللغة",
+    subtitlesLevel: "مستوى الترجمة",
+    engine: "المحرك",
+    level: "المستوى",
+    audio: "الصوت",
+    captions: "الترجمات",
+    runtimeStatus: "حالة التشغيل",
+    automaticA1: "تلقائي (A1)",
+    waiting: "بانتظار التشغيل",
+    runtimeInstalled: "بيئة التشغيل مثبتة",
+    repairRuntime: "إصلاح بيئة التشغيل",
+    installRuntime: "تثبيت بيئة التشغيل",
+    ready: "جاهز",
+    repairRequired: "يتطلب إصلاحًا",
+    notInstalled: "غير مثبت",
+    unavailable: "غير متاح",
+    generatingCaptions: "جارٍ إنشاء الترجمات...",
+    generateCaptions: "إنشاء الترجمات",
+    oneClickSubtitle: "تشغيل مسار تحرير البودكاست (تبديل الكاميرات -> الترجمات) بضغطة واحدة.",
+    autoCaptions: "الترجمات التلقائية",
+    generateAutoCaptions: "توليد الترجمات التلقائية",
+    fastMode: "الوضع السريع",
+    processingPipeline: "جارٍ تنفيذ المسار...",
+    runOneClickEdit: "تشغيل التحرير بضغطة واحدة",
+    podcastLockTitle: "مطلوب استخدام أتمتة البودكاست",
+    podcastLockDesc: "افتح عمليات قص التايملين، والتبديل التلقائي لزوايا الكاميرات، وتشخيصات الصوت، وتوليد الترجمات المحلية.",
+    podcastSubscribeBtn: "اشترك بـ 3$ / شهرياً",
+    podcastTrialBtn: "ابدأ تجربة مجانية لمدة 7 أيام",
+    podcastRefreshBtn: "🔄 تحديث حالة التفعيل",
+    podcastRefreshChecking: "جاري التحقق من حالة الاشتراك...",
+    podcastActivatedSuccess: "تم تفعيل أتمتة البودكاست بنجاح! جاري الفتح...",
+    podcastNotActiveYet: "الاشتراك غير مفعل بعد. يرجى الانتظار قليلاً.",
+    podcastSubscribedThankYou: "شكرًا لاشتراكك! جاري التحديث...",
+    trialClaimedSuccess: "تم تفعيل التجربة المجانية لـ 7 أيام بنجاح! جاري التحميل...",
+    trialClaimFailed: "فشل تفعيل التجربة المجانية. يرجى المحاولة لاحقًا.",
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -397,6 +405,19 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     render();
   };
   window.addEventListener("saad-language-changed", onLanguageChanged);
+  // Auto-refresh when user switches back to Premiere Pro window from browser
+  const onWindowFocus = () => {
+    void store.refreshUser().then(() => {
+      render();
+    });
+  };
+  window.addEventListener("focus", onWindowFocus);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      onWindowFocus();
+    }
+  });
+
   return root;
 
   function renderLockScreen(): HTMLElement {
@@ -473,6 +494,54 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       }
     }, text.podcastSubscribeBtn);
 
+    const refreshBtn = el("button.btn-refresh-sub", {
+      type: "button",
+      style: {
+        width: "100%",
+        maxWidth: "280px",
+        padding: "10px",
+        fontSize: "13px",
+        fontWeight: "600",
+        backgroundColor: "rgba(59, 130, 246, 0.12)",
+        border: "1px solid rgba(59, 130, 246, 0.35)",
+        borderRadius: "8px",
+        color: "#60a5fa",
+        cursor: "pointer",
+        marginTop: "12px",
+        transition: "all 0.2s ease",
+      },
+      onClick: async () => {
+        trialError = null;
+        trialSuccess = text.podcastRefreshChecking;
+        updateStatus();
+        try {
+          await store.refreshUser();
+          const freshUser = store.get().user;
+          const freshAccess = freshUser?.role === "ADMIN" || (
+            freshUser?.subscription?.active && (
+              freshUser.subscription.planId === "podcast" ||
+              ["try", "starter", "plus", "pro", "max"].includes(freshUser.subscription.planId || "")
+            )
+          );
+          if (freshAccess) {
+            trialSuccess = text.podcastActivatedSuccess;
+            updateStatus();
+            setTimeout(() => {
+              render();
+            }, 600);
+          } else {
+            trialError = text.podcastNotActiveYet;
+            trialSuccess = null;
+            updateStatus();
+          }
+        } catch {
+          trialError = text.trialClaimFailed;
+          trialSuccess = null;
+          updateStatus();
+        }
+      }
+    }, text.podcastRefreshBtn);
+
     const trialBtn = trialClaimed ? null : el("button.btn-secondary", {
       type: "button",
       style: {
@@ -541,6 +610,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         }
       }, text.podcastLockDesc),
       subscribeBtn,
+      refreshBtn,
     ];
     if (trialBtn) {
       childrenToAppend.push(trialBtn);

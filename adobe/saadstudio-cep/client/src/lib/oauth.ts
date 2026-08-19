@@ -170,12 +170,9 @@ async function pollOnce(url: string, n: number): Promise<PollOutcome> {
       err: (err as Error)?.message,
       bodyPreview: text.slice(0, 200),
     });
-    // The server returned non-JSON (HTML error page, plain text, etc.).
-    // Treat as transient unless the status is clearly fatal.
-    if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
-      return { kind: "fatal", message: `Auth endpoint returned ${res.status} (non-JSON).` };
-    }
-    return { kind: "transient", message: `Non-JSON response (${res.status})` };
+    // The server returned non-JSON (HTML error page, plain text, or transient challenge).
+    // Treat as transient so polling continues until user completes web authentication.
+    return { kind: "transient", message: `Waiting for browser login (${res.status})` };
   }
 
   if (!res.ok) {

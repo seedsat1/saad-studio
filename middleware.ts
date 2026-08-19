@@ -139,19 +139,22 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
     res.headers.set("Access-Control-Max-Age", "86400");
     res.headers.append("Vary", "Origin");
   } else if (reqUrl.includes("/api/")) {
-    if (isPanelApi && isCepOrigin) {
+    if (isPanelApi) {
       // Panel endpoints are protected by the ssp_ HMAC bearer token (or by
       // the session id for the unauthenticated auth-session route), never
       // by cookies — so dropping the credentials flag and using a wildcard
       // origin for CEP is safe and lets the browser deliver the body.
       res.headers.set("Access-Control-Allow-Origin", "*");
+      res.headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+      res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, x-panel-token");
+      res.headers.set("Access-Control-Max-Age", "86400");
     } else {
       res.headers.set("Access-Control-Allow-Origin", allowOrigin);
       res.headers.set("Access-Control-Allow-Credentials", "true");
+      res.headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+      res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
+      res.headers.set("Access-Control-Max-Age", "86400");
     }
-    res.headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
-    res.headers.set("Access-Control-Max-Age", "86400");
     res.headers.append("Vary", "Origin");
   }
 

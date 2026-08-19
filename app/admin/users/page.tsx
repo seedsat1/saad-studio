@@ -51,6 +51,10 @@ interface UserItem {
   billingInterval: string | null;
   stripeCurrentPeriodEnd: string | null;
   isSubscriber: boolean;
+  presence?: "Online" | "Offline" | "Unknown";
+  lastActiveAt?: number | null;
+  statusCategory?: string;
+  compositeStatus?: string;
 }
 
 interface UserDetailResponse {
@@ -92,6 +96,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [presenceFilter, setPresenceFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
@@ -132,6 +137,7 @@ export default function AdminUsersPage() {
         limit: String(limit),
         search: debouncedSearch,
         status: statusFilter,
+        presence: presenceFilter,
         role: roleFilter,
       });
 
@@ -146,7 +152,7 @@ export default function AdminUsersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit, debouncedSearch, statusFilter, roleFilter]);
+  }, [page, limit, debouncedSearch, statusFilter, presenceFilter, roleFilter]);
 
   useEffect(() => {
     fetchUsers();
@@ -397,12 +403,30 @@ export default function AdminUsersPage() {
                 }}
                 className="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
               >
-                <option value="all">All Accounts</option>
-                <option value="active">Active Only</option>
-                <option value="subscriber">Active Subscribers</option>
-                <option value="annual">Annual Plans</option>
-                <option value="free">Free Tier</option>
+                <option value="all">All Statuses</option>
+                <option value="annual_active">Annual Active</option>
+                <option value="monthly_active">Monthly Active</option>
+                <option value="expired">Expired</option>
+                <option value="free_credits">Free + Credits</option>
+                <option value="inactive">Inactive</option>
                 <option value="banned">Banned</option>
+              </select>
+            </div>
+
+            {/* Presence Filter */}
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <span className="text-[11px] font-medium text-slate-500 uppercase">Presence:</span>
+              <select
+                value={presenceFilter}
+                onChange={(e) => {
+                  setPresenceFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
+              >
+                <option value="all">All Presence</option>
+                <option value="online">Online Only</option>
+                <option value="offline">Offline Only</option>
               </select>
             </div>
 
@@ -615,32 +639,43 @@ export default function AdminUsersPage() {
 
                       {/* Status */}
                       <td className="px-3 py-3.5 font-sans">
-                        {user.isBanned ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-400 border border-rose-500/30">
-                            <XCircle className="h-3 w-3" />
-                            Banned
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border ${
+                          user.isBanned
+                            ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                            : user.isSubscriber
+                            ? (user.billingInterval === "annual" ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30")
+                            : (user.planId && user.planId !== "free")
+                            ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                            : user.creditBalance > 0
+                            ? "bg-sky-500/10 text-sky-300 border-sky-500/30"
+                            : "bg-slate-800/80 text-slate-400 border-slate-700"
+                        }`}>
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                              user.presence === "Online"
+                                ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]"
+                                : user.presence === "Unknown"
+                                ? "bg-amber-400"
+                                : "bg-slate-500"
+                            }`}
+                          />
+                          <span>
+                            {user.compositeStatus ||
+                              `${
+                                user.isBanned
+                                  ? "Banned"
+                                  : user.isSubscriber
+                                  ? user.billingInterval === "annual"
+                                    ? "Annual Active"
+                                    : "Monthly Active"
+                                  : user.planId && user.planId !== "free"
+                                  ? "Expired"
+                                  : user.creditBalance > 0
+                                  ? "Free + Credits"
+                                  : "Inactive"
+                              } (${user.presence || "Offline"})`}
                           </span>
-                        ) : user.isSubscriber ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-400 border border-emerald-500/30">
-                            <CheckCircle2 className="h-3 w-3" />
-                            {user.billingInterval === "annual" ? "Active Annual" : "Active Sub"}
-                          </span>
-                        ) : user.creditAdvanceBalance > 0 ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-400 border border-amber-500/30">
-                            <Zap className="h-3 w-3" />
-                            Advance Active
-                          </span>
-                        ) : user.creditBalance > 0 ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-0.5 text-[11px] font-semibold text-sky-400 border border-sky-500/30">
-                            <CheckCircle2 className="h-3 w-3" />
-                            Free (Active)
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 px-2 py-0.5 text-[11px] font-medium text-slate-400 border border-slate-700">
-                            <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
-                            Inactive (0 CR)
-                          </span>
-                        )}
+                        </span>
                       </td>
 
                       {/* Actions */}

@@ -48,7 +48,37 @@
 
 ---
 
-#### Latest task: Profile Settings Partial Update & Admin Profile Sync Fix (2026-08-19)
+#### Latest task: Adobe CEP Podcast Live Refresh & Seamless Web Auth (2026-08-19)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Podcast Automation Lock Screen Instant Refresh & Auto Focus:
+     - Added "🔄 Refresh Subscription Status / تحديث حالة التفعيل" button to `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`.
+     - Attached `window.focus` and `visibilitychange` listeners to auto-fetch user subscription from `/api/panel/me` upon returning to Premiere Pro from external browser checkout.
+  2. Seamless Browser Authentication Connection:
+     - Updated `middleware.ts` to grant unconditional wildcard CORS (`Access-Control-Allow-Origin: *`) for all `/api/panel/*` endpoints.
+     - Updated `adobe/saadstudio-cep/client/src/lib/oauth.ts` to treat initial non-JSON/transient statuses as transient polling instead of fatal abort, allowing automated one-click browser handoff.
+     - Recompiled CEP bundle (`vite build` in 556ms).
+  3. Verification:
+     - 27/27 Adobe CEP security & control plane vitest tests passed.
+
+#### Previous task: Admin Users Status & Presence Classification Integration (2026-08-19)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Central Status & Presence Classifier:
+     - Created `lib/admin/user-status.ts` with `resolvePresenceState()`, `resolveUserStatusCategory()`, `formatUserCompositeStatus()`, and `ONLINE_THRESHOLD_MS = 5 * 60 * 1000` (5-minute window).
+  2. Single Batched Clerk Presence Fetch:
+     - Updated `app/api/admin/users/route.ts` with single batched `clerk.users.getUserList({ userId: pageUserIds })` for paginated results (Zero N+1).
+     - Added fallback safety to `Unknown` on Clerk API failure without failing `/api/admin/users`.
+  3. Enhanced Filter Controls & Composite Status Cell:
+     - Updated `app/admin/users/page.tsx` with canonical status options (`Annual Active`, `Monthly Active`, `Expired`, `Free + Credits`, `Inactive`, `Banned`) and Presence filter dropdown (`All Presence`, `Online`, `Offline`).
+     - Rendered composite status badge with green glowing dot (Online), gray dot (Offline), and amber dot (Unknown).
+  4. Verification:
+     - Created `test/admin-user-status-and-presence.test.ts` (19/19 deterministic tests passed).
+     - Full Vitest suite: 92/92 test files passed (699/699 tests green).
+     - 0 TypeScript errors (`npx tsc --noEmit`).
+     - Next.js build: 234 static and dynamic routes compiled with 0 errors.
+
+#### Previous task: Profile Settings Partial Update & Admin Profile Sync Fix (2026-08-19)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Profile Settings Partial Update Support:

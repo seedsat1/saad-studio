@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
+import { clerkClient } from "@clerk/nextjs/server";
 import { resolveCanonicalEffectiveBalance } from "@/lib/credit-reconciler";
+import {
+  resolvePresenceState,
+  resolveUserStatusCategory,
+  formatUserCompositeStatus,
+  ONLINE_THRESHOLD_MS,
+} from "@/lib/admin/user-status";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +30,7 @@ export async function GET(req: NextRequest) {
     const search = (searchParams.get("search") || "").trim();
     const status = (searchParams.get("status") || "all").toLowerCase();
     const role = (searchParams.get("role") || "all").toUpperCase();
+    const presenceFilter = (searchParams.get("presence") || "all").toLowerCase();
 
     // 3. Build Prisma Where Clause
     const where: any = {};
@@ -36,45 +44,77 @@ export async function GET(req: NextRequest) {
       where.role = { not: "DELETED" };
     }
 
-    // Status Filter (Banned vs Active)
+    const now = new Date();
+
+    // Status / Subscription Filter
     if (status === "banned") {
       where.isBanned = true;
     } else if (status === "active") {
       where.isBanned = false;
-    }
-
-    // Subscription Status Filter (Subscriber vs Annual vs Free)
-    if (status === "subscriber" || status === "annual" || status === "free") {
-      const now = new Date();
-      if (status === "subscriber") {
-        const subRecords = await prismadb.userSubscription.findMany({
-          where: {
-            stripePriceId: { not: null },
-            stripeCurrentPeriodEnd: { gt: now },
-          },
-          select: { userId: true },
-        });
-        where.id = { in: subRecords.map((s) => s.userId) };
-      } else if (status === "annual") {
-        const subRecords = await prismadb.userSubscription.findMany({
-          where: {
-            billingInterval: "annual",
-            stripePriceId: { not: null },
-            stripeCurrentPeriodEnd: { gt: now },
-          },
-          select: { userId: true },
-        });
-        where.id = { in: subRecords.map((s) => s.userId) };
-      } else if (status === "free") {
-        const subRecords = await prismadb.userSubscription.findMany({
-          where: {
-            stripePriceId: { not: null },
-            stripeCurrentPeriodEnd: { gt: now },
-          },
-          select: { userId: true },
-        });
-        where.id = { notIn: subRecords.map((s) => s.userId) };
-      }
+    } else if (status === "annual_active" || status === "annual") {
+      where.isBanned = false;
+      const subRecords = await prismadb.userSubscription.findMany({
+        where: {
+          billingInterval: "annual",
+          stripePriceId: { not: null },
+          stripeCurrentPeriodEnd: { gt: now },
+        },
+        select: { userId: true },
+      });
+      where.id = { in: subRecords.map((s) => s.userId) };
+    } else if (status === "monthly_active" || status === "monthly") {
+      where.isBanned = false;
+      const subRecords = await prismadb.userSubscription.findMany({
+        where: {
+          billingInterval: { not: "annual" },
+          stripePriceId: { not: null },
+          stripeCurrentPeriodEnd: { gt: now },
+        },
+        select: { userId: true },
+      });
+      where.id = { in: subRecords.map((s) => s.userId) };
+    } else if (status === "subscriber") {
+      where.isBanned = false;
+      const subRecords = await prismadb.userSubscription.findMany({
+        where: {
+          stripePriceId: { not: null },
+          stripeCurrentPeriodEnd: { gt: now },
+        },
+        select: { userId: true },
+      });
+      where.id = { in: subRecords.map((s) => s.userId) };
+    } else if (status === "expired") {
+      where.isBanned = false;
+      const expiredSubRecords = await prismadb.userSubscription.findMany({
+        where: {
+          stripePriceId: { not: null },
+          stripeCurrentPeriodEnd: { lte: now },
+        },
+        select: { userId: true },
+      });
+      where.id = { in: expiredSubRecords.map((s) => s.userId) };
+    } else if (status === "free_credits" || status === "free") {
+      where.isBanned = false;
+      const activeSubRecords = await prismadb.userSubscription.findMany({
+        where: {
+          stripePriceId: { not: null },
+          stripeCurrentPeriodEnd: { gt: now },
+        },
+        select: { userId: true },
+      });
+      where.id = { notIn: activeSubRecords.map((s) => s.userId) };
+      where.creditBalance = { gt: 0 };
+    } else if (status === "inactive") {
+      where.isBanned = false;
+      const activeSubRecords = await prismadb.userSubscription.findMany({
+        where: {
+          stripePriceId: { not: null },
+          stripeCurrentPeriodEnd: { gt: now },
+        },
+        select: { userId: true },
+      });
+      where.id = { notIn: activeSubRecords.map((s) => s.userId) };
+      where.creditBalance = { lte: 0 };
     }
 
     // Search Query (case-insensitive name, email, phone)
@@ -129,16 +169,39 @@ export async function GET(req: NextRequest) {
       : [];
 
     const subMap = new Map(subscriptions.map((s) => [s.userId, s]));
-    const now = Date.now();
+    const nowTime = now.getTime();
 
-    // 6. Merge Lightweight Payload
-    const nowDate = new Date(now);
-    const users = dbUsers.map((u) => {
+    // 6. Single Batched Clerk Presence Lookup (Zero N+1)
+    const clerkPresenceMap = new Map<string, { lastActiveAt: number | null }>();
+    let clerkLookupFailed = false;
+
+    if (pageUserIds.length > 0) {
+      try {
+        const clerk = await clerkClient();
+        const clerkRes = await clerk.users.getUserList({
+          userId: pageUserIds,
+          limit: pageUserIds.length,
+        });
+
+        const clerkUsers = Array.isArray(clerkRes) ? clerkRes : (clerkRes as any).data ?? [];
+        for (const cu of clerkUsers) {
+          clerkPresenceMap.set(cu.id, {
+            lastActiveAt: cu.lastActiveAt ?? null,
+          });
+        }
+      } catch (clerkErr) {
+        console.warn("[admin/users] Clerk presence lookup fallback triggered:", clerkErr);
+        clerkLookupFailed = true;
+      }
+    }
+
+    // 7. Merge Lightweight Payload with Canonical Status and Presence
+    let users = dbUsers.map((u) => {
       const sub = subMap.get(u.id);
       const isSubActive = Boolean(
         sub?.stripePriceId &&
         sub?.stripeCurrentPeriodEnd &&
-        new Date(sub.stripeCurrentPeriodEnd).getTime() > now
+        new Date(sub.stripeCurrentPeriodEnd).getTime() > nowTime
       );
 
       const effective = resolveCanonicalEffectiveBalance(
@@ -149,7 +212,24 @@ export async function GET(req: NextRequest) {
           creditAdvanceBalance: u.creditAdvanceBalance,
         },
         sub,
-        nowDate
+        now
+      );
+
+      const clerkData = clerkPresenceMap.get(u.id);
+      const lastActiveAt = clerkData ? clerkData.lastActiveAt : null;
+      const presence = resolvePresenceState(lastActiveAt, nowTime, clerkLookupFailed);
+
+      const statusCategory = resolveUserStatusCategory(
+        {
+          isBanned: u.isBanned,
+          isSubscriber: isSubActive,
+          billingInterval: sub?.billingInterval,
+          planId: sub?.planId,
+          stripeCurrentPeriodEnd: sub?.stripeCurrentPeriodEnd,
+          creditBalance: effective.effectiveBalance,
+          creditsExpireAt: u.creditsExpireAt,
+        },
+        nowTime
       );
 
       return {
@@ -172,8 +252,19 @@ export async function GET(req: NextRequest) {
         billingInterval: sub?.billingInterval ?? null,
         stripeCurrentPeriodEnd: sub?.stripeCurrentPeriodEnd ?? null,
         isSubscriber: isSubActive,
+        presence,
+        lastActiveAt,
+        statusCategory,
+        compositeStatus: formatUserCompositeStatus(statusCategory, presence),
       };
     });
+
+    // Optional presence in-memory post-filter if requested
+    if (presenceFilter === "online") {
+      users = users.filter((u) => u.presence === "Online");
+    } else if (presenceFilter === "offline") {
+      users = users.filter((u) => u.presence === "Offline");
+    }
 
     const totalPages = Math.ceil(total / limit) || 1;
 
