@@ -48,7 +48,24 @@
 
 ---
 
-#### Latest task: Model Fleet Reordering, Custom Grouping & Group Color Customizer (2026-08-20)
+#### Latest task: Expanded Model Capabilities Editor, Dynamic Upgrades & Knowledge Hub Auto-Sync (2026-08-20)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Expanded Model Configuration Drawer Editor:
+     - Expanded the Edit Drawer width to `max-w-2xl` with a comprehensive, multi-section capability control panel.
+     - Enabled full editing of Aspect Ratios (`16:9`, `9:16`, `1:1`, `4:3`, `3:4`, `21:9`, `1:2`, `2:1`, custom ratios).
+     - Enabled full editing of Durations / Video Time (`3s` to `30s` quick pills + custom duration CSV).
+     - Enabled full editing of Resolutions & Quality Presets (`720p`, `1080p`, `2K`, `4K`, `std`, `pro`, `hd`, etc.).
+     - Enabled editing of Max Reference Images (0 to 16) and primary/secondary API Execution Routes (`text_api_route` / `image_api_route`).
+  2. Knowledge Hub Spec Auto-Sync (واخذ المرجع من Knowledge):
+     - Integrated a Knowledge Reference auto-sync dropdown inside the Edit Drawer.
+     - Selecting any researched draft or scraped documentation source instantly populates and updates all model capabilities, durations, resolutions, and API routes.
+  3. Verification:
+     - TypeScript `tsc --noEmit`: 0 errors.
+     - Vitest suite: 14/14 tests green.
+     - Clean git commit pushed to `main`.
+
+#### Previous task: Model Fleet Reordering, Custom Grouping & Group Color Customizer (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Model Reordering System (Move Up / Down):
