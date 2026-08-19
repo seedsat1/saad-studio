@@ -1918,9 +1918,13 @@ function setVoiceChipAvatar(id,gender,color){
   avatar.innerHTML=`<img id="vpAvatarImg" src="${getVoiceAvatar(id,gender||'female')}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
 }
 function selectVmVoice(id,name,lang,accent,emoji,color,gender){
-  _vmSelectedId=id;_vmSelectedGender=gender||'female';
-  document.getElementById('vpName').textContent=name;
-  setVoiceChipAvatar(id,gender,color);
+  _vmSelectedId=id;
+  _vmSelectedGender=gender||'female';
+  
+  const vpNameEl = document.getElementById('vpName');
+  if (vpNameEl) vpNameEl.textContent = name;
+  setVoiceChipAvatar(id, gender, color);
+
   // Sync customVoiceId so generateVoice correctly routes custom vs catalog voices
   const customIdInput=document.getElementById('customVoiceId');
   const cloneBar=document.getElementById('activeCloneBar');
@@ -1934,7 +1938,49 @@ function selectVmVoice(id,name,lang,accent,emoji,color,gender){
     if(customIdInput&&!customIdInput.value.startsWith('custom_'))customIdInput.value='';
     if(cloneBar&&!customIdInput?.value.startsWith('custom_'))cloneBar.style.display='none';
   }
-  renderVmGrid();scheduleAudioQuote();setTimeout(closeVoiceModal,200);
+
+  // Update or insert into the main Left-Panel Embedded Voice List:
+  const list = document.getElementById('embeddedVoiceList');
+  if (list) {
+    list.querySelectorAll('.embedded-voice-item').forEach(item => item.classList.remove('active'));
+
+    let existingItem = document.getElementById('voice_' + id);
+    if (!existingItem) {
+      const newItem = document.createElement('div');
+      newItem.className = 'embedded-voice-item active';
+      newItem.id = 'voice_' + id;
+      newItem.onclick = function() {
+        selectEmbeddedVoice(id, name, lang, accent, emoji, color, gender, this);
+      };
+      
+      const avatarSrc = getVoiceAvatar(id, gender || 'female');
+      const safeName = (name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeDesc = (accent || lang || 'Selected Voice').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      newItem.innerHTML = `
+        <div class="voice-item-left">
+          <div class="voice-item-avatar" id="avatar_${id}">
+            <img src="${avatarSrc}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+          </div>
+          <div class="voice-item-info">
+            <div class="voice-item-name">${safeName}</div>
+            <div class="voice-item-desc">${safeDesc}</div>
+          </div>
+        </div>
+        <button class="voice-preview-btn" data-voice-id="${id}" onclick="previewVmVoice('${id}', '${safeName}', event)" title="Preview Voice">
+          <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+      `;
+      list.insertBefore(newItem, list.firstChild);
+    } else {
+      existingItem.classList.add('active');
+      list.insertBefore(existingItem, list.firstChild);
+    }
+  }
+
+  renderVmGrid();
+  scheduleAudioQuote();
+  setTimeout(closeVoiceModal, 150);
 }
 
 function openCloneSection(){
