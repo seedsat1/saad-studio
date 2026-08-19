@@ -280,19 +280,82 @@ export default function AdminModelsPage() {
   const [knowledgeSources, setKnowledgeSources] = useState<any[]>([]);
   const [selectedDraftId, setSelectedDraftId] = useState<string>("");
 
-  const extractRouteFromSource = (s: any): string => {
-    if (!s) return "";
-    if (s.url) {
+  const getKnowledgeDisplayTitle = (item: any): string => {
+    if (!item) return "";
+    if (item.name && item.name.trim().length > 0 && !item.name.includes("-4") && item.name.length > 5) {
+      return item.name;
+    }
+    if (item.sourceId) {
+      const src = knowledgeSources.find((s) => s.id === item.sourceId);
+      if (src?.name) return src.name;
+    }
+    const nameField = item.fields?.find((f: any) => f.key === "name" || f.key === "title" || f.key === "modelId");
+    if (nameField?.value && nameField.value.length > 3) {
+      return nameField.value;
+    }
+    return item.id;
+  };
+
+  const getKnowledgeRoute = (item: any): string => {
+    if (!item) return "";
+    if (item.url) {
       try {
-        const parsed = new URL(s.url);
+        const parsed = new URL(item.url);
         const segments = parsed.pathname.split("/").filter(Boolean);
         if (segments.length >= 1) {
           return segments[segments.length - 1];
         }
       } catch {}
     }
-    return s.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "";
+    if (item.sourceId) {
+      const src = knowledgeSources.find((s) => s.id === item.sourceId);
+      if (src) return getKnowledgeRoute(src);
+    }
+    const modelIdField = item.fields?.find((f: any) => f.key === "modelId" || f.key === "api_route" || f.key === "route");
+    if (modelIdField?.value) return modelIdField.value;
+
+    const title = getKnowledgeDisplayTitle(item);
+    return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   };
+
+  const allImportedKnowledge = useMemo(() => {
+    const list: { id: string; name: string; route: string; provider: string; isEdit: boolean; isImage: boolean }[] = [];
+    const seenRoutes = new Set<string>();
+
+    knowledgeSources.forEach((s) => {
+      const name = s.name || s.id;
+      const route = getKnowledgeRoute(s);
+      if (!seenRoutes.has(route)) {
+        seenRoutes.add(route);
+        list.push({
+          id: s.id,
+          name,
+          route,
+          provider: s.provider || "wavespeed",
+          isEdit: name.toLowerCase().includes("edit") || route.includes("edit") || route.includes("image-to-image"),
+          isImage: name.toLowerCase().includes("image") || route.includes("image") || route.includes("text-to-image"),
+        });
+      }
+    });
+
+    knowledgeDrafts.forEach((d) => {
+      const name = getKnowledgeDisplayTitle(d);
+      const route = getKnowledgeRoute(d);
+      if (!seenRoutes.has(route) && name !== d.id) {
+        seenRoutes.add(route);
+        list.push({
+          id: d.id,
+          name,
+          route,
+          provider: d.provider || "wavespeed",
+          isEdit: name.toLowerCase().includes("edit") || route.includes("edit") || route.includes("image-to-image"),
+          isImage: name.toLowerCase().includes("image") || route.includes("image") || route.includes("text-to-image"),
+        });
+      }
+    });
+
+    return list;
+  }, [knowledgeSources, knowledgeDrafts]);
 
   const handleAutofillFromKnowledge = (selectedId: string) => {
     setSelectedDraftId(selectedId);
@@ -303,7 +366,7 @@ export default function AdminModelsPage() {
     if (source) {
       if (source.provider) setNewProvider(source.provider);
       setNewModelName(source.name);
-      const cleanRoute = extractRouteFromSource(source);
+      const cleanRoute = getKnowledgeRoute(source);
       setNewModelId(cleanRoute);
       
       const isImg = source.name.toLowerCase().includes("image") || source.url?.toLowerCase().includes("image");
@@ -323,12 +386,12 @@ export default function AdminModelsPage() {
         setNewImageRoute(cleanRoute);
         // Find matching text source if exists
         const matchingText = knowledgeSources.find(s => s.id !== source.id && (s.name.toLowerCase().includes("text") || !s.name.toLowerCase().includes("edit")));
-        if (matchingText) setNewTextRoute(extractRouteFromSource(matchingText));
+        if (matchingText) setNewTextRoute(getKnowledgeRoute(matchingText));
       } else {
         setNewTextRoute(cleanRoute);
         // Find matching edit source if exists
         const matchingEdit = knowledgeSources.find(s => s.id !== source.id && s.name.toLowerCase().includes("edit"));
-        if (matchingEdit) setNewImageRoute(extractRouteFromSource(matchingEdit));
+        if (matchingEdit) setNewImageRoute(getKnowledgeRoute(matchingEdit));
       }
       return;
     }
@@ -1806,38 +1869,23 @@ export default function AdminModelsPage() {
                         onChange={(e) => {
                           const val = e.target.value;
                           setNewTextRoute(val);
-                          if (!newModelName.trim() && val) {
-                            const foundSrc = knowledgeSources.find((s) => extractRouteFromSource(s) === val || s.id === val || s.name === val);
-                            if (foundSrc) setNewModelName(foundSrc.name);
+                          const item = allImportedKnowledge.find((k) => k.route === val);
+                          if (item) {
+                            if (!newModelName.trim()) setNewModelName(item.name);
+                            if (!newModelId.trim()) setNewModelId(item.route);
+                            if (item.provider) setNewProvider(item.provider);
                           }
-                          if (!newModelId.trim() && val) setNewModelId(val);
                         }}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-indigo-800/60 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
                       >
                         <option value="">-- Choose from imported routes / اختر من المسارات المستوردة --</option>
-                        {knowledgeSources.length > 0 && (
-                          <optgroup label="📚 Documentation Sources / مصادر التوثيق المستوردة">
-                            {knowledgeSources.map((s: any) => {
-                              const route = extractRouteFromSource(s);
-                              return (
-                                <option key={`src-text-${s.id}`} value={route}>
-                                  🟢 [{s.provider?.toUpperCase()}] {s.name} ({route})
-                                </option>
-                              );
-                            })}
-                          </optgroup>
-                        )}
-                        {knowledgeDrafts.length > 0 && (
-                          <optgroup label="📄 Knowledge Drafts / المسودات المستخرجة">
-                            {knowledgeDrafts.map((d: any) => {
-                              const mField = d.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
-                              const route = mField?.value || d.id;
-                              return (
-                                <option key={`text-${d.id}`} value={route}>
-                                  📄 [{d.provider?.toUpperCase()}] {route}
-                                </option>
-                              );
-                            })}
+                        {allImportedKnowledge.length > 0 && (
+                          <optgroup label="⚡ Imported Knowledge & Specs (المصادر والمسودات المستوردة)">
+                            {allImportedKnowledge.map((item) => (
+                              <option key={`src-text-${item.id}`} value={item.route}>
+                                🟢 [{item.provider.toUpperCase()}] {item.name} ({item.route})
+                              </option>
+                            ))}
                           </optgroup>
                         )}
                         <optgroup label="🎬 Video Registry (موديلات الفيديو القائمة)">
@@ -1876,31 +1924,13 @@ export default function AdminModelsPage() {
                         className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-indigo-800/60 text-zinc-200 text-xs font-mono focus:outline-none focus:border-indigo-500"
                       >
                         <option value="">-- Choose from imported routes / اختر من المسارات المستوردة --</option>
-                        {knowledgeSources.length > 0 && (
-                          <optgroup label="📚 Documentation Sources / مصادر التوثيق المستوردة">
-                            {knowledgeSources.map((s: any) => {
-                              const route = extractRouteFromSource(s);
-                              return (
-                                <option key={`src-img-${s.id}`} value={route}>
-                                  🟢 [{s.provider?.toUpperCase()}] {s.name} ({route})
-                                </option>
-                              );
-                            })}
-                          </optgroup>
-                        )}
-                        {knowledgeDrafts.length > 0 && (
-                          <optgroup label="📄 Knowledge Drafts / المسودات المستخرجة">
-                            {knowledgeDrafts.map((d: any) => {
-                              const mField = d.fields?.find((f: any) => f.key === "modelId" || f.key === "name");
-                              let route = mField?.value || d.id;
-                              if (route.includes("text-to-video")) route = route.replace("text-to-video", "image-to-video");
-                              else if (route.includes("text-to-image")) route = route.replace("text-to-image", "edit");
-                              return (
-                                <option key={`img-${d.id}`} value={route}>
-                                  📄 [{d.provider?.toUpperCase()}] {route}
-                                </option>
-                              );
-                            })}
+                        {allImportedKnowledge.length > 0 && (
+                          <optgroup label="⚡ Imported Knowledge & Specs (المصادر والمسودات المستوردة)">
+                            {allImportedKnowledge.map((item) => (
+                              <option key={`src-img-${item.id}`} value={item.route}>
+                                🟢 [{item.provider.toUpperCase()}] {item.name} ({item.route})
+                              </option>
+                            ))}
                           </optgroup>
                         )}
                         <optgroup label="🎬 Video Registry (موديلات الفيديو القائمة)">
