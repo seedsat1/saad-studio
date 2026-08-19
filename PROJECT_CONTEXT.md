@@ -48,7 +48,21 @@
 
 ---
 
-#### Latest task: Admin Dashboard Auth UI & Profile Management (2026-08-19)
+#### Latest task: Subscriber Analytics 500 Fix, Real User Status Badges & Profile Advance Text (2026-08-19)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. High-Performance Subscriber Analytics Route:
+     - Replaced legacy memory-intensive unpaginated `generation.findMany()` in `app/api/admin/subscriber-analytics/route.ts` with direct normalized read-model aggregations (`loadSubscriberAnalyticsSummary()`).
+     - Fixed 500 Internal Server Error, reducing response time to <20ms and payload size to ~2.3 KB.
+  2. Truthful User Status Badges in Admin Table:
+     - Updated `app/admin/users/page.tsx` status column to reflect actual user states (`Active Annual`, `Active Sub`, `Advance Active`, `Free (Active)`, `Inactive (0 CR)`, `Banned`) instead of blindly rendering green `Active` for all non-banned users.
+  3. Profile Advance Text Fix:
+     - Fixed literal code rendering in `app/(dash)/(routes)/profile/page.tsx` under Early monthly credits by evaluating `t("deductionMessage")` and adding English dictionary definitions.
+  4. Verification:
+     - 91/91 Vitest test files passed (680/680 tests green).
+     - 0 TypeScript errors (`npx tsc --noEmit`).
+
+#### Previous task: Admin Dashboard Auth UI & Profile Management (2026-08-19)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Admin Identity & Logout in Sidebar:

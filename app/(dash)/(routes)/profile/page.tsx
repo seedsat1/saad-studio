@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useRef, useState, useCallback, useEffect } from "react";
@@ -15,7 +15,10 @@ import {
 function useProfileTranslation() {
   const { lang } = useLanguage();
   const dict: Record<string, Record<string, string>> = {
-    en: {},
+    en: {
+      "deductionMessage": "{num} credits will be deducted from your next renewal.",
+      "requestMessage": "Request {num} credits from your next annual renewal.",
+    },
     ar: {
       // Avatar modal
       "Change Profile Picture": "تغيير صورة الملف الشخصي",
@@ -606,8 +609,8 @@ export default function ProfilePage() {
                   <p className="text-sm font-semibold text-slate-100">{t("Early monthly credits")}</p>
                   <p className="mt-0.5 text-xs text-slate-500">
                     {overview.creditAdvance?.balance
-                      ? `t("deductionMessage").replace("{num}", overview.creditAdvance.balance.toLocaleString())`
-                      : `t("requestMessage").replace("{num}", (overview.creditAdvance?.amount.toLocaleString() ?? "0"))`}
+                      ? t("deductionMessage").replace("{num}", overview.creditAdvance.balance.toLocaleString())
+                      : t("requestMessage").replace("{num}", (overview.creditAdvance?.amount?.toLocaleString() ?? "0"))}
                   </p>
                 </div>
                 <button

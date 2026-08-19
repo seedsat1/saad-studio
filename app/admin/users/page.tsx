@@ -620,10 +620,25 @@ export default function AdminUsersPage() {
                             <XCircle className="h-3 w-3" />
                             Banned
                           </span>
-                        ) : (
+                        ) : user.isSubscriber ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-400 border border-emerald-500/30">
                             <CheckCircle2 className="h-3 w-3" />
-                            Active
+                            {user.billingInterval === "annual" ? "Active Annual" : "Active Sub"}
+                          </span>
+                        ) : user.creditAdvanceBalance > 0 ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-400 border border-amber-500/30">
+                            <Zap className="h-3 w-3" />
+                            Advance Active
+                          </span>
+                        ) : user.creditBalance > 0 ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-0.5 text-[11px] font-semibold text-sky-400 border border-sky-500/30">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Free (Active)
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 px-2 py-0.5 text-[11px] font-medium text-slate-400 border border-slate-700">
+                            <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
+                            Inactive (0 CR)
                           </span>
                         )}
                       </td>
