@@ -58,9 +58,9 @@
   2. Grok Resolution & Quality Parameters Mapping:
      - Mapped `resolution` (`1k` / `2k`) and `quality` (`medium` / `high`) accurately to WaveSpeed input payload so subscriber choices in the UI are strictly respected by the provider.
   3. Direct Image URL Previews & Grid Performance Optimization:
-     - Updated `ImageResultGrid` to prioritize direct non-failed image `url` and `originalUrl` over thumbnail proxy routes, preventing "No Preview" black boxes for newly added models like Grok Imagine.
+     - Prioritized fast compressed WebP thumbnails (`thumbnailUrl`) for grid cards to prevent downloading hundreds of megabytes of raw 4K/8K upscale master images simultaneously on initial page load, while seamlessly falling back to direct URLs for fresh in-flight generations.
+     - Kept full-resolution master files (`originalUrl` / `url`) strictly mapped to inspection, download, remix, and reuse actions.
      - Added CSS `content-visibility: auto` and `contain-intrinsic-size: 220px 220px` to image cards for off-screen render skipping, and enabled native `loading="lazy"` and `decoding="async"` to eliminate main-thread decoding freezes when viewing dozens of high-res generated images.
-     - Preserved in-memory URLs during background persistence reconciliation in `loadPersistedImages`.
   4. Explore Page Global Footer Integration:
      - Embedded the dynamic CMS-powered `<Footer />` component seamlessly at the bottom of the Explore showcase page (`app/(dash)/(routes)/explore/page.tsx`), maintaining complete brand links, newsletter subscription, and social media connectivity across all viewport sizes.
   5. Verification:

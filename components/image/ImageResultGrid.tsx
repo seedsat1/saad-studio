@@ -561,9 +561,9 @@ export function ImageResultGrid({
             );
           }
 
-          const mediaSrc = (item.url && !item.url.startsWith("failed:") ? item.url : null)
-            || (item.originalUrl && !item.originalUrl.startsWith("failed:") ? item.originalUrl : null)
-            || item.thumbnailUrl;
+          const mediaSrc = (item.thumbnailUrl && !item.thumbnailUrl.startsWith("failed:") ? item.thumbnailUrl : null)
+            || (item.url && !item.url.startsWith("failed:") ? item.url : null)
+            || (item.originalUrl && !item.originalUrl.startsWith("failed:") ? item.originalUrl : null);
           const isSelected = selectedIds.has(item.id);
           const isLiked = likedIds.has(item.id);
           const isMenuOpen = activeMenuId === item.id;
