@@ -108,14 +108,15 @@ export function CameraMovementsSection() {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filtered.map((m) => {
           const displayName = isAr ? m.nameAr : m.nameEn;
           const wasCopied = copiedId === m.id;
+          const categoryLabel = getCategoryLabel(m.category, isAr);
           return (
             <div
               key={m.id}
-              className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0d1017] transition-all hover:border-amber-500/30 hover:shadow-[0_0_30px_-12px_rgba(245,158,11,0.35)]"
+              className="group flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0d1017] transition-all hover:border-amber-500/30 hover:shadow-[0_0_30px_-12px_rgba(245,158,11,0.35)]"
             >
               {/* Thumbnail (animated WebP loops like GIF in every browser) */}
               <div className="relative aspect-video w-full overflow-hidden bg-black/40">
@@ -131,29 +132,39 @@ export function CameraMovementsSection() {
                   <Film className="h-3 w-3" />
                   {m.tag}
                 </span>
+                <span className="absolute right-2 top-2 rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/80 backdrop-blur-sm ring-1 ring-white/10">
+                  {categoryLabel}
+                </span>
               </div>
-              {/* Meta + copy */}
-              <div className="flex items-center justify-between gap-2 p-3">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-white" title={displayName}>
+
+              {/* Body: name + prompt + copy */}
+              <div className="flex flex-1 flex-col gap-3 p-3.5">
+                <div>
+                  <div className="text-sm font-bold text-white leading-tight" title={displayName}>
                     {displayName}
                   </div>
                   <div className="mt-0.5 truncate text-[11px] text-zinc-500" title={isAr ? m.nameEn : m.nameAr}>
                     {isAr ? m.nameEn : m.nameAr}
                   </div>
                 </div>
+
+                {/* Prompt in code-block style — like the source aicameramovements.com layout */}
+                <pre className="flex-1 whitespace-pre-wrap break-words rounded-lg border border-white/5 bg-black/40 p-2.5 text-[11px] leading-relaxed text-zinc-300 font-mono max-h-40 overflow-auto select-all" dir="ltr">
+                  {m.promptDescription}
+                </pre>
+
                 <button
                   type="button"
                   onClick={() => handleCopy(m.id, m.promptDescription)}
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all ${
+                  className={`inline-flex w-full items-center justify-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-semibold transition-all ${
                     wasCopied
                       ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-300"
-                      : "border-white/10 bg-white/[0.04] text-zinc-300 hover:border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-200"
+                      : "border-white/10 bg-white/[0.04] text-zinc-200 hover:border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-200"
                   }`}
                   aria-label={isAr ? "نسخ البرومبت" : "Copy prompt"}
                 >
                   {wasCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                  <span>{wasCopied ? (isAr ? "نُسخ" : "Copied") : (isAr ? "نسخ" : "Copy")}</span>
+                  <span>{wasCopied ? (isAr ? "تم النسخ" : "Copied!") : (isAr ? "نسخ البرومبت" : "Copy prompt")}</span>
                 </button>
               </div>
             </div>
@@ -162,4 +173,10 @@ export function CameraMovementsSection() {
       </div>
     </section>
   );
+}
+
+function getCategoryLabel(id: CameraMovementCategoryId, isAr: boolean): string {
+  const cat = CAMERA_MOVEMENT_CATEGORIES.find((c) => c.id === id);
+  if (!cat) return "";
+  return isAr ? cat.nameAr : cat.nameEn;
 }

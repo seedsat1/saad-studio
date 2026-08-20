@@ -2013,6 +2013,14 @@ export default function ExplorePage() {
       </section>
 
       {/* ════════════════════════════════════════════════
+          CAMERA MOVEMENTS LIBRARY (46 cinematic motion presets)
+          Placed at the TOP right after the hero — first thing users see.
+          Data source: lib/camera-movements-library.ts
+          Section UI:  components/explore/CameraMovementsSection.tsx
+      ════════════════════════════════════════════════ */}
+      <CameraMovementsSection />
+
+      {/* ════════════════════════════════════════════════
           STUDIO CREATIONS FEED (معرض أعمال الاستوديو)
       ════════════════════════════════════════════════ */}
       <section className="w-full px-4 md:px-8 py-10 max-w-[1600px] mx-auto border-b border-white/5">
@@ -2343,14 +2351,6 @@ export default function ExplorePage() {
         </div>
 
       </section>
-
-      {/* ════════════════════════════════════════════════
-          CAMERA MOVEMENTS LIBRARY (46 cinematic motion presets)
-          Placed ABOVE the promo banners so the new library gets first attention.
-          Data source: lib/camera-movements-library.ts
-          Section UI:  components/explore/CameraMovementsSection.tsx
-      ════════════════════════════════════════════════ */}
-      <CameraMovementsSection />
 
       {/* ════════════════════════════════════════════════
           OFFICIAL SHOWCASES & BANNER ADS (الموديلات والانتاج)

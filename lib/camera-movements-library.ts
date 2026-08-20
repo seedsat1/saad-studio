@@ -23,13 +23,14 @@ export type CameraMovementCategory = {
   nameEn: string;
 };
 
+// Order matches aicameramovements.com tab bar (Dolly/Track first — highest count of shots).
 export const CAMERA_MOVEMENT_CATEGORIES: CameraMovementCategory[] = [
-  { id: "pan-tilt",     nameAr: "بان / تيلت",         nameEn: "Pan / Tilt" },
-  { id: "zoom-lens",    nameAr: "زوم / عدسات",        nameEn: "Zoom / Lens" },
   { id: "dolly-track",  nameAr: "دولّي / تتبع",       nameEn: "Dolly / Track" },
+  { id: "zoom-lens",    nameAr: "زوم / عدسات",        nameEn: "Zoom / Lens" },
+  { id: "drone-crane",  nameAr: "درون / رافعات",      nameEn: "Drone / Crane" },
+  { id: "pan-tilt",     nameAr: "بان / تيلت",         nameEn: "Pan / Tilt" },
   { id: "physical",     nameAr: "حركات فيزيائية",     nameEn: "Physical Moves" },
   { id: "human",        nameAr: "كاميرا بشرية",       nameEn: "Human Camera" },
-  { id: "drone-crane",  nameAr: "درون / رافعات",      nameEn: "Drone / Crane" },
   { id: "specials",     nameAr: "لقطات خاصة",         nameEn: "Specials" },
 ];
 
