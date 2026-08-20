@@ -48,16 +48,14 @@
 
 ---
 
-#### Latest task: Buffer GraphQL API Real Dispatch & Strict Error Reporting (2026-08-20)
+#### Latest task: Studio Image Library Broken 404 Media Fallback & Clean UI Rendering (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Buffer GraphQL Schema & Error Handling Fix**:
-     - Fixed Buffer GraphQL mutation union schema (`... on PostActionSuccess { post { id status } } ... on UserError { message }`). Previously, schema union mismatches resulted in silent rejection where HTTP 200 was falsely reported as a success.
-     - Added dual-strategy dispatch: attempts immediate `schedulingType: "now"` and automatically falls back to `schedulingType: "automatic"` (Buffer Queue) if immediate publishing is restricted on Free plans.
-     - Absolute Public URL conversion: Ensures attached image URLs sent to Buffer are fully-qualified (`https://saadstudio.app/api/media/...`) so Buffer ingestion servers can download the media asset.
-  2. **Transparent UI Diagnostic Feedback**:
-     - Converted `publishResult` from a naive string to a typed status banner (`success` in emerald green vs `error` in red/rose with `AlertCircle`).
-     - Real API error messages (e.g., token expiration, missing channel permissions) are now directly shown to the user instead of false success banners.
+  1. **Resilient Card Cover Fallback (`ItemCardCover`)**:
+     - Added robust `onError` handling for all Studio Image Library card covers (`app/admin/cms/studio-img/page.tsx`).
+     - If an old uploaded image URL is 404/broken or missing, it automatically renders an elegant, dark futuristic placeholder displaying the item title, model, and category badge, completely eliminating broken image icons and raw alt text artifacts.
+  2. **Media Slot Error Protection (`MediaPickerImage`)**:
+     - Wrapped all media preview slots (cover, before, after, poster) with graceful fallback states.
   3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)

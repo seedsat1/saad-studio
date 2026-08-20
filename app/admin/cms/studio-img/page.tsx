@@ -454,6 +454,34 @@ function FilterSelect({
   );
 }
 
+function ItemCardCover({ item, cover }: { item: ItemDto; cover?: string }) {
+  const [imgError, setImgError] = useState(false);
+  const normalized = cover ? normalizeMediaUrl(cover) : "";
+
+  if (!normalized || imgError) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#0c1427] via-[#080e1d] to-[#040710] p-4 text-center select-none">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/10 border border-violet-500/20 text-violet-300 shadow-inner">
+          <ImageIcon className="h-5 w-5" />
+        </div>
+        <span className="mt-2.5 text-xs font-semibold text-slate-200 line-clamp-1">{item.title}</span>
+        <span className="mt-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-violet-400/90">
+          {item.model || item.category || "AI Studio"}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={normalized}
+      alt={item.title}
+      onError={() => setImgError(true)}
+      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+    />
+  );
+}
+
 function ItemCard({
   item,
   onEdit,
@@ -471,13 +499,7 @@ function ItemCard({
   return (
     <div className="group overflow-hidden rounded-2xl border border-white/10 bg-[#0b1222] shadow-lg shadow-black/40 transition hover:border-violet-400/40">
       <button onClick={onEdit} className="relative block aspect-[4/3] w-full overflow-hidden bg-black/40 text-left">
-        {cover ? (
-          <img src={normalizeMediaUrl(cover) || ""} alt={item.title} className="h-full w-full object-cover transition group-hover:scale-105" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-slate-600">
-            <ImageIcon className="h-10 w-10" />
-          </div>
-        )}
+        <ItemCardCover item={item} cover={cover} />
         {hasVideo && (
           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-pink-500/90 px-2 py-0.5 text-[10px] font-bold text-white shadow">
             <Video className="h-3 w-3" />
@@ -1031,20 +1053,43 @@ function StepRow({
   );
 }
 
+function MediaPickerImage({ url }: { url: string }) {
+  const [err, setErr] = useState(false);
+  const normalized = normalizeMediaUrl(url);
+
+  if (err || !normalized) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center bg-zinc-900/80 text-slate-400 p-2 text-center select-none">
+        <ImageIcon className="h-6 w-6 text-violet-400/60 mb-1" />
+        <span className="text-[10px] text-slate-400">الصورة غير متوفرة</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={normalized}
+      alt=""
+      onError={() => setErr(true)}
+      className="h-full w-full object-cover"
+    />
+  );
+}
+
 function MediaSlot({
   label,
   url,
+  isVideo,
   uploading,
   accept,
-  isVideo,
   onUpload,
   onRemove,
 }: {
   label: string;
   url?: string;
+  isVideo?: boolean;
   uploading: boolean;
   accept: string;
-  isVideo?: boolean;
   onUpload: (file: File) => void;
   onRemove: () => void;
 }) {
@@ -1058,7 +1103,7 @@ function MediaSlot({
           {isVideo ? (
             <video src={normalizeMediaUrl(url) || ""} controls className="h-full w-full object-contain" />
           ) : (
-            <img src={normalizeMediaUrl(url) || ""} alt="" className="h-full w-full object-cover" />
+            <MediaPickerImage url={url} />
           )}
           <button
             type="button"
@@ -1114,7 +1159,7 @@ function MiniMediaSlot({
       </span>
       {url ? (
         <>
-          <img src={normalizeMediaUrl(url) || ""} alt="" className="h-full w-full object-cover" />
+          <MediaPickerImage url={url} />
           <button
             type="button"
             onClick={onRemove}
@@ -1132,7 +1177,7 @@ function MiniMediaSlot({
         type="file"
         accept="image/*"
         disabled={uploading}
-        className="absolute inset-0 cursor-pointer opacity-0"
+        className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-not-allowed"
         onChange={onUpload}
       />
     </div>
