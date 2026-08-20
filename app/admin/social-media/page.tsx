@@ -269,6 +269,7 @@ export default function AdminSocialMediaPage() {
           topic: topic.trim(),
           language: selectedLanguage,
           messages: [{ role: "user", content: topic.trim() }],
+          referenceImageUrl: currentPost.imageUrl || undefined,
         }),
       });
       const data = await res.json();
@@ -399,7 +400,7 @@ export default function AdminSocialMediaPage() {
 
   const handleGenerate = async (promptToUse?: string) => {
     const p = promptToUse || agentPrompt;
-    if (!p.trim()) return;
+    if (!p.trim() && !currentPost.imageUrl) return;
 
     setGenerating(true);
     setPublishResult(null);
@@ -415,6 +416,7 @@ export default function AdminSocialMediaPage() {
           imageModel: selectedImageModel,
           videoModel: selectedVideoModel,
           aspectRatio: selectedAspectRatio,
+          referenceImageUrl: currentPost.imageUrl || undefined,
         }),
       });
       const data = await res.json();
@@ -443,6 +445,7 @@ export default function AdminSocialMediaPage() {
           prompt: p,
           model: selectedImageModel,
           aspectRatio: selectedAspectRatio,
+          referenceImageUrl: currentPost.imageUrl || undefined,
         }),
       });
       const data = await res.json();
@@ -471,6 +474,7 @@ export default function AdminSocialMediaPage() {
           prompt: p,
           model: selectedVideoModel,
           aspectRatio: selectedAspectRatio,
+          referenceImageUrl: currentPost.imageUrl || undefined,
         }),
       });
       const data = await res.json();

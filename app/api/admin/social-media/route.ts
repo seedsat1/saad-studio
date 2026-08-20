@@ -38,7 +38,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-async function generateImageDirectly(prompt: string, modelName: string, aspectRatio: string = "16:9"): Promise<string> {
+async function generateImageDirectly(
+  prompt: string,
+  modelName: string,
+  aspectRatio: string = "16:9",
+  referenceImageUrl?: string
+): Promise<string> {
   const model = (modelName || "nano-banana-pro").toLowerCase();
   
   // Cinematic Hollywood prompt enhancement to eliminate cheesy 3D renders and gibberish text
@@ -136,7 +141,7 @@ async function generateImageDirectly(prompt: string, modelName: string, aspectRa
     }
   }
 
-  // 3. Google Nano Banana Pro (Primary Default)
+  // 3. Google Nano Banana Pro (Primary Default with optional image-to-image reference)
   try {
     const result = await googleGenerateImage({
       modelId: "nano-banana-pro",
@@ -144,7 +149,7 @@ async function generateImageDirectly(prompt: string, modelName: string, aspectRa
       aspectRatio: aspectRatio as any,
       resolution: "2K",
       numImages: 1,
-      imageUrls: [],
+      imageUrls: referenceImageUrl ? [referenceImageUrl] : [],
     });
     if (result?.urls?.[0]) return result.urls[0];
   } catch (e) {
@@ -281,8 +286,13 @@ Return a JSON object matching:
       const videoModel = String(body.videoModel || "kling-3.0/video");
       const aspectRatio = String(body.aspectRatio || "16:9");
 
-      if (!userPrompt) {
-        return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+      const rawRefUrl = typeof body.referenceImageUrl === "string" ? body.referenceImageUrl.trim() : (typeof body.imageUrl === "string" ? body.imageUrl.trim() : "");
+      const referenceImageUrl = rawRefUrl
+        ? (rawRefUrl.startsWith("http") ? rawRefUrl : `${siteUrl}${rawRefUrl.startsWith("/") ? "" : "/"}${rawRefUrl}`)
+        : "";
+
+      if (!userPrompt && !referenceImageUrl) {
+        return NextResponse.json({ error: "Prompt or Reference Image is required" }, { status: 400 });
       }
 
       const openAIApiKey = process.env.OPENAI_API_KEY;
@@ -292,6 +302,8 @@ Return a JSON object matching:
       if (openAIApiKey && openAIApiKey !== "sk-placeholder") {
         const systemPrompt = `You are the Lead Social Media Growth Strategist and Award-Winning Creative Director for "Saad Studio" (سعد ستوديو - the premier AI creative studio).
 Target Language: ${targetLang === "ar" ? "ARABIC (العربية الفصحى العصرية الجذابة والاحترافية)" : "ENGLISH"}.
+
+${referenceImageUrl ? "VISION ANALYSIS REQUIRED: The user has attached a reference image. You MUST visually inspect the image in detail (identifying subjects, colors, mood, lighting, objects, background) and generate social media posts and hashtags directly tailored to the visual story presented in the image!" : ""}
 
 Generate platform-optimized social media posts tailored to each network:
 1. twitter: Maximum 280 characters, compelling hook, strong value proposition, 2-3 hashtags, CTA link to ${siteUrl}.
@@ -304,7 +316,7 @@ Generate platform-optimized social media posts tailored to each network:
 IMPORTANT FOR "imagePrompt":
 Create an English description for a Hollywood-grade, photorealistic cinematic masterpiece photograph.
 - Visual style: Real photography, shot on ARRI Alexa LF 70mm with anamorphic prime lens, luxury studio lighting, dramatic rim light, shallow depth of field, authentic textures.
-- Theme: A breathtaking cinematic scene representing: "${userPrompt}".
+- Theme: A breathtaking cinematic scene representing: "${userPrompt || "Visual art showcase"}"${referenceImageUrl ? " preserving stylistic continuity with the attached reference image" : ""}.
 - Strict rules: NO cartoon, NO anime, NO childish 3D CGI toy render, NO fake gibberish text inside the picture.
 
 Return ONLY a valid JSON object matching:
@@ -318,6 +330,19 @@ Return ONLY a valid JSON object matching:
   "imagePrompt": "..."
 }`;
 
+        const userMessageContent: any = referenceImageUrl
+          ? [
+              { type: "text", text: userPrompt || "Analyze this image and write viral social media posts for it." },
+              {
+                type: "image_url",
+                image_url: {
+                  url: referenceImageUrl,
+                  detail: "high",
+                },
+              },
+            ]
+          : userPrompt;
+
         const apiRes = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -328,7 +353,7 @@ Return ONLY a valid JSON object matching:
             model: "gpt-4o-mini",
             messages: [
               { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
+              { role: "user", content: userMessageContent },
             ],
             response_format: { type: "json_object" },
             temperature: 0.7,
@@ -366,70 +391,70 @@ Return ONLY a valid JSON object matching:
 
       // If OpenAI failed or not available, use rich high-converting templates
       if (!platformsResult.twitter || !platformsResult.twitter.content) {
-        imageGenPrompt = `A hyper-realistic Hollywood cinematic still photograph depicting ${userPrompt}, luxury dark aesthetic, dramatic volumetric lighting, shot on 70mm anamorphic lens, 8k resolution.`;
+        imageGenPrompt = `A hyper-realistic Hollywood cinematic still photograph depicting ${userPrompt || "creative AI visual"}, luxury dark aesthetic, dramatic volumetric lighting, shot on 70mm anamorphic lens, 8k resolution.`;
 
         if (targetLang === "ar") {
           platformsResult = {
             twitter: {
               platform: "twitter",
-              content: `🔥 نقلة نوعية في الذكاء الاصطناعي الإبداعي مع سعد ستوديو! 🚀\n\n${userPrompt.slice(0, 140)}\n\nجرّب الآن واستمتع بالسرعة والدقة الفائقة: ${siteUrl}`,
+              content: `🔥 نقلة نوعية في الذكاء الاصطناعي الإبداعي مع سعد ستوديو! 🚀\n\n${(userPrompt || "إبداع بصري جديد").slice(0, 140)}\n\nجرّب الآن واستمتع بالسرعة والدقة الفائقة: ${siteUrl}`,
               hashtags: ["#سعد_ستوديو", "#ذكاء_اصطناعي", "#SaadStudio"],
               charCount: 180,
             },
             instagram: {
               platform: "instagram",
-              content: `✨ صمم أعمالك السينمائية والفنية بالذكاء الاصطناعي كما لم ترها من قبل!\n\n${userPrompt}\n\n💡 اكتشف الإمكانيات الإبداعية الكاملة الآن.\n🔗 الرابط في البايو للتجربة المباشرة!`,
-              hashtags: ["#سعد_ستوديو", "#تصميم_بالذكاء_الاصطناعي", "#إبداع", "#SaadStudio", "#AIArt"],
-              charCount: 210,
+              content: `عالم جديد من الإبداع والإنتاجية مع سعد ستوديو ✨\n\n${userPrompt || "ابتكار متواصل في الذكاء الاصطناعي لتوليد الصور والفيديوهات الاحترافية."}\n\n👉 الرابط في البايو للتجربة المباشرة 🎬`,
+              hashtags: ["#SaadStudio", "#AIArt", "#GenerativeAI", "#MidjourneyAlternative", "#Cinema4D", "#DigitalArt", "#ContentCreator", "#CGI"],
+              charCount: 220,
             },
             linkedin: {
               platform: "linkedin",
-              content: `يسعدنا الإعلان عن ميزات الذكاء الاصطناعي المتقدمة في منصة Saad Studio لتمكين صناع المحتوى والشركات.\n\n📌 أبرز النقاط:\n• ${userPrompt}\n• دقة سينمائية فائقة ومعالجة لحظية.\n• تكامل مباشر مع كافة المنصات.\n\nاكتشف المزيد عبر: ${siteUrl}`,
-              hashtags: ["#SaadStudio", "#ArtificialIntelligence", "#Innovation"],
-              charCount: 260,
+              content: `يسعدنا مشاركة هذا الإنجاز الجديد من سعد ستوديو 🌟\n\n${userPrompt || "تطوير أدوات الذكاء الاصطناعي لمساعدة المبدعين وصناع الأفلام على الوصول لأعلى دقة بصرية."}\n\nما رأيك في مستقبل الإنتاج الإبداعي المؤتمت؟ شاركنا رأيك في التعليقات.\n\n🔗 ${siteUrl}`,
+              hashtags: ["#SaadStudio", "#AI", "#Innovation", "#VideoEditing", "#Productivity"],
+              charCount: 250,
             },
             facebook: {
               platform: "facebook",
-              content: `تجربة جديدة كلياً في عالم الذكاء الاصطناعي الإبداعي! 🚀\n\n${userPrompt}\n\nجرّب منصة سعد ستوديو اليوم وشاركنا رأيك في التعليقات: ${siteUrl}`,
+              content: `نقلة جديدة في صناعة المحتوى البصري مع منصة سعد ستوديو! 🚀\n\n${userPrompt || "أحدث أدوات التوليد الإبداعي المتقدمة في متناول يدك الآن."}\n\nاكتشف المزيد وجرّب بنفسك: ${siteUrl}`,
               hashtags: ["#سعد_ستوديو", "#ذكاء_اصطناعي", "#SaadStudio"],
-              charCount: 170,
+              charCount: 210,
             },
             telegram: {
               platform: "telegram",
-              content: `🚀 *تحديث جديد من سعد ستوديو*\n\n${userPrompt}\n\n🔗 *جرب الآن عبر الرابط:* \n[دخول المنصة](${siteUrl})`,
+              content: `🚀 **تحديث جديد ومميز من سعد ستوديو**\n\n${userPrompt || "أدوات التوليد السينمائي فائقة الدقة أصبحت متاحة الآن."}\n\n🔗 [دخول المنصة مباشرة](${siteUrl})`,
               hashtags: ["#سعد_ستوديو", "#تحديث"],
-              charCount: 140,
+              charCount: 160,
             },
             tiktok: {
               platform: "tiktok",
-              content: `🎬 سيناريو فيديو قصير (15-30s):\n\n[المشهد 1 (0-3s)]: لقطة خاطفة ومبهرة للنتيجة السينمائية.\n[المشهد 2 (3-12s)]: تصوير شاشة سريع لاختيار النموذج وكتابة البرومبت.\n[المشهد 3 (12-25s)]: استعراض تفاصيل الدقة والإضاءة.\n[الصوت]: جرب سعد ستوديو مجاناً الآن عبر الرابط في البايو!`,
-              hashtags: ["#fyp", "#viral", "#saadstudio", "#ai"],
-              charCount: 240,
+              content: `🎬 **HOOK (0-3s):** كيف تسوي هذا الإبداع البصري في ثواني بس بالذكاء الاصطناعي؟\n\n🎥 **SCENE:** استعراض نتيجة التوليد الفائقة في سعد ستوديو.\n\n🗣️ **VOICEOVER:** هذا الموقع بيغير طريقة تصميمك ومونتاجك للأبد! ادخل سعد ستوديو وجرب الرابط بالبايو.`,
+              hashtags: ["#SaadStudio", "#AIAnimation", "#تيك_توك", "#ذكاء_اصطناعي"],
+              charCount: 260,
             },
           };
         } else {
           platformsResult = {
             twitter: {
               platform: "twitter",
-              content: `🔥 Next-level creative AI with Saad Studio! 🚀\n\n${userPrompt.slice(0, 140)}\n\nTry it now: ${siteUrl}`,
-              hashtags: ["#SaadStudio", "#AI", "#GenAI"],
+              content: `Next-gen Creative AI is here with Saad Studio! 🚀\n\n${(userPrompt || "New Visual Creation").slice(0, 140)}\n\nExperience high-end cinematic generation: ${siteUrl}`,
+              hashtags: ["#SaadStudio", "#AIArt", "#Creativity"],
               charCount: 160,
             },
             instagram: {
               platform: "instagram",
-              content: `✨ Design cinematic visuals with AI like never before.\n\n${userPrompt}\n\n💡 Discover the full creative potential.\n🔗 Link in bio to try it now!`,
-              hashtags: ["#SaadStudio", "#AIArt", "#Creativity"],
-              charCount: 200,
+              content: `Pushing the boundaries of generative art with Saad Studio ✨\n\n${userPrompt || "Ultra-realistic visuals crafted in seconds."}\n\n👉 Link in bio to explore!`,
+              hashtags: ["#SaadStudio", "#AIArt", "#DigitalArt", "#GenerativeAI", "#Cinematic"],
+              charCount: 180,
             },
             linkedin: {
               platform: "linkedin",
-              content: `We are excited to unveil advanced AI capabilities on Saad Studio, empowering creators and enterprises.\n\nHighlights:\n• ${userPrompt}\n• Cinematic precision & real-time generation.\n• Seamless platform integration.\n\nExplore more at ${siteUrl}`,
-              hashtags: ["#SaadStudio", "#ArtificialIntelligence", "#Innovation"],
-              charCount: 260,
+              content: `Elevating creative studio workflows with next-generation AI at Saad Studio 🚀\n\n${userPrompt || "High fidelity image & video pipelines built for professional creators."}\n\nLearn more: ${siteUrl}`,
+              hashtags: ["#SaadStudio", "#Innovation", "#AI", "#CreativeTech"],
+              charCount: 220,
             },
             facebook: {
               platform: "facebook",
-              content: `A brand new experience in creative AI! 🚀\n\n${userPrompt}\n\nTry Saad Studio today and share your thoughts below: ${siteUrl}`,
+              content: `A brand new experience in creative AI! 🚀\n\n${userPrompt || "High-end visual generation"}\n\nTry Saad Studio today and share your thoughts below: ${siteUrl}`,
               hashtags: ["#SaadStudio", "#AI"],
               charCount: 160,
             },
