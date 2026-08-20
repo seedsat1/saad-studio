@@ -33,6 +33,7 @@ import {
   Mic,
   FileCode,
   Megaphone,
+  Mail,
   FlaskConical,
   TerminalSquare,
   Bug,
@@ -117,6 +118,11 @@ export const ADMIN_NAV_CONFIG: NavGroup[] = [
         label: "Subscriber Messages",
         href: "/admin/broadcast",
         icon: Megaphone,
+      },
+      {
+        label: "Newsletter Hub",
+        href: "/admin/newsletter",
+        icon: Mail,
       },
       {
         label: "Transactions & Billing",

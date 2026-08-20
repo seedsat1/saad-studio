@@ -79,7 +79,11 @@
      - Fully redesigned subscriber broadcast emails (`app/api/admin/email/route.ts`) into a bulletproof, responsive luxury dark-mode layout compatible with Gmail, Apple Mail, and Outlook.
      - Upgraded Saad Studio brand header with high-resolution 76px logo, enterprise badge, glowing gradient borders, clear non-overlapping typography, card-wrapped message body, and a vibrant gradient Call-to-Action button ("Launch Saad Studio →").
      - Updated live email client preview in `/admin/broadcast` to mirror the exact production email rendering.
-  10. Verification:
+  10. Dedicated Newsletter Hub & Subscribers Management Page:
+     - Built dedicated `/admin/newsletter` page (`app/admin/newsletter/page.tsx`) and added `Newsletter Hub` to `AdminSidebar` under USERS & FINANCE.
+     - Added robust newsletter storage library (`lib/newsletter.ts`) and CRUD endpoints (`/api/admin/newsletter` & `/api/newsletter`).
+     - Features complete subscriber list with search, status filters, manual add, deletion, one-click email copying, and CSV export.
+  11. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest test suite: 19/19 tests passed across all suites.
 
