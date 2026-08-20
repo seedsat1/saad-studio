@@ -201,7 +201,7 @@ export function resolveWaveSpeedImageModelRoute(
       maxReferenceImages: edit ? 1 : 0,
       outputCountField: "num_images",
       maxOutputImages: 4,
-      inputShape: "aspect-only",
+      inputShape: "aspect-resolution",
     };
   }
 
@@ -307,7 +307,13 @@ export function buildWaveSpeedImageInput(
     input.negative_prompt = params.negativePrompt;
   }
 
-  if (config.inputShape === "aspect-only" || config.model.includes("grok")) {
+  if (config.model.includes("grok")) {
+    const ar = String(params.aspectRatio || "1:1").trim();
+    input.aspect_ratio = ar === "auto" ? "1:1" : ar;
+    const res = String(requestedQuality ?? "1k").trim().toLowerCase();
+    input.resolution = res.includes("2") ? "2k" : "1k";
+    input.quality = res.includes("2") || res.includes("high") || res.includes("pro") ? "high" : "medium";
+  } else if (config.inputShape === "aspect-only") {
     const ar = String(params.aspectRatio || "1:1").trim();
     input.aspect_ratio = ar === "auto" ? "1:1" : ar;
   } else if (config.inputShape === "aspect-resolution" || config.inputShape === "seedream-pro") {

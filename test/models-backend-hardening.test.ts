@@ -83,7 +83,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
 
       const textRoute = resolveWaveSpeedImageModelRoute("grok-imagine/text-to-image", false, 1);
       expect(textRoute?.model).toBe("x-ai/grok-imagine-image-quality/text-to-image");
-      expect(textRoute?.inputShape).toBe("aspect-only");
+      expect(textRoute?.inputShape).toBe("aspect-resolution");
 
       const editRoute = resolveWaveSpeedImageModelRoute("grok-imagine/image-to-image", true, 1);
       expect(editRoute?.model).toBe("x-ai/grok-imagine-image-quality/edit");

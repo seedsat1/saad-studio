@@ -21,7 +21,7 @@ import {
   normalizeGoogleImageSize,
 } from "@/lib/google-image-model-specs";
 
-export const maxDuration = 180;
+export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
@@ -472,10 +472,10 @@ async function generateGoogleImage(params: {
   return images.map((image) => ({ buffer: Buffer.from(image.data, "base64"), mimeType: image.mimeType }));
 }
 
-async function pollWaveSpeedImageTask(taskId: string, apiKey: string, maxAttempts = 90): Promise<string[]> {
+async function pollWaveSpeedImageTask(taskId: string, apiKey: string, maxAttempts = 150): Promise<string[]> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Initial quick check after 600ms, then every 1000ms
-    const waitTime = attempt === 0 ? 600 : 1000;
+    // Initial quick check after 1000ms, then every 2000ms
+    const waitTime = attempt === 0 ? 1000 : 2000;
     await new Promise((resolve) => setTimeout(resolve, waitTime));
 
     const resultRes = await fetch(

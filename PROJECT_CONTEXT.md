@@ -51,13 +51,16 @@
 #### Latest task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. Hardened Provider Polling & URL Extraction:
+  1. Hardened Provider Polling, Long Timeout & URL Extraction:
      - Fixed `pollWaveSpeedImageTask` in `app/api/generate/image/route.ts` and `app/api/panel/generate/image/route.ts` to accept all successful status strings (`completed`, `succeeded`, `success`, `done`).
+     - Expanded polling timeout to 150 attempts with 2000ms intervals (300 seconds / 5 minutes) and set route `maxDuration = 300` so heavy high-resolution generations (such as Grok Imagine 2.0 taking ~85s) complete reliably without timing out.
      - Added support for singular `output`, `result`, `images`, and nested data candidates in `extractProviderOutputUrls` and `normalizeImageResponseUrls`.
-  2. Direct Image URL Previews in Grid:
+  2. Grok Resolution & Quality Parameters Mapping:
+     - Mapped `resolution` (`1k` / `2k`) and `quality` (`medium` / `high`) accurately to WaveSpeed input payload so subscriber choices in the UI are strictly respected by the provider.
+  3. Direct Image URL Previews in Grid:
      - Updated `ImageResultGrid` to prioritize direct non-failed image `url` and `originalUrl` over thumbnail proxy routes, preventing "No Preview" black boxes for newly added models like Grok Imagine.
      - Preserved in-memory URLs during background persistence reconciliation in `loadPersistedImages`.
-  3. Verification:
+  4. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest test suite: 12/12 tests passed.
 
