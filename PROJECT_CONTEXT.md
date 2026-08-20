@@ -48,14 +48,16 @@
 
 ---
 
-#### Latest task: Multimodal Vision & Visual Inspection Integration for Social Media AI Agent (2026-08-20)
+#### Latest task: Buffer GraphQL API Real Dispatch & Strict Error Reporting (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Vision Integration (GPT-4o / Multimodal AI)**:
-     - The AI Agent now directly receives and visually inspects (`image_url` high detail) any uploaded reference image.
-     - When generating campaigns or consulting, the Agent analyzes the visual components (subjects, colors, atmosphere, text, lighting) and generates custom tailored posts, hashtags, and visual prompts reflecting the image.
-  2. **Image-to-Image / Image-to-Video Pipeline**:
-     - Google Nano Banana Pro and Grok engines now receive the reference image URL (`imageUrls: [referenceImageUrl]`) for style consistency and Image-to-Image / Image-to-Video generation.
+  1. **Buffer GraphQL Schema & Error Handling Fix**:
+     - Fixed Buffer GraphQL mutation union schema (`... on PostActionSuccess { post { id status } } ... on UserError { message }`). Previously, schema union mismatches resulted in silent rejection where HTTP 200 was falsely reported as a success.
+     - Added dual-strategy dispatch: attempts immediate `schedulingType: "now"` and automatically falls back to `schedulingType: "automatic"` (Buffer Queue) if immediate publishing is restricted on Free plans.
+     - Absolute Public URL conversion: Ensures attached image URLs sent to Buffer are fully-qualified (`https://saadstudio.app/api/media/...`) so Buffer ingestion servers can download the media asset.
+  2. **Transparent UI Diagnostic Feedback**:
+     - Converted `publishResult` from a naive string to a typed status banner (`success` in emerald green vs `error` in red/rose with `AlertCircle`).
+     - Real API error messages (e.g., token expiration, missing channel permissions) are now directly shown to the user instead of false success banners.
   3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)

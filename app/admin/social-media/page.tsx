@@ -374,7 +374,7 @@ export default function AdminSocialMediaPage() {
   const [config, setConfig] = useState<SocialAccountsConfig>({});
   const [loadingData, setLoadingData] = useState(true);
   const [publishing, setPublishing] = useState(false);
-  const [publishResult, setPublishResult] = useState<string | null>(null);
+  const [publishResult, setPublishResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [savingConfig, setSavingConfig] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -630,13 +630,13 @@ export default function AdminSocialMediaPage() {
       });
       const data = await res.json();
       if (res.ok && data?.success) {
-        setPublishResult("تم نشر المحتوى بنجاح إلى القنوات المستهدفة! ✨");
+        setPublishResult({ type: "success", message: "تم نشر المحتوى بنجاح إلى القنوات المستهدفة! ✨" });
         await fetchData();
       } else {
-        setPublishResult("فشل في النشر: " + (data?.error || "تأكد من إعداد مفاتيح القنوات"));
+        setPublishResult({ type: "error", message: data?.error || "فشل في النشر: تأكد من إعداد مفاتيح وصلاحيات القنوات" });
       }
     } catch (e) {
-      setPublishResult("خطأ في الاتصال: " + String(e));
+      setPublishResult({ type: "error", message: "خطأ في الاتصال: " + String(e) });
     } finally {
       setPublishing(false);
     }
@@ -1248,9 +1248,28 @@ export default function AdminSocialMediaPage() {
               )}
 
               {publishResult && (
-                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>{publishResult}</span>
+                <div
+                  className={`p-3.5 rounded-2xl text-xs flex items-center justify-between gap-2 border transition-all ${
+                    publishResult.type === "success"
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                      : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {publishResult.type === "success" ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    )}
+                    <span className="font-semibold">{publishResult.message}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPublishResult(null)}
+                    className="text-zinc-400 hover:text-white text-xs px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10"
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
             </div>

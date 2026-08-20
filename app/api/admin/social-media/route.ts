@@ -614,11 +614,15 @@ Return ONLY a valid JSON object matching:
       const results: Record<string, boolean> = {};
 
       // Buffer API Broadcast (Facebook, Instagram, X, LinkedIn) - Supports new Buffer GraphQL API & REST Fallback
+      let lastBufferError = "";
       if (targetPlatform === "facebook" || targetPlatform === "buffer" || targetPlatform === "all") {
         if (config.bufferAccessToken) {
           try {
             const apiKey = config.bufferAccessToken.trim();
             const textToPublish = `${post.platforms.facebook?.content || post.platforms.twitter?.content || ""}\n\n${(post.platforms.facebook?.hashtags || []).join(" ")}`;
+            const fullImageUrl = post.imageUrl
+              ? (post.imageUrl.startsWith("http") ? post.imageUrl : `${siteUrl}${post.imageUrl.startsWith("/") ? "" : "/"}${post.imageUrl}`)
+              : "";
 
             // 1. Try modern Buffer GraphQL API (https://api.buffer.com)
             let graphqlSuccess = false;
@@ -660,7 +664,7 @@ Return ONLY a valid JSON object matching:
                   const channels = org?.channels || [];
                   for (const ch of channels) {
                     if (targetPlatform === "facebook") {
-                      if (ch.service === "facebook" || ch.service === "facebookPage") {
+                      if (ch.service === "facebook" || ch.service === "facebookPage" || ch.service === "facebook_page") {
                         channelIds.push(ch.id);
                       }
                     } else {
@@ -669,60 +673,90 @@ Return ONLY a valid JSON object matching:
                   }
                 }
 
-                // If no specific channel matched, use all channels
+                // If no specific channel matched, use all available channels
                 if (channelIds.length === 0 && orgs[0]?.channels?.length) {
                   channelIds = orgs[0].channels.map((c: any) => c.id);
                 }
 
                 if (channelIds.length > 0) {
                   for (const chId of channelIds) {
-                    const postInput: any = {
-                      channelId: chId,
-                      text: textToPublish,
-                      schedulingType: "NOW",
-                    };
-
-                    if (post.videoUrl && post.mediaType === "video") {
-                      postInput.media = {
-                        videos: [{ url: post.videoUrl }],
-                      };
-                    } else if (post.imageUrl) {
-                      postInput.media = {
-                        images: [{ url: post.imageUrl }],
-                      };
-                    }
-
-                    const createPostMutation = {
-                      query: `
-                        mutation CreatePost($input: CreatePostInput!) {
-                          createPost(input: $input) {
+                    // Try immediate publish first, then fallback to automatic queue
+                    const createPostMutation = `
+                      mutation CreatePost($input: CreatePostInput!) {
+                        createPost(input: $input) {
+                          ... on PostActionSuccess {
                             post {
                               id
                               status
                             }
                           }
+                          ... on UserError {
+                            message
+                          }
                         }
-                      `,
-                      variables: { input: postInput },
-                    };
+                      }
+                    `;
 
-                    const publishRes = await fetch("https://api.buffer.com", {
+                    const postInputNow: any = {
+                      channelId: chId,
+                      text: textToPublish,
+                      schedulingType: "now",
+                    };
+                    if (fullImageUrl) {
+                      postInputNow.assets = [{ type: "IMAGE", url: fullImageUrl }];
+                    }
+
+                    let publishRes = await fetch("https://api.buffer.com", {
                       method: "POST",
                       headers: {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${apiKey}`,
                       },
-                      body: JSON.stringify(createPostMutation),
+                      body: JSON.stringify({ query: createPostMutation, variables: { input: postInputNow } }),
                     });
 
-                    if (publishRes.ok) {
+                    let pubData = await publishRes.json().catch(() => ({}));
+                    if (pubData?.data?.createPost?.post?.id) {
                       graphqlSuccess = true;
+                    } else {
+                      // Try fallback with schedulingType: "automatic" (Queue)
+                      const postInputQueue: any = {
+                        channelId: chId,
+                        text: textToPublish,
+                        schedulingType: "automatic",
+                      };
+                      if (fullImageUrl) {
+                        postInputQueue.assets = [{ type: "IMAGE", url: fullImageUrl }];
+                      }
+
+                      publishRes = await fetch("https://api.buffer.com", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${apiKey}`,
+                        },
+                        body: JSON.stringify({ query: createPostMutation, variables: { input: postInputQueue } }),
+                      });
+
+                      pubData = await publishRes.json().catch(() => ({}));
+                      if (pubData?.data?.createPost?.post?.id) {
+                        graphqlSuccess = true;
+                      } else {
+                        const errMsg = pubData?.data?.createPost?.message || pubData?.errors?.[0]?.message;
+                        if (errMsg) lastBufferError = errMsg;
+                        console.error("[Buffer GraphQL Publish Error]:", errMsg, pubData);
+                      }
                     }
                   }
+                } else {
+                  lastBufferError = "لم يتم العثور على أي قنوات مربوطة في حساب Buffer الخاص بك";
                 }
+              } else {
+                lastBufferError = `فشل المصادقة مع Buffer (HTTP ${gqlRes.status})`;
               }
-            } catch (gqlErr) {
+            } catch (gqlErr: any) {
               console.warn("Buffer GraphQL failed, trying REST fallback:", gqlErr);
+              lastBufferError = gqlErr?.message || "GraphQL Connection Error";
             }
 
             // 2. If GraphQL succeeded, record result
@@ -756,8 +790,8 @@ Return ONLY a valid JSON object matching:
                 params.append("now", "true");
                 targetProfileIds.forEach((pid) => params.append("profile_ids[]", pid));
 
-                if (post.imageUrl) {
-                  params.append("media[photo]", post.imageUrl);
+                if (fullImageUrl) {
+                  params.append("media[photo]", fullImageUrl);
                 }
 
                 const bufferRes = await fetch("https://api.bufferapp.com/1/updates/create.json", {
@@ -766,15 +800,26 @@ Return ONLY a valid JSON object matching:
                   body: params.toString(),
                 });
 
-                results.buffer = bufferRes.ok;
-                results.facebook = bufferRes.ok;
+                const restJson = await bufferRes.json().catch(() => ({}));
+                results.buffer = Boolean(bufferRes.ok && restJson?.success !== false);
+                results.facebook = results.buffer;
+                if (!results.buffer) {
+                  lastBufferError = restJson?.message || `Buffer REST Error (${bufferRes.status})`;
+                }
+              } else if (!lastBufferError) {
+                lastBufferError = "لم يتم العثور على بروفايل أو قناة في حساب Buffer";
               }
             }
-          } catch (e) {
+          } catch (e: any) {
             console.error("Buffer publish error:", e);
             results.buffer = false;
             results.facebook = false;
+            lastBufferError = e?.message || "Internal Buffer Handler Error";
           }
+        } else {
+          results.buffer = false;
+          results.facebook = false;
+          lastBufferError = "لم يتم ضبط Buffer Access Token في تبويب الإعدادات";
         }
       }
 
@@ -838,14 +883,22 @@ Return ONLY a valid JSON object matching:
         }
       }
 
-      // Update post status to published
-      await saveSocialPost({
-        ...post,
-        status: "published",
-        publishedAt: new Date().toISOString(),
-      });
+      const hasSuccess = Object.values(results).some(Boolean);
 
-      return NextResponse.json({ success: true, results });
+      if (hasSuccess) {
+        // Update post status to published
+        await saveSocialPost({
+          ...post,
+          status: "published",
+          publishedAt: new Date().toISOString(),
+        });
+        return NextResponse.json({ success: true, results });
+      } else {
+        const errorDetail = lastBufferError
+          ? `فشل النشر عبر Buffer: ${lastBufferError}`
+          : "فشل النشر: يرجى التحقق من إعدادات المفاتيح والقنوات المستهدفة";
+        return NextResponse.json({ success: false, error: errorDetail, results }, { status: 400 });
+      }
     }
 
     // 4. SAVE SOCIAL CONFIG
