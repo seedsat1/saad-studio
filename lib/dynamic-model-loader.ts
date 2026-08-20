@@ -231,3 +231,279 @@ export async function saveDynamicVideoModels(models: WaveSpeedVideoModel[]): Pro
     create: { key: "dynamic_video_models", value: serialized },
   });
 }
+
+export interface InferredModelSpecs {
+  cleanName: string;
+  cleanId: string;
+  modality: "image" | "video";
+  provider: string;
+  group: string;
+  familyColor: string;
+  aspectRatios: string[];
+  durations: number[];
+  resolutions: string[];
+  maxRefImages: number;
+  textRoute: string;
+  imageRoute: string;
+  creditCost: number;
+}
+
+export function cleanModelDisplayName(raw: string): string {
+  if (!raw) return "";
+  let name = raw.trim();
+
+  // Strip provider prefixes if in path or id
+  name = name.replace(/^(x-ai|bytedance|alibaba|kwaivgi|kling|wavespeed-ai|wavespeed|openai|google)[\/\-_:]/i, "");
+
+  // Strip technical sub-route suffixes
+  name = name.replace(/[\/\-_:]?(text-to-image|image-to-image|image-to-video|text-to-video|edit-video|reference-to-video|sequential|edit-sequential|edit|quality|image|video)$/gi, "");
+  name = name.replace(/[\/\-_:]?(text-to-image|image-to-image|image-to-video|text-to-video|edit-video|reference-to-video|sequential|edit-sequential|edit|quality)$/gi, "");
+
+  // Handle well-known flagship clean brandings:
+  if (/grok\s*imagine/i.test(raw) || /grok/i.test(raw)) {
+    if (/v2|2\.0|2/i.test(raw)) return "Grok Imagine 2.0";
+    return "Grok Imagine";
+  }
+  if (/seedance/i.test(raw)) {
+    if (/2\.5|25/i.test(raw)) return "Seedance 2.5";
+    if (/mini/i.test(raw)) return "Seedance 2.0 Mini";
+    return "Seedance 2.0";
+  }
+  if (/seedream/i.test(raw)) {
+    if (/5.*pro|5\.0.*pro/i.test(raw)) return "Seedream 5.0 Pro";
+    if (/5.*lite|5\.0.*lite/i.test(raw)) return "Seedream 5.0 Lite";
+    if (/4\.5/i.test(raw)) return "Seedream 4.5";
+    return "Seedream 5.0";
+  }
+  if (/kling/i.test(raw)) {
+    if (/3\.0.*pro|3.*pro/i.test(raw)) return "Kling 3.0 Pro";
+    if (/3\.0|3/i.test(raw)) return "Kling 3.0";
+    if (/o3/i.test(raw)) return "Kling O3";
+    if (/turbo/i.test(raw)) return "Kling V3 Turbo";
+    if (/2\.6/i.test(raw)) return "Kling 2.6";
+  }
+  if (/wan/i.test(raw)) {
+    if (/2\.7/i.test(raw)) return "Wan 2.7 Pro";
+    if (/2\.5/i.test(raw)) return "Wan 2.5";
+    if (/2\.1/i.test(raw)) return "Wan 2.1";
+  }
+  if (/flux/i.test(raw)) {
+    if (/pro/i.test(raw)) return "FLUX.2 Pro";
+    if (/flex/i.test(raw)) return "FLUX.2 Flex";
+    if (/max/i.test(raw)) return "FLUX.2 Max";
+    return "FLUX.2";
+  }
+
+  // If camelCase or hyphenated, turn into title words
+  name = name
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return name || raw;
+}
+
+export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: string): InferredModelSpecs {
+  const text = `${rawIdOrRoute} ${rawTitle || ""}`.toLowerCase();
+  const cleanName = cleanModelDisplayName(rawTitle || rawIdOrRoute);
+
+  // 1. Grok Imagine
+  if (text.includes("grok")) {
+    const isV2 = text.includes("v2") || text.includes("2.0");
+    const textRoute = isV2
+      ? "x-ai/grok-imagine-image-v2.0/text-to-image"
+      : "x-ai/grok-imagine-image-quality/text-to-image";
+    const editRoute = isV2
+      ? "x-ai/grok-imagine-image-v2.0/edit"
+      : "x-ai/grok-imagine-image-quality/edit";
+    return {
+      cleanName: isV2 ? "Grok Imagine 2.0" : "Grok Imagine",
+      cleanId: isV2 ? "grok-imagine-v2" : "grok-imagine",
+      modality: "image",
+      provider: "wavespeed",
+      group: "Grok",
+      familyColor: "#06b6d4",
+      aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "2:1", "1:2", "19.5:9", "9:19.5", "20:9", "9:20"],
+      durations: [],
+      resolutions: ["1K", "2K", "4K"],
+      maxRefImages: 1,
+      textRoute,
+      imageRoute: editRoute,
+      creditCost: 2.0,
+    };
+  }
+
+  // 2. Kling Video
+  if (text.includes("kling")) {
+    const isTurbo = text.includes("turbo");
+    const isO3 = text.includes("o3");
+    const is26 = text.includes("2.6");
+
+    let textRoute = "kwaivgi/kling-v3.0-pro/text-to-video";
+    let imageRoute = "kwaivgi/kling-v3.0-pro/image-to-video";
+    let cleanId = "kling-3-pro";
+    let name = "Kling 3.0 Pro";
+
+    if (isTurbo) {
+      textRoute = "kwaivgi/kling-v3-turbo-pro/text-to-video";
+      imageRoute = "kwaivgi/kling-v3-turbo-pro/image-to-video";
+      cleanId = "kling-v3-turbo";
+      name = "Kling V3 Turbo";
+    } else if (isO3) {
+      textRoute = "kwaivgi/kling-video-o3-std/text-to-video";
+      imageRoute = "kwaivgi/kling-video-o3-std/image-to-video";
+      cleanId = "kling-o3";
+      name = "Kling O3";
+    } else if (is26) {
+      textRoute = "kwaivgi/kling-v2.6-std/text-to-video";
+      imageRoute = "kwaivgi/kling-v2.6-std/image-to-video";
+      cleanId = "kling-2-6";
+      name = "Kling 2.6";
+    }
+
+    return {
+      cleanName: name,
+      cleanId,
+      modality: "video",
+      provider: "wavespeed",
+      group: "Kling",
+      familyColor: "#8b5cf6",
+      aspectRatios: ["16:9", "9:16", "1:1"],
+      durations: [5, 10, 15],
+      resolutions: ["720p", "1080p", "4K"],
+      maxRefImages: 4,
+      textRoute,
+      imageRoute,
+      creditCost: 3.5,
+    };
+  }
+
+  // 3. Seedance Video
+  if (text.includes("seedance")) {
+    const is25 = text.includes("2.5") || text.includes("25");
+    const isMini = text.includes("mini");
+    const textRoute = is25
+      ? "bytedance/seedance-2.5/text-to-video-turbo"
+      : isMini
+        ? "bytedance/seedance-2.0-mini/text-to-video"
+        : "bytedance/seedance-2.0/text-to-video";
+    const imageRoute = is25
+      ? "bytedance/seedance-2.5/image-to-video-turbo"
+      : isMini
+        ? "bytedance/seedance-2.0-mini/image-to-video"
+        : "bytedance/seedance-2.0/image-to-video";
+    return {
+      cleanName: is25 ? "Seedance 2.5" : isMini ? "Seedance 2.0 Mini" : "Seedance 2.0",
+      cleanId: is25 ? "seedance-2-5" : isMini ? "seedance-2-mini" : "seedance-2-0",
+      modality: "video",
+      provider: "byteplus",
+      group: "Seedance",
+      familyColor: "#10b981",
+      aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
+      durations: [5, 10, 12],
+      resolutions: ["720p", "1080p", "4K"],
+      maxRefImages: 4,
+      textRoute,
+      imageRoute,
+      creditCost: 3.0,
+    };
+  }
+
+  // 4. Seedream Image
+  if (text.includes("seedream")) {
+    const is5Pro = text.includes("5-pro") || text.includes("5.0-pro") || text.includes("pro");
+    const textRoute = is5Pro ? "bytedance/seedream-v5.0-pro" : "bytedance/seedream-v5.0-lite";
+    const imageRoute = is5Pro ? "bytedance/seedream-v5.0-pro/edit" : "bytedance/seedream-v5.0-lite/edit";
+    return {
+      cleanName: is5Pro ? "Seedream 5.0 Pro" : "Seedream 5.0 Lite",
+      cleanId: is5Pro ? "seedream-5-pro" : "seedream-5-lite",
+      modality: "image",
+      provider: "wavespeed",
+      group: "Seedream",
+      familyColor: "#10b981",
+      aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "2:1", "1:2", "21:9", "auto"],
+      durations: [],
+      resolutions: ["1K", "2K", "4K"],
+      maxRefImages: 4,
+      textRoute,
+      imageRoute,
+      creditCost: 2.0,
+    };
+  }
+
+  // 5. FLUX.2 Image
+  if (text.includes("flux")) {
+    const isFlex = text.includes("flex");
+    const tier = isFlex ? "flex" : "pro";
+    return {
+      cleanName: isFlex ? "FLUX.2 Flex" : "FLUX.2 Pro",
+      cleanId: `flux-2-${tier}`,
+      modality: "image",
+      provider: "wavespeed",
+      group: "Flux",
+      familyColor: "#ec4899",
+      aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "1:2", "2:1"],
+      durations: [],
+      resolutions: ["1K", "2K", "4K"],
+      maxRefImages: 3,
+      textRoute: `wavespeed-ai/flux-2-${tier}/text-to-image`,
+      imageRoute: `wavespeed-ai/flux-2-${tier}/edit`,
+      creditCost: 2.0,
+    };
+  }
+
+  // 6. Wan Video/Image
+  if (text.includes("wan")) {
+    const isImg = text.includes("image");
+    if (isImg) {
+      return {
+        cleanName: "Wan 2.7 Image Pro",
+        cleanId: "wan-2-7-image-pro",
+        modality: "image",
+        provider: "wavespeed",
+        group: "Wan",
+        familyColor: "#f59e0b",
+        aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
+        durations: [],
+        resolutions: ["1K", "2K", "4K"],
+        maxRefImages: 3,
+        textRoute: "alibaba/wan-2.7/text-to-image-pro",
+        imageRoute: "alibaba/wan-2.7/image-edit-pro",
+        creditCost: 2.0,
+      };
+    }
+    return {
+      cleanName: "Wan 2.5 Video",
+      cleanId: "wan-2-5-video",
+      modality: "video",
+      provider: "wavespeed",
+      group: "Wan",
+      familyColor: "#f59e0b",
+      aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
+      durations: [5, 10],
+      resolutions: ["720p", "1080p"],
+      maxRefImages: 3,
+      textRoute: "alibaba/wan-2.5/text-to-video",
+      imageRoute: "alibaba/wan-2.5/image-to-video",
+      creditCost: 3.0,
+    };
+  }
+
+  // Generic fallback
+  const isVideo = text.includes("video") || text.includes("t2v") || text.includes("i2v");
+  return {
+    cleanName,
+    cleanId: rawIdOrRoute.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+    modality: isVideo ? "video" : "image",
+    provider: "wavespeed",
+    group: "Custom Fleet",
+    familyColor: isVideo ? "#8b5cf6" : "#06b6d4",
+    aspectRatios: isVideo ? ["16:9", "9:16", "1:1"] : ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9"],
+    durations: isVideo ? [5, 10] : [],
+    resolutions: isVideo ? ["720p", "1080p"] : ["1K", "2K"],
+    maxRefImages: 4,
+    textRoute: rawIdOrRoute,
+    imageRoute: rawIdOrRoute.includes("text") ? rawIdOrRoute.replace(/text-to-image/i, "edit").replace(/text-to-video/i, "image-to-video") : "",
+    creditCost: isVideo ? 3.0 : 2.0,
+  };
+}

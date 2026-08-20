@@ -96,4 +96,30 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(customNormalized).toBe("bytedance/seedream-v5.0-pro/text-to-image");
     });
   });
+
+  describe("5. Model Branding Normalization & Specs Auto-Detection", () => {
+    it("cleans ugly sub-route technical names into pure brand titles", async () => {
+      const { cleanModelDisplayName, inferModelCapabilitiesAndSpecs } = await import("@/lib/dynamic-model-loader");
+
+      expect(cleanModelDisplayName("x-ai-grok-imagine-image-v2.0-text-to-image")).toBe("Grok Imagine 2.0");
+      expect(cleanModelDisplayName("grok-imagine-image-quality-edit")).toBe("Grok Imagine");
+      expect(cleanModelDisplayName("kwaivgi-kling-v3.0-pro-text-to-video")).toBe("Kling 3.0 Pro");
+      expect(cleanModelDisplayName("bytedance-seedance-2.5-text-to-video-turbo")).toBe("Seedance 2.5");
+
+      const grokSpecs = inferModelCapabilitiesAndSpecs("x-ai-grok-imagine-image-v2.0-text-to-image");
+      expect(grokSpecs.cleanName).toBe("Grok Imagine 2.0");
+      expect(grokSpecs.aspectRatios).toContain("19.5:9");
+      expect(grokSpecs.aspectRatios).toContain("9:19.5");
+      expect(grokSpecs.aspectRatios).toContain("3:2");
+      expect(grokSpecs.textRoute).toBe("x-ai/grok-imagine-image-v2.0/text-to-image");
+      expect(grokSpecs.imageRoute).toBe("x-ai/grok-imagine-image-v2.0/edit");
+
+      const klingSpecs = inferModelCapabilitiesAndSpecs("kwaivgi-kling-v3.0-pro-text-to-video");
+      expect(klingSpecs.cleanName).toBe("Kling 3.0 Pro");
+      expect(klingSpecs.modality).toBe("video");
+      expect(klingSpecs.textRoute).toBe("kwaivgi/kling-v3.0-pro/text-to-video");
+      expect(klingSpecs.imageRoute).toBe("kwaivgi/kling-v3.0-pro/image-to-video");
+      expect(klingSpecs.durations).toEqual([5, 10, 15]);
+    });
+  });
 });

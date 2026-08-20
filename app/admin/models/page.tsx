@@ -67,7 +67,12 @@ import {
   GripVertical,
 } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
-import type { DynamicImageModel, DynamicVideoModel } from "@/lib/dynamic-model-loader";
+import {
+  type DynamicImageModel,
+  type DynamicVideoModel,
+  inferModelCapabilitiesAndSpecs,
+  cleanModelDisplayName,
+} from "@/lib/dynamic-model-loader";
 import type { CentralModelDefinition } from "@/lib/model-definition-registry";
 
 interface PlatformSurfaceItem {
@@ -315,6 +320,7 @@ export default function AdminModelsPage() {
   const [newModality, setNewModality] = useState<"video" | "image">("video");
   const [newProvider, setNewProvider] = useState<string>("wavespeed");
   const [newFamily, setNewFamily] = useState<string>("custom");
+  const [newFamilyColor, setNewFamilyColor] = useState<string>("#6366f1");
   const [newTextRoute, setNewTextRoute] = useState("");
   const [newImageRoute, setNewImageRoute] = useState("");
   const [newDurations, setNewDurations] = useState<string>("5, 10");
@@ -371,17 +377,19 @@ export default function AdminModelsPage() {
   };
 
   const allImportedKnowledge = useMemo(() => {
-    const list: { id: string; name: string; route: string; provider: string; isEdit: boolean; isImage: boolean }[] = [];
+    const list: { id: string; name: string; cleanName: string; route: string; provider: string; isEdit: boolean; isImage: boolean }[] = [];
     const seenRoutes = new Set<string>();
 
     knowledgeSources.forEach((s) => {
       const name = s.name || s.id;
       const route = getKnowledgeRoute(s);
+      const cleanName = cleanModelDisplayName(name || route);
       if (!seenRoutes.has(route)) {
         seenRoutes.add(route);
         list.push({
           id: s.id,
           name,
+          cleanName: cleanName || name,
           route,
           provider: s.provider || "wavespeed",
           isEdit: name.toLowerCase().includes("edit") || route.includes("edit") || route.includes("image-to-image"),
@@ -393,11 +401,13 @@ export default function AdminModelsPage() {
     knowledgeDrafts.forEach((d) => {
       const name = getKnowledgeDisplayTitle(d);
       const route = getKnowledgeRoute(d);
+      const cleanName = cleanModelDisplayName(name || route);
       if (!seenRoutes.has(route) && name !== d.id) {
         seenRoutes.add(route);
         list.push({
           id: d.id,
           name,
+          cleanName: cleanName || name,
           route,
           provider: d.provider || "wavespeed",
           isEdit: name.toLowerCase().includes("edit") || route.includes("edit") || route.includes("image-to-image"),
@@ -413,42 +423,38 @@ export default function AdminModelsPage() {
     setSelectedDraftId(selectedId);
     if (!selectedId) return;
 
-    // Check if selectedId is a source
+    // 1. Check if selectedId is a source
     const source = knowledgeSources.find((s) => s.id === selectedId || s.name === selectedId);
     if (source) {
-      if (source.provider) setNewProvider(source.provider);
-      setNewModelName(source.name);
       const cleanRoute = getKnowledgeRoute(source);
-      setNewModelId(cleanRoute);
-      
-      const isImg = source.name.toLowerCase().includes("image") || source.url?.toLowerCase().includes("image");
-      const isEdit = source.name.toLowerCase().includes("edit") || source.url?.toLowerCase().includes("edit");
+      const specs = inferModelCapabilitiesAndSpecs(cleanRoute, source.name);
 
-      if (isImg) {
-        setNewModality("image");
+      if (source.provider) setNewProvider(source.provider);
+      setNewModelName(specs.cleanName);
+      setNewModelId(specs.cleanId);
+      setNewModality(specs.modality);
+      setNewFamily(specs.group);
+      setNewFamilyColor(specs.familyColor);
+      setNewCreditCost(specs.creditCost);
+
+      if (specs.modality === "image") {
         setActiveCategoryTab("Image");
         setSelectedStudioPages(["/image"]);
       } else {
-        setNewModality("video");
         setActiveCategoryTab("Video");
         setSelectedStudioPages(["/video"]);
       }
 
-      if (isEdit) {
-        setNewImageRoute(cleanRoute);
-        // Find matching text source if exists
-        const matchingText = knowledgeSources.find(s => s.id !== source.id && (s.name.toLowerCase().includes("text") || !s.name.toLowerCase().includes("edit")));
-        if (matchingText) setNewTextRoute(getKnowledgeRoute(matchingText));
-      } else {
-        setNewTextRoute(cleanRoute);
-        // Find matching edit source if exists
-        const matchingEdit = knowledgeSources.find(s => s.id !== source.id && s.name.toLowerCase().includes("edit"));
-        if (matchingEdit) setNewImageRoute(getKnowledgeRoute(matchingEdit));
-      }
+      setNewTextRoute(specs.textRoute);
+      setNewImageRoute(specs.imageRoute);
+      setNewAspectRatios(specs.aspectRatios);
+      if (specs.resolutions.length > 0) setNewResolutions(specs.resolutions.join(", "));
+      if (specs.durations.length > 0) setNewDurations(specs.durations.join(", "));
+      setNewMaxRefImages(specs.maxRefImages);
       return;
     }
 
-    // Check if selectedId is a draft
+    // 2. Check if selectedId is a draft
     const draft = knowledgeDrafts.find((d) => d.id === selectedId);
     if (!draft) return;
 
@@ -459,37 +465,53 @@ export default function AdminModelsPage() {
     const aspectRatiosField = draft.fields?.find((f: any) => f.key.includes("aspect"));
     const maxRefField = draft.fields?.find((f: any) => f.key.includes("reference") || f.key.includes("max"));
 
+    const rawRoute = modelIdField?.value || getKnowledgeRoute(draft);
+    const specs = inferModelCapabilitiesAndSpecs(rawRoute, getKnowledgeDisplayTitle(draft));
+
     if (draft.provider) setNewProvider(draft.provider);
-    if (modelIdField?.value) {
-      setNewModelId(modelIdField.value);
-      const inferredName = modelIdField.value.split(/[/_-]/).filter(Boolean).map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
-      setNewModelName(inferredName);
-      setNewTextRoute(modelIdField.value);
-      if (modelIdField.value.includes("text-to-video")) {
-        setNewImageRoute(modelIdField.value.replace("text-to-video", "image-to-video"));
-      } else if (modelIdField.value.includes("text-to-image")) {
-        setNewImageRoute(modelIdField.value.replace("text-to-image", "edit"));
-      }
-    }
-    if (modalityField?.value === "image") {
-      setNewModality("image");
+    setNewModelName(specs.cleanName);
+    setNewModelId(specs.cleanId);
+    setNewFamily(specs.group);
+    setNewFamilyColor(specs.familyColor);
+    setNewCreditCost(specs.creditCost);
+
+    const effectiveModality = modalityField?.value === "image" ? "image" : specs.modality;
+    setNewModality(effectiveModality);
+    if (effectiveModality === "image") {
+      setActiveCategoryTab("Image");
       setSelectedStudioPages(["/image"]);
     } else {
-      setNewModality("video");
+      setActiveCategoryTab("Video");
       setSelectedStudioPages(["/video"]);
     }
-    if (resolutionsField?.value) {
-      setNewResolutions(resolutionsField.value);
-    }
-    if (durationsField?.value) {
-      setNewDurations(durationsField.value);
-    }
+
+    setNewTextRoute(specs.textRoute);
+    setNewImageRoute(specs.imageRoute);
+
     if (aspectRatiosField?.value) {
       const parsed = aspectRatiosField.value.split(/[,;\s]+/).map((s: string) => s.trim()).filter(Boolean);
       if (parsed.length > 0) setNewAspectRatios(parsed);
+      else setNewAspectRatios(specs.aspectRatios);
+    } else {
+      setNewAspectRatios(specs.aspectRatios);
     }
+
+    if (resolutionsField?.value) {
+      setNewResolutions(resolutionsField.value);
+    } else if (specs.resolutions.length > 0) {
+      setNewResolutions(specs.resolutions.join(", "));
+    }
+
+    if (durationsField?.value) {
+      setNewDurations(durationsField.value);
+    } else if (specs.durations.length > 0) {
+      setNewDurations(specs.durations.join(", "));
+    }
+
     if (maxRefField?.value && !isNaN(Number(maxRefField.value))) {
       setNewMaxRefImages(Number(maxRefField.value));
+    } else {
+      setNewMaxRefImages(specs.maxRefImages);
     }
   };
 
@@ -520,7 +542,11 @@ export default function AdminModelsPage() {
           name: newModelName.trim(),
           modality: newModality,
           provider: newProvider,
+          group: newFamily.trim() || (newModality === "image" ? "Image Models" : "Video Models"),
           family: newFamily.trim() || "custom",
+          family_label: newFamily.trim() || "custom",
+          family_color: newFamilyColor || (newModality === "image" ? "#06b6d4" : "#8b5cf6"),
+          color: newFamilyColor || (newModality === "image" ? "#06b6d4" : "#8b5cf6"),
           badge: newBadge || "NEW",
           api_route: newTextRoute.trim() || newModelId.trim(),
           text_api_route: newTextRoute.trim() || newModelId.trim(),
@@ -1008,13 +1034,18 @@ export default function AdminModelsPage() {
     const source = knowledgeSources.find((s) => s.id === selectedId || s.name === selectedId);
     if (source) {
       const cleanRoute = getKnowledgeRoute(source);
-      const isEdit = source.name.toLowerCase().includes("edit") || source.url?.toLowerCase().includes("edit");
-      if (isEdit) {
-        setEditImageRoute(cleanRoute);
-      } else {
-        setEditTextRoute(cleanRoute);
-      }
-      setActionNotice(`Auto-populated route "${cleanRoute}" from Knowledge Source "${source.name}".`);
+      const specs = inferModelCapabilitiesAndSpecs(cleanRoute, source.name);
+
+      setEditTextRoute(specs.textRoute);
+      if (specs.imageRoute) setEditImageRoute(specs.imageRoute);
+      setEditAspectRatios(specs.aspectRatios);
+      if (specs.resolutions.length > 0) setEditResolutions(specs.resolutions.join(", "));
+      if (specs.durations.length > 0) setEditDurations(specs.durations.join(", "));
+      setEditMaxRefImages(specs.maxRefImages);
+      if (specs.group) setEditGroup(specs.group);
+      if (specs.familyColor) setEditFamilyColor(specs.familyColor);
+
+      setActionNotice(`Auto-synced "${specs.cleanName}" capabilities and routes from Knowledge Source "${source.name}".`);
       return;
     }
 
@@ -1022,30 +1053,50 @@ export default function AdminModelsPage() {
     const draft = knowledgeDrafts.find((d) => d.id === selectedId);
     if (!draft) return;
 
+    const modelIdField = draft.fields?.find((f: any) => f.key === "modelId" || f.key === "name" || f.key === "title");
+    const rawRoute = modelIdField?.value || getKnowledgeRoute(draft);
+    const specs = inferModelCapabilitiesAndSpecs(rawRoute, getKnowledgeDisplayTitle(draft));
+
     const resolutionsField = draft.fields?.find((f: any) => f.key.includes("resolution") || f.key.includes("quality"));
     const durationsField = draft.fields?.find((f: any) => f.key.includes("duration"));
     const aspectRatiosField = draft.fields?.find((f: any) => f.key.includes("aspect"));
     const maxRefField = draft.fields?.find((f: any) => f.key.includes("reference") || f.key.includes("max"));
-    const apiRouteField = draft.fields?.find((f: any) => f.key === "api_route" || f.key === "route" || f.key === "modelId");
 
-    if (resolutionsField?.value) {
-      setEditResolutions(resolutionsField.value);
-    }
-    if (durationsField?.value) {
-      setEditDurations(durationsField.value);
-    }
+    setEditTextRoute(specs.textRoute);
+    if (specs.imageRoute) setEditImageRoute(specs.imageRoute);
+
     if (aspectRatiosField?.value) {
       const aspects = aspectRatiosField.value.split(/[,;\s]+/).map((s: string) => s.trim()).filter(Boolean);
       if (aspects.length > 0) setEditAspectRatios(aspects);
+      else setEditAspectRatios(specs.aspectRatios);
+    } else {
+      setEditAspectRatios(specs.aspectRatios);
     }
+
+    if (resolutionsField?.value) {
+      setEditResolutions(resolutionsField.value);
+    } else if (specs.resolutions.length > 0) {
+      setEditResolutions(specs.resolutions.join(", "));
+    }
+
+    if (durationsField?.value) {
+      setEditDurations(durationsField.value);
+    } else if (specs.durations.length > 0) {
+      setEditDurations(specs.durations.join(", "));
+    }
+
     if (maxRefField?.value) {
       const val = parseInt(maxRefField.value, 10);
       if (!Number.isNaN(val)) setEditMaxRefImages(val);
+      else setEditMaxRefImages(specs.maxRefImages);
+    } else {
+      setEditMaxRefImages(specs.maxRefImages);
     }
-    if (apiRouteField?.value) {
-      setEditTextRoute(apiRouteField.value);
-    }
-    setActionNotice(`Auto-synced model capabilities and routes from Knowledge Draft "${getKnowledgeDisplayTitle(draft)}".`);
+
+    if (specs.group) setEditGroup(specs.group);
+    if (specs.familyColor) setEditFamilyColor(specs.familyColor);
+
+    setActionNotice(`Auto-synced "${specs.cleanName}" capabilities and routes from Knowledge Draft "${getKnowledgeDisplayTitle(draft)}".`);
   };
 
   const openInspector = (row: UnifiedModelRow, edit = false) => {
@@ -2338,7 +2389,7 @@ export default function AdminModelsPage() {
                         <option value="">-- Choose Knowledge Reference / Source --</option>
                         {allImportedKnowledge.map((k) => (
                           <option key={k.id} value={k.id}>
-                            {k.name} ({k.route})
+                            [{k.provider.toUpperCase()}] {k.cleanName} — ({k.route})
                           </option>
                         ))}
                       </select>
@@ -3249,7 +3300,7 @@ export default function AdminModelsPage() {
                           setNewTextRoute(val);
                           const item = allImportedKnowledge.find((k) => k.route === val);
                           if (item) {
-                            if (!newModelName.trim()) setNewModelName(item.name);
+                            if (!newModelName.trim()) setNewModelName(item.cleanName || cleanModelDisplayName(item.name));
                             if (!newModelId.trim()) setNewModelId(item.route);
                             if (item.provider) setNewProvider(item.provider);
                           }
@@ -3261,7 +3312,7 @@ export default function AdminModelsPage() {
                           <optgroup label="⚡ Imported Knowledge & Specs (المصادر والمسودات المستوردة)">
                             {allImportedKnowledge.map((item) => (
                               <option key={`src-text-${item.id}`} value={item.route}>
-                                🟢 [{item.provider.toUpperCase()}] {item.name} ({item.route})
+                                🟢 [{item.provider.toUpperCase()}] {item.cleanName} — ({item.route})
                               </option>
                             ))}
                           </optgroup>
@@ -3294,7 +3345,7 @@ export default function AdminModelsPage() {
                     <div className="space-y-2 p-4 rounded-xl bg-zinc-900 border border-zinc-800">
                       <label className="block text-indigo-300 font-bold text-xs flex items-center justify-between">
                         <span>2. Secondary / Image/Edit Route Dropdown (مسار الصورة والتعديل)</span>
-                        <span className="text-[10px] text-zinc-500">للصور والمراجع</span>
+                        <span className="text-[10px] text-zinc-500">للصور والمراجع والتعديل</span>
                       </label>
                       <select
                         value={newImageRoute}
@@ -3306,7 +3357,7 @@ export default function AdminModelsPage() {
                           <optgroup label="⚡ Imported Knowledge & Specs (المصادر والمسودات المستوردة)">
                             {allImportedKnowledge.map((item) => (
                               <option key={`src-img-${item.id}`} value={item.route}>
-                                🟢 [{item.provider.toUpperCase()}] {item.name} ({item.route})
+                                🟢 [{item.provider.toUpperCase()}] {item.cleanName} — ({item.route})
                               </option>
                             ))}
                           </optgroup>
