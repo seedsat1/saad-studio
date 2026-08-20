@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import {
   Mail,
@@ -18,7 +18,7 @@ import {
   UserCheck,
   Bot,
   Wand2,
-  Layers,
+  Upload,
   Image as ImageIcon,
   ExternalLink,
   Edit3,
@@ -27,39 +27,42 @@ import {
   CheckCircle2,
   AlertCircle,
   Eye,
+  Globe,
+  Languages,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { NewsletterSubscriberItem } from "@/lib/newsletter";
 import { NewsletterPayload } from "@/app/api/admin/newsletter/agent/route";
 
-const DEFAULT_PAYLOAD: NewsletterPayload = {
-  subject: "✨ What's New in Saad Studio: Grok Imagine 2.0 & Multi-Cam AI",
-  heroTag: "Interesting AI",
-  heroTitle: "Next-Gen Generative Suite: Ultra-Fidelity 4K & Real-time AI Assembly",
+const DEFAULT_ARABIC_PAYLOAD: NewsletterPayload = {
+  language: "ar",
+  subject: "✨ أحدث إطلاقات سعد ستوديو: نموذج Grok Imagine 2.0 وميزة الـ Multi-Cam",
+  heroTag: "إضاءة الأسبوع",
+  heroTitle: "محركات التوليد السينمائي الفائق: دقة 4K ومعالجة لحظية للمشاهد",
   heroImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80",
-  heroBody: `Smart generative tools never look back when creators push the boundaries. Today, we're launching the next leap in high-speed visual computing on Saad Studio.\n\nWith our newly optimized pipeline, models like Grok Imagine 2.0 and SDXL Turbo render in seconds with full lighting consistency and zero latency.`,
-  heroCtaText: "Check it out here ➜",
-  heroCtaUrl: "https://www.saadstudio.app",
-  notableToolsTitle: "Notable AI Tools & Features",
+  heroBody: `يسرنا أن نعلن عن إطلاق أحدث التحديثات الإبداعية في منصة سعد ستوديو لتسهيل صناعة المحتوى البصري والسينمائي باحترافية كاملة.\n\nمع ترقية خوارزميات التوليد، يمكنك الآن استخدام نموذج Grok Imagine 2.0 لإنشاء لقطات واقعية مع محاذاة تلقائية للإضاءة والألوان، بالإضافة إلى ميزة التقطيع الذكي للفيديو Multi-Cam.`,
+  heroCtaText: "جرب الميزة الآن في سعد ستوديو ➜",
+  heroCtaUrl: "https://www.saadstudio.app/image-studio",
+  notableToolsTitle: "أبرز أدوات ونماذج سعد ستوديو",
   notableTools: [
-    { icon: "🎨", name: "Grok Imagine 2.0", description: "Photorealistic generations with direct quality controls.", url: "https://www.saadstudio.app/image-studio" },
-    { icon: "🎬", name: "Multi-Cam Auto Switcher", description: "Auto speaker tracking & seamless timeline assembly.", url: "https://www.saadstudio.app/video-studio" },
-    { icon: "⚡", name: "Style Presets Library", description: "One-click cinematic prompt hydration catalogue.", url: "https://www.saadstudio.app/image-presets" },
+    { icon: "🎨", name: "Grok Imagine 2.0", description: "توليد صور سينمائية فائقة الواقعية مع تحكم كامل بالدقة والإضاءة.", url: "https://www.saadstudio.app/image-studio" },
+    { icon: "🎬", name: "Multi-Cam Auto Switcher", description: "اكتشاف تلقائي لحركة المتحدث وتركيب مشاهد الفيديو باحترافية.", url: "https://www.saadstudio.app/video-studio" },
+    { icon: "⚡", name: "مكتبة الستايلات والبرومبت", description: "حقن فوري لأقوى البرومبتات الفنية الجاهزة بنقرة واحدة.", url: "https://www.saadstudio.app/image-presets" },
   ],
-  sourceUpdatesTitle: "From the Source",
+  sourceUpdatesTitle: "تحديثات وتطويرات المنصة",
   sourceUpdates: [
-    { icon: "🔍", name: "Universal Media Storage", description: "Zero-loss B2 & S3 asset streaming.", url: "https://www.saadstudio.app" },
-    { icon: "📡", name: "CEP Premiere 26.2.0 Extension", description: "Direct Premiere Pro plugin integration.", url: "https://www.saadstudio.app" },
+    { icon: "🔍", name: "التخزين السحابي فائق السرعة", description: "بث وسائط خالي من الأخطاء ودعم كامل لـ B2 و S3.", url: "https://www.saadstudio.app" },
+    { icon: "🚀", name: "إضافة Premiere Pro 26.2.0", description: "تكامل مباشر وسلس داخل برنامج أدوبي بريمير.", url: "https://www.saadstudio.app" },
   ],
-  promptOfDayTitle: "Prompt of the Day",
-  promptOfDayName: "Cinematic Volumetric Studio Masterpiece",
-  promptOfDayText: "A breathtaking hyper-realistic cinematic portrait, dramatic volumetric lighting, anamorphic reflections, 8k resolution, photorealistic masterpiece --ar 16:9",
-  sponsorNote: "Reach top creators and AI professionals worldwide with Saad Studio AI.",
+  promptOfDayTitle: "برومبت اليوم الإبداعي",
+  promptOfDayName: "لوحة بورتريه سينمائية بإضاءة ثلاثية الأبعاد",
+  promptOfDayText: "A breathtaking hyper-realistic cinematic portrait, dramatic volumetric studio lighting, anamorphic reflections, 8k resolution, photorealistic masterpiece --ar 16:9",
 };
 
 export default function AdminNewsletterPage() {
   const [activeTab, setActiveTab] = useState<"agent" | "subscribers">("agent");
+  const [selectedLanguage, setSelectedLanguage] = useState<"ar" | "en">("ar");
 
   // Subscribers state
   const [subscribers, setSubscribers] = useState<NewsletterSubscriberItem[]>([]);
@@ -72,11 +75,15 @@ export default function AdminNewsletterPage() {
   // Agent State
   const [agentPrompt, setAgentPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
-  const [newsletterData, setNewsletterData] = useState<NewsletterPayload>(DEFAULT_PAYLOAD);
+  const [generatingImg, setGeneratingImg] = useState(false);
+  const [uploadingImg, setUploadingImg] = useState(false);
+  const [customImgPrompt, setCustomImgPrompt] = useState("");
+  const [newsletterData, setNewsletterData] = useState<NewsletterPayload>(DEFAULT_ARABIC_PAYLOAD);
   const [sending, setSending] = useState(false);
   const [targetAudience, setTargetAudience] = useState<"newsletter_subscribers" | "active_subscribers">("newsletter_subscribers");
   const [sendResult, setSendResult] = useState<{ total?: number; sent?: number; error?: string } | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchSubscribers = useCallback(async () => {
     setLoadingSubs(true);
@@ -109,7 +116,11 @@ export default function AdminNewsletterPage() {
       const res = await fetch("/api/admin/newsletter/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "generate", prompt: p.trim() }),
+        body: JSON.stringify({
+          action: "generate",
+          prompt: p.trim(),
+          language: selectedLanguage,
+        }),
       });
       const data = await res.json();
       if (res.ok && data?.data) {
@@ -121,6 +132,62 @@ export default function AdminNewsletterPage() {
       alert("Error generating newsletter: " + String(err));
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleGenerateImageOnly = async () => {
+    const p = customImgPrompt.trim() || newsletterData.heroTitle || "Cinematic futuristic creative AI visual art masterpiece 8k";
+    setGeneratingImg(true);
+    try {
+      const res = await fetch("/api/admin/newsletter/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate_image",
+          prompt: p,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.imageUrl) {
+        setNewsletterData((prev) => ({ ...prev, heroImage: data.imageUrl }));
+        setCustomImgPrompt("");
+      } else {
+        alert(data?.error || "Failed to generate image.");
+      }
+    } catch (e) {
+      alert("Error generating image: " + String(e));
+    } finally {
+      setGeneratingImg(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImg(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("assetType", "image");
+
+      const res = await fetch("/api/studio/upload-url", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const { publicUrl } = await res.json();
+        if (publicUrl) {
+          setNewsletterData((prev) => ({ ...prev, heroImage: publicUrl }));
+        }
+      } else {
+        alert("Upload failed");
+      }
+    } catch (err) {
+      alert("Upload error: " + String(err));
+    } finally {
+      setUploadingImg(false);
     }
   };
 
@@ -224,6 +291,7 @@ export default function AdminNewsletterPage() {
   );
 
   const activeCount = subscribers.filter((s) => s.status === "active").length;
+  const isAr = newsletterData.language === "ar";
 
   return (
     <AdminShell activeRoute="/admin/newsletter">
@@ -236,7 +304,7 @@ export default function AdminNewsletterPage() {
               <span>Newsletter AI Agent & Hub</span>
             </h1>
             <p className="text-xs md:text-sm text-zinc-400">
-              Generate curated multi-block AI newsletters with images, prompt guides, and drops — and broadcast directly to subscribers.
+              الوكيل الذكي لصياغة وترتيب وإرسال النشرات الإخبارية للمشتركين بهوية وتصميم سعد ستوديو الفاخر.
             </p>
           </div>
 
@@ -251,7 +319,7 @@ export default function AdminNewsletterPage() {
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>AI Newsletter Agent</span>
+              <span>الوكيل الذكي (AI Agent)</span>
             </button>
             <button
               onClick={() => setActiveTab("subscribers")}
@@ -262,7 +330,7 @@ export default function AdminNewsletterPage() {
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Subscribers ({subscribers.length})</span>
+              <span>المشتركون ({subscribers.length})</span>
             </button>
           </div>
         </div>
@@ -270,22 +338,56 @@ export default function AdminNewsletterPage() {
         {/* TAB 1: AI NEWSLETTER AGENT */}
         {activeTab === "agent" && (
           <div className="space-y-6">
-            {/* Top Agent Prompt & Generator Suite */}
+            {/* Agent Command Center Card */}
             <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-950 to-[#0b101d] p-6 md:p-8 shadow-2xl backdrop-blur-xl space-y-5">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider">
                   <Wand2 className="w-4 h-4" />
-                  <span>Ask the Editorial AI Agent</span>
+                  <span>توجيه الوكيل الذكي (AI Editorial Prompt)</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-zinc-400">Target Audience:</span>
+
+                <div className="flex items-center gap-3">
+                  {/* Language Selector */}
+                  <div className="flex items-center gap-1.5 bg-black/60 border border-white/10 rounded-xl p-1 text-xs">
+                    <Languages className="w-3.5 h-3.5 text-cyan-400 ml-1.5" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedLanguage("ar");
+                        setNewsletterData((prev) => ({ ...prev, language: "ar" }));
+                      }}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                        selectedLanguage === "ar"
+                          ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                          : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      🇸🇦 العربية
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedLanguage("en");
+                        setNewsletterData((prev) => ({ ...prev, language: "en" }));
+                      }}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                        selectedLanguage === "en"
+                          ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                          : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      🇬🇧 English
+                    </button>
+                  </div>
+
+                  {/* Target Audience */}
                   <select
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value as any)}
-                    className="rounded-lg border border-white/10 bg-black/60 px-2.5 py-1 text-xs text-white outline-none"
+                    className="rounded-xl border border-white/10 bg-black/60 px-3 py-1.5 text-xs text-white outline-none"
                   >
-                    <option value="newsletter_subscribers">Newsletter Leads ({activeCount})</option>
-                    <option value="active_subscribers">Paid Active Subscribers</option>
+                    <option value="newsletter_subscribers">مشتركو النشرة ({activeCount})</option>
+                    <option value="active_subscribers">جميع المشتركين الفعّالين</option>
                   </select>
                 </div>
               </div>
@@ -296,19 +398,18 @@ export default function AdminNewsletterPage() {
                   rows={3}
                   value={agentPrompt}
                   onChange={(e) => setAgentPrompt(e.target.value)}
-                  placeholder="اكتب للوكيل ماذا تريد أن ينشر (مثال: أطلقنا نموذج Grok Imagine 2.0 الجديد لتوليد صور سينمائية فائقة الدقة، ورتب نشرة مع ميزة Multi-Cam وبرومبت اليوم وصورة بصرية جذابة)..."
-                  className="w-full rounded-2xl border border-white/10 bg-black/50 p-4 text-xs md:text-sm text-white placeholder-zinc-500 outline-none focus:border-cyan-400/50 transition-colors"
+                  placeholder="اكتب هنا ماذا تريد من الوكيل أن ينشر (مثال: أطلقنا تحديثاً ضخماً يشمل نموذج Grok Imagine 2.0 وميزة الـ Multi-Cam في استوديو الفيديو، اكتب نشرة تفاعلية مع نصائح وبرومبت اليوم)..."
+                  className="w-full rounded-2xl border border-white/10 bg-black/50 p-4 text-xs md:text-sm text-white placeholder-zinc-500 outline-none focus:border-cyan-400/50 transition-colors leading-relaxed"
                 />
               </div>
 
               {/* Quick Preset Ideas */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-semibold text-zinc-400">Quick Templates:</span>
+                <span className="text-[11px] font-semibold text-zinc-400">أفكار جاهزة:</span>
                 {[
-                  "Weekly AI Models & Feature Drops on Saad Studio",
-                  "Cinematic 8K Photorealistic Prompt & Lighting Guide",
-                  "Grok Imagine 2.0 & Multi-Cam Studio Launch Edition",
-                  "From the Source: Open Source Breakthroughs & Creative AI",
+                  "إطلاق نموذج Grok Imagine 2.0 وميزة Multi-Cam في سعد ستوديو",
+                  "دليل البرومبت السينمائي وإضاءات الـ 8K ثلاثية الأبعاد",
+                  "نشرة التحديثات الأسبوعية وتطويرات سرعة التوليد",
                 ].map((preset, idx) => (
                   <button
                     key={idx}
@@ -336,12 +437,12 @@ export default function AdminNewsletterPage() {
                   {generating ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Writing Newsletter & Generating Visuals...</span>
+                      <span>جاري كتابة النشرة وتوليد الصورة الذكية...</span>
                     </>
                   ) : (
                     <>
                       <Bot className="w-4 h-4" />
-                      <span>Generate Newsletter with AI ✨</span>
+                      <span>توليد النشرة بالذكاء الاصطناعي ✨</span>
                     </>
                   )}
                 </button>
@@ -353,7 +454,7 @@ export default function AdminNewsletterPage() {
                   className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-black font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition-all"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Send Broadcast to Subscribers 🚀</span>
+                  <span>إرسال النشرة للمشتركين الآن 🚀</span>
                 </button>
               </div>
 
@@ -374,7 +475,7 @@ export default function AdminNewsletterPage() {
                     <>
                       <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
                       <span>
-                        Successfully broadcasted to {sendResult.sent} / {sendResult.total} subscribers! ✨
+                        تم إرسال النشرة بنجاح إلى {sendResult.sent} / {sendResult.total} من المشتركين! ✨
                       </span>
                     </>
                   )}
@@ -382,23 +483,23 @@ export default function AdminNewsletterPage() {
               )}
             </div>
 
-            {/* Split Screen: Left Editor & Right Exact Multi-Card Email Preview */}
+            {/* Split Screen: Left Controls & Right Luxury Live Email Preview */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* Left Column: Interactive Field Customizer */}
+              {/* Left Column: Interactive Field Customizer & Direct Image Tools */}
               <div className="lg:col-span-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <Edit3 className="w-4 h-4 text-cyan-400" />
-                    <span>Customize Generated Sections</span>
+                    <span>تخصيص محتوى وصور النشرة</span>
                   </h3>
-                  <span className="text-[11px] text-zinc-500 font-mono">Live Editable</span>
+                  <span className="text-[11px] text-zinc-500 font-mono">تعديل مباشر</span>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-5 backdrop-blur-xl space-y-4 text-xs">
                   {/* Subject Line */}
                   <div className="space-y-1.5">
                     <label className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
-                      Email Subject Line
+                      عنوان الإيميل (Subject Line)
                     </label>
                     <input
                       type="text"
@@ -408,11 +509,71 @@ export default function AdminNewsletterPage() {
                     />
                   </div>
 
+                  {/* Hero Image Management Box: Direct Upload & AI Generator */}
+                  <div className="space-y-2.5 p-4 rounded-2xl bg-[#090e1c] border border-white/10">
+                    <div className="flex items-center justify-between">
+                      <label className="text-zinc-300 font-bold text-xs flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-cyan-400" />
+                        <span>صورة الغلاف البصرية (Cover Image)</span>
+                      </label>
+                      {newsletterData.heroImage && (
+                        <button
+                          type="button"
+                          onClick={() => setNewsletterData({ ...newsletterData, heroImage: undefined })}
+                          className="text-[10px] text-rose-400 hover:underline"
+                        >
+                          إزالة الصورة
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Thumbnail Preview */}
+                    {newsletterData.heroImage && (
+                      <div className="rounded-xl overflow-hidden border border-white/15 aspect-video relative bg-black/40 shadow-inner">
+                        <img
+                          src={newsletterData.heroImage}
+                          alt="Hero cover"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    {/* Action Buttons: AI Generate or Upload from PC */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImg}
+                        className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                      >
+                        {uploadingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 text-cyan-400" />}
+                        <span>رفع صورة من الجهاز</span>
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={handleGenerateImageOnly}
+                        disabled={generatingImg}
+                        className="px-3 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 hover:bg-cyan-500/25 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                      >
+                        {generatingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-cyan-400" />}
+                        <span>توليد صورة جديدة بالـ AI</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Hero Tag & Hero Title */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
-                        Tag (e.g. Interesting AI)
+                        الشارة (Badge Tag)
                       </label>
                       <input
                         type="text"
@@ -423,7 +584,7 @@ export default function AdminNewsletterPage() {
                     </div>
                     <div className="md:col-span-2 space-y-1.5">
                       <label className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
-                        Hero Story Headline
+                        عنوان القصة الرئيسية
                       </label>
                       <input
                         type="text"
@@ -434,31 +595,16 @@ export default function AdminNewsletterPage() {
                     </div>
                   </div>
 
-                  {/* Hero Image URL */}
-                  <div className="space-y-1.5">
-                    <label className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] flex items-center justify-between">
-                      <span>Hero Spotlight Image URL</span>
-                      <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-                    </label>
-                    <input
-                      type="text"
-                      value={newsletterData.heroImage || ""}
-                      onChange={(e) => setNewsletterData({ ...newsletterData, heroImage: e.target.value })}
-                      placeholder="https://... image url"
-                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2 text-white outline-none focus:border-cyan-400/50"
-                    />
-                  </div>
-
                   {/* Hero Story Body */}
                   <div className="space-y-1.5">
                     <label className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
-                      Main Story Paragraphs
+                      نص القصة والخبر الرئيسي
                     </label>
                     <textarea
                       rows={4}
                       value={newsletterData.heroBody}
                       onChange={(e) => setNewsletterData({ ...newsletterData, heroBody: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-white outline-none focus:border-cyan-400/50"
+                      className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-white outline-none focus:border-cyan-400/50 leading-relaxed"
                     />
                   </div>
 
@@ -466,7 +612,7 @@ export default function AdminNewsletterPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
-                        Hero Button Text
+                        نص الزر التفاعلي
                       </label>
                       <input
                         type="text"
@@ -477,7 +623,7 @@ export default function AdminNewsletterPage() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
-                        Hero Button URL
+                        رابط الزر (URL)
                       </label>
                       <input
                         type="text"
@@ -489,63 +635,68 @@ export default function AdminNewsletterPage() {
                   </div>
 
                   {/* Prompt of the Day Editor */}
-                  <div className="space-y-1.5 pt-2 border-t border-white/5">
+                  <div className="space-y-2 pt-2 border-t border-white/5">
                     <label className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1.5 text-amber-400">
                       <Flame className="w-3.5 h-3.5" />
-                      <span>Prompt of the Day</span>
+                      <span>برومبت اليوم الإبداعي (Prompt of the Day)</span>
                     </label>
                     <input
                       type="text"
                       value={newsletterData.promptOfDayName}
                       onChange={(e) => setNewsletterData({ ...newsletterData, promptOfDayName: e.target.value })}
-                      placeholder="Prompt Title"
-                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-white outline-none mb-2"
+                      placeholder="عنوان البرومبت"
+                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-white outline-none mb-1"
                     />
                     <textarea
                       rows={3}
                       value={newsletterData.promptOfDayText}
                       onChange={(e) => setNewsletterData({ ...newsletterData, promptOfDayText: e.target.value })}
-                      placeholder="Prompt Text..."
-                      className="w-full rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-[11px] text-amber-300 outline-none"
+                      placeholder="نص البرومبت الإنجليزي القابل للنسخ والتجربة..."
+                      className="w-full rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-[11px] text-amber-300 outline-none leading-relaxed"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: Live Multi-Card Email Layout Preview (Matches User's Reference Screenshot) */}
+              {/* Right Column: Live Luxury Saad Studio Email Preview */}
               <div className="lg:col-span-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-emerald-400" />
-                    <span>Live Multi-Card Newsletter Preview</span>
+                    <Eye className="w-4 h-4 text-cyan-400" />
+                    <span>المعاينة الحية لبريد سعد ستوديو الفاخر</span>
                   </h3>
-                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                    Exact Email Layout
+                  <span className="text-[10px] font-semibold text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
+                    Live Email Client
                   </span>
                 </div>
 
                 {/* Email Canvas Container */}
-                <div className="rounded-3xl border border-white/10 bg-[#e2e8f0] p-4 md:p-6 shadow-2xl overflow-y-auto max-h-[850px]">
-                  <div className="max-w-[540px] mx-auto space-y-4 font-sans text-slate-800">
-                    {/* Header */}
-                    <div className="bg-[#0f172a] rounded-2xl p-5 text-center border-b-2 border-cyan-500 shadow-md">
-                      <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-white/20 mx-auto mb-2 flex items-center justify-center overflow-hidden">
-                        <Image src="/logo-saad.png?v=5" alt="Logo" width={38} height={38} unoptimized />
+                <div className="rounded-3xl border border-white/10 bg-[#060913] p-4 md:p-6 shadow-2xl overflow-y-auto max-h-[850px]">
+                  <div
+                    className={`max-w-[560px] mx-auto space-y-5 text-slate-200 ${
+                      isAr ? "font-sans text-right" : "font-sans text-left"
+                    }`}
+                    dir={isAr ? "rtl" : "ltr"}
+                  >
+                    {/* Header Card */}
+                    <div className="bg-gradient-to-b from-[#131d33] to-[#0d1322] rounded-3xl p-6 text-center border border-white/10 shadow-lg">
+                      <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-white/20 mx-auto mb-3 flex items-center justify-center overflow-hidden shadow-lg shadow-cyan-500/20">
+                        <Image src="/logo-saad.png?v=5" alt="Logo" width={52} height={52} unoptimized />
                       </div>
-                      <div className="text-sm font-black text-white tracking-widest uppercase">SAAD STUDIO</div>
-                      <div className="text-[10px] font-bold text-cyan-400 tracking-wider uppercase mt-0.5">
-                        OFFICIAL AI DISPATCH • TODAY
+                      <div className="text-base font-black text-white tracking-widest uppercase">SAAD STUDIO</div>
+                      <div className="text-[10px] font-bold text-cyan-400 tracking-wider uppercase mt-1">
+                        {isAr ? "النشرة الإخبارية الرسمية للذكاء الاصطناعي الإبداعي" : "OFFICIAL AI CREATIVE DISPATCH"}
                       </div>
                     </div>
 
-                    {/* CARD 1: MAIN SPOTLIGHT (INTERESTING AI) */}
-                    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-3.5">
-                      <div className="text-xs font-black text-orange-600 uppercase tracking-wide">
-                        {newsletterData.heroTag || "Interesting AI"}
+                    {/* CARD 1: MAIN HERO STORY */}
+                    <div className="bg-[#0d1322] rounded-3xl p-6 border border-white/10 shadow-xl space-y-4">
+                      <div className="inline-block px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-[10px] font-bold text-cyan-300 tracking-wide">
+                        {newsletterData.heroTag || (isAr ? "إضاءة الأسبوع" : "Spotlight")}
                       </div>
 
                       {newsletterData.heroImage && (
-                        <div className="rounded-xl overflow-hidden border border-slate-200 aspect-video relative bg-slate-100">
+                        <div className="rounded-2xl overflow-hidden border border-white/10 aspect-video relative bg-black/40 shadow-inner">
                           <img
                             src={newsletterData.heroImage}
                             alt={newsletterData.heroTitle}
@@ -554,38 +705,38 @@ export default function AdminNewsletterPage() {
                         </div>
                       )}
 
-                      <h2 className="text-base md:text-lg font-extrabold text-slate-900 leading-snug">
+                      <h2 className="text-base md:text-lg font-extrabold text-white leading-snug tracking-tight">
                         {newsletterData.heroTitle}
                       </h2>
 
-                      <div className="text-xs leading-relaxed text-slate-600 space-y-2">
+                      <div className="p-4 rounded-2xl bg-[#11192e] border border-white/5 text-xs leading-relaxed text-slate-300 space-y-2">
                         {newsletterData.heroBody.split(/\r?\n/).map((p, idx) =>
                           p.trim() ? <p key={idx}>{p}</p> : <div key={idx} className="h-1" />
                         )}
                       </div>
 
                       <div>
-                        <span className="inline-block px-4 py-2 rounded-lg bg-slate-900 text-white font-bold text-xs">
-                          {newsletterData.heroCtaText || "Check it out here ➜"}
+                        <span className="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs shadow-lg shadow-cyan-500/25 uppercase tracking-wider">
+                          {newsletterData.heroCtaText || (isAr ? "جرب الميزة الآن في سعد ستوديو ➜" : "Explore in Saad Studio ➜")}
                         </span>
                       </div>
                     </div>
 
                     {/* CARD 2: NOTABLE AI TOOLS */}
                     {newsletterData.notableTools && newsletterData.notableTools.length > 0 && (
-                      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-3">
-                        <div className="text-xs font-black text-orange-600 uppercase tracking-wide">
-                          Notable AIs
+                      <div className="bg-[#0d1322] rounded-3xl p-6 border border-white/10 shadow-xl space-y-3.5">
+                        <div className="text-[10px] font-extrabold text-cyan-400 uppercase tracking-wider">
+                          {isAr ? "نماذج وأدوات المنصة" : "NOTABLE AI SUITE"}
                         </div>
-                        <h3 className="text-sm font-extrabold text-slate-900">
-                          {newsletterData.notableToolsTitle || "Notable AI Tools"}
+                        <h3 className="text-sm font-extrabold text-white">
+                          {newsletterData.notableToolsTitle || (isAr ? "أبرز أدوات وميزات سعد ستوديو" : "Notable AI Tools")}
                         </h3>
-                        <div className="space-y-2 text-xs leading-relaxed text-slate-600">
+                        <div className="p-4 rounded-2xl bg-[#11192e] border border-white/5 space-y-2.5 text-xs text-slate-300">
                           {newsletterData.notableTools.map((tool, idx) => (
-                            <div key={idx} className="flex items-start gap-1.5">
-                              <span className="shrink-0">{tool.icon || "🔍"}</span>
-                              <div>
-                                <strong className="text-slate-900">{tool.name}</strong>: {tool.description}
+                            <div key={idx} className="flex items-start gap-2">
+                              <span className="shrink-0 text-sm">{tool.icon || "✨"}</span>
+                              <div className="leading-relaxed">
+                                <strong className="text-white">{tool.name}</strong>: {tool.description}
                               </div>
                             </div>
                           ))}
@@ -593,28 +744,21 @@ export default function AdminNewsletterPage() {
                       </div>
                     )}
 
-                    {/* CARD 3: SPONSOR / NOTE */}
-                    {newsletterData.sponsorNote && (
-                      <div className="bg-slate-100/90 rounded-xl p-3.5 border border-slate-200 text-center text-xs text-slate-500">
-                        {newsletterData.sponsorNote}
-                      </div>
-                    )}
-
-                    {/* CARD 4: FROM THE SOURCE / DROPS */}
+                    {/* CARD 3: FROM THE SOURCE / UPDATES */}
                     {newsletterData.sourceUpdates && newsletterData.sourceUpdates.length > 0 && (
-                      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-3">
-                        <div className="text-xs font-black text-orange-600 uppercase tracking-wide">
-                          Open Source &amp; Drops
+                      <div className="bg-[#0d1322] rounded-3xl p-6 border border-white/10 shadow-xl space-y-3.5">
+                        <div className="text-[10px] font-extrabold text-cyan-400 uppercase tracking-wider">
+                          {isAr ? "تحديثات وتطويرات" : "FROM THE SOURCE"}
                         </div>
-                        <h3 className="text-sm font-extrabold text-slate-900">
-                          {newsletterData.sourceUpdatesTitle || "From the Source"}
+                        <h3 className="text-sm font-extrabold text-white">
+                          {newsletterData.sourceUpdatesTitle || (isAr ? "أحدث التحديثات في المنصة" : "Platform Updates & Releases")}
                         </h3>
-                        <div className="space-y-2 text-xs leading-relaxed text-slate-600">
+                        <div className="p-4 rounded-2xl bg-[#11192e] border border-white/5 space-y-2.5 text-xs text-slate-300">
                           {newsletterData.sourceUpdates.map((item, idx) => (
-                            <div key={idx} className="flex items-start gap-1.5">
-                              <span className="shrink-0">{item.icon || "📡"}</span>
-                              <div>
-                                <strong className="text-slate-900">{item.name}</strong>: {item.description}
+                            <div key={idx} className="flex items-start gap-2">
+                              <span className="shrink-0 text-sm">{item.icon || "⚡"}</span>
+                              <div className="leading-relaxed">
+                                <strong className="text-white">{item.name}</strong>: {item.description}
                               </div>
                             </div>
                           ))}
@@ -622,29 +766,32 @@ export default function AdminNewsletterPage() {
                       </div>
                     )}
 
-                    {/* CARD 5: PROMPT OF THE DAY */}
+                    {/* CARD 4: PROMPT OF THE DAY */}
                     {newsletterData.promptOfDayText && (
-                      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-3">
-                        <div className="text-xs font-black text-orange-600 uppercase tracking-wide">
-                          Prompt of the Day
+                      <div className="bg-[#0d1322] rounded-3xl p-6 border border-white/10 shadow-xl space-y-3.5">
+                        <div className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                          <Flame className="w-3 h-3" />
+                          <span>{newsletterData.promptOfDayTitle || (isAr ? "برومبت اليوم الإبداعي" : "Prompt of the Day")}</span>
                         </div>
-                        <h3 className="text-sm font-extrabold text-slate-900">
-                          {newsletterData.promptOfDayName || "Prompt of the Day"}
+                        <h3 className="text-sm font-extrabold text-white">
+                          {newsletterData.promptOfDayName || (isAr ? "برومبت سينمائي جاهز للتجربة" : "Featured Creative Prompt")}
                         </h3>
 
-                        <div className="p-3.5 rounded-xl bg-orange-50 border border-orange-200 text-[11px] leading-relaxed text-orange-950 font-mono space-y-1">
-                          <div className="font-bold text-orange-900 uppercase text-[10px]">
-                            Copy &amp; Paste Prompt:
+                        <div className="p-4 rounded-2xl bg-[#182238] border border-amber-500/30 text-xs text-slate-300 space-y-2">
+                          <div className="text-[10px] font-bold text-amber-300 uppercase tracking-wider">
+                            {isAr ? "انسخ البرومبت وجربه في Image Studio:" : "Copy & Paste into Image Studio:"}
                           </div>
-                          <p>{newsletterData.promptOfDayText}</p>
+                          <div className="p-3 rounded-xl bg-[#0b1120] border border-white/10 font-mono text-[11px] text-amber-200 leading-relaxed break-words">
+                            {newsletterData.promptOfDayText}
+                          </div>
                         </div>
                       </div>
                     )}
 
                     {/* Footer */}
-                    <div className="bg-[#0f172a] rounded-2xl p-5 text-center text-xs text-slate-400 space-y-1">
-                      <div className="font-bold text-white">Saad Studio AI Suite</div>
-                      <div className="text-[10px] text-slate-500">© 2026 Saad Studio. All rights reserved.</div>
+                    <div className="bg-[#080c16] rounded-3xl p-5 border border-white/10 text-center text-xs text-slate-500 space-y-1">
+                      <div className="font-bold text-slate-300">Saad Studio — The Creative AI Suite</div>
+                      <div className="text-[10px] text-slate-600">© 2026 Saad Studio. All rights reserved.</div>
                     </div>
                   </div>
                 </div>
@@ -660,7 +807,7 @@ export default function AdminNewsletterPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="rounded-2xl border border-white/10 bg-zinc-950/60 p-5 backdrop-blur-xl">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zinc-400">Total Captured Leads</span>
+                  <span className="text-xs font-semibold text-zinc-400">إجمالي المشتركين</span>
                   <Users className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div className="mt-2 text-2xl font-black text-white">{subscribers.length}</div>
@@ -668,20 +815,20 @@ export default function AdminNewsletterPage() {
 
               <div className="rounded-2xl border border-white/10 bg-zinc-950/60 p-5 backdrop-blur-xl">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zinc-400">Active Audience</span>
+                  <span className="text-xs font-semibold text-zinc-400">المشتركون الفعّالون</span>
                   <UserCheck className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div className="mt-2 text-2xl font-black text-white">
-                  {activeCount} <span className="text-xs font-normal text-emerald-400 ml-2">Deliverable</span>
+                  {activeCount} <span className="text-xs font-normal text-emerald-400 ml-2">جاهز للإرسال</span>
                 </div>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-zinc-950/60 p-5 backdrop-blur-xl">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zinc-400">Capture Source</span>
+                  <span className="text-xs font-semibold text-zinc-400">مصدر الاشتراك</span>
                   <Sparkles className="w-4 h-4 text-amber-400" />
                 </div>
-                <div className="mt-2 text-sm font-bold text-zinc-200">Site Footer (Stay in the loop)</div>
+                <div className="mt-2 text-sm font-bold text-zinc-200">فوتر الموقع (Stay in the loop)</div>
               </div>
             </div>
 
@@ -694,7 +841,7 @@ export default function AdminNewsletterPage() {
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search subscribers by email or source..."
+                    placeholder="البحث في الإيميلات..."
                     className="w-full rounded-xl border border-white/10 bg-black/40 pl-10 pr-4 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-cyan-400/50"
                   />
                 </div>
@@ -707,7 +854,7 @@ export default function AdminNewsletterPage() {
                     className="px-3.5 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] disabled:opacity-40 text-xs font-semibold text-zinc-200 flex items-center gap-1.5"
                   >
                     {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-zinc-400" />}
-                    <span>{copied ? "Copied All!" : "Copy Emails"}</span>
+                    <span>{copied ? "تم النسخ!" : "نسخ الإيميلات"}</span>
                   </button>
 
                   <button
@@ -717,7 +864,7 @@ export default function AdminNewsletterPage() {
                     className="px-3.5 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] disabled:opacity-40 text-xs font-semibold text-zinc-200 flex items-center gap-1.5"
                   >
                     <Download className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Export CSV</span>
+                    <span>تصدير CSV</span>
                   </button>
 
                   <button
@@ -737,7 +884,7 @@ export default function AdminNewsletterPage() {
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="Add subscriber manually (e.g. user@domain.com)"
+                  placeholder="إضافة بريد يدوياً (user@domain.com)"
                   className="flex-1 rounded-xl border border-white/10 bg-black/40 px-3.5 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-cyan-400/50"
                 />
                 <button
@@ -746,7 +893,7 @@ export default function AdminNewsletterPage() {
                   className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-black font-bold text-xs flex items-center gap-1.5 shrink-0"
                 >
                   {addingSub ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                  <span>Add</span>
+                  <span>إضافة</span>
                 </button>
               </form>
             </div>
@@ -757,11 +904,11 @@ export default function AdminNewsletterPage() {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-white/[0.02] border-b border-white/10 text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
                     <tr>
-                      <th className="px-5 py-3.5">Subscriber Email</th>
-                      <th className="px-5 py-3.5">Source</th>
-                      <th className="px-5 py-3.5">Status</th>
-                      <th className="px-5 py-3.5">Date</th>
-                      <th className="px-5 py-3.5 text-right">Actions</th>
+                      <th className="px-5 py-3.5">البريد الإلكتروني</th>
+                      <th className="px-5 py-3.5">المصدر</th>
+                      <th className="px-5 py-3.5">الحالة</th>
+                      <th className="px-5 py-3.5">التاريخ</th>
+                      <th className="px-5 py-3.5 text-right">إجراءات</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 text-zinc-300 font-sans">
@@ -769,14 +916,14 @@ export default function AdminNewsletterPage() {
                       <tr>
                         <td colSpan={5} className="px-5 py-12 text-center text-zinc-500">
                           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-cyan-400" />
-                          <span>Loading newsletter subscribers...</span>
+                          <span>جاري تحميل المشتركين...</span>
                         </td>
                       </tr>
                     ) : filteredSubs.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-5 py-12 text-center text-zinc-500">
                           <Mail className="w-8 h-8 mx-auto mb-2 text-zinc-600" />
-                          <div className="text-sm font-semibold text-zinc-400">No subscribers found</div>
+                          <div className="text-sm font-semibold text-zinc-400">لا يوجد مشتركون حالياً</div>
                         </td>
                       </tr>
                     ) : (
@@ -828,23 +975,23 @@ export default function AdminNewsletterPage() {
                   <Bot className="w-6 h-6 text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Broadcast AI Newsletter</h3>
-                  <p className="text-xs text-zinc-400">Deliver this curated edition to all active subscribers.</p>
+                  <h3 className="text-base font-bold text-white">تأكيد إرسال النشرة البريدية</h3>
+                  <p className="text-xs text-zinc-400">سيتم إرسال هذا الإصدار للمشتركين المستهدفين فوراً.</p>
                 </div>
               </div>
 
               <div className="p-4 rounded-2xl bg-zinc-900 border border-white/5 space-y-2 text-xs">
                 <div className="flex justify-between text-zinc-400">
-                  <span>Subject:</span>
+                  <span>العنوان:</span>
                   <span className="text-white font-bold max-w-[200px] truncate">{newsletterData.subject}</span>
                 </div>
                 <div className="flex justify-between text-zinc-400">
-                  <span>Target Audience:</span>
+                  <span>الجمهور المستهدف:</span>
                   <span className="text-cyan-300 font-bold uppercase">{targetAudience.replace("_", " ")}</span>
                 </div>
                 <div className="flex justify-between text-zinc-400">
-                  <span>Sections Included:</span>
-                  <span className="text-emerald-400 font-bold">Spotlight, Tools, Source, Prompt</span>
+                  <span>اللغة:</span>
+                  <span className="text-emerald-400 font-bold">{isAr ? "🇸🇦 العربية" : "🇬🇧 English"}</span>
                 </div>
               </div>
 
@@ -855,7 +1002,7 @@ export default function AdminNewsletterPage() {
                   disabled={sending}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white"
                 >
-                  Cancel
+                  إلغاء
                 </button>
                 <button
                   type="button"
@@ -864,7 +1011,7 @@ export default function AdminNewsletterPage() {
                   className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/30"
                 >
                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  <span>{sending ? "Broadcasting..." : "Confirm & Send"}</span>
+                  <span>{sending ? "جاري الإرسال..." : "تأكيد وإرسال النشرة"}</span>
                 </button>
               </div>
             </div>

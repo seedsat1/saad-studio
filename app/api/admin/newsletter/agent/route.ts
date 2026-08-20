@@ -14,6 +14,7 @@ export type NewsletterSectionItem = {
 };
 
 export type NewsletterPayload = {
+  language?: "ar" | "en";
   subject: string;
   heroTag: string;
   heroTitle: string;
@@ -41,160 +42,166 @@ function escapeHtml(value: string): string {
 }
 
 export function compileNewsletterHtml(data: NewsletterPayload, logoSrc: string, siteUrl: string): string {
+  const isAr = data.language === "ar";
+  const dir = isAr ? "rtl" : "ltr";
+  const textAlign = isAr ? "right" : "left";
+  const fontStack = isAr
+    ? "'Tajawal', 'Cairo', 'Segoe UI', Tahoma, -apple-system, sans-serif"
+    : "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
   const issuedIso = new Date().toISOString().slice(0, 10);
 
-  const notableToolsHtml = data.notableTools
+  const notableToolsHtml = (data.notableTools || [])
     .map(
       (item) => `
-      <div style="margin-bottom: 12px; font-size: 14px; line-height: 1.6; color: #334155;">
-        ${item.icon ? `<span style="margin-right: 6px;">${item.icon}</span>` : ""}
-        <strong style="color: #0f172a;">${escapeHtml(item.name)}</strong>: ${escapeHtml(item.description)}
-        ${item.url ? ` <a href="${escapeHtml(item.url)}" style="color: #0284c7; text-decoration: none; font-weight: 600;">(Learn more)</a>` : ""}
+      <div style="margin-bottom: 12px; font-size: 14px; line-height: 1.7; color: #cbd5e1;">
+        <span style="${isAr ? 'margin-left: 6px;' : 'margin-right: 6px;'} font-size: 15px;">${item.icon || "✨"}</span>
+        <strong style="color: #ffffff;">${escapeHtml(item.name)}</strong>: ${escapeHtml(item.description)}
+        ${item.url ? ` <a href="${escapeHtml(item.url)}" target="_blank" style="color: #38bdf8; text-decoration: none; font-weight: 700;">${isAr ? '(جرب الآن)' : '(Try it)'}</a>` : ""}
       </div>`
     )
     .join("");
 
-  const sourceUpdatesHtml = data.sourceUpdates
+  const sourceUpdatesHtml = (data.sourceUpdates || [])
     .map(
       (item) => `
-      <div style="margin-bottom: 12px; font-size: 14px; line-height: 1.6; color: #334155;">
-        ${item.icon ? `<span style="margin-right: 6px;">${item.icon}</span>` : ""}
-        <strong style="color: #0f172a;">${escapeHtml(item.name)}</strong>: ${escapeHtml(item.description)}
-        ${item.url ? ` <a href="${escapeHtml(item.url)}" style="color: #0284c7; text-decoration: none; font-weight: 600;">(Explore)</a>` : ""}
+      <div style="margin-bottom: 12px; font-size: 14px; line-height: 1.7; color: #cbd5e1;">
+        <span style="${isAr ? 'margin-left: 6px;' : 'margin-right: 6px;'} font-size: 15px;">${item.icon || "⚡"}</span>
+        <strong style="color: #ffffff;">${escapeHtml(item.name)}</strong>: ${escapeHtml(item.description)}
+        ${item.url ? ` <a href="${escapeHtml(item.url)}" target="_blank" style="color: #38bdf8; text-decoration: none; font-weight: 700;">${isAr ? '(عرض)' : '(View)'}</a>` : ""}
       </div>`
     )
     .join("");
 
   return `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${isAr ? "ar" : "en"}" dir="${dir}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(data.subject)}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
-  <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9;padding:32px 12px;">
+<body style="margin:0;padding:0;background-color:#060913;font-family:${fontStack};direction:${dir};text-align:${textAlign};-webkit-font-smoothing:antialiased;">
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#060913;padding:32px 12px;">
     <tr>
       <td align="center">
-        <!-- Main Card Container -->
-        <table width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width:580px;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:20px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.06);">
+        <!-- Main Luxury Card Container -->
+        <table width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#0d1322;border:1px solid #1e293b;border-radius:24px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.85);direction:${dir};text-align:${textAlign};">
           
           <!-- Top Header -->
           <tr>
-            <td style="padding:28px 32px 20px;background-color:#0f172a;border-bottom:2px solid #0284c7;text-align:center;">
-              <img src="${logoSrc}" alt="Saad Studio" width="64" height="64" style="display:block;margin:0 auto 12px;border-radius:14px;" />
-              <div style="font-size:18px;font-weight:900;letter-spacing:2px;color:#ffffff;text-transform:uppercase;">SAAD STUDIO</div>
-              <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#38bdf8;text-transform:uppercase;margin-top:4px;">OFFICIAL AI DISPATCH • ${escapeHtml(issuedIso)}</div>
+            <td align="center" style="padding:36px 32px 24px;background:linear-gradient(180deg,#131d33 0%,#0d1322 100%);border-bottom:1px solid #1e293b;text-align:center;">
+              <img src="${logoSrc}" alt="Saad Studio" width="76" height="76" style="display:block;margin:0 auto 16px;border-radius:18px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 8px 30px rgba(6,182,212,0.3);" />
+              <div style="font-size:20px;font-weight:900;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin:0;">SAAD STUDIO</div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#38bdf8;text-transform:uppercase;margin-top:6px;">
+                ${isAr ? "النشرة الإخبارية الرسمية للذكاء الاصطناعي الإبداعي" : "OFFICIAL AI CREATIVE DISPATCH"} • ${escapeHtml(issuedIso)}
+              </div>
             </td>
           </tr>
 
           <!-- 1. Hero / Main Spotlight Block -->
           <tr>
-            <td style="padding:28px 32px 20px;">
-              <div style="font-size:12px;font-weight:800;letter-spacing:1px;color:#ea580c;text-transform:uppercase;margin-bottom:12px;">
-                ${escapeHtml(data.heroTag || "Interesting AI")}
+            <td style="padding:32px 36px 20px;">
+              <div style="display:inline-block;padding:5px 14px;background-color:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.25);border-radius:30px;font-size:11px;font-weight:700;color:#38bdf8;margin-bottom:16px;letter-spacing:0.5px;">
+                ${escapeHtml(data.heroTag || (isAr ? "إضاءة الأسبوع" : "Spotlight"))}
               </div>
 
               ${
                 data.heroImage
                   ? `
-              <div style="margin-bottom:20px;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
-                <img src="${escapeHtml(data.heroImage)}" alt="${escapeHtml(data.heroTitle)}" style="display:block;width:100%;height:auto;max-height:340px;object-fit:cover;" />
+              <div style="margin-bottom:22px;border-radius:16px;overflow:hidden;border:1px solid #1e293b;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                <img src="${escapeHtml(data.heroImage)}" alt="${escapeHtml(data.heroTitle)}" style="display:block;width:100%;height:auto;max-height:360px;object-fit:cover;" />
               </div>`
                   : ""
               }
 
-              <h2 style="margin:0 0 14px;font-size:22px;font-weight:800;line-height:1.3;color:#0f172a;letter-spacing:-0.4px;">
+              <h1 style="margin:0 0 16px;font-size:22px;font-weight:800;line-height:1.4;color:#f8fafc;letter-spacing:-0.3px;">
                 ${escapeHtml(data.heroTitle)}
-              </h2>
+              </h1>
 
-              <div style="font-size:15px;line-height:1.75;color:#334155;margin-bottom:20px;">
+              <div style="background-color:#11192e;border:1px solid #1e293b;border-radius:16px;padding:20px 24px;margin-bottom:20px;font-size:15px;line-height:1.8;color:#cbd5e1;">
                 ${data.heroBody
                   .split(/\r?\n/)
                   .map((p) => (p.trim() ? `<p style="margin:0 0 12px 0;">${escapeHtml(p)}</p>` : `<div style="height:6px;"></div>`))
                   .join("")}
               </div>
 
-              <div style="margin-bottom:12px;">
-                <a href="${escapeHtml(data.heroCtaUrl || siteUrl)}" target="_blank" style="display:inline-block;padding:12px 24px;background-color:#0f172a;color:#ffffff;font-size:13px;font-weight:800;border-radius:10px;text-decoration:none;letter-spacing:0.3px;">
-                  ${escapeHtml(data.heroCtaText || "Check it out here ➜")}
-                </a>
+              <div align="${isAr ? "right" : "left"}" style="margin-bottom:12px;">
+                <table border="0" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="border-radius:12px;background:linear-gradient(135deg,#06b6d4 0%,#6366f1 100%);box-shadow:0 4px 18px rgba(6,182,212,0.35);">
+                      <a href="${escapeHtml(data.heroCtaUrl || siteUrl)}" target="_blank" style="display:inline-block;padding:14px 28px;font-size:13px;font-weight:800;letter-spacing:0.5px;color:#ffffff;text-decoration:none;text-transform:uppercase;border-radius:12px;font-family:${fontStack};">
+                        ${escapeHtml(data.heroCtaText || (isAr ? "جرب الميزة الآن في سعد ستوديو ➜" : "Explore in Saad Studio ➜"))}
+                      </a>
+                    </td>
+                  </tr>
+                </table>
               </div>
             </td>
           </tr>
 
           <!-- Separator -->
-          <tr><td style="padding:0 32px;"><div style="height:1px;background-color:#e2e8f0;"></div></td></tr>
+          <tr><td style="padding:0 36px;"><div style="height:1px;background-color:#1e293b;"></div></td></tr>
 
           <!-- 2. Notable AI Tools Section -->
           ${
             data.notableTools && data.notableTools.length > 0
               ? `
           <tr>
-            <td style="padding:28px 32px 20px;">
-              <div style="font-size:12px;font-weight:800;letter-spacing:1px;color:#ea580c;text-transform:uppercase;margin-bottom:8px;">
-                Notable AIs
+            <td style="padding:28px 36px 20px;">
+              <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#38bdf8;text-transform:uppercase;margin-bottom:8px;">
+                ${isAr ? "نماذج وأدوات المنصة" : "NOTABLE AI SUITE"}
               </div>
-              <h3 style="margin:0 0 16px;font-size:19px;font-weight:800;color:#0f172a;">
-                ${escapeHtml(data.notableToolsTitle || "Notable AI Tools")}
+              <h3 style="margin:0 0 16px;font-size:18px;font-weight:800;color:#f8fafc;">
+                ${escapeHtml(data.notableToolsTitle || (isAr ? "أبرز أدوات وميزات سعد ستوديو" : "Notable AI Tools"))}
               </h3>
-              ${notableToolsHtml}
+              <div style="background-color:#11192e;border:1px solid #1e293b;border-radius:16px;padding:20px 24px;">
+                ${notableToolsHtml}
+              </div>
             </td>
           </tr>
-          <tr><td style="padding:0 32px;"><div style="height:1px;background-color:#e2e8f0;"></div></td></tr>`
+          <tr><td style="padding:0 36px;"><div style="height:1px;background-color:#1e293b;"></div></td></tr>`
               : ""
           }
 
-          <!-- 3. Sponsor Note (Optional) -->
-          ${
-            data.sponsorNote
-              ? `
-          <tr>
-            <td style="padding:20px 32px;background-color:#f8fafc;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;text-align:center;font-size:13px;color:#64748b;">
-              ${escapeHtml(data.sponsorNote)}
-            </td>
-          </tr>`
-              : ""
-          }
-
-          <!-- 4. From the Source / Open Source Section -->
+          <!-- 3. From the Source / Open Source Section -->
           ${
             data.sourceUpdates && data.sourceUpdates.length > 0
               ? `
           <tr>
-            <td style="padding:28px 32px 20px;">
-              <div style="font-size:12px;font-weight:800;letter-spacing:1px;color:#ea580c;text-transform:uppercase;margin-bottom:8px;">
-                Open Source &amp; Drops
+            <td style="padding:28px 36px 20px;">
+              <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#38bdf8;text-transform:uppercase;margin-bottom:8px;">
+                ${isAr ? "تحديثات وتطويرات" : "FROM THE SOURCE"}
               </div>
-              <h3 style="margin:0 0 16px;font-size:19px;font-weight:800;color:#0f172a;">
-                ${escapeHtml(data.sourceUpdatesTitle || "From the Source")}
+              <h3 style="margin:0 0 16px;font-size:18px;font-weight:800;color:#f8fafc;">
+                ${escapeHtml(data.sourceUpdatesTitle || (isAr ? "أحدث التحديثات في المنصة" : "Platform Updates & Releases"))}
               </h3>
-              ${sourceUpdatesHtml}
+              <div style="background-color:#11192e;border:1px solid #1e293b;border-radius:16px;padding:20px 24px;">
+                ${sourceUpdatesHtml}
+              </div>
             </td>
           </tr>
-          <tr><td style="padding:0 32px;"><div style="height:1px;background-color:#e2e8f0;"></div></td></tr>`
+          <tr><td style="padding:0 36px;"><div style="height:1px;background-color:#1e293b;"></div></td></tr>`
               : ""
           }
 
-          <!-- 5. Prompt of the Day Section -->
+          <!-- 4. Prompt of the Day Section -->
           ${
             data.promptOfDayText
               ? `
           <tr>
-            <td style="padding:28px 32px 24px;">
-              <div style="font-size:12px;font-weight:800;letter-spacing:1px;color:#ea580c;text-transform:uppercase;margin-bottom:8px;">
-                ${escapeHtml(data.promptOfDayTitle || "Prompt of the Day")}
+            <td style="padding:28px 36px 28px;">
+              <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#f59e0b;text-transform:uppercase;margin-bottom:8px;">
+                ${escapeHtml(data.promptOfDayTitle || (isAr ? "برومبت اليوم الإبداعي" : "Prompt of the Day"))}
               </div>
-              <h3 style="margin:0 0 14px;font-size:19px;font-weight:800;color:#0f172a;">
-                ${escapeHtml(data.promptOfDayName || "Prompt of the Day")}
+              <h3 style="margin:0 0 14px;font-size:18px;font-weight:800;color:#f8fafc;">
+                ${escapeHtml(data.promptOfDayName || (isAr ? "برومبت سينمائي جاهز للتجربة" : "Featured Creative Prompt"))}
               </h3>
               
-              <div style="background-color:#fff7ed;border:1.5px solid #fed7aa;border-radius:14px;padding:18px 20px;margin-bottom:14px;">
-                <div style="font-size:13px;font-weight:700;color:#9a3412;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">
-                  Copy &amp; Paste Prompt:
+              <div style="background-color:#182238;border:1.5px solid #f59e0b40;border-radius:16px;padding:20px 24px;margin-bottom:14px;">
+                <div style="font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">
+                  ${isAr ? "انسخ البرومبت وجربه في Image Studio:" : "Copy & Paste into Image Studio:"}
                 </div>
-                <div style="font-family:monospace,sans-serif;font-size:13px;color:#7c2d12;line-height:1.6;word-break:break-word;">
+                <div style="font-family:monospace,sans-serif;font-size:13px;color:#fef08a;line-height:1.7;word-break:break-word;background-color:#0b1120;padding:12px 16px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
                   ${escapeHtml(data.promptOfDayText)}
                 </div>
               </div>
@@ -205,20 +212,20 @@ export function compileNewsletterHtml(data: NewsletterPayload, logoSrc: string, 
 
           <!-- Footer -->
           <tr>
-            <td style="padding:28px 32px;background-color:#0f172a;text-align:center;">
-              <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#ffffff;">
-                Saad Studio — World-Class Generative AI Suite
+            <td style="padding:28px 36px;background-color:#080c16;border-top:1px solid #1e293b;text-align:center;">
+              <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#cbd5e1;">
+                سعد ستوديو — المنصة الرائدة في أدوات الذكاء الاصطناعي الإبداعية
               </p>
-              <p style="margin:0 0 12px;font-size:12px;color:#94a3b8;">
-                <a href="${siteUrl}" target="_blank" style="color:#38bdf8;text-decoration:none;font-weight:600;margin:0 6px;">Studio</a>
+              <p style="margin:0 0 14px;font-size:12px;color:#64748b;">
+                <a href="${siteUrl}" target="_blank" style="color:#38bdf8;text-decoration:none;font-weight:600;margin:0 8px;">Studio</a>
                 •
-                <a href="${siteUrl}/explore" target="_blank" style="color:#38bdf8;text-decoration:none;font-weight:600;margin:0 6px;">Explore</a>
+                <a href="${siteUrl}/explore" target="_blank" style="color:#38bdf8;text-decoration:none;font-weight:600;margin:0 8px;">Explore</a>
                 •
-                <a href="mailto:support@saadstudio.app" style="color:#38bdf8;text-decoration:none;font-weight:600;margin:0 6px;">Support</a>
+                <a href="mailto:support@saadstudio.app" style="color:#38bdf8;text-decoration:none;font-weight:600;margin:0 8px;">Support</a>
               </p>
-              <p style="margin:0;font-size:11px;color:#64748b;">
-                You received this newsletter as a subscriber of Saad Studio.<br/>
-                © ${new Date().getFullYear()} Saad Studio. All rights reserved.
+              <p style="margin:0;font-size:11px;color:#475569;line-height:1.5;">
+                وصلتك هذه النشرة بصفتك مشتركاً أو مستخدماً مسجلاً في منصة سعد ستوديو.<br/>
+                © ${new Date().getFullYear()} Saad Studio. جميع الحقوق محفوظة.
               </p>
             </td>
           </tr>
@@ -251,8 +258,63 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ html });
     }
 
+    if (action === "generate_image") {
+      const prompt = String(body.prompt || "").trim();
+      if (!prompt) return NextResponse.json({ error: "Image prompt is required" }, { status: 400 });
+
+      const waveSpeedKey = process.env.WAVESPEED_API_KEY;
+      if (!waveSpeedKey) {
+        return NextResponse.json({ error: "WAVESPEED_API_KEY is not configured" }, { status: 500 });
+      }
+
+      const imgRes = await fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${waveSpeedKey}`,
+        },
+        body: JSON.stringify({
+          prompt,
+          aspect_ratio: "16:9",
+          num_images: 1,
+        }),
+      });
+
+      if (!imgRes.ok) {
+        throw new Error(`WaveSpeed generation error: ${imgRes.statusText}`);
+      }
+
+      const data = await imgRes.json();
+      const taskId = data?.data?.id || data?.id;
+      let imageUrl = "";
+
+      if (taskId) {
+        for (let i = 0; i < 15; i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
+            headers: { Authorization: `Bearer ${waveSpeedKey}` },
+          });
+          if (pollRes.ok) {
+            const pollData = await pollRes.json();
+            const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
+            if (status === "completed" || status === "succeeded" || status === "success") {
+              const outputs = pollData?.data?.outputs || pollData?.outputs || [];
+              if (outputs.length && outputs[0]) {
+                imageUrl = outputs[0];
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      return NextResponse.json({ success: true, imageUrl });
+    }
+
     if (action === "generate") {
       const userPrompt = String(body.prompt || "").trim();
+      const targetLang = (body.language === "ar" || body.language === "en") ? body.language : (/[\u0600-\u06FF]/.test(userPrompt) ? "ar" : "en");
+
       if (!userPrompt) {
         return NextResponse.json({ error: "Please enter instructions for the AI Newsletter Agent." }, { status: 400 });
       }
@@ -262,24 +324,28 @@ export async function POST(req: NextRequest) {
       let imageGenPrompt = "";
 
       if (openAIApiKey && openAIApiKey !== "sk-placeholder") {
-        const systemInstruction = `You are the Lead Editorial AI for Saad Studio's official weekly newsletter (inspired by The Rundown AI and Ben's Bites).
-You format rich, engaging, hype-free tech newsletters with these exact sections:
-1. subject: catchy subject line
-2. heroTag: short category tag like "Interesting AI", "Saad Studio Drops", or "Breakthrough"
-3. heroTitle: punchy title for the main story
-4. heroBody: 2-3 engaging paragraphs explaining the main topic/model/feature
-5. heroCtaText: e.g. "Check it out here ➜" or "Try Grok Imagine 2.0 ➜"
-6. heroCtaUrl: link URL (default "https://www.saadstudio.app")
-7. notableToolsTitle: e.g. "Notable AI Tools & Models"
-8. notableTools: array of 2-4 items, each with { icon (emoji), name, description, url }
-9. sourceUpdatesTitle: e.g. "From the Source & Community"
-10. sourceUpdates: array of 2-3 items, each with { icon (emoji), name, description, url }
-11. promptOfDayTitle: "Prompt of the Day"
-12. promptOfDayName: catchy prompt name (e.g. "Cinematic Ultra-Realistic Portrait")
-13. promptOfDayText: the actual creative prompt users can copy/paste
-14. imagePrompt: high-detail english prompt for an image generator (SDXL/Flux) representing the main story.
+        const systemInstruction = `You are the Lead Editorial AI for Saad Studio (سعد ستوديو - المنصة الإبداعية للذكاء الاصطناعي).
+You write captivating, highly professional newsletters.
+TARGET LANGUAGE: ${targetLang === "ar" ? "ARABIC (العربية الفصحى الاحترافية)" : "ENGLISH"}.
 
-Return ONLY a valid JSON object with these keys.`;
+Generate a JSON object with these exact keys:
+1. language: "${targetLang}"
+2. subject: catchy subject line in ${targetLang === "ar" ? "Arabic" : "English"}
+3. heroTag: short badge title (e.g. "${targetLang === "ar" ? "إضاءة الأسبوع" : "Spotlight"}")
+4. heroTitle: headline for the main story/model launch
+5. heroBody: 2-3 engaging paragraphs explaining the announcement in ${targetLang === "ar" ? "Arabic" : "English"}
+6. heroCtaText: e.g. "${targetLang === "ar" ? "جرب الميزة الآن في سعد ستوديو ➜" : "Try Grok Imagine 2.0 in Saad Studio ➜"}"
+7. heroCtaUrl: link URL (e.g. "${siteUrl}/image-studio")
+8. notableToolsTitle: e.g. "${targetLang === "ar" ? "أبرز أدوات ونماذج سعد ستوديو" : "Notable AI Tools & Models"}"
+9. notableTools: array of 3 items, each { icon: string (emoji), name: string, description: string in ${targetLang === "ar" ? "Arabic" : "English"}, url: string }
+10. sourceUpdatesTitle: e.g. "${targetLang === "ar" ? "تحديثات وتطويرات المنصة" : "From the Source & Releases"}"
+11. sourceUpdates: array of 2 items, each { icon: string (emoji), name: string, description: string in ${targetLang === "ar" ? "Arabic" : "English"}, url: string }
+12. promptOfDayTitle: "${targetLang === "ar" ? "برومبت اليوم الإبداعي" : "Prompt of the Day"}"
+13. promptOfDayName: catchy prompt name
+14. promptOfDayText: the actual copyable image generation prompt (in English for AI models e.g. Midjourney/Flux)
+15. imagePrompt: high-detail english prompt describing a cinematic visual concept representing the main topic for image generation.
+
+Return ONLY the valid JSON object.`;
 
         const apiRes = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -292,7 +358,7 @@ Return ONLY a valid JSON object with these keys.`;
             response_format: { type: "json_object" },
             messages: [
               { role: "system", content: systemInstruction },
-              { role: "user", content: `Generate an engaging newsletter based on this topic/request:\n${userPrompt}` },
+              { role: "user", content: `Topic/Instructions:\n${userPrompt}` },
             ],
             temperature: 0.7,
           }),
@@ -306,33 +372,60 @@ Return ONLY a valid JSON object with these keys.`;
         const rawJson = JSON.parse(completion.choices?.[0]?.message?.content || "{}");
         imageGenPrompt = rawJson.imagePrompt || userPrompt;
         delete rawJson.imagePrompt;
-        generatedData = rawJson;
+        generatedData = { ...rawJson, language: targetLang };
       } else {
-        // Fallback generator when API key is not present
-        imageGenPrompt = `A futuristic high-tech creative AI studio workspace with glowing holographic displays, cinematic 8k lighting, photorealistic: ${userPrompt.slice(0, 100)}`;
-        generatedData = {
-          subject: `✨ What's New in Creative AI: ${userPrompt.slice(0, 40)}...`,
-          heroTag: "Saad Studio Spotlight",
-          heroTitle: `New Advancements in Creative AI: ${userPrompt.slice(0, 45)}`,
-          heroBody: `We are thrilled to bring you the latest breakthroughs in generative AI and creative tools on Saad Studio.\n\n${userPrompt}\n\nOur platform has been updated with faster inference, higher fidelity 4K rendering, and multi-model routing to make your creative workflow seamless.`,
-          heroCtaText: "Explore New Models ➜",
-          heroCtaUrl: `${siteUrl}/explore`,
-          notableToolsTitle: "Notable AI Tools & Capabilities",
-          notableTools: [
-            { icon: "🎨", name: "Grok Imagine 2.0", description: "Ultra-fast photorealistic generations with full style control.", url: `${siteUrl}/image-studio` },
-            { icon: "🎬", name: "Multi-Cam Auto Switcher", description: "Automatic speaker detection and timeline cut assembly.", url: `${siteUrl}/video-studio` },
-            { icon: "⚡", name: "4K Master Upscaler", description: "Enhance details and textures up to 8x resolution.", url: `${siteUrl}/image-presets` },
-          ],
-          sourceUpdatesTitle: "From the Source & Community",
-          sourceUpdates: [
-            { icon: "🔍", name: "Style Presets Hub", description: "One-click cinematic prompt hydration library.", url: `${siteUrl}/image-presets` },
-            { icon: "🚀", name: "Knowledge Hub", description: "Comprehensive documentation on all generative AI models.", url: `${siteUrl}/admin/knowledge-hub` },
-          ],
-          promptOfDayTitle: "Prompt of the Day",
-          promptOfDayName: "Cinematic Volumetric Lighting Masterpiece",
-          promptOfDayText: "A breathtaking hyper-realistic cinematic shot of a futuristic neon city in rain, volumetric reflections, anamorphic lens flare, 8k resolution, photorealistic masterpiece --ar 16:9",
-          sponsorNote: "Reach top creative AI professionals and creators worldwide on Saad Studio.",
-        };
+        // Fallback generator
+        if (targetLang === "ar") {
+          imageGenPrompt = `A futuristic high-tech creative AI studio workspace with glowing holographic displays, cinematic 8k lighting, photorealistic: ${userPrompt.slice(0, 100)}`;
+          generatedData = {
+            language: "ar",
+            subject: `✨ جديد سعد ستوديو: ${userPrompt.slice(0, 35)}...`,
+            heroTag: "إضاءة الأسبوع",
+            heroTitle: `تطورات ثورية في الذكاء الاصطناعي: ${userPrompt.slice(0, 40)}`,
+            heroBody: `يسعدنا أن نقدم لكم أحدث الإطلاقات والنماذج الإبداعية عبر منصة سعد ستوديو.\n\n${userPrompt}\n\nتم تحديث محركات التوليد لتمنحك دقة 4K فائقة وسرعة معالجة استثنائية لكافة مشاريعك الفنية والسينمائية.`,
+            heroCtaText: "جرب الميزة الآن في سعد ستوديو ➜",
+            heroCtaUrl: `${siteUrl}/image-studio`,
+            notableToolsTitle: "أبرز أدوات ونماذج سعد ستوديو",
+            notableTools: [
+              { icon: "🎨", name: "Grok Imagine 2.0", description: "توليد صور واقعية سينمائية بأعلى دقة وتحكم كامل في الإضاءة.", url: `${siteUrl}/image-studio` },
+              { icon: "🎬", name: "Multi-Cam Auto Switcher", description: "اكتشاف تلقائي للمتحدث وتركيب مشاهد الفيديو باحترافية.", url: `${siteUrl}/video-studio` },
+              { icon: "⚡", name: "مكتبة الستايلات والبرومبت", description: "حقن فوري لأقوى البرومبتات الفنية الجاهزة بنقرة واحدة.", url: `${siteUrl}/image-presets` },
+            ],
+            sourceUpdatesTitle: "تحديثات وتطويرات المنصة",
+            sourceUpdates: [
+              { icon: "🔍", name: "التخزين السحابي فائق السرعة", description: "بث وسائط خالي من الأخطاء ودعم كامل لـ B2 و S3.", url: `${siteUrl}` },
+              { icon: "🚀", name: "إضافة Premiere Pro 26.2.0", description: "تكامل مباشر وسلس داخل برنامج أدوبي بريمير.", url: `${siteUrl}` },
+            ],
+            promptOfDayTitle: "برومبت اليوم الإبداعي",
+            promptOfDayName: "لوحة سينمائية بإضاءة ثلاثية الأبعاد",
+            promptOfDayText: "A breathtaking hyper-realistic cinematic portrait, dramatic volumetric studio lighting, anamorphic reflections, 8k resolution, photorealistic masterpiece --ar 16:9",
+          };
+        } else {
+          imageGenPrompt = `A futuristic high-tech creative AI studio workspace with glowing holographic displays, cinematic 8k lighting, photorealistic: ${userPrompt.slice(0, 100)}`;
+          generatedData = {
+            language: "en",
+            subject: `✨ What's New in Saad Studio: ${userPrompt.slice(0, 35)}...`,
+            heroTag: "Saad Studio Spotlight",
+            heroTitle: `New Breakthroughs in Creative AI: ${userPrompt.slice(0, 40)}`,
+            heroBody: `We are thrilled to bring you the latest breakthroughs in generative AI and creative tools on Saad Studio.\n\n${userPrompt}\n\nOur platform has been upgraded with faster inference, higher fidelity 4K rendering, and multi-model routing.`,
+            heroCtaText: "Launch in Saad Studio ➜",
+            heroCtaUrl: `${siteUrl}/image-studio`,
+            notableToolsTitle: "Notable AI Tools & Capabilities",
+            notableTools: [
+              { icon: "🎨", name: "Grok Imagine 2.0", description: "Ultra-fast photorealistic generations with full style control.", url: `${siteUrl}/image-studio` },
+              { icon: "🎬", name: "Multi-Cam Auto Switcher", description: "Automatic speaker detection and timeline cut assembly.", url: `${siteUrl}/video-studio` },
+              { icon: "⚡", name: "Style Presets Library", description: "One-click cinematic prompt hydration catalogue.", url: `${siteUrl}/image-presets` },
+            ],
+            sourceUpdatesTitle: "From the Source & Releases",
+            sourceUpdates: [
+              { icon: "🔍", name: "Universal Media Storage", description: "Zero-loss B2 & S3 asset streaming.", url: `${siteUrl}` },
+              { icon: "🚀", name: "CEP Premiere 26.2.0 Extension", description: "Direct Premiere Pro plugin integration.", url: `${siteUrl}` },
+            ],
+            promptOfDayTitle: "Prompt of the Day",
+            promptOfDayName: "Cinematic Volumetric Studio Masterpiece",
+            promptOfDayText: "A breathtaking hyper-realistic cinematic portrait, dramatic volumetric studio lighting, anamorphic reflections, 8k resolution, photorealistic masterpiece --ar 16:9",
+          };
+        }
       }
 
       // Try generating an AI Hero Image via WaveSpeed if available
@@ -358,7 +451,6 @@ Return ONLY a valid JSON object with these keys.`;
             const data = await imgRes.json();
             const taskId = data?.data?.id || data?.id;
             if (taskId) {
-              // Quick poll up to 10 times (20 seconds)
               for (let i = 0; i < 10; i++) {
                 await new Promise((r) => setTimeout(r, 2000));
                 const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
@@ -426,7 +518,6 @@ Return ONLY a valid JSON object with these keys.`;
         recipients = users.map((u) => u.email.trim().toLowerCase());
       }
 
-      // Deduplicate
       recipients = Array.from(new Set(recipients)).filter((e) => e && e.includes("@"));
 
       if (!recipients.length) {
@@ -439,7 +530,6 @@ Return ONLY a valid JSON object with these keys.`;
       let sentCount = 0;
       let failedCount = 0;
 
-      // Send in batches
       for (const email of recipients) {
         try {
           const res = await fetch("https://api.resend.com/emails", {

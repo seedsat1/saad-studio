@@ -85,8 +85,9 @@
      - Features complete subscriber list with search, status filters, manual add, deletion, one-click email copying, and CSV export.
   11. AI Newsletter Agent & Multi-Card Email Generator:
      - Built dedicated AI Editorial Agent suite inside `/admin/newsletter` (`app/api/admin/newsletter/agent/route.ts`).
-     - Agent accepts natural language instructions and automatically generates structured multi-card newsletters (Spotlight with AI-generated hero image, Notable AI Tools, Open Source & Drops, Prompt of the Day, and CTAs).
-     - Features live visual section editor, interactive multi-card email preview matching top AI newsletters, and instant broadcast delivery to newsletter leads or paid active subscribers.
+     - Added full **Arabic (🇸🇦 العربية) & English (🇬🇧 English)** dual-language toggle with native RTL/LTR formatting and typography.
+     - Added integrated **Direct Image Uploader (رفع من الجهاز)** and **AI Image Generator** to replace raw URL inputs.
+     - Upgraded the email layout and live preview into the true **Saad Studio Luxury Dark Brand Theme** (midnight blue/violet cards, glowing cyan accents, official logo, and copyable prompt cards).
   12. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest test suite: 19/19 tests passed across all suites.
