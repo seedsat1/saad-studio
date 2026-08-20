@@ -63,6 +63,7 @@ const DEFAULT_ARABIC_PAYLOAD: NewsletterPayload = {
 export default function AdminNewsletterPage() {
   const [activeTab, setActiveTab] = useState<"agent" | "subscribers">("agent");
   const [selectedLanguage, setSelectedLanguage] = useState<"ar" | "en">("ar");
+  const [selectedImageModel, setSelectedImageModel] = useState<"nano-banana-pro" | "gpt-image-2">("nano-banana-pro");
 
   // Subscribers state
   const [subscribers, setSubscribers] = useState<NewsletterSubscriberItem[]>([]);
@@ -120,6 +121,7 @@ export default function AdminNewsletterPage() {
           action: "generate",
           prompt: p.trim(),
           language: selectedLanguage,
+          model: selectedImageModel,
         }),
       });
       const data = await res.json();
@@ -145,6 +147,7 @@ export default function AdminNewsletterPage() {
         body: JSON.stringify({
           action: "generate_image",
           prompt: p,
+          model: selectedImageModel,
         }),
       });
       const data = await res.json();
@@ -538,6 +541,35 @@ export default function AdminNewsletterPage() {
                       </div>
                     )}
 
+                    {/* Model Choice for Image Generation */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-white/5 text-[11px]">
+                      <span className="text-zinc-400 font-semibold">نموذج توليد الصورة:</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImageModel("nano-banana-pro")}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            selectedImageModel === "nano-banana-pro"
+                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                              : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
+                          }`}
+                        >
+                          🍌 Nano Banana Pro (Google)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImageModel("gpt-image-2")}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            selectedImageModel === "gpt-image-2"
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                              : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
+                          }`}
+                        >
+                          🧠 GPT-Image-2 (OpenAI)
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Action Buttons: AI Generate or Upload from PC */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                       <button
@@ -564,7 +596,7 @@ export default function AdminNewsletterPage() {
                         className="px-3 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 hover:bg-cyan-500/25 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"
                       >
                         {generatingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-cyan-400" />}
-                        <span>توليد صورة جديدة بالـ AI</span>
+                        <span>توليد صورة بـ {selectedImageModel === "nano-banana-pro" ? "Nano Banana" : "GPT-Image"}</span>
                       </button>
                     </div>
                   </div>

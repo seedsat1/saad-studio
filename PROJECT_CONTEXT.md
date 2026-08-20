@@ -86,7 +86,7 @@
   11. AI Newsletter Agent & Multi-Card Email Generator:
      - Built dedicated AI Editorial Agent suite inside `/admin/newsletter` (`app/api/admin/newsletter/agent/route.ts`).
      - Added full **Arabic (🇸🇦 العربية) & English (🇬🇧 English)** dual-language toggle with native RTL/LTR formatting and typography.
-     - Added integrated **Direct Image Uploader (رفع من الجهاز)** and **AI Image Generator** to replace raw URL inputs.
+     - Added integrated **Direct Image Uploader (رفع من الجهاز)** and **AI Image Generator with Model Switcher** supporting **Google Nano Banana Pro (`nano-banana-pro`)** and **OpenAI GPT-Image-2 (`gpt-image-2`)**.
      - Upgraded the email layout and live preview into the true **Saad Studio Luxury Dark Brand Theme** (midnight blue/violet cards, glowing cyan accents, official logo, and copyable prompt cards).
   12. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.

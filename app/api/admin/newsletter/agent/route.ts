@@ -260,55 +260,128 @@ export async function POST(req: NextRequest) {
 
     if (action === "generate_image") {
       const prompt = String(body.prompt || "").trim();
+      const model = String(body.model || "nano-banana-pro").trim().toLowerCase();
       if (!prompt) return NextResponse.json({ error: "Image prompt is required" }, { status: 400 });
 
-      const waveSpeedKey = process.env.WAVESPEED_API_KEY;
-      if (!waveSpeedKey) {
-        return NextResponse.json({ error: "WAVESPEED_API_KEY is not configured" }, { status: 500 });
-      }
-
-      const imgRes = await fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${waveSpeedKey}`,
-        },
-        body: JSON.stringify({
-          prompt,
-          aspect_ratio: "16:9",
-          num_images: 1,
-        }),
-      });
-
-      if (!imgRes.ok) {
-        throw new Error(`WaveSpeed generation error: ${imgRes.statusText}`);
-      }
-
-      const data = await imgRes.json();
-      const taskId = data?.data?.id || data?.id;
       let imageUrl = "";
 
-      if (taskId) {
-        for (let i = 0; i < 15; i++) {
-          await new Promise((r) => setTimeout(r, 2000));
-          const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
-            headers: { Authorization: `Bearer ${waveSpeedKey}` },
+      // 1. OpenAI GPT-Image-2 / DALL-E 3
+      if (model.includes("gpt") || model.includes("openai")) {
+        const openAIApiKey = process.env.OPENAI_API_KEY;
+        if (!openAIApiKey || openAIApiKey === "sk-placeholder") {
+          return NextResponse.json({ error: "OPENAI_API_KEY is not configured" }, { status: 500 });
+        }
+
+        const res = await fetch("https://api.openai.com/v1/images/generations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${openAIApiKey}`,
+          },
+          body: JSON.stringify({
+            model: "dall-e-3",
+            prompt,
+            size: "1792x1024",
+            quality: "standard",
+            n: 1,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          imageUrl = data.data?.[0]?.url || "";
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `OpenAI image generation failed: ${res.statusText}`);
+        }
+      } 
+      // 2. Google Nano Banana Pro / WaveSpeed
+      else {
+        const waveSpeedKey = process.env.WAVESPEED_API_KEY;
+        if (!waveSpeedKey) {
+          return NextResponse.json({ error: "WAVESPEED_API_KEY is not configured" }, { status: 500 });
+        }
+
+        // Try Google nano-banana route or fallback to flux-schnell
+        const targetEndpoint = model.includes("nano") ? "google/nano-banana/text-to-image" : "flux-schnell/text-to-image";
+
+        const imgRes = await fetch(`https://api.wavespeed.ai/api/v3/${targetEndpoint}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${waveSpeedKey}`,
+          },
+          body: JSON.stringify({
+            prompt,
+            aspect_ratio: "16:9",
+            num_images: 1,
+          }),
+        });
+
+        if (!imgRes.ok) {
+          // Fallback to flux-schnell if nano endpoint is unavailable
+          const fallbackRes = await fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${waveSpeedKey}`,
+            },
+            body: JSON.stringify({
+              prompt,
+              aspect_ratio: "16:9",
+              num_images: 1,
+            }),
           });
-          if (pollRes.ok) {
-            const pollData = await pollRes.json();
-            const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
-            if (status === "completed" || status === "succeeded" || status === "success") {
-              const outputs = pollData?.data?.outputs || pollData?.outputs || [];
-              if (outputs.length && outputs[0]) {
-                imageUrl = outputs[0];
-                break;
+          if (!fallbackRes.ok) {
+            throw new Error(`Image generation error: ${fallbackRes.statusText}`);
+          }
+          const fbData = await fallbackRes.json();
+          const taskId = fbData?.data?.id || fbData?.id;
+          if (taskId) {
+            for (let i = 0; i < 15; i++) {
+              await new Promise((r) => setTimeout(r, 2000));
+              const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
+                headers: { Authorization: `Bearer ${waveSpeedKey}` },
+              });
+              if (pollRes.ok) {
+                const pollData = await pollRes.json();
+                const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
+                if (status === "completed" || status === "succeeded" || status === "success") {
+                  const outputs = pollData?.data?.outputs || pollData?.outputs || [];
+                  if (outputs.length && outputs[0]) {
+                    imageUrl = outputs[0];
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          const data = await imgRes.json();
+          const taskId = data?.data?.id || data?.id;
+          if (taskId) {
+            for (let i = 0; i < 15; i++) {
+              await new Promise((r) => setTimeout(r, 2000));
+              const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
+                headers: { Authorization: `Bearer ${waveSpeedKey}` },
+              });
+              if (pollRes.ok) {
+                const pollData = await pollRes.json();
+                const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
+                if (status === "completed" || status === "succeeded" || status === "success") {
+                  const outputs = pollData?.data?.outputs || pollData?.outputs || [];
+                  if (outputs.length && outputs[0]) {
+                    imageUrl = outputs[0];
+                    break;
+                  }
+                }
               }
             }
           }
         }
       }
 
-      return NextResponse.json({ success: true, imageUrl });
+      return NextResponse.json({ success: true, imageUrl, model });
     }
 
     if (action === "generate") {
