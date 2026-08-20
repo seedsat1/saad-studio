@@ -1569,6 +1569,47 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameEn: "Pass-Through Objects",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/pass-through.webp",
     promptDescription: "pass-through movement. Movement: move forward toward a visible object, surface or barrier and continue into the space beyond. Speed: smooth centered glide. Framing: keep the opening or surface centered as the transition point. End: arrive inside the revealed space beyond."
+  },
+  // ── Signature techniques (from the extended camera-movements catalogue) ─────
+  {
+    id: "dolly-zoom",
+    tag: "#dolly-zoom",
+    nameAr: "دولّي زوم (تأثير فيرتيغو)",
+    nameEn: "Dolly Zoom (Vertigo)",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/dolly-zoom.webp",
+    promptDescription: "dolly zoom effect, simultaneously zoom in while pulling camera back, Hitchcock vertigo effect, background stretching, subject stays same size, unsettling."
+  },
+  {
+    id: "rack-focus",
+    tag: "#rack-focus",
+    nameAr: "تحويل البؤرة (Rack Focus)",
+    nameEn: "Rack Focus",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/rack-focus.webp",
+    promptDescription: "rack focus from foreground to background, shallow depth of field, focus pulling between two subjects, bokeh transition, attention redirection."
+  },
+  {
+    id: "pan-360",
+    tag: "#pan-360",
+    nameAr: "بانوراما دائرة كاملة 360°",
+    nameEn: "Full 360° Pan",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/pan-360.webp",
+    promptDescription: "full 360 degree pan rotation, camera spinning slowly around its vertical axis, revealing the entire environment, immersive panoramic sweep."
+  },
+  {
+    id: "barrel-roll",
+    tag: "#barrel-roll",
+    nameAr: "دوران محوري (Barrel Roll)",
+    nameEn: "Barrel Roll",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/barrel-roll.webp",
+    promptDescription: "camera roll rotation around the Z axis, barrel roll effect, horizon tilting and spinning, disorienting 360 degree roll, psychedelic rotation."
+  },
+  {
+    id: "speed-ramp",
+    tag: "#speed-ramp",
+    nameAr: "دفع سريع بتسارع (Speed Ramp)",
+    nameEn: "Speed Ramp / Fast Dolly",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/speed-ramp.webp",
+    promptDescription: "fast forward camera rush toward subject, speed ramp effect, rapid dolly in, dramatic approach, motion blur at edges, high energy cinematic move."
   }
 ];
 

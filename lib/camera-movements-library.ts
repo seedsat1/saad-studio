@@ -88,6 +88,12 @@ const CATEGORY_BY_ID: Record<string, CameraMovementCategoryId> = {
   "earth-zoom-out": "specials",
   "time-lapse": "specials",
   "pass-through": "specials",
+  // Signature techniques (5 — from extended source)
+  "dolly-zoom": "specials",
+  "rack-focus": "specials",
+  "pan-360": "pan-tilt",
+  "barrel-roll": "physical",
+  "speed-ramp": "dolly-track",
 };
 
 export type CameraMovementEntry = HookCameraPreset & {
