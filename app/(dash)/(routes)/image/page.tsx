@@ -1209,25 +1209,24 @@ export default function ImageWorkspacePage() {
 
   useEffect(() => {
     if (rawImageModels.length > 0) {
-      const existsSelected = visibleImageModels.find((m) => m.id === selectedModel.id);
-      if (existsSelected && existsSelected !== selectedModel) {
-        setSelectedModel(existsSelected);
-      } else if (!existsSelected && visibleImageModels.length > 0) {
+      setSelectedModel((prev) => {
+        const found = visibleImageModels.find((m) => m.id === prev.id);
+        if (found) return found;
         const def = getDefaultImageModel(visibleImageModels) ?? visibleImageModels.find((model) => model.id === DEFAULT_GOOGLE_IMAGE_MODEL_ID) ?? visibleImageModels[0];
-        if (def) setSelectedModel(def);
-      }
+        return def ?? prev;
+      });
 
-      const existsInpaint = editModels.find((m) => m.id === inpaintModelId);
-      if (!existsInpaint && editModels.length > 0) {
-        setInpaintModelId(editModels[0].id);
-      }
+      setInpaintModelId((prev) => {
+        const found = editModels.find((m) => m.id === prev);
+        return found ? prev : (editModels[0]?.id ?? prev);
+      });
 
-      const existsEnhance = enhanceModels.find((m) => m.id === enhanceModelId);
-      if (!existsEnhance && enhanceModels.length > 0) {
-        setEnhanceModelId(enhanceModels[0].id);
-      }
+      setEnhanceModelId((prev) => {
+        const found = enhanceModels.find((m) => m.id === prev);
+        return found ? prev : (enhanceModels[0]?.id ?? prev);
+      });
     }
-  }, [rawImageModels, visibleImageModels, editModels, enhanceModels, selectedModel.id, inpaintModelId, enhanceModelId]);
+  }, [rawImageModels, visibleImageModels, editModels, enhanceModels]);
 
   const [showReferenceStudioModal, setShowReferenceStudioModal] = useState(false);
   const [activeStudioTab, setActiveStudioTab] = useState("style");
