@@ -84,12 +84,15 @@ export default function AdminSocialMediaPage() {
   const [activeTab, setActiveTab] = useState<"agent" | "history" | "config">("agent");
   const [activePlatform, setActivePlatform] = useState<SocialPlatformType>("twitter");
   const [selectedLanguage, setSelectedLanguage] = useState<"ar" | "en">("ar");
+  const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video">("image");
   const [selectedImageModel, setSelectedImageModel] = useState<"nano-banana-pro" | "gpt-image-2">("nano-banana-pro");
+  const [selectedVideoModel, setSelectedVideoModel] = useState<"google-omni-veo" | "kling-video" | "seedance-video">("google-omni-veo");
 
   // Agent states
   const [agentPrompt, setAgentPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generatingImg, setGeneratingImg] = useState(false);
+  const [generatingVid, setGeneratingVid] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [currentPost, setCurrentPost] = useState<SocialMediaPostRecord>(DEFAULT_POST);
   const [customImgPrompt, setCustomImgPrompt] = useState("");
@@ -170,7 +173,7 @@ export default function AdminSocialMediaPage() {
       });
       const data = await res.json();
       if (res.ok && data?.imageUrl) {
-        setCurrentPost((prev) => ({ ...prev, imageUrl: data.imageUrl, imageModel: selectedImageModel }));
+        setCurrentPost((prev) => ({ ...prev, imageUrl: data.imageUrl, mediaType: "image", imageModel: selectedImageModel }));
         setCustomImgPrompt("");
       } else {
         alert(data?.error || "Failed to generate image.");
@@ -179,6 +182,33 @@ export default function AdminSocialMediaPage() {
       alert("Error generating image: " + String(e));
     } finally {
       setGeneratingImg(false);
+    }
+  };
+
+  const handleGenerateVideoOnly = async () => {
+    const p = customImgPrompt.trim() || currentPost.topicPrompt || "Cinematic futuristic high resolution AI motion video 4k";
+    setGeneratingVid(true);
+    try {
+      const res = await fetch("/api/admin/social-media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate_video",
+          prompt: p,
+          model: selectedVideoModel,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.videoUrl) {
+        setCurrentPost((prev) => ({ ...prev, videoUrl: data.videoUrl, mediaType: "video", videoModel: selectedVideoModel }));
+        setCustomImgPrompt("");
+      } else {
+        alert(data?.error || "Failed to generate video.");
+      }
+    } catch (e) {
+      alert("Error generating video: " + String(e));
+    } finally {
+      setGeneratingVid(false);
     }
   };
 
@@ -473,26 +503,56 @@ export default function AdminSocialMediaPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* Left Column: Image Controls & Platform Content Editor */}
               <div className="lg:col-span-6 space-y-5">
-                {/* Visual Cover Image Manager */}
-                <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-5 backdrop-blur-xl space-y-3.5">
+                {/* Visual Media Manager (Image & Video) */}
+                <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-5 backdrop-blur-xl space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-zinc-300 font-bold text-xs flex items-center gap-2">
-                      <ImageIcon className="w-4 h-4 text-cyan-400" />
-                      <span>الصورة البصرية للمنشور (Post Visual)</span>
-                    </label>
-                    {currentPost.imageUrl && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-zinc-300 font-bold text-xs flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-cyan-400" />
+                        <span>الوسائط البصرية (صورة / فيديو)</span>
+                      </label>
+                    </div>
+
+                    {/* Media Type Switcher: Image vs Video */}
+                    <div className="flex items-center gap-1 p-0.5 bg-black/60 border border-white/10 rounded-xl text-[11px]">
                       <button
                         type="button"
-                        onClick={() => setCurrentPost({ ...currentPost, imageUrl: undefined })}
-                        className="text-[10px] text-rose-400 hover:underline"
+                        onClick={() => setSelectedMediaType("image")}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                          selectedMediaType === "image"
+                            ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                            : "text-zinc-400 hover:text-white"
+                        }`}
                       >
-                        إزالة الصورة
+                        🖼️ صورة
                       </button>
-                    )}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMediaType("video")}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                          selectedMediaType === "video"
+                            ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                            : "text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        🎬 فيديو AI
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Thumbnail Preview */}
-                  {currentPost.imageUrl && (
+                  {/* Thumbnail / Video Preview */}
+                  {currentPost.mediaType === "video" && currentPost.videoUrl ? (
+                    <div className="rounded-xl overflow-hidden border border-purple-500/30 aspect-video relative bg-black shadow-inner">
+                      <video
+                        src={currentPost.videoUrl}
+                        controls
+                        autoPlay
+                        loop
+                        muted
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : currentPost.imageUrl ? (
                     <div className="rounded-xl overflow-hidden border border-white/15 aspect-video relative bg-black/40 shadow-inner">
                       <img
                         src={currentPost.imageUrl}
@@ -500,36 +560,77 @@ export default function AdminSocialMediaPage() {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                  )}
+                  ) : null}
 
-                  {/* Model Selector for Image */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-white/5 text-[11px]">
-                    <span className="text-zinc-400 font-semibold">نموذج توليد الصورة:</span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedImageModel("nano-banana-pro")}
-                        className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                          selectedImageModel === "nano-banana-pro"
-                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                            : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
-                        }`}
-                      >
-                        🍌 Nano Banana Pro (Google)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedImageModel("gpt-image-2")}
-                        className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                          selectedImageModel === "gpt-image-2"
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                            : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
-                        }`}
-                      >
-                        🧠 GPT-Image-2 (OpenAI)
-                      </button>
+                  {/* Model Selector based on Media Type */}
+                  {selectedMediaType === "image" ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-white/5 text-[11px]">
+                      <span className="text-zinc-400 font-semibold">نموذج الصورة:</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImageModel("nano-banana-pro")}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            selectedImageModel === "nano-banana-pro"
+                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                              : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
+                          }`}
+                        >
+                          🍌 Nano Banana Pro (Google)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImageModel("gpt-image-2")}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            selectedImageModel === "gpt-image-2"
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                              : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
+                          }`}
+                        >
+                          🧠 GPT-Image-2 (OpenAI)
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 pt-2 border-t border-purple-500/20 text-[11px]">
+                      <span className="text-purple-300 font-semibold">نموذج توليد الفيديو:</span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedVideoModel("google-omni-veo")}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            selectedVideoModel === "google-omni-veo"
+                              ? "bg-blue-500/20 text-blue-300 border border-blue-500/40"
+                              : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
+                          }`}
+                        >
+                          🌐 Google Omni (Veo)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedVideoModel("kling-video")}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            selectedVideoModel === "kling-video"
+                              ? "bg-purple-500/20 text-purple-300 border border-purple-500/40"
+                              : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
+                          }`}
+                        >
+                          ⚡ Kling AI Pro
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedVideoModel("seedance-video")}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            selectedVideoModel === "seedance-video"
+                              ? "bg-pink-500/20 text-pink-300 border border-pink-500/40"
+                              : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
+                          }`}
+                        >
+                          🌊 Seedance 2.5
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Action Buttons */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
@@ -540,25 +641,37 @@ export default function AdminSocialMediaPage() {
                       className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 font-bold text-xs flex items-center justify-center gap-2 transition-all"
                     >
                       {uploadingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 text-cyan-400" />}
-                      <span>رفع صورة من الجهاز</span>
+                      <span>رفع من الجهاز</span>
                     </button>
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,video/*"
                       onChange={handleFileUpload}
                       className="hidden"
                     />
 
-                    <button
-                      type="button"
-                      onClick={handleGenerateImageOnly}
-                      disabled={generatingImg}
-                      className="px-3 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 hover:bg-cyan-500/25 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"
-                    >
-                      {generatingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-cyan-400" />}
-                      <span>توليد صورة بـ {selectedImageModel === "nano-banana-pro" ? "Nano Banana" : "GPT-Image"}</span>
-                    </button>
+                    {selectedMediaType === "image" ? (
+                      <button
+                        type="button"
+                        onClick={handleGenerateImageOnly}
+                        disabled={generatingImg}
+                        className="px-3 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 hover:bg-cyan-500/25 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                      >
+                        {generatingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-cyan-400" />}
+                        <span>توليد صورة بالـ AI</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleGenerateVideoOnly}
+                        disabled={generatingVid}
+                        className="px-3 py-2 rounded-xl bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 text-purple-300 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-purple-500/10"
+                      >
+                        {generatingVid ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-purple-400" />}
+                        <span>توليد فيديو بـ {selectedVideoModel === "google-omni-veo" ? "Google Omni" : selectedVideoModel === "kling-video" ? "Kling AI" : "Seedance"}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -710,11 +823,16 @@ export default function AdminSocialMediaPage() {
                       </div>
                     )}
 
-                    {currentPost.imageUrl && (
+                    {/* Media Render (Video or Image) */}
+                    {currentPost.mediaType === "video" && currentPost.videoUrl ? (
+                      <div className="rounded-2xl overflow-hidden border border-zinc-700 aspect-video bg-black">
+                        <video src={currentPost.videoUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
+                      </div>
+                    ) : currentPost.imageUrl ? (
                       <div className="rounded-2xl overflow-hidden border border-zinc-700 aspect-video bg-zinc-900">
                         <img src={currentPost.imageUrl} alt="Facebook visual" className="w-full h-full object-cover" />
                       </div>
-                    )}
+                    ) : null}
 
                     <div className="flex items-center justify-between text-zinc-400 text-xs pt-2 border-t border-zinc-800">
                       <span>👍❤️ 520 تفاعل</span>
@@ -754,11 +872,15 @@ export default function AdminSocialMediaPage() {
                       </div>
                     )}
 
-                    {currentPost.imageUrl && (
+                    {currentPost.mediaType === "video" && currentPost.videoUrl ? (
+                      <div className="rounded-2xl overflow-hidden border border-zinc-800 aspect-video bg-black">
+                        <video src={currentPost.videoUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
+                      </div>
+                    ) : currentPost.imageUrl ? (
                       <div className="rounded-2xl overflow-hidden border border-zinc-800 aspect-video bg-zinc-900">
                         <img src={currentPost.imageUrl} alt="X post visual" className="w-full h-full object-cover" />
                       </div>
-                    )}
+                    ) : null}
 
                     <div className="flex items-center justify-between text-zinc-500 text-xs pt-2 border-t border-zinc-900">
                       <span>💬 24</span>
@@ -788,14 +910,18 @@ export default function AdminSocialMediaPage() {
                       <span className="text-xs text-zinc-500">•••</span>
                     </div>
 
-                    {/* Image */}
-                    {currentPost.imageUrl ? (
+                    {/* Media */}
+                    {currentPost.mediaType === "video" && currentPost.videoUrl ? (
+                      <div className="aspect-square bg-black w-full overflow-hidden">
+                        <video src={currentPost.videoUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
+                      </div>
+                    ) : currentPost.imageUrl ? (
                       <div className="aspect-square bg-zinc-900 w-full overflow-hidden">
                         <img src={currentPost.imageUrl} alt="Instagram visual" className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <div className="aspect-square bg-zinc-900 flex items-center justify-center text-zinc-600 text-xs">
-                        No image selected
+                        No media selected
                       </div>
                     )}
 
@@ -845,11 +971,15 @@ export default function AdminSocialMediaPage() {
                       {(currentPlatformData.hashtags || []).join(" ")}
                     </div>
 
-                    {currentPost.imageUrl && (
+                    {currentPost.mediaType === "video" && currentPost.videoUrl ? (
+                      <div className="rounded-xl overflow-hidden border border-zinc-700 aspect-video bg-black">
+                        <video src={currentPost.videoUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
+                      </div>
+                    ) : currentPost.imageUrl ? (
                       <div className="rounded-xl overflow-hidden border border-zinc-700 aspect-video bg-zinc-900">
                         <img src={currentPost.imageUrl} alt="LinkedIn visual" className="w-full h-full object-cover" />
                       </div>
-                    )}
+                    ) : null}
 
                     <div className="flex items-center justify-between text-zinc-400 text-xs pt-2 border-t border-zinc-700/60">
                       <span>👍 Like (450)</span>
@@ -874,11 +1004,15 @@ export default function AdminSocialMediaPage() {
                     </div>
 
                     <div className="rounded-2xl bg-[#242f3d] p-4 space-y-3 border border-white/5">
-                      {currentPost.imageUrl && (
+                      {currentPost.mediaType === "video" && currentPost.videoUrl ? (
+                        <div className="rounded-xl overflow-hidden aspect-video bg-black">
+                          <video src={currentPost.videoUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
+                        </div>
+                      ) : currentPost.imageUrl ? (
                         <div className="rounded-xl overflow-hidden aspect-video bg-black/40">
                           <img src={currentPost.imageUrl} alt="Telegram visual" className="w-full h-full object-cover" />
                         </div>
-                      )}
+                      ) : null}
                       <p className="text-xs text-zinc-100 leading-relaxed whitespace-pre-wrap font-sans">
                         {currentPlatformData.content}
                       </p>

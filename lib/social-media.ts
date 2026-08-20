@@ -17,8 +17,11 @@ export type SocialMediaPostRecord = {
   id: string;
   topicPrompt: string;
   language: "ar" | "en";
+  mediaType?: "image" | "video";
   imageUrl?: string;
   imageModel?: "nano-banana-pro" | "gpt-image-2";
+  videoUrl?: string;
+  videoModel?: "google-omni-veo" | "kling-video" | "seedance-video";
   platforms: {
     twitter?: PlatformContentItem;
     instagram?: PlatformContentItem;

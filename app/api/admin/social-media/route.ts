@@ -348,7 +348,96 @@ Return ONLY a valid JSON object matching:
       return NextResponse.json({ success: true, imageUrl, model });
     }
 
-    // 3. PUBLISH TO SOCIAL PLATFORMS (Telegram, Discord, Webhooks)
+    // 2.5 GENERATE VIDEO (Google Omni / Veo, Kling, Seedance)
+    if (action === "generate_video") {
+      const prompt = String(body.prompt || "").trim();
+      const model = String(body.model || "google-omni-veo").toLowerCase();
+      if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+
+      const waveSpeedKey = process.env.WAVESPEED_API_KEY;
+      if (!waveSpeedKey) return NextResponse.json({ error: "WAVESPEED_API_KEY is missing" }, { status: 500 });
+
+      let routeEndpoint = "wavespeed-ai/cinematic-video-generator";
+      if (model.includes("kling")) {
+        routeEndpoint = "kwaivgi/kling-v3.0-pro/text-to-video";
+      } else if (model.includes("seedance")) {
+        routeEndpoint = "bytedance/seedance-2.5/text-to-video-turbo";
+      } else if (model.includes("google") || model.includes("omni") || model.includes("veo")) {
+        routeEndpoint = "google/veo-2/text-to-video";
+      }
+
+      const videoRes = await fetch(`https://api.wavespeed.ai/api/v3/${routeEndpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${waveSpeedKey}`,
+        },
+        body: JSON.stringify({
+          prompt,
+          aspect_ratio: "16:9",
+          duration: 5,
+        }),
+      });
+
+      let videoUrl = "";
+      if (videoRes.ok) {
+        const data = await videoRes.json();
+        const taskId = data?.data?.id || data?.id;
+        if (taskId) {
+          for (let i = 0; i < 30; i++) {
+            await new Promise((r) => setTimeout(r, 3000));
+            const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
+              headers: { Authorization: `Bearer ${waveSpeedKey}` },
+            });
+            if (pollRes.ok) {
+              const pollData = await pollRes.json();
+              const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
+              if (status === "completed" || status === "succeeded" || status === "success") {
+                const outputs = pollData?.data?.outputs || pollData?.outputs || [];
+                if (outputs[0]) {
+                  videoUrl = outputs[0];
+                  break;
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // Fallback to cinematic video generator
+        const fbRes = await fetch("https://api.wavespeed.ai/api/v3/wavespeed-ai/cinematic-video-generator", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${waveSpeedKey}` },
+          body: JSON.stringify({ prompt, aspect_ratio: "16:9", duration: 5 }),
+        });
+        if (fbRes.ok) {
+          const fbData = await fbRes.json();
+          const taskId = fbData?.data?.id || fbData?.id;
+          if (taskId) {
+            for (let i = 0; i < 25; i++) {
+              await new Promise((r) => setTimeout(r, 3000));
+              const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
+                headers: { Authorization: `Bearer ${waveSpeedKey}` },
+              });
+              if (pollRes.ok) {
+                const pollData = await pollRes.json();
+                const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
+                if (status === "completed" || status === "succeeded" || status === "success") {
+                  const outputs = pollData?.data?.outputs || pollData?.outputs || [];
+                  if (outputs[0]) {
+                    videoUrl = outputs[0];
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return NextResponse.json({ success: true, videoUrl, model });
+    }
+
+    // 3. PUBLISH TO SOCIAL PLATFORMS (Telegram, Discord, Webhooks, Buffer)
     if (action === "publish") {
       const post: SocialMediaPostRecord = body.post;
       const targetPlatform = body.platform as string; // "telegram" | "discord" | "all"
