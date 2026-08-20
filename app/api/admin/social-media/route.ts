@@ -61,20 +61,24 @@ async function generateImageDirectly(prompt: string, modelName: string, aspectRa
     }
   }
 
-  // 2. Google Imagen 4
-  if (model.includes("imagen")) {
-    try {
-      const result = await googleGenerateImage({
-        modelId: "google/imagen4",
-        prompt,
-        aspectRatio: aspectRatio as any,
-        resolution: "2K",
-        numImages: 1,
-        imageUrls: [],
-      });
-      if (result?.urls?.[0]) return result.urls[0];
-    } catch (e) {
-      console.warn("Google Imagen 4 failed, trying Nano Banana:", e);
+  // 2. OpenAI GPT-Image-2
+  if (model.includes("gpt")) {
+    const openAIApiKey = process.env.OPENAI_API_KEY;
+    if (openAIApiKey && openAIApiKey !== "sk-placeholder") {
+      try {
+        const res = await fetch("https://api.openai.com/v1/images/generations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
+          body: JSON.stringify({ model: "dall-e-2", prompt, size: "1024x1024", n: 1 }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const url = data?.data?.[0]?.url;
+          if (url) return url;
+        }
+      } catch (e) {
+        console.warn("GPT-Image-2 generation failed, trying Google Nano Banana:", e);
+      }
     }
   }
 
@@ -299,23 +303,23 @@ Return ONLY a valid JSON object matching:
       return NextResponse.json({ success: true, imageUrl, model, aspectRatio });
     }
 
-    // 2.5 GENERATE VIDEO (Google Omni / Veo, Kling, Seedance)
+    // 2.5 GENERATE VIDEO (Kling 3.0 Pro, Seedance 2.5 Turbo, Google Omni)
     if (action === "generate_video") {
       const prompt = String(body.prompt || "").trim();
-      const model = String(body.model || "google-omni-veo").toLowerCase();
+      const model = String(body.model || "kling-video").toLowerCase();
       const aspectRatio = String(body.aspectRatio || "16:9");
       if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
 
       const waveSpeedKey = process.env.WAVESPEED_API_KEY;
       if (!waveSpeedKey) return NextResponse.json({ error: "WAVESPEED_API_KEY is missing" }, { status: 500 });
 
-      let routeEndpoint = "wavespeed-ai/cinematic-video-generator";
-      if (model.includes("kling")) {
-        routeEndpoint = "kwaivgi/kling-v3.0-pro/text-to-video";
-      } else if (model.includes("seedance")) {
+      let routeEndpoint = "kwaivgi/kling-v3.0-pro/text-to-video";
+      if (model.includes("seedance")) {
         routeEndpoint = "bytedance/seedance-2.5/text-to-video-turbo";
-      } else if (model.includes("google") || model.includes("omni") || model.includes("veo")) {
-        routeEndpoint = "google/veo-2/text-to-video";
+      } else if (model.includes("omni") || model.includes("google")) {
+        routeEndpoint = "google/gemini-omni-flash";
+      } else if (model.includes("kling")) {
+        routeEndpoint = "kwaivgi/kling-v3.0-pro/text-to-video";
       }
 
       const videoRes = await fetch(`https://api.wavespeed.ai/api/v3/${routeEndpoint}`, {

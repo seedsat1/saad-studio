@@ -20,9 +20,9 @@ export type SocialMediaPostRecord = {
   mediaType?: "image" | "video";
   aspectRatio?: "1:1" | "9:16" | "16:9" | "4:5";
   imageUrl?: string;
-  imageModel?: "nano-banana-pro" | "grok-imagine" | "google-imagen-4";
+  imageModel?: "nano-banana-pro" | "grok-imagine" | "gpt-image-2";
   videoUrl?: string;
-  videoModel?: "google-omni-veo" | "kling-video" | "seedance-video";
+  videoModel?: "kling-video" | "seedance-video" | "google-omni";
   platforms: {
     twitter?: PlatformContentItem;
     instagram?: PlatformContentItem;

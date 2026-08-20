@@ -152,8 +152,8 @@ export default function AdminSocialMediaPage() {
   const [selectedLanguage, setSelectedLanguage] = useState<"ar" | "en">("ar");
   const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video">("image");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<"1:1" | "9:16" | "16:9" | "4:5">("16:9");
-  const [selectedImageModel, setSelectedImageModel] = useState<"nano-banana-pro" | "grok-imagine" | "google-imagen-4">("nano-banana-pro");
-  const [selectedVideoModel, setSelectedVideoModel] = useState<"google-omni-veo" | "kling-video" | "seedance-video">("google-omni-veo");
+  const [selectedImageModel, setSelectedImageModel] = useState<"nano-banana-pro" | "grok-imagine" | "gpt-image-2">("nano-banana-pro");
+  const [selectedVideoModel, setSelectedVideoModel] = useState<"kling-video" | "seedance-video" | "google-omni">("kling-video");
 
   // Agent states
   const [agentPrompt, setAgentPrompt] = useState("");
@@ -810,7 +810,7 @@ export default function AdminSocialMediaPage() {
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🍌 Nano Banana
+                          🍌 Nano Banana Pro
                         </button>
                         <button
                           type="button"
@@ -821,18 +821,18 @@ export default function AdminSocialMediaPage() {
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          ⚡ Grok Imagine
+                          ⚡ Grok Imagine 2.0
                         </button>
                         <button
                           type="button"
-                          onClick={() => setSelectedImageModel("google-imagen-4")}
+                          onClick={() => setSelectedImageModel("gpt-image-2")}
                           className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
-                            selectedImageModel === "google-imagen-4"
+                            selectedImageModel === "gpt-image-2"
                               ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🎨 Imagen 4
+                          🧠 GPT-Image-2
                         </button>
                       </div>
                     </div>
@@ -842,36 +842,36 @@ export default function AdminSocialMediaPage() {
                       <div className="grid grid-cols-3 gap-1">
                         <button
                           type="button"
-                          onClick={() => setSelectedVideoModel("google-omni-veo")}
-                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] text-center ${
-                            selectedVideoModel === "google-omni-veo"
-                              ? "bg-blue-500/20 text-blue-300 border border-blue-500/40"
-                              : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
-                          }`}
-                        >
-                          🌐 Omni
-                        </button>
-                        <button
-                          type="button"
                           onClick={() => setSelectedVideoModel("kling-video")}
-                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] text-center ${
+                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
                             selectedVideoModel === "kling-video"
                               ? "bg-purple-500/20 text-purple-300 border border-purple-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          ⚡ Kling Pro
+                          ⚡ Kling 3.0 Pro
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectedVideoModel("seedance-video")}
-                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] text-center ${
+                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
                             selectedVideoModel === "seedance-video"
                               ? "bg-pink-500/20 text-pink-300 border border-pink-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🌊 Seedance
+                          🌊 Seedance 2.5
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedVideoModel("google-omni")}
+                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
+                            selectedVideoModel === "google-omni"
+                              ? "bg-blue-500/20 text-blue-300 border border-blue-500/40"
+                              : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
+                          }`}
+                        >
+                          🌐 Google Omni
                         </button>
                       </div>
                     </div>
