@@ -354,6 +354,9 @@ export default function AdminSocialMediaPage() {
   const [currentStoryboard, setCurrentStoryboard] = useState<StoryboardShowcaseRecord>(DEFAULT_STORYBOARD);
   const [storyboardPrompt, setStoryboardPrompt] = useState("");
   const [selectedSbTheme, setSelectedSbTheme] = useState<StoryboardThemeType>("cyberpunk");
+  const [selectedSbTemplate, setSelectedSbTemplate] = useState<"day-night" | "car-call" | "character-3d" | "workflow-battle">("day-night");
+  const [selectedSbImageModel, setSelectedSbImageModel] = useState<"nano-banana-pro" | "grok-imagine" | "gpt-image-2">("nano-banana-pro");
+  const [selectedSbVideoModel, setSelectedSbVideoModel] = useState<"kling-3.0/video" | "bytedance/seedance-2" | "google/gemini-omni-flash">("kling-3.0/video");
   const [generatingStoryboard, setGeneratingStoryboard] = useState(false);
   const [generatingSbVideo, setGeneratingSbVideo] = useState(false);
   const [generatingSbFrame1, setGeneratingSbFrame1] = useState(false);
@@ -614,7 +617,7 @@ export default function AdminSocialMediaPage() {
         body: JSON.stringify({
           action: "generate_video",
           prompt: p,
-          model: currentStoryboard.video.model || "kling-video",
+          model: selectedSbVideoModel,
           aspectRatio: "16:9",
         }),
       });
@@ -622,7 +625,12 @@ export default function AdminSocialMediaPage() {
       if (res.ok && data?.videoUrl) {
         setCurrentStoryboard((prev) => ({
           ...prev,
-          video: { ...prev.video, url: data.videoUrl },
+          video: {
+            ...prev.video,
+            url: data.videoUrl,
+            model: selectedSbVideoModel,
+            modelBadge: selectedSbVideoModel.includes("kling") ? "Kling 3.0 Pro" : selectedSbVideoModel.includes("seedance") ? "Seedance 2 Turbo" : "Omni Flash",
+          },
         }));
       } else {
         alert(data?.error || "تعذر توليد فيديو الستوري بورد.");
@@ -646,7 +654,7 @@ export default function AdminSocialMediaPage() {
         body: JSON.stringify({
           action: "generate_image",
           prompt,
-          model: "nano-banana-pro",
+          model: selectedSbImageModel,
           aspectRatio: "16:9",
         }),
       });
@@ -659,6 +667,7 @@ export default function AdminSocialMediaPage() {
             [frameKey]: {
               ...prev.referenceFrames[frameKey],
               url: data.imageUrl,
+              modelBadge: selectedSbImageModel === "nano-banana-pro" ? "Nano Banana Pro" : selectedSbImageModel === "grok-imagine" ? "Grok Imagine 2.0" : "GPT-Image-2",
             },
           },
         }));
@@ -1822,36 +1831,124 @@ export default function AdminSocialMediaPage() {
                 />
               </div>
 
-              {/* Quick Inspiration Presets & Theme Selector */}
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-2 border-t border-white/5">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] font-semibold text-zinc-400">أفكار فيروسية:</span>
+              {/* Storyboard Template Selector (4 Visual Formats) */}
+              <div className="space-y-2 pt-1">
+                <span className="text-zinc-400 font-bold text-xs flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-fuchsia-400" />
+                  <span>اختر نمط القالب الفيروسي (Showcase Template):</span>
+                </span>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                   {[
-                    "تحول سينمائي من النهار إلى الليل في سعد ستوديو",
-                    "مكالمة فيديو داخل سيارة متحركة مع شاشة هاتف خضراء",
-                    "تفكيك شخصية 3D كرتونية مع خلفية الغرفة",
-                    "سير عمل Kling 3.0 مع Nano Banana السينمائي",
-                  ].map((preset, idx) => (
+                    {
+                      id: "day-night",
+                      title: "تحول النهار إلى الليل",
+                      desc: "مشهدان متطابقان بالكاميرا (نهار / ليل)",
+                      preset: "تحول سينمائي من النهار إلى الليل في سعد ستوديو",
+                    },
+                    {
+                      id: "car-call",
+                      title: "مكالمة السيارة وشاشة الهاتف",
+                      desc: "تصوير داخل سيارة مع شاشة خضراء",
+                      preset: "مكالمة فيديو داخل سيارة متحركة مع شاشة هاتف خضراء",
+                    },
+                    {
+                      id: "character-3d",
+                      title: "تفكيك شخصية 3D",
+                      desc: "استعراض الشخصية والطبقات وتفكيك الغرفة",
+                      preset: "تفكيك شخصية 3D كرتونية مع خلفية الغرفة",
+                    },
+                    {
+                      id: "workflow-battle",
+                      title: "سير عمل ومقارنة النماذج",
+                      desc: "مقارنة صورة Nano Banana مع فيديو Kling",
+                      preset: "سير عمل Kling 3.0 مع Nano Banana السينمائي",
+                    },
+                  ].map((tpl) => (
                     <button
-                      key={idx}
+                      key={tpl.id}
                       type="button"
                       onClick={() => {
-                        setStoryboardPrompt(preset);
-                        void handleGenerateStoryboard(preset);
+                        setSelectedSbTemplate(tpl.id as any);
+                        setStoryboardPrompt(tpl.preset);
                       }}
-                      className="px-2.5 py-1 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-fuchsia-500/10 hover:border-fuchsia-500/30 text-[10px] text-zinc-300 transition-all flex items-center gap-1"
+                      className={`p-3 rounded-2xl border text-right transition-all flex flex-col gap-1 ${
+                        selectedSbTemplate === tpl.id
+                          ? "bg-fuchsia-500/20 border-fuchsia-500/50 text-white shadow-lg shadow-fuchsia-500/15 ring-1 ring-fuchsia-400/40"
+                          : "bg-black/40 border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                      }`}
                     >
-                      <Sparkles className="w-2.5 h-2.5 text-fuchsia-400" />
-                      <span>{preset}</span>
+                      <span className="text-xs font-bold text-fuchsia-300">{tpl.title}</span>
+                      <span className="text-[10px] text-zinc-400 leading-tight">{tpl.desc}</span>
                     </button>
                   ))}
                 </div>
+              </div>
 
-                {/* Theme Selector */}
-                <div className="flex items-center gap-1 bg-black/50 border border-white/10 rounded-xl p-1 text-[10px]">
+              {/* Model Selectors for Storyboard Frames & Video */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                {/* 1. Frames Image Model */}
+                <div className="space-y-1.5">
+                  <span className="text-zinc-400 font-semibold text-xs flex items-center gap-1">
+                    <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>محرك توليد الكوادر المرجعية (Frames Engine):</span>
+                  </span>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: "nano-banana-pro", label: "Nano Banana Pro", color: "text-amber-300", bg: "bg-amber-500/20 border-amber-500/40" },
+                      { id: "grok-imagine", label: "Grok Imagine 2.0", color: "text-cyan-300", bg: "bg-cyan-500/20 border-cyan-500/40" },
+                      { id: "gpt-image-2", label: "GPT-Image-2", color: "text-emerald-300", bg: "bg-emerald-500/20 border-emerald-500/40" },
+                    ].map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setSelectedSbImageModel(m.id as any)}
+                        className={`p-2 rounded-xl text-center text-xs font-bold transition-all border ${
+                          selectedSbImageModel === m.id
+                            ? `${m.bg} ${m.color} shadow-sm`
+                            : "bg-black/40 border-white/5 text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        <span className="text-[10px] block truncate">{m.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Video Model Engine */}
+                <div className="space-y-1.5">
+                  <span className="text-zinc-400 font-semibold text-xs flex items-center gap-1">
+                    <Film className="w-3.5 h-3.5 text-purple-400" />
+                    <span>محرك إخراج فيديو الستوري بورد (Video Engine):</span>
+                  </span>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: "kling-3.0/video", label: "Kling 3.0 Pro", color: "text-purple-300", bg: "bg-purple-500/20 border-purple-500/40" },
+                      { id: "bytedance/seedance-2", label: "Seedance 2 Turbo", color: "text-pink-300", bg: "bg-pink-500/20 border-pink-500/40" },
+                      { id: "google/gemini-omni-flash", label: "Gemini Omni Flash", color: "text-blue-300", bg: "bg-blue-500/20 border-blue-500/40" },
+                    ].map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setSelectedSbVideoModel(m.id as any)}
+                        className={`p-2 rounded-xl text-center text-xs font-bold transition-all border ${
+                          selectedSbVideoModel === m.id
+                            ? `${m.bg} ${m.color} shadow-sm`
+                            : "bg-black/40 border-white/5 text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        <span className="text-[10px] block truncate">{m.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Theme Selector */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-2 border-t border-white/5">
+                <div className="flex items-center gap-1.5 bg-black/50 border border-white/10 rounded-xl p-1 text-[10px]">
                   <span className="text-zinc-400 font-bold px-1.5 flex items-center gap-1">
                     <Palette className="w-3 h-3 text-fuchsia-400" />
-                    <span>الثيم:</span>
+                    <span>الثيم البصري (Theme):</span>
                   </span>
                   {[
                     { id: "cyberpunk", label: "🌌 سايبربانك" },
@@ -2114,14 +2211,19 @@ export default function AdminSocialMediaPage() {
                         autoPlay
                         loop
                         muted
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => currentStoryboard.video.url && setPreviewModalUrl({ url: currentStoryboard.video.url, type: "video", title: currentStoryboard.title })}
                       />
                     ) : (
                       <div className="w-full h-full relative">
                         <img
                           src={currentStoryboard.referenceFrames.frame2.url || currentStoryboard.referenceFrames.frame1.url}
                           alt="Video Preview Plate"
-                          className="w-full h-full object-cover brightness-75"
+                          className="w-full h-full object-cover brightness-75 cursor-pointer"
+                          onClick={() => {
+                            const fallbackUrl = currentStoryboard.referenceFrames.frame2.url || currentStoryboard.referenceFrames.frame1.url;
+                            if (fallbackUrl) setPreviewModalUrl({ url: fallbackUrl, type: "image", title: currentStoryboard.title });
+                          }}
                         />
                         <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2 p-4 text-center">
                           <button
@@ -2131,7 +2233,7 @@ export default function AdminSocialMediaPage() {
                             className="px-4 py-2 rounded-xl bg-purple-600/80 hover:bg-purple-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-purple-600/30 backdrop-blur-md transition-all"
                           >
                             {generatingSbVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white" />}
-                            <span>توليد فيديو {currentStoryboard.video.modelBadge}</span>
+                            <span>توليد فيديو {selectedSbVideoModel.includes("kling") ? "Kling 3.0 Pro" : selectedSbVideoModel.includes("seedance") ? "Seedance 2 Turbo" : "Omni Flash"}</span>
                           </button>
                         </div>
                       </div>
@@ -2140,33 +2242,72 @@ export default function AdminSocialMediaPage() {
                     {/* Top-Left / Bottom-Left Model Badge */}
                     <div className="absolute bottom-2.5 left-2.5 px-3 py-1 rounded-lg bg-black/80 border border-white/20 text-[11px] font-bold text-white backdrop-blur-md shadow-md flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
-                      <span>{currentStoryboard.video.modelBadge}</span>
+                      <span>{selectedSbVideoModel.includes("kling") ? "Kling 3.0 Pro" : selectedSbVideoModel.includes("seedance") ? "Seedance 2 Turbo" : "Omni Flash"}</span>
                     </div>
+
+                    {/* Hover Zoom & Download */}
+                    {currentStoryboard.video.url && (
+                      <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-black/70 backdrop-blur-md p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => currentStoryboard.video.url && setPreviewModalUrl({ url: currentStoryboard.video.url, type: "video", title: currentStoryboard.title })}
+                          className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                          title="تكبير ومعاينة"
+                        >
+                          <Maximize2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => currentStoryboard.video.url && handleDownloadMedia(currentStoryboard.video.url, "storyboard-video")}
+                          className="p-1.5 rounded-lg bg-purple-500 hover:bg-purple-400 text-white"
+                          title="تنزيل الفيديو"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* CARD 2: DUAL COMPARISON REFERENCE FRAMES (NANO BANANA) */}
+                  {/* CARD 2: DYNAMIC COMPARISON REFERENCE FRAMES ACCORDING TO TEMPLATE */}
                   <div className="grid grid-cols-2 gap-2.5">
                     {/* Frame 1 */}
                     <div className="rounded-2xl overflow-hidden border border-white/15 bg-black/60 relative aspect-[4/3] shadow-md group">
                       <img
                         src={currentStoryboard.referenceFrames.frame1.url}
                         alt="Frame 1 Plate"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => currentStoryboard.referenceFrames.frame1.url && setPreviewModalUrl({ url: currentStoryboard.referenceFrames.frame1.url, type: "image", title: "Frame 1" })}
                       />
                       <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between pointer-events-none">
                         <span className="px-2 py-0.5 rounded-md bg-black/80 border border-white/10 text-[9px] font-bold text-cyan-300 backdrop-blur-md">
-                          {currentStoryboard.referenceFrames.frame1.modelBadge.replace("Google ", "")}
+                          {selectedSbTemplate === "day-night"
+                            ? "☀️ كادر النهار (Daylight)"
+                            : selectedSbTemplate === "car-call"
+                            ? "🚗 داخل السيارة (In-Car)"
+                            : selectedSbTemplate === "character-3d"
+                            ? "🧩 الشخصية (Character)"
+                            : "🍌 Nano Banana Pro"}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleGenerateSbFrame("frame1")}
-                        disabled={generatingSbFrame1}
-                        title="إعادة توليد الإطار 1"
-                        className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-black/70 border border-white/20 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <RefreshCw className={`w-3 h-3 ${generatingSbFrame1 ? "animate-spin text-cyan-400" : ""}`} />
-                      </button>
+                      <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => currentStoryboard.referenceFrames.frame1.url && setPreviewModalUrl({ url: currentStoryboard.referenceFrames.frame1.url, type: "image", title: "Frame 1" })}
+                          className="p-1 rounded-lg bg-black/70 border border-white/20 text-white"
+                          title="معاينة وتكبير"
+                        >
+                          <Maximize2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateSbFrame("frame1")}
+                          disabled={generatingSbFrame1}
+                          title="إعادة توليد الإطار 1"
+                          className="p-1 rounded-lg bg-black/70 border border-white/20 text-white"
+                        >
+                          <RefreshCw className={`w-3 h-3 ${generatingSbFrame1 ? "animate-spin text-cyan-400" : ""}`} />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Frame 2 */}
@@ -2174,22 +2315,39 @@ export default function AdminSocialMediaPage() {
                       <img
                         src={currentStoryboard.referenceFrames.frame2.url}
                         alt="Frame 2 Plate"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => currentStoryboard.referenceFrames.frame2.url && setPreviewModalUrl({ url: currentStoryboard.referenceFrames.frame2.url, type: "image", title: "Frame 2" })}
                       />
                       <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between pointer-events-none">
                         <span className="px-2 py-0.5 rounded-md bg-black/80 border border-white/10 text-[9px] font-bold text-amber-300 backdrop-blur-md">
-                          {currentStoryboard.referenceFrames.frame2.modelBadge.replace("Google ", "")}
+                          {selectedSbTemplate === "day-night"
+                            ? "🌙 كادر الليل (Midnight)"
+                            : selectedSbTemplate === "car-call"
+                            ? "📱 شاشة خضراء (Green Screen)"
+                            : selectedSbTemplate === "character-3d"
+                            ? "🏠 الغرفة (Environment)"
+                            : "⚡ Grok Imagine 2.0"}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleGenerateSbFrame("frame2")}
-                        disabled={generatingSbFrame2}
-                        title="إعادة توليد الإطار 2"
-                        className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-black/70 border border-white/20 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <RefreshCw className={`w-3 h-3 ${generatingSbFrame2 ? "animate-spin text-amber-400" : ""}`} />
-                      </button>
+                      <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => currentStoryboard.referenceFrames.frame2.url && setPreviewModalUrl({ url: currentStoryboard.referenceFrames.frame2.url, type: "image", title: "Frame 2" })}
+                          className="p-1 rounded-lg bg-black/70 border border-white/20 text-white"
+                          title="معاينة وتكبير"
+                        >
+                          <Maximize2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateSbFrame("frame2")}
+                          disabled={generatingSbFrame2}
+                          title="إعادة توليد الإطار 2"
+                          className="p-1 rounded-lg bg-black/70 border border-white/20 text-white"
+                        >
+                          <RefreshCw className={`w-3 h-3 ${generatingSbFrame2 ? "animate-spin text-amber-400" : ""}`} />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -2222,11 +2380,12 @@ export default function AdminSocialMediaPage() {
                   {/* CARD 4: ASSETS BREAKDOWN (CHARACTER & ROOM) */}
                   <div className="grid grid-cols-2 gap-2.5">
                     {/* Character Asset */}
-                    <div className="rounded-2xl overflow-hidden border border-white/15 bg-black/50 relative aspect-[4/3] shadow-md">
+                    <div className="rounded-2xl overflow-hidden border border-white/15 bg-black/50 relative aspect-[4/3] shadow-md group">
                       <img
                         src={currentStoryboard.assets.character.url}
                         alt="Character Asset"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => currentStoryboard.assets.character.url && setPreviewModalUrl({ url: currentStoryboard.assets.character.url, type: "image", title: currentStoryboard.assets.character.label })}
                       />
                       <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/80 border border-white/15 text-[9px] font-bold text-white">
                         {currentStoryboard.assets.character.label}
@@ -2234,11 +2393,12 @@ export default function AdminSocialMediaPage() {
                     </div>
 
                     {/* Room Environment Asset */}
-                    <div className="rounded-2xl overflow-hidden border border-white/15 bg-black/50 relative aspect-[4/3] shadow-md">
+                    <div className="rounded-2xl overflow-hidden border border-white/15 bg-black/50 relative aspect-[4/3] shadow-md group">
                       <img
                         src={currentStoryboard.assets.environment.url}
                         alt="Room Asset"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => currentStoryboard.assets.environment.url && setPreviewModalUrl({ url: currentStoryboard.assets.environment.url, type: "image", title: currentStoryboard.assets.environment.label })}
                       />
                       <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/80 border border-white/15 text-[9px] font-bold text-white">
                         {currentStoryboard.assets.environment.label}
