@@ -217,7 +217,7 @@ const Footer = () => {
       <div className="relative z-10 mx-auto max-w-[1400px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3 lg:grid-cols-12">
           <div className="lg:col-span-3 space-y-4">
-            <Link href="/" className="inline-flex items-center gap-2">
+            <Link href="/explore" className="inline-flex items-center gap-2">
               <div className="relative h-9 w-9 shrink-0">
                 <Image src={logoUrl} alt="" aria-hidden="true" fill className="object-contain" unoptimized />
               </div>

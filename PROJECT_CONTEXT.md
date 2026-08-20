@@ -48,14 +48,15 @@
 
 ---
 
-#### Latest task: Studio Image Library Broken 404 Media Fallback & Clean UI Rendering (2026-08-20)
+#### Latest task: Set Explore as Default Home Page & Hide Old Landing Page (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Resilient Card Cover Fallback (`ItemCardCover`)**:
-     - Added robust `onError` handling for all Studio Image Library card covers (`app/admin/cms/studio-img/page.tsx`).
-     - If an old uploaded image URL is 404/broken or missing, it automatically renders an elegant, dark futuristic placeholder displaying the item title, model, and category badge, completely eliminating broken image icons and raw alt text artifacts.
-  2. **Media Slot Error Protection (`MediaPickerImage`)**:
-     - Wrapped all media preview slots (cover, before, after, poster) with graceful fallback states.
+  1. **Direct Routing to `/explore` from Root (`/`)**:
+     - Configured Next.js config redirects (`next.config.mjs`) to route `/` directly to `/explore`.
+     - Added edge middleware redirect (`middleware.ts`) from `/` to `/explore` for instantaneous URL routing.
+     - Replaced `app/(landing)/page.tsx` with a direct server-side redirect to `/explore`.
+  2. **Navigation & Logo Alignment**:
+     - Updated top navigation and footer logo links to point directly to `/explore`.
   3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)

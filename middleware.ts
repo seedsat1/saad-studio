@@ -246,6 +246,12 @@ export default clerkMiddleware(async (auth, req) => {
     return applySecurityHeaders(smartCliProtectedResourceMetadata(req), req);
   }
 
+  // Redirect root "/" to "/explore"
+  if (pathname === "/") {
+    const exploreUrl = new URL("/explore", req.url);
+    return applySecurityHeaders(NextResponse.redirect(exploreUrl), req);
+  }
+
   const slug = getCmsSlugFromPath(pathname);
   const isLocalDev = isLocalDevRequest(req);
 

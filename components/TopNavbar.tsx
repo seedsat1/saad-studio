@@ -537,7 +537,7 @@ const ListItem = ({
 );
 
 const Logo = () => (
-  <Link href="/" className="group flex items-center shrink-0">
+  <Link href="/explore" className="group flex items-center shrink-0">
     <div className="relative h-9 w-9">
       <Image
         src="/icon-192.png"

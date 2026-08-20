@@ -189,6 +189,11 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: "/",
+        destination: "/explore",
+        permanent: false,
+      },
+      {
         source: "/dash",
         destination: "/explore",
         permanent: true,
