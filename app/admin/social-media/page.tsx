@@ -323,7 +323,7 @@ export default function AdminSocialMediaPage() {
 
   return (
     <AdminShell activeRoute="/admin/social-media">
-      <div className="p-6 md:p-8 space-y-6 max-w-7xl">
+      <div className="p-4 md:p-8 space-y-6 w-full max-w-[1920px] mx-auto">
         {/* Top Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -332,7 +332,7 @@ export default function AdminSocialMediaPage() {
               <span>Social Media AI Agent & Hub</span>
             </h1>
             <p className="text-xs md:text-sm text-zinc-400">
-              صياغة ونشر المحتوى التسويقي التلقائي عبر X، انستغرام، لينكد إن، وتيليجرام مع توليد صور فائقة الدقة.
+              صياغة ونشر المحتوى التسويقي التلقائي عبر فيسبوك، X، انستغرام، لينكد إن، وتيليجرام مع توليد صور وفيديوهات فائقة الدقة.
             </p>
           </div>
 
@@ -378,7 +378,7 @@ export default function AdminSocialMediaPage() {
         {activeTab === "agent" && (
           <div className="space-y-6">
             {/* Top Prompt Command Box */}
-            <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-950 to-[#0b101d] p-6 md:p-8 shadow-2xl backdrop-blur-xl space-y-5">
+            <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-950 to-[#0b101d] p-5 md:p-6 shadow-2xl backdrop-blur-xl space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider">
                   <Wand2 className="w-4 h-4" />
@@ -416,7 +416,7 @@ export default function AdminSocialMediaPage() {
               {/* Textarea Input */}
               <div className="relative">
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={agentPrompt}
                   onChange={(e) => setAgentPrompt(e.target.value)}
                   placeholder="اكتب فكرة البوست التسويقي هنا (مثال: أطلقنا نموذج Grok Imagine 2.0 الجديد لتوليد صور سينمائية فائقة الواقعية في سعد ستوديو، مع تحسين سرعة المعالجة ودقة الـ 4K)..."
@@ -424,97 +424,93 @@ export default function AdminSocialMediaPage() {
                 />
               </div>
 
-              {/* Quick Preset Ideas */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-semibold text-zinc-400">أفكار جاهزة:</span>
-                {[
-                  "إطلاق نموذج Grok Imagine 2.0 وميزة الـ Multi-Cam في سعد ستوديو",
-                  "دليل البرومبت السينمائي وإضاءات الـ 8K ثلاثية الأبعاد",
-                  "نصائح لتحسين جودة وتوليد الصور الواقعية بالذكاء الاصطناعي",
-                  "عرض باقة الاشتراك والوصول غير المحدود لأقوى محركات الذكاء الاصطناعي",
-                ].map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      setAgentPrompt(preset);
-                      void handleGenerate(preset);
-                    }}
-                    className="px-3 py-1.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-cyan-500/10 hover:border-cyan-500/30 text-[11px] text-zinc-300 transition-all flex items-center gap-1.5"
-                  >
-                    <Sparkles className="w-3 h-3 text-cyan-400" />
-                    <span>{preset}</span>
-                  </button>
-                ))}
-              </div>
+              {/* Quick Preset Ideas & Generate Button */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-2 border-t border-white/5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-zinc-400">أفكار سريعة:</span>
+                  {[
+                    "إطلاق نموذج Grok Imagine 2.0 في سعد ستوديو",
+                    "دليل البرومبت السينمائي وإضاءات الـ 8K",
+                    "نصائح لتحسين جودة التوليد بالذكاء الاصطناعي",
+                    "عرض باقة الاشتراك والوصول غير المحدود",
+                  ].map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setAgentPrompt(preset);
+                        void handleGenerate(preset);
+                      }}
+                      className="px-2.5 py-1 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-cyan-500/10 hover:border-cyan-500/30 text-[10px] text-zinc-300 transition-all flex items-center gap-1"
+                    >
+                      <Sparkles className="w-2.5 h-2.5 text-cyan-400" />
+                      <span>{preset}</span>
+                    </button>
+                  ))}
+                </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/5">
-                <button
-                  type="button"
-                  onClick={() => handleGenerate()}
-                  disabled={generating || !agentPrompt.trim()}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 disabled:opacity-40 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 transition-all"
-                >
-                  {generating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>جاري صياغة البوستات وتوليد الصورة...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Bot className="w-4 h-4" />
-                      <span>توليد المنشورات لكافة المنصات ✨</span>
-                    </>
-                  )}
-                </button>
-
-                {/* Direct Broadcast Buttons */}
                 <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleGenerate()}
+                    disabled={generating || !agentPrompt.trim()}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 disabled:opacity-40 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 transition-all shrink-0"
+                  >
+                    {generating ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>جاري الصياغة والتوليد...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Bot className="w-3.5 h-3.5" />
+                        <span>توليد المنشورات لكافة المنصات ✨</span>
+                      </>
+                    )}
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => handlePublishDirect("facebook")}
                     disabled={publishing || !config.bufferAccessToken}
-                    className="px-4 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 disabled:opacity-40 text-blue-300 font-bold text-xs flex items-center gap-2 transition-all"
+                    className="px-3.5 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 disabled:opacity-40 text-blue-300 font-bold text-xs flex items-center gap-1.5 transition-all shrink-0"
                     title={!config.bufferAccessToken ? "اضبط مفتاح Buffer في تبويب الإعدادات لنشر البوست فوراً لفيسبوك" : "نشر مباشر لصفحة فيسبوك عبر Buffer"}
                   >
                     <Share2 className="w-3.5 h-3.5 text-blue-400" />
-                    <span>نشر لفيسبوك عبر Buffer 📘</span>
+                    <span>نشر لفيسبوك 📘</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handlePublishDirect("telegram")}
                     disabled={publishing || !config.telegramBotToken}
-                    className="px-4 py-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 disabled:opacity-40 text-cyan-300 font-bold text-xs flex items-center gap-2 transition-all"
+                    className="px-3.5 py-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 disabled:opacity-40 text-cyan-300 font-bold text-xs flex items-center gap-1.5 transition-all shrink-0"
                     title={!config.telegramBotToken ? "اضبط بيانات تيليجرام أولاً في تبويب الإعدادات" : "نشر مباشر لقناة تيليجرام"}
                   >
                     <Send className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>نشر لتيليجرام ✈️</span>
+                    <span>تيليجرام ✈️</span>
                   </button>
                 </div>
               </div>
 
               {publishResult && (
-                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span>{publishResult}</span>
                 </div>
               )}
             </div>
 
-            {/* Split Screen: Left Image & Platform Customizer | Right Live Realistic Platform Previews */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* Left Column: Image Controls & Platform Content Editor */}
-              <div className="lg:col-span-6 space-y-5">
-                {/* Visual Media Manager (Image & Video) */}
-                <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-5 backdrop-blur-xl space-y-4">
+            {/* 3-Column Studio Grid: Left Media Studio | Middle Content Editor | Right Live Device Preview */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* COLUMN 1: VISUAL MEDIA STUDIO (4 cols / 33%) */}
+              <div className="lg:col-span-4 space-y-4">
+                <div className="rounded-3xl border border-white/10 bg-zinc-950/70 p-5 backdrop-blur-xl space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <label className="text-zinc-300 font-bold text-xs flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4 text-cyan-400" />
-                        <span>الوسائط البصرية (صورة / فيديو)</span>
-                      </label>
+                      <ImageIcon className="w-4 h-4 text-cyan-400" />
+                      <span className="text-white font-bold text-xs">الوسائط البصرية (Media)</span>
                     </div>
 
                     {/* Media Type Switcher: Image vs Video */}
@@ -546,7 +542,7 @@ export default function AdminSocialMediaPage() {
 
                   {/* Thumbnail / Video Preview */}
                   {currentPost.mediaType === "video" && currentPost.videoUrl ? (
-                    <div className="rounded-xl overflow-hidden border border-purple-500/30 aspect-video relative bg-black shadow-inner">
+                    <div className="rounded-2xl overflow-hidden border border-purple-500/30 aspect-video relative bg-black shadow-inner">
                       <video
                         src={currentPost.videoUrl}
                         controls
@@ -557,31 +553,36 @@ export default function AdminSocialMediaPage() {
                       />
                     </div>
                   ) : currentPost.imageUrl ? (
-                    <div className="rounded-xl overflow-hidden border border-white/15 aspect-video relative bg-black/40 shadow-inner">
+                    <div className="rounded-2xl overflow-hidden border border-white/15 aspect-video relative bg-black/40 shadow-inner">
                       <img
                         src={currentPost.imageUrl}
                         alt="Social post visual"
                         className="w-full h-full object-cover"
                       />
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-white/10 aspect-video flex flex-col items-center justify-center text-zinc-500 text-xs gap-1.5 bg-black/30">
+                      <ImageIcon className="w-6 h-6 text-zinc-600" />
+                      <span>لم يتم توليد أو رفع وسائط بعد</span>
+                    </div>
+                  )}
 
                   {/* Social Media Aspect Ratio Selector */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-white/5 text-[11px]">
-                    <span className="text-zinc-400 font-semibold">أبعاد السوشيال ميديا (Aspect Ratio):</span>
-                    <div className="flex flex-wrap items-center gap-1">
+                  <div className="space-y-1.5 pt-2 border-t border-white/5">
+                    <span className="text-zinc-400 font-semibold text-[11px]">أبعاد المنصة (Aspect Ratio):</span>
+                    <div className="grid grid-cols-2 gap-1.5">
                       {[
-                        { id: "9:16", label: "📱 9:16 (Reels/TikTok)", desc: "قصص وريلز وتيك توك" },
-                        { id: "1:1", label: "🔲 1:1 (Square)", desc: "مربع لفيسبوك وانستغرام" },
-                        { id: "4:5", label: "🖼️ 4:5 (Portrait)", desc: "طولي انستغرام فييد" },
-                        { id: "16:9", label: "🖥️ 16:9 (Landscape)", desc: "عرضي لليوتيوب وتويتر" },
+                        { id: "9:16", label: "📱 9:16 Reels/TikTok", desc: "قصص وريلز وتيك توك" },
+                        { id: "1:1", label: "🔲 1:1 Square Feed", desc: "مربع فيسبوك وانستغرام" },
+                        { id: "4:5", label: "🖼️ 4:5 Portrait", desc: "طولي انستغرام فييد" },
+                        { id: "16:9", label: "🖥️ 16:9 Landscape", desc: "عرضي لليوتيوب وتويتر" },
                       ].map((ratio) => (
                         <button
                           key={ratio.id}
                           type="button"
                           title={ratio.desc}
                           onClick={() => setSelectedAspectRatio(ratio.id as any)}
-                          className={`px-2 py-1 rounded-lg font-bold transition-all text-[10px] ${
+                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] text-center ${
                             selectedAspectRatio === ratio.id
                               ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
@@ -595,84 +596,84 @@ export default function AdminSocialMediaPage() {
 
                   {/* Model Selector based on Media Type */}
                   {selectedMediaType === "image" ? (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-white/5 text-[11px]">
+                    <div className="space-y-1.5 pt-2 border-t border-white/5 text-[11px]">
                       <span className="text-zinc-400 font-semibold">نموذج الصورة:</span>
-                      <div className="flex items-center gap-1.5">
+                      <div className="grid grid-cols-2 gap-1.5">
                         <button
                           type="button"
                           onClick={() => setSelectedImageModel("nano-banana-pro")}
-                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] ${
                             selectedImageModel === "nano-banana-pro"
                               ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🍌 Nano Banana Pro (Google)
+                          🍌 Nano Banana Pro
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectedImageModel("gpt-image-2")}
-                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] ${
                             selectedImageModel === "gpt-image-2"
                               ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🧠 GPT-Image-2 (OpenAI)
+                          🧠 GPT-Image-2
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-2 pt-2 border-t border-purple-500/20 text-[11px]">
+                    <div className="space-y-1.5 pt-2 border-t border-purple-500/20 text-[11px]">
                       <span className="text-purple-300 font-semibold">نموذج توليد الفيديو:</span>
-                      <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="grid grid-cols-3 gap-1">
                         <button
                           type="button"
                           onClick={() => setSelectedVideoModel("google-omni-veo")}
-                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] text-center ${
                             selectedVideoModel === "google-omni-veo"
                               ? "bg-blue-500/20 text-blue-300 border border-blue-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🌐 Google Omni (Veo)
+                          🌐 Omni
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectedVideoModel("kling-video")}
-                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] text-center ${
                             selectedVideoModel === "kling-video"
                               ? "bg-purple-500/20 text-purple-300 border border-purple-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          ⚡ Kling AI Pro
+                          ⚡ Kling Pro
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectedVideoModel("seedance-video")}
-                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] text-center ${
                             selectedVideoModel === "seedance-video"
                               ? "bg-pink-500/20 text-pink-300 border border-pink-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🌊 Seedance 2.5
+                          🌊 Seedance
                         </button>
                       </div>
                     </div>
                   )}
 
                   {/* Action Buttons */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-2 gap-2 pt-2">
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploadingImg}
-                      className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                      className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
                     >
                       {uploadingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 text-cyan-400" />}
-                      <span>رفع من الجهاز</span>
+                      <span>رفع ملف</span>
                     </button>
                     <input
                       ref={fileInputRef}
@@ -687,39 +688,42 @@ export default function AdminSocialMediaPage() {
                         type="button"
                         onClick={handleGenerateImageOnly}
                         disabled={generatingImg}
-                        className="px-3 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 hover:bg-cyan-500/25 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                        className="px-3 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 hover:bg-cyan-500/25 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
                       >
                         {generatingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-cyan-400" />}
-                        <span>توليد صورة بالـ AI</span>
+                        <span>توليد صورة</span>
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={handleGenerateVideoOnly}
                         disabled={generatingVid}
-                        className="px-3 py-2 rounded-xl bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 text-purple-300 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-purple-500/10"
+                        className="px-3 py-2 rounded-xl bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 text-purple-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-500/10"
                       >
                         {generatingVid ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-purple-400" />}
-                        <span>توليد فيديو بـ {selectedVideoModel === "google-omni-veo" ? "Google Omni" : selectedVideoModel === "kling-video" ? "Kling AI" : "Seedance"}</span>
+                        <span>توليد فيديو</span>
                       </button>
                     )}
                   </div>
                 </div>
+              </div>
 
+              {/* COLUMN 2: CONTENT EDITOR & CUSTOMIZER (4 cols / 33%) */}
+              <div className="lg:col-span-4 space-y-4">
                 {/* Platform Selector Tabs */}
-                <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-950 border border-white/10 overflow-x-auto">
+                <div className="flex items-center gap-1 p-1 rounded-2xl bg-zinc-950 border border-white/10 overflow-x-auto">
                   {[
-                    { id: "facebook", label: "📘 Facebook", count: currentPost.platforms.facebook?.charCount },
-                    { id: "twitter", label: "𝕏 Twitter", count: currentPost.platforms.twitter?.charCount },
-                    { id: "instagram", label: "📸 Instagram", count: currentPost.platforms.instagram?.charCount },
-                    { id: "linkedin", label: "💼 LinkedIn", count: currentPost.platforms.linkedin?.charCount },
-                    { id: "telegram", label: "✈️ Telegram", count: currentPost.platforms.telegram?.charCount },
-                    { id: "tiktok", label: "🎵 TikTok", count: currentPost.platforms.tiktok?.charCount },
+                    { id: "facebook", label: "📘 Facebook" },
+                    { id: "twitter", label: "𝕏 Twitter" },
+                    { id: "instagram", label: "📸 Instagram" },
+                    { id: "linkedin", label: "💼 LinkedIn" },
+                    { id: "telegram", label: "✈️ Telegram" },
+                    { id: "tiktok", label: "🎵 TikTok" },
                   ].map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActivePlatform(tab.id as any)}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 ${
                         activePlatform === tab.id
                           ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm"
                           : "text-zinc-400 hover:text-white"
@@ -730,20 +734,20 @@ export default function AdminSocialMediaPage() {
                   ))}
                 </div>
 
-                {/* Platform Text Customizer */}
-                <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-5 backdrop-blur-xl space-y-3.5 text-xs">
+                {/* Platform Text Customizer Card */}
+                <div className="rounded-3xl border border-white/10 bg-zinc-950/70 p-5 backdrop-blur-xl space-y-3.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <label className="text-zinc-300 font-bold text-xs flex items-center gap-2">
+                    <label className="text-white font-bold text-xs flex items-center gap-2">
                       <Edit3 className="w-4 h-4 text-cyan-400" />
-                      <span>تعديل نص منشور ({activePlatform.toUpperCase()})</span>
+                      <span>نص المنشور ({activePlatform.toUpperCase()})</span>
                     </label>
-                    <span className="text-[11px] font-mono text-zinc-500">
+                    <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
                       {currentPlatformData.content.length} حرف
                     </span>
                   </div>
 
                   <textarea
-                    rows={6}
+                    rows={8}
                     value={currentPlatformData.content}
                     onChange={(e) => {
                       const newContent = e.target.value;
@@ -759,7 +763,7 @@ export default function AdminSocialMediaPage() {
                         },
                       }));
                     }}
-                    className="w-full rounded-xl border border-white/10 bg-black/40 p-3.5 text-white outline-none focus:border-cyan-400/50 leading-relaxed text-xs"
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 p-3.5 text-white outline-none focus:border-cyan-400/50 leading-relaxed text-xs resize-y"
                   />
 
                   {/* Hashtags Input */}
@@ -784,21 +788,23 @@ export default function AdminSocialMediaPage() {
                           },
                         }));
                       }}
-                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-cyan-300 font-mono text-xs outline-none"
+                      placeholder="#سعد_ستوديو #ذكاء_اصطناعي #SaadStudio"
+                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2 text-cyan-300 font-mono text-xs outline-none focus:border-cyan-400/50"
                     />
                   </div>
 
                   {/* Copy Button */}
-                  <div className="pt-2 flex justify-end">
+                  <div className="pt-2 flex items-center justify-between border-t border-white/5">
+                    <span className="text-[10px] text-zinc-500">جاهز للنشر الفوري</span>
                     <button
                       type="button"
                       onClick={() => handleCopyPlatformContent(activePlatform)}
-                      className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] text-zinc-200 font-bold text-xs flex items-center gap-2 transition-all"
+                      className="px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] text-zinc-200 font-bold text-xs flex items-center gap-1.5 transition-all"
                     >
                       {copiedKey === activePlatform ? (
                         <>
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-400">تم النسخ للحافظة!</span>
+                          <span className="text-emerald-400">تم النسخ!</span>
                         </>
                       ) : (
                         <>
@@ -811,21 +817,21 @@ export default function AdminSocialMediaPage() {
                 </div>
               </div>
 
-              {/* Right Column: Live Realistic Multi-Platform Previews */}
-              <div className="lg:col-span-6 space-y-4">
+              {/* COLUMN 3: LIVE INTERACTIVE PLATFORM PREVIEW (4 cols / 33%) */}
+              <div className="lg:col-span-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <Eye className="w-4 h-4 text-emerald-400" />
                     <span>المعاينة الحية التفاعلية</span>
                   </h3>
-                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                    {activePlatform.toUpperCase()} Preview
+                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 uppercase">
+                    {activePlatform}
                   </span>
                 </div>
 
                 {/* 0. FACEBOOK PREVIEW */}
                 {activePlatform === "facebook" && (
-                  <div className="rounded-3xl border border-white/10 bg-[#18191a] p-5 text-white shadow-2xl space-y-3 font-sans max-w-lg mx-auto">
+                  <div className="rounded-3xl border border-white/10 bg-[#18191a] p-5 text-white shadow-2xl space-y-3 font-sans w-full">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-zinc-900 border border-white/20 flex items-center justify-center overflow-hidden">
@@ -874,7 +880,7 @@ export default function AdminSocialMediaPage() {
 
                 {/* 1. TWITTER / X PREVIEW */}
                 {activePlatform === "twitter" && (
-                  <div className="rounded-3xl border border-white/10 bg-black p-5 text-white shadow-2xl space-y-3 font-sans max-w-lg mx-auto">
+                  <div className="rounded-3xl border border-white/10 bg-black p-5 text-white shadow-2xl space-y-3 font-sans w-full">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-zinc-900 border border-white/20 flex items-center justify-center overflow-hidden">
@@ -924,7 +930,7 @@ export default function AdminSocialMediaPage() {
 
                 {/* 2. INSTAGRAM PREVIEW */}
                 {activePlatform === "instagram" && (
-                  <div className="rounded-3xl border border-white/10 bg-[#09090b] text-white shadow-2xl overflow-hidden font-sans max-w-lg mx-auto">
+                  <div className="rounded-3xl border border-white/10 bg-[#09090b] text-white shadow-2xl overflow-hidden font-sans w-full">
                     {/* Header */}
                     <div className="p-4 flex items-center justify-between border-b border-white/5">
                       <div className="flex items-center gap-3">
@@ -980,7 +986,7 @@ export default function AdminSocialMediaPage() {
 
                 {/* 3. LINKEDIN PREVIEW */}
                 {activePlatform === "linkedin" && (
-                  <div className="rounded-3xl border border-white/10 bg-[#1b1f23] p-5 text-white shadow-2xl space-y-3 font-sans max-w-lg mx-auto">
+                  <div className="rounded-3xl border border-white/10 bg-[#1b1f23] p-5 text-white shadow-2xl space-y-3 font-sans w-full">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/20 flex items-center justify-center overflow-hidden">
                         <Image src="/logo-saad.png?v=5" alt="Logo" width={28} height={28} unoptimized />
@@ -1023,7 +1029,7 @@ export default function AdminSocialMediaPage() {
 
                 {/* 4. TELEGRAM PREVIEW */}
                 {activePlatform === "telegram" && (
-                  <div className="rounded-3xl border border-white/10 bg-[#17212b] p-5 text-white shadow-2xl space-y-3 font-sans max-w-lg mx-auto">
+                  <div className="rounded-3xl border border-white/10 bg-[#17212b] p-5 text-white shadow-2xl space-y-3 font-sans w-full">
                     <div className="flex items-center justify-between border-b border-white/5 pb-2">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
@@ -1059,7 +1065,7 @@ export default function AdminSocialMediaPage() {
 
                 {/* 5. TIKTOK SCRIPT PREVIEW */}
                 {activePlatform === "tiktok" && (
-                  <div className="rounded-3xl border border-white/10 bg-[#09090b] p-5 text-white shadow-2xl space-y-3 font-sans max-w-lg mx-auto">
+                  <div className="rounded-3xl border border-white/10 bg-[#09090b] p-5 text-white shadow-2xl space-y-3 font-sans w-full">
                     <div className="flex items-center justify-between border-b border-white/5 pb-2">
                       <div className="flex items-center gap-2">
                         <Flame className="w-4 h-4 text-rose-400" />
