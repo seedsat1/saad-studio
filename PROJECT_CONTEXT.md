@@ -57,8 +57,9 @@
      - Added support for singular `output`, `result`, `images`, and nested data candidates in `extractProviderOutputUrls` and `normalizeImageResponseUrls`.
   2. Grok Resolution & Quality Parameters Mapping:
      - Mapped `resolution` (`1k` / `2k`) and `quality` (`medium` / `high`) accurately to WaveSpeed input payload so subscriber choices in the UI are strictly respected by the provider.
-  3. Direct Image URL Previews in Grid:
+  3. Direct Image URL Previews & Grid Performance Optimization:
      - Updated `ImageResultGrid` to prioritize direct non-failed image `url` and `originalUrl` over thumbnail proxy routes, preventing "No Preview" black boxes for newly added models like Grok Imagine.
+     - Added CSS `content-visibility: auto` and `contain-intrinsic-size: 220px 220px` to image cards for off-screen render skipping, and enabled native `loading="lazy"` and `decoding="async"` to eliminate main-thread decoding freezes when viewing dozens of high-res generated images.
      - Preserved in-memory URLs during background persistence reconciliation in `loadPersistedImages`.
   4. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.

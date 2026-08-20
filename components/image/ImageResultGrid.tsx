@@ -579,6 +579,7 @@ export function ImageResultGrid({
                   ? "border-pink-500 ring-2 ring-pink-500/40"
                   : "border-zinc-800/80 hover:border-zinc-700"
               )}
+              style={{ contentVisibility: "auto", containIntrinsicSize: "220px 220px" }}
             >
               {/* Media Container */}
               <div
@@ -595,12 +596,12 @@ export function ImageResultGrid({
                 className="aspect-square w-full bg-zinc-950 relative overflow-hidden cursor-pointer flex items-center justify-center select-none"
               >
                 {mediaSrc ? (
-                  <NextImage
+                  <img
                     src={mediaSrc}
                     alt={item.prompt || "Generated image"}
-                    fill
-                    unoptimized
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
                   />
                 ) : (
                   <div className="text-xs text-zinc-600 font-mono">No Preview</div>
