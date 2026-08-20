@@ -39,6 +39,10 @@ export async function GET(req: NextRequest) {
 
 async function generateImageDirectly(prompt: string, modelName: string, aspectRatio: string = "16:9"): Promise<string> {
   const model = (modelName || "nano-banana-pro").toLowerCase();
+  
+  // Cinematic Hollywood prompt enhancement to eliminate cheesy 3D renders and gibberish text
+  const cleanPrompt = prompt.trim().replace(/^Prompt:\s*/i, "");
+  const cinematicMasterPrompt = `Award-winning Hollywood cinematic still, hyper-realistic photography, 8k resolution, shot on ARRI Alexa LF 70mm, Cooke anamorphic lens, natural film grain, photorealistic skin and material textures, moody volumetric atmospheric lighting, luxury cinematic aesthetic, sharp focus: ${cleanPrompt}. (Masterpiece, photorealism, raw photo, highly detailed, perfect composition).`;
 
   // 1. xAI Grok Imagine 2.0
   if (model.includes("grok")) {
@@ -48,7 +52,7 @@ async function generateImageDirectly(prompt: string, modelName: string, aspectRa
         const res = await fetch("https://api.x.ai/v1/images/generations", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${xaiKey}` },
-          body: JSON.stringify({ model: "grok-2-image", prompt, aspect_ratio: aspectRatio }),
+          body: JSON.stringify({ model: "grok-2-image", prompt: cinematicMasterPrompt, aspect_ratio: aspectRatio }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -69,7 +73,7 @@ async function generateImageDirectly(prompt: string, modelName: string, aspectRa
         const res = await fetch("https://api.openai.com/v1/images/generations", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
-          body: JSON.stringify({ model: "dall-e-2", prompt, size: "1024x1024", n: 1 }),
+          body: JSON.stringify({ model: "dall-e-2", prompt: cinematicMasterPrompt.slice(0, 950), size: "1024x1024", n: 1 }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -86,7 +90,7 @@ async function generateImageDirectly(prompt: string, modelName: string, aspectRa
   try {
     const result = await googleGenerateImage({
       modelId: "nano-banana-pro",
-      prompt,
+      prompt: cinematicMasterPrompt,
       aspectRatio: aspectRatio as any,
       resolution: "2K",
       numImages: 1,
@@ -115,7 +119,10 @@ export async function POST(req: NextRequest) {
     if (action === "generate") {
       const userPrompt = String(body.prompt || "").trim();
       const targetLang = (body.language || "ar") === "en" ? "en" : "ar";
+      const mediaType = String(body.mediaType || "image") as "image" | "video";
       const imageModel = String(body.imageModel || "nano-banana-pro");
+      const videoModel = String(body.videoModel || "kling-3.0/video");
+      const aspectRatio = String(body.aspectRatio || "16:9");
 
       if (!userPrompt) {
         return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
@@ -126,10 +133,23 @@ export async function POST(req: NextRequest) {
       let imageGenPrompt = "";
 
       if (openAIApiKey && openAIApiKey !== "sk-placeholder") {
-        const systemPrompt = `You are the Lead Social Media Growth Strategist for "Saad Studio".
-Target Language: ${targetLang === "ar" ? "ARABIC" : "ENGLISH"}.
+        const systemPrompt = `You are the Lead Social Media Growth Strategist and Award-Winning Creative Director for "Saad Studio" (سعد ستوديو - the premier AI creative studio).
+Target Language: ${targetLang === "ar" ? "ARABIC (العربية الفصحى العصرية الجذابة والاحترافية)" : "ENGLISH"}.
 
-Generate platform-optimized social media posts.
+Generate platform-optimized social media posts tailored to each network:
+1. twitter: Maximum 280 characters, compelling hook, strong value proposition, 2-3 hashtags, CTA link to ${siteUrl}.
+2. instagram: Luxurious engaging aesthetic caption, storytelling tone, emojis, "Link in bio", and 12-15 viral targeted hashtags.
+3. linkedin: Authoritative, executive industry tone detailing workflow productivity gains for creators/studios, discussion question, 3-5 hashtags.
+4. facebook: Engaging community post with friendly tone and direct CTA link.
+5. telegram: Richly formatted broadcast with markdown style, emojis, bullet points, and instant join link.
+6. tiktok: 30-second viral video script with Hook (0-3s), Visual Scene notes, and Voiceover Narration script.
+
+IMPORTANT FOR "imagePrompt":
+Create an English description for a Hollywood-grade, photorealistic cinematic masterpiece photograph.
+- Visual style: Real photography, shot on ARRI Alexa LF 70mm with anamorphic prime lens, luxury studio lighting, dramatic rim light, shallow depth of field, authentic textures.
+- Theme: A breathtaking cinematic scene representing: "${userPrompt}".
+- Strict rules: NO cartoon, NO anime, NO childish 3D CGI toy render, NO fake gibberish text inside the picture.
+
 Return ONLY a valid JSON object matching:
 {
   "twitter": { "content": "...", "hashtags": [...] },
@@ -137,7 +157,7 @@ Return ONLY a valid JSON object matching:
   "linkedin": { "content": "...", "hashtags": [...] },
   "facebook": { "content": "...", "hashtags": [...] },
   "telegram": { "content": "...", "hashtags": [...] },
-  "tiktok": { "content": "...", "hashtags": [...] },
+  "tiktok": { "content": "HOOK: ...\\nSCENE: ...\\nVOICEOVER: ...", "hashtags": [...] },
   "imagePrompt": "..."
 }`;
 
@@ -189,7 +209,7 @@ Return ONLY a valid JSON object matching:
 
       // If OpenAI failed or not available, use rich high-converting templates
       if (!platformsResult.twitter || !platformsResult.twitter.content) {
-        imageGenPrompt = `A stunning photorealistic 8k cinematic visual depicting ${userPrompt}, glowing ambient studio lighting, volumetric atmosphere, masterpiece octane render.`;
+        imageGenPrompt = `A hyper-realistic Hollywood cinematic still photograph depicting ${userPrompt}, luxury dark aesthetic, dramatic volumetric lighting, shot on 70mm anamorphic lens, 8k resolution.`;
 
         if (targetLang === "ar") {
           platformsResult = {
@@ -272,15 +292,24 @@ Return ONLY a valid JSON object matching:
         }
       }
 
-      // Generate Image using Google Nano Banana / Imagen / Grok
-      const generatedImageUrl = await generateImageDirectly(imageGenPrompt || userPrompt, imageModel, "16:9");
+      // Automatically generate visual in 1 step (Image or Video)
+      let generatedImageUrl = "";
+      let generatedVideoUrl = "";
+
+      if (mediaType === "image") {
+        generatedImageUrl = await generateImageDirectly(imageGenPrompt || userPrompt, imageModel, aspectRatio);
+      }
 
       // Save to database as draft post
       const saved = await saveSocialPost({
         topicPrompt: userPrompt,
         language: targetLang as "ar" | "en",
-        imageUrl: generatedImageUrl,
+        mediaType,
+        aspectRatio: aspectRatio as any,
+        imageUrl: generatedImageUrl || undefined,
         imageModel: imageModel as any,
+        videoUrl: generatedVideoUrl || undefined,
+        videoModel: videoModel as any,
         platforms: platformsResult,
         status: "draft",
       });

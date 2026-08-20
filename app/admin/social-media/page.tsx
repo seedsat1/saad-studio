@@ -218,7 +218,9 @@ export default function AdminSocialMediaPage() {
           action: "generate",
           prompt: p.trim(),
           language: selectedLanguage,
+          mediaType: selectedMediaType,
           imageModel: selectedImageModel,
+          videoModel: selectedVideoModel,
           aspectRatio: selectedAspectRatio,
         }),
       });
