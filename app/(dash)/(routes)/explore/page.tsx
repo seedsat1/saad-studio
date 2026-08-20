@@ -2345,10 +2345,18 @@ export default function ExplorePage() {
       </section>
 
       {/* ════════════════════════════════════════════════
+          CAMERA MOVEMENTS LIBRARY (46 cinematic motion presets)
+          Placed ABOVE the promo banners so the new library gets first attention.
+          Data source: lib/camera-movements-library.ts
+          Section UI:  components/explore/CameraMovementsSection.tsx
+      ════════════════════════════════════════════════ */}
+      <CameraMovementsSection />
+
+      {/* ════════════════════════════════════════════════
           OFFICIAL SHOWCASES & BANNER ADS (الموديلات والانتاج)
       ════════════════════════════════════════════════ */}
       <section className="py-4 border-t border-b border-white/5 my-6">
-        
+
         {/* Dynamic explore CMS banners */}
         {cmsModules.map((module) => (
           <DynamicExploreModule key={module.id} module={module} />
@@ -2370,13 +2378,6 @@ export default function ExplorePage() {
         ))}
 
       </section>
-
-      {/* ════════════════════════════════════════════════
-          CAMERA MOVEMENTS LIBRARY (46 cinematic motion presets)
-          Data source: lib/camera-movements-library.ts
-          Section UI:  components/explore/CameraMovementsSection.tsx
-      ════════════════════════════════════════════════ */}
-      <CameraMovementsSection />
 
       {/* ════════════════════════════════════════════════
           COMMUNITY CREATIONS (Iraq Masonry & Filters)
