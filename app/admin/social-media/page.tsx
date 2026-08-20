@@ -362,6 +362,10 @@ export default function AdminSocialMediaPage() {
   const [generatingSbVideo, setGeneratingSbVideo] = useState(false);
   const [generatingSbFrame1, setGeneratingSbFrame1] = useState(false);
   const [generatingSbFrame2, setGeneratingSbFrame2] = useState(false);
+  const [generatingSbChar, setGeneratingSbChar] = useState(false);
+  const [generatingSbEnv, setGeneratingSbEnv] = useState(false);
+  const charFileInputRef = useRef<HTMLInputElement | null>(null);
+  const envFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // History & Config states
   const [postsHistory, setPostsHistory] = useState<SocialMediaPostRecord[]>([]);
@@ -684,6 +688,79 @@ export default function AdminSocialMediaPage() {
     } finally {
       if (frameKey === "frame1") setGeneratingSbFrame1(false);
       else setGeneratingSbFrame2(false);
+    }
+  };
+
+  const handleUploadAsset = async (e: React.ChangeEvent<HTMLInputElement>, assetKey: "character" | "environment") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("assetType", "image");
+
+      const res = await fetch("/api/studio/upload-url", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const { publicUrl } = await res.json();
+        if (publicUrl) {
+          setCurrentStoryboard((prev) => ({
+            ...prev,
+            assets: {
+              ...prev.assets,
+              [assetKey]: {
+                ...prev.assets[assetKey],
+                url: publicUrl,
+              },
+            },
+          }));
+        }
+      }
+    } catch {
+      alert("فشل رفع الصورة المرجعية");
+    }
+  };
+
+  const handleGenerateSbAsset = async (assetKey: "character" | "environment") => {
+    const prompt = currentStoryboard.assets[assetKey].prompt || (assetKey === "character" ? "Stylized 3D character portrait master detail" : "Workstation room interior background plate");
+    if (assetKey === "character") setGeneratingSbChar(true);
+    else setGeneratingSbEnv(true);
+
+    try {
+      const res = await fetch("/api/admin/social-media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate_image",
+          prompt,
+          model: selectedSbImageModel,
+          aspectRatio: "16:9",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.imageUrl) {
+        setCurrentStoryboard((prev) => ({
+          ...prev,
+          assets: {
+            ...prev.assets,
+            [assetKey]: {
+              ...prev.assets[assetKey],
+              url: data.imageUrl,
+            },
+          },
+        }));
+      } else {
+        alert(data?.error || "تعذر توليد العنصر.");
+      }
+    } catch (e) {
+      alert("Error: " + String(e));
+    } finally {
+      if (assetKey === "character") setGeneratingSbChar(false);
+      else setGeneratingSbEnv(false);
     }
   };
 
@@ -2187,7 +2264,136 @@ export default function AdminSocialMediaPage() {
                   />
                 </div>
 
-                {/* 3. Viral Caption & Hashtags */}
+                {/* 3. REFERENCE ASSETS MANAGER (CHARACTER & ROOM) */}
+                <div className="rounded-3xl border border-white/10 bg-zinc-950/70 p-5 backdrop-blur-xl space-y-3.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <label className="text-white font-bold text-xs flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-cyan-400" />
+                      <span>العناصر المرجعية (Character & Scene Assets)</span>
+                    </label>
+                    <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+                      قابلة للرفع والتوليد
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Character Asset Box */}
+                    <div className="rounded-2xl border border-white/10 bg-black/40 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[11px] text-cyan-300">👤 عنصر الشخصية</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="file"
+                            ref={charFileInputRef}
+                            onChange={(e) => handleUploadAsset(e, "character")}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => charFileInputRef.current?.click()}
+                            className="px-2 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold flex items-center gap-1 transition-all"
+                            title="رفع صورة الشخصية من جهازك"
+                          >
+                            <Upload className="w-2.5 h-2.5" />
+                            <span>رفع</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateSbAsset("character")}
+                            disabled={generatingSbChar}
+                            className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 text-[10px] font-bold flex items-center gap-1 transition-all"
+                            title="توليد شخصية بالذكاء الاصطناعي"
+                          >
+                            <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                            <span>{generatingSbChar ? "جاري..." : "AI"}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {currentStoryboard.assets.character.url && (
+                        <div className="rounded-xl overflow-hidden aspect-video bg-black/60 relative border border-white/10">
+                          <img src={currentStoryboard.assets.character.url} alt="Character" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+
+                      <input
+                        type="text"
+                        value={currentStoryboard.assets.character.prompt}
+                        onChange={(e) =>
+                          setCurrentStoryboard({
+                            ...currentStoryboard,
+                            assets: {
+                              ...currentStoryboard.assets,
+                              character: { ...currentStoryboard.assets.character, prompt: e.target.value },
+                            },
+                          })
+                        }
+                        placeholder="وصف الشخصية..."
+                        className="w-full rounded-xl border border-white/10 bg-black/50 px-2.5 py-1.5 text-zinc-200 text-[11px] outline-none"
+                      />
+                    </div>
+
+                    {/* Room / Scene Asset Box */}
+                    <div className="rounded-2xl border border-white/10 bg-black/40 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[11px] text-amber-300">🏠 عنصر الغرفة / المشهد</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="file"
+                            ref={envFileInputRef}
+                            onChange={(e) => handleUploadAsset(e, "environment")}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => envFileInputRef.current?.click()}
+                            className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1 transition-all"
+                            title="رفع صورة الغرفة/المشهد من جهازك"
+                          >
+                            <Upload className="w-2.5 h-2.5" />
+                            <span>رفع</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateSbAsset("environment")}
+                            disabled={generatingSbEnv}
+                            className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 text-[10px] font-bold flex items-center gap-1 transition-all"
+                            title="توليد مشهد بالذكاء الاصطناعي"
+                          >
+                            <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                            <span>{generatingSbEnv ? "جاري..." : "AI"}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {currentStoryboard.assets.environment.url && (
+                        <div className="rounded-xl overflow-hidden aspect-video bg-black/60 relative border border-white/10">
+                          <img src={currentStoryboard.assets.environment.url} alt="Room / Scene" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+
+                      <input
+                        type="text"
+                        value={currentStoryboard.assets.environment.prompt}
+                        onChange={(e) =>
+                          setCurrentStoryboard({
+                            ...currentStoryboard,
+                            assets: {
+                              ...currentStoryboard.assets,
+                              environment: { ...currentStoryboard.assets.environment, prompt: e.target.value },
+                            },
+                          })
+                        }
+                        placeholder="وصف الغرفة أو المشهد..."
+                        className="w-full rounded-xl border border-white/10 bg-black/50 px-2.5 py-1.5 text-zinc-200 text-[11px] outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Viral Caption & Hashtags */}
                 <div className="rounded-3xl border border-white/10 bg-zinc-950/70 p-5 backdrop-blur-xl space-y-3.5 text-xs">
                   <div className="flex items-center justify-between">
                     <label className="text-white font-bold text-xs flex items-center gap-2">
@@ -2452,7 +2658,7 @@ export default function AdminSocialMediaPage() {
                     </div>
                   </div>
 
-                  {/* CARD 4: ASSETS BREAKDOWN (CHARACTER & ROOM) */}
+                  {/* CARD 4: ASSETS BREAKDOWN (CHARACTER & ROOM) WITH UPLOAD & AI BUTTONS */}
                   <div className="grid grid-cols-2 gap-2.5">
                     {/* Character Asset */}
                     <div className="rounded-2xl overflow-hidden border border-white/15 bg-black/50 relative aspect-[4/3] shadow-md group">
@@ -2464,6 +2670,45 @@ export default function AdminSocialMediaPage() {
                       />
                       <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/80 border border-white/15 text-[9px] font-bold text-white">
                         {currentStoryboard.assets.character.label}
+                      </div>
+
+                      {/* Hover Actions: Upload, AI Regenerate, Zoom, Download */}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 p-2 backdrop-blur-[2px]">
+                        <button
+                          type="button"
+                          onClick={() => charFileInputRef.current?.click()}
+                          className="p-1.5 rounded-lg bg-cyan-500/80 hover:bg-cyan-500 text-black font-bold text-[10px] flex items-center gap-1 shadow-md"
+                          title="رفع صورة مخصصة للشخصية"
+                        >
+                          <Upload className="w-3 h-3" />
+                          <span>رفع</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateSbAsset("character")}
+                          disabled={generatingSbChar}
+                          className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold flex items-center gap-1 shadow-md"
+                          title="توليد شخصية بالذكاء الاصطناعي"
+                        >
+                          <Sparkles className="w-3 h-3 text-amber-400" />
+                          <span>AI</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => currentStoryboard.assets.character.url && setPreviewModalUrl({ url: currentStoryboard.assets.character.url, type: "image", title: currentStoryboard.assets.character.label })}
+                          className="p-1.5 rounded-lg bg-black/60 text-white"
+                          title="معاينة"
+                        >
+                          <Maximize2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => currentStoryboard.assets.character.url && handleDownloadMedia(currentStoryboard.assets.character.url, "character-asset")}
+                          className="p-1.5 rounded-lg bg-black/60 text-white"
+                          title="تنزيل"
+                        >
+                          <Download className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
 
@@ -2477,6 +2722,45 @@ export default function AdminSocialMediaPage() {
                       />
                       <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/80 border border-white/15 text-[9px] font-bold text-white">
                         {currentStoryboard.assets.environment.label}
+                      </div>
+
+                      {/* Hover Actions: Upload, AI Regenerate, Zoom, Download */}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 p-2 backdrop-blur-[2px]">
+                        <button
+                          type="button"
+                          onClick={() => envFileInputRef.current?.click()}
+                          className="p-1.5 rounded-lg bg-amber-500/80 hover:bg-amber-500 text-black font-bold text-[10px] flex items-center gap-1 shadow-md"
+                          title="رفع صورة مخصصة للمشهد أو الغرفة"
+                        >
+                          <Upload className="w-3 h-3" />
+                          <span>رفع</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateSbAsset("environment")}
+                          disabled={generatingSbEnv}
+                          className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold flex items-center gap-1 shadow-md"
+                          title="توليد بيئة بالذكاء الاصطناعي"
+                        >
+                          <Sparkles className="w-3 h-3 text-amber-400" />
+                          <span>AI</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => currentStoryboard.assets.environment.url && setPreviewModalUrl({ url: currentStoryboard.assets.environment.url, type: "image", title: currentStoryboard.assets.environment.label })}
+                          className="p-1.5 rounded-lg bg-black/60 text-white"
+                          title="معاينة"
+                        >
+                          <Maximize2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => currentStoryboard.assets.environment.url && handleDownloadMedia(currentStoryboard.assets.environment.url, "environment-asset")}
+                          className="p-1.5 rounded-lg bg-black/60 text-white"
+                          title="تنزيل"
+                        >
+                          <Download className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
                   </div>
