@@ -1056,7 +1056,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#layered",
     nameAr: "عمق طبقات متدرجة",
     nameEn: "Layered Depth",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/layered.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/layered.webp?v=2",
     promptDescription: "Multi-layered depth composition with crisp foreground and blurred background element framing."
   },
   {
@@ -1064,7 +1064,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#drone",
     nameAr: "تصوير طائرة درون",
     nameEn: "Drone Shot",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/drone.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/drone.webp?v=2",
     promptDescription: "High altitude smooth flying drone shot over expansive scenery."
   },
   {
@@ -1072,7 +1072,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#360",
     nameAr: "لقطة كروية 360 درجة",
     nameEn: "360 Panoramic",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/camera360.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/camera360.webp?v=2",
     promptDescription: "360-degree tiny planet curvature panoramic wide lens perspective."
   },
   {
@@ -1080,7 +1080,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#portrait",
     nameAr: "لقطة بورتري قريبة",
     nameEn: "Portrait Shot",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/portrait.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/portrait.webp?v=2",
     promptDescription: "Intimate head-and-shoulders portrait shot with soft bokeh background."
   },
   {
@@ -1088,7 +1088,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#close-up",
     nameAr: "لقطة قريبة جداً",
     nameEn: "Close-Up",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/closeup.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/closeup.webp?v=2",
     promptDescription: "Tight extreme close-up shot capturing rich facial textures and eye details."
   },
   {
@@ -1096,7 +1096,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#tilt-shift",
     nameAr: "تأثير المصغرات (تيلت شفت)",
     nameEn: "Tilt-Shift",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/tiltshift.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/tiltshift.webp?v=2",
     promptDescription: "Tilt-shift selective blur lens effect creating a miniature model appearance."
   },
   {
@@ -1104,7 +1104,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#cinematic",
     nameAr: "لقطة سينمائية فاخرة",
     nameEn: "Cinematic Framing",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/cinematic.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/cinematic.webp?v=2",
     promptDescription: "Widescreen anamorphic cinematic framing with moody atmospheric lighting."
   },
   {
@@ -1112,7 +1112,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#high-angle",
     nameAr: "زاوية مرتفعة من الأعلى",
     nameEn: "High-Angle",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/highangle.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/highangle.webp?v=2",
     promptDescription: "High camera angle pointing down from above the subject."
   },
   {
@@ -1120,7 +1120,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#low-angle",
     nameAr: "زاوية منخفضة من الأسفل",
     nameEn: "Low-Angle",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/lowangle.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/lowangle.webp?v=2",
     promptDescription: "Low camera angle looking upward to emphasize grand scale and presence."
   },
   {
@@ -1128,7 +1128,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#panoramic",
     nameAr: "لقطة بانورامية واسعة",
     nameEn: "Panoramic View",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/panoramic.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/panoramic.webp?v=2",
     promptDescription: "Ultra-wide panoramic horizon shot capturing expansive scenery."
   },
   {
@@ -1136,7 +1136,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#symmetry",
     nameAr: "تكوين متناظر متطابق",
     nameEn: "Symmetry",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/symmetry.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/symmetry.webp?v=2",
     promptDescription: "Perfectly centered architectural symmetry framing with balanced lines."
   },
   {
@@ -1144,7 +1144,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#fish-eye",
     nameAr: "عدسة عين السمكة",
     nameEn: "Fish-Eye Lens",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/fisheye.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/fisheye.webp?v=2",
     promptDescription: "Ultra wide 180-degree fisheye lens distortion with curved edge perspective."
   },
   {
@@ -1152,7 +1152,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#first-person",
     nameAr: "منظور الشخص الأول POV",
     nameEn: "First-Person POV",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/firstperson.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/firstperson.webp?v=2",
     promptDescription: "First-person point-of-view perspective shot as seen directly through eyes."
   },
   {
@@ -1160,7 +1160,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#mid-shot",
     nameAr: "لقطة متوسطة (من الخصر)",
     nameEn: "Mid-Shot",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/midshot.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/midshot.webp?v=2",
     promptDescription: "Balanced medium waist-up shot framing body gestures and background clearly."
   },
   {
@@ -1168,7 +1168,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#full-body",
     nameAr: "لقطة كاملة للجسم",
     nameEn: "Full-Body Shot",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/fullbody.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/fullbody.webp?v=2",
     promptDescription: "Full length body shot showing complete outfit and standing environment stance."
   },
   {
@@ -1176,7 +1176,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#wide-shot",
     nameAr: "لقطة واسعة شاملة",
     nameEn: "Wide Shot",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/wideshot.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/wideshot.webp?v=2",
     promptDescription: "Wide environmental establishing shot capturing subject in vast landscape."
   },
   {
@@ -1184,7 +1184,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#tilt-shot",
     nameAr: "لقطة مائلة دتش أنجل",
     nameEn: "Tilt Shot",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/tiltshot.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/tiltshot.webp?v=2",
     promptDescription: "Dutch angle tilted camera horizon creating dynamic action tension."
   },
   {
@@ -1192,7 +1192,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#aerial",
     nameAr: "لقطة جوية رأسية",
     nameEn: "Aerial Top-Down",
-    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/aerial.webp",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/aerial.webp?v=2",
     promptDescription: "Direct overhead top-down bird's eye view aerial perspective."
   },
   // ── Pan / Tilt ──────────────────────────────────────────────

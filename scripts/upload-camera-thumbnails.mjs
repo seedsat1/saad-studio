@@ -91,7 +91,7 @@ async function uploadWebp(webpPath, slug) {
     Key: key,
     Body: body,
     ContentType: "image/webp",
-    CacheControl: "public, max-age=31536000, immutable",
+    CacheControl: "public, max-age=3600, must-revalidate",
   }));
   return key;
 }
