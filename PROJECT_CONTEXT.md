@@ -61,9 +61,12 @@
      - Prioritized fast compressed WebP thumbnails (`thumbnailUrl`) for grid cards to prevent downloading hundreds of megabytes of raw 4K/8K upscale master images simultaneously on initial page load, while seamlessly falling back to direct URLs for fresh in-flight generations.
      - Kept full-resolution master files (`originalUrl` / `url`) strictly mapped to inspection, download, remix, and reuse actions.
      - Added CSS `content-visibility: auto` and `contain-intrinsic-size: 220px 220px` to image cards for off-screen render skipping, and enabled native `loading="lazy"` and `decoding="async"` to eliminate main-thread decoding freezes when viewing dozens of high-res generated images.
-  4. Explore Page Global Footer Integration:
+  4. Explore Page Global Footer & Interactive Newsletter:
      - Embedded the dynamic CMS-powered `<Footer />` component seamlessly at the bottom of the Explore showcase page (`app/(dash)/(routes)/explore/page.tsx`), maintaining complete brand links, newsletter subscription, and social media connectivity across all viewport sizes.
-  5. Verification:
+     - Added `/api/newsletter` route and interactive form state in `<Footer />` with live subscription feedback.
+  5. Style Library (/image-presets) Route Resolution:
+     - Created and connected `/image-presets` route (`app/(dash)/(routes)/image-presets/page.tsx`) with category filtering, search, and direct one-click preset hydration into Image Studio, eliminating 404 errors from all Gateway cards and cards across the platform.
+  6. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest test suite: 12/12 tests passed.
 

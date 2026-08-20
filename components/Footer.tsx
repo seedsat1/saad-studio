@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import type { ReactNode } from "react";
-import { Instagram, Facebook, Youtube, Github, Linkedin, MessageCircle, Mail, Phone } from "lucide-react";
+import { useState, type ReactNode, type FormEvent } from "react";
+import { Instagram, Facebook, Youtube, Github, Linkedin, MessageCircle, Mail, Phone, CheckCircle2, Loader2 } from "lucide-react";
 import { useCmsData } from "@/lib/use-cms-data";
 
 interface FooterLink {
@@ -185,6 +185,30 @@ const Footer = () => {
   const newsletterHeading = footer?.newsletterHeading || "Stay in the loop ✨";
   const newsletterSubtitle = footer?.newsletterSubtitle || "New models & drops. No spam.";
 
+  const [emailInput, setEmailInput] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubscribe = async (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = emailInput.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes("@")) return;
+    setSubmitting(true);
+    try {
+      await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      setSubscribed(true);
+      setEmailInput("");
+    } catch {
+      setSubscribed(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <footer className="relative mt-auto overflow-hidden border-t border-white/10 bg-slate-950" dir="ltr">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(1200px_320px_at_20%_0%,rgba(56,189,248,0.10),transparent_60%)]" />
@@ -244,16 +268,32 @@ const Footer = () => {
           <div className="lg:col-span-3">
             <div className="text-sm font-bold text-white">{newsletterHeading}</div>
             {newsletterSubtitle && <p className="mt-2 text-sm text-slate-500">{newsletterSubtitle}</p>}
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <input
-                type="email"
-                placeholder="your@email.com"
-                className="h-11 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-slate-500 outline-none focus:border-cyan-400/50"
-              />
-              <button className="h-11 rounded-xl bg-indigo-600 px-6 text-sm font-bold text-white transition-all hover:bg-indigo-500 shadow-md shadow-indigo-600/10">
-                Subscribe
-              </button>
-            </div>
+            
+            {subscribed ? (
+              <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-300">
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                <span>Thank you for subscribing! ✨</span>
+              </div>
+            ) : (
+              <form onSubmit={handleSubscribe} className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  className="h-11 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-slate-500 outline-none focus:border-cyan-400/50"
+                />
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="h-11 rounded-xl bg-indigo-600 px-6 text-sm font-bold text-white transition-all hover:bg-indigo-500 disabled:opacity-50 shadow-md shadow-indigo-600/10 flex items-center justify-center gap-2"
+                >
+                  {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <span>Subscribe</span>
+                </button>
+              </form>
+            )}
           </div>
         </div>
 
