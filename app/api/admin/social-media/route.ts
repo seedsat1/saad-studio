@@ -454,53 +454,165 @@ Return ONLY a valid JSON object matching:
       const config = await getSocialAccountsConfig();
       const results: Record<string, boolean> = {};
 
-      // Buffer API Broadcast (Facebook, Instagram, X, LinkedIn)
+      // Buffer API Broadcast (Facebook, Instagram, X, LinkedIn) - Supports new Buffer GraphQL API & REST Fallback
       if (targetPlatform === "facebook" || targetPlatform === "buffer" || targetPlatform === "all") {
         if (config.bufferAccessToken) {
           try {
-            // 1. Fetch connected profiles if profileId not specified
-            let targetProfileIds: string[] = [];
-            if (config.bufferProfileId) {
-              targetProfileIds = [config.bufferProfileId];
-            } else {
-              const profRes = await fetch(`https://api.bufferapp.com/1/profiles.json?access_token=${encodeURIComponent(config.bufferAccessToken)}`);
-              if (profRes.ok) {
-                const profiles = await profRes.json();
-                if (Array.isArray(profiles)) {
-                  if (targetPlatform === "facebook") {
-                    const fbProfs = profiles.filter((p: any) => p.service === "facebook" || p.service_type === "page");
-                    targetProfileIds = fbProfs.length ? fbProfs.map((p: any) => p.id) : profiles.map((p: any) => p.id);
-                  } else {
-                    targetProfileIds = profiles.map((p: any) => p.id);
+            const apiKey = config.bufferAccessToken.trim();
+            const textToPublish = `${post.platforms.facebook?.content || post.platforms.twitter?.content || ""}\n\n${(post.platforms.facebook?.hashtags || []).join(" ")}`;
+
+            // 1. Try modern Buffer GraphQL API (https://api.buffer.com)
+            let graphqlSuccess = false;
+            try {
+              // Fetch user organizations and channels
+              const gqlChannelsQuery = {
+                query: `
+                  query GetChannels {
+                    account {
+                      id
+                      organizations {
+                        id
+                        channels {
+                          id
+                          name
+                          service
+                        }
+                      }
+                    }
+                  }
+                `,
+              };
+
+              const gqlRes = await fetch("https://api.buffer.com", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify(gqlChannelsQuery),
+              });
+
+              if (gqlRes.ok) {
+                const gqlData = await gqlRes.json();
+                const orgs = gqlData?.data?.account?.organizations || [];
+                let channelIds: string[] = [];
+
+                for (const org of orgs) {
+                  const channels = org?.channels || [];
+                  for (const ch of channels) {
+                    if (targetPlatform === "facebook") {
+                      if (ch.service === "facebook" || ch.service === "facebookPage") {
+                        channelIds.push(ch.id);
+                      }
+                    } else {
+                      channelIds.push(ch.id);
+                    }
+                  }
+                }
+
+                // If no specific channel matched, use all channels
+                if (channelIds.length === 0 && orgs[0]?.channels?.length) {
+                  channelIds = orgs[0].channels.map((c: any) => c.id);
+                }
+
+                if (channelIds.length > 0) {
+                  for (const chId of channelIds) {
+                    const postInput: any = {
+                      channelId: chId,
+                      text: textToPublish,
+                      schedulingType: "NOW",
+                    };
+
+                    if (post.videoUrl && post.mediaType === "video") {
+                      postInput.media = {
+                        videos: [{ url: post.videoUrl }],
+                      };
+                    } else if (post.imageUrl) {
+                      postInput.media = {
+                        images: [{ url: post.imageUrl }],
+                      };
+                    }
+
+                    const createPostMutation = {
+                      query: `
+                        mutation CreatePost($input: CreatePostInput!) {
+                          createPost(input: $input) {
+                            post {
+                              id
+                              status
+                            }
+                          }
+                        }
+                      `,
+                      variables: { input: postInput },
+                    };
+
+                    const publishRes = await fetch("https://api.buffer.com", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${apiKey}`,
+                      },
+                      body: JSON.stringify(createPostMutation),
+                    });
+
+                    if (publishRes.ok) {
+                      graphqlSuccess = true;
+                    }
                   }
                 }
               }
+            } catch (gqlErr) {
+              console.warn("Buffer GraphQL failed, trying REST fallback:", gqlErr);
             }
 
-            if (targetProfileIds.length > 0) {
-              const fbText = `${post.platforms.facebook?.content || post.platforms.twitter?.content || ""}\n\n${(post.platforms.facebook?.hashtags || []).join(" ")}`;
-              
-              const params = new URLSearchParams();
-              params.append("access_token", config.bufferAccessToken);
-              params.append("text", fbText);
-              params.append("now", "true");
-              targetProfileIds.forEach((pid) => params.append("profile_ids[]", pid));
-
-              if (post.imageUrl) {
-                params.append("media[photo]", post.imageUrl);
+            // 2. If GraphQL succeeded, record result
+            if (graphqlSuccess) {
+              results.buffer = true;
+              results.facebook = true;
+            } else {
+              // REST fallback (api.bufferapp.com/1/...)
+              let targetProfileIds: string[] = [];
+              if (config.bufferProfileId) {
+                targetProfileIds = [config.bufferProfileId];
+              } else {
+                const profRes = await fetch(`https://api.bufferapp.com/1/profiles.json?access_token=${encodeURIComponent(apiKey)}`);
+                if (profRes.ok) {
+                  const profiles = await profRes.json();
+                  if (Array.isArray(profiles)) {
+                    if (targetPlatform === "facebook") {
+                      const fbProfs = profiles.filter((p: any) => p.service === "facebook" || p.service_type === "page");
+                      targetProfileIds = fbProfs.length ? fbProfs.map((p: any) => p.id) : profiles.map((p: any) => p.id);
+                    } else {
+                      targetProfileIds = profiles.map((p: any) => p.id);
+                    }
+                  }
+                }
               }
 
-              const bufferRes = await fetch("https://api.bufferapp.com/1/updates/create.json", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: params.toString(),
-              });
+              if (targetProfileIds.length > 0) {
+                const params = new URLSearchParams();
+                params.append("access_token", apiKey);
+                params.append("text", textToPublish);
+                params.append("now", "true");
+                targetProfileIds.forEach((pid) => params.append("profile_ids[]", pid));
 
-              results.buffer = bufferRes.ok;
-              results.facebook = bufferRes.ok;
+                if (post.imageUrl) {
+                  params.append("media[photo]", post.imageUrl);
+                }
+
+                const bufferRes = await fetch("https://api.bufferapp.com/1/updates/create.json", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                  body: params.toString(),
+                });
+
+                results.buffer = bufferRes.ok;
+                results.facebook = bufferRes.ok;
+              }
             }
           } catch (e) {
-            console.error("Buffer API publish error:", e);
+            console.error("Buffer publish error:", e);
             results.buffer = false;
             results.facebook = false;
           }

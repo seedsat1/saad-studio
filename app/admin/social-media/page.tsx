@@ -1178,12 +1178,12 @@ export default function AdminSocialMediaPage() {
                     <span>ربط Buffer (لنشر فيسبوك، إنستغرام، و X)</span>
                   </div>
                   <a
-                    href="https://buffer.com/developers/apps/create"
+                    href="https://publish.buffer.com/settings/api"
                     target="_blank"
                     rel="noreferrer"
                     className="text-[10px] text-blue-400 hover:underline flex items-center gap-1"
                   >
-                    <span>الحصول على Access Token</span>
+                    <span>الحصول على API Key من Buffer</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
