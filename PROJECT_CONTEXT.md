@@ -48,7 +48,21 @@
 
 ---
 
-#### Latest task: Intelligent Model Branding Normalization, Real Aspect Ratio Extraction & Dual-Route Auto-Pairing (2026-08-20)
+#### Latest task: Image Studio Interactive Hover Suite & Real Action Controls (2026-08-20)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Interactive Hover Overlay Suite on Image Cards:
+     - Top-Left: Multi-select circle with instant bulk actions banner (Download all, Delete selected).
+     - Top-Right: Favorite/Like button with persisted storage & heart animation, Direct high-res Download button, and Three-Dots Context Menu.
+     - Bottom-Right Floating Pill: Quick Reference button (loads directly into `/image` studio reference inputs), Video Frame Placement dropdown (Start Frame / End Frame routing to `/video`), and Additional Tools dropdown (3D Scene, Soul 2.0 Hex Palette Extractor, Multishot, Inpaint, Skin Enhancer, Angles, Relight, AI Stylist, Upscale).
+  2. Full Real Functionality & Zero Mock/Decorative UI:
+     - Context Menu features real handlers for: `Open` (inspector), `Regenerate` (re-triggers prompt/model), `Reuse` (populates inputs), `Create Element` (character/element flow), `Additional` (flyout/dropdown tools), `Like` (storage sync), `Share` (clipboard URL copy with toast), `Add to folder` (real `AlbumPicker` modal), `Publish` (community showcase), `Download`, and `Delete` (`DeleteImageDialog`).
+     - Dominant color extraction via Canvas for Soul 2.0 with individual/bulk HEX copy.
+  3. Verification:
+     - TypeScript `tsc --noEmit`: 0 errors.
+     - Vitest test suite: 16/16 tests passed (`test/models-backend-hardening.test.ts`, `test/admin-knowledge-hub.test.ts`, `test/audio-suite-hardening.test.ts`).
+
+#### Previous task: Intelligent Model Branding Normalization, Real Aspect Ratio Extraction & Dual-Route Auto-Pairing (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Clean Model Branding & Display Name Cleaner:

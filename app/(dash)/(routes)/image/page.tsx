@@ -1894,8 +1894,107 @@ export default function ImageWorkspacePage() {
     }
   }, [selectedModel]);
 
+  const handleReuse = useCallback((item: ResultItem) => {
+    if (item.prompt) setPrompt(item.prompt);
+    if (item.model) {
+      const match = visibleImageModels.find((m) => m.id === item.model || m.label.toLowerCase() === item.model?.toLowerCase());
+      if (match) setSelectedModel(match);
+    }
+    if (item.aspect) {
+      setAspectRatio(item.aspect);
+    }
+    setActiveTool("create");
+  }, [visibleImageModels]);
+
+  const handleInpaintTool = useCallback(async (item: ResultItem) => {
+    try {
+      let blob: Blob | null = null;
+      try {
+        const direct = await fetch(resultOriginalUrl(item), { mode: "cors" });
+        if (direct.ok) blob = await direct.blob();
+      } catch { /* proxy */ }
+      if (!blob) {
+        const proxied = await fetch(`/api/proxy-image?url=${encodeURIComponent(resultOriginalUrl(item))}`);
+        if (proxied.ok) blob = await proxied.blob();
+      }
+      if (blob) {
+        const ext = (blob.type.split("/")[1] || "png").split("+")[0];
+        const file = new File([blob], `inpaint_${item.id}.${ext}`, { type: blob.type || "image/png" });
+        setInpaintFile(file);
+        setActiveTool("inpaint");
+      }
+    } catch (err) {
+      console.error("Failed to load inpaint image", err);
+    }
+  }, []);
+
+  const handleUpscaleTool = useCallback(async (item: ResultItem) => {
+    try {
+      let blob: Blob | null = null;
+      try {
+        const direct = await fetch(resultOriginalUrl(item), { mode: "cors" });
+        if (direct.ok) blob = await direct.blob();
+      } catch { /* proxy */ }
+      if (!blob) {
+        const proxied = await fetch(`/api/proxy-image?url=${encodeURIComponent(resultOriginalUrl(item))}`);
+        if (proxied.ok) blob = await proxied.blob();
+      }
+      if (blob) {
+        const ext = (blob.type.split("/")[1] || "png").split("+")[0];
+        const file = new File([blob], `upscale_${item.id}.${ext}`, { type: blob.type || "image/png" });
+        setUpscaleFile(file);
+        setActiveTool("upscale");
+      }
+    } catch (err) {
+      console.error("Failed to load upscale image", err);
+    }
+  }, []);
+
+  const handleRelightTool = useCallback(async (item: ResultItem) => {
+    try {
+      let blob: Blob | null = null;
+      try {
+        const direct = await fetch(resultOriginalUrl(item), { mode: "cors" });
+        if (direct.ok) blob = await direct.blob();
+      } catch { /* proxy */ }
+      if (!blob) {
+        const proxied = await fetch(`/api/proxy-image?url=${encodeURIComponent(resultOriginalUrl(item))}`);
+        if (proxied.ok) blob = await proxied.blob();
+      }
+      if (blob) {
+        const ext = (blob.type.split("/")[1] || "png").split("+")[0];
+        const file = new File([blob], `relight_${item.id}.${ext}`, { type: blob.type || "image/png" });
+        setRelightFile(file);
+        setActiveTool("relight");
+      }
+    } catch (err) {
+      console.error("Failed to load relight image", err);
+    }
+  }, []);
+
   const renderWorkspace = () => {
-    if (activeTool === "create") return <ResultGrid items={[...pendingItems, ...results]} onInspect={setInspectorAsset} onRemix={(item) => { setActiveTool("create"); setPrompt(`Remix this style: ${item.prompt}`); }} onUse={handleUseAsReference} onDelete={handleDelete} onBulkDelete={handleBulkDelete} hasMore={resultsHasMore} loadingMore={loadingMoreResults} onLoadMore={() => void loadPersistedImages(resultsPage + 1, "append")} />;
+    if (activeTool === "create") {
+      return (
+        <ResultGrid
+          items={[...pendingItems, ...results]}
+          onInspect={setInspectorAsset}
+          onRemix={(item) => {
+            setActiveTool("create");
+            setPrompt(`Remix this style: ${item.prompt}`);
+          }}
+          onReuse={handleReuse}
+          onUse={handleUseAsReference}
+          onInpaint={handleInpaintTool}
+          onUpscale={handleUpscaleTool}
+          onRelight={handleRelightTool}
+          onDelete={handleDelete}
+          onBulkDelete={handleBulkDelete}
+          hasMore={resultsHasMore}
+          loadingMore={loadingMoreResults}
+          onLoadMore={() => void loadPersistedImages(resultsPage + 1, "append")}
+        />
+      );
+    }
     if (activeTool === "inpaint") return <InpaintWorkspace source={inpaintFile} setSource={setInpaintFile} brushSize={brushSize} setBrushSize={setBrushSize} maskVersion={maskVersion} setMaskVersion={setMaskVersion} registerMaskExporter={(fn) => { maskExporterRef.current = fn; }} />;
     if (compare) return <CompareSlider before={compare.before} after={compare.after} />;
     if (activeTool === "enhance") {
