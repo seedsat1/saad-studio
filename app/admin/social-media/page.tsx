@@ -3218,6 +3218,19 @@ export default function AdminSocialMediaPage() {
                     ضع المفتاح هنا لتتمكن من نشر البوستات فوراً إلى صفحة فيسبوك وقنواتك المربوطة في Buffer.
                   </p>
                 </div>
+                <div className="space-y-1">
+                  <label className="text-zinc-400 font-bold text-[10px] uppercase">Buffer Channel ID / Profile ID (معرف القناة المباشر)</label>
+                  <input
+                    type="text"
+                    value={config.bufferProfileId || ""}
+                    onChange={(e) => setConfig({ ...config, bufferProfileId: e.target.value })}
+                    placeholder="6e070a5cccaf649a67e102eb"
+                    className="w-full rounded-xl border border-white/10 bg-zinc-900 px-3.5 py-2.5 text-white outline-none focus:border-blue-400/50 font-mono text-xs"
+                  />
+                  <p className="text-[10px] text-zinc-500">
+                    معرف القناة من رابط حساب Buffer (الرمز الظاهر في الرابط مثل <code className="text-blue-400">6e070a5cccaf649a67e102eb</code>) لضمان النشر المباشر لصفحتك.
+                  </p>
+                </div>
               </div>
 
               {/* Telegram Bot */}

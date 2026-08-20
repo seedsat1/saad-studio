@@ -722,25 +722,29 @@ Return ONLY a valid JSON object matching:
 
               if (gqlRes.ok) {
                 const gqlData = await gqlRes.json();
-                const orgs = gqlData?.data?.account?.organizations || [];
+                const orgs = gqlData?.data?.account?.organizations || gqlData?.data?.user?.organizations || gqlData?.data?.organizations || [];
                 let channelIds: string[] = [];
 
-                for (const org of orgs) {
-                  const channels = org?.channels || [];
-                  for (const ch of channels) {
-                    if (targetPlatform === "facebook") {
-                      if (ch.service === "facebook" || ch.service === "facebookPage" || ch.service === "facebook_page") {
+                if (config.bufferProfileId && config.bufferProfileId.trim()) {
+                  channelIds.push(config.bufferProfileId.trim());
+                } else {
+                  for (const org of orgs) {
+                    const channels = org?.channels || [];
+                    for (const ch of channels) {
+                      if (targetPlatform === "facebook") {
+                        if (ch.service === "facebook" || ch.service === "facebookPage" || ch.service === "facebook_page") {
+                          channelIds.push(ch.id);
+                        }
+                      } else {
                         channelIds.push(ch.id);
                       }
-                    } else {
-                      channelIds.push(ch.id);
                     }
                   }
-                }
 
-                // If no specific channel matched, use all available channels
-                if (channelIds.length === 0 && orgs[0]?.channels?.length) {
-                  channelIds = orgs[0].channels.map((c: any) => c.id);
+                  // If no specific channel matched, use all available channels
+                  if (channelIds.length === 0 && orgs[0]?.channels?.length) {
+                    channelIds = orgs[0].channels.map((c: any) => c.id);
+                  }
                 }
 
                 if (channelIds.length > 0) {
