@@ -34,7 +34,13 @@ function escapeHtml(value: string): string {
 function toHtmlParagraphs(text: string): string {
   const safe = escapeHtml(text);
   const lines = safe.split(/\r?\n/);
-  return lines.map((l) => (l.trim() ? `<p style="margin:0 0 10px">${l}</p>` : `<div style="height:8px"></div>`)).join("");
+  return lines
+    .map((l) =>
+      l.trim()
+        ? `<p style="margin:0 0 16px 0;color:#cbd5e1;font-size:15px;line-height:1.75;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${l}</p>`
+        : `<div style="height:10px"></div>`,
+    )
+    .join("");
 }
 
 async function getLogoSrc(): Promise<string> {
@@ -82,7 +88,7 @@ async function resolveActiveSubscriberEmails(params: { planId?: string | null })
 
 async function sendResendEmail(params: { to: string; subject: string; text: string; html: string; attachments?: EmailAttachment[] }) {
   const key = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM;
+  const from = process.env.RESEND_FROM || "Saad Studio <updates@saadstudio.app>";
   if (!key || !from) {
     return { ok: false as const, error: "Missing RESEND_API_KEY/RESEND_FROM" };
   }
@@ -199,29 +205,106 @@ export async function POST(req: NextRequest) {
   const logoSrc = await getLogoSrc();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app";
   const issuedAt = new Date();
-  const issuedIso = issuedAt.toISOString().slice(0, 19).replace("T", " ");
+  const issuedIso = issuedAt.toISOString().slice(0, 10);
 
   const html = `
-    <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f8fafc;padding:24px">
-      <div style="max-width:720px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;background:#0b1220">
-          <div style="display:flex;align-items:center;gap:12px;min-width:0">
-            <img src="${logoSrc}" alt="Saad Studio" width="34" height="34" style="display:block;border-radius:10px" />
-            <div style="min-width:0">
-              <div style="color:#ffffff;font-weight:800;letter-spacing:.2px">Saad Studio</div>
-              <div style="color:#94a3b8;font-size:12px">${escapeHtml(subject)}</div>
-            </div>
-          </div>
-          <div style="text-align:right;color:#94a3b8;font-size:12px">${escapeHtml(issuedIso)}</div>
-        </div>
-        <div style="padding:18px 18px 6px;color:#0f172a;line-height:1.65">
-          ${toHtmlParagraphs(message)}
-        </div>
-        <div style="padding:12px 18px 18px;color:#94a3b8;font-size:12px;border-top:1px solid #e2e8f0">
-          <a href="${siteUrl}" style="color:#6366f1;text-decoration:none">${escapeHtml(siteUrl)}</a>
-        </div>
-      </div>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(subject)}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#060913;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#060913;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#0d1322;border:1px solid #1e293b;border-radius:24px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.85);">
+          
+          <!-- Header Branding -->
+          <tr>
+            <td align="center" style="padding:40px 32px 28px;background:linear-gradient(180deg,#131d33 0%,#0d1322 100%);border-bottom:1px solid #1e293b;">
+              <table border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <img src="${logoSrc}" alt="Saad Studio" width="76" height="76" style="display:block;margin:0 auto 16px;border-radius:18px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 8px 30px rgba(6,182,212,0.3);" />
+                    <div style="font-size:20px;font-weight:900;letter-spacing:2.5px;color:#ffffff;text-transform:uppercase;margin:0;">SAAD STUDIO</div>
+                    <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#38bdf8;text-transform:uppercase;margin-top:6px;">ENTERPRISE AI CREATIVE SUITE</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Subject & Date -->
+          <tr>
+            <td style="padding:32px 36px 12px;">
+              <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <div style="display:inline-block;padding:5px 14px;background-color:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.25);border-radius:30px;font-size:11px;font-weight:700;color:#38bdf8;margin-bottom:16px;letter-spacing:0.5px;">
+                      OFFICIAL ANNOUNCEMENT • ${escapeHtml(issuedIso)}
+                    </div>
+                    <h1 style="margin:0 0 8px;font-size:23px;font-weight:800;line-height:1.35;color:#f8fafc;letter-spacing:-0.4px;">
+                      ${escapeHtml(subject)}
+                    </h1>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Message Body Content -->
+          <tr>
+            <td style="padding:12px 36px 28px;">
+              <div style="background-color:#11192e;border:1px solid #1e293b;border-radius:16px;padding:24px 28px;">
+                ${toHtmlParagraphs(message)}
+              </div>
+            </td>
+          </tr>
+
+          <!-- CTA Button -->
+          <tr>
+            <td align="center" style="padding:8px 36px 36px;">
+              <table border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="border-radius:14px;background:linear-gradient(135deg,#06b6d4 0%,#6366f1 100%);box-shadow:0 6px 24px rgba(6,182,212,0.45);">
+                    <a href="${siteUrl}" target="_blank" style="display:inline-block;padding:16px 36px;font-size:14px;font-weight:800;letter-spacing:1px;color:#ffffff;text-decoration:none;text-transform:uppercase;border-radius:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                      Launch Saad Studio →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:28px 36px;background-color:#080c16;border-top:1px solid #1e293b;text-align:center;">
+              <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#cbd5e1;letter-spacing:0.3px;">
+                Saad Studio — The Next-Generation Generative AI Platform
+              </p>
+              <p style="margin:0 0 14px;font-size:12px;color:#64748b;">
+                <a href="${siteUrl}" target="_blank" style="color:#38bdf8;text-decoration:none;font-weight:600;margin:0 8px;">Studio</a>
+                •
+                <a href="${siteUrl}/explore" target="_blank" style="color:#38bdf8;text-decoration:none;font-weight:600;margin:0 8px;">Explore</a>
+                •
+                <a href="mailto:support@saadstudio.app" style="color:#38bdf8;text-decoration:none;font-weight:600;margin:0 8px;">Support</a>
+              </p>
+              <p style="margin:0;font-size:11px;color:#475569;line-height:1.5;">
+                You received this email as an active subscriber or member of Saad Studio.<br/>
+                © ${new Date().getFullYear()} Saad Studio. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
   `.trim();
 
   const text = `${subject}\n\n${message}\n\n${siteUrl}\n${issuedIso}`;

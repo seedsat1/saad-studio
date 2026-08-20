@@ -359,47 +359,61 @@ export default function AdminBroadcastPage() {
               <span>Live Email Client Preview</span>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-slate-900/90 overflow-hidden shadow-2xl">
-              {/* Fake Email Header */}
-              <div className="bg-[#0b1220] p-4 border-b border-white/10 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-white/10 flex items-center justify-center shrink-0">
-                    <Image src="/logo-saad.png?v=5" alt="Logo" width={22} height={22} unoptimized />
+            <div className="rounded-3xl border border-white/10 bg-[#060913] p-4 shadow-2xl overflow-hidden">
+              {/* Email Container Card */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d1322] overflow-hidden shadow-xl">
+                {/* Header Branding */}
+                <div className="p-6 text-center border-b border-white/10 bg-gradient-to-b from-[#131d33] to-[#0d1322]">
+                  <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-white/15 mx-auto mb-3 flex items-center justify-center shadow-lg shadow-cyan-500/20 overflow-hidden">
+                    <Image src="/logo-saad.png?v=5" alt="Logo" width={56} height={56} unoptimized className="object-contain" />
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-white">Saad Studio</div>
-                    <div className="text-[11px] text-zinc-400 truncate">
-                      {subject.trim() || "Email Subject Line Preview"}
-                    </div>
+                  <div className="text-sm font-black text-white tracking-widest uppercase">SAAD STUDIO</div>
+                  <div className="text-[10px] font-bold text-cyan-400 tracking-wider uppercase mt-1">ENTERPRISE AI CREATIVE SUITE</div>
+                </div>
+
+                {/* Subject & Date Header */}
+                <div className="p-6 pb-2">
+                  <div className="inline-block px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-[10px] font-bold text-cyan-300 mb-3 tracking-wide">
+                    OFFICIAL ANNOUNCEMENT • TODAY
+                  </div>
+                  <h3 className="text-base font-extrabold text-white leading-snug tracking-tight">
+                    {subject.trim() || "Email Subject Line Preview"}
+                  </h3>
+                </div>
+
+                {/* Email Content Body */}
+                <div className="px-6 py-2">
+                  <div className="p-5 rounded-xl bg-[#11192e] border border-white/5 text-xs leading-relaxed text-slate-300 min-h-[160px] space-y-2.5">
+                    {message.trim() ? (
+                      message.split(/\r?\n/).map((line, idx) =>
+                        line.trim() ? (
+                          <p key={idx} className="text-slate-200">
+                            {line}
+                          </p>
+                        ) : (
+                          <div key={idx} className="h-2" />
+                        )
+                      )
+                    ) : (
+                      <p className="text-slate-500 italic">
+                        Type a message on the left to see how it will appear in the subscriber&apos;s email inbox...
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div className="text-[10px] text-zinc-500 font-mono shrink-0">Now</div>
-              </div>
 
-              {/* Email Content Body */}
-              <div className="p-5 bg-white text-slate-900 min-h-[260px] text-xs leading-relaxed space-y-3">
-                {message.trim() ? (
-                  message.split(/\r?\n/).map((line, idx) =>
-                    line.trim() ? (
-                      <p key={idx} className="text-slate-800">
-                        {line}
-                      </p>
-                    ) : (
-                      <div key={idx} className="h-2" />
-                    )
-                  )
-                ) : (
-                  <p className="text-slate-400 italic">
-                    Type a message on the left to see how it will appear in the subscriber&apos;s email inbox...
-                  </p>
-                )}
-              </div>
+                {/* CTA Button */}
+                <div className="p-6 text-center">
+                  <div className="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs shadow-lg shadow-cyan-500/30 uppercase tracking-wider cursor-default">
+                    Launch Saad Studio →
+                  </div>
+                </div>
 
-              {/* Email Footer */}
-              <div className="p-3.5 bg-slate-100 border-t border-slate-200 text-center text-[11px] text-slate-500">
-                <a href="https://saadstudio.app" className="text-indigo-600 font-semibold hover:underline">
-                  https://saadstudio.app
-                </a>
+                {/* Email Footer */}
+                <div className="p-4 bg-[#080c16] border-t border-white/10 text-center text-[10px] text-slate-500 space-y-1.5">
+                  <p className="font-semibold text-slate-400">Saad Studio — The Next-Generation Generative AI Platform</p>
+                  <p className="text-slate-600">You received this email as an active subscriber of Saad Studio.</p>
+                </div>
               </div>
             </div>
           </div>

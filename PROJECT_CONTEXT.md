@@ -75,7 +75,11 @@
   8. Studio Image Library (/admin/cms/studio-img) Media Normalization Fix:
      - Fixed 404 image errors on `/admin/cms/studio-img` by enhancing `resolveMediaObject` in `lib/storage/runtime.ts` to recognize bare uploaded filenames (`1779051100463_46mikg.webp`) and route them through `/api/media/images/...`.
      - Augmented `readObject` and `headObject` with dual-prefix key candidate resolution (trying with and without bucket path prefixes) to ensure seamless storage retrieval across B2 and S3 backends.
-  9. Verification:
+  9. Luxury HTML Email Template & Broadcast Redesign:
+     - Fully redesigned subscriber broadcast emails (`app/api/admin/email/route.ts`) into a bulletproof, responsive luxury dark-mode layout compatible with Gmail, Apple Mail, and Outlook.
+     - Upgraded Saad Studio brand header with high-resolution 76px logo, enterprise badge, glowing gradient borders, clear non-overlapping typography, card-wrapped message body, and a vibrant gradient Call-to-Action button ("Launch Saad Studio →").
+     - Updated live email client preview in `/admin/broadcast` to mirror the exact production email rendering.
+  10. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest test suite: 19/19 tests passed across all suites.
 
