@@ -328,11 +328,11 @@ CREATIVE INSTRUCTIONS:
    - tiktok: 30-second viral video script with Hook (0-3s), Visual Scene description, and Voiceover Narration script.
 
 MANDATORY SPECIFICATION FOR "imagePrompt":
-Write a hyper-detailed, photorealistic English image prompt (100-150 words) that produces a stunning, award-winning commercial/cinematic photograph:
-- Main Subject: Precise description of the character from the reference image (hair, sunglasses, jacket, facial expression).
-- Action/Pose: The character interacting with or presenting the product/concept with confidence and excitement.
-- Setting: Cinematic keynote stage, futuristic presentation arena, or lush dramatic environment with volumetric spotlights, atmospheric haze, subtle neon rim lighting, and elegant branding elements.
-- Style: Real photography, shot on ARRI Alexa LF 70mm, 8k resolution, authentic skin and leather textures, dramatic lighting, sharp focus, cinematic color grading.
+Write a hyper-detailed, photorealistic English image prompt (120-160 words) for a Hollywood Blockbuster Commercial Poster:
+- Main Subject: Meticulously preserve the exact face, eyes, hair color/style, and facial expression of the person in the reference image. Dress them in a high-end, futuristic tech-hero outfit (e.g. sleek black textured leather jacket or tactical hero suit with warm glowing accents and gloves).
+- Hero Prop & Pose: The character holds up an illuminated futuristic geometric tech device/processor badge clearly displaying the product/model name (e.g. "GROK IMAGINE v2.0" or the user's requested subject) with vibrant inner neon light.
+- Environment & Atmosphere: Cinematic launch stage with golden floating embers, dramatic anamorphic lens flares, volumetric backlighting, dark luxury backdrop with warm perspective light streaks.
+- Quality: Photorealistic 8k commercial photography, shot on ARRI Alexa LF 70mm, Cooke anamorphic lens, authentic skin texture, sharp focus, Hollywood color grading.
 
 Return ONLY a valid JSON object matching:
 {
