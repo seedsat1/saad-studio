@@ -115,6 +115,113 @@ export async function POST(req: NextRequest) {
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app";
 
+    // 0. INTERACTIVE CONSULTATION & DIALOGUE BEFORE GENERATION
+    if (action === "consult") {
+      const messages = Array.isArray(body.messages) ? body.messages : [];
+      const topic = String(body.topic || body.prompt || "").trim();
+      const targetLang = (body.language || "ar") === "en" ? "en" : "ar";
+
+      const openAIApiKey = process.env.OPENAI_API_KEY;
+
+      const systemPrompt = `You are the Lead Creative Director and Social Media Strategist at "Saad Studio" (سعد ستوديو - the premier AI creative studio).
+Your role is to consult and converse with the creator BEFORE generating content and visuals to ensure 100% precision.
+
+Target Language: ${targetLang === "ar" ? "العربية الفصحى الاحترافية والودودة" : "English"}.
+
+In your response:
+1. Act as a world-class creative partner. Give insightful feedback on the user's idea.
+2. Ask 2-3 focused, multiple-choice or short questions (e.g. نبرة المحتوى: حماسية/تسويقية/سينمائية، الطابع البصري: سايبربانك/واقعي فوتوغرافي/مينيمالي، تفضيل نوع الوسائط: صورة فائقة الدقة أو فيديو سينمائي).
+3. Propose 3 quick selectable options/pills the user can click to answer.
+4. If the user is already satisfied and has finalized details, set isReadyToGenerate: true and provide the refined, finalized prompt ready for execution.
+
+Return a JSON object matching:
+{
+  "message": "Your conversational response in Arabic/English...",
+  "suggestedOptions": ["خيار 1", "خيار 2", "خيار 3"],
+  "recommendedConfig": {
+    "refinedPrompt": "...",
+    "mediaType": "image" | "video",
+    "imageModel": "nano-banana-pro" | "grok-imagine" | "gpt-image-2",
+    "videoModel": "kling-3.0/video" | "bytedance/seedance-2" | "google/gemini-omni-flash",
+    "aspectRatio": "16:9" | "9:16" | "1:1" | "4:5"
+  },
+  "isReadyToGenerate": false
+}`;
+
+      if (openAIApiKey && openAIApiKey !== "sk-placeholder") {
+        try {
+          const apiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${openAIApiKey}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              messages: [
+                { role: "system", content: systemPrompt },
+                ...(messages.length > 0
+                  ? messages
+                  : [{ role: "user", content: `Initial idea: ${topic || "حملة تسويقية جديدة لسعد ستوديو"}` }]),
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.7,
+            }),
+          });
+
+          if (apiRes.ok) {
+            const data = await apiRes.json();
+            const raw = data.choices?.[0]?.message?.content;
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              return NextResponse.json({ success: true, ...parsed });
+            }
+          }
+        } catch (e) {
+          console.warn("Consultation chat failed:", e);
+        }
+      }
+
+      // Fallback consultation response
+      if (targetLang === "ar") {
+        return NextResponse.json({
+          success: true,
+          message: `أهلاً بك! فكرة ممتازة 🚀 قبل أن أبدأ في توليد المحتوى واللقطات السينمائية، دعنا نحدد التفاصيل بدقة:\n\n1. ما هي النبرة التي تفضلها في البوستات؟ (تشويقية حماسية، أم تقنية احترافية؟)\n2. ما هو الطابع البصري للصورة أو الفيديو؟ (واقعي سينمائي فوتوغرافي، أم سايبربانك مستقبلي؟)\n3. هل تفضل توليد صورة فائقة الدقة بـ (Nano Banana Pro / Grok Imagine) أم فيديو سينمائي بـ (Kling 3.0 Pro)؟`,
+          suggestedOptions: [
+            "نبرة حماسية + فيديو سينمائي بـ Kling 3.0 Pro",
+            "نبرة تقنية فاخرة + صورة 4K بـ Nano Banana Pro",
+            "طابع سايبربانك + صورة بـ Grok Imagine 2.0",
+          ],
+          recommendedConfig: {
+            refinedPrompt: topic,
+            mediaType: "image",
+            imageModel: "nano-banana-pro",
+            videoModel: "kling-3.0/video",
+            aspectRatio: "16:9",
+          },
+          isReadyToGenerate: false,
+        });
+      } else {
+        return NextResponse.json({
+          success: true,
+          message: `Great concept! Before I generate the full campaign, let's align on a few creative choices:\n\n1. What tone do you prefer? (Viral hype vs Professional authority)\n2. What visual atmosphere? (Hollywood cinematic realism vs Futuristic cyberpunk)\n3. Prefer a high-res photo (Nano Banana / Grok) or cinematic video (Kling 3.0 Pro)?`,
+          suggestedOptions: [
+            "Viral Hype + Kling 3.0 Pro Video",
+            "High-End Studio + Nano Banana Pro 4K",
+            "Cyberpunk Aesthetic + Grok Imagine 2.0",
+          ],
+          recommendedConfig: {
+            refinedPrompt: topic,
+            mediaType: "image",
+            imageModel: "nano-banana-pro",
+            videoModel: "kling-3.0/video",
+            aspectRatio: "16:9",
+          },
+          isReadyToGenerate: false,
+        });
+      }
+    }
+
     // 1. GENERATE SOCIAL POSTS WITH AI
     if (action === "generate") {
       const userPrompt = String(body.prompt || "").trim();

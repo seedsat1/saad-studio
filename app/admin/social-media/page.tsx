@@ -218,6 +218,117 @@ export default function AdminSocialMediaPage() {
   const [currentPost, setCurrentPost] = useState<SocialMediaPostRecord>(DEFAULT_POST);
   const [customImgPrompt, setCustomImgPrompt] = useState("");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  // Interactive Creative Director Consultation states
+  const [consulting, setConsulting] = useState(false);
+  const [showConsultation, setShowConsultation] = useState(false);
+  const [consultationMessages, setConsultationMessages] = useState<Array<{
+    role: "user" | "assistant";
+    content: string;
+    options?: string[];
+    config?: any;
+    ready?: boolean;
+  }>>([]);
+  const [consultationInput, setConsultationInput] = useState("");
+
+  const handleStartConsultation = async (topicToUse?: string) => {
+    const topic = topicToUse || agentPrompt;
+    if (!topic.trim()) return;
+
+    setConsulting(true);
+    setShowConsultation(true);
+    setConsultationMessages([
+      { role: "user", content: topic.trim() },
+    ]);
+
+    try {
+      const res = await fetch("/api/admin/social-media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "consult",
+          topic: topic.trim(),
+          language: selectedLanguage,
+          messages: [{ role: "user", content: topic.trim() }],
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.message) {
+        setConsultationMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.message,
+            options: data.suggestedOptions || [],
+            config: data.recommendedConfig || null,
+            ready: Boolean(data.isReadyToGenerate),
+          },
+        ]);
+        if (data.recommendedConfig) {
+          if (data.recommendedConfig.mediaType) setSelectedMediaType(data.recommendedConfig.mediaType);
+          if (data.recommendedConfig.imageModel) setSelectedImageModel(data.recommendedConfig.imageModel);
+          if (data.recommendedConfig.videoModel) setSelectedVideoModel(data.recommendedConfig.videoModel);
+          if (data.recommendedConfig.aspectRatio) setSelectedAspectRatio(data.recommendedConfig.aspectRatio);
+        }
+      }
+    } catch (e) {
+      alert("Error in consultation: " + String(e));
+    } finally {
+      setConsulting(false);
+    }
+  };
+
+  const handleSendConsultationReply = async (replyText: string) => {
+    if (!replyText.trim()) return;
+
+    const updated = [
+      ...consultationMessages.map((m) => ({ role: m.role, content: m.content })),
+      { role: "user" as const, content: replyText.trim() },
+    ];
+
+    setConsultationMessages((prev) => [
+      ...prev,
+      { role: "user", content: replyText.trim() },
+    ]);
+    setConsultationInput("");
+    setConsulting(true);
+
+    try {
+      const res = await fetch("/api/admin/social-media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "consult",
+          topic: agentPrompt,
+          language: selectedLanguage,
+          messages: updated,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.message) {
+        setConsultationMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.message,
+            options: data.suggestedOptions || [],
+            config: data.recommendedConfig || null,
+            ready: Boolean(data.isReadyToGenerate),
+          },
+        ]);
+        if (data.recommendedConfig) {
+          if (data.recommendedConfig.mediaType) setSelectedMediaType(data.recommendedConfig.mediaType);
+          if (data.recommendedConfig.imageModel) setSelectedImageModel(data.recommendedConfig.imageModel);
+          if (data.recommendedConfig.videoModel) setSelectedVideoModel(data.recommendedConfig.videoModel);
+          if (data.recommendedConfig.aspectRatio) setSelectedAspectRatio(data.recommendedConfig.aspectRatio);
+          if (data.recommendedConfig.refinedPrompt) setAgentPrompt(data.recommendedConfig.refinedPrompt);
+        }
+      }
+    } catch (e) {
+      alert("Error in consultation: " + String(e));
+    } finally {
+      setConsulting(false);
+    }
+  };
 
   // Storyboard Studio states
   const [storyboardsHistory, setStoryboardsHistory] = useState<StoryboardShowcaseRecord[]>([]);
@@ -708,6 +819,37 @@ export default function AdminSocialMediaPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* 1. Creative Dialogue Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!showConsultation) {
+                        void handleStartConsultation();
+                      } else {
+                        setShowConsultation(false);
+                      }
+                    }}
+                    disabled={consulting || !agentPrompt.trim()}
+                    className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shrink-0 border ${
+                      showConsultation
+                        ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-lg shadow-cyan-500/20"
+                        : "bg-white/[0.04] hover:bg-white/[0.08] text-white border-cyan-500/30 hover:border-cyan-400/60"
+                    }`}
+                  >
+                    {consulting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                        <span>جاري التحاور...</span>
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>حاور الوكيل الإبداعي قبل التوليد 💬</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* 2. Direct Quick Generation */}
                   <button
                     type="button"
                     onClick={() => handleGenerate()}
@@ -717,12 +859,12 @@ export default function AdminSocialMediaPage() {
                     {generating ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>جاري الصياغة والتوليد...</span>
+                        <span>جاري التوليد الفوري...</span>
                       </>
                     ) : (
                       <>
                         <Bot className="w-3.5 h-3.5" />
-                        <span>توليد المنشورات لكافة المنصات ✨</span>
+                        <span>توليد مباشر فوري ✨</span>
                       </>
                     )}
                   </button>
@@ -735,7 +877,7 @@ export default function AdminSocialMediaPage() {
                     title={!config.bufferAccessToken ? "اضبط مفتاح Buffer في تبويب الإعدادات لنشر البوست فوراً لفيسبوك" : "نشر مباشر لصفحة فيسبوك عبر Buffer"}
                   >
                     <Share2 className="w-3.5 h-3.5 text-blue-400" />
-                    <span>نشر لفيسبوك 📘</span>
+                    <span>نشر لفيسبوك</span>
                   </button>
 
                   <button
@@ -746,10 +888,125 @@ export default function AdminSocialMediaPage() {
                     title={!config.telegramBotToken ? "اضبط بيانات تيليجرام أولاً في تبويب الإعدادات" : "نشر مباشر لقناة تيليجرام"}
                   >
                     <Send className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>تيليجرام ✈️</span>
+                    <span>تيليجرام</span>
                   </button>
                 </div>
               </div>
+
+              {/* INTERACTIVE CREATIVE CONSULTATION PANEL */}
+              {showConsultation && (
+                <div className="rounded-2xl border border-cyan-500/30 bg-black/70 p-4 space-y-4 backdrop-blur-2xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
+                        <Bot className="w-4 h-4 text-cyan-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <span>المخرج الإبداعي ومستشار السوشيال ميديا (AI Creative Director)</span>
+                        </h4>
+                        <p className="text-[10px] text-zinc-400">تحاور مع الوكيل لتخصيص النبرة، الطابع البصري، ونماذج التوليد قبل التنفيذ.</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowConsultation(false)}
+                      className="text-zinc-500 hover:text-white text-xs px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10"
+                    >
+                      إغلاق الحوار
+                    </button>
+                  </div>
+
+                  {/* Messages Flow */}
+                  <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                    {consultationMessages.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex flex-col space-y-1.5 ${
+                          msg.role === "user" ? "items-end" : "items-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[85%] rounded-2xl p-3.5 text-xs leading-relaxed ${
+                            msg.role === "user"
+                              ? "bg-gradient-to-r from-cyan-600 to-indigo-600 text-white rounded-br-none shadow-md"
+                              : "bg-zinc-900/90 border border-white/10 text-zinc-100 rounded-bl-none shadow-md"
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                        </div>
+
+                        {/* Interactive Clickable Option Pills from Assistant */}
+                        {msg.role === "assistant" && msg.options && msg.options.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {msg.options.map((opt, oIdx) => (
+                              <button
+                                key={oIdx}
+                                type="button"
+                                onClick={() => void handleSendConsultationReply(opt)}
+                                disabled={consulting}
+                                className="px-3 py-1 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/30 text-[11px] font-semibold text-cyan-300 transition-all flex items-center gap-1"
+                              >
+                                <Sparkles className="w-2.5 h-2.5 text-cyan-400" />
+                                <span>{opt}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {consulting && (
+                      <div className="flex items-center gap-2 text-xs text-cyan-400 p-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>المخرج الإبداعي يفكر في استراتيجية المحتوى واللقطات...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Consultation Input & Final Approve Button */}
+                  <div className="pt-2 border-t border-white/10 flex flex-col sm:flex-row items-center gap-2">
+                    <div className="relative flex-1 w-full">
+                      <input
+                        type="text"
+                        value={consultationInput}
+                        onChange={(e) => setConsultationInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && consultationInput.trim()) {
+                            void handleSendConsultationReply(consultationInput);
+                          }
+                        }}
+                        placeholder="أجب على أسئلة الوكيل أو اطلب تعديلاً معيناً..."
+                        className="w-full rounded-xl border border-white/10 bg-black/60 px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-cyan-400/50"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => void handleSendConsultationReply(consultationInput)}
+                      disabled={consulting || !consultationInput.trim()}
+                      className="px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white font-bold text-xs transition-all disabled:opacity-40 flex items-center gap-1.5 shrink-0"
+                    >
+                      <Send className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>إرسال ردك</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowConsultation(false);
+                        void handleGenerate();
+                      }}
+                      disabled={generating}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xs transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 shrink-0"
+                    >
+                      <CheckCheck className="w-4 h-4" />
+                      <span>اعتماد الرؤية وبدء التوليد 🚀</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {publishResult && (
                 <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
