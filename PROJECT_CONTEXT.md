@@ -48,7 +48,23 @@
 
 ---
 
-#### Latest task: Grok WaveSpeed Dual-Route Hardening & Extended Aspect Ratios Engine (2026-08-20)
+#### Latest task: Intelligent Model Branding Normalization, Real Aspect Ratio Extraction & Dual-Route Auto-Pairing (2026-08-20)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Clean Model Branding & Display Name Cleaner:
+     - Implemented `cleanModelDisplayName` to sanitize technical sub-route names (e.g. `x-ai-grok-imagine-image-v2.0-text-to-image` -> `Grok Imagine 2.0`, `grok-imagine-image-quality-edit` -> `Grok Imagine`, `bytedance-seedance-2.5-text-to-video-turbo` -> `Seedance 2.5`).
+     - Subscribers never see technical jargon like "Image V2.0 Edit" or "Text To Image" in menus or studios.
+  2. Automatic Dual-Route Pairing:
+     - Knowledge Hub auto-fills automatically pair both the Primary Text Route (`text_api_route`) and Secondary Edit Route (`image_api_route`) into a single unified model.
+     - Background server execution dynamically routes prompt vs image inputs without requiring user intervention.
+  3. Real Aspect Ratios & Resolutions Auto-Detection:
+     - Implemented `inferModelCapabilitiesAndSpecs` which accurately auto-populates exact aspect ratio matrix (e.g. `1:1`, `16:9`, `9:16`, `3:2`, `2:3`, `19.5:9`, `9:19.5`, `20:9`, `9:20`) and quality/resolutions.
+  4. Verification:
+     - TypeScript `tsc --noEmit`: 0 errors.
+     - Vitest suite: 16/16 tests green (`test/models-backend-hardening.test.ts`, `test/admin-knowledge-hub.test.ts`, `test/audio-suite-hardening.test.ts`).
+     - Clean git commit pushed to `main`.
+
+#### Previous task: Grok WaveSpeed Dual-Route Hardening & Extended Aspect Ratios Engine (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. WaveSpeed Grok Official Endpoint Routing & Dual-Route Execution:
