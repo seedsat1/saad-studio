@@ -104,7 +104,7 @@ const DEFAULT_STORYBOARD: StoryboardShowcaseRecord = {
   language: "ar",
   video: {
     url: "",
-    model: "kling-video",
+    model: "kling-3.0/video",
     modelBadge: "Kling 3.0 Pro",
     prompt: "Cinematic 3D animation, locked static camera, same bedroom workstation. Stylized character typing on glowing laptop. Fast smooth day to night transition with ambient lighting shifting from golden sunlight to neon cyberpunk glow, 8k render masterpiece.",
   },
@@ -153,7 +153,7 @@ export default function AdminSocialMediaPage() {
   const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video">("image");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<"1:1" | "9:16" | "16:9" | "4:5">("16:9");
   const [selectedImageModel, setSelectedImageModel] = useState<"nano-banana-pro" | "grok-imagine" | "gpt-image-2">("nano-banana-pro");
-  const [selectedVideoModel, setSelectedVideoModel] = useState<"kling-video" | "seedance-video" | "google-omni">("kling-video");
+  const [selectedVideoModel, setSelectedVideoModel] = useState<"kling-3.0/video" | "bytedance/seedance-2" | "google/gemini-omni-flash">("kling-3.0/video");
 
   // Agent states
   const [agentPrompt, setAgentPrompt] = useState("");
@@ -842,9 +842,9 @@ export default function AdminSocialMediaPage() {
                       <div className="grid grid-cols-3 gap-1">
                         <button
                           type="button"
-                          onClick={() => setSelectedVideoModel("kling-video")}
+                          onClick={() => setSelectedVideoModel("kling-3.0/video")}
                           className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
-                            selectedVideoModel === "kling-video"
+                            selectedVideoModel === "kling-3.0/video"
                               ? "bg-purple-500/20 text-purple-300 border border-purple-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
@@ -853,25 +853,25 @@ export default function AdminSocialMediaPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setSelectedVideoModel("seedance-video")}
+                          onClick={() => setSelectedVideoModel("bytedance/seedance-2")}
                           className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
-                            selectedVideoModel === "seedance-video"
+                            selectedVideoModel === "bytedance/seedance-2"
                               ? "bg-pink-500/20 text-pink-300 border border-pink-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🌊 Seedance 2.5
+                          🌊 Seedance 2
                         </button>
                         <button
                           type="button"
-                          onClick={() => setSelectedVideoModel("google-omni")}
+                          onClick={() => setSelectedVideoModel("google/gemini-omni-flash")}
                           className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
-                            selectedVideoModel === "google-omni"
+                            selectedVideoModel === "google/gemini-omni-flash"
                               ? "bg-blue-500/20 text-blue-300 border border-blue-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🌐 Google Omni
+                          🌐 Omni Flash
                         </button>
                       </div>
                     </div>

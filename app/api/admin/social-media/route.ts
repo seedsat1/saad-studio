@@ -723,7 +723,7 @@ Return ONLY a valid JSON object matching these keys.`;
       if (!generatedBlueprint) {
         generatedBlueprint = {
           title: targetLang === "ar" ? "سير عمل Kling 3.0 و Nano Banana السينمائي" : "Kling 3.0 & Nano Banana Cinematic Workflow",
-          videoModel: "kling-video",
+          videoModel: "kling-3.0/video",
           videoModelBadge: "Kling 3.0 Pro",
           videoPrompt: `Cinematic 3D animation, locked static camera, same bedroom workstation. Stylized character typing on glowing laptop. Fast smooth day to night transition with ambient lighting shifting from golden sunlight to neon cyberpunk glow, 8k render masterpiece.`,
           frame1Label: targetLang === "ar" ? "الإطار 1: ضوء الصباح" : "Frame 1: Morning Daylight",

@@ -22,7 +22,7 @@ export type SocialMediaPostRecord = {
   imageUrl?: string;
   imageModel?: "nano-banana-pro" | "grok-imagine" | "gpt-image-2";
   videoUrl?: string;
-  videoModel?: "kling-video" | "seedance-video" | "google-omni";
+  videoModel?: "kling-3.0/video" | "bytedance/seedance-2" | "google/gemini-omni-flash";
   platforms: {
     twitter?: PlatformContentItem;
     instagram?: PlatformContentItem;
