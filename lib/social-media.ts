@@ -18,6 +18,7 @@ export type SocialMediaPostRecord = {
   topicPrompt: string;
   language: "ar" | "en";
   mediaType?: "image" | "video";
+  aspectRatio?: "1:1" | "9:16" | "16:9" | "4:5";
   imageUrl?: string;
   imageModel?: "nano-banana-pro" | "gpt-image-2";
   videoUrl?: string;

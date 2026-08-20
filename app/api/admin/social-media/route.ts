@@ -297,16 +297,23 @@ Return ONLY a valid JSON object matching:
     if (action === "generate_image") {
       const prompt = String(body.prompt || "").trim();
       const model = String(body.model || "nano-banana-pro").toLowerCase();
+      const aspectRatio = String(body.aspectRatio || "16:9");
       if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
 
       let imageUrl = "";
       if (model.includes("gpt") || model.includes("openai")) {
         const openAIApiKey = process.env.OPENAI_API_KEY;
         if (!openAIApiKey) return NextResponse.json({ error: "OPENAI_API_KEY is missing" }, { status: 500 });
+        
+        let size = "1792x1024";
+        if (aspectRatio === "1:1") size = "1024x1024";
+        else if (aspectRatio === "9:16" || aspectRatio === "4:5") size = "1024x1792";
+        else size = "1792x1024";
+
         const res = await fetch("https://api.openai.com/v1/images/generations", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
-          body: JSON.stringify({ model: "dall-e-3", prompt, size: "1792x1024", quality: "standard", n: 1 }),
+          body: JSON.stringify({ model: "dall-e-3", prompt, size, quality: "standard", n: 1 }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -318,7 +325,7 @@ Return ONLY a valid JSON object matching:
         const imgRes = await fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${waveSpeedKey}` },
-          body: JSON.stringify({ prompt, aspect_ratio: "16:9", num_images: 1 }),
+          body: JSON.stringify({ prompt, aspect_ratio: aspectRatio, num_images: 1 }),
         });
         if (imgRes.ok) {
           const data = await imgRes.json();
@@ -345,13 +352,14 @@ Return ONLY a valid JSON object matching:
         }
       }
 
-      return NextResponse.json({ success: true, imageUrl, model });
+      return NextResponse.json({ success: true, imageUrl, model, aspectRatio });
     }
 
     // 2.5 GENERATE VIDEO (Google Omni / Veo, Kling, Seedance)
     if (action === "generate_video") {
       const prompt = String(body.prompt || "").trim();
       const model = String(body.model || "google-omni-veo").toLowerCase();
+      const aspectRatio = String(body.aspectRatio || "16:9");
       if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
 
       const waveSpeedKey = process.env.WAVESPEED_API_KEY;
@@ -374,7 +382,7 @@ Return ONLY a valid JSON object matching:
         },
         body: JSON.stringify({
           prompt,
-          aspect_ratio: "16:9",
+          aspect_ratio: aspectRatio === "4:5" ? "9:16" : aspectRatio,
           duration: 5,
         }),
       });

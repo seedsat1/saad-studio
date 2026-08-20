@@ -85,6 +85,7 @@ export default function AdminSocialMediaPage() {
   const [activePlatform, setActivePlatform] = useState<SocialPlatformType>("twitter");
   const [selectedLanguage, setSelectedLanguage] = useState<"ar" | "en">("ar");
   const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video">("image");
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<"1:1" | "9:16" | "16:9" | "4:5">("16:9");
   const [selectedImageModel, setSelectedImageModel] = useState<"nano-banana-pro" | "gpt-image-2">("nano-banana-pro");
   const [selectedVideoModel, setSelectedVideoModel] = useState<"google-omni-veo" | "kling-video" | "seedance-video">("google-omni-veo");
 
@@ -142,6 +143,7 @@ export default function AdminSocialMediaPage() {
           prompt: p.trim(),
           language: selectedLanguage,
           imageModel: selectedImageModel,
+          aspectRatio: selectedAspectRatio,
         }),
       });
       const data = await res.json();
@@ -169,11 +171,12 @@ export default function AdminSocialMediaPage() {
           action: "generate_image",
           prompt: p,
           model: selectedImageModel,
+          aspectRatio: selectedAspectRatio,
         }),
       });
       const data = await res.json();
       if (res.ok && data?.imageUrl) {
-        setCurrentPost((prev) => ({ ...prev, imageUrl: data.imageUrl, mediaType: "image", imageModel: selectedImageModel }));
+        setCurrentPost((prev) => ({ ...prev, imageUrl: data.imageUrl, mediaType: "image", aspectRatio: selectedAspectRatio, imageModel: selectedImageModel }));
         setCustomImgPrompt("");
       } else {
         alert(data?.error || "Failed to generate image.");
@@ -196,11 +199,12 @@ export default function AdminSocialMediaPage() {
           action: "generate_video",
           prompt: p,
           model: selectedVideoModel,
+          aspectRatio: selectedAspectRatio,
         }),
       });
       const data = await res.json();
       if (res.ok && data?.videoUrl) {
-        setCurrentPost((prev) => ({ ...prev, videoUrl: data.videoUrl, mediaType: "video", videoModel: selectedVideoModel }));
+        setCurrentPost((prev) => ({ ...prev, videoUrl: data.videoUrl, mediaType: "video", aspectRatio: selectedAspectRatio, videoModel: selectedVideoModel }));
         setCustomImgPrompt("");
       } else {
         alert(data?.error || "Failed to generate video.");
@@ -561,6 +565,33 @@ export default function AdminSocialMediaPage() {
                       />
                     </div>
                   ) : null}
+
+                  {/* Social Media Aspect Ratio Selector */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-white/5 text-[11px]">
+                    <span className="text-zinc-400 font-semibold">أبعاد السوشيال ميديا (Aspect Ratio):</span>
+                    <div className="flex flex-wrap items-center gap-1">
+                      {[
+                        { id: "9:16", label: "📱 9:16 (Reels/TikTok)", desc: "قصص وريلز وتيك توك" },
+                        { id: "1:1", label: "🔲 1:1 (Square)", desc: "مربع لفيسبوك وانستغرام" },
+                        { id: "4:5", label: "🖼️ 4:5 (Portrait)", desc: "طولي انستغرام فييد" },
+                        { id: "16:9", label: "🖥️ 16:9 (Landscape)", desc: "عرضي لليوتيوب وتويتر" },
+                      ].map((ratio) => (
+                        <button
+                          key={ratio.id}
+                          type="button"
+                          title={ratio.desc}
+                          onClick={() => setSelectedAspectRatio(ratio.id as any)}
+                          className={`px-2 py-1 rounded-lg font-bold transition-all text-[10px] ${
+                            selectedAspectRatio === ratio.id
+                              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                              : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
+                          }`}
+                        >
+                          {ratio.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   {/* Model Selector based on Media Type */}
                   {selectedMediaType === "image" ? (

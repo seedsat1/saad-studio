@@ -93,6 +93,7 @@
      - Built backend AI router (`app/api/admin/social-media/route.ts`) and database storage helper (`lib/social-media.ts`).
      - AI Agent automatically creates multi-platform posts for **📘 Facebook**, **𝕏 (Twitter)**, **📸 Instagram**, **💼 LinkedIn**, **✈️ Telegram**, and **🎵 TikTok/Shorts scripts**.
      - Added full **AI Video Generation Suite (توليد فيديو بالذكاء الاصطناعي)** with direct model switches for **Google Omni / Veo (`google-omni-veo`)**, **Kling AI Pro (`kling-video`)**, and **Seedance 2.5 (`seedance-video`)**, alongside **Google Nano Banana Pro** and **OpenAI GPT-Image-2** for images.
+     - Added native **Social Media Aspect Ratio Selector (9:16 Reels/TikTok, 1:1 Square, 4:5 Portrait, 16:9 Landscape)** with full cross-provider resolution mapping.
      - Features realistic video players & interactive UI mock previews for each network, one-click copy buttons, post archives, and direct 1-click publishing to **Facebook Pages via Buffer API**, Telegram channels, and Webhooks.
   13. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
