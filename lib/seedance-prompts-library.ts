@@ -209,7 +209,7 @@ Please compose the cuts/scenes in @Image3`,
     authorUrl: "https://x.com/AI__TSUBAKI",
     sourceUrl: "https://x.com/AI__TSUBAKI/status/2050689475626573993",
     views: "—",
-    thumbnailUrl: `${B2}/techhalla-flying-carpet.webp`,
+    thumbnailUrl: `${B2}/aew-wrestling.webp`,
     prompt: `Hyper-realistic cinematic 15-second continuous video of a women's championship finale in a sold-out arena. Featuring Riho (Japanese, idol-like cuteness, black hair, very petite, light blue and white gear) vs Mercedes Moné (American, powerful and charismatic physique, gold-themed gear). Follow the storyboard sequence precisely: exhausted mid-match staredown → hard clothesline → submission struggle → DDT reversal → near fall → German suplex → top-rope moonsault finisher → three-count pin → championship victory moment. Maintain consistent facial identity and body proportions throughout. Realistic sweat, impact physics, and intense crowd reactions. Use slow motion for key moments. End with confetti and corner pyrotechnics as a cinematic crane shot rises on the winner. Photorealistic, AEW broadcast quality, 60fps, high-contrast lighting.`,
   },
   {
