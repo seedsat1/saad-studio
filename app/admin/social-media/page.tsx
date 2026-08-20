@@ -35,6 +35,9 @@ import {
   Layers,
   Maximize2,
   Download,
+  Zap,
+  SlidersHorizontal,
+  Globe,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -46,6 +49,57 @@ import {
   StoryboardShowcaseRecord,
   StoryboardThemeType,
 } from "@/lib/social-media";
+
+// Clean Brand Vector Icons
+function FacebookIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+    </svg>
+  );
+}
+
+function TwitterXIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+    </svg>
+  );
+}
+
+function InstagramIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+    </svg>
+  );
+}
+
+function LinkedInIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.25c-.9 0-1.63.73-1.63 1.63s.73 1.63 1.63 1.63 1.63-.73 1.63-1.63-.73-1.63-1.63-1.63z"/>
+    </svg>
+  );
+}
+
+function TelegramIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.77-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+    </svg>
+  );
+}
+
+function TikTokIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.97v7.6c0 1.25-.33 2.5-.98 3.56-1.07 1.76-2.92 2.97-4.99 3.23-1.74.22-3.53-.16-5.04-1.06-1.73-1.03-2.96-2.8-3.35-4.78-.4-2.02.13-4.18 1.44-5.77 1.29-1.58 3.27-2.5 5.3-2.5.34 0 .68.03 1.02.08v4.11c-.48-.15-.99-.2-1.5-.14-1.01.12-1.92.74-2.39 1.63-.47.9-.45 1.99.04 2.87.49.89 1.43 1.48 2.45 1.52 1.02.04 2.03-.43 2.58-1.28.32-.5.48-1.09.48-1.68V.02h2.01z"/>
+    </svg>
+  );
+}
 
 const DEFAULT_POST: SocialMediaPostRecord = {
   id: "draft_init",
@@ -718,35 +772,37 @@ export default function AdminSocialMediaPage() {
                     </div>
 
                     {/* Media Type Switcher: Image vs Video */}
-                    <div className="flex items-center gap-1 p-0.5 bg-black/60 border border-white/10 rounded-xl text-[11px]">
+                    <div className="flex items-center gap-1 p-1 bg-black/60 border border-white/10 rounded-2xl text-xs">
                       <button
                         type="button"
                         onClick={() => setSelectedMediaType("image")}
-                        className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                        className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
                           selectedMediaType === "image"
-                            ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                            ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
                             : "text-zinc-400 hover:text-white"
                         }`}
                       >
-                        🖼️ صورة
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span>صورة سينمائية</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedMediaType("video")}
-                        className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                        className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
                           selectedMediaType === "video"
-                            ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                            ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm"
                             : "text-zinc-400 hover:text-white"
                         }`}
                       >
-                        🎬 فيديو AI
+                        <Film className="w-3.5 h-3.5" />
+                        <span>فيديو سينمائي</span>
                       </button>
                     </div>
                   </div>
 
                   {/* Thumbnail / Video Preview */}
                   {currentPost.mediaType === "video" && currentPost.videoUrl ? (
-                    <div className="rounded-2xl overflow-hidden border border-purple-500/30 aspect-video relative bg-black shadow-inner">
+                    <div className="rounded-2xl overflow-hidden border border-purple-500/30 aspect-video relative bg-black shadow-2xl">
                       <video
                         src={currentPost.videoUrl}
                         controls
@@ -757,42 +813,45 @@ export default function AdminSocialMediaPage() {
                       />
                     </div>
                   ) : currentPost.imageUrl ? (
-                    <div className="rounded-2xl overflow-hidden border border-white/15 aspect-video relative bg-black/40 shadow-inner">
+                    <div className="rounded-2xl overflow-hidden border border-white/15 aspect-video relative bg-black shadow-2xl group">
                       <img
                         src={currentPost.imageUrl}
                         alt="Social post visual"
                         className="w-full h-full object-cover"
                       />
+                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[10px] text-zinc-300 border border-white/10 font-mono">
+                        {currentPost.imageModel || "nano-banana-pro"}
+                      </div>
                     </div>
                   ) : (
-                    <div className="rounded-2xl border border-dashed border-white/10 aspect-video flex flex-col items-center justify-center text-zinc-500 text-xs gap-1.5 bg-black/30">
-                      <ImageIcon className="w-6 h-6 text-zinc-600" />
-                      <span>لم يتم توليد أو رفع وسائط بعد</span>
+                    <div className="rounded-2xl border border-dashed border-white/10 aspect-video flex flex-col items-center justify-center text-zinc-500 text-xs gap-2 bg-black/40">
+                      <ImageIcon className="w-8 h-8 text-zinc-600" />
+                      <span>اضغط على زر التوليد لصناعة المشهد السينمائي</span>
                     </div>
                   )}
 
                   {/* Social Media Aspect Ratio Selector */}
                   <div className="space-y-1.5 pt-2 border-t border-white/5">
-                    <span className="text-zinc-400 font-semibold text-[11px]">أبعاد المنصة (Aspect Ratio):</span>
+                    <span className="text-zinc-400 font-semibold text-xs">أبعاد المشهد (Aspect Ratio):</span>
                     <div className="grid grid-cols-2 gap-1.5">
                       {[
-                        { id: "9:16", label: "📱 9:16 Reels/TikTok", desc: "قصص وريلز وتيك توك" },
-                        { id: "1:1", label: "🔲 1:1 Square Feed", desc: "مربع فيسبوك وانستغرام" },
-                        { id: "4:5", label: "🖼️ 4:5 Portrait", desc: "طولي انستغرام فييد" },
-                        { id: "16:9", label: "🖥️ 16:9 Landscape", desc: "عرضي لليوتيوب وتويتر" },
+                        { id: "16:9", label: "16:9 Landscape", sub: "يوتيوب، تويتر، لينكدإن" },
+                        { id: "9:16", label: "9:16 Vertical", sub: "ريلز، تيك توك، ستوري" },
+                        { id: "1:1", label: "1:1 Square", sub: "فيسبوك، انستغرام فييد" },
+                        { id: "4:5", label: "4:5 Portrait", sub: "انستغرام بورتريه" },
                       ].map((ratio) => (
                         <button
                           key={ratio.id}
                           type="button"
-                          title={ratio.desc}
                           onClick={() => setSelectedAspectRatio(ratio.id as any)}
-                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] text-center ${
+                          className={`p-2 rounded-xl font-bold transition-all text-right flex flex-col ${
                             selectedAspectRatio === ratio.id
                               ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          {ratio.label}
+                          <span className="text-xs">{ratio.label}</span>
+                          <span className="text-[9px] text-zinc-500 font-normal">{ratio.sub}</span>
                         </button>
                       ))}
                     </div>
@@ -800,80 +859,86 @@ export default function AdminSocialMediaPage() {
 
                   {/* Model Selector based on Media Type */}
                   {selectedMediaType === "image" ? (
-                    <div className="space-y-1.5 pt-2 border-t border-white/5 text-[11px]">
-                      <span className="text-zinc-400 font-semibold">نموذج الصورة:</span>
-                      <div className="grid grid-cols-3 gap-1">
+                    <div className="space-y-1.5 pt-2 border-t border-white/5">
+                      <span className="text-zinc-400 font-semibold text-xs">محرك توليد الصورة:</span>
+                      <div className="grid grid-cols-3 gap-1.5">
                         <button
                           type="button"
                           onClick={() => setSelectedImageModel("nano-banana-pro")}
-                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
+                          className={`p-2 rounded-xl font-bold transition-all text-center flex flex-col items-center gap-1 ${
                             selectedImageModel === "nano-banana-pro"
-                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🍌 Nano Banana Pro
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          <span className="text-[10px] leading-tight">Nano Banana Pro</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectedImageModel("grok-imagine")}
-                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
+                          className={`p-2 rounded-xl font-bold transition-all text-center flex flex-col items-center gap-1 ${
                             selectedImageModel === "grok-imagine"
-                              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          ⚡ Grok Imagine 2.0
+                          <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                          <span className="text-[10px] leading-tight">Grok Imagine 2.0</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectedImageModel("gpt-image-2")}
-                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
+                          className={`p-2 rounded-xl font-bold transition-all text-center flex flex-col items-center gap-1 ${
                             selectedImageModel === "gpt-image-2"
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🧠 GPT-Image-2
+                          <Bot className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-[10px] leading-tight">GPT-Image-2</span>
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-1.5 pt-2 border-t border-purple-500/20 text-[11px]">
-                      <span className="text-purple-300 font-semibold">نموذج توليد الفيديو:</span>
-                      <div className="grid grid-cols-3 gap-1">
+                    <div className="space-y-1.5 pt-2 border-t border-purple-500/20">
+                      <span className="text-purple-300 font-semibold text-xs">محرك توليد الفيديو:</span>
+                      <div className="grid grid-cols-3 gap-1.5">
                         <button
                           type="button"
                           onClick={() => setSelectedVideoModel("kling-3.0/video")}
-                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
+                          className={`p-2 rounded-xl font-bold transition-all text-center flex flex-col items-center gap-1 ${
                             selectedVideoModel === "kling-3.0/video"
-                              ? "bg-purple-500/20 text-purple-300 border border-purple-500/40"
+                              ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          ⚡ Kling 3.0 Pro
+                          <Film className="w-3.5 h-3.5 text-purple-400" />
+                          <span className="text-[10px] leading-tight">Kling 3.0 Pro</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectedVideoModel("bytedance/seedance-2")}
-                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
+                          className={`p-2 rounded-xl font-bold transition-all text-center flex flex-col items-center gap-1 ${
                             selectedVideoModel === "bytedance/seedance-2"
-                              ? "bg-pink-500/20 text-pink-300 border border-pink-500/40"
+                              ? "bg-pink-500/20 text-pink-300 border border-pink-500/40 shadow-sm"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🌊 Seedance 2
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-pink-400" />
+                          <span className="text-[10px] leading-tight">Seedance 2</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectedVideoModel("google/gemini-omni-flash")}
-                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
+                          className={`p-2 rounded-xl font-bold transition-all text-center flex flex-col items-center gap-1 ${
                             selectedVideoModel === "google/gemini-omni-flash"
-                              ? "bg-blue-500/20 text-blue-300 border border-blue-500/40"
+                              ? "bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🌐 Omni Flash
+                          <Globe className="w-3.5 h-3.5 text-blue-400" />
+                          <span className="text-[10px] leading-tight">Omni Flash</span>
                         </button>
                       </div>
                     </div>
@@ -888,7 +953,7 @@ export default function AdminSocialMediaPage() {
                       className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
                     >
                       {uploadingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 text-cyan-400" />}
-                      <span>رفع ملف</span>
+                      <span>رفع وسائط</span>
                     </button>
                     <input
                       ref={fileInputRef}
@@ -905,8 +970,8 @@ export default function AdminSocialMediaPage() {
                         disabled={generatingImg}
                         className="px-3 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 hover:bg-cyan-500/25 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
                       >
-                        {generatingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-cyan-400" />}
-                        <span>توليد صورة</span>
+                        {generatingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5 text-cyan-400" />}
+                        <span>إعادة توليد الصورة</span>
                       </button>
                     ) : (
                       <button
@@ -915,7 +980,7 @@ export default function AdminSocialMediaPage() {
                         disabled={generatingVid}
                         className="px-3 py-2 rounded-xl bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 text-purple-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-500/10"
                       >
-                        {generatingVid ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-purple-400" />}
+                        {generatingVid ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 text-purple-400" />}
                         <span>توليد فيديو</span>
                       </button>
                     )}
@@ -928,25 +993,30 @@ export default function AdminSocialMediaPage() {
                 {/* Platform Selector Tabs */}
                 <div className="flex items-center gap-1 p-1 rounded-2xl bg-zinc-950 border border-white/10 overflow-x-auto">
                   {[
-                    { id: "facebook", label: "📘 Facebook" },
-                    { id: "twitter", label: "𝕏 Twitter" },
-                    { id: "instagram", label: "📸 Instagram" },
-                    { id: "linkedin", label: "💼 LinkedIn" },
-                    { id: "telegram", label: "✈️ Telegram" },
-                    { id: "tiktok", label: "🎵 TikTok" },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActivePlatform(tab.id as any)}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 ${
-                        activePlatform === tab.id
-                          ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm"
-                          : "text-zinc-400 hover:text-white"
-                      }`}
-                    >
-                      <span>{tab.label}</span>
-                    </button>
-                  ))}
+                    { id: "facebook", label: "Facebook", icon: FacebookIcon, color: "text-blue-400" },
+                    { id: "twitter", label: "X / Twitter", icon: TwitterXIcon, color: "text-white" },
+                    { id: "instagram", label: "Instagram", icon: InstagramIcon, color: "text-pink-400" },
+                    { id: "linkedin", label: "LinkedIn", icon: LinkedInIcon, color: "text-sky-400" },
+                    { id: "telegram", label: "Telegram", icon: TelegramIcon, color: "text-cyan-400" },
+                    { id: "tiktok", label: "TikTok", icon: TikTokIcon, color: "text-rose-400" },
+                  ].map((tab) => {
+                    const IconComp = tab.icon;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActivePlatform(tab.id as any)}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                          activePlatform === tab.id
+                            ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                            : "text-zinc-400 hover:text-white bg-transparent"
+                        }`}
+                      >
+                        <IconComp className={`w-3.5 h-3.5 ${tab.color}`} />
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Platform Text Customizer Card */}
