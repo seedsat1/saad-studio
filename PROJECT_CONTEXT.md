@@ -72,7 +72,10 @@
      - Features live recipient counting, Resend API official email delivery, and a real-time live email client preview card before broadcasting.
   7. Subscriber Email Branding & Logo Modernization:
      - Updated subscriber emails, invoices, and the live broadcast composer to utilize the new official `logo saad.png` (synced to `/public/logo-saad.png` and `/public/logo-saad-transparent.png`).
-  8. Verification:
+  8. Studio Image Library (/admin/cms/studio-img) Media Normalization Fix:
+     - Fixed 404 image errors on `/admin/cms/studio-img` by enhancing `resolveMediaObject` in `lib/storage/runtime.ts` to recognize bare uploaded filenames (`1779051100463_46mikg.webp`) and route them through `/api/media/images/...`.
+     - Augmented `readObject` and `headObject` with dual-prefix key candidate resolution (trying with and without bucket path prefixes) to ensure seamless storage retrieval across B2 and S3 backends.
+  9. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest test suite: 19/19 tests passed across all suites.
 

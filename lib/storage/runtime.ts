@@ -161,6 +161,12 @@ export function resolveMediaObject(input: string | null | undefined): ResolvedMe
     return { kind: "owned_storage", bucket, path, objectKey: objectKeyFor(bucket, path), source: "storage_key" };
   }
 
+  // Handle bare filenames from uploaders (e.g. 1779051100463_46mikg.webp)
+  if (!cleanValue.includes("/") && !cleanValue.includes(":") && /\.(webp|png|jpg|jpeg|gif|mp4|webm|mp3|wav|ogg|bin)$/i.test(cleanValue)) {
+    const bucket = bucketForAssetType(cleanValue);
+    return { kind: "owned_storage", bucket, path: cleanValue, objectKey: objectKeyFor(bucket, cleanValue), source: "storage_key" };
+  }
+
   return { kind: "unknown", value };
 }
 
@@ -357,16 +363,28 @@ export async function deleteObject(params: { bucket: string; path: string }): Pr
 export async function readObject(params: { objectKey: string; range?: string }): Promise<StorageReadResult | null> {
   const providers = await getStorageReadProviders();
   const attempts: StorageHeadResult[] = [];
+  const rawKey = params.objectKey.replace(/^\/+/, "");
+  const candidates = [rawKey];
+  const prefixMatch = rawKey.match(/^(images|videos|audio|thumbnails|media)\/(.+)$/i);
+  if (prefixMatch) {
+    candidates.push(prefixMatch[2]);
+  } else {
+    candidates.push(`images/${rawKey}`);
+    candidates.push(`videos/${rawKey}`);
+  }
+
   for (const entry of providers) {
-    try {
-      const found = await entry.provider.exists({ bucket: "", path: params.objectKey });
-      attempts.push({ providerId: entry.id, found });
-      if (found) {
-        const response = await entry.provider.download({ bucket: "", path: params.objectKey, range: params.range });
-        return { providerId: entry.id, providerLabel: entry.label, response, attempts };
+    for (const keyToTry of candidates) {
+      try {
+        const found = await entry.provider.exists({ bucket: "", path: keyToTry });
+        attempts.push({ providerId: entry.id, found });
+        if (found) {
+          const response = await entry.provider.download({ bucket: "", path: keyToTry, range: params.range });
+          return { providerId: entry.id, providerLabel: entry.label, response, attempts };
+        }
+      } catch (error) {
+        attempts.push({ providerId: entry.id, found: false, error: error instanceof Error ? error.message : String(error) });
       }
-    } catch (error) {
-      attempts.push({ providerId: entry.id, found: false, error: error instanceof Error ? error.message : String(error) });
     }
   }
   return null;
@@ -375,11 +393,25 @@ export async function readObject(params: { objectKey: string; range?: string }):
 export async function headObject(params: { objectKey: string }): Promise<StorageHeadResult[]> {
   const providers = await getStorageReadProviders();
   const attempts: StorageHeadResult[] = [];
+  const rawKey = params.objectKey.replace(/^\/+/, "");
+  const candidates = [rawKey];
+  const prefixMatch = rawKey.match(/^(images|videos|audio|thumbnails|media)\/(.+)$/i);
+  if (prefixMatch) {
+    candidates.push(prefixMatch[2]);
+  } else {
+    candidates.push(`images/${rawKey}`);
+    candidates.push(`videos/${rawKey}`);
+  }
+
   for (const entry of providers) {
-    try {
-      attempts.push({ providerId: entry.id, found: await entry.provider.exists({ bucket: "", path: params.objectKey }) });
-    } catch (error) {
-      attempts.push({ providerId: entry.id, found: false, error: error instanceof Error ? error.message : String(error) });
+    for (const keyToTry of candidates) {
+      try {
+        const found = await entry.provider.exists({ bucket: "", path: keyToTry });
+        attempts.push({ providerId: entry.id, found });
+        if (found) return attempts;
+      } catch (error) {
+        attempts.push({ providerId: entry.id, found: false, error: error instanceof Error ? error.message : String(error) });
+      }
     }
   }
   return attempts;
