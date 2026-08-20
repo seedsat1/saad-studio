@@ -38,6 +38,7 @@ import {
   Zap,
   SlidersHorizontal,
   Globe,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -486,14 +487,63 @@ export default function AdminSocialMediaPage() {
     }
   };
 
+  const compressImageClient = async (file: File, maxSide = 1920, quality = 0.85): Promise<File | Blob> => {
+    if (!file.type.startsWith("image/") || file.size < 800_000) {
+      return file;
+    }
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.createElement("img");
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxSide || height > maxSide) {
+            if (width > height) {
+              height = Math.round((height * maxSide) / width);
+              width = maxSide;
+            } else {
+              width = Math.round((width * maxSide) / height);
+              height = maxSide;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: "image/jpeg" }));
+                } else {
+                  resolve(file);
+                }
+              },
+              "image/jpeg",
+              quality
+            );
+          } else {
+            resolve(file);
+          }
+        };
+        img.onerror = () => resolve(file);
+        img.src = String(e.target?.result);
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingImg(true);
     try {
+      const optimizedFile = await compressImageClient(file);
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", optimizedFile);
       formData.append("assetType", "image");
 
       const res = await fetch("/api/studio/upload-url", {
@@ -734,8 +784,9 @@ export default function AdminSocialMediaPage() {
     if (!file) return;
 
     try {
+      const optimizedFile = await compressImageClient(file);
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", optimizedFile);
       formData.append("assetType", "image");
 
       const res = await fetch("/api/studio/upload-url", {
@@ -931,7 +982,7 @@ export default function AdminSocialMediaPage() {
               </div>
 
               {/* Textarea Input */}
-              <div className="relative">
+              <div className="space-y-2">
                 <textarea
                   rows={2}
                   value={agentPrompt}
@@ -939,6 +990,30 @@ export default function AdminSocialMediaPage() {
                   placeholder="اكتب فكرة البوست التسويقي هنا (مثال: أطلقنا نموذج Grok Imagine 2.0 الجديد لتوليد صور سينمائية فائقة الواقعية في سعد ستوديو، مع تحسين سرعة المعالجة ودقة الـ 4K)..."
                   className="w-full rounded-2xl border border-white/10 bg-black/50 p-4 text-xs md:text-sm text-white placeholder-zinc-500 outline-none focus:border-cyan-400/50 transition-colors leading-relaxed"
                 />
+
+                {/* Reference Image Attachment Chip */}
+                {currentPost.imageUrl && (
+                  <div className="flex items-center gap-2.5 p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-xs">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden relative bg-black/60 shrink-0 border border-white/10">
+                      <img src={currentPost.imageUrl} alt="Reference Attachment" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-bold text-cyan-300 flex items-center gap-1">
+                        <ImageIcon className="w-3 h-3 text-cyan-400" />
+                        <span>صورة مرجعية مرفقة للايجنت (Reference Image)</span>
+                      </div>
+                      <div className="text-[10px] text-zinc-400 truncate">سيتم استخدامها كمرجع لتوليد الصور والفيديوهات والبوستات</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPost((prev) => ({ ...prev, imageUrl: "" }))}
+                      className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-rose-400 transition-colors"
+                      title="حذف الصورة المرفقة"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Quick Preset Ideas & Generate Button */}
@@ -967,6 +1042,18 @@ export default function AdminSocialMediaPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* 0. Attach Reference Image */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImg}
+                    className="px-3.5 py-2.5 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 font-bold text-xs flex items-center gap-1.5 transition-all shrink-0"
+                    title="رفع صورة مرجعية خاصة بك من جهازك للايجنت"
+                  >
+                    {uploadingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 text-cyan-400" />}
+                    <span>{currentPost.imageUrl ? "استبدال الصورة 🖼️" : "إرفاق صورة 🖼️"}</span>
+                  </button>
+
                   {/* 1. Creative Dialogue Button */}
                   <button
                     type="button"

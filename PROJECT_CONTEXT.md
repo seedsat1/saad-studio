@@ -48,15 +48,16 @@
 
 ---
 
-#### Latest task: HTTP 413 Payload Too Large Resolution & Storyboard Multi-Channel Publishing (2026-08-20)
+#### Latest task: Upload 413 Client Auto-Compression, Absolute Public URL Storage Fix & Agent Reference Image Input (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **HTTP 413 Payload Fix**:
-     - Fixed payload size overflow caused when sending oversized uncompressed base64 data URIs from local file pickers.
-     - Sanitized request bodies before posting to `/api/admin/social-media`.
-  2. **Dedicated Storyboard Publishing Pipeline**:
-     - Updated `handlePublishDirect` to support `source: "storyboard"` so publishing from Tab 2 packages the current storyboard's title, hero image / video URL, blueprint prompt, and viral hashtags directly into the Buffer / Facebook / Telegram payload.
-  3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
+  1. **Upload 413 & Local 404 Resolution**:
+     - Fixed `POST /api/studio/upload-url` returning relative storage keys (`images/user_xxx/...`) which resulted in browser 404s when accessed under `/admin/images/`. It now resolves to standard `/api/media/${bucket}/${path}` URLs.
+     - Added client-side canvas-based image compression (`compressImageClient`) before uploading, optimizing large photos down to < 1MB so they never breach the 4.5MB serverless body limit.
+  2. **Agent Prompt Reference Image Attachment (Tab 1)**:
+     - Added direct reference image attachment in the Agent prompt area (`إرفاق صورة مرجعية للايجنت 🖼️`).
+     - Uploaded reference images now display in an interactive chip with removal toggle, and are directly incorporated as the visual reference for subsequent AI image/video generation.
+  3. Verification: `tsc --noEmit` passed with 0 errors, Vitest passed 19/19 tests, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
 - Status: Completed & Verified (PASS).

@@ -116,12 +116,14 @@ export async function POST(req: NextRequest) {
       const path = `${userId}/${uniqueId}${ext}`;
 
       const buffer = await file.arrayBuffer();
-      const publicUrl = await putObjectToStorage({
+      await putObjectToStorage({
         bucket,
         path,
         body: Buffer.from(buffer),
         contentType,
       });
+
+      const publicUrl = `/api/media/${bucket}/${path}`;
 
       return NextResponse.json({
         publicUrl,
