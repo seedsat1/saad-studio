@@ -44,8 +44,57 @@ async function generateImageDirectly(prompt: string, modelName: string, aspectRa
   const cleanPrompt = prompt.trim().replace(/^Prompt:\s*/i, "");
   const cinematicMasterPrompt = `Award-winning Hollywood cinematic still, hyper-realistic photography, 8k resolution, shot on ARRI Alexa LF 70mm, Cooke anamorphic lens, natural film grain, photorealistic skin and material textures, moody volumetric atmospheric lighting, luxury cinematic aesthetic, sharp focus: ${cleanPrompt}. (Masterpiece, photorealism, raw photo, highly detailed, perfect composition).`;
 
-  // 1. xAI Grok Imagine 2.0
+  // 1. WaveSpeed Grok Imagine 2.0 (x-ai/grok-imagine-image-v2.0/text-to-image)
   if (model.includes("grok")) {
+    const wavespeedKey = process.env.WAVESPEED_API_KEY;
+    if (wavespeedKey) {
+      try {
+        const submitRes = await fetch("https://api.wavespeed.ai/api/v3/x-ai/grok-imagine-image-v2.0/text-to-image", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${wavespeedKey}`,
+          },
+          body: JSON.stringify({
+            prompt: cinematicMasterPrompt,
+            aspect_ratio: aspectRatio || "16:9",
+          }),
+        });
+
+        if (submitRes.ok) {
+          const submitData = await submitRes.json();
+          const taskId = submitData?.id || submitData?.data?.id;
+          if (taskId) {
+            // Poll WaveSpeed for completion
+            for (let i = 0; i < 30; i++) {
+              await new Promise((r) => setTimeout(r, 2000));
+              const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}`, {
+                headers: { Authorization: `Bearer ${wavespeedKey}` },
+              });
+              if (pollRes.ok) {
+                const pollData = await pollRes.json();
+                const status = pollData?.status || pollData?.data?.status;
+                if (status === "completed" || status === "succeeded") {
+                  const directUrl =
+                    pollData?.output?.[0] ||
+                    pollData?.outputs?.[0] ||
+                    pollData?.data?.output?.[0] ||
+                    pollData?.data?.outputs?.[0] ||
+                    pollData?.url ||
+                    pollData?.data?.url;
+                  if (directUrl && typeof directUrl === "string") return directUrl;
+                }
+                if (status === "failed" || status === "error") break;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("WaveSpeed Grok Imagine generation failed:", e);
+      }
+    }
+
+    // Direct xAI API fallback
     const xaiKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
     if (xaiKey) {
       try {
@@ -60,7 +109,7 @@ async function generateImageDirectly(prompt: string, modelName: string, aspectRa
           if (url) return url;
         }
       } catch (e) {
-        console.warn("xAI Grok generation failed, falling back to Google Nano Banana:", e);
+        console.warn("Direct xAI Grok generation failed:", e);
       }
     }
   }

@@ -48,19 +48,19 @@
 
 ---
 
-#### Latest task: Interactive Creative Director Dialogue & Modern Vector UI Overhaul for Social Media Hub (2026-08-20)
+#### Latest task: WaveSpeed Grok Imagine 2.0 Direct Binding, Dynamic Aspect Ratio Previews & Media Lightbox (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Interactive Creative Director Consultation System (حوار واستشارة الوكيل قبل التوليد)**:
-     - Implemented `action: "consult"` in `/api/admin/social-media/route.ts` with GPT-4o-mini acting as Lead Creative Director & Social Strategist.
-     - Converses with the user before generation: asks focused questions regarding content tone, cinematic atmosphere, and preferred media engines.
-     - Provides instant interactive clickable option pills (suggestion chips) and custom input reply box.
-     - Added one-click approval & execution button (`اعتماد الرؤية وبدء التوليد 🚀`).
-  2. **Modern Luxury UI & Vector SVG Brand Icons Overhaul**:
-     - Eliminated all outdated emojis and clunky icons from `app/admin/social-media/page.tsx`.
-     - Added official vector SVG icons for Facebook, X (Twitter), Instagram, LinkedIn, Telegram, and TikTok.
-     - Modernized model selection cards (`Google Nano Banana Pro`, `Grok Imagine 2.0`, `OpenAI GPT-Image-2`, `Kling 3.0 Pro`, `Seedance 2 Turbo`, `Gemini Omni Flash`).
-  3. Verification: `tsc --noEmit` passed with 0 errors, Vitest passed 19/19 tests, Git committed & pushed to `main`.
+  1. **WaveSpeed Grok Imagine 2.0 Integration**:
+     - Bound `grok-imagine` to WaveSpeed endpoint `https://api.wavespeed.ai/api/v3/x-ai/grok-imagine-image-v2.0/text-to-image` using `process.env.WAVESPEED_API_KEY`.
+     - Output requests now appear in real-time on the user's `wavespeed.ai/dashboard`.
+  2. **Dynamic Aspect Ratio Viewport & Previews**:
+     - Fixed aspect ratio display bug: `9:16 Vertical` (Reels/TikTok), `1:1 Square`, and `4:5 Portrait` now render in their correct geometric proportions instead of being forced into landscape 16:9 boxes.
+     - Updated Live Previews (Facebook, X, Instagram, LinkedIn, Telegram, TikTok) to dynamically match the selected aspect ratio.
+  3. **Media Lightbox & Direct HD Download**:
+     - Added click-to-zoom Lightbox modal for full-screen HD inspection.
+     - Added instant 1-click Download button (`Download` icon) and Copy URL button on media hover and inside Lightbox.
+  4. Verification: `tsc --noEmit` passed with 0 errors, Vitest passed 19/19 tests, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
 - Status: Completed & Verified (PASS).

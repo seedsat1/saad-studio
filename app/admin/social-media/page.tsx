@@ -218,6 +218,25 @@ export default function AdminSocialMediaPage() {
   const [currentPost, setCurrentPost] = useState<SocialMediaPostRecord>(DEFAULT_POST);
   const [customImgPrompt, setCustomImgPrompt] = useState("");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [previewModalUrl, setPreviewModalUrl] = useState<{ url: string; type: "image" | "video"; title?: string } | null>(null);
+
+  const handleDownloadMedia = async (url: string, filename = "saad-studio-visual") => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      const isVideo = url.includes(".mp4") || url.includes("video");
+      a.download = `${filename}-${Date.now()}.${isVideo ? "mp4" : "png"}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, "_blank");
+    }
+  };
   // Interactive Creative Director Consultation states
   const [consulting, setConsulting] = useState(false);
   const [showConsultation, setShowConsultation] = useState(false);
@@ -1057,35 +1076,103 @@ export default function AdminSocialMediaPage() {
                     </div>
                   </div>
 
-                  {/* Thumbnail / Video Preview */}
-                  {currentPost.mediaType === "video" && currentPost.videoUrl ? (
-                    <div className="rounded-2xl overflow-hidden border border-purple-500/30 aspect-video relative bg-black shadow-2xl">
-                      <video
-                        src={currentPost.videoUrl}
-                        controls
-                        autoPlay
-                        loop
-                        muted
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : currentPost.imageUrl ? (
-                    <div className="rounded-2xl overflow-hidden border border-white/15 aspect-video relative bg-black shadow-2xl group">
-                      <img
-                        src={currentPost.imageUrl}
-                        alt="Social post visual"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[10px] text-zinc-300 border border-white/10 font-mono">
-                        {currentPost.imageModel || "nano-banana-pro"}
+                  {/* Thumbnail / Video Preview with Dynamic Aspect Ratio & Lightbox Controls */}
+                  {(() => {
+                    const aspectClass = selectedAspectRatio === "9:16"
+                      ? "aspect-[9/16] max-h-[460px] w-auto mx-auto"
+                      : selectedAspectRatio === "1:1"
+                        ? "aspect-square max-h-[440px] w-auto mx-auto"
+                        : selectedAspectRatio === "4:5"
+                          ? "aspect-[4/5] max-h-[460px] w-auto mx-auto"
+                          : "aspect-video w-full";
+
+                    if (currentPost.mediaType === "video" && currentPost.videoUrl) {
+                      return (
+                        <div className={`rounded-2xl overflow-hidden border border-purple-500/30 relative bg-black shadow-2xl group ${aspectClass}`}>
+                          <video
+                            src={currentPost.videoUrl}
+                            controls
+                            autoPlay
+                            loop
+                            muted
+                            className="w-full h-full object-contain"
+                          />
+                          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 bg-black/60 backdrop-blur-md p-1 rounded-xl">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewModalUrl({ url: currentPost.videoUrl!, type: "video", title: currentPost.topicPrompt })}
+                              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                              title="معاينة الفيديو بالحجم الكامل"
+                            >
+                              <Maximize2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadMedia(currentPost.videoUrl!, "saad-studio-video")}
+                              className="p-1.5 rounded-lg bg-purple-500/80 hover:bg-purple-500 text-white"
+                              title="تنزيل الفيديو"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (currentPost.imageUrl) {
+                      return (
+                        <div className={`rounded-2xl overflow-hidden border border-white/15 relative bg-black shadow-2xl group ${aspectClass}`}>
+                          <img
+                            src={currentPost.imageUrl}
+                            alt="Social post visual"
+                            className="w-full h-full object-contain cursor-pointer"
+                            onClick={() => setPreviewModalUrl({ url: currentPost.imageUrl!, type: "image", title: currentPost.topicPrompt })}
+                          />
+                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[10px] text-zinc-300 border border-white/10 font-mono">
+                            {currentPost.imageModel || "nano-banana-pro"}
+                          </div>
+                          {/* Hover Action Bar */}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2 pointer-events-none group-hover:pointer-events-auto">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewModalUrl({ url: currentPost.imageUrl!, type: "image", title: currentPost.topicPrompt })}
+                              className="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md text-white transition-transform hover:scale-105"
+                              title="تكبير ومعاينة الصورة بالحجم الكامل"
+                            >
+                              <Maximize2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadMedia(currentPost.imageUrl!, "saad-studio-image")}
+                              className="p-2.5 rounded-xl bg-cyan-500/80 hover:bg-cyan-500 backdrop-blur-md text-white transition-transform hover:scale-105"
+                              title="تنزيل الصورة عالية الدقة"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(currentPost.imageUrl!);
+                                setCopiedKey("img_url");
+                                setTimeout(() => setCopiedKey(null), 2000);
+                              }}
+                              className="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md text-white transition-transform hover:scale-105"
+                              title="نسخ رابط الصورة"
+                            >
+                              {copiedKey === "img_url" ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="rounded-2xl border border-dashed border-white/10 aspect-video flex flex-col items-center justify-center text-zinc-500 text-xs gap-2 bg-black/40">
+                        <ImageIcon className="w-8 h-8 text-zinc-600" />
+                        <span>اضغط على زر التوليد لصناعة المشهد السينمائي</span>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-white/10 aspect-video flex flex-col items-center justify-center text-zinc-500 text-xs gap-2 bg-black/40">
-                      <ImageIcon className="w-8 h-8 text-zinc-600" />
-                      <span>اضغط على زر التوليد لصناعة المشهد السينمائي</span>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Social Media Aspect Ratio Selector */}
                   <div className="space-y-1.5 pt-2 border-t border-white/5">
@@ -1403,15 +1490,34 @@ export default function AdminSocialMediaPage() {
                     )}
 
                     {/* Media Render (Video or Image) */}
-                    {currentPost.mediaType === "video" && currentPost.videoUrl ? (
-                      <div className="rounded-2xl overflow-hidden border border-zinc-700 aspect-video bg-black">
-                        <video src={currentPost.videoUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
-                      </div>
-                    ) : currentPost.imageUrl ? (
-                      <div className="rounded-2xl overflow-hidden border border-zinc-700 aspect-video bg-zinc-900">
-                        <img src={currentPost.imageUrl} alt="Facebook visual" className="w-full h-full object-cover" />
-                      </div>
-                    ) : null}
+                    {(() => {
+                      const prevAspect = selectedAspectRatio === "9:16"
+                        ? "aspect-[9/16] max-h-[460px] w-auto mx-auto"
+                        : selectedAspectRatio === "1:1"
+                          ? "aspect-square max-h-[420px] w-auto mx-auto"
+                          : selectedAspectRatio === "4:5"
+                            ? "aspect-[4/5] max-h-[460px] w-auto mx-auto"
+                            : "aspect-video w-full";
+
+                      if (currentPost.mediaType === "video" && currentPost.videoUrl) {
+                        return (
+                          <div className={`rounded-2xl overflow-hidden border border-zinc-700 bg-black ${prevAspect}`}>
+                            <video src={currentPost.videoUrl} controls autoPlay loop muted className="w-full h-full object-contain" />
+                          </div>
+                        );
+                      }
+                      if (currentPost.imageUrl) {
+                        return (
+                          <div
+                            className={`rounded-2xl overflow-hidden border border-zinc-700 bg-zinc-900 cursor-pointer ${prevAspect}`}
+                            onClick={() => setPreviewModalUrl({ url: currentPost.imageUrl!, type: "image", title: currentPost.topicPrompt })}
+                          >
+                            <img src={currentPost.imageUrl} alt="Facebook visual" className="w-full h-full object-contain" />
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     <div className="flex items-center justify-between text-zinc-400 text-xs pt-2 border-t border-zinc-800">
                       <span>👍❤️ 520 تفاعل</span>
@@ -1451,15 +1557,34 @@ export default function AdminSocialMediaPage() {
                       </div>
                     )}
 
-                    {currentPost.mediaType === "video" && currentPost.videoUrl ? (
-                      <div className="rounded-2xl overflow-hidden border border-zinc-800 aspect-video bg-black">
-                        <video src={currentPost.videoUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
-                      </div>
-                    ) : currentPost.imageUrl ? (
-                      <div className="rounded-2xl overflow-hidden border border-zinc-800 aspect-video bg-zinc-900">
-                        <img src={currentPost.imageUrl} alt="X post visual" className="w-full h-full object-cover" />
-                      </div>
-                    ) : null}
+                    {(() => {
+                      const prevAspect = selectedAspectRatio === "9:16"
+                        ? "aspect-[9/16] max-h-[460px] w-auto mx-auto"
+                        : selectedAspectRatio === "1:1"
+                          ? "aspect-square max-h-[420px] w-auto mx-auto"
+                          : selectedAspectRatio === "4:5"
+                            ? "aspect-[4/5] max-h-[460px] w-auto mx-auto"
+                            : "aspect-video w-full";
+
+                      if (currentPost.mediaType === "video" && currentPost.videoUrl) {
+                        return (
+                          <div className={`rounded-2xl overflow-hidden border border-zinc-800 bg-black ${prevAspect}`}>
+                            <video src={currentPost.videoUrl} controls autoPlay loop muted className="w-full h-full object-contain" />
+                          </div>
+                        );
+                      }
+                      if (currentPost.imageUrl) {
+                        return (
+                          <div
+                            className={`rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900 cursor-pointer ${prevAspect}`}
+                            onClick={() => setPreviewModalUrl({ url: currentPost.imageUrl!, type: "image", title: currentPost.topicPrompt })}
+                          >
+                            <img src={currentPost.imageUrl} alt="X post visual" className="w-full h-full object-contain" />
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     <div className="flex items-center justify-between text-zinc-500 text-xs pt-2 border-t border-zinc-900">
                       <span>💬 24</span>
@@ -1490,19 +1615,36 @@ export default function AdminSocialMediaPage() {
                     </div>
 
                     {/* Media */}
-                    {currentPost.mediaType === "video" && currentPost.videoUrl ? (
-                      <div className="aspect-square bg-black w-full overflow-hidden">
-                        <video src={currentPost.videoUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
-                      </div>
-                    ) : currentPost.imageUrl ? (
-                      <div className="aspect-square bg-zinc-900 w-full overflow-hidden">
-                        <img src={currentPost.imageUrl} alt="Instagram visual" className="w-full h-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="aspect-square bg-zinc-900 flex items-center justify-center text-zinc-600 text-xs">
-                        No media selected
-                      </div>
-                    )}
+                    {(() => {
+                      const prevAspect = selectedAspectRatio === "9:16"
+                        ? "aspect-[9/16] max-h-[460px] w-auto mx-auto"
+                        : selectedAspectRatio === "4:5"
+                          ? "aspect-[4/5] max-h-[460px] w-auto mx-auto"
+                          : "aspect-square w-full";
+
+                      if (currentPost.mediaType === "video" && currentPost.videoUrl) {
+                        return (
+                          <div className={`bg-black w-full overflow-hidden ${prevAspect}`}>
+                            <video src={currentPost.videoUrl} controls autoPlay loop muted className="w-full h-full object-contain" />
+                          </div>
+                        );
+                      }
+                      if (currentPost.imageUrl) {
+                        return (
+                          <div
+                            className={`bg-zinc-900 w-full overflow-hidden cursor-pointer ${prevAspect}`}
+                            onClick={() => setPreviewModalUrl({ url: currentPost.imageUrl!, type: "image", title: currentPost.topicPrompt })}
+                          >
+                            <img src={currentPost.imageUrl} alt="Instagram visual" className="w-full h-full object-contain" />
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="aspect-square bg-zinc-900 flex items-center justify-center text-zinc-600 text-xs">
+                          No media selected
+                        </div>
+                      );
+                    })()}
 
                     {/* Footer / Caption */}
                     <div className="p-4 space-y-2 text-xs">
@@ -2362,6 +2504,55 @@ export default function AdminSocialMediaPage() {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* FULLSCREEN LIGHTBOX & MEDIA PREVIEW MODAL */}
+        {previewModalUrl && (
+          <div
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={() => setPreviewModalUrl(null)}
+          >
+            <div
+              className="relative max-w-5xl w-full max-h-[92vh] flex flex-col items-center gap-3 bg-zinc-950/90 border border-white/15 p-4 rounded-3xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-full flex items-center justify-between px-2 pb-2 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white truncate max-w-md">
+                    {previewModalUrl.title || "معاينة الوسائط عالية الدقة"}
+                  </span>
+                  <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 uppercase">
+                    {selectedAspectRatio}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadMedia(previewModalUrl.url, "saad-studio-hd")}
+                    className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30 text-xs font-bold flex items-center gap-1.5 transition-all"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>تنزيل عالي الدقة HD</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewModalUrl(null)}
+                    className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-400 hover:text-white text-xs font-bold px-3 transition-colors"
+                  >
+                    إغلاق ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl max-h-[78vh] w-full flex items-center justify-center bg-black/60 p-2">
+                {previewModalUrl.type === "video" ? (
+                  <video src={previewModalUrl.url} controls autoPlay className="max-h-[72vh] max-w-full w-auto rounded-xl object-contain shadow-2xl" />
+                ) : (
+                  <img src={previewModalUrl.url} alt="HD preview" className="max-h-[72vh] max-w-full w-auto object-contain rounded-xl shadow-2xl" />
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
