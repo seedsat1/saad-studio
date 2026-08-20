@@ -114,6 +114,11 @@ export const ADMIN_NAV_CONFIG: NavGroup[] = [
         icon: TrendingUp,
       },
       {
+        label: "Subscriber Messages",
+        href: "/admin/broadcast",
+        icon: Megaphone,
+      },
+      {
         label: "Transactions & Billing",
         href: "/admin/transactions",
         icon: CreditCard,

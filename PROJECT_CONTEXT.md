@@ -66,9 +66,13 @@
      - Added `/api/newsletter` route and interactive form state in `<Footer />` with live subscription feedback.
   5. Style Library (/image-presets) Route Resolution:
      - Created and connected `/image-presets` route (`app/(dash)/(routes)/image-presets/page.tsx`) with category filtering, search, and direct one-click preset hydration into Image Studio, eliminating 404 errors from all Gateway cards and cards across the platform.
-  6. Verification:
+  6. Subscriber Messages & Broadcast Admin Hub:
+     - Built dedicated `/admin/broadcast` page (`app/admin/broadcast/page.tsx`) and added `Subscriber Messages` to `AdminSidebar` under USERS & FINANCE.
+     - Supports targeting All Active Subscribers, Plan-Specific cohorts (Pro, Max), or Direct Single User delivery.
+     - Features live recipient counting, Resend API official email delivery, and a real-time live email client preview card before broadcasting.
+  7. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
-     - Vitest test suite: 12/12 tests passed.
+     - Vitest test suite: 19/19 tests passed across all suites.
 
 #### Previous task: Image Studio Interactive Hover Suite & Real Action Controls (2026-08-20)
 - Status: Completed & Verified (PASS).
