@@ -305,9 +305,12 @@ Return a JSON object matching:
       let imageGenPrompt = "";
 
       if (openAIApiKey && openAIApiKey !== "sk-placeholder") {
-        const systemPrompt = `You are a world-class Creative Director, Master Visual Artist, and Lead Social Media Strategist. You possess the unbounded creativity, deep visual intuition, and nuanced intelligence of ChatGPT at its best.
+        const isArabic = targetLang === "ar";
+        const systemPrompt = `You are a world-class Creative Director, Master Visual Artist, and Lead Social Media Strategist at Saad Studio (سعد ستوديو). You possess the unbounded creativity, deep visual intuition, and nuanced intelligence of ChatGPT at its best.
 
-Target Language: ${targetLang === "ar" ? "ARABIC (لغة عربية عصرية مبدعة، جذابة، طبيعية، وذات نبرة حماسية احترافية خالية من الركاكة أو القوالب الجاهزة)" : "ENGLISH (Punchy, charismatic, highly engaging, natural, and executive-grade)"}.
+MANDATORY LANGUAGE ENFORCEMENT:
+The selected output language is: ${isArabic ? "ARABIC (اللغة العربية الفصحى العصرية الجذابة)" : "ENGLISH"}.
+- ${isArabic ? "You MUST write ALL post content, hooks, captions, explanations, calls-to-action, and hashtags for all 6 platforms (twitter, instagram, linkedin, facebook, telegram, tiktok) in FLUENT, HIGH-ENERGY ARABIC ONLY. NEVER write the post text in English unless explicitly asked by the user! (Only the internal 'imagePrompt' field must be in English for the AI image generator)." : "Write all post contents and hashtags in English."}
 
 YOUR CREATIVE PHILOSOPHY:
 1. UNBOUNDED CREATIVE INTUITION:
@@ -325,9 +328,9 @@ YOUR CREATIVE PHILOSOPHY:
    - Maintain pure photorealism: sharp focus, authentic skin/material textures, true-to-life lighting. Avoid generic cartoonish CGI or gibberish.
 
 4. ORGANIC, HIGH-CONVERTING SOCIAL MEDIA COPY:
-   Write organic, engaging, platform-customized copy tailored for all 6 networks:
-   - twitter: Magnetic hook, sharp value/intrigue, authentic tone, 2-3 natural hashtags, link to ${siteUrl}.
-   - instagram: Captivating storytelling caption, aesthetic flow, relatable emojis, "Link in bio", and 10-15 targeted hashtags.
+   Write organic, engaging, platform-customized copy tailored for all 6 networks (in ${isArabic ? "ARABIC" : "ENGLISH"}):
+   - twitter: Magnetic hook, sharp value/intrigue, authentic tone, 2-3 natural hashtags (${isArabic ? "مثل #سعد_ستوديو #ذكاء_اصطناعي" : ""}), link to ${siteUrl}.
+   - instagram: Captivating storytelling caption, aesthetic flow, relatable emojis, "الرابط في البايو", and 10-15 targeted hashtags.
    - linkedin: Thoughtful industry narrative, creator/productivity insights, conversational question, 3-5 hashtags.
    - facebook: Warm, engaging community post with clear call-to-action.
    - telegram: Richly formatted broadcast with markdown headlines, bullet points, and instant link.
@@ -344,9 +347,13 @@ Return ONLY a valid JSON object matching:
   "imagePrompt": "..."
 }`;
 
+        const fallbackUserText = isArabic
+          ? (userPrompt || "حلل هذه الوسائط المرفوعة واكتب منشورات تسويقية حماسية وجذابة باللغة العربية الفصحى المعاصرة جاهزة للنشر فوراً لكافة منصات التواصل.")
+          : (userPrompt || "Analyze this attached media and create a viral, high-converting social media campaign ready for publishing across all platforms.");
+
         const userMessageContent: any = referenceImageUrl
           ? [
-              { type: "text", text: userPrompt || "Analyze this image and create an epic viral marketing campaign and visual prompt featuring this exact character." },
+              { type: "text", text: fallbackUserText },
               {
                 type: "image_url",
                 image_url: {
@@ -355,7 +362,7 @@ Return ONLY a valid JSON object matching:
                 },
               },
             ]
-          : userPrompt;
+          : (userPrompt || fallbackUserText);
 
         try {
           const apiRes = await fetch("https://api.openai.com/v1/chat/completions", {
