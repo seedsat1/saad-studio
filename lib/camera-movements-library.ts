@@ -94,6 +94,18 @@ const CATEGORY_BY_ID: Record<string, CameraMovementCategoryId> = {
   "pan-360": "pan-tilt",
   "barrel-roll": "physical",
   "speed-ramp": "dolly-track",
+  // Extended signature techniques (11 — from Korean catalogue)
+  "extreme-macro-zoom": "zoom-lens",
+  "cosmic-hyper-zoom": "zoom-lens",
+  "over-the-shoulder": "dolly-track",
+  "reveal-from-behind": "specials",
+  "reveal-from-blur": "specials",
+  "epic-drone-reveal": "drone-crane",
+  "fpv-drone-dive": "drone-crane",
+  "hyperlapse": "specials",
+  "vortex-shot": "specials",
+  "bullet-time": "specials",
+  "worm-eye-tracking": "dolly-track",
 };
 
 export type CameraMovementEntry = HookCameraPreset & {

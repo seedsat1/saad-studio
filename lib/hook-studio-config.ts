@@ -1610,6 +1610,95 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameEn: "Speed Ramp / Fast Dolly",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/speed-ramp.webp",
     promptDescription: "fast forward camera rush toward subject, speed ramp effect, rapid dolly in, dramatic approach, motion blur at edges, high energy cinematic move."
+  },
+  // ── Extended signature techniques (from Korean camera-movements catalogue) ──
+  {
+    id: "extreme-macro-zoom",
+    tag: "#extreme-macro-zoom",
+    nameAr: "زوم ماكرو مجهري",
+    nameEn: "Extreme Macro Zoom",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/extreme-macro-zoom.webp",
+    promptDescription: "extreme macro zoom, zoom transition from subject to micro details of surface, revealing microscopic texture."
+  },
+  {
+    id: "cosmic-hyper-zoom",
+    tag: "#cosmic-hyper-zoom",
+    nameAr: "زوم كوني فائق",
+    nameEn: "Cosmic Hyper Zoom",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/cosmic-hyper-zoom.webp",
+    promptDescription: "cosmic hyper zoom, fast zoom transition from extreme wide view down to macro level, from cosmos to close-up detail."
+  },
+  {
+    id: "over-the-shoulder",
+    tag: "#ots",
+    nameAr: "لقطة من فوق الكتف (OTS)",
+    nameEn: "Over the Shoulder (OTS)",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/over-the-shoulder.webp",
+    promptDescription: "over the shoulder shot, camera mounted behind subject A framing subject B, dialogue setup, shallow depth of field."
+  },
+  {
+    id: "reveal-from-behind",
+    tag: "#reveal-from-behind",
+    nameAr: "كشف بالمسح من خلف عائق",
+    nameEn: "Reveal from Behind",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/reveal-from-behind.webp",
+    promptDescription: "wipe movement, camera slides laterally from behind foreground object to reveal the scene."
+  },
+  {
+    id: "reveal-from-blur",
+    tag: "#reveal-from-blur",
+    nameAr: "كشف من ضبابية",
+    nameEn: "Reveal from Blur",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/reveal-from-blur.webp",
+    promptDescription: "rack focus, start completely out of focus, slowly pull focus until sharp, dramatic reveal from blur."
+  },
+  {
+    id: "epic-drone-reveal",
+    tag: "#epic-drone-reveal",
+    nameAr: "كشف درون ملحمي",
+    nameEn: "Epic Drone Reveal",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/epic-drone-reveal.webp",
+    promptDescription: "epic drone reveal, rising and tilting down to reveal the scene, combined aerial ascent with downward tilt."
+  },
+  {
+    id: "fpv-drone-dive",
+    tag: "#fpv-dive",
+    nameAr: "غوص درون FPV عدواني",
+    nameEn: "FPV Drone Dive",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/fpv-drone-dive.webp",
+    promptDescription: "FPV drone dive, aggressive diving motion down a vertical structure, high speed vertical descent."
+  },
+  {
+    id: "hyperlapse",
+    tag: "#hyperlapse",
+    nameAr: "هايبرلابس (تسريع مع حركة)",
+    nameEn: "Hyperlapse",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/hyperlapse.webp",
+    promptDescription: "hyperlapse, camera moves forward rapidly, time accelerated, fast motion, light trails, moving time-lapse."
+  },
+  {
+    id: "vortex-shot",
+    tag: "#vortex-shot",
+    nameAr: "لقطة الدوامة (Inception)",
+    nameEn: "Vortex / Inception Shot",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/vortex-shot.webp",
+    promptDescription: "barrel roll, camera spins 360 degrees clockwise while moving forward, disorienting Inception-style vortex shot."
+  },
+  {
+    id: "bullet-time",
+    tag: "#bullet-time",
+    nameAr: "زمن الرصاصة (لحظة مجمّدة)",
+    nameEn: "Bullet Time",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/bullet-time.webp",
+    promptDescription: "bullet time, frozen moment, ultra slow motion, camera orbit around a suspended subject with time frozen."
+  },
+  {
+    id: "worm-eye-tracking",
+    tag: "#worm-eye-tracking",
+    nameAr: "تتبع بمستوى الأرض (عين الدودة)",
+    nameEn: "Worm's Eye Tracking",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/worm-eye-tracking.webp",
+    promptDescription: "worm's eye view, low angle tracking, camera moves along the ground looking up, extreme low perspective."
   }
 ];
 
