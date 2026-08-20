@@ -322,6 +322,7 @@ export default function AdminSocialMediaPage() {
           topic: agentPrompt,
           language: selectedLanguage,
           messages: updated,
+          referenceImageUrl: currentPost.imageUrl || undefined,
         }),
       });
       const data = await res.json();

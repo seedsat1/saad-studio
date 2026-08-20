@@ -48,23 +48,31 @@ async function generateImageDirectly(
   
   // Cinematic Hollywood prompt enhancement to eliminate cheesy 3D renders and gibberish text
   const cleanPrompt = prompt.trim().replace(/^Prompt:\s*/i, "");
-  const cinematicMasterPrompt = `Award-winning Hollywood cinematic still, hyper-realistic photography, 8k resolution, shot on ARRI Alexa LF 70mm, Cooke anamorphic lens, natural film grain, photorealistic skin and material textures, moody volumetric atmospheric lighting, luxury cinematic aesthetic, sharp focus: ${cleanPrompt}. (Masterpiece, photorealism, raw photo, highly detailed, perfect composition).`;
+  const cinematicMasterPrompt = cleanPrompt.length > 50
+    ? cleanPrompt
+    : `Award-winning Hollywood cinematic commercial photograph, 8k resolution, shot on ARRI Alexa LF 70mm, luxury lighting, photorealistic textures: ${cleanPrompt}`;
 
   // 1. WaveSpeed Grok Imagine 2.0 (x-ai/grok-imagine-image-v2.0/text-to-image)
   if (model.includes("grok")) {
     const wavespeedKey = process.env.WAVESPEED_API_KEY;
     if (wavespeedKey) {
       try {
+        const payload: any = {
+          prompt: cinematicMasterPrompt,
+          aspect_ratio: aspectRatio || "16:9",
+        };
+        if (referenceImageUrl) {
+          payload.image_url = referenceImageUrl;
+          payload.images = [referenceImageUrl];
+        }
+
         const submitRes = await fetch("https://api.wavespeed.ai/api/v3/x-ai/grok-imagine-image-v2.0/text-to-image", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${wavespeedKey}`,
           },
-          body: JSON.stringify({
-            prompt: cinematicMasterPrompt,
-            aspect_ratio: aspectRatio || "16:9",
-          }),
+          body: JSON.stringify(payload),
         });
 
         if (submitRes.ok) {
@@ -300,24 +308,31 @@ Return a JSON object matching:
       let imageGenPrompt = "";
 
       if (openAIApiKey && openAIApiKey !== "sk-placeholder") {
-        const systemPrompt = `You are the Lead Social Media Growth Strategist and Award-Winning Creative Director for "Saad Studio" (سعد ستوديو - the premier AI creative studio).
-Target Language: ${targetLang === "ar" ? "ARABIC (العربية الفصحى العصرية الجذابة والاحترافية)" : "ENGLISH"}.
+        const systemPrompt = `You are an elite, award-winning Creative Director and Social Media Strategist at "Saad Studio" (سعد ستوديو - the leading AI creative production platform).
+Target Language: ${targetLang === "ar" ? "ARABIC (العربية الفصحى العصرية الجذابة والاحترافية الحماسية)" : "ENGLISH"}.
 
-${referenceImageUrl ? "VISION ANALYSIS REQUIRED: The user has attached a reference image. You MUST visually inspect the image in detail (identifying subjects, colors, mood, lighting, objects, background) and generate social media posts and hashtags directly tailored to the visual story presented in the image!" : ""}
+${referenceImageUrl ? `VISION & CHARACTER CONTINUITY MANDATE:
+The user has attached a reference image. You MUST thoroughly analyze the reference image:
+1. Identify the exact subject/character: gender, ethnicity, facial features, hair style, facial hair, accessories (sunglasses, glasses, jewelry), clothing style (e.g. black leather biker jacket, suit, techwear), and pose.
+2. YOU MUST MAINTAIN THIS EXACT CHARACTER in your visual description ("imagePrompt"). Do NOT replace them with a random person!` : ""}
 
-Generate platform-optimized social media posts tailored to each network:
-1. twitter: Maximum 280 characters, compelling hook, strong value proposition, 2-3 hashtags, CTA link to ${siteUrl}.
-2. instagram: Luxurious engaging aesthetic caption, storytelling tone, emojis, "Link in bio", and 12-15 viral targeted hashtags.
-3. linkedin: Authoritative, executive industry tone detailing workflow productivity gains for creators/studios, discussion question, 3-5 hashtags.
-4. facebook: Engaging community post with friendly tone and direct CTA link.
-5. telegram: Richly formatted broadcast with markdown style, emojis, bullet points, and instant join link.
-6. tiktok: 30-second viral video script with Hook (0-3s), Visual Scene notes, and Voiceover Narration script.
+CREATIVE INSTRUCTIONS:
+1. Understand the core campaign theme: "${userPrompt || "New AI model launch and visual showcase"}".
+2. If the user mentions a specific product, AI model (e.g. Grok Imagine v2.0, Nano Banana Pro, Kling 3.0), technology, or brand, craft an energetic, blockbuster commercial visual where the character from the reference image is actively presenting, launching, or holding the futuristic device/chip/hologram in a high-tech keynote stage, sci-fi studio, or dramatic cinematic environment.
+3. Write viral, punchy, platform-tailored copy for all 6 networks:
+   - twitter: Under 280 chars, magnetic hook, highlight key features, 2-3 targeted hashtags, link to ${siteUrl}.
+   - instagram: High-energy aesthetic caption, story-driven, emojis, "Link in bio", and 12-15 viral targeted hashtags.
+   - linkedin: Thought-leadership tone on generative AI transformation, creative workflows, discussion prompt, 3-5 hashtags.
+   - facebook: Engaging community announcement, clear benefits, direct link.
+   - telegram: Markdown formatted broadcast with bold headlines, emojis, feature bullets, and instant action link.
+   - tiktok: 30-second viral video script with Hook (0-3s), Visual Scene description, and Voiceover Narration script.
 
-IMPORTANT FOR "imagePrompt":
-Create an English description for a Hollywood-grade, photorealistic cinematic masterpiece photograph.
-- Visual style: Real photography, shot on ARRI Alexa LF 70mm with anamorphic prime lens, luxury studio lighting, dramatic rim light, shallow depth of field, authentic textures.
-- Theme: A breathtaking cinematic scene representing: "${userPrompt || "Visual art showcase"}"${referenceImageUrl ? " preserving stylistic continuity with the attached reference image" : ""}.
-- Strict rules: NO cartoon, NO anime, NO childish 3D CGI toy render, NO fake gibberish text inside the picture.
+MANDATORY SPECIFICATION FOR "imagePrompt":
+Write a hyper-detailed, photorealistic English image prompt (100-150 words) that produces a stunning, award-winning commercial/cinematic photograph:
+- Main Subject: Precise description of the character from the reference image (hair, sunglasses, jacket, facial expression).
+- Action/Pose: The character interacting with or presenting the product/concept with confidence and excitement.
+- Setting: Cinematic keynote stage, futuristic presentation arena, or lush dramatic environment with volumetric spotlights, atmospheric haze, subtle neon rim lighting, and elegant branding elements.
+- Style: Real photography, shot on ARRI Alexa LF 70mm, 8k resolution, authentic skin and leather textures, dramatic lighting, sharp focus, cinematic color grading.
 
 Return ONLY a valid JSON object matching:
 {
@@ -332,7 +347,7 @@ Return ONLY a valid JSON object matching:
 
         const userMessageContent: any = referenceImageUrl
           ? [
-              { type: "text", text: userPrompt || "Analyze this image and write viral social media posts for it." },
+              { type: "text", text: userPrompt || "Analyze this image and create an epic viral marketing campaign and visual prompt featuring this exact character." },
               {
                 type: "image_url",
                 image_url: {
@@ -343,28 +358,28 @@ Return ONLY a valid JSON object matching:
             ]
           : userPrompt;
 
-        const apiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${openAIApiKey}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userMessageContent },
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.7,
-          }),
-        });
+        try {
+          const apiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${openAIApiKey}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-4o",
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userMessageContent },
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.7,
+            }),
+          });
 
-        if (apiRes.ok) {
-          const apiData = await apiRes.json();
-          const rawContent = apiData.choices?.[0]?.message?.content;
-          if (rawContent) {
-            try {
+          if (apiRes.ok) {
+            const apiData = await apiRes.json();
+            const rawContent = apiData.choices?.[0]?.message?.content;
+            if (rawContent) {
               const parsed = JSON.parse(rawContent);
               imageGenPrompt = parsed.imagePrompt || "";
               const formatItem = (platform: any, fallbackName: string): PlatformContentItem => ({
@@ -382,10 +397,51 @@ Return ONLY a valid JSON object matching:
                 telegram: formatItem("telegram", "telegram"),
                 tiktok: formatItem("tiktok", "tiktok"),
               };
-            } catch (e) {
-              console.error("JSON parse error in social agent:", e);
+            }
+          } else {
+            console.warn("GPT-4o request failed, falling back to gpt-4o-mini");
+            const fallbackRes = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${openAIApiKey}`,
+              },
+              body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: userMessageContent },
+                ],
+                response_format: { type: "json_object" },
+                temperature: 0.7,
+              }),
+            });
+            if (fallbackRes.ok) {
+              const apiData = await fallbackRes.json();
+              const rawContent = apiData.choices?.[0]?.message?.content;
+              if (rawContent) {
+                const parsed = JSON.parse(rawContent);
+                imageGenPrompt = parsed.imagePrompt || "";
+                const formatItem = (platform: any, fallbackName: string): PlatformContentItem => ({
+                  platform: fallbackName as any,
+                  content: parsed[platform]?.content || "",
+                  hashtags: Array.isArray(parsed[platform]?.hashtags) ? parsed[platform].hashtags : [],
+                  charCount: (parsed[platform]?.content || "").length,
+                });
+
+                platformsResult = {
+                  twitter: formatItem("twitter", "twitter"),
+                  instagram: formatItem("instagram", "instagram"),
+                  linkedin: formatItem("linkedin", "linkedin"),
+                  facebook: formatItem("facebook", "facebook"),
+                  telegram: formatItem("telegram", "telegram"),
+                  tiktok: formatItem("tiktok", "tiktok"),
+                };
+              }
             }
           }
+        } catch (e) {
+          console.error("Error executing OpenAI prompt generation:", e);
         }
       }
 
