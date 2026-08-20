@@ -48,20 +48,15 @@
 
 ---
 
-#### Latest task: Storyboard Sequential Coherence, Dynamic Template Selectors & Images-Only Mode (2026-08-20)
+#### Latest task: HTTP 413 Payload Too Large Resolution & Storyboard Multi-Channel Publishing (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Strict Sequential & Subject Visual Coherence**:
-     - Fixed previous non-coherent generation bug where static stock anime/motherboard images were used.
-     - System prompt now defines a single `Subject DNA` and `Environment DNA` that strictly harmonizes all 5 generated images (Hero Key Visual, Frame 1, Frame 2, Character Sheet, Room Environment).
-     - All 5 images are generated in parallel using the user's selected AI model (`nano-banana-pro`, `grok-imagine`, or `gpt-image-2`).
-  2. **Images-Only Output Format (بدون فيديو إجباري)**:
-     - Added output mode selector: `🖼️ صور ولوحات بصرية فقط` vs `🎬 فيديو + لوحات`.
-     - When Images-Only is selected, the top canvas renders the Master Hero Key Visual 4K plate directly without forcing video generation overlays.
-  3. **Showcase Template Pickers & Custom Model Selection**:
-     - Implemented 4 dedicated templates (`day-night`, `car-call`, `character-3d`, `workflow-battle`) with dynamic matching canvas layouts.
-     - Model engine selection buttons are clearly exposed for both image and video models.
-  4. Verification: `tsc --noEmit` passed with 0 errors, Vitest passed 19/19 tests, Git committed & pushed to `main`.
+  1. **HTTP 413 Payload Fix**:
+     - Fixed payload size overflow caused when sending oversized uncompressed base64 data URIs from local file pickers.
+     - Sanitized request bodies before posting to `/api/admin/social-media`.
+  2. **Dedicated Storyboard Publishing Pipeline**:
+     - Updated `handlePublishDirect` to support `source: "storyboard"` so publishing from Tab 2 packages the current storyboard's title, hero image / video URL, blueprint prompt, and viral hashtags directly into the Buffer / Facebook / Telegram payload.
+  3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
 - Status: Completed & Verified (PASS).

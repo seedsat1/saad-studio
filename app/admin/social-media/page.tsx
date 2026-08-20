@@ -523,16 +523,54 @@ export default function AdminSocialMediaPage() {
     setTimeout(() => setCopiedKey(null), 2500);
   };
 
-  const handlePublishDirect = async (platform: "facebook" | "buffer" | "telegram" | "discord" | "all") => {
+  const handlePublishDirect = async (
+    platform: "facebook" | "buffer" | "telegram" | "discord" | "all",
+    source: "post" | "storyboard" = "post"
+  ) => {
     setPublishing(true);
     setPublishResult(null);
+
+    let postToPublish: SocialMediaPostRecord;
+
+    if (source === "storyboard") {
+      const mediaUrl = currentStoryboard.video.url || currentStoryboard.heroImage?.url || currentStoryboard.referenceFrames.frame1.url;
+      const contentText = `${currentStoryboard.captionText}\n\nPrompt Blueprint:\n${currentStoryboard.promptBlueprint.fullText}`;
+      postToPublish = {
+        id: currentStoryboard.id || "sb-" + Date.now(),
+        topicPrompt: currentStoryboard.title,
+        mediaType: currentStoryboard.video.url ? "video" : "image",
+        imageUrl: currentStoryboard.video.url ? "" : mediaUrl,
+        videoUrl: currentStoryboard.video.url ? mediaUrl : "",
+        language: currentStoryboard.language,
+        platforms: {
+          facebook: { platform: "facebook", content: contentText, hashtags: currentStoryboard.hashtags, charCount: contentText.length },
+          telegram: { platform: "telegram", content: contentText, hashtags: currentStoryboard.hashtags, charCount: contentText.length },
+          instagram: { platform: "instagram", content: contentText, hashtags: currentStoryboard.hashtags, charCount: contentText.length },
+          twitter: { platform: "twitter", content: currentStoryboard.captionText, hashtags: currentStoryboard.hashtags, charCount: currentStoryboard.captionText.length },
+          linkedin: { platform: "linkedin", content: contentText, hashtags: currentStoryboard.hashtags, charCount: contentText.length },
+          tiktok: { platform: "tiktok", content: currentStoryboard.captionText, hashtags: currentStoryboard.hashtags, charCount: currentStoryboard.captionText.length },
+        },
+        status: "draft",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    } else {
+      postToPublish = currentPost;
+    }
+
+    // Safety: prevent massive inline base64 data URIs from bloating request body causing HTTP 413
+    const sanitizedPost = {
+      ...postToPublish,
+      imageUrl: postToPublish.imageUrl?.startsWith("data:") ? "" : postToPublish.imageUrl,
+    };
+
     try {
       const res = await fetch("/api/admin/social-media", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "publish",
-          post: currentPost,
+          post: sanitizedPost,
           platform,
         }),
       });
@@ -2128,7 +2166,7 @@ export default function AdminSocialMediaPage() {
                 <div className="flex items-center gap-2 text-xs">
                   <button
                     type="button"
-                    onClick={() => handlePublishDirect("facebook")}
+                    onClick={() => handlePublishDirect("facebook", "storyboard")}
                     disabled={publishing || !config.bufferAccessToken}
                     className="px-3.5 py-2 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 font-bold text-xs flex items-center gap-1.5 transition-all"
                   >
@@ -2138,7 +2176,7 @@ export default function AdminSocialMediaPage() {
 
                   <button
                     type="button"
-                    onClick={() => handlePublishDirect("telegram")}
+                    onClick={() => handlePublishDirect("telegram", "storyboard")}
                     disabled={publishing || !config.telegramBotToken}
                     className="px-3.5 py-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 font-bold text-xs flex items-center gap-1.5 transition-all"
                   >
