@@ -146,3 +146,129 @@ export async function saveSocialAccountsConfig(config: SocialAccountsConfig): Pr
     return false;
   }
 }
+
+const STORYBOARDS_CONFIG_KEY = "social_media_storyboards_history";
+
+export type StoryboardThemeType = "cyberpunk" | "luxury-gold" | "hologram" | "cinema-master";
+
+export type StoryboardShowcaseRecord = {
+  id: string;
+  title: string;
+  theme: StoryboardThemeType;
+  conceptPrompt: string;
+  language: "ar" | "en";
+  video: {
+    url?: string;
+    model: string;
+    modelBadge: string;
+    prompt: string;
+  };
+  referenceFrames: {
+    frame1: {
+      url?: string;
+      label: string;
+      modelBadge: string;
+      prompt: string;
+    };
+    frame2: {
+      url?: string;
+      label: string;
+      modelBadge: string;
+      prompt: string;
+    };
+  };
+  promptBlueprint: {
+    camera: string;
+    lighting: string;
+    composition: string;
+    fullText: string;
+  };
+  assets: {
+    character: {
+      url?: string;
+      label: string;
+      prompt: string;
+    };
+    environment: {
+      url?: string;
+      label: string;
+      prompt: string;
+    };
+  };
+  captionText: string;
+  hashtags: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function getStoryboards(): Promise<StoryboardShowcaseRecord[]> {
+  try {
+    const row = await prismadb.platformConfig.findUnique({
+      where: { key: STORYBOARDS_CONFIG_KEY },
+    });
+    if (!row?.value) return [];
+    const list = JSON.parse(row.value);
+    return Array.isArray(list) ? list : [];
+  } catch (err) {
+    console.error("[getStoryboards] error:", err);
+    return [];
+  }
+}
+
+export async function saveStoryboard(storyboard: Omit<StoryboardShowcaseRecord, "id" | "createdAt" | "updatedAt"> & { id?: string }): Promise<StoryboardShowcaseRecord> {
+  const currentList = await getStoryboards();
+  const nowIso = new Date().toISOString();
+  let finalRecord: StoryboardShowcaseRecord;
+
+  if (storyboard.id) {
+    const idx = currentList.findIndex((s) => s.id === storyboard.id);
+    if (idx >= 0) {
+      finalRecord = {
+        ...currentList[idx],
+        ...storyboard,
+        id: storyboard.id,
+        updatedAt: nowIso,
+      };
+      currentList[idx] = finalRecord;
+    } else {
+      finalRecord = {
+        ...storyboard,
+        id: storyboard.id,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      };
+      currentList.unshift(finalRecord);
+    }
+  } else {
+    finalRecord = {
+      ...storyboard,
+      id: "sb_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    currentList.unshift(finalRecord);
+  }
+
+  await prismadb.platformConfig.upsert({
+    where: { key: STORYBOARDS_CONFIG_KEY },
+    update: { value: JSON.stringify(currentList.slice(0, 50)) },
+    create: { key: STORYBOARDS_CONFIG_KEY, value: JSON.stringify(currentList.slice(0, 50)) },
+  });
+
+  return finalRecord;
+}
+
+export async function deleteStoryboard(id: string): Promise<boolean> {
+  try {
+    const currentList = await getStoryboards();
+    const filtered = currentList.filter((s) => s.id !== id);
+    await prismadb.platformConfig.upsert({
+      where: { key: STORYBOARDS_CONFIG_KEY },
+      update: { value: JSON.stringify(filtered) },
+      create: { key: STORYBOARDS_CONFIG_KEY, value: JSON.stringify(filtered) },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}

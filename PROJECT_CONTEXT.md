@@ -94,7 +94,7 @@
      - AI Agent automatically creates multi-platform posts for **📘 Facebook**, **𝕏 (Twitter)**, **📸 Instagram**, **💼 LinkedIn**, **✈️ Telegram**, and **🎵 TikTok/Shorts scripts**.
      - Added full **AI Video Generation Suite (توليد فيديو بالذكاء الاصطناعي)** with direct model switches for **Google Omni / Veo (`google-omni-veo`)**, **Kling AI Pro (`kling-video`)**, and **Seedance 2.5 (`seedance-video`)**, alongside **Google Nano Banana Pro** and **OpenAI GPT-Image-2** for images.
      - Added native **Social Media Aspect Ratio Selector (9:16 Reels/TikTok, 1:1 Square, 4:5 Portrait, 16:9 Landscape)** with full cross-provider resolution mapping.
-     - Redesigned into a balanced **Full-Width 3-Column Studio Grid Layout** (Media Studio, Content Editor & Customizer, Live Interactive Platform Preview) that fully utilizes wide and ultra-wide screens without wasted space.
+     - Built **Viral AI Storyboard & Showcase Studio (ستوري بورد واستعراض الـ AI الفيروسي)** featuring 4 Luxury Themes (🌌 Cyberpunk Neon, 💎 Luxury Gold & Glass, 🚀 AI Hologram, 🎬 Cinema Master), auto multi-scene decomposition (Top Kling/Omni motion video, dual Nano Banana keyframe plates, camera & lighting blueprint breakdown, and isolated character/room asset cards) in vertical 9:16 format matching viral reels & TikTok showcases.
      - Features realistic video players & interactive UI mock previews for each network, one-click copy buttons, post archives, and direct 1-click publishing to **Facebook Pages via Buffer GraphQL API**, Telegram channels, and Webhooks.
   13. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.

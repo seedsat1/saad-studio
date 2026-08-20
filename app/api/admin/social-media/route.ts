@@ -6,8 +6,13 @@ import {
   deleteSocialPost,
   getSocialAccountsConfig,
   saveSocialAccountsConfig,
+  getStoryboards,
+  saveStoryboard,
+  deleteStoryboard,
   SocialMediaPostRecord,
   PlatformContentItem,
+  StoryboardShowcaseRecord,
+  StoryboardThemeType,
 } from "@/lib/social-media";
 
 export const maxDuration = 120;
@@ -20,8 +25,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const posts = await getSocialPosts();
+    const storyboards = await getStoryboards();
     const config = await getSocialAccountsConfig();
-    return NextResponse.json({ posts, config });
+    return NextResponse.json({ posts, storyboards, config });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch social posts" },
@@ -731,6 +737,208 @@ Return ONLY a valid JSON object matching:
       return NextResponse.json({ success: true, post: saved });
     }
 
+    // 6. GENERATE VIRAL STORYBOARD SHOWCASE
+    if (action === "generate_storyboard") {
+      const userPrompt = String(body.prompt || "").trim() || "Day-to-night transformation of a 3D animator working at his desk in Saad Studio";
+      const targetLang = (body.language || "ar") === "en" ? "en" : "ar";
+      const selectedTheme: StoryboardThemeType = body.theme || "cyberpunk";
+
+      const openAIApiKey = process.env.OPENAI_API_KEY;
+      let generatedBlueprint: any = null;
+
+      if (openAIApiKey && openAIApiKey !== "sk-placeholder") {
+        const systemPrompt = `You are the Master Creative Director & Viral Storyboard Architect for "Saad Studio".
+Language: ${targetLang === "ar" ? "Arabic" : "English"}.
+Theme: ${selectedTheme}.
+
+Convert the concept into a high-converting viral 9:16 Storyboard Breakdown with:
+1. title: Catchy title (e.g. "Kling 3.0 + Nano Banana Day-to-Night Workflow").
+2. videoModel: "kling-video" or "google-omni-veo"
+3. videoModelBadge: "Kling 3.0 Pro" or "Google Omni Veo 2"
+4. videoPrompt: Highly descriptive English video motion prompt.
+5. frame1Label: Label for first reference plate (e.g. "Frame 1: Morning Daylight").
+6. frame1Prompt: Detailed English image prompt for Frame 1.
+7. frame2Label: Label for second reference plate (e.g. "Frame 2: Cyber Night Glow").
+8. frame2Prompt: Detailed English image prompt for Frame 2.
+9. camera: Camera setup (e.g. "Locked Static Camera, 35mm Anamorphic, f/1.8").
+10. lighting: Lighting setup (e.g. "Warm morning daylight transitioning to neon ambient glow").
+11. composition: Composition description.
+12. fullBlueprintPrompt: Comprehensive copyable prompt text with all parameters.
+13. characterLabel: "Character Asset"
+14. characterPrompt: English prompt for isolated character/subject.
+15. environmentLabel: "Room / Environment Plate"
+16. environmentPrompt: English prompt for isolated environment.
+17. captionText: Engaging viral caption for Instagram Reels / TikTok / YouTube Shorts in ${targetLang === "ar" ? "Arabic" : "English"}.
+18. hashtags: Array of 8 viral hashtags.
+
+Return ONLY a valid JSON object matching these keys.`;
+
+        try {
+          const apiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${openAIApiKey}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt },
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.7,
+            }),
+          });
+
+          if (apiRes.ok) {
+            const apiData = await apiRes.json();
+            const rawContent = apiData.choices?.[0]?.message?.content;
+            if (rawContent) {
+              generatedBlueprint = JSON.parse(rawContent);
+            }
+          }
+        } catch (e) {
+          console.warn("Storyboard OpenAI generation failed:", e);
+        }
+      }
+
+      // Default fallback blueprint if AI was unavailable
+      if (!generatedBlueprint) {
+        generatedBlueprint = {
+          title: targetLang === "ar" ? "سير عمل Kling 3.0 و Nano Banana السينمائي" : "Kling 3.0 & Nano Banana Cinematic Workflow",
+          videoModel: "kling-video",
+          videoModelBadge: "Kling 3.0 Pro",
+          videoPrompt: `Cinematic 3D animation, locked static camera, same bedroom workstation. Stylized character typing on glowing laptop. Fast smooth day to night transition with ambient lighting shifting from golden sunlight to neon cyberpunk glow, 8k render masterpiece.`,
+          frame1Label: targetLang === "ar" ? "الإطار 1: ضوء الصباح" : "Frame 1: Morning Daylight",
+          frame1Prompt: `3D stylized character sitting at bedroom desk typing on computer, warm morning sunlight streaming through window, soft cozy lighting, Pixar aesthetic, 8k octane render.`,
+          frame2Label: targetLang === "ar" ? "الإطار 2: توهج ليلي سيبراني" : "Frame 2: Cyber Night Glow",
+          frame2Prompt: `Same 3D stylized character sitting at bedroom desk typing on computer at night, glowing neon cyan and warm amber screen reflections, atmospheric bedroom, 8k octane render.`,
+          camera: "Locked Static Camera, 35mm Anamorphic, f/1.8",
+          lighting: "Volumetric morning sunlight shifting to cyber neon ambient glows",
+          composition: "Rule of thirds, centered workstation desk with background depth",
+          fullBlueprintPrompt: `locked static camera, same workstation scene. Stylized creator sits at desk working continuously on laptop. Frame 1: morning daylight through window. Frame 2: nighttime lighting with warm neon glow. Minimal motion, seamless loop, 8k render.`,
+          characterLabel: targetLang === "ar" ? "عنصر الشخصية" : "Character Model",
+          characterPrompt: `Stylized 3D cartoon tech creator character with red beanie and yellow shirt, full body character sheet, clean solid background.`,
+          environmentLabel: targetLang === "ar" ? "عنصر البيئة والغرفة" : "Room Environment",
+          environmentPrompt: `Cozy modern creator bedroom workstation with dual monitors, bookshelf, warm ambient night lamps, empty scene background plate.`,
+          captionText: targetLang === "ar" 
+            ? "كيف تصنع فيديو تحول سينمائي كامل من النهار إلى الليل بالذكاء الاصطناعي؟ 🚀 استخدمنا محرك Kling 3.0 مع Nano Banana في سعد ستوديو للوصول لهذه النتيجة الخرافية! جرب البرومبت المرفق الآن 🎬"
+            : "How to create a seamless day-to-night AI cinematic loop! 🚀 Built with Kling 3.0 & Nano Banana inside Saad Studio. Try the blueprint prompt below! 🎬",
+          hashtags: ["#SaadStudio", "#KlingAI", "#NanoBanana", "#AIAnimation", "#AIVideo", "#CGI", "#ViralReels", "#Filmmaking"],
+        };
+      }
+
+      // Generate keyframe 1 & 2 via image generator if WaveSpeed or OpenAI is configured
+      let frame1Url = "";
+      let frame2Url = "";
+      const waveSpeedKey = process.env.WAVESPEED_API_KEY;
+
+      if (waveSpeedKey) {
+        try {
+          const [res1, res2] = await Promise.allSettled([
+            fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${waveSpeedKey}` },
+              body: JSON.stringify({ prompt: generatedBlueprint.frame1Prompt, aspect_ratio: "16:9", num_images: 1 }),
+            }),
+            fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${waveSpeedKey}` },
+              body: JSON.stringify({ prompt: generatedBlueprint.frame2Prompt, aspect_ratio: "16:9", num_images: 1 }),
+            }),
+          ]);
+
+          const getUrlFromTask = async (resObj: any) => {
+            if (resObj.status === "fulfilled" && resObj.value.ok) {
+              const data = await resObj.value.json();
+              const taskId = data?.data?.id || data?.id;
+              if (taskId) {
+                for (let i = 0; i < 15; i++) {
+                  await new Promise((r) => setTimeout(r, 2000));
+                  const pRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
+                    headers: { Authorization: `Bearer ${waveSpeedKey}` },
+                  });
+                  if (pRes.ok) {
+                    const pData = await pRes.json();
+                    const status = (pData?.data?.status || pData?.status || "").toLowerCase();
+                    if (status === "completed" || status === "succeeded" || status === "success") {
+                      return pData?.data?.outputs?.[0] || pData?.outputs?.[0] || "";
+                    }
+                  }
+                }
+              }
+            }
+            return "";
+          };
+
+          const [f1, f2] = await Promise.all([getUrlFromTask(res1), getUrlFromTask(res2)]);
+          frame1Url = f1;
+          frame2Url = f2;
+        } catch (e) {
+          console.warn("Storyboard frames generation failed:", e);
+        }
+      }
+
+      const newStoryboardRecord: Omit<StoryboardShowcaseRecord, "id" | "createdAt" | "updatedAt"> = {
+        title: generatedBlueprint.title,
+        theme: selectedTheme,
+        conceptPrompt: userPrompt,
+        language: targetLang,
+        video: {
+          url: "",
+          model: generatedBlueprint.videoModel || "kling-video",
+          modelBadge: generatedBlueprint.videoModelBadge || "Kling 3.0 Pro",
+          prompt: generatedBlueprint.videoPrompt,
+        },
+        referenceFrames: {
+          frame1: {
+            url: frame1Url || "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&auto=format&fit=crop&q=80",
+            label: generatedBlueprint.frame1Label,
+            modelBadge: "Google Nano Banana Pro",
+            prompt: generatedBlueprint.frame1Prompt,
+          },
+          frame2: {
+            url: frame2Url || "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&auto=format&fit=crop&q=80",
+            label: generatedBlueprint.frame2Label,
+            modelBadge: "Google Nano Banana Pro",
+            prompt: generatedBlueprint.frame2Prompt,
+          },
+        },
+        promptBlueprint: {
+          camera: generatedBlueprint.camera,
+          lighting: generatedBlueprint.lighting,
+          composition: generatedBlueprint.composition,
+          fullText: generatedBlueprint.fullBlueprintPrompt,
+        },
+        assets: {
+          character: {
+            url: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80",
+            label: generatedBlueprint.characterLabel,
+            prompt: generatedBlueprint.characterPrompt,
+          },
+          environment: {
+            url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80",
+            label: generatedBlueprint.environmentLabel,
+            prompt: generatedBlueprint.environmentPrompt,
+          },
+        },
+        captionText: generatedBlueprint.captionText,
+        hashtags: generatedBlueprint.hashtags || [],
+      };
+
+      const savedRecord = await saveStoryboard(newStoryboardRecord);
+      return NextResponse.json({ success: true, storyboard: savedRecord });
+    }
+
+    // 7. SAVE STORYBOARD RECORD
+    if (action === "save_storyboard") {
+      const storyboard = body.storyboard;
+      if (!storyboard) return NextResponse.json({ error: "Missing storyboard" }, { status: 400 });
+      const saved = await saveStoryboard(storyboard);
+      return NextResponse.json({ success: true, storyboard: saved });
+    }
+
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
     return NextResponse.json(
@@ -748,13 +956,19 @@ export async function DELETE(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const id = (url.searchParams.get("id") || "").trim();
-    if (!id) return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
+    const type = (url.searchParams.get("type") || "post").trim();
+    if (!id) return NextResponse.json({ error: "ID is required" }, { status: 400 });
+
+    if (type === "storyboard" || id.startsWith("sb_")) {
+      const success = await deleteStoryboard(id);
+      return NextResponse.json({ success });
+    }
 
     const success = await deleteSocialPost(id);
     return NextResponse.json({ success });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete post" },
+      { error: error instanceof Error ? error.message : "Failed to delete item" },
       { status: 500 }
     );
   }
