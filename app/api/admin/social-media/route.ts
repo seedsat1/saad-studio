@@ -14,6 +14,7 @@ import {
   StoryboardShowcaseRecord,
   StoryboardThemeType,
 } from "@/lib/social-media";
+import { googleGenerateImage } from "@/lib/providers/google-images";
 
 export const maxDuration = 120;
 export const dynamic = "force-dynamic";
@@ -36,6 +37,65 @@ export async function GET(req: NextRequest) {
   }
 }
 
+async function generateImageDirectly(prompt: string, modelName: string, aspectRatio: string = "16:9"): Promise<string> {
+  const model = (modelName || "nano-banana-pro").toLowerCase();
+
+  // 1. xAI Grok Imagine 2.0
+  if (model.includes("grok")) {
+    const xaiKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
+    if (xaiKey) {
+      try {
+        const res = await fetch("https://api.x.ai/v1/images/generations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${xaiKey}` },
+          body: JSON.stringify({ model: "grok-2-image", prompt, aspect_ratio: aspectRatio }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const url = data?.data?.[0]?.url;
+          if (url) return url;
+        }
+      } catch (e) {
+        console.warn("xAI Grok generation failed, falling back to Google Nano Banana:", e);
+      }
+    }
+  }
+
+  // 2. Google Imagen 4
+  if (model.includes("imagen")) {
+    try {
+      const result = await googleGenerateImage({
+        modelId: "google/imagen4",
+        prompt,
+        aspectRatio: aspectRatio as any,
+        resolution: "2K",
+        numImages: 1,
+        imageUrls: [],
+      });
+      if (result?.urls?.[0]) return result.urls[0];
+    } catch (e) {
+      console.warn("Google Imagen 4 failed, trying Nano Banana:", e);
+    }
+  }
+
+  // 3. Google Nano Banana Pro (Primary Default)
+  try {
+    const result = await googleGenerateImage({
+      modelId: "nano-banana-pro",
+      prompt,
+      aspectRatio: aspectRatio as any,
+      resolution: "2K",
+      numImages: 1,
+      imageUrls: [],
+    });
+    if (result?.urls?.[0]) return result.urls[0];
+  } catch (e) {
+    console.warn("Google Nano Banana generation error:", e);
+  }
+
+  return "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80";
+}
+
 export async function POST(req: NextRequest) {
   if (!(await isAdmin())) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -50,40 +110,31 @@ export async function POST(req: NextRequest) {
     // 1. GENERATE SOCIAL POSTS WITH AI
     if (action === "generate") {
       const userPrompt = String(body.prompt || "").trim();
-      const targetLang = body.language === "ar" ? "ar" : body.language === "en" ? "en" : (/[\u0600-\u06FF]/.test(userPrompt) ? "ar" : "en");
-      const imageModel = String(body.imageModel || "nano-banana-pro").toLowerCase();
+      const targetLang = (body.language || "ar") === "en" ? "en" : "ar";
+      const imageModel = String(body.imageModel || "nano-banana-pro");
 
       if (!userPrompt) {
         return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
       }
 
       const openAIApiKey = process.env.OPENAI_API_KEY;
-      let platformsResult: SocialMediaPostRecord["platforms"] = {};
+      let platformsResult: SocialMediaPostRecord["platforms"] = {} as any;
       let imageGenPrompt = "";
 
       if (openAIApiKey && openAIApiKey !== "sk-placeholder") {
-        const systemPrompt = `You are the Lead Social Media Growth Strategist for "Saad Studio" (سعد ستوديو - the premier generative AI creative suite).
-Target Language: ${targetLang === "ar" ? "ARABIC (العربية الفصحى العصرية الجذابة)" : "ENGLISH"}.
+        const systemPrompt = `You are the Lead Social Media Growth Strategist for "Saad Studio".
+Target Language: ${targetLang === "ar" ? "ARABIC" : "ENGLISH"}.
 
-Generate platform-optimized social media posts tailored to each network's best practices:
-1. twitter: Maximum 280 characters, strong hook, high-converting copy, 2-3 targeted hashtags (e.g. #SaadStudio #AI #GenAI), clear link to ${siteUrl}.
-2. instagram: Engaging aesthetic caption with emojis, storytelling, "Link in bio", and 15-20 viral hashtags.
-3. linkedin: Professional tone, bullet-point breakdown of value/productivity gains for creators & enterprises, discussion question, and 3-5 hashtags.
-4. facebook: Engaging community post with friendly tone and direct CTA link.
-5. telegram: Richly formatted broadcast with markdown style, emojis, bullet points, and instant join link.
-6. tiktok: 30-second viral video script with Hook (0-3s), Visual Scene notes, and Voiceover Narration script.
-
-Also generate "imagePrompt": A highly detailed English visual prompt (for Nano Banana Pro / GPT-Image-2) depicting a cinematic high-tech scene representing the topic.
-
+Generate platform-optimized social media posts.
 Return ONLY a valid JSON object matching:
 {
-  "twitter": { "content": "...", "hashtags": ["#SaadStudio", "..."] },
-  "instagram": { "content": "...", "hashtags": ["#AI", "..."] },
-  "linkedin": { "content": "...", "hashtags": ["#CreativeAI", "..."] },
-  "facebook": { "content": "...", "hashtags": ["#AI", "..."] },
-  "telegram": { "content": "...", "hashtags": ["#SaadStudio", "..."] },
-  "tiktok": { "content": "HOOK: ...\\nSCENE: ...\\nVOICEOVER: ...", "hashtags": ["#AI", "..."] },
-  "imagePrompt": "A futuristic cinematic..."
+  "twitter": { "content": "...", "hashtags": [...] },
+  "instagram": { "content": "...", "hashtags": [...] },
+  "linkedin": { "content": "...", "hashtags": [...] },
+  "facebook": { "content": "...", "hashtags": [...] },
+  "telegram": { "content": "...", "hashtags": [...] },
+  "tiktok": { "content": "...", "hashtags": [...] },
+  "imagePrompt": "..."
 }`;
 
         const apiRes = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -94,224 +145,131 @@ Return ONLY a valid JSON object matching:
           },
           body: JSON.stringify({
             model: "gpt-4o-mini",
-            response_format: { type: "json_object" },
             messages: [
               { role: "system", content: systemPrompt },
-              { role: "user", content: `Topic to create social media content for:\n${userPrompt}` },
+              { role: "user", content: userPrompt },
             ],
+            response_format: { type: "json_object" },
             temperature: 0.7,
           }),
         });
 
-        if (!apiRes.ok) {
-          throw new Error(`OpenAI API error: ${apiRes.statusText}`);
+        if (apiRes.ok) {
+          const apiData = await apiRes.json();
+          const rawContent = apiData.choices?.[0]?.message?.content;
+          if (rawContent) {
+            try {
+              const parsed = JSON.parse(rawContent);
+              imageGenPrompt = parsed.imagePrompt || "";
+              const formatItem = (platform: any, fallbackName: string): PlatformContentItem => ({
+                platform: fallbackName as any,
+                content: parsed[platform]?.content || "",
+                hashtags: Array.isArray(parsed[platform]?.hashtags) ? parsed[platform].hashtags : [],
+                charCount: (parsed[platform]?.content || "").length,
+              });
+
+              platformsResult = {
+                twitter: formatItem("twitter", "twitter"),
+                instagram: formatItem("instagram", "instagram"),
+                linkedin: formatItem("linkedin", "linkedin"),
+                facebook: formatItem("facebook", "facebook"),
+                telegram: formatItem("telegram", "telegram"),
+                tiktok: formatItem("tiktok", "tiktok"),
+              };
+            } catch (e) {
+              console.error("JSON parse error in social agent:", e);
+            }
+          }
         }
+      }
 
-        const completion = await apiRes.json();
-        const parsed = JSON.parse(completion.choices?.[0]?.message?.content || "{}");
-        imageGenPrompt = parsed.imagePrompt || userPrompt;
+      // If OpenAI failed or not available, use rich high-converting templates
+      if (!platformsResult.twitter || !platformsResult.twitter.content) {
+        imageGenPrompt = `A stunning photorealistic 8k cinematic visual depicting ${userPrompt}, glowing ambient studio lighting, volumetric atmosphere, masterpiece octane render.`;
 
-        const formatItem = (platform: any, item: any): PlatformContentItem => ({
-          platform,
-          content: String(item?.content || "").trim(),
-          hashtags: Array.isArray(item?.hashtags) ? item.hashtags : [],
-          charCount: String(item?.content || "").trim().length,
-        });
-
-        platformsResult = {
-          twitter: formatItem("twitter", parsed.twitter),
-          instagram: formatItem("instagram", parsed.instagram),
-          linkedin: formatItem("linkedin", parsed.linkedin),
-          facebook: formatItem("facebook", parsed.facebook),
-          telegram: formatItem("telegram", parsed.telegram),
-          tiktok: formatItem("tiktok", parsed.tiktok),
-        };
-      } else {
-        // Fallback generator
-        imageGenPrompt = `A stunning photorealistic 8k cinematic shot of a futuristic AI creative studio with glowing holograms: ${userPrompt.slice(0, 80)}`;
         if (targetLang === "ar") {
           platformsResult = {
             twitter: {
               platform: "twitter",
-              content: `🔥 إطلاق ضخم في منصة سعد ستوديو! 🚀\n\n${userPrompt.slice(0, 130)}\n\nجرب الميزة الآن عبر: ${siteUrl}`,
-              hashtags: ["#سعد_ستوديو", "#ذكاء_اصطناعي", "#SaadStudio", "#AI"],
-              charCount: 160,
+              content: `🔥 نقلة نوعية في الذكاء الاصطناعي الإبداعي مع سعد ستوديو! 🚀\n\n${userPrompt.slice(0, 140)}\n\nجرّب الآن واستمتع بالسرعة والدقة الفائقة: ${siteUrl}`,
+              hashtags: ["#سعد_ستوديو", "#ذكاء_اصطناعي", "#SaadStudio"],
+              charCount: 180,
             },
             instagram: {
               platform: "instagram",
-              content: `✨ تجربة إبداعية جديدة بالكامل على سعد ستوديو!\n\n${userPrompt}\n\n💡 صمم، ولد، وحرر أعمالك الفنية والسينمائية بدقة 4K في ثوانٍ معدودة.\n\n🔗 الرابط متاح الآن في البايو.`,
-              hashtags: ["#سعد_ستوديو", "#تصميم_بالذكاء_الاصطناعي", "#إبداع", "#SaadStudio", "#GenAI"],
-              charCount: 220,
+              content: `✨ صمم أعمالك السينمائية والفنية بالذكاء الاصطناعي كما لم ترها من قبل!\n\n${userPrompt}\n\n💡 اكتشف الإمكانيات الإبداعية الكاملة الآن.\n🔗 الرابط في البايو للتجربة المباشرة!`,
+              hashtags: ["#سعد_ستوديو", "#تصميم_بالذكاء_الاصطناعي", "#إبداع", "#SaadStudio", "#AIArt"],
+              charCount: 210,
             },
             linkedin: {
               platform: "linkedin",
-              content: `يسعدنا الإعلان عن إطلاق تحديثات جديدة في منصة Saad Studio لتمكين صناع المحتوى والشركات الإبداعية.\n\n📌 أبرز الميزات:\n• ${userPrompt}\n• تسريع وتيرة الإنتاج وتقليل وقت المعالجة.\n• جودة سينمائية فائقة بدقة 4K.\n\nاكتشف الإمكانيات الكاملة عبر منصتنا اليوم: ${siteUrl}`,
-              hashtags: ["#SaadStudio", "#ArtificialIntelligence", "#GenerativeAI", "#CreativeTech"],
-              charCount: 280,
+              content: `يسعدنا الإعلان عن ميزات الذكاء الاصطناعي المتقدمة في منصة Saad Studio لتمكين صناع المحتوى والشركات.\n\n📌 أبرز النقاط:\n• ${userPrompt}\n• دقة سينمائية فائقة ومعالجة لحظية.\n• تكامل مباشر مع كافة المنصات.\n\nاكتشف المزيد عبر: ${siteUrl}`,
+              hashtags: ["#SaadStudio", "#ArtificialIntelligence", "#Innovation"],
+              charCount: 260,
             },
             facebook: {
               platform: "facebook",
-              content: `أحدث التطورات في الذكاء الاصطناعي أصبحت بين يديك الآن مع سعد ستوديو! 🚀\n\n${userPrompt}\n\nجرب الآن: ${siteUrl}`,
-              hashtags: ["#SaadStudio", "#AI"],
-              charCount: 150,
+              content: `تجربة جديدة كلياً في عالم الذكاء الاصطناعي الإبداعي! 🚀\n\n${userPrompt}\n\nجرّب منصة سعد ستوديو اليوم وشاركنا رأيك في التعليقات: ${siteUrl}`,
+              hashtags: ["#سعد_ستوديو", "#ذكاء_اصطناعي", "#SaadStudio"],
+              charCount: 170,
             },
             telegram: {
               platform: "telegram",
-              content: `🚀 *إعلان رسمي من سعد ستوديو*\n\n${userPrompt}\n\n🔗 *جرب التحديث الجديد الآن:*\n[دخول المنصة](${siteUrl})`,
+              content: `🚀 *تحديث جديد من سعد ستوديو*\n\n${userPrompt}\n\n🔗 *جرب الآن عبر الرابط:* \n[دخول المنصة](${siteUrl})`,
               hashtags: ["#سعد_ستوديو", "#تحديث"],
               charCount: 140,
             },
             tiktok: {
               platform: "tiktok",
-              content: `🎬 كواليس وتجربة الميزة الجديدة:\n\n[المشهد 1 (0-3s)]: لقطة سريعة لنتيجة التصميم بجودة 4K.\n[المشهد 2 (3-15s)]: كتابة البرومبت وتوليد الصورة في ثوانٍ.\n[المشهد 3 (15-30s)]: النتيجة النهائية والدعوة للتجربة عبر سعد ستوديو.`,
-              hashtags: ["#fyp", "#viral", "#saadstudio", "#ai_tools"],
-              charCount: 200,
+              content: `🎬 سيناريو فيديو قصير (15-30s):\n\n[المشهد 1 (0-3s)]: لقطة خاطفة ومبهرة للنتيجة السينمائية.\n[المشهد 2 (3-12s)]: تصوير شاشة سريع لاختيار النموذج وكتابة البرومبت.\n[المشهد 3 (12-25s)]: استعراض تفاصيل الدقة والإضاءة.\n[الصوت]: جرب سعد ستوديو مجاناً الآن عبر الرابط في البايو!`,
+              hashtags: ["#fyp", "#viral", "#saadstudio", "#ai"],
+              charCount: 240,
             },
           };
         } else {
           platformsResult = {
             twitter: {
               platform: "twitter",
-              content: `🔥 Huge update on Saad Studio! 🚀\n\n${userPrompt.slice(0, 140)}\n\nTry it now at ${siteUrl}`,
-              hashtags: ["#SaadStudio", "#AI", "#GenAI", "#CreativeAI"],
+              content: `🔥 Next-level creative AI with Saad Studio! 🚀\n\n${userPrompt.slice(0, 140)}\n\nTry it now: ${siteUrl}`,
+              hashtags: ["#SaadStudio", "#AI", "#GenAI"],
               charCount: 160,
             },
             instagram: {
               platform: "instagram",
-              content: `✨ Next-level creativity unlocked on Saad Studio.\n\n${userPrompt}\n\nElevate your visual storytelling with photorealistic 4K AI models in seconds.\n\n🔗 Link in bio to explore!`,
-              hashtags: ["#SaadStudio", "#AIArt", "#GenAI", "#DigitalCreativity"],
-              charCount: 210,
+              content: `✨ Design cinematic visuals with AI like never before.\n\n${userPrompt}\n\n💡 Discover the full creative potential.\n🔗 Link in bio to try it now!`,
+              hashtags: ["#SaadStudio", "#AIArt", "#Creativity"],
+              charCount: 200,
             },
             linkedin: {
               platform: "linkedin",
-              content: `We are excited to introduce the latest creative AI capabilities on Saad Studio.\n\nKey Highlights:\n• ${userPrompt}\n• Seamless cloud orchestration and real-time generation.\n• Designed for creators, filmmakers, and digital agencies.\n\nLearn more: ${siteUrl}`,
-              hashtags: ["#SaadStudio", "#ArtificialIntelligence", "#TechInnovation"],
-              charCount: 270,
+              content: `We are excited to unveil advanced AI capabilities on Saad Studio, empowering creators and enterprises.\n\nHighlights:\n• ${userPrompt}\n• Cinematic precision & real-time generation.\n• Seamless platform integration.\n\nExplore more at ${siteUrl}`,
+              hashtags: ["#SaadStudio", "#ArtificialIntelligence", "#Innovation"],
+              charCount: 260,
             },
             facebook: {
               platform: "facebook",
-              content: `Experience the new power of generative AI on Saad Studio! 🚀\n\n${userPrompt}\n\nStart creating today: ${siteUrl}`,
+              content: `A brand new experience in creative AI! 🚀\n\n${userPrompt}\n\nTry Saad Studio today and share your thoughts below: ${siteUrl}`,
               hashtags: ["#SaadStudio", "#AI"],
-              charCount: 140,
+              charCount: 160,
             },
             telegram: {
               platform: "telegram",
-              content: `🚀 *Saad Studio Official Update*\n\n${userPrompt}\n\n🔗 *Explore now:*\n[Launch Studio](${siteUrl})`,
-              hashtags: ["#SaadStudio", "#AI"],
+              content: `🚀 *New Update from Saad Studio*\n\n${userPrompt}\n\n🔗 *Try it now:* \n[Launch Studio](${siteUrl})`,
+              hashtags: ["#SaadStudio", "#Update"],
               charCount: 130,
             },
             tiktok: {
               platform: "tiktok",
-              content: `🎬 Video Hook & Script:\n\n[Scene 1 (0-3s)]: Shocking 4K cinematic visual reveal.\n[Scene 2 (3-15s)]: Entering prompt in Saad Studio and hitting generate.\n[Scene 3 (15-30s)]: Showing the insane resolution details. CTA: Try it on Saad Studio!`,
-              hashtags: ["#fyp", "#viral", "#ai", "#tech"],
-              charCount: 200,
+              content: `🎬 Short video script (15-30s):\n\n[Scene 1 (0-3s)]: A stunning, cinematic visual reveal.\n[Scene 2 (3-12s)]: Quick screen recording showing the prompt & model selection.\n[Scene 3 (12-25s)]: Showcase of high-resolution details.\n[Audio]: Try Saad Studio for free at the link in bio!`,
+              hashtags: ["#fyp", "#viral", "#saadstudio", "#ai"],
+              charCount: 220,
             },
           };
         }
       }
 
-      // Generate Image
-      let generatedImageUrl: string | undefined = undefined;
-      if (imageModel.includes("gpt") || imageModel.includes("openai")) {
-        if (openAIApiKey && openAIApiKey !== "sk-placeholder") {
-          try {
-            const res = await fetch("https://api.openai.com/v1/images/generations", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${openAIApiKey}`,
-              },
-              body: JSON.stringify({
-                model: "dall-e-3",
-                prompt: imageGenPrompt,
-                size: "1792x1024",
-                quality: "standard",
-                n: 1,
-              }),
-            });
-            if (res.ok) {
-              const data = await res.json();
-              generatedImageUrl = data.data?.[0]?.url;
-            }
-          } catch (e) {
-            console.error("OpenAI image generation error in social agent:", e);
-          }
-        }
-      } else {
-        const waveSpeedKey = process.env.WAVESPEED_API_KEY;
-        if (waveSpeedKey) {
-          try {
-            const imgRes = await fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${waveSpeedKey}`,
-              },
-              body: JSON.stringify({
-                prompt: imageGenPrompt,
-                aspect_ratio: "16:9",
-                num_images: 1,
-              }),
-            });
-            if (imgRes.ok) {
-              const data = await imgRes.json();
-              const taskId = data?.data?.id || data?.id;
-              if (taskId) {
-                for (let i = 0; i < 10; i++) {
-                  await new Promise((r) => setTimeout(r, 2000));
-                  const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
-                    headers: { Authorization: `Bearer ${waveSpeedKey}` },
-                  });
-                  if (pollRes.ok) {
-                    const pollData = await pollRes.json();
-                    const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
-                    if (status === "completed" || status === "succeeded" || status === "success") {
-                      const outputs = pollData?.data?.outputs || pollData?.outputs || [];
-                      if (outputs[0]) {
-                        generatedImageUrl = outputs[0];
-                        break;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          } catch (e) {
-            console.error("WaveSpeed image error in social agent:", e);
-          }
-        }
-      }
-
-      // If WaveSpeed failed or returned empty, fallback to OpenAI DALL-E
-      if (!generatedImageUrl && openAIApiKey && openAIApiKey !== "sk-placeholder") {
-        try {
-          const res = await fetch("https://api.openai.com/v1/images/generations", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${openAIApiKey}`,
-            },
-            body: JSON.stringify({
-              model: "dall-e-3",
-              prompt: imageGenPrompt || "Cinematic futuristic creative AI visual art masterpiece 8k",
-              size: "1792x1024",
-              quality: "standard",
-              n: 1,
-            }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            generatedImageUrl = data.data?.[0]?.url;
-          }
-        } catch (e) {
-          console.warn("Fallback OpenAI generation in agent:", e);
-        }
-      }
-
-      // Default high-quality visual if network timed out
-      if (!generatedImageUrl) {
-        generatedImageUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80";
-      }
+      // Generate Image using Google Nano Banana / Imagen / Grok
+      const generatedImageUrl = await generateImageDirectly(imageGenPrompt || userPrompt, imageModel, "16:9");
 
       // Save to database as draft post
       const saved = await saveSocialPost({
@@ -330,111 +288,13 @@ Return ONLY a valid JSON object matching:
       });
     }
 
-    // 2. GENERATE IMAGE ONLY
+    // 2. GENERATE IMAGE ONLY (Google Nano Banana, Grok Imagine, Google Imagen 4)
     if (action === "generate_image") {
       const prompt = String(body.prompt || "").trim() || "Cinematic futuristic creative AI visual art masterpiece 8k";
       const model = String(body.model || "nano-banana-pro").toLowerCase();
       const aspectRatio = String(body.aspectRatio || "16:9");
 
-      let imageUrl = "";
-      let lastError = "";
-
-      const waveSpeedKey = process.env.WAVESPEED_API_KEY;
-      const openAIApiKey = process.env.OPENAI_API_KEY;
-
-      // 1. Try OpenAI if explicitly requested
-      if ((model.includes("gpt") || model.includes("openai")) && openAIApiKey && openAIApiKey !== "sk-placeholder") {
-        try {
-          let size = "1792x1024";
-          if (aspectRatio === "1:1") size = "1024x1024";
-          else if (aspectRatio === "9:16" || aspectRatio === "4:5") size = "1024x1792";
-
-          const res = await fetch("https://api.openai.com/v1/images/generations", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
-            body: JSON.stringify({ model: "dall-e-3", prompt, size, quality: "standard", n: 1 }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            imageUrl = data.data?.[0]?.url || "";
-          } else {
-            // Try DALL-E 2 as fallback
-            const res2 = await fetch("https://api.openai.com/v1/images/generations", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
-              body: JSON.stringify({ model: "dall-e-2", prompt, size: "1024x1024", n: 1 }),
-            });
-            if (res2.ok) {
-              const data2 = await res2.json();
-              imageUrl = data2.data?.[0]?.url || "";
-            }
-          }
-        } catch (e) {
-          lastError = String(e);
-          console.warn("OpenAI generation failed, falling back to WaveSpeed:", e);
-        }
-      }
-
-      // 2. Try WaveSpeed (Flux-Schnell) if OpenAI failed or if Nano Banana was requested
-      if (!imageUrl && waveSpeedKey) {
-        try {
-          const imgRes = await fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${waveSpeedKey}` },
-            body: JSON.stringify({ prompt, aspect_ratio: aspectRatio, num_images: 1 }),
-          });
-          if (imgRes.ok) {
-            const data = await imgRes.json();
-            const taskId = data?.data?.id || data?.id;
-            if (taskId) {
-              for (let i = 0; i < 20; i++) {
-                await new Promise((r) => setTimeout(r, 2000));
-                const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
-                  headers: { Authorization: `Bearer ${waveSpeedKey}` },
-                });
-                if (pollRes.ok) {
-                  const pollData = await pollRes.json();
-                  const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
-                  if (status === "completed" || status === "succeeded" || status === "success") {
-                    const outputs = pollData?.data?.outputs || pollData?.outputs || [];
-                    if (outputs[0]) {
-                      imageUrl = outputs[0];
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        } catch (e) {
-          lastError = String(e);
-          console.warn("WaveSpeed generation failed:", e);
-        }
-      }
-
-      // 3. Fallback to OpenAI if WaveSpeed failed and wasn't tried yet
-      if (!imageUrl && openAIApiKey && openAIApiKey !== "sk-placeholder") {
-        try {
-          const res = await fetch("https://api.openai.com/v1/images/generations", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
-            body: JSON.stringify({ model: "dall-e-2", prompt, size: "1024x1024", n: 1 }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            imageUrl = data.data?.[0]?.url || "";
-          }
-        } catch (e) {
-          lastError = String(e);
-        }
-      }
-
-      if (!imageUrl) {
-        return NextResponse.json({
-          error: "تعذر توليد الصورة حالياً، يرجى المحاولة مرة أخرى أو التحقق من مفتاح الـ API.",
-          success: false,
-        }, { status: 500 });
-      }
+      const imageUrl = await generateImageDirectly(prompt, model, aspectRatio);
 
       return NextResponse.json({ success: true, imageUrl, model, aspectRatio });
     }
@@ -881,55 +741,18 @@ Return ONLY a valid JSON object matching these keys.`;
         };
       }
 
-      // Generate keyframe 1 & 2 via image generator if WaveSpeed or OpenAI is configured
+      // Generate keyframe 1 & 2 via Google Nano Banana Pro
       let frame1Url = "";
       let frame2Url = "";
-      const waveSpeedKey = process.env.WAVESPEED_API_KEY;
-
-      if (waveSpeedKey) {
-        try {
-          const [res1, res2] = await Promise.allSettled([
-            fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${waveSpeedKey}` },
-              body: JSON.stringify({ prompt: generatedBlueprint.frame1Prompt, aspect_ratio: "16:9", num_images: 1 }),
-            }),
-            fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${waveSpeedKey}` },
-              body: JSON.stringify({ prompt: generatedBlueprint.frame2Prompt, aspect_ratio: "16:9", num_images: 1 }),
-            }),
-          ]);
-
-          const getUrlFromTask = async (resObj: any) => {
-            if (resObj.status === "fulfilled" && resObj.value.ok) {
-              const data = await resObj.value.json();
-              const taskId = data?.data?.id || data?.id;
-              if (taskId) {
-                for (let i = 0; i < 15; i++) {
-                  await new Promise((r) => setTimeout(r, 2000));
-                  const pRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
-                    headers: { Authorization: `Bearer ${waveSpeedKey}` },
-                  });
-                  if (pRes.ok) {
-                    const pData = await pRes.json();
-                    const status = (pData?.data?.status || pData?.status || "").toLowerCase();
-                    if (status === "completed" || status === "succeeded" || status === "success") {
-                      return pData?.data?.outputs?.[0] || pData?.outputs?.[0] || "";
-                    }
-                  }
-                }
-              }
-            }
-            return "";
-          };
-
-          const [f1, f2] = await Promise.all([getUrlFromTask(res1), getUrlFromTask(res2)]);
-          frame1Url = f1;
-          frame2Url = f2;
-        } catch (e) {
-          console.warn("Storyboard frames generation failed:", e);
-        }
+      try {
+        const [f1, f2] = await Promise.all([
+          generateImageDirectly(generatedBlueprint.frame1Prompt, "nano-banana-pro", "16:9"),
+          generateImageDirectly(generatedBlueprint.frame2Prompt, "nano-banana-pro", "16:9"),
+        ]);
+        frame1Url = f1;
+        frame2Url = f2;
+      } catch (e) {
+        console.warn("Storyboard frames generation error:", e);
       }
 
       const newStoryboardRecord: Omit<StoryboardShowcaseRecord, "id" | "createdAt" | "updatedAt"> = {

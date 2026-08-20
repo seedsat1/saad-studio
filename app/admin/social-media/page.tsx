@@ -152,7 +152,7 @@ export default function AdminSocialMediaPage() {
   const [selectedLanguage, setSelectedLanguage] = useState<"ar" | "en">("ar");
   const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video">("image");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<"1:1" | "9:16" | "16:9" | "4:5">("16:9");
-  const [selectedImageModel, setSelectedImageModel] = useState<"nano-banana-pro" | "gpt-image-2">("nano-banana-pro");
+  const [selectedImageModel, setSelectedImageModel] = useState<"nano-banana-pro" | "grok-imagine" | "google-imagen-4">("nano-banana-pro");
   const [selectedVideoModel, setSelectedVideoModel] = useState<"google-omni-veo" | "kling-video" | "seedance-video">("google-omni-veo");
 
   // Agent states
@@ -800,28 +800,39 @@ export default function AdminSocialMediaPage() {
                   {selectedMediaType === "image" ? (
                     <div className="space-y-1.5 pt-2 border-t border-white/5 text-[11px]">
                       <span className="text-zinc-400 font-semibold">نموذج الصورة:</span>
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div className="grid grid-cols-3 gap-1">
                         <button
                           type="button"
                           onClick={() => setSelectedImageModel("nano-banana-pro")}
-                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] ${
+                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
                             selectedImageModel === "nano-banana-pro"
                               ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🍌 Nano Banana Pro
+                          🍌 Nano Banana
                         </button>
                         <button
                           type="button"
-                          onClick={() => setSelectedImageModel("gpt-image-2")}
-                          className={`px-2 py-1.5 rounded-xl font-bold transition-all text-[10px] ${
-                            selectedImageModel === "gpt-image-2"
+                          onClick={() => setSelectedImageModel("grok-imagine")}
+                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
+                            selectedImageModel === "grok-imagine"
+                              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                              : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
+                          }`}
+                        >
+                          ⚡ Grok Imagine
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImageModel("google-imagen-4")}
+                          className={`px-1.5 py-1.5 rounded-xl font-bold transition-all text-[9px] text-center ${
+                            selectedImageModel === "google-imagen-4"
                               ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                               : "text-zinc-400 hover:text-white bg-black/40 border border-white/5"
                           }`}
                         >
-                          🧠 GPT-Image-2
+                          🎨 Imagen 4
                         </button>
                       </div>
                     </div>
