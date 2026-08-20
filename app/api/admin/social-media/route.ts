@@ -282,6 +282,37 @@ Return ONLY a valid JSON object matching:
         }
       }
 
+      // If WaveSpeed failed or returned empty, fallback to OpenAI DALL-E
+      if (!generatedImageUrl && openAIApiKey && openAIApiKey !== "sk-placeholder") {
+        try {
+          const res = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${openAIApiKey}`,
+            },
+            body: JSON.stringify({
+              model: "dall-e-3",
+              prompt: imageGenPrompt || "Cinematic futuristic creative AI visual art masterpiece 8k",
+              size: "1792x1024",
+              quality: "standard",
+              n: 1,
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            generatedImageUrl = data.data?.[0]?.url;
+          }
+        } catch (e) {
+          console.warn("Fallback OpenAI generation in agent:", e);
+        }
+      }
+
+      // Default high-quality visual if network timed out
+      if (!generatedImageUrl) {
+        generatedImageUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80";
+      }
+
       // Save to database as draft post
       const saved = await saveSocialPost({
         topicPrompt: userPrompt,
