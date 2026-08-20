@@ -48,16 +48,16 @@
 
 ---
 
-#### Latest task: Social Media AI Agent Hollywood Poster & Hero Prop Engine (2026-08-21)
+#### Latest task: Upload Video/Image & Auto-Generate Ready-to-Publish Posts (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Exact Persona & Styling Elevation**:
-     - Preserves the exact facial features, hair, and gaze of the uploaded reference character.
-     - Elevates the outfit into a futuristic, high-tech hero suit with tactile materials, warm ambient glow, and gloves.
-  2. **Hero Prop & Branding Integration**:
-     - Instructs the engine to place an illuminated futuristic tech processor/badge displaying the model name (`GROK IMAGINE v2.0`) in the character's hand.
-  3. **Cinematic Launch Atmosphere**:
-     - Adds golden floating particles/embers, anamorphic lens flares, volumetric backlighting, and dark perspective stage aesthetics matching ChatGPT's output.
+  1. **Multi-Media File Upload**:
+     - Upgraded upload support in Social Media Agent to accept both high-res images (`image/*`) and video files (`video/*`).
+  2. **Auto-Post Generation from Uploaded Media**:
+     - When an image or video is uploaded, GPT-4o analyzes the media in detail and automatically writes ready-to-publish posts for Twitter, Instagram, LinkedIn, Facebook, Telegram, and TikTok script with hashtags.
+  3. **Interactive Attachment Preview & Action Chips**:
+     - Added rich preview chips for uploaded images and videos with 1-click "✨ اكتب المنشورات بالذكاء الاصطناعي" button and delete button.
+     - Supports direct publishing and copying without requiring re-generation of visuals.
   4. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)

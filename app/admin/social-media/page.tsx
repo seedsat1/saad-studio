@@ -540,16 +540,56 @@ export default function AdminSocialMediaPage() {
     });
   };
 
+  const handleGeneratePostsForUploadedMedia = async (mediaUrl: string, type: "image" | "video", customPrompt?: string) => {
+    setGenerating(true);
+    try {
+      const promptToUse = (customPrompt || agentPrompt).trim() || (type === "video" ? "فيديو سينمائي تسويقي جذاب" : "تصميم بصري احترافي فائق الدقة");
+      const res = await fetch("/api/admin/social-media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate",
+          prompt: promptToUse,
+          language: selectedLanguage,
+          mediaType: type,
+          aspectRatio: selectedAspectRatio,
+          referenceImageUrl: type === "image" ? mediaUrl : undefined,
+          referenceVideoUrl: type === "video" ? mediaUrl : undefined,
+          imageUrl: type === "image" ? mediaUrl : undefined,
+          videoUrl: type === "video" ? mediaUrl : undefined,
+          useUploadedMediaAsFinal: true,
+          skipImageGen: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.post) {
+        setCurrentPost(data.post);
+        if (data.post.topicPrompt && !agentPrompt) {
+          setAgentPrompt(data.post.topicPrompt);
+        }
+      }
+    } catch (e) {
+      console.error("Auto post generation for uploaded media failed:", e);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingImg(true);
     try {
-      const optimizedFile = await compressImageClient(file);
+      const isVideo = file.type.startsWith("video/");
+      let fileToUpload: File | Blob = file;
+      if (!isVideo) {
+        fileToUpload = await compressImageClient(file);
+      }
+
       const formData = new FormData();
-      formData.append("file", optimizedFile);
-      formData.append("assetType", "image");
+      formData.append("file", fileToUpload);
+      formData.append("assetType", isVideo ? "video" : "image");
 
       const res = await fetch("/api/studio/upload-url", {
         method: "POST",
@@ -559,11 +599,21 @@ export default function AdminSocialMediaPage() {
       if (res.ok) {
         const { publicUrl } = await res.json();
         if (publicUrl) {
-          setCurrentPost((prev) => ({ ...prev, imageUrl: publicUrl }));
+          if (isVideo) {
+            setSelectedMediaType("video");
+            setCurrentPost((prev) => ({ ...prev, videoUrl: publicUrl, imageUrl: "", mediaType: "video" }));
+            void handleGeneratePostsForUploadedMedia(publicUrl, "video");
+          } else {
+            setSelectedMediaType("image");
+            setCurrentPost((prev) => ({ ...prev, imageUrl: publicUrl, videoUrl: "", mediaType: "image" }));
+            void handleGeneratePostsForUploadedMedia(publicUrl, "image");
+          }
         }
+      } else {
+        alert("فشل رفع الملف. الرجاء التأكد من حجم وصيغة الملف.");
       }
-    } catch {
-      alert("Upload failed");
+    } catch (e) {
+      alert("حدث خطأ أثناء رفع الملف: " + String(e));
     } finally {
       setUploadingImg(false);
     }
@@ -996,27 +1046,74 @@ export default function AdminSocialMediaPage() {
                   className="w-full rounded-2xl border border-white/10 bg-black/50 p-4 text-xs md:text-sm text-white placeholder-zinc-500 outline-none focus:border-cyan-400/50 transition-colors leading-relaxed"
                 />
 
-                {/* Reference Image Attachment Chip */}
+                {/* Reference Image or Video Attachment Chip */}
                 {currentPost.imageUrl && (
-                  <div className="flex items-center gap-2.5 p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-xs">
-                    <div className="w-10 h-10 rounded-lg overflow-hidden relative bg-black/60 shrink-0 border border-white/10">
+                  <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-xs">
+                    <div className="w-11 h-11 rounded-lg overflow-hidden relative bg-black/60 shrink-0 border border-white/10">
                       <img src={currentPost.imageUrl} alt="Reference Attachment" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] font-bold text-cyan-300 flex items-center gap-1">
-                        <ImageIcon className="w-3 h-3 text-cyan-400" />
-                        <span>صورة مرجعية مرفقة للايجنت (Reference Image)</span>
+                        <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>صورة مرفقة للنشر والتحليل الذكي (Uploaded Image)</span>
                       </div>
-                      <div className="text-[10px] text-zinc-400 truncate">سيتم استخدامها كمرجع لتوليد الصور والفيديوهات والبوستات</div>
+                      <div className="text-[10px] text-zinc-400 truncate">سيقوم الأيجنت بكتابة بوستات تسويقية جذابة مخصصة لهذه الصورة مباشرة</div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPost((prev) => ({ ...prev, imageUrl: "" }))}
-                      className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-rose-400 transition-colors"
-                      title="حذف الصورة المرفقة"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => void handleGeneratePostsForUploadedMedia(currentPost.imageUrl!, "image")}
+                        disabled={generating}
+                        className="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-semibold text-[11px] flex items-center gap-1 transition-colors border border-cyan-500/40"
+                        title="إعادة كتابة وتوليد بوستات تسويقية لهذه الصورة"
+                      >
+                        {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-cyan-400" />}
+                        <span>اكتب المنشورات ✨</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPost((prev) => ({ ...prev, imageUrl: "" }))}
+                        className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-rose-400 transition-colors"
+                        title="حذف الصورة المرفقة"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {currentPost.videoUrl && (
+                  <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs">
+                    <div className="w-11 h-11 rounded-lg overflow-hidden relative bg-black/60 shrink-0 border border-white/10 flex items-center justify-center">
+                      <VideoIcon className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-bold text-purple-300 flex items-center gap-1">
+                        <VideoIcon className="w-3.5 h-3.5 text-purple-400" />
+                        <span>فيديو مرفق للنشر والتحليل الذكي (Uploaded Video)</span>
+                      </div>
+                      <div className="text-[10px] text-zinc-400 truncate">سيقوم الأيجنت بكتابة سكريبت وبوستات مخصصة لهذا الفيديو</div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => void handleGeneratePostsForUploadedMedia(currentPost.videoUrl!, "video")}
+                        disabled={generating}
+                        className="px-2.5 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 font-semibold text-[11px] flex items-center gap-1 transition-colors border border-purple-500/40"
+                        title="إعادة كتابة وتوليد بوستات تسويقية لهذا الفيديو"
+                      >
+                        {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-purple-400" />}
+                        <span>اكتب المنشورات ✨</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPost((prev) => ({ ...prev, videoUrl: "" }))}
+                        className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-rose-400 transition-colors"
+                        title="حذف الفيديو المرفق"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1047,16 +1144,16 @@ export default function AdminSocialMediaPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* 0. Attach Reference Image */}
+                  {/* 0. Attach Reference Media (Image or Video) */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadingImg}
                     className="px-3.5 py-2.5 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 font-bold text-xs flex items-center gap-1.5 transition-all shrink-0"
-                    title="رفع صورة مرجعية خاصة بك من جهازك للايجنت"
+                    title="رفع صورة أو فيديو من جهازك ليكتب الأيجنت نصوص النشر تلقائياً"
                   >
                     {uploadingImg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 text-cyan-400" />}
-                    <span>{currentPost.imageUrl ? "استبدال الصورة 🖼️" : "إرفاق صورة 🖼️"}</span>
+                    <span>{currentPost.imageUrl || currentPost.videoUrl ? "استبدال الوسائط 📁" : "رفع فيديو أو صورة 📁"}</span>
                   </button>
 
                   {/* 1. Creative Dialogue Button */}

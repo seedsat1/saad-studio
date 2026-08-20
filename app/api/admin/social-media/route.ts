@@ -530,19 +530,22 @@ Return ONLY a valid JSON object matching:
         }
       }
 
-      // Automatically generate visual in 1 step (Image or Video)
+      // Media handling: Use uploaded media as final OR generate new visual
       let generatedImageUrl = "";
       let generatedVideoUrl = "";
 
-      if (mediaType === "image") {
-        generatedImageUrl = await generateImageDirectly(imageGenPrompt || userPrompt, imageModel, aspectRatio);
+      if (body.useUploadedMediaAsFinal) {
+        generatedImageUrl = body.imageUrl || body.referenceImageUrl || "";
+        generatedVideoUrl = body.videoUrl || body.referenceVideoUrl || "";
+      } else if (!body.skipImageGen && mediaType === "image") {
+        generatedImageUrl = await generateImageDirectly(imageGenPrompt || userPrompt, imageModel, aspectRatio, referenceImageUrl);
       }
 
       // Save to database as draft post
       const saved = await saveSocialPost({
-        topicPrompt: userPrompt,
+        topicPrompt: userPrompt || (generatedVideoUrl ? "منشور فيديو سينمائي جاهز" : "منشور بصري جاهز"),
         language: targetLang as "ar" | "en",
-        mediaType,
+        mediaType: generatedVideoUrl ? "video" : mediaType,
         aspectRatio: aspectRatio as any,
         imageUrl: generatedImageUrl || undefined,
         imageModel: imageModel as any,

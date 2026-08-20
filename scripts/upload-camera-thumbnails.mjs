@@ -8,7 +8,8 @@
 //   - .env.local set: B2_ACCESS_KEY_ID, B2_SECRET_ACCESS_KEY (+ optional B2_BUCKET, B2_ENDPOINT, B2_REGION)
 //
 // Run:
-//   node --env-file=.env.local scripts/upload-camera-thumbnails.mjs
+//   node --env-file=.env.local scripts/upload-camera-thumbnails.mjs [manifest-path]
+// Manifest arg is optional; defaults to the 46-camera manifest in scratchpad.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -20,7 +21,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const MANIFEST = path.join(
+const DEFAULT_MANIFEST = path.join(
   os.tmpdir(),
   "claude",
   "E------------next14-ai-saas-next14-ai-saas-main-next14-ai-saas-main",
@@ -28,6 +29,7 @@ const MANIFEST = path.join(
   "scratchpad",
   "camera-movement-videos.json"
 );
+const MANIFEST = process.argv[2] || DEFAULT_MANIFEST;
 
 const BUCKET = process.env.B2_BUCKET || process.env.B2_BUCKET_NAME || "saadstudio-storage";
 const KEY_PREFIX = "reference-thumbnails";
