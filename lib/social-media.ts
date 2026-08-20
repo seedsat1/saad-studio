@@ -35,6 +35,8 @@ export type SocialMediaPostRecord = {
 };
 
 export type SocialAccountsConfig = {
+  bufferAccessToken?: string;
+  bufferProfileId?: string;
   telegramBotToken?: string;
   telegramChatId?: string;
   discordWebhookUrl?: string;

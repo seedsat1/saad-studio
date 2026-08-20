@@ -357,6 +357,59 @@ Return ONLY a valid JSON object matching:
       const config = await getSocialAccountsConfig();
       const results: Record<string, boolean> = {};
 
+      // Buffer API Broadcast (Facebook, Instagram, X, LinkedIn)
+      if (targetPlatform === "facebook" || targetPlatform === "buffer" || targetPlatform === "all") {
+        if (config.bufferAccessToken) {
+          try {
+            // 1. Fetch connected profiles if profileId not specified
+            let targetProfileIds: string[] = [];
+            if (config.bufferProfileId) {
+              targetProfileIds = [config.bufferProfileId];
+            } else {
+              const profRes = await fetch(`https://api.bufferapp.com/1/profiles.json?access_token=${encodeURIComponent(config.bufferAccessToken)}`);
+              if (profRes.ok) {
+                const profiles = await profRes.json();
+                if (Array.isArray(profiles)) {
+                  if (targetPlatform === "facebook") {
+                    const fbProfs = profiles.filter((p: any) => p.service === "facebook" || p.service_type === "page");
+                    targetProfileIds = fbProfs.length ? fbProfs.map((p: any) => p.id) : profiles.map((p: any) => p.id);
+                  } else {
+                    targetProfileIds = profiles.map((p: any) => p.id);
+                  }
+                }
+              }
+            }
+
+            if (targetProfileIds.length > 0) {
+              const fbText = `${post.platforms.facebook?.content || post.platforms.twitter?.content || ""}\n\n${(post.platforms.facebook?.hashtags || []).join(" ")}`;
+              
+              const params = new URLSearchParams();
+              params.append("access_token", config.bufferAccessToken);
+              params.append("text", fbText);
+              params.append("now", "true");
+              targetProfileIds.forEach((pid) => params.append("profile_ids[]", pid));
+
+              if (post.imageUrl) {
+                params.append("media[photo]", post.imageUrl);
+              }
+
+              const bufferRes = await fetch("https://api.bufferapp.com/1/updates/create.json", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: params.toString(),
+              });
+
+              results.buffer = bufferRes.ok;
+              results.facebook = bufferRes.ok;
+            }
+          } catch (e) {
+            console.error("Buffer API publish error:", e);
+            results.buffer = false;
+            results.facebook = false;
+          }
+        }
+      }
+
       // Telegram Broadcast
       if (targetPlatform === "telegram" || targetPlatform === "all") {
         if (config.telegramBotToken && config.telegramChatId) {

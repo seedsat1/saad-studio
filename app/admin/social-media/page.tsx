@@ -219,7 +219,7 @@ export default function AdminSocialMediaPage() {
     setTimeout(() => setCopiedKey(null), 2500);
   };
 
-  const handlePublishDirect = async (platform: "telegram" | "discord" | "all") => {
+  const handlePublishDirect = async (platform: "facebook" | "buffer" | "telegram" | "discord" | "all") => {
     setPublishing(true);
     setPublishResult(null);
     try {
@@ -435,8 +435,19 @@ export default function AdminSocialMediaPage() {
                   )}
                 </button>
 
-                {/* Direct Telegram / Discord broadcast button if configured */}
-                <div className="flex items-center gap-2">
+                {/* Direct Broadcast Buttons */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handlePublishDirect("facebook")}
+                    disabled={publishing || !config.bufferAccessToken}
+                    className="px-4 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 disabled:opacity-40 text-blue-300 font-bold text-xs flex items-center gap-2 transition-all"
+                    title={!config.bufferAccessToken ? "اضبط مفتاح Buffer في تبويب الإعدادات لنشر البوست فوراً لفيسبوك" : "نشر مباشر لصفحة فيسبوك عبر Buffer"}
+                  >
+                    <Share2 className="w-3.5 h-3.5 text-blue-400" />
+                    <span>نشر لفيسبوك عبر Buffer 📘</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => handlePublishDirect("telegram")}
@@ -445,7 +456,7 @@ export default function AdminSocialMediaPage() {
                     title={!config.telegramBotToken ? "اضبط بيانات تيليجرام أولاً في تبويب الإعدادات" : "نشر مباشر لقناة تيليجرام"}
                   >
                     <Send className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>نشر لقناة تيليجرام ✈️</span>
+                    <span>نشر لتيليجرام ✈️</span>
                   </button>
                 </div>
               </div>
@@ -554,6 +565,7 @@ export default function AdminSocialMediaPage() {
                 {/* Platform Selector Tabs */}
                 <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-950 border border-white/10 overflow-x-auto">
                   {[
+                    { id: "facebook", label: "📘 Facebook", count: currentPost.platforms.facebook?.charCount },
                     { id: "twitter", label: "𝕏 Twitter", count: currentPost.platforms.twitter?.charCount },
                     { id: "instagram", label: "📸 Instagram", count: currentPost.platforms.instagram?.charCount },
                     { id: "linkedin", label: "💼 LinkedIn", count: currentPost.platforms.linkedin?.charCount },
@@ -666,6 +678,50 @@ export default function AdminSocialMediaPage() {
                     {activePlatform.toUpperCase()} Preview
                   </span>
                 </div>
+
+                {/* 0. FACEBOOK PREVIEW */}
+                {activePlatform === "facebook" && (
+                  <div className="rounded-3xl border border-white/10 bg-[#18191a] p-5 text-white shadow-2xl space-y-3 font-sans max-w-lg mx-auto">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-zinc-900 border border-white/20 flex items-center justify-center overflow-hidden">
+                          <Image src="/logo-saad.png?v=5" alt="Saad Studio" width={28} height={28} unoptimized />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1 font-bold text-sm">
+                            <span>Saad Studio</span>
+                            <span className="text-blue-400 text-xs">●</span>
+                          </div>
+                          <div className="text-[11px] text-zinc-400">منذ دقائق • 🌐 عام</div>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-zinc-500">•••</span>
+                    </div>
+
+                    <p className="text-xs md:text-sm text-zinc-100 leading-relaxed whitespace-pre-wrap">
+                      {currentPlatformData.content}
+                    </p>
+
+                    {currentPlatformData.hashtags && currentPlatformData.hashtags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 text-blue-400 text-xs font-semibold">
+                        {currentPlatformData.hashtags.map((tag, i) => (
+                          <span key={i}>{tag}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    {currentPost.imageUrl && (
+                      <div className="rounded-2xl overflow-hidden border border-zinc-700 aspect-video bg-zinc-900">
+                        <img src={currentPost.imageUrl} alt="Facebook visual" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-zinc-400 text-xs pt-2 border-t border-zinc-800">
+                      <span>👍❤️ 520 تفاعل</span>
+                      <span>💬 48 تعليق • 🔄 26 مشاركة</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* 1. TWITTER / X PREVIEW */}
                 {activePlatform === "twitter" && (
@@ -949,6 +1005,38 @@ export default function AdminSocialMediaPage() {
             </div>
 
             <form onSubmit={handleSaveConfig} className="space-y-5 text-xs">
+              {/* Buffer API for Facebook, Instagram & X */}
+              <div className="p-4 rounded-2xl bg-black/40 border border-blue-500/30 space-y-3">
+                <div className="font-bold text-blue-300 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Share2 className="w-4 h-4 text-blue-400" />
+                    <span>ربط Buffer (لنشر فيسبوك، إنستغرام، و X)</span>
+                  </div>
+                  <a
+                    href="https://buffer.com/developers/apps/create"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] text-blue-400 hover:underline flex items-center gap-1"
+                  >
+                    <span>الحصول على Access Token</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-zinc-400 font-bold text-[10px] uppercase">Buffer Access Token</label>
+                  <input
+                    type="password"
+                    value={config.bufferAccessToken || ""}
+                    onChange={(e) => setConfig({ ...config, bufferAccessToken: e.target.value })}
+                    placeholder="1/abcdef1234567890..."
+                    className="w-full rounded-xl border border-white/10 bg-zinc-900 px-3.5 py-2.5 text-white outline-none focus:border-blue-400/50"
+                  />
+                  <p className="text-[10px] text-zinc-500">
+                    ضع المفتاح هنا لتتمكن من نشر البوستات فوراً إلى صفحة فيسبوك وقنواتك المربوطة في Buffer.
+                  </p>
+                </div>
+              </div>
+
               {/* Telegram Bot */}
               <div className="p-4 rounded-2xl bg-black/40 border border-white/10 space-y-3">
                 <div className="font-bold text-cyan-300 flex items-center gap-2">

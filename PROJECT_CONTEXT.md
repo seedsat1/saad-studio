@@ -91,8 +91,8 @@
   12. Social Media AI Agent & Multi-Platform Marketing Hub:
      - Built dedicated `/admin/social-media` page (`app/admin/social-media/page.tsx`) and added `Social Media Hub` to `AdminSidebar` under USERS & FINANCE.
      - Built backend AI router (`app/api/admin/social-media/route.ts`) and database storage helper (`lib/social-media.ts`).
-     - AI Agent automatically creates multi-platform posts for **𝕏 (Twitter)**, **📸 Instagram**, **💼 LinkedIn**, **✈️ Telegram**, and **🎵 TikTok/Shorts scripts**.
-     - Features direct image generation with **Google Nano Banana Pro** and **OpenAI GPT-Image-2**, realistic interactive UI mock previews for each network, one-click copy buttons, post archives, and direct Telegram channel / Discord / Webhook publishing.
+     - AI Agent automatically creates multi-platform posts for **📘 Facebook**, **𝕏 (Twitter)**, **📸 Instagram**, **💼 LinkedIn**, **✈️ Telegram**, and **🎵 TikTok/Shorts scripts**.
+     - Features direct image generation with **Google Nano Banana Pro** and **OpenAI GPT-Image-2**, realistic interactive UI mock previews for each network, one-click copy buttons, post archives, and direct 1-click publishing to **Facebook Pages via Buffer API**, Telegram channels, and Webhooks.
   13. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest test suite: 19/19 tests passed across all suites.
