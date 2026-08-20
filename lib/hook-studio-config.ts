@@ -1202,7 +1202,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "لقطة ثابتة مثبتة",
     nameEn: "Static Shot",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/static-shot.webp",
-    promptDescription: "Locked-off static shot. Movement: hold one fixed camera position for the full clip. Speed: still and steady. Framing: keep the same angle, height, lens distance and composition. End: finish with the same framing and camera position."
+    promptDescription: "locked-off static shot. Movement: hold one fixed camera position for the full clip. Speed: still and steady. Framing: keep the same angle, height, lens distance and composition. End: finish with the same framing and camera position."
   },
   {
     id: "pan-right",
@@ -1210,7 +1210,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تدوير أفقي لليمين",
     nameEn: "Pan Right",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/pan-right.webp",
-    promptDescription: "Pan right. Movement: rotate the camera horizontally from left to right from one fixed point. Speed: smooth constant rotation. Framing: keep the horizon level while new space enters from the right side of the frame. End: settle on a clear final composition."
+    promptDescription: "pan right. Movement: rotate the camera horizontally from left to right from one fixed point. Speed: smooth constant rotation. Framing: keep the horizon level while new space enters from the right side of the frame. End: settle on a clear final composition."
   },
   {
     id: "pan-left",
@@ -1218,7 +1218,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تدوير أفقي لليسار",
     nameEn: "Pan Left",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/pan-left.webp",
-    promptDescription: "Pan left. Movement: rotate the camera horizontally from right to left from one fixed point. Speed: smooth constant rotation. Framing: keep the horizon level while new space enters from the left side of the frame. End: settle on a clear final composition."
+    promptDescription: "pan left. Movement: rotate the camera horizontally from right to left from one fixed point. Speed: smooth constant rotation. Framing: keep the horizon level while new space enters from the left side of the frame. End: settle on a clear final composition."
   },
   {
     id: "whip-pan-right",
@@ -1226,7 +1226,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تدوير خاطف سريع لليمين",
     nameEn: "Whip Pan Right",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/whip-pan-right.webp",
-    promptDescription: "Whip pan right. Movement: rotate rapidly from the starting direction toward a new target on the right. Speed: fast snap with brief motion blur during the rotation. Framing: begin on one readable composition and land on a second readable target. End: settle into a sharp final frame."
+    promptDescription: "whip pan right. Movement: rotate rapidly from the starting direction toward a new target on the right. Speed: fast snap with brief motion blur during the rotation. Framing: begin on one readable composition and land on a second readable target. End: settle into a sharp final frame."
   },
   {
     id: "whip-pan-left",
@@ -1234,7 +1234,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تدوير خاطف سريع لليسار",
     nameEn: "Whip Pan Left",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/whip-pan-left.webp",
-    promptDescription: "Whip pan left. Movement: rotate rapidly from the starting direction toward a new target on the left. Speed: fast snap with brief motion blur during the rotation. Framing: begin on one readable composition and land on a second readable target. End: settle into a sharp final frame."
+    promptDescription: "whip pan left. Movement: rotate rapidly from the starting direction toward a new target on the left. Speed: fast snap with brief motion blur during the rotation. Framing: begin on one readable composition and land on a second readable target. End: settle into a sharp final frame."
   },
   {
     id: "tilt-up",
@@ -1242,7 +1242,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "إمالة إلى الأعلى",
     nameEn: "Tilt Up",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/tilt-up.webp",
-    promptDescription: "Tilt up. Movement: rotate the camera upward from one fixed point. Speed: smooth constant tilt. Framing: keep the vertical subject or architecture centered as the frame travels upward. End: land on the upper target."
+    promptDescription: "tilt up. Movement: rotate the camera upward from one fixed point. Speed: smooth constant tilt. Framing: keep the vertical subject or architecture centered as the frame travels upward. End: land on the upper target."
   },
   {
     id: "tilt-down",
@@ -1250,7 +1250,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "إمالة إلى الأسفل",
     nameEn: "Tilt Down",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/tilt-down.webp",
-    promptDescription: "Tilt down. Movement: rotate the camera downward from one fixed point. Speed: smooth constant tilt. Framing: keep the vertical subject or architecture centered as the frame travels downward. End: land on the lower target."
+    promptDescription: "tilt down. Movement: rotate the camera downward from one fixed point. Speed: smooth constant tilt. Framing: keep the vertical subject or architecture centered as the frame travels downward. End: land on the lower target."
   },
   // ── Zoom / Lens ─────────────────────────────────────────────
   {
@@ -1259,7 +1259,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تكبير بطيء",
     nameEn: "Slow Zoom In",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/slow-zoom-in.webp",
-    promptDescription: "Slow zoom in. Movement: slowly increase lens focal length toward a tighter frame. Speed: gradual and even. Framing: keep the main visual target readable as it becomes larger in frame. End: finish on a stable tighter composition."
+    promptDescription: "slow zoom in. Movement: slowly increase lens focal length toward a tighter frame. Speed: gradual and even. Framing: keep the main visual target readable as it becomes larger in frame. End: finish on a stable tighter composition."
   },
   {
     id: "slow-zoom-out",
@@ -1267,7 +1267,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تصغير بطيء",
     nameEn: "Slow Zoom Out",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/slow-zoom-out.webp",
-    promptDescription: "Slow zoom out. Movement: slowly decrease lens focal length toward a wider frame. Speed: gradual and even. Framing: keep the main visual target readable as more surrounding space appears. End: finish on a stable wider composition."
+    promptDescription: "slow zoom out. Movement: slowly decrease lens focal length toward a wider frame. Speed: gradual and even. Framing: keep the main visual target readable as more surrounding space appears. End: finish on a stable wider composition."
   },
   {
     id: "fast-zoom-in",
@@ -1275,7 +1275,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تكبير سريع",
     nameEn: "Fast Zoom In",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/fast-zoom-in.webp",
-    promptDescription: "Fast zoom in. Movement: quickly increase lens focal length toward the main visual target. Speed: quick decisive zoom. Framing: keep the target centered or clearly readable during the scale change. End: finish on a stable tighter composition."
+    promptDescription: "fast zoom in. Movement: quickly increase lens focal length toward the main visual target. Speed: quick decisive zoom. Framing: keep the target centered or clearly readable during the scale change. End: finish on a stable tighter composition."
   },
   {
     id: "fast-zoom-out",
@@ -1283,7 +1283,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تصغير سريع",
     nameEn: "Fast Zoom Out",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/fast-zoom-out.webp",
-    promptDescription: "Fast zoom out. Movement: quickly decrease lens focal length away from the main visual target. Speed: quick decisive zoom. Framing: keep the target readable as the surrounding space appears. End: finish on a stable wider composition."
+    promptDescription: "fast zoom out. Movement: quickly decrease lens focal length away from the main visual target. Speed: quick decisive zoom. Framing: keep the target readable as the surrounding space appears. End: finish on a stable wider composition."
   },
   {
     id: "crash-zoom-in",
@@ -1291,7 +1291,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تكبير مفاجئ حاد",
     nameEn: "Crash Zoom In",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/crash-zoom-in.webp",
-    promptDescription: "Crash zoom in. Movement: snap the lens rapidly toward the main visual target. Speed: very fast and punchy. Framing: keep the target readable through the sudden scale change. End: land on a bold tighter composition."
+    promptDescription: "crash zoom in. Movement: snap the lens rapidly toward the main visual target. Speed: very fast and punchy. Framing: keep the target readable through the sudden scale change. End: land on a bold tighter composition."
   },
   {
     id: "crash-zoom-out",
@@ -1299,7 +1299,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تصغير مفاجئ حاد",
     nameEn: "Crash Zoom Out",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/crash-zoom-out.webp",
-    promptDescription: "Crash zoom out. Movement: snap the lens rapidly away from the main visual target. Speed: very fast and punchy. Framing: keep the target readable as the surrounding space appears. End: land on a bold wider composition."
+    promptDescription: "crash zoom out. Movement: snap the lens rapidly away from the main visual target. Speed: very fast and punchy. Framing: keep the target readable as the surrounding space appears. End: land on a bold wider composition."
   },
   // ── Dolly / Track ───────────────────────────────────────────
   {
@@ -1308,7 +1308,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "دفع الكاميرا للأمام",
     nameEn: "Dolly In",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/dolly-in.webp",
-    promptDescription: "Dolly in. Movement: move the camera physically forward in a straight line toward the main subject. Speed: smooth controlled push. Framing: keep camera height, lens direction and subject position consistent while distance closes. End: finish in a tighter composition."
+    promptDescription: "dolly in. Movement: move the camera physically forward in a straight line toward the main subject. Speed: smooth controlled push. Framing: keep camera height, lens direction and subject position consistent while distance closes. End: finish in a tighter composition."
   },
   {
     id: "dolly-out",
@@ -1316,7 +1316,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "سحب الكاميرا للخلف",
     nameEn: "Dolly Out",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/dolly-out.webp",
-    promptDescription: "Dolly out. Movement: move the camera physically backward in a straight line away from the main subject. Speed: smooth controlled retreat. Framing: keep lens direction and camera height consistent while more environment enters frame. End: finish in a wider composition."
+    promptDescription: "dolly out. Movement: move the camera physically backward in a straight line away from the main subject. Speed: smooth controlled retreat. Framing: keep lens direction and camera height consistent while more environment enters frame. End: finish in a wider composition."
   },
   {
     id: "tracking-shot",
@@ -1324,7 +1324,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "لقطة تتبع",
     nameEn: "Tracking Shot",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/tracking-shot.webp",
-    promptDescription: "Tracking shot. Movement: move through the scene with the main subject. Speed: match the subject's pace. Framing: keep the subject consistently readable while the environment moves around them. End: maintain a clear moving composition."
+    promptDescription: "tracking shot. Movement: move through the scene with the main subject. Speed: match the subject's pace. Framing: keep the subject consistently readable while the environment moves around them. End: maintain a clear moving composition."
   },
   {
     id: "follow-shot",
@@ -1332,7 +1332,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "متابعة من الخلف (فوق الكتف)",
     nameEn: "Follow / Over-the-Shoulder",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/follow-shot.webp",
-    promptDescription: "Follow shot from behind. Movement: move behind the subject along their route at shoulder height. Speed: match the subject's pace. Framing: keep the back, shoulder or head as the foreground guide while the route ahead stays readable. End: continue following with the subject leading the frame."
+    promptDescription: "follow shot from behind. Movement: move behind the subject along their route at shoulder height. Speed: match the subject's pace. Framing: keep the back, shoulder or head as the foreground guide while the route ahead stays readable. End: continue following with the subject leading the frame."
   },
   {
     id: "reverse-tracking",
@@ -1340,7 +1340,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تتبع عكسي (Walk & Talk)",
     nameEn: "Reverse Tracking / Walk-and-Talk",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/reverse-tracking.webp",
-    promptDescription: "Reverse tracking shot. Movement: move backward in front of the walking subject. Speed: match the subject's forward pace. Framing: keep front-facing face and body framing stable as the background moves behind them. End: hold a clear front-facing moving composition."
+    promptDescription: "reverse tracking shot. Movement: move backward in front of the walking subject. Speed: match the subject's forward pace. Framing: keep front-facing face and body framing stable as the background moves behind them. End: hold a clear front-facing moving composition."
   },
   {
     id: "side-tracking",
@@ -1348,7 +1348,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تتبع جانبي",
     nameEn: "Side Tracking",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/side-tracking.webp",
-    promptDescription: "Side tracking shot. Movement: move parallel beside the subject along their direction of travel. Speed: match the subject's motion. Framing: keep the subject in side profile or three-quarter profile at a stable distance. End: continue the parallel movement with clear horizontal motion."
+    promptDescription: "side tracking shot. Movement: move parallel beside the subject along their direction of travel. Speed: match the subject's motion. Framing: keep the subject in side profile or three-quarter profile at a stable distance. End: continue the parallel movement with clear horizontal motion."
   },
   {
     id: "low-tracking",
@@ -1356,7 +1356,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تتبع من مستوى منخفض",
     nameEn: "Low Tracking",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/low-tracking.webp",
-    promptDescription: "Low tracking shot. Movement: move at ground or below-waist height alongside the subject's movement path. Speed: match the subject, footsteps or wheels. Framing: keep the low detail readable while the ground plane moves through frame. End: finish with the low perspective clearly maintained."
+    promptDescription: "low tracking shot. Movement: move at ground or below-waist height alongside the subject's movement path. Speed: match the subject, footsteps or wheels. Framing: keep the low detail readable while the ground plane moves through frame. End: finish with the low perspective clearly maintained."
   },
   {
     id: "vehicle-tracking",
@@ -1364,7 +1364,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تتبع مركبة",
     nameEn: "Vehicle Tracking",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/vehicle-tracking.webp",
-    promptDescription: "Vehicle tracking shot. Movement: move with the vehicle along its route. Speed: match the vehicle's pace. Framing: keep the vehicle stable in frame while the road or environment moves past. End: maintain a clear moving vehicle composition."
+    promptDescription: "vehicle tracking shot. Movement: move with the vehicle along its route. Speed: match the vehicle's pace. Framing: keep the vehicle stable in frame while the road or environment moves past. End: maintain a clear moving vehicle composition."
   },
   {
     id: "chase-shot",
@@ -1372,7 +1372,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "لقطة مطاردة",
     nameEn: "Chase Shot",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/chase-shot.webp",
-    promptDescription: "Chase shot. Movement: follow a moving subject quickly along the action route. Speed: fast, reactive and physically close. Framing: keep the subject visible while allowing energetic reframing. End: stay connected to the subject in motion."
+    promptDescription: "chase shot. Movement: follow a moving subject quickly along the action route. Speed: fast, reactive and physically close. Framing: keep the subject visible while allowing energetic reframing. End: stay connected to the subject in motion."
   },
   // ── Physical Moves ──────────────────────────────────────────
   {
@@ -1381,7 +1381,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تحريك أفقي لليمين",
     nameEn: "Truck Right",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/truck-right.webp",
-    promptDescription: "Truck right. Movement: move the camera physically to the right on a straight horizontal path. Speed: smooth constant lateral travel. Framing: keep the lens facing the same direction while the scene slides across frame. End: finish on a clean lateral composition."
+    promptDescription: "truck right. Movement: move the camera physically to the right on a straight horizontal path. Speed: smooth constant lateral travel. Framing: keep the lens facing the same direction while the scene slides across frame. End: finish on a clean lateral composition."
   },
   {
     id: "truck-left",
@@ -1389,7 +1389,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تحريك أفقي لليسار",
     nameEn: "Truck Left",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/truck-left.webp",
-    promptDescription: "Truck left. Movement: move the camera physically to the left on a straight horizontal path. Speed: smooth constant lateral travel. Framing: keep the lens facing the same direction while the scene slides across frame. End: finish on a clean lateral composition."
+    promptDescription: "truck left. Movement: move the camera physically to the left on a straight horizontal path. Speed: smooth constant lateral travel. Framing: keep the lens facing the same direction while the scene slides across frame. End: finish on a clean lateral composition."
   },
   {
     id: "pedestal-up",
@@ -1397,7 +1397,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "رفع الكاميرا عمودياً",
     nameEn: "Pedestal Up",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/pedestal-up.webp",
-    promptDescription: "Pedestal up. Movement: move the entire camera vertically upward in a straight line. Speed: smooth constant lift. Framing: keep the lens level and pointed in the same direction during the vertical move. End: finish with the higher framing clearly readable."
+    promptDescription: "pedestal up. Movement: move the entire camera vertically upward in a straight line. Speed: smooth constant lift. Framing: keep the lens level and pointed in the same direction during the vertical move. End: finish with the higher framing clearly readable."
   },
   {
     id: "pedestal-down",
@@ -1405,7 +1405,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "خفض الكاميرا عمودياً",
     nameEn: "Pedestal Down",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/pedestal-down.webp",
-    promptDescription: "Pedestal down. Movement: move the entire camera vertically downward in a straight line. Speed: smooth constant descent. Framing: keep the lens level and pointed in the same direction during the vertical move. End: finish with the lower framing clearly readable."
+    promptDescription: "pedestal down. Movement: move the entire camera vertically downward in a straight line. Speed: smooth constant descent. Framing: keep the lens level and pointed in the same direction during the vertical move. End: finish with the lower framing clearly readable."
   },
   {
     id: "slider-right",
@@ -1413,7 +1413,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "انزلاق قصير لليمين",
     nameEn: "Slider Right",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/slider-right.webp",
-    promptDescription: "Slider right. Movement: slide the camera a small distance to the right. Speed: slow controlled constant motion. Framing: keep foreground, subject and background layers readable as parallax shifts. End: finish on a refined composition with the new right-side angle visible."
+    promptDescription: "slider right. Movement: slide the camera a small distance to the right. Speed: slow controlled constant motion. Framing: keep foreground, subject and background layers readable as parallax shifts. End: finish on a refined composition with the new right-side angle visible."
   },
   {
     id: "slider-left",
@@ -1421,7 +1421,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "انزلاق قصير لليسار",
     nameEn: "Slider Left",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/slider-left.webp",
-    promptDescription: "Slider left. Movement: slide the camera a small distance to the left. Speed: slow controlled constant motion. Framing: keep foreground, subject and background layers readable as parallax shifts. End: finish on a refined composition with the new left-side angle visible."
+    promptDescription: "slider left. Movement: slide the camera a small distance to the left. Speed: slow controlled constant motion. Framing: keep foreground, subject and background layers readable as parallax shifts. End: finish on a refined composition with the new left-side angle visible."
   },
   {
     id: "push-past",
@@ -1429,7 +1429,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "العبور خلف عائق أمامي",
     nameEn: "Push Past / Pass-By",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/push-past.webp",
-    promptDescription: "Push past. Movement: move forward past a visible foreground object, edge or opening. Speed: smooth forward glide. Framing: let the foreground pass close to the lens while the space beyond becomes clearer. End: arrive inside or beyond the foreground layer."
+    promptDescription: "push past. Movement: move forward past a visible foreground object, edge or opening. Speed: smooth forward glide. Framing: let the foreground pass close to the lens while the space beyond becomes clearer. End: arrive inside or beyond the foreground layer."
   },
   {
     id: "arc-right",
@@ -1437,7 +1437,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "قوس منحني إلى اليمين",
     nameEn: "Arc Right",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/arc-right.webp",
-    promptDescription: "Arc right. Movement: move on a shallow curved path around the main subject toward the right side. Speed: smooth measured curve. Framing: keep distance, height and subject readability consistent while the angle changes. End: finish from a new right-side angle."
+    promptDescription: "arc right. Movement: move on a shallow curved path around the main subject toward the right side. Speed: smooth measured curve. Framing: keep distance, height and subject readability consistent while the angle changes. End: finish from a new right-side angle."
   },
   {
     id: "arc-left",
@@ -1445,7 +1445,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "قوس منحني إلى اليسار",
     nameEn: "Arc Left",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/arc-left.webp",
-    promptDescription: "Arc left. Movement: move on a shallow curved path around the main subject toward the left side. Speed: smooth measured curve. Framing: keep distance, height and subject readability consistent while the angle changes. End: finish from a new left-side angle."
+    promptDescription: "arc left. Movement: move on a shallow curved path around the main subject toward the left side. Speed: smooth measured curve. Framing: keep distance, height and subject readability consistent while the angle changes. End: finish from a new left-side angle."
   },
   {
     id: "orbit-cw",
@@ -1453,7 +1453,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "دوران مع عقارب الساعة",
     nameEn: "Clockwise Orbit",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/orbit-cw.webp",
-    promptDescription: "Clockwise orbit. Movement: circle clockwise around the main subject at a consistent radius. Speed: smooth controlled orbit. Framing: keep the subject centered while the background rotates around them. End: complete the intended arc or full circle with stable framing."
+    promptDescription: "clockwise orbit. Movement: circle clockwise around the main subject at a consistent radius. Speed: smooth controlled orbit. Framing: keep the subject centered while the background rotates around them. End: complete the intended arc or full circle with stable framing."
   },
   {
     id: "orbit-ccw",
@@ -1461,7 +1461,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "دوران عكس عقارب الساعة",
     nameEn: "Counterclockwise Orbit",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/orbit-ccw.webp",
-    promptDescription: "Counterclockwise orbit. Movement: circle counterclockwise around the main subject at a consistent radius. Speed: smooth controlled orbit. Framing: keep the subject centered while the background rotates around them. End: complete the intended arc or full circle with stable framing."
+    promptDescription: "counterclockwise orbit. Movement: circle counterclockwise around the main subject at a consistent radius. Speed: smooth controlled orbit. Framing: keep the subject centered while the background rotates around them. End: complete the intended arc or full circle with stable framing."
   },
   // ── Human Camera ────────────────────────────────────────────
   {
@@ -1470,7 +1470,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "كاميرا محمولة باليد",
     nameEn: "Handheld Shot",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/handheld-shot.webp",
-    promptDescription: "Handheld shot. Movement: hold the camera at human operator height with natural body movement. Speed: responsive and organic. Framing: keep the subject readable while the frame has subtle sway and micro-adjustments. End: finish with a natural handheld composition."
+    promptDescription: "handheld shot. Movement: hold the camera at human operator height with natural body movement. Speed: responsive and organic. Framing: keep the subject readable while the frame has subtle sway and micro-adjustments. End: finish with a natural handheld composition."
   },
   {
     id: "snorricam",
@@ -1478,7 +1478,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "كاميرا مثبتة على الجسم (Snorricam)",
     nameEn: "Body-Mounted / Snorricam",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/snorricam.webp",
-    promptDescription: "Body-mounted Snorricam. Movement: keep the camera fixed relative to the subject's torso or face while the subject moves. Speed: match the subject's body motion. Framing: keep the subject close, centered and facing the camera as the background moves around them. End: finish with the subject still locked in frame."
+    promptDescription: "body-mounted Snorricam. Movement: keep the camera fixed relative to the subject's torso or face while the subject moves. Speed: match the subject's body motion. Framing: keep the subject close, centered and facing the camera as the background moves around them. End: finish with the subject still locked in frame."
   },
   // ── Drone / Crane ───────────────────────────────────────────
   {
@@ -1487,7 +1487,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "صعود بالرافعة",
     nameEn: "Crane Up",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/crane-up.webp",
-    promptDescription: "Crane up. Movement: travel smoothly upward through open space. Speed: slow controlled vertical lift. Framing: keep the subject or location readable as the camera rises. End: finish with the higher scale clearly visible."
+    promptDescription: "crane up. Movement: travel smoothly upward through open space. Speed: slow controlled vertical lift. Framing: keep the subject or location readable as the camera rises. End: finish with the higher scale clearly visible."
   },
   {
     id: "crane-down",
@@ -1495,7 +1495,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "نزول بالرافعة",
     nameEn: "Crane Down",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/crane-down.webp",
-    promptDescription: "Crane down. Movement: travel smoothly downward through open space. Speed: slow controlled vertical descent. Framing: keep the subject or location readable as the camera descends. End: finish with the lower subject or destination clearly visible."
+    promptDescription: "crane down. Movement: travel smoothly downward through open space. Speed: slow controlled vertical descent. Framing: keep the subject or location readable as the camera descends. End: finish with the lower subject or destination clearly visible."
   },
   {
     id: "drone-push-in",
@@ -1503,7 +1503,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "دفع الدرون للأمام",
     nameEn: "Drone Push In",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/drone-push-in.webp",
-    promptDescription: "Drone push in. Movement: fly smoothly forward through open space toward the subject or destination. Speed: controlled aerial glide. Framing: keep the route and destination readable as the camera approaches. End: arrive at a closer aerial composition."
+    promptDescription: "drone push in. Movement: fly smoothly forward through open space toward the subject or destination. Speed: controlled aerial glide. Framing: keep the route and destination readable as the camera approaches. End: arrive at a closer aerial composition."
   },
   {
     id: "drone-pull-back",
@@ -1511,7 +1511,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "سحب الدرون للخلف",
     nameEn: "Drone Pull Back",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/drone-pull-back.webp",
-    promptDescription: "Drone pull back. Movement: fly smoothly backward away from the subject or destination. Speed: controlled aerial retreat. Framing: keep the subject readable as more landscape appears. End: finish on a wider aerial composition."
+    promptDescription: "drone pull back. Movement: fly smoothly backward away from the subject or destination. Speed: controlled aerial retreat. Framing: keep the subject readable as more landscape appears. End: finish on a wider aerial composition."
   },
   {
     id: "helicopter-shot",
@@ -1519,7 +1519,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "لقطة هليكوبتر جوية",
     nameEn: "Helicopter Shot",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/helicopter-shot.webp",
-    promptDescription: "Helicopter-style aerial shot. Movement: move from high altitude along a broad gradual flight path. Speed: steady controlled aerial motion. Framing: keep the landscape or distant moving subject readable at wide scale. End: finish on a stable high-altitude composition."
+    promptDescription: "helicopter-style aerial shot. Movement: move from high altitude along a broad gradual flight path. Speed: steady controlled aerial motion. Framing: keep the landscape or distant moving subject readable at wide scale. End: finish on a stable high-altitude composition."
   },
   // ── Specials ────────────────────────────────────────────────
   {
@@ -1528,7 +1528,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "منظور الشخص الأول المتحرك (FPV)",
     nameEn: "First-Person View (FPV)",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/fpv-shot.webp",
-    promptDescription: "First-person view. Movement: move forward at human eye height from the character's perspective. Speed: natural walking or reaching pace. Framing: use visible hands, arms or body edges as the viewer's physical reference. End: arrive at the next point of action from the same point of view."
+    promptDescription: "first-person view. Movement: move forward at human eye height from the character's perspective. Speed: natural walking or reaching pace. Framing: use visible hands, arms or body edges as the viewer's physical reference. End: arrive at the next point of action from the same point of view."
   },
   {
     id: "tilt-shift-motion",
@@ -1536,7 +1536,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تأثير تيلت شفت متحرك",
     nameEn: "Tilt-Shift Miniature",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/tilt-shift-motion.webp",
-    promptDescription: "Tilt-shift miniature view. Movement: hold or glide from a high angled view over the scene. Speed: small precise movement. Framing: keep a narrow band of sharp focus across the key subject area with soft blur above and below. End: finish with the miniature-scale view intact."
+    promptDescription: "tilt-shift miniature view. Movement: hold or glide from a high angled view over the scene. Speed: small precise movement. Framing: keep a narrow band of sharp focus across the key subject area with soft blur above and below. End: finish with the miniature-scale view intact."
   },
   {
     id: "infinite-zoom",
@@ -1544,7 +1544,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تكبير لا نهائي",
     nameEn: "Infinite Zoom",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/infinite-zoom.webp",
-    promptDescription: "Infinite zoom. Movement: zoom continuously inward toward the exact center target. Speed: smooth accelerating zoom. Framing: keep the circular target centered as it expands. End: finish when the next visual world fills the frame."
+    promptDescription: "infinite zoom. Movement: zoom continuously inward toward the exact center target. Speed: smooth accelerating zoom. Framing: keep the circular target centered as it expands. End: finish when the next visual world fills the frame."
   },
   {
     id: "earth-zoom-out",
@@ -1552,7 +1552,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تصغير إلى منظر الأرض",
     nameEn: "Earth Zoom Out",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/earth-zoom-out.webp",
-    promptDescription: "Earth zoom out. Movement: pull upward from the starting point through street, city, landscape and planet scale. Speed: rapid expanding zoom out. Framing: keep the original location centered as scale grows. End: finish on a planet-scale view with the starting point still implied at center."
+    promptDescription: "earth zoom out. Movement: pull upward from the starting point through street, city, landscape and planet scale. Speed: rapid expanding zoom out. Framing: keep the original location centered as scale grows. End: finish on a planet-scale view with the starting point still implied at center."
   },
   {
     id: "time-lapse",
@@ -1560,7 +1560,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "تسريع الزمن مع كاميرا ثابتة",
     nameEn: "Time-Lapse",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/time-lapse.webp",
-    promptDescription: "Locked-camera time-lapse. Movement: hold one fixed camera position while time moves rapidly forward. Speed: fast time compression with a stable camera. Framing: keep the same composition and horizon as motion passes through the frame. End: finish from the same camera angle with visible passage of time."
+    promptDescription: "locked-camera time-lapse. Movement: hold one fixed camera position while time moves rapidly forward. Speed: fast time compression with a stable camera. Framing: keep the same composition and horizon as motion passes through the frame. End: finish from the same camera angle with visible passage of time."
   },
   {
     id: "pass-through",
@@ -1568,7 +1568,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     nameAr: "العبور خلال جسم أو سطح",
     nameEn: "Pass-Through Objects",
     imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/pass-through.webp",
-    promptDescription: "Pass-through movement. Movement: move forward toward a visible object, surface or barrier and continue into the space beyond. Speed: smooth centered glide. Framing: keep the opening or surface centered as the transition point. End: arrive inside the revealed space beyond."
+    promptDescription: "pass-through movement. Movement: move forward toward a visible object, surface or barrier and continue into the space beyond. Speed: smooth centered glide. Framing: keep the opening or surface centered as the transition point. End: arrive inside the revealed space beyond."
   }
 ];
 
