@@ -70,7 +70,9 @@
      - Built dedicated `/admin/broadcast` page (`app/admin/broadcast/page.tsx`) and added `Subscriber Messages` to `AdminSidebar` under USERS & FINANCE.
      - Supports targeting All Active Subscribers, Plan-Specific cohorts (Pro, Max), or Direct Single User delivery.
      - Features live recipient counting, Resend API official email delivery, and a real-time live email client preview card before broadcasting.
-  7. Verification:
+  7. Subscriber Email Branding & Logo Modernization:
+     - Updated subscriber emails, invoices, and the live broadcast composer to utilize the new official `logo saad.png` (synced to `/public/logo-saad.png` and `/public/logo-saad-transparent.png`).
+  8. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest test suite: 19/19 tests passed across all suites.
 

@@ -44,7 +44,7 @@ async function getLogoSrc(): Promise<string> {
     .then((s) => s?.logoUrl ?? null)
     .catch(() => null);
 
-  const logoPath = String(siteLogoUrl || "/logo-saad-transparent.png?v=3").trim();
+  const logoPath = String(siteLogoUrl || "/logo-saad.png?v=5").trim();
   if (/^https?:\/\//i.test(logoPath)) return logoPath;
   return `${siteUrl.replace(/\/$/, "")}${logoPath.startsWith("/") ? "" : "/"}${logoPath}`;
 }

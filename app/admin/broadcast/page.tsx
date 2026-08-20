@@ -173,7 +173,7 @@ export default function AdminBroadcastPage() {
             </div>
             <div className="mt-2 text-xl font-bold text-white flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-zinc-900 border border-white/10 flex items-center justify-center overflow-hidden">
-                <Image src="/logo-saad-transparent.png?v=3" alt="Logo" width={18} height={18} unoptimized />
+                <Image src="/logo-saad.png?v=5" alt="Logo" width={18} height={18} unoptimized />
               </div>
               <span className="text-sm font-semibold text-zinc-200">Saad Studio Header</span>
             </div>
@@ -364,7 +364,7 @@ export default function AdminBroadcastPage() {
               <div className="bg-[#0b1220] p-4 border-b border-white/10 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-white/10 flex items-center justify-center shrink-0">
-                    <Image src="/logo-saad-transparent.png?v=3" alt="Logo" width={22} height={22} unoptimized />
+                    <Image src="/logo-saad.png?v=5" alt="Logo" width={22} height={22} unoptimized />
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-white">Saad Studio</div>

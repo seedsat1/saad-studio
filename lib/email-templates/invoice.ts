@@ -32,7 +32,7 @@ async function resolveLogoSrc(siteUrl: string): Promise<string> {
     .findFirst({ select: { logoUrl: true } })
     .then((s) => s?.logoUrl ?? null)
     .catch(() => null);
-  const logoPath = (siteLogoUrl || "/logo-saad-transparent.png").trim();
+  const logoPath = (siteLogoUrl || "/logo-saad.png?v=5").trim();
   return /^https?:\/\//i.test(logoPath)
     ? logoPath
     : `${siteUrl.replace(/\/$/, "")}${logoPath.startsWith("/") ? "" : "/"}${logoPath}`;
