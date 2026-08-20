@@ -1576,12 +1576,14 @@ export default function ImageWorkspacePage() {
       selectedElementId,
       selectedPalette,
     });
+    const activeQuality = qualityOptions.length ? (quality || qualityOptions[0]) : (quality || undefined);
     const body: Record<string, unknown> = {
       prompt: effectivePrompt,
       modelId: selectedModel.id,
       aspectRatio,
       numImages,
-      quality: qualityOptions.length ? (quality || qualityOptions[0]) : undefined,
+      quality: activeQuality,
+      resolution: activeQuality,
       useAnnualUnlimited: isAnnualUnlimitedCreate,
     };
     if (imageUrls.length > 0) {
