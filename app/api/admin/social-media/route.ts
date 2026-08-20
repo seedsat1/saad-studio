@@ -13,6 +13,7 @@ import {
   PlatformContentItem,
   StoryboardShowcaseRecord,
   StoryboardThemeType,
+  StoryboardTemplateType,
 } from "@/lib/social-media";
 import { googleGenerateImage } from "@/lib/providers/google-images";
 
@@ -843,36 +844,79 @@ Return ONLY a valid JSON object matching:
       const userPrompt = String(body.prompt || "").trim() || "Day-to-night transformation of a 3D animator working at his desk in Saad Studio";
       const targetLang = (body.language || "ar") === "en" ? "en" : "ar";
       const selectedTheme: StoryboardThemeType = body.theme || "cyberpunk";
+      const selectedTemplate: StoryboardTemplateType = body.template || "day-night";
+      const outputMode = body.outputMode || "images_only";
+      const imageModel = String(body.imageModel || "nano-banana-pro");
+      const videoModel = String(body.videoModel || "kling-3.0/video");
+
+      const imageModelBadge = imageModel === "grok-imagine" ? "Grok Imagine 2.0" : imageModel === "gpt-image-2" ? "GPT-Image-2" : "Google Nano Banana Pro";
+      const videoModelBadge = videoModel.includes("kling") ? "Kling 3.0 Pro" : videoModel.includes("seedance") ? "Seedance 2 Turbo" : "Omni Flash";
 
       const openAIApiKey = process.env.OPENAI_API_KEY;
       let generatedBlueprint: any = null;
 
       if (openAIApiKey && openAIApiKey !== "sk-placeholder") {
-        const systemPrompt = `You are the Master Creative Director & Viral Storyboard Architect for "Saad Studio".
+        const systemPrompt = `You are the Master Creative Director & Storyboard Lead for "Saad Studio".
 Language: ${targetLang === "ar" ? "Arabic" : "English"}.
 Theme: ${selectedTheme}.
+Template Type: ${selectedTemplate}.
 
-Convert the concept into a high-converting viral 9:16 Storyboard Breakdown with:
-1. title: Catchy title (e.g. "Kling 3.0 + Nano Banana Day-to-Night Workflow").
-2. videoModel: "kling-video" or "google-omni-veo"
-3. videoModelBadge: "Kling 3.0 Pro" or "Google Omni Veo 2"
-4. videoPrompt: Highly descriptive English video motion prompt.
-5. frame1Label: Label for first reference plate (e.g. "Frame 1: Morning Daylight").
-6. frame1Prompt: Detailed English image prompt for Frame 1.
-7. frame2Label: Label for second reference plate (e.g. "Frame 2: Cyber Night Glow").
-8. frame2Prompt: Detailed English image prompt for Frame 2.
-9. camera: Camera setup (e.g. "Locked Static Camera, 35mm Anamorphic, f/1.8").
-10. lighting: Lighting setup (e.g. "Warm morning daylight transitioning to neon ambient glow").
-11. composition: Composition description.
-12. fullBlueprintPrompt: Comprehensive copyable prompt text with all parameters.
-13. characterLabel: "Character Asset"
-14. characterPrompt: English prompt for isolated character/subject.
-15. environmentLabel: "Room / Environment Plate"
-16. environmentPrompt: English prompt for isolated environment.
-17. captionText: Engaging viral caption for Instagram Reels / TikTok / YouTube Shorts in ${targetLang === "ar" ? "Arabic" : "English"}.
-18. hashtags: Array of 8 viral hashtags.
+CRITICAL RULE: STRICT VISUAL COHERENCE & SEQUENTIAL CONTINUITY.
+All generated prompts (Hero, Frame 1, Frame 2, Character, Environment) MUST share the EXACT SAME character identity (clothing, face, hair, age), artistic style, and location details. They must tell ONE coherent visual story without random unrelated elements!
 
-Return ONLY a valid JSON object matching these keys.`;
+Template Specific Guidelines:
+- If template is "day-night":
+  * Define ONE specific character and ONE specific workstation/room.
+  * frame1Prompt: The EXACT character in the EXACT room during morning daylight (golden sunlight, natural morning).
+  * frame2Prompt: The EXACT SAME character in the EXACT SAME room at midnight (neon glow, deep shadows, cyber mood).
+  * heroPrompt: Cinematic wide angle showing the full workstation setup.
+  * characterPrompt: Portrait character sheet of this exact character.
+  * environmentPrompt: The empty room workstation backdrop without the character.
+
+- If template is "car-call":
+  * Define ONE specific driver/presenter inside a luxury modern vehicle.
+  * frame1Prompt: Inside the car, the driver holding a smartphone having an interactive video call.
+  * frame2Prompt: Close-up on the smartphone screen glowing with clean chroma green (#00FF00) interface.
+  * heroPrompt: Cinematic exterior/interior shot of the car driving through night city rain.
+  * characterPrompt: Portrait of this exact driver.
+  * environmentPrompt: The rainy night city street bokeh seen through the car windows.
+
+- If template is "character-3d":
+  * Define ONE specific 3D character design.
+  * frame1Prompt: 3D textured beauty render of the character in action pose.
+  * frame2Prompt: 3D exploded view, wireframe, and clay structure breakdown of this same character model.
+  * heroPrompt: Cinematic 3D turntable hero shot of the character in studio lighting.
+  * characterPrompt: Character face and outfit detail sheet.
+  * environmentPrompt: 3D studio lighting pedestal and backdrop stage.
+
+- If template is "workflow-battle":
+  * Define ONE specific visual concept.
+  * frame1Prompt: Ultra-sharp 8K master photographic still generated by Nano Banana.
+  * frame2Prompt: Dynamic motion still generated by Grok Imagine / Kling with light trails.
+  * heroPrompt: Split composition comparing high-fidelity detail.
+  * characterPrompt: Macro close-up on texture/eyes.
+  * environmentPrompt: High-tech AI workstation control room.
+
+Return ONLY a valid JSON object matching:
+{
+  "title": "Short catchy title in Arabic/English",
+  "heroPrompt": "Detailed English prompt for Hero Key Visual",
+  "frame1Label": "Label for Frame 1",
+  "frame1Prompt": "Detailed English prompt for Frame 1",
+  "frame2Label": "Label for Frame 2",
+  "frame2Prompt": "Detailed English prompt for Frame 2",
+  "characterLabel": "Character Asset Label",
+  "characterPrompt": "Detailed English prompt for Character",
+  "environmentLabel": "Environment Asset Label",
+  "environmentPrompt": "Detailed English prompt for Environment",
+  "camera": "e.g. Locked Static 35mm Anamorphic f/1.8",
+  "lighting": "e.g. Volumetric morning sunlight shifting to cyan/magenta neon",
+  "composition": "e.g. Centered rule of thirds with deep cinematic layers",
+  "fullBlueprintPrompt": "Clean copyable blueprint prompt text without meta headers",
+  "videoPrompt": "Cinematic motion prompt for video generation",
+  "captionText": "Engaging viral caption in ${targetLang === "ar" ? "Arabic" : "English"}",
+  "hashtags": ["#SaadStudio", "#AIArt", "#Trending"]
+}`;
 
         try {
           const apiRes = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -885,7 +929,7 @@ Return ONLY a valid JSON object matching these keys.`;
               model: "gpt-4o-mini",
               messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt },
+                { role: "user", content: `Concept: ${userPrompt}` },
               ],
               response_format: { type: "json_object" },
               temperature: 0.7,
@@ -904,68 +948,85 @@ Return ONLY a valid JSON object matching these keys.`;
         }
       }
 
-      // Default fallback blueprint if AI was unavailable
+      // Default coherent fallback blueprint if AI was unavailable
       if (!generatedBlueprint) {
         generatedBlueprint = {
-          title: targetLang === "ar" ? "سير عمل Kling 3.0 و Nano Banana السينمائي" : "Kling 3.0 & Nano Banana Cinematic Workflow",
-          videoModel: "kling-3.0/video",
-          videoModelBadge: "Kling 3.0 Pro",
-          videoPrompt: `Cinematic 3D animation, locked static camera, same bedroom workstation. Stylized character typing on glowing laptop. Fast smooth day to night transition with ambient lighting shifting from golden sunlight to neon cyberpunk glow, 8k render masterpiece.`,
-          frame1Label: targetLang === "ar" ? "الإطار 1: ضوء الصباح" : "Frame 1: Morning Daylight",
-          frame1Prompt: `3D stylized character sitting at bedroom desk typing on computer, warm morning sunlight streaming through window, soft cozy lighting, Pixar aesthetic, 8k octane render.`,
-          frame2Label: targetLang === "ar" ? "الإطار 2: توهج ليلي سيبراني" : "Frame 2: Cyber Night Glow",
-          frame2Prompt: `Same 3D stylized character sitting at bedroom desk typing on computer at night, glowing neon cyan and warm amber screen reflections, atmospheric bedroom, 8k octane render.`,
+          title: targetLang === "ar" ? "تحول سينمائي من النهار إلى الليل" : "Cinematic Day-to-Night Transformation",
+          heroPrompt: `Cinematic wide angle shot of a 3D digital creator sitting at modern wooden workstation desk in Saad Studio, dual glowing monitors, atmospheric lighting, 8k resolution.`,
+          frame1Label: targetLang === "ar" ? "كادر النهار (Daylight)" : "Frame 1: Morning Daylight",
+          frame1Prompt: `Young tech creator sitting at modern workstation typing on laptop, natural bright morning sunlight pouring through window, warm cozy interior, 8k photorealistic.`,
+          frame2Label: targetLang === "ar" ? "كادر الليل (Midnight Cyber)" : "Frame 2: Cyber Night Glow",
+          frame2Prompt: `Same young tech creator sitting at exact same workstation typing on laptop at midnight, glowing neon cyan and purple ambient light, dark moody cinematic shadows, 8k render.`,
+          characterLabel: targetLang === "ar" ? "الشخصية (Creator)" : "Character Model",
+          characterPrompt: `Portrait of the young tech creator in casual dark hoodie, clean neutral background, studio lighting, highly detailed face and textures.`,
+          environmentLabel: targetLang === "ar" ? "الغرفة والبيئة (Workstation)" : "Room Workstation",
+          environmentPrompt: `Empty modern workstation desk setup with glowing dual monitors, bookshelf, indoor plants, moody studio lighting plate.`,
           camera: "Locked Static Camera, 35mm Anamorphic, f/1.8",
-          lighting: "Volumetric morning sunlight shifting to cyber neon ambient glows",
-          composition: "Rule of thirds, centered workstation desk with background depth",
-          fullBlueprintPrompt: `locked static camera, same workstation scene. Stylized creator sits at desk working continuously on laptop. Frame 1: morning daylight through window. Frame 2: nighttime lighting with warm neon glow. Minimal motion, seamless loop, 8k render.`,
-          characterLabel: targetLang === "ar" ? "عنصر الشخصية" : "Character Model",
-          characterPrompt: `Stylized 3D cartoon tech creator character with red beanie and yellow shirt, full body character sheet, clean solid background.`,
-          environmentLabel: targetLang === "ar" ? "عنصر البيئة والغرفة" : "Room Environment",
-          environmentPrompt: `Cozy modern creator bedroom workstation with dual monitors, bookshelf, warm ambient night lamps, empty scene background plate.`,
+          lighting: "Volumetric morning sunlight transitioning to cyber neon ambient glows",
+          composition: "Rule of thirds, centered workstation desk with depth of field",
+          fullBlueprintPrompt: `Locked static camera, same workstation scene. Creator working at desk continuously on laptop. Frame 1: morning daylight through window. Frame 2: nighttime lighting with warm neon glow. Seamless loop aesthetic, 8k render.`,
+          videoPrompt: `Cinematic 3D animation, locked static camera, same bedroom workstation. Creator typing on glowing laptop. Fast smooth day to night transition with ambient lighting shifting from golden sunlight to neon cyberpunk glow, 8k render.`,
           captionText: targetLang === "ar" 
-            ? "كيف تصنع فيديو تحول سينمائي كامل من النهار إلى الليل بالذكاء الاصطناعي؟ 🚀 استخدمنا محرك Kling 3.0 مع Nano Banana في سعد ستوديو للوصول لهذه النتيجة الخرافية! جرب البرومبت المرفق الآن 🎬"
-            : "How to create a seamless day-to-night AI cinematic loop! 🚀 Built with Kling 3.0 & Nano Banana inside Saad Studio. Try the blueprint prompt below! 🎬",
-          hashtags: ["#SaadStudio", "#KlingAI", "#NanoBanana", "#AIAnimation", "#AIVideo", "#CGI", "#ViralReels", "#Filmmaking"],
+            ? "كيف تصنع تحولاً بصرياً كاملاً من النهار إلى الليل بنفس الشخصية والمشهد؟ 🚀 تم التوليد بنماذج سعد ستوديو السينمائية بدقة فائقة!"
+            : "How to create a seamless day-to-night AI transformation with 100% subject consistency! 🚀 Created with Saad Studio AI.",
+          hashtags: ["#SaadStudio", "#AIArt", "#CinematicAI", "#DayToNight", "#ReelsViral"],
         };
       }
 
-      // Generate keyframe 1 & 2 via Google Nano Banana Pro
+      // Generate all 5 coherent images in parallel using the USER'S CHOSEN IMAGE MODEL!
+      let heroUrl = "";
       let frame1Url = "";
       let frame2Url = "";
+      let charUrl = "";
+      let envUrl = "";
+
       try {
-        const [f1, f2] = await Promise.all([
-          generateImageDirectly(generatedBlueprint.frame1Prompt, "nano-banana-pro", "16:9"),
-          generateImageDirectly(generatedBlueprint.frame2Prompt, "nano-banana-pro", "16:9"),
+        const [hero, f1, f2, ch, env] = await Promise.all([
+          generateImageDirectly(generatedBlueprint.heroPrompt || generatedBlueprint.fullBlueprintPrompt, imageModel, "16:9"),
+          generateImageDirectly(generatedBlueprint.frame1Prompt, imageModel, "16:9"),
+          generateImageDirectly(generatedBlueprint.frame2Prompt, imageModel, "16:9"),
+          generateImageDirectly(generatedBlueprint.characterPrompt, imageModel, "16:9"),
+          generateImageDirectly(generatedBlueprint.environmentPrompt, imageModel, "16:9"),
         ]);
+        heroUrl = hero;
         frame1Url = f1;
         frame2Url = f2;
+        charUrl = ch;
+        envUrl = env;
       } catch (e) {
-        console.warn("Storyboard frames generation error:", e);
+        console.warn("Storyboard images generation error:", e);
       }
 
       const newStoryboardRecord: Omit<StoryboardShowcaseRecord, "id" | "createdAt" | "updatedAt"> = {
         title: generatedBlueprint.title,
         theme: selectedTheme,
+        templateType: selectedTemplate,
+        outputMode,
         conceptPrompt: userPrompt,
         language: targetLang,
+        heroImage: {
+          url: heroUrl,
+          label: targetLang === "ar" ? "المشهد الرئيسي (Key Visual)" : "Key Visual Plate",
+          modelBadge: imageModelBadge,
+          prompt: generatedBlueprint.heroPrompt || generatedBlueprint.fullBlueprintPrompt,
+        },
         video: {
           url: "",
-          model: generatedBlueprint.videoModel || "kling-video",
-          modelBadge: generatedBlueprint.videoModelBadge || "Kling 3.0 Pro",
+          model: videoModel,
+          modelBadge: videoModelBadge,
           prompt: generatedBlueprint.videoPrompt,
         },
         referenceFrames: {
           frame1: {
-            url: frame1Url || "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&auto=format&fit=crop&q=80",
+            url: frame1Url,
             label: generatedBlueprint.frame1Label,
-            modelBadge: "Google Nano Banana Pro",
+            modelBadge: imageModelBadge,
             prompt: generatedBlueprint.frame1Prompt,
           },
           frame2: {
-            url: frame2Url || "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&auto=format&fit=crop&q=80",
+            url: frame2Url,
             label: generatedBlueprint.frame2Label,
-            modelBadge: "Google Nano Banana Pro",
+            modelBadge: imageModelBadge,
             prompt: generatedBlueprint.frame2Prompt,
           },
         },
@@ -977,12 +1038,12 @@ Return ONLY a valid JSON object matching these keys.`;
         },
         assets: {
           character: {
-            url: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80",
+            url: charUrl,
             label: generatedBlueprint.characterLabel,
             prompt: generatedBlueprint.characterPrompt,
           },
           environment: {
-            url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80",
+            url: envUrl,
             label: generatedBlueprint.environmentLabel,
             prompt: generatedBlueprint.environmentPrompt,
           },

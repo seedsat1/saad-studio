@@ -355,6 +355,7 @@ export default function AdminSocialMediaPage() {
   const [storyboardPrompt, setStoryboardPrompt] = useState("");
   const [selectedSbTheme, setSelectedSbTheme] = useState<StoryboardThemeType>("cyberpunk");
   const [selectedSbTemplate, setSelectedSbTemplate] = useState<"day-night" | "car-call" | "character-3d" | "workflow-battle">("day-night");
+  const [selectedSbOutputMode, setSelectedSbOutputMode] = useState<"images_only" | "video_and_images">("images_only");
   const [selectedSbImageModel, setSelectedSbImageModel] = useState<"nano-banana-pro" | "grok-imagine" | "gpt-image-2">("nano-banana-pro");
   const [selectedSbVideoModel, setSelectedSbVideoModel] = useState<"kling-3.0/video" | "bytedance/seedance-2" | "google/gemini-omni-flash">("kling-3.0/video");
   const [generatingStoryboard, setGeneratingStoryboard] = useState(false);
@@ -591,6 +592,10 @@ export default function AdminSocialMediaPage() {
           prompt: p,
           language: selectedLanguage,
           theme: selectedSbTheme,
+          template: selectedSbTemplate,
+          outputMode: selectedSbOutputMode,
+          imageModel: selectedSbImageModel,
+          videoModel: selectedSbVideoModel,
         }),
       });
       const data = await res.json();
@@ -1884,13 +1889,60 @@ export default function AdminSocialMediaPage() {
                 </div>
               </div>
 
+              {/* Output Mode Switcher: Images Only vs Video + Images */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-zinc-400 font-bold text-xs flex items-center gap-1.5">
+                  <Film className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>طريقة التوليد المطلوبة (Output Format):</span>
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSbOutputMode("images_only")}
+                    className={`p-3 rounded-2xl border text-right transition-all flex items-center justify-between gap-2 ${
+                      selectedSbOutputMode === "images_only"
+                        ? "bg-cyan-500/20 border-cyan-500/50 text-white shadow-lg shadow-cyan-500/15 ring-1 ring-cyan-400/40"
+                        : "bg-black/40 border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <ImageIcon className="w-4 h-4 text-cyan-400" />
+                      <div>
+                        <div className="text-xs font-bold text-cyan-300">🖼️ صور ولوحات بصرية فقط (بدون فيديو إجباري)</div>
+                        <div className="text-[10px] text-zinc-400">توليد 4 لوحات بصرية متناسقة 100% بنفس الشخصية والمشهد</div>
+                      </div>
+                    </div>
+                    {selectedSbOutputMode === "images_only" && <Check className="w-4 h-4 text-cyan-400" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSbOutputMode("video_and_images")}
+                    className={`p-3 rounded-2xl border text-right transition-all flex items-center justify-between gap-2 ${
+                      selectedSbOutputMode === "video_and_images"
+                        ? "bg-purple-500/20 border-purple-500/50 text-white shadow-lg shadow-purple-500/15 ring-1 ring-purple-400/40"
+                        : "bg-black/40 border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Film className="w-4 h-4 text-purple-400" />
+                      <div>
+                        <div className="text-xs font-bold text-purple-300">🎬 فيديو سينمائي + لوحات بصرية كاملة</div>
+                        <div className="text-[10px] text-zinc-400">توليد اللوحات بالإضافة إلى فيديو حركة سينمائي بالذكاء الاصطناعي</div>
+                      </div>
+                    </div>
+                    {selectedSbOutputMode === "video_and_images" && <Check className="w-4 h-4 text-purple-400" />}
+                  </button>
+                </div>
+              </div>
+
               {/* Model Selectors for Storyboard Frames & Video */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-white/5">
                 {/* 1. Frames Image Model */}
                 <div className="space-y-1.5">
                   <span className="text-zinc-400 font-semibold text-xs flex items-center gap-1">
                     <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>محرك توليد الكوادر المرجعية (Frames Engine):</span>
+                    <span>محرك توليد الصور واللوحات (Image Model):</span>
                   </span>
                   <div className="grid grid-cols-3 gap-1.5">
                     {[
@@ -1914,11 +1966,11 @@ export default function AdminSocialMediaPage() {
                   </div>
                 </div>
 
-                {/* 2. Video Model Engine */}
-                <div className="space-y-1.5">
+                {/* 2. Video Model Engine (Enabled if Video mode is on) */}
+                <div className={`space-y-1.5 transition-opacity ${selectedSbOutputMode === "images_only" ? "opacity-40 pointer-events-none" : ""}`}>
                   <span className="text-zinc-400 font-semibold text-xs flex items-center gap-1">
                     <Film className="w-3.5 h-3.5 text-purple-400" />
-                    <span>محرك إخراج فيديو الستوري بورد (Video Engine):</span>
+                    <span>محرك إخراج الفيديو (Video Engine):</span>
                   </span>
                   <div className="grid grid-cols-3 gap-1.5">
                     {[
@@ -2202,9 +2254,9 @@ export default function AdminSocialMediaPage() {
                       : "bg-[#000000] border-2 border-rose-500/40 shadow-rose-500/15"
                   }`}
                 >
-                  {/* CARD 1: TOP MAIN VIDEO PLAYER */}
-                  <div className="rounded-2xl overflow-hidden border border-white/15 bg-black/80 relative aspect-video shadow-lg group">
-                    {currentStoryboard.video.url ? (
+                  {/* CARD 1: TOP HERO KEY VISUAL OR VIDEO PLAYER */}
+                  {selectedSbOutputMode === "video_and_images" && currentStoryboard.video.url ? (
+                    <div className="rounded-2xl overflow-hidden border border-white/15 bg-black/80 relative aspect-video shadow-lg group">
                       <video
                         src={currentStoryboard.video.url}
                         controls
@@ -2214,39 +2266,10 @@ export default function AdminSocialMediaPage() {
                         className="w-full h-full object-cover cursor-pointer"
                         onClick={() => currentStoryboard.video.url && setPreviewModalUrl({ url: currentStoryboard.video.url, type: "video", title: currentStoryboard.title })}
                       />
-                    ) : (
-                      <div className="w-full h-full relative">
-                        <img
-                          src={currentStoryboard.referenceFrames.frame2.url || currentStoryboard.referenceFrames.frame1.url}
-                          alt="Video Preview Plate"
-                          className="w-full h-full object-cover brightness-75 cursor-pointer"
-                          onClick={() => {
-                            const fallbackUrl = currentStoryboard.referenceFrames.frame2.url || currentStoryboard.referenceFrames.frame1.url;
-                            if (fallbackUrl) setPreviewModalUrl({ url: fallbackUrl, type: "image", title: currentStoryboard.title });
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2 p-4 text-center">
-                          <button
-                            type="button"
-                            onClick={handleGenerateSbVideo}
-                            disabled={generatingSbVideo}
-                            className="px-4 py-2 rounded-xl bg-purple-600/80 hover:bg-purple-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-purple-600/30 backdrop-blur-md transition-all"
-                          >
-                            {generatingSbVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white" />}
-                            <span>توليد فيديو {selectedSbVideoModel.includes("kling") ? "Kling 3.0 Pro" : selectedSbVideoModel.includes("seedance") ? "Seedance 2 Turbo" : "Omni Flash"}</span>
-                          </button>
-                        </div>
+                      <div className="absolute bottom-2.5 left-2.5 px-3 py-1 rounded-lg bg-black/80 border border-white/20 text-[11px] font-bold text-white backdrop-blur-md shadow-md flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
+                        <span>{selectedSbVideoModel.includes("kling") ? "Kling 3.0 Pro" : selectedSbVideoModel.includes("seedance") ? "Seedance 2 Turbo" : "Omni Flash"}</span>
                       </div>
-                    )}
-
-                    {/* Top-Left / Bottom-Left Model Badge */}
-                    <div className="absolute bottom-2.5 left-2.5 px-3 py-1 rounded-lg bg-black/80 border border-white/20 text-[11px] font-bold text-white backdrop-blur-md shadow-md flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
-                      <span>{selectedSbVideoModel.includes("kling") ? "Kling 3.0 Pro" : selectedSbVideoModel.includes("seedance") ? "Seedance 2 Turbo" : "Omni Flash"}</span>
-                    </div>
-
-                    {/* Hover Zoom & Download */}
-                    {currentStoryboard.video.url && (
                       <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-black/70 backdrop-blur-md p-1 rounded-xl">
                         <button
                           type="button"
@@ -2265,8 +2288,60 @@ export default function AdminSocialMediaPage() {
                           <Download className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl overflow-hidden border border-white/15 bg-black/80 relative aspect-video shadow-lg group">
+                      {currentStoryboard.heroImage?.url || currentStoryboard.referenceFrames.frame1.url ? (
+                        <>
+                          <img
+                            src={currentStoryboard.heroImage?.url || currentStoryboard.referenceFrames.frame1.url}
+                            alt="Hero Key Visual"
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => {
+                              const fallbackUrl = currentStoryboard.heroImage?.url || currentStoryboard.referenceFrames.frame1.url;
+                              if (fallbackUrl) setPreviewModalUrl({ url: fallbackUrl, type: "image", title: currentStoryboard.title });
+                            }}
+                          />
+                          <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-lg bg-black/80 border border-white/20 text-[10px] font-bold text-fuchsia-300 backdrop-blur-md shadow-md">
+                            {currentStoryboard.heroImage?.label || "المشهد الرئيسي (Key Visual 4K)"}
+                          </div>
+                          <div className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-black/80 border border-white/20 text-[10px] font-bold text-cyan-300 backdrop-blur-md shadow-md flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                            <span>{selectedSbImageModel === "grok-imagine" ? "Grok Imagine 2.0" : selectedSbImageModel === "gpt-image-2" ? "GPT-Image-2" : "Nano Banana Pro"}</span>
+                          </div>
+                          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-black/70 backdrop-blur-md p-1 rounded-xl">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const fallbackUrl = currentStoryboard.heroImage?.url || currentStoryboard.referenceFrames.frame1.url;
+                                if (fallbackUrl) setPreviewModalUrl({ url: fallbackUrl, type: "image", title: currentStoryboard.title });
+                              }}
+                              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                              title="تكبير ومعاينة"
+                            >
+                              <Maximize2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const fallbackUrl = currentStoryboard.heroImage?.url || currentStoryboard.referenceFrames.frame1.url;
+                                if (fallbackUrl) handleDownloadMedia(fallbackUrl, "storyboard-hero");
+                              }}
+                              className="p-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold"
+                              title="تنزيل الصورة HD"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 text-xs gap-2 p-4 text-center">
+                          <Sparkles className="w-6 h-6 text-fuchsia-400 animate-pulse" />
+                          <span>اضغط على زر التوليد لصناعة الستوري بورد المتناسق بالنموذج المختار</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* CARD 2: DYNAMIC COMPARISON REFERENCE FRAMES ACCORDING TO TEMPLATE */}
                   <div className="grid grid-cols-2 gap-2.5">

@@ -150,13 +150,22 @@ export async function saveSocialAccountsConfig(config: SocialAccountsConfig): Pr
 const STORYBOARDS_CONFIG_KEY = "social_media_storyboards_history";
 
 export type StoryboardThemeType = "cyberpunk" | "luxury-gold" | "hologram" | "cinema-master";
+export type StoryboardTemplateType = "day-night" | "car-call" | "character-3d" | "workflow-battle";
 
 export type StoryboardShowcaseRecord = {
   id: string;
   title: string;
+  templateType?: StoryboardTemplateType;
+  outputMode?: "images_only" | "video_and_images";
   theme: StoryboardThemeType;
   conceptPrompt: string;
   language: "ar" | "en";
+  heroImage?: {
+    url?: string;
+    label?: string;
+    modelBadge?: string;
+    prompt?: string;
+  };
   video: {
     url?: string;
     model: string;
