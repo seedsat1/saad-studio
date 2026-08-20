@@ -339,78 +339,99 @@ Return ONLY a valid JSON object matching:
       let imageUrl = "";
       let lastError = "";
 
-      // 1. Try WaveSpeed if requested or as primary
-      if (!model.includes("gpt") && !model.includes("openai")) {
-        const waveSpeedKey = process.env.WAVESPEED_API_KEY;
-        if (waveSpeedKey) {
-          try {
-            const imgRes = await fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
+      const waveSpeedKey = process.env.WAVESPEED_API_KEY;
+      const openAIApiKey = process.env.OPENAI_API_KEY;
+
+      // 1. Try OpenAI if explicitly requested
+      if ((model.includes("gpt") || model.includes("openai")) && openAIApiKey && openAIApiKey !== "sk-placeholder") {
+        try {
+          let size = "1792x1024";
+          if (aspectRatio === "1:1") size = "1024x1024";
+          else if (aspectRatio === "9:16" || aspectRatio === "4:5") size = "1024x1792";
+
+          const res = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
+            body: JSON.stringify({ model: "dall-e-3", prompt, size, quality: "standard", n: 1 }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            imageUrl = data.data?.[0]?.url || "";
+          } else {
+            // Try DALL-E 2 as fallback
+            const res2 = await fetch("https://api.openai.com/v1/images/generations", {
               method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${waveSpeedKey}` },
-              body: JSON.stringify({ prompt, aspect_ratio: aspectRatio, num_images: 1 }),
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
+              body: JSON.stringify({ model: "dall-e-2", prompt, size: "1024x1024", n: 1 }),
             });
-            if (imgRes.ok) {
-              const data = await imgRes.json();
-              const taskId = data?.data?.id || data?.id;
-              if (taskId) {
-                for (let i = 0; i < 20; i++) {
-                  await new Promise((r) => setTimeout(r, 2000));
-                  const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
-                    headers: { Authorization: `Bearer ${waveSpeedKey}` },
-                  });
-                  if (pollRes.ok) {
-                    const pollData = await pollRes.json();
-                    const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
-                    if (status === "completed" || status === "succeeded" || status === "success") {
-                      const outputs = pollData?.data?.outputs || pollData?.outputs || [];
-                      if (outputs[0]) {
-                        imageUrl = outputs[0];
-                        break;
-                      }
+            if (res2.ok) {
+              const data2 = await res2.json();
+              imageUrl = data2.data?.[0]?.url || "";
+            }
+          }
+        } catch (e) {
+          lastError = String(e);
+          console.warn("OpenAI generation failed, falling back to WaveSpeed:", e);
+        }
+      }
+
+      // 2. Try WaveSpeed (Flux-Schnell) if OpenAI failed or if Nano Banana was requested
+      if (!imageUrl && waveSpeedKey) {
+        try {
+          const imgRes = await fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${waveSpeedKey}` },
+            body: JSON.stringify({ prompt, aspect_ratio: aspectRatio, num_images: 1 }),
+          });
+          if (imgRes.ok) {
+            const data = await imgRes.json();
+            const taskId = data?.data?.id || data?.id;
+            if (taskId) {
+              for (let i = 0; i < 20; i++) {
+                await new Promise((r) => setTimeout(r, 2000));
+                const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
+                  headers: { Authorization: `Bearer ${waveSpeedKey}` },
+                });
+                if (pollRes.ok) {
+                  const pollData = await pollRes.json();
+                  const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
+                  if (status === "completed" || status === "succeeded" || status === "success") {
+                    const outputs = pollData?.data?.outputs || pollData?.outputs || [];
+                    if (outputs[0]) {
+                      imageUrl = outputs[0];
+                      break;
                     }
                   }
                 }
               }
             }
-          } catch (e) {
-            lastError = String(e);
-            console.warn("WaveSpeed generation failed:", e);
           }
+        } catch (e) {
+          lastError = String(e);
+          console.warn("WaveSpeed generation failed:", e);
         }
       }
 
-      // 2. Fallback to OpenAI if WaveSpeed failed or OpenAI requested
-      if (!imageUrl) {
-        const openAIApiKey = process.env.OPENAI_API_KEY;
-        if (openAIApiKey) {
-          try {
-            let size = "1792x1024";
-            if (aspectRatio === "1:1") size = "1024x1024";
-            else if (aspectRatio === "9:16" || aspectRatio === "4:5") size = "1024x1792";
-            else size = "1792x1024";
-
-            const res = await fetch("https://api.openai.com/v1/images/generations", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
-              body: JSON.stringify({ model: "dall-e-3", prompt, size, quality: "standard", n: 1 }),
-            });
-            if (res.ok) {
-              const data = await res.json();
-              imageUrl = data.data?.[0]?.url || "";
-            } else {
-              const errJson = await res.json().catch(() => ({}));
-              lastError = errJson?.error?.message || res.statusText;
-            }
-          } catch (e) {
-            lastError = String(e);
-            console.warn("OpenAI generation failed:", e);
+      // 3. Fallback to OpenAI if WaveSpeed failed and wasn't tried yet
+      if (!imageUrl && openAIApiKey && openAIApiKey !== "sk-placeholder") {
+        try {
+          const res = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
+            body: JSON.stringify({ model: "dall-e-2", prompt, size: "1024x1024", n: 1 }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            imageUrl = data.data?.[0]?.url || "";
           }
+        } catch (e) {
+          lastError = String(e);
         }
       }
 
       if (!imageUrl) {
         return NextResponse.json({
-          error: lastError || "تعذر توليد الصورة حالياً، يرجى المحاولة مرة أخرى أو اختيار نموذج آخر.",
+          error: "تعذر توليد الصورة حالياً، يرجى المحاولة مرة أخرى أو التحقق من مفتاح الـ API.",
           success: false,
         }, { status: 500 });
       }
