@@ -295,61 +295,87 @@ Return ONLY a valid JSON object matching:
 
     // 2. GENERATE IMAGE ONLY
     if (action === "generate_image") {
-      const prompt = String(body.prompt || "").trim();
+      const prompt = String(body.prompt || "").trim() || "Cinematic futuristic creative AI visual art masterpiece 8k";
       const model = String(body.model || "nano-banana-pro").toLowerCase();
       const aspectRatio = String(body.aspectRatio || "16:9");
-      if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
 
       let imageUrl = "";
-      if (model.includes("gpt") || model.includes("openai")) {
-        const openAIApiKey = process.env.OPENAI_API_KEY;
-        if (!openAIApiKey) return NextResponse.json({ error: "OPENAI_API_KEY is missing" }, { status: 500 });
-        
-        let size = "1792x1024";
-        if (aspectRatio === "1:1") size = "1024x1024";
-        else if (aspectRatio === "9:16" || aspectRatio === "4:5") size = "1024x1792";
-        else size = "1792x1024";
+      let lastError = "";
 
-        const res = await fetch("https://api.openai.com/v1/images/generations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
-          body: JSON.stringify({ model: "dall-e-3", prompt, size, quality: "standard", n: 1 }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          imageUrl = data.data?.[0]?.url || "";
-        }
-      } else {
+      // 1. Try WaveSpeed if requested or as primary
+      if (!model.includes("gpt") && !model.includes("openai")) {
         const waveSpeedKey = process.env.WAVESPEED_API_KEY;
-        if (!waveSpeedKey) return NextResponse.json({ error: "WAVESPEED_API_KEY is missing" }, { status: 500 });
-        const imgRes = await fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${waveSpeedKey}` },
-          body: JSON.stringify({ prompt, aspect_ratio: aspectRatio, num_images: 1 }),
-        });
-        if (imgRes.ok) {
-          const data = await imgRes.json();
-          const taskId = data?.data?.id || data?.id;
-          if (taskId) {
-            for (let i = 0; i < 15; i++) {
-              await new Promise((r) => setTimeout(r, 2000));
-              const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
-                headers: { Authorization: `Bearer ${waveSpeedKey}` },
-              });
-              if (pollRes.ok) {
-                const pollData = await pollRes.json();
-                const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
-                if (status === "completed" || status === "succeeded" || status === "success") {
-                  const outputs = pollData?.data?.outputs || pollData?.outputs || [];
-                  if (outputs[0]) {
-                    imageUrl = outputs[0];
-                    break;
+        if (waveSpeedKey) {
+          try {
+            const imgRes = await fetch("https://api.wavespeed.ai/api/v3/flux-schnell/text-to-image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${waveSpeedKey}` },
+              body: JSON.stringify({ prompt, aspect_ratio: aspectRatio, num_images: 1 }),
+            });
+            if (imgRes.ok) {
+              const data = await imgRes.json();
+              const taskId = data?.data?.id || data?.id;
+              if (taskId) {
+                for (let i = 0; i < 20; i++) {
+                  await new Promise((r) => setTimeout(r, 2000));
+                  const pollRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${taskId}/result`, {
+                    headers: { Authorization: `Bearer ${waveSpeedKey}` },
+                  });
+                  if (pollRes.ok) {
+                    const pollData = await pollRes.json();
+                    const status = (pollData?.data?.status || pollData?.status || "").toLowerCase();
+                    if (status === "completed" || status === "succeeded" || status === "success") {
+                      const outputs = pollData?.data?.outputs || pollData?.outputs || [];
+                      if (outputs[0]) {
+                        imageUrl = outputs[0];
+                        break;
+                      }
+                    }
                   }
                 }
               }
             }
+          } catch (e) {
+            lastError = String(e);
+            console.warn("WaveSpeed generation failed:", e);
           }
         }
+      }
+
+      // 2. Fallback to OpenAI if WaveSpeed failed or OpenAI requested
+      if (!imageUrl) {
+        const openAIApiKey = process.env.OPENAI_API_KEY;
+        if (openAIApiKey) {
+          try {
+            let size = "1792x1024";
+            if (aspectRatio === "1:1") size = "1024x1024";
+            else if (aspectRatio === "9:16" || aspectRatio === "4:5") size = "1024x1792";
+            else size = "1792x1024";
+
+            const res = await fetch("https://api.openai.com/v1/images/generations", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${openAIApiKey}` },
+              body: JSON.stringify({ model: "dall-e-3", prompt, size, quality: "standard", n: 1 }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              imageUrl = data.data?.[0]?.url || "";
+            } else {
+              const errJson = await res.json().catch(() => ({}));
+              lastError = errJson?.error?.message || res.statusText;
+            }
+          } catch (e) {
+            lastError = String(e);
+            console.warn("OpenAI generation failed:", e);
+          }
+        }
+      }
+
+      if (!imageUrl) {
+        return NextResponse.json({
+          error: lastError || "تعذر توليد الصورة حالياً، يرجى المحاولة مرة أخرى أو اختيار نموذج آخر.",
+          success: false,
+        }, { status: 500 });
       }
 
       return NextResponse.json({ success: true, imageUrl, model, aspectRatio });

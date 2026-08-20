@@ -161,7 +161,7 @@ export default function AdminSocialMediaPage() {
   };
 
   const handleGenerateImageOnly = async () => {
-    const p = customImgPrompt.trim() || currentPost.topicPrompt || "Cinematic futuristic creative AI visual art masterpiece 8k";
+    const p = customImgPrompt.trim() || currentPost.topicPrompt || agentPrompt.trim() || "Cinematic futuristic creative AI visual art masterpiece 8k";
     setGeneratingImg(true);
     try {
       const res = await fetch("/api/admin/social-media", {
@@ -179,7 +179,7 @@ export default function AdminSocialMediaPage() {
         setCurrentPost((prev) => ({ ...prev, imageUrl: data.imageUrl, mediaType: "image", aspectRatio: selectedAspectRatio, imageModel: selectedImageModel }));
         setCustomImgPrompt("");
       } else {
-        alert(data?.error || "Failed to generate image.");
+        alert(data?.error || "تعذر توليد الصورة، يرجى المحاولة مجدداً.");
       }
     } catch (e) {
       alert("Error generating image: " + String(e));
@@ -189,7 +189,7 @@ export default function AdminSocialMediaPage() {
   };
 
   const handleGenerateVideoOnly = async () => {
-    const p = customImgPrompt.trim() || currentPost.topicPrompt || "Cinematic futuristic high resolution AI motion video 4k";
+    const p = customImgPrompt.trim() || currentPost.topicPrompt || agentPrompt.trim() || "Cinematic futuristic high resolution AI motion video 4k";
     setGeneratingVid(true);
     try {
       const res = await fetch("/api/admin/social-media", {
@@ -207,7 +207,7 @@ export default function AdminSocialMediaPage() {
         setCurrentPost((prev) => ({ ...prev, videoUrl: data.videoUrl, mediaType: "video", aspectRatio: selectedAspectRatio, videoModel: selectedVideoModel }));
         setCustomImgPrompt("");
       } else {
-        alert(data?.error || "Failed to generate video.");
+        alert(data?.error || "تعذر توليد الفيديو، يرجى المحاولة مجدداً.");
       }
     } catch (e) {
       alert("Error generating video: " + String(e));
