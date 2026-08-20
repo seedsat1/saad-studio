@@ -61,7 +61,9 @@
      - Updated `ImageResultGrid` to prioritize direct non-failed image `url` and `originalUrl` over thumbnail proxy routes, preventing "No Preview" black boxes for newly added models like Grok Imagine.
      - Added CSS `content-visibility: auto` and `contain-intrinsic-size: 220px 220px` to image cards for off-screen render skipping, and enabled native `loading="lazy"` and `decoding="async"` to eliminate main-thread decoding freezes when viewing dozens of high-res generated images.
      - Preserved in-memory URLs during background persistence reconciliation in `loadPersistedImages`.
-  4. Verification:
+  4. Explore Page Global Footer Integration:
+     - Embedded the dynamic CMS-powered `<Footer />` component seamlessly at the bottom of the Explore showcase page (`app/(dash)/(routes)/explore/page.tsx`), maintaining complete brand links, newsletter subscription, and social media connectivity across all viewport sizes.
+  5. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest test suite: 12/12 tests passed.
 

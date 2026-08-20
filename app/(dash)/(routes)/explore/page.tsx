@@ -35,6 +35,7 @@ import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 import { usePromoContent, promoText } from "@/hooks/use-promo-content";
 import { DEFAULT_EXPLORE_MODULES, type ExploreMedia, type ExploreModule } from "@/lib/explore-cms";
 import { useLanguage } from "@/lib/use-language";
+import Footer from "@/components/Footer";
 
 // ─── Types and Constants ───
 
@@ -2548,6 +2549,7 @@ export default function ExplorePage() {
 
       </section>
 
+      <Footer />
     </main>
   );
 }
