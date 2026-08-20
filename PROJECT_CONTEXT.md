@@ -88,7 +88,12 @@
      - Added full **Arabic (🇸🇦 العربية) & English (🇬🇧 English)** dual-language toggle with native RTL/LTR formatting and typography.
      - Added integrated **Direct Image Uploader (رفع من الجهاز)** and **AI Image Generator with Model Switcher** supporting **Google Nano Banana Pro (`nano-banana-pro`)** and **OpenAI GPT-Image-2 (`gpt-image-2`)**.
      - Upgraded the email layout and live preview into the true **Saad Studio Luxury Dark Brand Theme** (midnight blue/violet cards, glowing cyan accents, official logo, and copyable prompt cards).
-  12. Verification:
+  12. Social Media AI Agent & Multi-Platform Marketing Hub:
+     - Built dedicated `/admin/social-media` page (`app/admin/social-media/page.tsx`) and added `Social Media Hub` to `AdminSidebar` under USERS & FINANCE.
+     - Built backend AI router (`app/api/admin/social-media/route.ts`) and database storage helper (`lib/social-media.ts`).
+     - AI Agent automatically creates multi-platform posts for **𝕏 (Twitter)**, **📸 Instagram**, **💼 LinkedIn**, **✈️ Telegram**, and **🎵 TikTok/Shorts scripts**.
+     - Features direct image generation with **Google Nano Banana Pro** and **OpenAI GPT-Image-2**, realistic interactive UI mock previews for each network, one-click copy buttons, post archives, and direct Telegram channel / Discord / Webhook publishing.
+  13. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest test suite: 19/19 tests passed across all suites.
 

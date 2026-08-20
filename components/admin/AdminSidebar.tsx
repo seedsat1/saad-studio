@@ -34,6 +34,7 @@ import {
   FileCode,
   Megaphone,
   Mail,
+  Share2,
   FlaskConical,
   TerminalSquare,
   Bug,
@@ -123,6 +124,11 @@ export const ADMIN_NAV_CONFIG: NavGroup[] = [
         label: "Newsletter Hub",
         href: "/admin/newsletter",
         icon: Mail,
+      },
+      {
+        label: "Social Media Hub",
+        href: "/admin/social-media",
+        icon: Share2,
       },
       {
         label: "Transactions & Billing",
