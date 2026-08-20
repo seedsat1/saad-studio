@@ -36,6 +36,7 @@ import { usePromoContent, promoText } from "@/hooks/use-promo-content";
 import { DEFAULT_EXPLORE_MODULES, type ExploreMedia, type ExploreModule } from "@/lib/explore-cms";
 import { useLanguage } from "@/lib/use-language";
 import Footer from "@/components/Footer";
+import { CameraMovementsSection } from "@/components/explore/CameraMovementsSection";
 
 // ─── Types and Constants ───
 
@@ -2369,6 +2370,13 @@ export default function ExplorePage() {
         ))}
 
       </section>
+
+      {/* ════════════════════════════════════════════════
+          CAMERA MOVEMENTS LIBRARY (46 cinematic motion presets)
+          Data source: lib/camera-movements-library.ts
+          Section UI:  components/explore/CameraMovementsSection.tsx
+      ════════════════════════════════════════════════ */}
+      <CameraMovementsSection />
 
       {/* ════════════════════════════════════════════════
           COMMUNITY CREATIONS (Iraq Masonry & Filters)

@@ -148,31 +148,6 @@ export const DEFAULT_EXPLORE_MODULES: ExploreModule[] = [
       image("gallery-8", "/Kling%203.0/1%20(8).webp"),
     ],
   },
-  {
-    id: "camera-movements",
-    enabled: true,
-    layout: "gallery-right",
-    badge: "NEW LIBRARY",
-    title: "46 Camera Movements",
-    subtitle: "Cinematic camera movement library — dolly, zoom, orbit, drone, crane, tracking and more. Copy-paste prompts for any AI video model.",
-    cta: "Open Library",
-    href: "/hook-studio",
-    hero: image(
-      "hero",
-      "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/orbit-cw.webp",
-      "Camera movement library hero",
-    ),
-    gallery: [
-      image("gallery-1", "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/dolly-in.webp", "Dolly In"),
-      image("gallery-2", "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/crane-up.webp", "Crane Up"),
-      image("gallery-3", "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/chase-shot.webp", "Chase Shot"),
-      image("gallery-4", "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/arc-left.webp", "Arc Left"),
-      image("gallery-5", "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/helicopter-shot.webp", "Helicopter Shot"),
-      image("gallery-6", "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/fpv-shot.webp", "First-Person View"),
-      image("gallery-7", "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/pass-through.webp", "Pass-Through"),
-      image("gallery-8", "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/whip-pan-right.webp", "Whip Pan"),
-    ],
-  },
 ];
 
 export const DEFAULT_EXPLORE_CMS: ExploreCmsConfig = {
