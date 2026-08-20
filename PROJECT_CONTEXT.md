@@ -48,7 +48,20 @@
 
 ---
 
-#### Latest task: Image Studio Interactive Hover Suite & Real Action Controls (2026-08-20)
+#### Latest task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Hardened Provider Polling & URL Extraction:
+     - Fixed `pollWaveSpeedImageTask` in `app/api/generate/image/route.ts` and `app/api/panel/generate/image/route.ts` to accept all successful status strings (`completed`, `succeeded`, `success`, `done`).
+     - Added support for singular `output`, `result`, `images`, and nested data candidates in `extractProviderOutputUrls` and `normalizeImageResponseUrls`.
+  2. Direct Image URL Previews in Grid:
+     - Updated `ImageResultGrid` to prioritize direct non-failed image `url` and `originalUrl` over thumbnail proxy routes, preventing "No Preview" black boxes for newly added models like Grok Imagine.
+     - Preserved in-memory URLs during background persistence reconciliation in `loadPersistedImages`.
+  3. Verification:
+     - TypeScript `tsc --noEmit`: 0 errors.
+     - Vitest test suite: 12/12 tests passed.
+
+#### Previous task: Image Studio Interactive Hover Suite & Real Action Controls (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. Interactive Hover Overlay Suite on Image Cards:

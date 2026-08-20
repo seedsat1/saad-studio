@@ -561,7 +561,9 @@ export function ImageResultGrid({
             );
           }
 
-          const mediaSrc = item.thumbnailUrl || item.url || item.originalUrl;
+          const mediaSrc = (item.url && !item.url.startsWith("failed:") ? item.url : null)
+            || (item.originalUrl && !item.originalUrl.startsWith("failed:") ? item.originalUrl : null)
+            || item.thumbnailUrl;
           const isSelected = selectedIds.has(item.id);
           const isLiked = likedIds.has(item.id);
           const isMenuOpen = activeMenuId === item.id;

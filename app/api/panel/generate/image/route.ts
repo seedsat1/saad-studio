@@ -71,17 +71,6 @@ function resolveSeedream5ProBillingModel(modelId: string, hasReferenceImages: bo
   return modelId;
 }
 
-function resolveSeedream5ProWaveSpeedRoute(modelId: string, hasReferenceImages: boolean): string | null {
-  const billingModel = resolveSeedream5ProBillingModel(modelId, hasReferenceImages).toLowerCase();
-  if (billingModel === "seedream/5-pro-text-to-image" || billingModel === "bytedance/seedream-v5.0-pro") {
-    return "bytedance/seedream-v5.0-pro";
-  }
-  if (billingModel === "seedream/5-pro-image-to-image" || billingModel === "bytedance/seedream-v5.0-pro/edit") {
-    return "bytedance/seedream-v5.0-pro/edit";
-  }
-  return null;
-}
-
 function normalizeSeedream5ProResolution(value: unknown): "1k" | "2k" {
   const normalized = String(value ?? "1k").trim().toLowerCase();
   return normalized.includes("2") ? "2k" : "1k";
@@ -115,19 +104,19 @@ async function pollWaveSpeedImageTask(apiKey: string, taskId: string, maxAttempt
     }
     const data = (json?.data ?? json) as Record<string, unknown> | null;
     const status = String(data?.status ?? "").toLowerCase();
-    if (status === "completed") {
-      const urls = extractProviderUrls(data?.outputs ?? data?.resultUrls ?? data?.imageUrls ?? data?.images ?? data?.urls);
+    if (status === "completed" || status === "succeeded" || status === "success" || status === "done") {
+      const urls = extractProviderUrls(data?.outputs ?? data?.output ?? data?.result ?? data?.resultUrls ?? data?.imageUrls ?? data?.images ?? data?.urls ?? data);
       if (!urls.length) throw new Error("WaveSpeed task completed but returned no image URLs.");
       return urls;
     }
-    if (["failed", "cancelled", "timeout"].includes(status)) {
-      throw new Error(String(data?.error ?? data?.errorMessage ?? "WaveSpeed image generation failed."));
+    if (["failed", "cancelled", "timeout", "error"].includes(status)) {
+      throw new Error(String(data?.error ?? data?.errorMessage ?? data?.message ?? "WaveSpeed image generation failed."));
     }
   }
   throw new Error("WaveSpeed image generation timed out.");
 }
 
-/** POST /api/panel/generate/image â€” generates images using website credits and official provider routes. */
+/** POST /api/panel/generate/image — generates images using website credits and official provider routes. */
 export async function POST(req: NextRequest) {
   const token = extractPanelToken(req);
   if (!token) return NextResponse.json({ error: "Missing Authorization header." }, { status: 401 });
@@ -293,10 +282,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // â”€â”€ Early dispatch: Google / OpenAI direct adapters.
-    //    Routes Google models (Nano Banana, Imagen) to the official
-    //    Gemini/Vertex API and OpenAI models (gpt-image, DALLÂ·E) to
-    //    OpenAI directly. Other curated image models route through WaveSpeed before this direct-provider branch.
+    // Direct provider adapters (Google / OpenAI)
     if (isDirectProviderModel(modelId)) {
       for (const refUrl of refUrls) {
         await checkStoryboardReferenceImageSafety(refUrl);

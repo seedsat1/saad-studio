@@ -182,11 +182,14 @@ function normalizeImageResponseUrls(data: any): string[] {
     data?.imageUrls,
     data?.resultUrls,
     data?.outputs,
+    data?.output,
     data?.images,
     data?.urls,
     data?.imageUrl,
     data?.mediaUrl,
     data?.url,
+    data?.data,
+    data,
   ]) {
     const urls = collect(candidate);
     if (urls.length) return urls;
@@ -1311,7 +1314,18 @@ export default function ImageWorkspacePage() {
       if (!res.ok || !Array.isArray(data?.assets)) return;
 
       const mapped: ResultItem[] = data.assets.map((asset: any) => mapAssetToResultItem(asset));
-      setResults((prev) => mode === "append" ? [...prev, ...mapped.filter((item) => !prev.some((existing) => existing.id === item.id))] : mapped);
+      setResults((prev) => {
+        if (mode === "append") {
+          return [...prev, ...mapped.filter((item) => !prev.some((existing) => existing.id === item.id))];
+        }
+        return mapped.map((m) => {
+          const existing = prev.find((p) => p.id === m.id);
+          if (existing && (!m.url || m.url.startsWith("failed:")) && existing.url && !existing.url.startsWith("failed:")) {
+            return { ...m, url: existing.url, originalUrl: existing.originalUrl || existing.url };
+          }
+          return m;
+        });
+      });
       setResultsPage(typeof data?.page === "number" ? data.page : nextPage);
       setResultsHasMore(Boolean(data?.hasMore));
     } catch {

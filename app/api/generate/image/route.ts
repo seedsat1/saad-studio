@@ -490,13 +490,13 @@ async function pollWaveSpeedImageTask(taskId: string, apiKey: string, maxAttempt
 
     const data = (resultJson?.data ?? resultJson) as Record<string, unknown> | null;
     const status = String(data?.status ?? "").toLowerCase();
-    if (status === "completed") {
-      const urls = extractProviderOutputUrls(data?.outputs ?? data?.resultUrls ?? data?.imageUrls ?? data?.images ?? data?.urls);
+    if (status === "completed" || status === "succeeded" || status === "success" || status === "done") {
+      const urls = extractProviderOutputUrls(data?.outputs ?? data?.output ?? data?.result ?? data?.resultUrls ?? data?.imageUrls ?? data?.images ?? data?.urls ?? data);
       if (!urls.length) throw new Error("WaveSpeed task completed but returned no image URLs.");
       return urls;
     }
-    if (["failed", "cancelled", "timeout"].includes(status)) {
-      throw new Error(String(data?.error ?? data?.errorMessage ?? "WaveSpeed image generation failed."));
+    if (["failed", "cancelled", "timeout", "error"].includes(status)) {
+      throw new Error(String(data?.error ?? data?.errorMessage ?? data?.message ?? "WaveSpeed image generation failed."));
     }
   }
   throw new Error("WaveSpeed image generation timed out.");
