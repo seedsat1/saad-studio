@@ -37,6 +37,7 @@ import { DEFAULT_EXPLORE_MODULES, type ExploreMedia, type ExploreModule } from "
 import { useLanguage } from "@/lib/use-language";
 import Footer from "@/components/Footer";
 import { CameraMovementsSection } from "@/components/explore/CameraMovementsSection";
+import { SeedancePromptsSection } from "@/components/explore/SeedancePromptsSection";
 
 // ─── Types and Constants ───
 
@@ -2013,12 +2014,19 @@ export default function ExplorePage() {
       </section>
 
       {/* ════════════════════════════════════════════════
-          CAMERA MOVEMENTS LIBRARY (46 cinematic motion presets)
+          CAMERA MOVEMENTS LIBRARY (62 cinematic motion presets)
           Placed at the TOP right after the hero — first thing users see.
           Data source: lib/camera-movements-library.ts
           Section UI:  components/explore/CameraMovementsSection.tsx
       ════════════════════════════════════════════════ */}
       <CameraMovementsSection />
+
+      {/* ════════════════════════════════════════════════
+          VIRAL SEEDANCE 2 PROMPTS (curated from X.com creators)
+          Data source: lib/seedance-prompts-library.ts
+          Section UI:  components/explore/SeedancePromptsSection.tsx
+      ════════════════════════════════════════════════ */}
+      <SeedancePromptsSection />
 
       {/* ════════════════════════════════════════════════
           STUDIO CREATIONS FEED (معرض أعمال الاستوديو)
