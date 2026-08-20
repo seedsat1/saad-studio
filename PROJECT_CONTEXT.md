@@ -48,16 +48,16 @@
 
 ---
 
-#### Latest task: Upload 413 Client Auto-Compression, Absolute Public URL Storage Fix & Agent Reference Image Input (2026-08-20)
+#### Latest task: Elimination of Unsplash Stock Placeholders & Zero Broken Image Failures (2026-08-20)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Upload 413 & Local 404 Resolution**:
-     - Fixed `POST /api/studio/upload-url` returning relative storage keys (`images/user_xxx/...`) which resulted in browser 404s when accessed under `/admin/images/`. It now resolves to standard `/api/media/${bucket}/${path}` URLs.
-     - Added client-side canvas-based image compression (`compressImageClient`) before uploading, optimizing large photos down to < 1MB so they never breach the 4.5MB serverless body limit.
-  2. **Agent Prompt Reference Image Attachment (Tab 1)**:
-     - Added direct reference image attachment in the Agent prompt area (`إرفاق صورة مرجعية للايجنت 🖼️`).
-     - Uploaded reference images now display in an interactive chip with removal toggle, and are directly incorporated as the visual reference for subsequent AI image/video generation.
-  3. Verification: `tsc --noEmit` passed with 0 errors, Vitest passed 19/19 tests, Git committed & pushed to `main`.
+  1. **Purge of Unsplash Network Timeouts**:
+     - Completely removed all hardcoded external `images.unsplash.com` stock image URLs from `DEFAULT_POST`, `DEFAULT_STORYBOARD`, and backend fallback generators.
+     - Prevented `net::ERR_CONNECTION_TIMED_OUT` and random irrelevant stock images from appearing.
+  2. **Graceful UI Image Fallbacks & onError Protection**:
+     - Handled empty media state with sleek interactive placeholders prompting AI generation or custom upload.
+     - Added robust `onError` image handlers across all preview widgets (Twitter, Facebook, Instagram, LinkedIn, Telegram) preventing broken image icon artifacts.
+  3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
 - Status: Completed & Verified (PASS).

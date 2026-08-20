@@ -151,7 +151,7 @@ async function generateImageDirectly(prompt: string, modelName: string, aspectRa
     console.warn("Google Nano Banana generation error:", e);
   }
 
-  return "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80";
+  return "";
 }
 
 export async function POST(req: NextRequest) {

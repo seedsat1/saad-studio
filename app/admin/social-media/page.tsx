@@ -107,7 +107,7 @@ const DEFAULT_POST: SocialMediaPostRecord = {
   topicPrompt: "إطلاق الميزات والنماذج الإبداعية الجديدة في منصة سعد ستوديو",
   language: "ar",
   imageModel: "nano-banana-pro",
-  imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80",
+  imageUrl: "",
   status: "draft",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -165,13 +165,13 @@ const DEFAULT_STORYBOARD: StoryboardShowcaseRecord = {
   },
   referenceFrames: {
     frame1: {
-      url: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&auto=format&fit=crop&q=80",
+      url: "",
       label: "الإطار 1: ضوء الصباح (Morning Light)",
       modelBadge: "Google Nano Banana Pro",
       prompt: "3D stylized character sitting at bedroom desk typing on computer, warm morning sunlight streaming through window, soft cozy lighting, Pixar aesthetic, 8k octane render.",
     },
     frame2: {
-      url: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&auto=format&fit=crop&q=80",
+      url: "",
       label: "الإطار 2: توهج ليلي سيبراني (Cyber Glow)",
       modelBadge: "Google Nano Banana Pro",
       prompt: "Same 3D stylized character sitting at bedroom desk typing on computer at night, glowing neon cyan and warm amber screen reflections, atmospheric bedroom, 8k octane render.",
@@ -185,12 +185,12 @@ const DEFAULT_STORYBOARD: StoryboardShowcaseRecord = {
   },
   assets: {
     character: {
-      url: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80",
+      url: "",
       label: "عنصر الشخصية (Character)",
       prompt: "Stylized 3D cartoon tech creator character with red beanie and yellow shirt, full body character sheet, clean solid background.",
     },
     environment: {
-      url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80",
+      url: "",
       label: "عنصر الغرفة (Room / Scene)",
       prompt: "Cozy modern creator bedroom workstation with dual monitors, bookshelf, warm ambient night lamps, empty scene background plate.",
     },
@@ -1342,6 +1342,7 @@ export default function AdminSocialMediaPage() {
                             src={currentPost.imageUrl}
                             alt="Social post visual"
                             className="w-full h-full object-contain cursor-pointer"
+                            onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                             onClick={() => setPreviewModalUrl({ url: currentPost.imageUrl!, type: "image", title: currentPost.topicPrompt })}
                           />
                           <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[10px] text-zinc-300 border border-white/10 font-mono">
@@ -1728,7 +1729,12 @@ export default function AdminSocialMediaPage() {
                             className={`rounded-2xl overflow-hidden border border-zinc-700 bg-zinc-900 cursor-pointer ${prevAspect}`}
                             onClick={() => setPreviewModalUrl({ url: currentPost.imageUrl!, type: "image", title: currentPost.topicPrompt })}
                           >
-                            <img src={currentPost.imageUrl} alt="Facebook visual" className="w-full h-full object-contain" />
+                            <img
+                              src={currentPost.imageUrl}
+                              alt="Facebook visual"
+                              className="w-full h-full object-contain"
+                              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                            />
                           </div>
                         );
                       }
@@ -1795,7 +1801,12 @@ export default function AdminSocialMediaPage() {
                             className={`rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900 cursor-pointer ${prevAspect}`}
                             onClick={() => setPreviewModalUrl({ url: currentPost.imageUrl!, type: "image", title: currentPost.topicPrompt })}
                           >
-                            <img src={currentPost.imageUrl} alt="X post visual" className="w-full h-full object-contain" />
+                            <img
+                              src={currentPost.imageUrl}
+                              alt="X post visual"
+                              className="w-full h-full object-contain"
+                              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                            />
                           </div>
                         );
                       }
@@ -1851,7 +1862,12 @@ export default function AdminSocialMediaPage() {
                             className={`bg-zinc-900 w-full overflow-hidden cursor-pointer ${prevAspect}`}
                             onClick={() => setPreviewModalUrl({ url: currentPost.imageUrl!, type: "image", title: currentPost.topicPrompt })}
                           >
-                            <img src={currentPost.imageUrl} alt="Instagram visual" className="w-full h-full object-contain" />
+                            <img
+                              src={currentPost.imageUrl}
+                              alt="Instagram visual"
+                              className="w-full h-full object-contain"
+                              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                            />
                           </div>
                         );
                       }
@@ -1914,7 +1930,12 @@ export default function AdminSocialMediaPage() {
                       </div>
                     ) : currentPost.imageUrl ? (
                       <div className="rounded-xl overflow-hidden border border-zinc-700 aspect-video bg-zinc-900">
-                        <img src={currentPost.imageUrl} alt="LinkedIn visual" className="w-full h-full object-cover" />
+                        <img
+                          src={currentPost.imageUrl}
+                          alt="LinkedIn visual"
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                        />
                       </div>
                     ) : null}
 
@@ -1947,7 +1968,12 @@ export default function AdminSocialMediaPage() {
                         </div>
                       ) : currentPost.imageUrl ? (
                         <div className="rounded-xl overflow-hidden aspect-video bg-black/40">
-                          <img src={currentPost.imageUrl} alt="Telegram visual" className="w-full h-full object-cover" />
+                          <img
+                            src={currentPost.imageUrl}
+                            alt="Telegram visual"
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                          />
                         </div>
                       ) : null}
                       <p className="text-xs text-zinc-100 leading-relaxed whitespace-pre-wrap font-sans">
