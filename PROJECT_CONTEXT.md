@@ -83,7 +83,11 @@
      - Built dedicated `/admin/newsletter` page (`app/admin/newsletter/page.tsx`) and added `Newsletter Hub` to `AdminSidebar` under USERS & FINANCE.
      - Added robust newsletter storage library (`lib/newsletter.ts`) and CRUD endpoints (`/api/admin/newsletter` & `/api/newsletter`).
      - Features complete subscriber list with search, status filters, manual add, deletion, one-click email copying, and CSV export.
-  11. Verification:
+  11. AI Newsletter Agent & Multi-Card Email Generator:
+     - Built dedicated AI Editorial Agent suite inside `/admin/newsletter` (`app/api/admin/newsletter/agent/route.ts`).
+     - Agent accepts natural language instructions and automatically generates structured multi-card newsletters (Spotlight with AI-generated hero image, Notable AI Tools, Open Source & Drops, Prompt of the Day, and CTAs).
+     - Features live visual section editor, interactive multi-card email preview matching top AI newsletters, and instant broadcast delivery to newsletter leads or paid active subscribers.
+  12. Verification:
      - TypeScript `tsc --noEmit`: 0 errors.
      - Vitest test suite: 19/19 tests passed across all suites.
 
