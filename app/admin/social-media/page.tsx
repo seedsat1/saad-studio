@@ -49,6 +49,7 @@ import {
   PlatformContentItem,
   StoryboardShowcaseRecord,
   StoryboardThemeType,
+  StoryboardTemplateType,
 } from "@/lib/social-media";
 
 // Clean Brand Vector Icons
@@ -357,7 +358,7 @@ export default function AdminSocialMediaPage() {
   const [currentStoryboard, setCurrentStoryboard] = useState<StoryboardShowcaseRecord>(DEFAULT_STORYBOARD);
   const [storyboardPrompt, setStoryboardPrompt] = useState("");
   const [selectedSbTheme, setSelectedSbTheme] = useState<StoryboardThemeType>("cyberpunk");
-  const [selectedSbTemplate, setSelectedSbTemplate] = useState<"day-night" | "car-call" | "character-3d" | "workflow-battle">("day-night");
+  const [selectedSbTemplate, setSelectedSbTemplate] = useState<StoryboardTemplateType>("day-night");
   const [selectedSbOutputMode, setSelectedSbOutputMode] = useState<"images_only" | "video_and_images">("images_only");
   const [selectedSbImageModel, setSelectedSbImageModel] = useState<"nano-banana-pro" | "grok-imagine" | "gpt-image-2">("nano-banana-pro");
   const [selectedSbVideoModel, setSelectedSbVideoModel] = useState<"kling-3.0/video" | "bytedance/seedance-2" | "google/gemini-omni-flash">("kling-3.0/video");
@@ -2217,6 +2218,43 @@ export default function AdminSocialMediaPage() {
                       desc: "مقارنة صورة Nano Banana مع فيديو Kling",
                       preset: "سير عمل Kling 3.0 مع Nano Banana السينمائي",
                     },
+                    // ── Modern social-media viral templates ──────────────────
+                    {
+                      id: "product-hero",
+                      title: "🛍️ إطلاق منتج",
+                      desc: "لقطة بطولية للمنتج + ماكرو + سياق حياة",
+                      preset: "إطلاق منتج تقني حديث بأسلوب سينمائي فاخر",
+                    },
+                    {
+                      id: "before-after",
+                      title: "🔄 قبل / بعد",
+                      desc: "تحوّل بصري ريلز/تيك توك بنفس الشخصية",
+                      preset: "غرفة عادية تتحول إلى فضاء استوديو سينمائي",
+                    },
+                    {
+                      id: "quote-poster",
+                      title: "💬 اقتباس سينمائي",
+                      desc: "خلفية سينمائية + مساحة لنصّ اقتباس بارز",
+                      preset: "الإبداع لا يحتاج إذنًا — بوستر بخلفية سينمائية",
+                    },
+                    {
+                      id: "step-tutorial",
+                      title: "📚 تعليم ٣ خطوات",
+                      desc: "كاروسيل إنستغرام: خطوة ١ → ٢ → ٣",
+                      preset: "كيف تصنع لقطة سينمائية بذكاء اصطناعي في ٣ خطوات",
+                    },
+                    {
+                      id: "launch-countdown",
+                      title: "🚀 تشويقة إطلاق",
+                      desc: "تشويق + قرب + كشف كامل مع تاريخ",
+                      preset: "تشويقة إطلاق منتج جديد لسعد ستوديو",
+                    },
+                    {
+                      id: "viral-comparison",
+                      title: "⚔️ مقارنة فيروسية",
+                      desc: "هذا vs ذاك — كشف الفائز الواضح",
+                      preset: "الطريقة التقليدية vs الذكاء الاصطناعي في التوليد",
+                    },
                   ].map((tpl) => (
                     <button
                       key={tpl.id}
@@ -2839,6 +2877,18 @@ export default function AdminSocialMediaPage() {
                             ? "🚗 داخل السيارة (In-Car)"
                             : selectedSbTemplate === "character-3d"
                             ? "🧩 الشخصية (Character)"
+                            : selectedSbTemplate === "product-hero"
+                            ? "🔍 ماكرو المنتج (Macro)"
+                            : selectedSbTemplate === "before-after"
+                            ? "◀️ قبل (Before)"
+                            : selectedSbTemplate === "quote-poster"
+                            ? "🖼️ كادر 1:1 (Square)"
+                            : selectedSbTemplate === "step-tutorial"
+                            ? "1️⃣ الخطوة الأولى"
+                            : selectedSbTemplate === "launch-countdown"
+                            ? "🔦 كشف التفصيل (Detail)"
+                            : selectedSbTemplate === "viral-comparison"
+                            ? "🅰️ الخيار A"
                             : "🍌 Nano Banana Pro"}
                         </span>
                       </div>
@@ -2879,6 +2929,18 @@ export default function AdminSocialMediaPage() {
                             ? "📱 شاشة خضراء (Green Screen)"
                             : selectedSbTemplate === "character-3d"
                             ? "🏠 الغرفة (Environment)"
+                            : selectedSbTemplate === "product-hero"
+                            ? "🏡 سياق الحياة (Lifestyle)"
+                            : selectedSbTemplate === "before-after"
+                            ? "▶️ بعد (After)"
+                            : selectedSbTemplate === "quote-poster"
+                            ? "📱 كادر 9:16 (Story)"
+                            : selectedSbTemplate === "step-tutorial"
+                            ? "2️⃣ الخطوة الثانية"
+                            : selectedSbTemplate === "launch-countdown"
+                            ? "🎉 الكشف الكامل (Reveal)"
+                            : selectedSbTemplate === "viral-comparison"
+                            ? "🅱️ الخيار B (الفائز)"
                             : "⚡ Grok Imagine 2.0"}
                         </span>
                       </div>

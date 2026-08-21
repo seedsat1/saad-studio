@@ -150,7 +150,18 @@ export async function saveSocialAccountsConfig(config: SocialAccountsConfig): Pr
 const STORYBOARDS_CONFIG_KEY = "social_media_storyboards_history";
 
 export type StoryboardThemeType = "cyberpunk" | "luxury-gold" | "hologram" | "cinema-master";
-export type StoryboardTemplateType = "day-night" | "car-call" | "character-3d" | "workflow-battle";
+export type StoryboardTemplateType =
+  | "day-night"
+  | "car-call"
+  | "character-3d"
+  | "workflow-battle"
+  // ── Modern social-media viral formats ────────────────────────────────
+  | "product-hero"        // Product launch: hero + detail + lifestyle
+  | "before-after"        // Transformation reveal (very viral on Reels/TikTok)
+  | "quote-poster"        // Typography-forward cinematic quote card
+  | "step-tutorial"       // 3-step visual tutorial (IG carousel)
+  | "launch-countdown"    // Teaser + countdown + reveal
+  | "viral-comparison";   // This-vs-that meme comparison
 
 export type StoryboardShowcaseRecord = {
   id: string;

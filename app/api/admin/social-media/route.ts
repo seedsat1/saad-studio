@@ -1077,6 +1077,55 @@ Template Specific Guidelines:
   * characterPrompt: Macro close-up on texture/eyes.
   * environmentPrompt: High-tech AI workstation control room.
 
+- If template is "product-hero":
+  * Define ONE specific product (device, tool, package, app UI) and its brand aesthetic.
+  * heroPrompt: Studio-grade hero product shot on a seamless gradient backdrop, dramatic key light, subtle rim light, macro-clean detail, 8K commercial photography.
+  * frame1Prompt: Extreme macro detail crop of the product's most striking feature (texture, screen, edge, port), same lighting.
+  * frame2Prompt: Lifestyle context — the product in-use in a real environment matching the theme, natural depth of field, same product identity.
+  * characterPrompt: Optional talent using or holding the product, matching the brand aesthetic.
+  * environmentPrompt: The clean studio backdrop / lifestyle set without the product for compositing.
+
+- If template is "before-after":
+  * Define ONE specific subject (portrait, room, product) that transforms.
+  * frame1Prompt: The "BEFORE" state — dull, cluttered, or plain, matching the theme lighting.
+  * frame2Prompt: The "AFTER" state — dramatically improved, styled, cinematic, SAME subject identity and framing so a swipe reveal reads as pure transformation.
+  * heroPrompt: A split-screen or diagonal-wipe composition showing both states side by side.
+  * characterPrompt: Portrait sheet of the subject (if human) to lock identity.
+  * environmentPrompt: The shared location backdrop for consistency.
+
+- If template is "quote-poster":
+  * Define ONE cinematic background scene and ONE short punchy quote (max 12 words) in ${targetLang === "ar" ? "Arabic" : "English"}.
+  * heroPrompt: Wide cinematic backdrop with a large negative-space area on the right/left where the quote will be overlaid in post; theme-matched color palette and volumetric light.
+  * frame1Prompt: Same backdrop composition, tighter crop suitable for a square 1:1 post.
+  * frame2Prompt: A portrait 9:16 crop of the same backdrop suitable for a story/reel cover.
+  * characterPrompt: If a human is featured, a portrait of the quoted persona for the byline avatar.
+  * environmentPrompt: The pure backdrop plate with no subject for typography flexibility.
+  * Also set captionText to the exact quote wording so the client can render it as an overlay.
+
+- If template is "step-tutorial":
+  * Define ONE clear workflow / recipe / how-to broken into exactly 3 sequential steps.
+  * heroPrompt: A styled cover shot showing the finished result with a large number "01→03" hint.
+  * frame1Prompt: Step 1 visual — the setup / raw ingredients / empty state, top-down or hero angle, consistent lighting.
+  * frame2Prompt: Step 2 visual — the transformation / mid-process moment with the same styling.
+  * characterPrompt: Hands / character mid-action performing step 3 (final touch), same location.
+  * environmentPrompt: The workspace surface / backdrop shared across all three steps.
+
+- If template is "launch-countdown":
+  * Define ONE hero product/event and a launch date narrative.
+  * heroPrompt: Dramatic teaser with the product/event partially obscured (silhouette, backlight, mist) — anticipation-heavy composition.
+  * frame1Prompt: Close-up reveal of one signature element (logo, feature, iconic detail).
+  * frame2Prompt: Full-reveal hero of the finished product/event with maximum "wow" lighting and clean type-overlay space.
+  * characterPrompt: Reaction shot of the persona witnessing the reveal.
+  * environmentPrompt: The launch stage / brand environment without the product for text overlays.
+
+- If template is "viral-comparison":
+  * Define ONE clear comparison — Option A vs Option B (old vs new, us vs them, hard vs easy).
+  * heroPrompt: A wide split-composition with Option A on one side and Option B on the other, matched framing, matched lighting.
+  * frame1Prompt: Isolated hero shot of Option A alone, dramatic but slightly less flattering lighting.
+  * frame2Prompt: Isolated hero shot of Option B alone, hero lighting, obvious "winner" energy.
+  * characterPrompt: A single reaction / verdict shot showing the outcome.
+  * environmentPrompt: The neutral stage backdrop where both options were shot.
+
 Return ONLY a valid JSON object matching:
 {
   "title": "Short catchy title in Arabic/English",
