@@ -48,14 +48,13 @@
 
 ---
 
-#### Latest task: Video Start Frame & End Frame Passing & Preview Fix (2026-08-21)
+#### Latest task: Video Frame Placement Robust Payload Bridging (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Start & End Frame State & Routing Fix**:
-     - Added `linkedEndFrameUrl` state and `endFramePreview` synchronization in `app/(dash)/(routes)/video/page.tsx`.
-     - Enhanced URL `searchParams` parsing to cleanly capture both `startImageUrl` / `imageUrl` (Start Frame) and `endImageUrl` / `lastFrameUrl` (End Frame).
-     - Switched all frame preview display conditions across Seedance, Minimax, and Kling 3.0 from raw `File` check to `(startFrame || linkedStartFrameUrl || startFramePreview)` and `(endFrame || linkedEndFrameUrl || endFramePreview)` so passed URL images render immediately into their respective boxes.
-     - Updated video generation payload pipelines to pass `linkedEndFrameUrl` and `linkedStartFrameUrl` whenever present.
+  1. **Storage Payload Bridge**:
+     - Implemented `sessionStorage` payload bridging (`video_start_frame_payload` and `video_end_frame_payload`) alongside URL params.
+     - Handles Base64 data URLs, blob URLs, media proxies, and remote HTTPS URLs without encountering browser URL character limits or regex format rejections.
+     - Converted Base64/Blob payloads directly into valid browser `File` blobs while retaining full preview synchronization and payload generation bindings.
   2. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)

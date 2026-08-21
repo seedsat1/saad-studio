@@ -388,12 +388,29 @@ export function ImageResultGrid({
 
   const handleVideoFramePlacement = (item: ResultItem, type: "start" | "end", e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = item.originalUrl || item.url;
+    const url = item.originalUrl || item.url || "";
+    if (!url) return;
+
+    if (typeof window !== "undefined") {
+      try {
+        if (type === "start") {
+          sessionStorage.setItem("video_start_frame_payload", url);
+        } else {
+          sessionStorage.setItem("video_end_frame_payload", url);
+        }
+      } catch (err) {
+        console.warn("Could not save frame to sessionStorage", err);
+      }
+    }
+
+    const isShortUrl = url.length < 1500 && (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/"));
     if (type === "start") {
-      router.push(`/video?startImageUrl=${encodeURIComponent(url)}&start=true`);
+      const q = isShortUrl ? `?startImageUrl=${encodeURIComponent(url)}&start=true` : `?start=true`;
+      router.push(`/video${q}`);
       showToast(isAr ? "تم تعيين الصورة كإطار بداية للفيديو 🎬" : "Loaded image as Video Start Frame 🎬");
     } else {
-      router.push(`/video?endImageUrl=${encodeURIComponent(url)}&end=true`);
+      const q = isShortUrl ? `?endImageUrl=${encodeURIComponent(url)}&end=true` : `?end=true`;
+      router.push(`/video${q}`);
       showToast(isAr ? "تم تعيين الصورة كإطار نهاية للفيديو 🎬" : "Loaded image as Video End Frame 🎬");
     }
   };

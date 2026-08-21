@@ -1381,63 +1381,105 @@ function VideoPageInner() {
     if (requestedPrompt) setPrompt(requestedPrompt);
 
     const isEndParam = searchParams.get("end") === "true";
-    const requestedEndImageUrl = searchParams.get("endImageUrl") || searchParams.get("lastFrameUrl") || (isEndParam ? searchParams.get("imageUrl") : null);
-    const requestedStartImageUrl = searchParams.get("startImageUrl") || (!isEndParam ? searchParams.get("imageUrl") : null);
+    let storedStartUrl: string | null = null;
+    let storedEndUrl: string | null = null;
+
+    if (typeof window !== "undefined") {
+      try {
+        storedStartUrl = sessionStorage.getItem("video_start_frame_payload");
+        if (storedStartUrl) sessionStorage.removeItem("video_start_frame_payload");
+      } catch {}
+      try {
+        storedEndUrl = sessionStorage.getItem("video_end_frame_payload");
+        if (storedEndUrl) sessionStorage.removeItem("video_end_frame_payload");
+      } catch {}
+    }
+
+    const requestedStartImageUrl = storedStartUrl || searchParams.get("startImageUrl") || (!isEndParam ? searchParams.get("imageUrl") : null);
+    const requestedEndImageUrl = storedEndUrl || searchParams.get("endImageUrl") || searchParams.get("lastFrameUrl") || (isEndParam ? searchParams.get("imageUrl") : null);
 
     let cancelled = false;
 
     // 1. Process Start Frame
-    if (requestedStartImageUrl && /^https?:\/\//i.test(requestedStartImageUrl)) {
+    if (requestedStartImageUrl && (requestedStartImageUrl.startsWith("http://") || requestedStartImageUrl.startsWith("https://") || requestedStartImageUrl.startsWith("data:") || requestedStartImageUrl.startsWith("blob:") || requestedStartImageUrl.startsWith("/"))) {
       setLinkedStartFrameUrl(requestedStartImageUrl);
       setStartFramePreview(requestedStartImageUrl);
       setStartFrame(null);
       setOmniTab("frames");
 
-      const fallbacks = getFallbackUrls(requestedStartImageUrl);
-      const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedStartImageUrl;
+      if (requestedStartImageUrl.startsWith("data:") || requestedStartImageUrl.startsWith("blob:")) {
+        void fetch(requestedStartImageUrl)
+          .then(res => res.blob())
+          .then(blob => {
+            if (cancelled) return;
+            const type = blob.type || "image/jpeg";
+            const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+            setStartFrame(new File([blob], `linked-start-frame.${ext}`, { type }));
+          })
+          .catch(() => {
+            if (!cancelled) setLinkedStartFrameUrl(requestedStartImageUrl);
+          });
+      } else {
+        const fallbacks = getFallbackUrls(requestedStartImageUrl);
+        const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedStartImageUrl;
 
-      void fetch(fetchUrl)
-        .then((res) => {
-          if (!res.ok) throw new Error("Unable to load linked image");
-          return res.blob();
-        })
-        .then((blob) => {
-          if (cancelled) return;
-          const type = blob.type || "image/jpeg";
-          const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
-          setStartFrame(new File([blob], `linked-start-frame.${ext}`, { type }));
-          setLinkedStartFrameUrl(null);
-        })
-        .catch(() => {
-          if (!cancelled) setLinkedStartFrameUrl(requestedStartImageUrl);
-        });
+        void fetch(fetchUrl)
+          .then((res) => {
+            if (!res.ok) throw new Error("Unable to load linked image");
+            return res.blob();
+          })
+          .then((blob) => {
+            if (cancelled) return;
+            const type = blob.type || "image/jpeg";
+            const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+            setStartFrame(new File([blob], `linked-start-frame.${ext}`, { type }));
+            setLinkedStartFrameUrl(null);
+          })
+          .catch(() => {
+            if (!cancelled) setLinkedStartFrameUrl(requestedStartImageUrl);
+          });
+      }
     }
 
     // 2. Process End Frame
-    if (requestedEndImageUrl && /^https?:\/\//i.test(requestedEndImageUrl)) {
+    if (requestedEndImageUrl && (requestedEndImageUrl.startsWith("http://") || requestedEndImageUrl.startsWith("https://") || requestedEndImageUrl.startsWith("data:") || requestedEndImageUrl.startsWith("blob:") || requestedEndImageUrl.startsWith("/"))) {
       setLinkedEndFrameUrl(requestedEndImageUrl);
       setEndFramePreview(requestedEndImageUrl);
       setEndFrame(null);
       setOmniTab("frames");
 
-      const fallbacks = getFallbackUrls(requestedEndImageUrl);
-      const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedEndImageUrl;
+      if (requestedEndImageUrl.startsWith("data:") || requestedEndImageUrl.startsWith("blob:")) {
+        void fetch(requestedEndImageUrl)
+          .then(res => res.blob())
+          .then(blob => {
+            if (cancelled) return;
+            const type = blob.type || "image/jpeg";
+            const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+            setEndFrame(new File([blob], `linked-end-frame.${ext}`, { type }));
+          })
+          .catch(() => {
+            if (!cancelled) setLinkedEndFrameUrl(requestedEndImageUrl);
+          });
+      } else {
+        const fallbacks = getFallbackUrls(requestedEndImageUrl);
+        const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedEndImageUrl;
 
-      void fetch(fetchUrl)
-        .then((res) => {
-          if (!res.ok) throw new Error("Unable to load linked end image");
-          return res.blob();
-        })
-        .then((blob) => {
-          if (cancelled) return;
-          const type = blob.type || "image/jpeg";
-          const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
-          setEndFrame(new File([blob], `linked-end-frame.${ext}`, { type }));
-          setLinkedEndFrameUrl(null);
-        })
-        .catch(() => {
-          if (!cancelled) setLinkedEndFrameUrl(requestedEndImageUrl);
-        });
+        void fetch(fetchUrl)
+          .then((res) => {
+            if (!res.ok) throw new Error("Unable to load linked end image");
+            return res.blob();
+          })
+          .then((blob) => {
+            if (cancelled) return;
+            const type = blob.type || "image/jpeg";
+            const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+            setEndFrame(new File([blob], `linked-end-frame.${ext}`, { type }));
+            setLinkedEndFrameUrl(null);
+          })
+          .catch(() => {
+            if (!cancelled) setLinkedEndFrameUrl(requestedEndImageUrl);
+          });
+      }
     }
 
     return () => {
@@ -3984,8 +4026,8 @@ function VideoPageInner() {
                   className="relative flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all w-full"
                   style={{
                     height: 110,
-                    borderColor: startFrame ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                    background:  startFrame ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
+                    borderColor: (startFrame || linkedStartFrameUrl || startFramePreview) ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
+                    background:  (startFrame || linkedStartFrameUrl || startFramePreview) ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
                   }}
                 >
                   <input
@@ -3995,7 +4037,7 @@ function VideoPageInner() {
                     className="hidden"
                     onChange={e => setStartFrame(e.target.files?.[0] ?? null)}
                   />
-                  {startFrame ? (
+                  {(startFrame || linkedStartFrameUrl || startFramePreview) ? (
                     <>
                       {startFramePreview && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -4009,7 +4051,7 @@ function VideoPageInner() {
                         type="button"
                         className="absolute top-2 left-2 z-10 rounded-full p-1"
                         style={{ background: "rgba(0,0,0,0.75)" }}
-                        onClick={e => { e.stopPropagation(); setStartFrame(null); }}
+                        onClick={e => { e.stopPropagation(); setStartFrame(null); setLinkedStartFrameUrl(null); setStartFramePreview(null); }}
                       >
                         <X size={11} style={{ color: "#fff" }} />
                       </button>
