@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { SaadLoader } from "@/components/saad-loader";
 import {
@@ -207,6 +208,7 @@ function ShotPendingCard({ shotType }: { shotType: ShotType }) {
 
 export default function ShotsStudioPage() {
   const { guardGeneration, getSafeErrorMessage, insufficientCreditsMessage } = useGenerationGate();
+  const searchParams = useSearchParams();
 
   // ── Controls state ──
   const [referenceFile, setReferenceFile]     = useState<File | null>(null);
@@ -225,6 +227,55 @@ export default function ShotsStudioPage() {
   const [isDragging, setIsDragging]                 = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Load image from URL searchParams or sessionStorage ──
+  useEffect(() => {
+    let storedUrl: string | null = null;
+    if (typeof window !== "undefined") {
+      try {
+        storedUrl = sessionStorage.getItem("shots_image_url_payload");
+        if (storedUrl) sessionStorage.removeItem("shots_image_url_payload");
+      } catch {}
+    }
+
+    const requestedImageUrl = storedUrl || searchParams.get("imageUrl") || searchParams.get("image") || searchParams.get("url");
+    if (!requestedImageUrl) return;
+
+    let cancelled = false;
+    setReferencePreview(requestedImageUrl);
+
+    if (requestedImageUrl.startsWith("data:") || requestedImageUrl.startsWith("blob:")) {
+      void fetch(requestedImageUrl)
+        .then((r) => r.blob())
+        .then((blob) => {
+          if (cancelled) return;
+          const type = blob.type || "image/jpeg";
+          const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+          setReferenceFile(new File([blob], `reference-shot.${ext}`, { type }));
+        })
+        .catch(() => {});
+    } else {
+      const fallbacks = getFallbackUrls(requestedImageUrl);
+      const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedImageUrl;
+
+      void fetch(fetchUrl)
+        .then((res) => {
+          if (!res.ok) throw new Error("Unable to fetch image");
+          return res.blob();
+        })
+        .then((blob) => {
+          if (cancelled) return;
+          const type = blob.type || "image/jpeg";
+          const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+          setReferenceFile(new File([blob], `reference-shot.${ext}`, { type }));
+        })
+        .catch(() => {});
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
 
   // ── Derived values ──
   const activePack: ShotPack | undefined = SHOT_PACKS.find((p) => p.id === selectedPack);
@@ -262,7 +313,7 @@ export default function ShotsStudioPage() {
   );
 
   const clearReference = useCallback(() => {
-    if (referencePreview) URL.revokeObjectURL(referencePreview);
+    if (referencePreview && referencePreview.startsWith("blob:")) URL.revokeObjectURL(referencePreview);
     setReferenceFile(null);
     setReferencePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -271,7 +322,7 @@ export default function ShotsStudioPage() {
   // Cleanup preview URL on unmount
   useEffect(() => {
     return () => {
-      if (referencePreview) URL.revokeObjectURL(referencePreview);
+      if (referencePreview && referencePreview.startsWith("blob:")) URL.revokeObjectURL(referencePreview);
     };
   }, [referencePreview]);
 
@@ -296,6 +347,8 @@ export default function ShotsStudioPage() {
       let referenceImage: string | undefined;
       if (referenceFile) {
         referenceImage = await fileToBase64(referenceFile);
+      } else if (referencePreview) {
+        referenceImage = referencePreview;
       }
 
       const res = await fetch("/api/shots/generate", {

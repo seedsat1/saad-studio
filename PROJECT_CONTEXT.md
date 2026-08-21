@@ -48,14 +48,17 @@
 
 ---
 
-#### Latest task: Video Frame Placement Robust Payload Bridging (2026-08-21)
+#### Latest task: Multishot / Shots Studio & Edit Image Input Transfer Fix (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Storage Payload Bridge**:
-     - Implemented `sessionStorage` payload bridging (`video_start_frame_payload` and `video_end_frame_payload`) alongside URL params.
-     - Handles Base64 data URLs, blob URLs, media proxies, and remote HTTPS URLs without encountering browser URL character limits or regex format rejections.
-     - Converted Base64/Blob payloads directly into valid browser `File` blobs while retaining full preview synchronization and payload generation bindings.
-  2. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
+  1. **Shots Studio Reference Image Loading**:
+     - Added `useSearchParams` and `sessionStorage` payload bridging to `/shots` (`app/(dash)/(routes)/shots/page.tsx`).
+     - Directly populates `referencePreview` and converts image payloads into a browser `File` object (`referenceFile`) with fallback support.
+     - Updated `handleGenerate` in Shots Studio to support generating directly with `referenceFile` or `referencePreview`.
+  2. **AI Tools Image Transfer**:
+     - Updated `handleOpenTool` in `ImageResultGrid.tsx` to save payload to `sessionStorage` for multishot, upscale, relight, face swap, etc., avoiding URL character length limits.
+     - Updated `/edit` page to recognize `imageUrl` alongside `image` and `url`.
+  3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
 - Status: Completed & Verified (PASS).

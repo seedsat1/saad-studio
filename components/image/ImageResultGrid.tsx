@@ -417,32 +417,47 @@ export function ImageResultGrid({
 
   const handleOpenTool = (item: ResultItem, tool: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = item.originalUrl || item.url;
+    const url = item.originalUrl || item.url || "";
+    if (!url) return;
+
+    const isShortUrl = url.length < 1500 && (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/"));
 
     switch (tool) {
       case "inpaint":
         if (onInpaint) onInpaint(item);
-        else router.push(`/image?tool=inpaint&imageUrl=${encodeURIComponent(url)}`);
+        else router.push(isShortUrl ? `/image?tool=inpaint&imageUrl=${encodeURIComponent(url)}` : `/image?tool=inpaint`);
         break;
       case "upscale":
+        if (typeof window !== "undefined") {
+          try { sessionStorage.setItem("edit_image_url_payload", url); } catch {}
+        }
         if (onUpscale) onUpscale(item);
-        else router.push(`/edit?tool=upscale&imageUrl=${encodeURIComponent(url)}`);
+        else router.push(isShortUrl ? `/edit?tool=upscale&imageUrl=${encodeURIComponent(url)}` : `/edit?tool=upscale`);
         break;
       case "relight":
+        if (typeof window !== "undefined") {
+          try { sessionStorage.setItem("edit_image_url_payload", url); } catch {}
+        }
         if (onRelight) onRelight(item);
-        else router.push(`/edit?tool=relight&imageUrl=${encodeURIComponent(url)}`);
+        else router.push(isShortUrl ? `/edit?tool=relight&imageUrl=${encodeURIComponent(url)}` : `/edit?tool=relight`);
         break;
       case "3d":
-        router.push(`/3d?imageUrl=${encodeURIComponent(url)}`);
+        router.push(isShortUrl ? `/3d?imageUrl=${encodeURIComponent(url)}` : `/3d`);
         break;
       case "multishot":
-        router.push(`/shots?imageUrl=${encodeURIComponent(url)}`);
+        if (typeof window !== "undefined") {
+          try { sessionStorage.setItem("shots_image_url_payload", url); } catch {}
+        }
+        router.push(isShortUrl ? `/shots?imageUrl=${encodeURIComponent(url)}` : `/shots`);
         break;
       case "skin":
-        router.push(`/edit?tool=face-swap&imageUrl=${encodeURIComponent(url)}`);
+        if (typeof window !== "undefined") {
+          try { sessionStorage.setItem("edit_image_url_payload", url); } catch {}
+        }
+        router.push(isShortUrl ? `/edit?tool=faceswap&imageUrl=${encodeURIComponent(url)}` : `/edit?tool=faceswap`);
         break;
       case "angles":
-        router.push(`/image-presets?imageUrl=${encodeURIComponent(url)}`);
+        router.push(isShortUrl ? `/image-presets?imageUrl=${encodeURIComponent(url)}` : `/image-presets`);
         break;
       case "stylist":
         router.push(`/image-presets?style=${encodeURIComponent(item.prompt || "")}`);

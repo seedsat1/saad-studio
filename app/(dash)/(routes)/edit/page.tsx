@@ -914,7 +914,15 @@ export default function EditPage() {
 
   // Resolve base image URL from parameters
   useEffect(() => {
-    const imgUrl = searchParams.get("image") || searchParams.get("url");
+    let storedUrl: string | null = null;
+    if (typeof window !== "undefined") {
+      try {
+        storedUrl = sessionStorage.getItem("edit_image_url_payload");
+        if (storedUrl) sessionStorage.removeItem("edit_image_url_payload");
+      } catch {}
+    }
+
+    const imgUrl = storedUrl || searchParams.get("imageUrl") || searchParams.get("image") || searchParams.get("url");
     if (imgUrl) {
       setMediaUrl(imgUrl);
       setOriginalMediaUrl(imgUrl);
