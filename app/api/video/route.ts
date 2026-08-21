@@ -29,6 +29,7 @@ import {
   verifyPublicMediaUrl,
   ValidationError,
 } from "@/lib/media/public-url-resolver";
+import { resolveProviderPublicUrl } from "@/lib/storage";
 import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
 import { isFinalProviderExecutionAllowed } from "@/lib/generation/runtime-safety";
 import { assertMobileCapabilityAllowed, MobileCapabilityDisabledError } from "@/lib/mobile/mobile-control-plane";

@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  ArrowRight,
   Zap,
   Globe,
   User,
@@ -967,11 +968,11 @@ const AuthNavButtons = ({ creditBalance, creditCapacity, hydrated }: { creditBal
       <LanguageSwitcher />
       <PricingButton />
       {showAccount ? (
-        <div className="hidden 2xl:block">
+        <div className="hidden xl:block">
           <UserProfileDropdown creditBalance={creditBalance} creditCapacity={creditCapacity} />
         </div>
       ) : showGuestButtons ? (
-        <div className="hidden 2xl:flex items-center gap-2">
+        <div className="hidden xl:flex items-center gap-2">
           <button
             onClick={() => onOpen("login")}
             className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white border border-white/15 hover:border-white/30 hover:bg-white/10 transition-all"
@@ -1186,57 +1187,75 @@ const TopNavbar = () => {
 
               {/* Video */}
               <HoverNavItem href="/video" icon={<VideoIcon className="h-3 w-3 text-orange-400" />} label={getTranslation("Video", lang)}>
-                <div className="w-[min(960px,calc(100vw-2rem))] p-5">
-                  <div className="mb-4 flex items-center justify-between">
+                <div className="w-[min(860px,calc(100vw-2rem))] p-5">
+                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/10">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/15 ring-1 ring-orange-500/30">
-                        <VideoIcon className="h-3.5 w-3.5 text-orange-400" />
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/10 text-orange-400 ring-1 ring-orange-500/20">
+                        <VideoIcon className="h-4 w-4" />
                       </div>
-                      <div className="text-sm font-semibold text-white">Video Studio</div>
-                      <span className="rounded-full bg-orange-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-300 ring-1 ring-orange-500/30">
-                        {VIDEO_FEATURES.length} Features
-                      </span>
+                      <div>
+                        <p className="text-xs font-bold text-white leading-none">{getTranslation("Video Studio", lang)}</p>
+                        <p className="text-[10px] text-zinc-400 leading-tight mt-0.5">{getTranslation("Cinematic AI Video Generation", lang)}</p>
+                      </div>
                     </div>
                     <Link
                       href="/video"
-                      className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs font-semibold text-zinc-300 ring-1 ring-white/10 hover:bg-orange-500/10 hover:text-orange-300 hover:ring-orange-500/30 transition-all"
+                      className="flex items-center gap-1 text-xs font-semibold text-orange-400 hover:text-orange-300 transition-colors"
                     >
-                      Open Video Studio <span className="text-orange-400">→</span>
+                      {getTranslation("Open Video Studio", lang)} <ArrowRight className="h-3 w-3" />
                     </Link>
                   </div>
-                  <div className="flex gap-5">
-                    <div className="flex-1 min-w-0">
-                      <div className="mb-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Features</div>
-                      <ul className="grid grid-cols-2 gap-0.5">
+                  <div className="grid grid-cols-12 gap-5">
+                    <div className="col-span-5 border-r border-white/10 pr-5">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{getTranslation("Features", lang)}</p>
+                      <div className="grid grid-cols-2 gap-1">
                         {VIDEO_FEATURES.map((f) => (
-                          <li key={f.label}>
-                            <Link
-                              href={f.href}
-                              className="group flex items-start gap-2.5 rounded-lg p-2.5 transition-all hover:bg-white/[0.08]"
-                            >
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10 group-hover:ring-white/20 transition-all">
-                                <f.icon className={cn("h-3.5 w-3.5", f.color)} />
+                          <Link key={f.label} href={f.href}
+                            className="group flex items-center gap-2 rounded-lg p-2 transition-all hover:bg-white/[0.08]">
+                            <div className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/5 ring-1 ring-white/10 group-hover:ring-white/25", f.color)}>
+                              <f.icon className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1">
+                                <p className="text-xs font-medium text-zinc-200 group-hover:text-white truncate">{getTranslation(f.label, lang)}</p>
+                                {f.badge && (
+                                  <span className={cn(
+                                    "rounded-full px-1 py-0.2 text-[8px] font-bold uppercase ring-1",
+                                    f.badge === "NEW" ? "bg-emerald-500/20 text-emerald-300 ring-emerald-500/30" : "bg-amber-500/20 text-amber-300 ring-amber-500/30"
+                                  )}>{f.badge}</span>
+                                )}
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-xs font-medium text-zinc-100 group-hover:text-white leading-tight">{f.label}</span>
-                                  {f.badge && (
-                                    <span className={cn(
-                                      "shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ring-1",
-                                      f.badge === "NEW"
-                                        ? "bg-emerald-500/20 text-emerald-300 ring-emerald-500/30"
-                                        : "bg-amber-500/20 text-amber-300 ring-amber-500/30"
-                                    )}>
-                                      {f.badge}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="mt-0.5 text-[10px] leading-snug text-zinc-500 group-hover:text-zinc-400 line-clamp-1">{f.description}</p>
-                              </div>
-                            </Link>
-                          </li>
+                            </div>
+                          </Link>
                         ))}
-                      </ul>
+                      </div>
+                    </div>
+                    <div className="col-span-7">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{getTranslation("Models", lang)}</p>
+                      <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
+                        {VIDEO_MODEL_GROUPS.map((grp) => (
+                          <div key={grp.group}>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <grp.icon className={cn("h-3.5 w-3.5", grp.groupColor)} />
+                              <span className={cn("text-[10px] font-bold uppercase tracking-wider", grp.groupColor)}>{grp.group}</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-1">
+                              {grp.models.map((m) => (
+                                <Link key={m.id} href={`/video?model=${m.id}`}
+                                  className="group flex items-center justify-between rounded-md bg-white/5 px-2 py-1.5 ring-1 ring-white/10 hover:bg-white/10 hover:ring-white/20 transition-all">
+                                  <span className="truncate text-[11px] font-medium text-zinc-300 group-hover:text-white">{m.label}</span>
+                                  {m.badge && (
+                                    <span className={cn(
+                                      "ml-1 shrink-0 rounded-full px-1 py-0.2 text-[7px] font-bold uppercase ring-1",
+                                      m.badge === "NEW" ? "bg-emerald-500/20 text-emerald-300 ring-emerald-500/30" : "bg-amber-500/20 text-amber-300 ring-amber-500/30"
+                                    )}>{m.badge}</span>
+                                  )}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1244,77 +1263,119 @@ const TopNavbar = () => {
 
               {/* Audio */}
               <HoverNavItem href="/audio" icon={<Music className="h-3 w-3 text-emerald-400" />} label={getTranslation("Audio", lang)}>
-                <div className="w-[340px] p-4">
-                  <div>
-                    <div className="mb-2 text-xs font-bold uppercase tracking-widest text-zinc-500">Features</div>
-                    <ul className="space-y-0.5">
-                      {AUDIO_FEATURES.map((f) => (
-                        <ListItem key={f.label} href={audioFeatureHref(f.label)} title={f.label} description={f.description} icon={f.icon} color={f.color} />
-                      ))}
-                    </ul>
+                <div className="w-[min(620px,calc(100vw-2rem))] p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{getTranslation("Features", lang)}</p>
+                      <div className="space-y-1">
+                        {AUDIO_FEATURES.map((f) => (
+                          <Link key={f.label} href={audioFeatureHref(f.label)}
+                            className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 hover:bg-white/[0.08] transition-colors">
+                            <f.icon className={cn("h-4 w-4 shrink-0", f.color)} />
+                            <div>
+                              <p className="text-xs font-medium text-zinc-200 group-hover:text-white">{getTranslation(f.label, lang)}</p>
+                              <p className="text-[10px] text-zinc-500">{getTranslation(f.description, lang)}</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{getTranslation("Models", lang)}</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {AUDIO_MODELS.map((m) => (
+                          <Link key={m.label} href={`/audio?model=${m.label.toLowerCase().replace(/\s/g, "-")}`}
+                            className="group flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-2 ring-1 ring-white/10 hover:bg-white/10 hover:ring-white/20 transition-all">
+                            <span className="text-xs">{m.tag}</span>
+                            <span className={cn("text-xs font-medium truncate", m.color)}>{m.label}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </HoverNavItem>
 
               {/* Edit */}
               <HoverNavItem href="/edit" icon={<Scissors className="h-3 w-3 text-cyan-400" />} label={getTranslation("Edit", lang)}>
-                <div className="w-[340px] p-4">
-                  <div>
-                    <div className="mb-2 text-xs font-bold uppercase tracking-widest text-zinc-500">Features</div>
-                    <ul className="space-y-0.5">
-                      {EDIT_FEATURES.map((f) => (
-                        <ListItem key={f.label} href={editFeatureHref(f.label)} title={f.label} description={f.description} icon={f.icon} color={f.color} />
-                      ))}
-                    </ul>
+                <div className="w-[min(620px,calc(100vw-2rem))] p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{getTranslation("Features", lang)}</p>
+                      <div className="space-y-1">
+                        {EDIT_FEATURES.map((f) => (
+                          <Link key={f.label} href={editFeatureHref(f.label)}
+                            className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 hover:bg-white/[0.08] transition-colors">
+                            <f.icon className={cn("h-4 w-4 shrink-0", f.color)} />
+                            <div>
+                              <p className="text-xs font-medium text-zinc-200 group-hover:text-white">{getTranslation(f.label, lang)}</p>
+                              <p className="text-[10px] text-zinc-500">{getTranslation(f.description, lang)}</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{getTranslation("Models", lang)}</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {EDIT_MODELS.map((m) => (
+                          <Link key={m.label} href={`/edit?model=${m.label.toLowerCase().replace(/\s/g, "-")}`}
+                            className="group flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-2 ring-1 ring-white/10 hover:bg-white/10 hover:ring-white/20 transition-all">
+                            <span className="text-xs">{m.tag}</span>
+                            <span className={cn("text-xs font-medium truncate", m.color)}>{m.label}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </HoverNavItem>
-              {/* Character | Moodboard | Cinema Studio */}
-              <div className="flex items-center">
-                {STUDIO_LINKS.map((link, i) => (
-                  <span key={link.href} className="flex items-center">
-                    {i > 0 && <NavSep />}
-                    <Link
-                      href={link.href}
-                      className={cn(
-                        "flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap",
-                        pathname === link.href ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white"
-                      )}
-                    >
-                      <link.icon className={cn("h-3.5 w-3.5", link.color)} />
-                      <span className="hidden 2xl:inline">{getTranslation(link.label, lang)}</span>
-                    </Link>
-                  </span>
+
+              <NavSep />
+
+              {/* Studio */}
+              <div className="flex items-center gap-0.5">
+                {STUDIO_LINKS.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      "flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-white/[0.08] whitespace-nowrap",
+                      pathname === link.href ? "text-white bg-white/[0.08]" : "text-zinc-300 hover:text-white"
+                    )}
+                  >
+                    <link.icon className={cn("h-3 w-3 shrink-0", link.color)} />
+                    <span className="hidden xl:inline">{getTranslation(link.label, lang)}</span>
+                  </Link>
                 ))}
               </div>
 
+              <NavSep />
+
+              {/* Apps */}
               {SHOW_EXPERIMENTAL_NAV && (
-                <HoverNavItem href="/apps" icon={<LayoutGrid className="h-3 w-3 text-indigo-400" />} label={getTranslation("Apps", lang)}>
-                  <div className="w-[min(760px,calc(100vw-2rem))] p-5">
-                    <div className="mb-4 flex items-center gap-2">
-                      <LayoutGrid className="h-4 w-4 text-indigo-400" />
-                      <div className="text-sm font-semibold text-white">All AI Apps</div>
-                      <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300 ring-1 ring-indigo-500/30">8 Categories</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-3">
-                      {APPS_CATEGORIES.map((cat) => (
-                        <div key={cat.category} className={cn("rounded-xl border bg-gradient-to-b p-3 transition-all hover:scale-[1.02]", cat.color, cat.border)}>
-                          <div className="mb-2 flex items-center gap-1.5">
-                            <cat.icon className={cn("h-3.5 w-3.5", cat.iconColor)} />
-                            <span className={cn("text-xs font-bold", cat.iconColor)}>{cat.category}</span>
-                          </div>
-                          <div className="space-y-1">
-                            {cat.apps.map((app) => (
-                              <Link key={app} href={appHref(app)} className="block rounded-md px-2 py-1 text-[11px] text-zinc-400 hover:bg-white/10 hover:text-white transition-colors">
-                                {app}
-                              </Link>
-                            ))}
-                          </div>
+              <HoverNavItem href="/apps" icon={<LayoutGrid className="h-3 w-3 text-indigo-400" />} label={getTranslation("Apps", lang)}>
+                <div className="w-[min(720px,calc(100vw-2rem))] p-4">
+                  <div className="grid grid-cols-4 gap-2.5">
+                    {APPS_CATEGORIES.map((cat) => (
+                      <div key={cat.category} className={cn("rounded-xl border bg-gradient-to-b p-3", cat.color, cat.border)}>
+                        <div className="mb-2 flex items-center gap-1.5">
+                          <cat.icon className={cn("h-3.5 w-3.5", cat.iconColor)} />
+                          <span className={cn("text-xs font-bold", cat.iconColor)}>{getTranslation(cat.category, lang)}</span>
                         </div>
-                      ))}
-                    </div>
+                        <div className="space-y-0.5">
+                          {cat.apps.map((app) => (
+                            <Link key={app} href={appHref(app)}
+                              className="block truncate rounded px-1.5 py-1 text-[11px] text-zinc-400 hover:bg-white/10 hover:text-white transition-colors">
+                              {getTranslation(app, lang)}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </HoverNavItem>
+                </div>
+              </HoverNavItem>
               )}
 
               {/* Gallery */}
@@ -1330,7 +1391,7 @@ const TopNavbar = () => {
           <div className="flex items-center gap-2 shrink-0">
             <AuthNavButtons creditBalance={creditBalance} creditCapacity={creditCapacity} hydrated={hydrated} />
             <button
-              className="2xl:hidden flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="xl:hidden flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
@@ -1344,7 +1405,7 @@ const TopNavbar = () => {
         </div>
       </motion.nav>
 
-      {/* Mobile Drawer */}
+      {/* 📱 💻 Phone & Tablet Simplified Product Drawer (< 1280px / xl:hidden) */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -1352,350 +1413,211 @@ const TopNavbar = () => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed inset-y-0 right-0 z-40 flex w-[min(320px,100vw)] flex-col bg-slate-950/98 backdrop-blur-2xl border-l border-white/10 2xl:hidden"
+            className="fixed inset-y-0 right-0 z-40 flex w-[min(360px,100vw)] md:w-[460px] flex-col bg-slate-950/98 backdrop-blur-2xl border-l border-white/10 xl:hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]"
           >
-            <div className="flex h-16 items-center justify-between px-5 border-b border-white/10">
+            {/* Header */}
+            <div className="flex h-16 items-center justify-between px-5 border-b border-white/10 shrink-0">
               <Logo />
-              <button onClick={() => setMobileOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors">
-                <X className="h-4 w-4" />
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
-            {showAccount ? (
-              <div className="mx-4 mt-4 mb-2 rounded-xl bg-white/5 p-3.5 ring-1 ring-white/10">
-                <div className="flex items-center gap-3">
-                  {mobilePhoto ? (
-                    <img src={mobilePhoto} alt="Avatar" className="h-10 w-10 rounded-full object-cover shrink-0" />
-                  ) : (
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${mobileGradient} text-sm font-bold text-white shrink-0`}>{mobileInitials}</div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{mobileName}</p>
-                    <p className="text-xs text-zinc-400 truncate">{mobileEmail}</p>
+
+            {/* Scrollable Content (Phone: stacked 1-col, Tablet: comfortable 2-col) */}
+            <div className="flex flex-col flex-1 overflow-y-auto px-4 py-4 space-y-4">
+              {/* Compact User / Guest Header */}
+              {showAccount ? (
+                <div className="rounded-2xl bg-white/[0.04] p-3.5 ring-1 ring-white/10 shrink-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {mobilePhoto ? (
+                        <img src={mobilePhoto} alt="Avatar" className="h-10 w-10 rounded-full object-cover shrink-0 ring-1 ring-white/20" />
+                      ) : (
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${mobileGradient} text-sm font-bold text-white shrink-0`}>{mobileInitials}</div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{mobileName}</p>
+                        <p className="text-[11px] text-zinc-400 truncate">{mobileEmail}</p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/pricing"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-1.5 rounded-xl bg-amber-500/10 px-2.5 py-1.5 text-xs font-bold text-amber-400 ring-1 ring-amber-500/20 hover:bg-amber-500/20 transition-all shrink-0"
+                    >
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      <span>{creditBalance !== null ? `${creditBalance.toLocaleString()}` : "—"}</span>
+                    </Link>
                   </div>
                 </div>
-                <div className="mt-2.5 flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-1.5 ring-1 ring-amber-500/20">
-                  <span className="text-xs text-amber-200 flex items-center gap-1"><Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {getTranslation("Credits", lang)}</span>
-                  <span className="text-sm font-bold text-amber-400">
-                    {creditBalance !== null ? `${creditBalance.toLocaleString()} cr` : "—"}
-                  </span>
-                </div>
-
-                {/* Responsive Quick Profile Actions */}
-                <div className="mt-3.5 grid grid-cols-2 gap-2 border-t border-white/5 pt-3">
-                  <Link
-                    href="/profile"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center justify-center gap-1.5 rounded-lg bg-white/5 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ring-1 ring-white/10"
+              ) : showGuestButtons ? (
+                <div className="grid grid-cols-2 gap-2 shrink-0">
+                  <button
+                    onClick={() => { setMobileOpen(false); onOpen("login"); }}
+                    className="flex items-center justify-center rounded-xl bg-white/5 py-2.5 text-xs font-bold text-white hover:bg-white/10 transition-colors ring-1 ring-white/10"
                   >
-                    <User className="h-3.5 w-3.5 text-violet-400" />
-                    {getTranslation("My Profile", lang)}
+                    {getTranslation("Sign In", lang)}
+                  </button>
+                  <button
+                    onClick={() => { setMobileOpen(false); onOpen("signup"); }}
+                    className="flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-2.5 text-xs font-bold text-white shadow-lg transition-all"
+                  >
+                    {getTranslation("Sign Up Free", lang)}
+                  </button>
+                </div>
+              ) : null}
+
+              {/* Primary Generation Hub (Phone: single column stack, Tablet: 2-column grid) */}
+              <div>
+                <p className="px-1 mb-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  {lang === "ar" ? "استوديوهات التوليد" : "Generation Studios"}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {/* 1. Image Studio */}
+                  <Link
+                    href="/image"
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center justify-between rounded-2xl p-3.5 border transition-all active:scale-[0.98]",
+                      pathname === "/image"
+                        ? "bg-pink-500/15 border-pink-500/40 text-white shadow-lg shadow-pink-500/10"
+                        : "bg-white/[0.03] border-white/10 text-zinc-200 hover:bg-white/[0.06] hover:border-white/20"
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-500/20 text-pink-400 ring-1 ring-pink-500/30 shrink-0">
+                        <ImageIcon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{getTranslation("Image Studio", lang)}</p>
+                        <p className="text-[11px] text-zinc-400 truncate">{lang === "ar" ? "توليد وتعديل الصور بدقة فائقة" : "High-res AI image generation"}</p>
+                      </div>
+                    </div>
+                    <span className="text-zinc-500 text-sm font-bold shrink-0 ml-1">→</span>
                   </Link>
+
+                  {/* 2. Video Studio */}
+                  <Link
+                    href="/video"
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center justify-between rounded-2xl p-3.5 border transition-all active:scale-[0.98]",
+                      pathname === "/video"
+                        ? "bg-orange-500/15 border-orange-500/40 text-white shadow-lg shadow-orange-500/10"
+                        : "bg-white/[0.03] border-white/10 text-zinc-200 hover:bg-white/[0.06] hover:border-white/20"
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400 ring-1 ring-orange-500/30 shrink-0">
+                        <VideoIcon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{getTranslation("Video Studio", lang)}</p>
+                        <p className="text-[11px] text-zinc-400 truncate">{lang === "ar" ? "توليد فيديو سينمائي واحترافي" : "Cinematic AI video generation"}</p>
+                      </div>
+                    </div>
+                    <span className="text-zinc-500 text-sm font-bold shrink-0 ml-1">→</span>
+                  </Link>
+
+                  {/* 3. Audio & Voices */}
+                  <Link
+                    href="/audio"
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center justify-between rounded-2xl p-3.5 border transition-all active:scale-[0.98]",
+                      pathname === "/audio"
+                        ? "bg-emerald-500/15 border-emerald-500/40 text-white shadow-lg shadow-emerald-500/10"
+                        : "bg-white/[0.03] border-white/10 text-zinc-200 hover:bg-white/[0.06] hover:border-white/20"
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30 shrink-0">
+                        <Volume2 className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{lang === "ar" ? "الصوت والأصوات" : "Audio & Voices"}</p>
+                        <p className="text-[11px] text-zinc-400 truncate">{lang === "ar" ? "تحويل النص إلى كلام واستنساخ الصوت" : "TTS, voice catalog & voice clone"}</p>
+                      </div>
+                    </div>
+                    <span className="text-zinc-500 text-sm font-bold shrink-0 ml-1">→</span>
+                  </Link>
+
+                  {/* 4. Music & Songs */}
+                  <Link
+                    href="/music"
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center justify-between rounded-2xl p-3.5 border transition-all active:scale-[0.98]",
+                      pathname === "/music"
+                        ? "bg-indigo-500/15 border-indigo-500/40 text-white shadow-lg shadow-indigo-500/10"
+                        : "bg-white/[0.03] border-white/10 text-zinc-200 hover:bg-white/[0.06] hover:border-white/20"
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400 ring-1 ring-indigo-500/30 shrink-0">
+                        <Music className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{lang === "ar" ? "الموسيقى والأغاني" : "Music & Songs"}</p>
+                        <p className="text-[11px] text-zinc-400 truncate">{lang === "ar" ? "توليد أغاني وتراك وموسيقى متكاملة" : "Full AI songs & instrumental tracks"}</p>
+                      </div>
+                    </div>
+                    <span className="text-zinc-500 text-sm font-bold shrink-0 ml-1">→</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Account Section */}
+              {showAccount && (
+                <div className="pt-3 border-t border-white/10 space-y-1 shrink-0">
+                  <p className="px-1 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                    {lang === "ar" ? "الحساب والإعدادات" : "Account & Settings"}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                    <Link
+                      href="/profile"
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all",
+                        pathname === "/profile" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                      )}
+                    >
+                      <User className="h-4 w-4 text-violet-400 shrink-0" />
+                      <span>{getTranslation("My Profile", lang)}</span>
+                    </Link>
+                    <Link
+                      href="/settings"
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all",
+                        pathname === "/settings" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                      )}
+                    >
+                      <Settings className="h-4 w-4 text-zinc-400 shrink-0" />
+                      <span>{getTranslation("Settings", lang)}</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Footer: Exactly ONE Single Logout */}
+              {showAccount && (
+                <div className="mt-auto pt-3 border-t border-white/10 shrink-0">
                   <button
                     onClick={() => {
                       setMobileOpen(false);
                       signOut({ redirectUrl: "/" });
                     }}
-                    className="flex items-center justify-center gap-1.5 rounded-lg bg-red-500/10 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-colors ring-1 ring-red-500/20"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-500/10 py-3 text-xs font-bold text-red-400 hover:bg-red-500/20 transition-all ring-1 ring-red-500/20 active:scale-[0.98]"
                   >
-                    <LogOut className="h-3.5 w-3.5" />
-                    {getTranslation("Logout", lang)}
+                    <LogOut className="h-4 w-4" />
+                    <span>{getTranslation("Logout", lang)}</span>
                   </button>
                 </div>
-              </div>
-            ) : showGuestButtons ? (
-              <div className="mx-4 mt-4 mb-2 p-1 flex flex-col gap-2">
-                <button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    onOpen("login");
-                  }}
-                  className="flex w-full items-center justify-center rounded-lg bg-white/5 py-2.5 text-sm font-semibold text-white hover:bg-white/10 transition-colors ring-1 ring-white/10"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    onOpen("signup");
-                  }}
-                  className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 py-2.5 text-sm font-semibold text-white hover:from-violet-500 hover:to-indigo-500 transition-all shadow-lg"
-                >
-                  Sign Up Free
-                </button>
-              </div>
-            ) : null}
-            {/* Scrollable nav area */}
-            <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
-
-              {/* Explore */}
-              <Link
-                href="/dash"
-                className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors", pathname === "/dash" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}
-              >
-                <Globe className="h-4 w-4 shrink-0 text-sky-400" />Explore
-              </Link>
-
-
-              {/* Image accordion – Features + Models */}
-              <MobileAccordion
-                label="Image" href="/image" badge="12+19"
-                icon={<ImageIcon className="h-4 w-4 text-pink-400" />}
-                open={mobileSection === "image"} onToggle={() => toggleSection("image")}
-              >
-                <div className="space-y-3 py-2">
-                  <Link
-                    href="/image"
-                    className="flex items-center justify-between rounded-lg bg-pink-500/10 px-3 py-2 ring-1 ring-pink-500/25 hover:bg-pink-500/20 transition-all"
-                  >
-                    <span className="text-xs font-semibold text-pink-300">Open Image Studio</span>
-                    <span className="text-pink-400 text-sm">→</span>
-                  </Link>
-                  <div>
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600">Features</p>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {IMAGE_FEATURES.map((f) => (
-                        <Link key={f.label} href={imageFeatureHref(f.label)}
-                          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-2 ring-1 ring-white/10 hover:ring-white/20 hover:bg-white/[0.08] transition-all">
-                          <f.icon className={cn("h-3 w-3 shrink-0", f.color)} />
-                          <span className="min-w-0 text-[11px] font-medium text-zinc-300 truncate flex-1">{f.label}</span>
-                          {f.badge && (
-                            <span className={cn(
-                              "shrink-0 rounded-full px-1 py-0.5 text-[7px] font-bold uppercase ring-1",
-                              f.badge === "NEW" ? "bg-emerald-500/20 text-emerald-300 ring-emerald-500/30" : "bg-amber-500/20 text-amber-300 ring-amber-500/30"
-                            )}>{f.badge}</span>
-                          )}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600">Models</p>
-                    <div className="space-y-2">
-                      {IMAGE_MODEL_GROUPS.map((grp) => (
-                        <div key={grp.group}>
-                          <div className="flex items-center gap-1 mb-1">
-                            <grp.icon className={cn("h-3 w-3", grp.groupColor)} />
-                            <span className={cn("text-[9px] font-bold uppercase tracking-widest", grp.groupColor)}>{grp.group}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-1">
-                            {grp.models.map((m) => (
-                              <Link key={m.id} href={`/image?model=${m.id}`}
-                                className="flex items-center gap-1 rounded-lg bg-white/5 px-2 py-1.5 ring-1 ring-white/10 hover:ring-white/20 hover:bg-white/[0.08] transition-all">
-                                <span className="min-w-0 text-[10px] font-medium text-zinc-400 truncate flex-1">{m.label}</span>
-                                {m.badge && (
-                                  <span className={cn(
-                                    "shrink-0 rounded-full px-1 py-0.5 text-[7px] font-bold uppercase ring-1",
-                                    m.badge === "NEW" ? "bg-emerald-500/20 text-emerald-300 ring-emerald-500/30" : "bg-amber-500/20 text-amber-300 ring-amber-500/30"
-                                  )}>{m.badge}</span>
-                                )}
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </MobileAccordion>
-
-              {/* Video accordion – Features + Models */}
-              <MobileAccordion
-                label="Video" href="/video" badge="16+27"
-                icon={<VideoIcon className="h-4 w-4 text-orange-400" />}
-                open={mobileSection === "video"} onToggle={() => toggleSection("video")}
-              >
-                <div className="space-y-3 py-2">
-                  <Link
-                    href="/video"
-                    className="flex items-center justify-between rounded-lg bg-orange-500/10 px-3 py-2 ring-1 ring-orange-500/25 hover:bg-orange-500/20 transition-all"
-                  >
-                    <span className="text-xs font-semibold text-orange-300">Open Video Studio</span>
-                    <span className="text-orange-400 text-sm">→</span>
-                  </Link>
-                  <div>
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600">Features</p>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {VIDEO_FEATURES.map((f) => (
-                        <Link key={f.label} href={f.href}
-                          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-2 ring-1 ring-white/10 hover:ring-white/20 hover:bg-white/[0.08] transition-all">
-                          <f.icon className={cn("h-3 w-3 shrink-0", f.color)} />
-                          <span className="min-w-0 text-[11px] font-medium text-zinc-300 truncate flex-1">{f.label}</span>
-                          {f.badge && (
-                            <span className={cn(
-                              "shrink-0 rounded-full px-1 py-0.5 text-[7px] font-bold uppercase ring-1",
-                              f.badge === "NEW" ? "bg-emerald-500/20 text-emerald-300 ring-emerald-500/30" : "bg-amber-500/20 text-amber-300 ring-amber-500/30"
-                            )}>{f.badge}</span>
-                          )}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600">Models</p>
-                    <div className="space-y-2">
-                      {VIDEO_MODEL_GROUPS.map((grp) => (
-                        <div key={grp.group}>
-                          <div className="flex items-center gap-1 mb-1">
-                            <grp.icon className={cn("h-3 w-3", grp.groupColor)} />
-                            <span className={cn("text-[9px] font-bold uppercase tracking-widest", grp.groupColor)}>{grp.group}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-1">
-                            {grp.models.map((m) => (
-                              <Link key={m.id} href={`/video?model=${m.id}`}
-                                className="flex items-center gap-1 rounded-lg bg-white/5 px-2 py-1.5 ring-1 ring-white/10 hover:ring-white/20 hover:bg-white/[0.08] transition-all">
-                                <span className="min-w-0 text-[10px] font-medium text-zinc-400 truncate flex-1">{m.label}</span>
-                                {m.badge && (
-                                  <span className={cn(
-                                    "shrink-0 rounded-full px-1 py-0.5 text-[7px] font-bold uppercase ring-1",
-                                    m.badge === "NEW" ? "bg-emerald-500/20 text-emerald-300 ring-emerald-500/30" : "bg-amber-500/20 text-amber-300 ring-amber-500/30"
-                                  )}>{m.badge}</span>
-                                )}
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </MobileAccordion>
-
-              {/* Audio accordion */}
-              <MobileAccordion
-                label="Audio" href="/audio"
-                icon={<Music className="h-4 w-4 text-emerald-400" />}
-                open={mobileSection === "audio"} onToggle={() => toggleSection("audio")}
-              >
-                <div className="space-y-3 py-2">
-                  <div>
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600">Features</p>
-                    <div className="space-y-0.5">
-                      {AUDIO_FEATURES.map((f) => (
-                        <Link key={f.label} href={audioFeatureHref(f.label)}
-                          className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-white/[0.08] transition-colors">
-                          <f.icon className={cn("h-4 w-4 shrink-0", f.color)} />
-                          <span className="text-xs font-medium text-zinc-300">{f.label}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600">Models</p>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {AUDIO_MODELS.map((m) => (
-                        <Link key={m.label} href={`/audio?model=${m.label.toLowerCase().replace(/\s/g, "-")}`}
-                          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-2 ring-1 ring-white/10 hover:ring-white/20 transition-all">
-                          <span className="text-sm">{m.tag}</span>
-                          <span className={cn("min-w-0 text-[11px] font-medium truncate", m.color)}>{m.label}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </MobileAccordion>
-
-              {/* Edit accordion */}
-              <MobileAccordion
-                label="Edit" href="/edit"
-                icon={<Scissors className="h-4 w-4 text-cyan-400" />}
-                open={mobileSection === "edit"} onToggle={() => toggleSection("edit")}
-              >
-                <div className="space-y-3 py-2">
-                  <div>
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600">Features</p>
-                    <div className="space-y-0.5">
-                      {EDIT_FEATURES.map((f) => (
-                        <Link key={f.label} href={editFeatureHref(f.label)}
-                          className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-white/[0.08] transition-colors">
-                          <f.icon className={cn("h-4 w-4 shrink-0", f.color)} />
-                          <span className="text-xs font-medium text-zinc-300">{f.label}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600">Models</p>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {EDIT_MODELS.map((m) => (
-                        <Link key={m.label} href={`/edit?model=${m.label.toLowerCase().replace(/\s/g, "-")}`}
-                          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-2 ring-1 ring-white/10 hover:ring-white/20 transition-all">
-                          <span className="text-sm">{m.tag}</span>
-                          <span className={cn("min-w-0 text-[11px] font-medium truncate", m.color)}>{m.label}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </MobileAccordion>
-
-              {/* Studio – 4 direct links in 2-col grid */}
-              <div className="px-1 py-1.5">
-                <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-zinc-600">Studio</p>
-                <div className="grid grid-cols-2 gap-1">
-                  {STUDIO_LINKS.map((link) => (
-                    <Link key={link.href} href={link.href}
-                      className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                        pathname === link.href ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}>
-                      <link.icon className={cn("h-4 w-4 shrink-0", link.color)} />
-                      <span className="truncate text-xs">{getTranslation(link.label, lang)}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Apps accordion – 8 categories */}
-              {SHOW_EXPERIMENTAL_NAV && (
-              <MobileAccordion
-                label="Apps" href="/apps" badge="8 cats"
-                icon={<LayoutGrid className="h-4 w-4 text-indigo-400" />}
-                open={mobileSection === "apps"} onToggle={() => toggleSection("apps")}
-              >
-                <div className="grid grid-cols-2 gap-2 py-2">
-                  {APPS_CATEGORIES.map((cat) => (
-                    <div key={cat.category} className={cn("rounded-xl border bg-gradient-to-b p-2.5", cat.color, cat.border)}>
-                      <div className="mb-1.5 flex items-center gap-1">
-                        <cat.icon className={cn("h-3 w-3", cat.iconColor)} />
-                        <span className={cn("text-[10px] font-bold", cat.iconColor)}>{cat.category}</span>
-                      </div>
-                      <div className="space-y-0.5">
-                        {cat.apps.map((app) => (
-                          <Link key={app} href={appHref(app)}
-                            className="block truncate rounded px-1.5 py-0.5 text-[10px] text-zinc-500 hover:bg-white/10 hover:text-white transition-colors">
-                            {app}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </MobileAccordion>
-              )}
-
-              {/* Gallery */}
-              <div className="pt-0.5">
-                <Link href="/gallery"
-                  className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    pathname === "/gallery" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}>
-                  <GalleryHorizontalEnd className="h-4 w-4 text-fuchsia-400" />Gallery
-                </Link>
-              </div>
-
-            </nav>
-            <div className="border-t border-white/10 p-4 space-y-2">
-              <Link href="/pricing" className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:from-violet-500 hover:to-indigo-500 transition-all">
-                <Zap className="h-4 w-4" /> {getTranslation("Upgrade to Pro", lang)}
-              </Link>
-              {showAccount && (
-                <>
-                  <Link href="/settings" className="flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white transition-colors">
-                    <Settings className="h-4 w-4" /> {getTranslation("Settings", lang)}
-                  </Link>
-                  <button
-                    onClick={() => signOut({ redirectUrl: "/" })}
-                    className="flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
-                    <LogOut className="h-4 w-4" /> {getTranslation("Logout", lang)}
-                  </button>
-                </>
               )}
             </div>
           </motion.div>
@@ -1704,7 +1626,7 @@ const TopNavbar = () => {
 
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm 2xl:hidden" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm xl:hidden" />
         )}
       </AnimatePresence>
     </>
