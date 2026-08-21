@@ -48,15 +48,13 @@
 
 ---
 
-#### Latest task: Side-Anchored Floating Dropdown Menus (2026-08-21)
+#### Latest task: Streamlined Compact Side Dropdowns (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Side-Anchored Popover Positioning (Zero Image Overlap)**:
-     - Shifted all menu popovers (Three-dots menu, Video Placement, and AI Tools) to anchor to the side outside the photo layer (`absolute right-full top-0/bottom-0 mr-3 z-[999]`).
-     - Ensures that clicking any menu trigger leaves 100% of the photo surface clean and completely unobstructed.
-  2. **Saad Studio Indigo/Violet Theme**:
-     - Applied rich gradient glassmorphism and subtle lighting matching the platform aesthetics.
-  3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
+  1. **Compact & Streamlined Dropdown Menus**:
+     - Reduced dropdown dimensions (`w-44` / `w-46`), optimized font size (`text-[11px]`), streamlined padding (`px-2 py-1`), and reduced icon sizes (`w-3.5 h-3.5`).
+     - Refactored labels into single-line bilingual items with zero line wrapping so all options fit completely in view without overflowing or scrolling.
+  2. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
 - Status: Completed & Verified (PASS).

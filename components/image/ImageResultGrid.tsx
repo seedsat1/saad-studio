@@ -698,15 +698,15 @@ export function ImageResultGrid({
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
 
-                    {/* 📋 Three-Dots Context Menu (Opens to the side completely outside photo layer) */}
+                    {/* 📋 Three-Dots Context Menu (Compact & Sleek) */}
                     <AnimatePresence>
                       {isMenuOpen && (
                         <motion.div
-                          initial={{ opacity: 0, scale: 0.95, x: 8 }}
+                          initial={{ opacity: 0, scale: 0.95, x: 6 }}
                           animate={{ opacity: 1, scale: 1, x: 0 }}
-                          exit={{ opacity: 0, scale: 0.95, x: 8 }}
-                          transition={{ duration: 0.15 }}
-                          className="absolute right-full top-0 mr-3 z-[999] w-56 rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-100"
+                          exit={{ opacity: 0, scale: 0.95, x: 6 }}
+                          transition={{ duration: 0.12 }}
+                          className="absolute right-full top-0 mr-2.5 z-[999] w-44 rounded-xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1 shadow-[0_15px_40px_rgba(0,0,0,0.85),0_0_20px_rgba(139,92,246,0.2)] backdrop-blur-2xl text-[11px] space-y-0.5 text-slate-100 whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
@@ -722,10 +722,10 @@ export function ImageResultGrid({
                                 date: item.date || item.createdAt,
                               });
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
-                            <ArrowUpRight className="w-4 h-4 text-indigo-400" />
-                            <span>Open (عرض التفاصيل)</span>
+                            <ArrowUpRight className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>عرض التفاصيل · Details</span>
                           </button>
 
                           <button
@@ -734,10 +734,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               onRemix(item);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
-                            <RotateCw className="w-4 h-4 text-cyan-400" />
-                            <span>Regenerate (إعادة توليد)</span>
+                            <RotateCw className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>إعادة توليد · Remix</span>
                           </button>
 
                           <button
@@ -747,10 +747,10 @@ export function ImageResultGrid({
                               if (onReuse) onReuse(item);
                               else onRemix(item);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
-                            <Copy className="w-4 h-4 text-slate-400" />
-                            <span>Reuse Prompt (استخدام الوصف)</span>
+                            <Copy className="w-3.5 h-3.5 text-slate-400" />
+                            <span>نسخ الوصف · Reuse</span>
                           </button>
 
                           <button
@@ -759,10 +759,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               router.push(`/characters?newElementUrl=${encodeURIComponent(item.url || item.originalUrl || "")}`);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
-                            <AtSign className="w-4 h-4 text-indigo-400" />
-                            <span>Create Element (حفظ كعنصر)</span>
+                            <AtSign className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>حفظ كعنصر · Element</span>
                           </button>
 
                           {/* Additional Sub-tools trigger */}
@@ -772,16 +772,16 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               setActiveToolsMenuId(item.id);
                             }}
-                            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            className="w-full flex items-center justify-between px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
-                            <div className="flex items-center gap-2.5">
-                              <Wand2 className="w-4 h-4 text-amber-400" />
-                              <span>AI Tools (أدوات التعديل)</span>
+                            <div className="flex items-center gap-2">
+                              <Wand2 className="w-3.5 h-3.5 text-amber-400" />
+                              <span>أدوات التعديل · Tools</span>
                             </div>
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+                            <ChevronRight className="w-3 h-3 text-slate-400" />
                           </button>
 
-                          <div className="my-1 border-t border-slate-800/80" />
+                          <div className="my-0.5 border-t border-slate-700/60" />
 
                           <button
                             type="button"
@@ -789,10 +789,10 @@ export function ImageResultGrid({
                               toggleLike(item.id, e);
                               setActiveMenuId(null);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
-                            <Heart className={cn("w-4 h-4", isLiked ? "text-rose-500 fill-rose-500" : "text-slate-400")} />
-                            <span>{isLiked ? "Unlike" : "Like"}</span>
+                            <Heart className={cn("w-3.5 h-3.5", isLiked ? "text-rose-500 fill-rose-500" : "text-slate-400")} />
+                            <span>{isLiked ? "إلغاء الإعجاب" : "إعجاب · Like"}</span>
                           </button>
 
                           <button
@@ -801,10 +801,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               void handleShare(item, e);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
-                            <Share2 className="w-4 h-4 text-slate-400" />
-                            <span>Share (مشاركة)</span>
+                            <Share2 className="w-3.5 h-3.5 text-slate-400" />
+                            <span>مشاركة · Share</span>
                           </button>
 
                           <button
@@ -813,10 +813,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               setAlbumPickerTargetItem(item);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
-                            <FolderPlus className="w-4 h-4 text-amber-300" />
-                            <span>Add to folder (مجلد)</span>
+                            <FolderPlus className="w-3.5 h-3.5 text-amber-300" />
+                            <span>مجلد · Folder</span>
                           </button>
 
                           <button
@@ -825,10 +825,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               void handlePublish(item, e);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
-                            <Send className="w-4 h-4 text-emerald-400" />
-                            <span>Publish (نشر)</span>
+                            <Send className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>نشر · Publish</span>
                           </button>
 
                           <button
@@ -837,13 +837,13 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               void handleDownload(item, e);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
-                            <Download className="w-4 h-4 text-slate-400" />
-                            <span>Download (تنزيل)</span>
+                            <Download className="w-3.5 h-3.5 text-slate-400" />
+                            <span>تنزيل · Download</span>
                           </button>
 
-                          <div className="my-1 border-t border-slate-800/80" />
+                          <div className="my-0.5 border-t border-slate-700/60" />
 
                           <button
                             type="button"
@@ -851,10 +851,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               setDeleteConfirmId(item.id);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-colors font-medium"
+                            className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-colors font-medium"
                           >
-                            <Trash2 className="w-4 h-4 text-rose-400" />
-                            <span>Delete (حذف)</span>
+                            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                            <span>حذف · Delete</span>
                           </button>
                         </motion.div>
                       )}
@@ -907,17 +907,17 @@ export function ImageResultGrid({
                         <ChevronDown className="w-3 h-3 opacity-70" />
                       </button>
 
-                      {/* 🎬 Video Frame Placement Dropdown (Opens to the side completely outside photo layer) */}
+                      {/* 🎬 Video Frame Placement Dropdown (Compact) */}
                       <AnimatePresence>
                         {isVideoMenuOpen && (
                           <motion.div
-                            initial={{ opacity: 0, scale: 0.95, x: 8 }}
+                            initial={{ opacity: 0, scale: 0.95, x: 6 }}
                             animate={{ opacity: 1, scale: 1, x: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, x: 8 }}
-                            className="absolute right-full bottom-0 mr-3 z-[999] w-48 rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-1 text-slate-100"
+                            exit={{ opacity: 0, scale: 0.95, x: 6 }}
+                            className="absolute right-full bottom-0 mr-2.5 z-[999] w-40 rounded-xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1 shadow-[0_15px_40px_rgba(0,0,0,0.85),0_0_20px_rgba(139,92,246,0.2)] backdrop-blur-2xl text-[11px] space-y-0.5 text-slate-100 whitespace-nowrap"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-violet-400">
+                            <div className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-400">
                               Frame Placement
                             </div>
                             <button
@@ -926,10 +926,10 @@ export function ImageResultGrid({
                                 setActiveVideoMenuId(null);
                                 handleVideoFramePlacement(item, "start", e);
                               }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all font-medium"
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all font-medium"
                             >
-                              <ArrowRightCircle className="w-4 h-4 text-cyan-400" />
-                              <span>Start Frame (بداية)</span>
+                              <ArrowRightCircle className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>Start Frame · بداية</span>
                             </button>
                             <button
                               type="button"
@@ -937,10 +937,10 @@ export function ImageResultGrid({
                                 setActiveVideoMenuId(null);
                                 handleVideoFramePlacement(item, "end", e);
                               }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all font-medium"
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all font-medium"
                             >
-                              <ArrowLeftCircle className="w-4 h-4 text-purple-400" />
-                              <span>End Frame (نهاية)</span>
+                              <ArrowLeftCircle className="w-3.5 h-3.5 text-purple-400" />
+                              <span>End Frame · نهاية</span>
                             </button>
                           </motion.div>
                         )}
@@ -969,32 +969,32 @@ export function ImageResultGrid({
                         <ChevronDown className="w-3 h-3 opacity-70" />
                       </button>
 
-                      {/* 🪄 Open In / Additional Tools Dropdown (Opens to the side completely outside photo layer) */}
+                      {/* 🪄 Open In / Additional Tools Dropdown (Compact & Sleek) */}
                       <AnimatePresence>
                         {isToolsMenuOpen && (
                           <motion.div
-                            initial={{ opacity: 0, scale: 0.95, x: 8 }}
+                            initial={{ opacity: 0, scale: 0.95, x: 6 }}
                             animate={{ opacity: 1, scale: 1, x: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, x: 8 }}
-                            className="absolute right-full bottom-0 mr-3 z-[999] w-56 max-h-[380px] overflow-y-auto rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-100 scrollbar-thin scrollbar-thumb-violet-900/50"
+                            exit={{ opacity: 0, scale: 0.95, x: 6 }}
+                            className="absolute right-full bottom-0 mr-2.5 z-[999] w-46 rounded-xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1 shadow-[0_15px_40px_rgba(0,0,0,0.85),0_0_20px_rgba(139,92,246,0.2)] backdrop-blur-2xl text-[11px] space-y-0.5 text-slate-100 whitespace-nowrap"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-violet-400">
-                              Generate (توليد ثلاثي)
+                            <div className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-400">
+                              Generate · توليد
                             </div>
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "3d", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
-                              <Box className="w-4 h-4 text-emerald-400" />
-                              <span>Create 3D scene</span>
+                              <Box className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>Create 3D scene (ثلاثي)</span>
                             </button>
 
-                            <div className="my-1 border-t border-slate-700/60" />
+                            <div className="my-0.5 border-t border-slate-700/60" />
 
-                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-violet-400">
-                              AI Tools (أدوات التعديل)
+                            <div className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-400">
+                              AI Tools · أدوات التعديل
                             </div>
 
                             <button
@@ -1003,73 +1003,73 @@ export function ImageResultGrid({
                                 setActiveToolsMenuId(null);
                                 void handleExtractHex(item, e);
                               }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
-                              <Pipette className="w-4 h-4 text-amber-400" />
-                              <span>Extract Hex Colors</span>
+                              <Pipette className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Hex Colors (باليت الألوان)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "multishot", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
-                              <LayoutGrid className="w-4 h-4 text-indigo-400" />
-                              <span>Multishot</span>
+                              <LayoutGrid className="w-3.5 h-3.5 text-indigo-400" />
+                              <span>Multishot (توليد متعدد)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "inpaint", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
-                              <Wand2 className="w-4 h-4 text-pink-400" />
-                              <span>Inpaint (فرشاة التعديل)</span>
+                              <Wand2 className="w-3.5 h-3.5 text-pink-400" />
+                              <span>Inpaint (تعديل بالفرشاة)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "skin", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
-                              <ScanFace className="w-4 h-4 text-cyan-400" />
-                              <span>Skin Enhancer (تحسين الوجه)</span>
+                              <ScanFace className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>Skin (تحسين الوجه)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "angles", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
-                              <Camera className="w-4 h-4 text-blue-400" />
+                              <Camera className="w-3.5 h-3.5 text-blue-400" />
                               <span>Angles (زوايا الكاميرا)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "relight", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
-                              <Sun className="w-4 h-4 text-amber-300" />
+                              <Sun className="w-3.5 h-3.5 text-amber-300" />
                               <span>Relight (إعادة الإضاءة)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "stylist", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
-                              <Shirt className="w-4 h-4 text-violet-400" />
-                              <span>AI Stylist (تغيير الملابس)</span>
+                              <Shirt className="w-3.5 h-3.5 text-violet-400" />
+                              <span>Stylist (تغيير الملابس)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "upscale", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
-                              <Maximize2 className="w-4 h-4 text-emerald-400" />
-                              <span>Upscale (رفع الدقة)</span>
+                              <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>Upscale 4K (رفع الدقة)</span>
                             </button>
                           </motion.div>
                         )}
