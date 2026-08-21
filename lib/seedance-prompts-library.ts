@@ -54,7 +54,7 @@ export const SEEDANCE_PROMPTS: SeedancePrompt[] = [
     authorUrl: "https://x.com/techhalla",
     sourceUrl: "https://x.com/techhalla/status/2038922299152212250",
     views: "262K",
-    thumbnailUrl: `${B2}/techhalla-flying-carpet.webp`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/flying-carpet.webp`,
     prompt: `Style: Gritty Cine Verité, real footage, 35mm handheld lens with subtle natural shake.
 Camera: Single continuous 3rd-person POV tracking shot (no cuts).
 Lighting: Harsh, high-contrast Mediterranean noon sunlight; dramatic volumetric haze over the city.
@@ -84,7 +84,7 @@ Photorealistic 8K, movie-level stable facial features and body shape, ultra-deta
     authorUrl: "https://x.com/aimikoda",
     sourceUrl: "https://x.com/aimikoda/status/2039380650109649085",
     views: "175K",
-    thumbnailUrl: `${B2}/aimikoda-match-cut.webp`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/vr-match-cut.webp`,
     prompt: `FORMAT: 15s / free rhythm / 1 MATCH CUT / CONTINUOUS MOVE UNTIL MATCH CUT + IMMEDIATE ACTION FROM FIRST FRAME
 
 SUBJECTS: A lone sword-bearing woman in weathered fur and leather fights a massive polar bear with desperate, two-handed survival movement. The same woman is later revealed at home in loose indoor clothes, where a VR headset appears only after the match cut and is pulled off in one clear motion.
@@ -110,7 +110,7 @@ TIMELINE:
     authorUrl: "https://x.com/0xbisc",
     sourceUrl: "https://x.com/0xbisc/status/2041152430780637670",
     views: "105K",
-    thumbnailUrl: `${B2}/0xbisc-stone-hand.webp`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/stone-hand.webp`,
     prompt: `SUBJECTS:
 A female warrior with shoulder-length hair, the ends naturally flipping outward, pressed backward and slightly disheveled by air resistance during high-speed movement. She wears a dark, form-fitting tactical suit combining real fabric and worn metal elements, with visible water stains, dust, and signs of use.
 A dual mechanical grappling hook system mounted on her back, capable of firing steel cables that retract to generate pulling force.
@@ -149,7 +149,7 @@ SHOT 8 — MS, continuous tracking. The giant's hand recoils and slams down agai
     authorUrl: "https://x.com/AI_GIRL_DESIGN",
     sourceUrl: "https://x.com/AI_GIRL_DESIGN/status/2046196963587371339",
     views: "620K",
-    thumbnailUrl: `${B2}/ai-girl-design-system-prompt.webp`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/ai-girl-design.webp`,
     prompt: `You are a top-tier film director and prompt designer for Seedance 2 video prompts.
 The user gives you one image. You carefully observe its composition, pose, wardrobe, lighting, background, atmosphere, character relationships, emotion, and setting significance. Then you generate a ~15-second JSON prompt.
 
@@ -182,7 +182,7 @@ Phase 1: Output the initial JSON draft + ask the user "Is the location expansion
     authorUrl: "https://x.com/FuSheng_0306",
     sourceUrl: "https://x.com/FuSheng_0306/status/2050805445032337720",
     views: "—",
-    thumbnailUrl: `${CF}/20131dceb247089f4d10a285bd035e72/thumbnails/thumbnail.jpg`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/cyberpunk-showcase.webp`,
     prompt: `Provide me with more precise prompts based on my ideas. Requirements: While maintaining character appearance and clothing consistency, this person stands on a platform and completes a full rotation, similar to a character showcase in a game. After finishing the rotation and facing the audience again, they raise their right hand and wave. At the same time, the text in the scene should flash with a cyber-tech feel, as if electric currents are flowing through it. Create an overall feeling of an interactive game interface.`,
   },
   {
@@ -193,7 +193,7 @@ Phase 1: Output the initial JSON draft + ask the user "Is the location expansion
     authorUrl: "https://x.com/tokyo_Valentine",
     sourceUrl: "https://x.com/tokyo_Valentine/status/2050784601191432351",
     views: "—",
-    thumbnailUrl: `${CF}/49c044de4f82fa297a2b11449817c5e9/thumbnails/thumbnail.jpg`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/sci-fi-mecha.webp`,
     prompt: `Language: Japanese
 Subtitles: None
 
@@ -220,7 +220,7 @@ Please compose the cuts/scenes in @Image3`,
     authorUrl: "https://x.com/OlivioSarikas",
     sourceUrl: "https://x.com/OlivioSarikas/status/2050664853082456156",
     views: "—",
-    thumbnailUrl: `${CF}/413caf78b18669c430db891e992d3abe/thumbnails/thumbnail.jpg`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/lipstick-paris.webp`,
     prompt: `Follow this storyboard @image_1 to create this AD
 
 story = a woman in an elegant red dress uses her lipstick then sits down in a restaurant to have a date with an elegant man
@@ -249,7 +249,7 @@ story = a woman in an elegant red dress uses her lipstick then sits down in a re
     authorUrl: "https://x.com/sebatheepan",
     sourceUrl: "https://x.com/sebatheepan/status/2050660247899980083",
     views: "—",
-    thumbnailUrl: `${CF}/afe14b9312703c4a0fc977d564b3994f/thumbnails/thumbnail.jpg`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/human-evolution.webp`,
     prompt: `human evolution over time a chronological hyper lapse video seamless transitions`,
   },
   {
@@ -260,7 +260,7 @@ story = a woman in an elegant red dress uses her lipstick then sits down in a re
     authorUrl: "https://x.com/churvikv",
     sourceUrl: "https://x.com/churvikv/status/2050655860846690351",
     views: "—",
-    thumbnailUrl: `${CF}/ca5b2225efce5d971334f80663005f2d/thumbnails/thumbnail.jpg`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/romantic-film-strip.webp`,
     prompt: `cinematic romantic sequence featuring a glowing film strip telling a love story at night over the ocean.
 
 [0-3s] FIRST FRAME — Camera focuses on the first frame of a luminous film strip: a couple met on the beach at sunset. They are holding hands, silhouettes against orange and pink sky. Soft golden glow surrounds the frame. Gentle ocean waves in the background. Camera slowly pushes in.
@@ -281,7 +281,7 @@ story = a woman in an elegant red dress uses her lipstick then sits down in a re
     authorUrl: "https://x.com/ai_gezgini",
     sourceUrl: "https://x.com/ai_gezgini/status/2050645169452863863",
     views: "—",
-    thumbnailUrl: `${CF}/df052035796f092cc28c758b15f4b516/thumbnails/thumbnail.jpg`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/cowboy-showdown.webp`,
     prompt: `Create a seamless 15-second cinematic cowboy showdown video using the uploaded 3x3 storyboard image as the main reference.
 
 Use the storyboard only for character identity, shot order, poses, wardrobe, composition, emotional tone, and scene progression. Do NOT recreate the storyboard grid, borders, or panel layout. Transform it into one continuous cinematic video.
@@ -299,7 +299,7 @@ The female cowboy's distant walk toward camera is shown only briefly, then the s
     authorUrl: "https://x.com/Just_sharon7",
     sourceUrl: "https://x.com/Just_sharon7/status/2050643288752099742",
     views: "—",
-    thumbnailUrl: `${CF}/1d2c58e501dd6395cb8547eb1d26029a/thumbnails/thumbnail.jpg`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/grwm.webp`,
     prompt: `Setting & Aesthetic
 Filmed in a cozy, natural bedroom with soft neutral tones (beige, white, warm grey). Natural side lighting creates a warm, authentic feel. Background features a neatly made bed and bedside lamp — lived-in but clean. No ring light — keeps it feeling organic and real.
 
@@ -320,7 +320,7 @@ Speaking mid-sentence as if mid-thought (hook style)`,
     authorUrl: "https://x.com/LudovicCreator",
     sourceUrl: "https://x.com/LudovicCreator/status/2050640233553657935",
     views: "—",
-    thumbnailUrl: `${CF}/6a542b0621e83a3982b6ab3ea46d3249/thumbnails/thumbnail.jpg`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/cybernetic-gunslinger.webp`,
     prompt: `General Technical Specifications: ultra-cinematic blockbuster, photorealistic 8K, f/0.4 aperture, high contrast, deep blue neon night, volumetric rain and fog
 
 Lighting: strong neon contrast (blue, magenta), reflections on wet asphalt, flickering signage, backlight silhouettes
@@ -358,7 +358,7 @@ Style: 80s/90s action movie style, ultra dynamic, dramatic cloth movement, volum
     authorUrl: "https://x.com/Gwsubsa",
     sourceUrl: "https://x.com/Gwsubsa/status/2050609668112949486",
     views: "—",
-    thumbnailUrl: `${CF}/7fa6e6e90a6eb629033c57045ff28394/thumbnails/thumbnail.jpg`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/fpv-snowboard.webp`,
     prompt: `Ultra-realistic cinematic FPV snowboard sequence, 4K HDR, high contrast, cold blue color grading, natural lighting, strong motion blur, realistic snow physics, 16:9.
 
 LOCATION:
@@ -384,7 +384,7 @@ FPV drone-style follow cam, ultra dynamic, close tracking, fast acceleration, pr
     authorUrl: "https://x.com/aimikoda",
     sourceUrl: "https://x.com/aimikoda/status/2050608494361956510",
     views: "—",
-    thumbnailUrl: `${CF}/e6c3e49d4e526f1db68144d939931db3/thumbnails/thumbnail.jpg`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/3d-animation.webp`,
     prompt: `INTENT: Create a playful, high-energy friendship adventure that briefly turns tense when one rider is pulled into storm clouds, then resolves with a triumphant rescue and joyful return.
 STYLE: stylized family-feature 3D animation feel, rounded expressive characters.`,
   },
@@ -396,7 +396,7 @@ STYLE: stylized family-feature 3D animation feel, rounded expressive characters.
     authorUrl: "https://x.com/shushant_l",
     sourceUrl: "https://x.com/shushant_l/status/2050591261820878904",
     views: "—",
-    thumbnailUrl: `${CF}/89f62128322218bce219732c0c5aaf62/thumbnails/thumbnail.jpg`,
+    thumbnailUrl: `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/indian-kingdom.webp`,
     prompt: `Extremely fast-paced cinematic FPV flying through the ancient Indian Kekaya kingdom at its peak, hyper-realistic, ultra-detailed, HDR. Camera starts high above vast fertile plains and rivers, rapidly diving into a grand fortified city with sandstone palaces, intricate carvings, and towering gates. Speeding through bustling markets filled with traders, horses, chariots, silk fabrics, and pottery. Dynamic motion through royal courtyards where warriors train with swords and archers practice. Then smoothly go into opulent interiors with golden decor, oil lamps, and royal assemblies. Intense FPV sweeps over battle formations outside the city with elephants, cavalry, and infantry in traditional armor. Sunset lighting with warm tones, volumetric dust, dramatic shadows, cinematic depth of field. Highly immersive, realistic physics, historically inspired architecture and clothing, epic scale.`,
   },
 ];
