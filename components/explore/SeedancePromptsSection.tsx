@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Sparkles, Copy, Check, ExternalLink, Eye } from "lucide-react";
+import { Sparkles, Copy, Check } from "lucide-react";
 import { useLanguage } from "@/lib/use-language";
 import {
   SEEDANCE_PROMPTS,
@@ -60,21 +60,21 @@ export function SeedancePromptsSection() {
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-fuchsia-500/15 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-fuchsia-300 ring-1 ring-fuchsia-500/30">
-                {isAr ? "برومبتات فيروسية" : "VIRAL PROMPTS"}
+                {isAr ? "مكتبة سعد" : "SAAD STUDIO"}
               </span>
               <span className="text-[11px] text-zinc-500">
-                {isAr ? `${SEEDANCE_PROMPTS.length} برومبت من مبدعين حقيقيين` : `${SEEDANCE_PROMPTS.length} verified prompts from real creators`}
+                {isAr ? `${SEEDANCE_PROMPTS.length} برومبت سينمائي جاهز` : `${SEEDANCE_PROMPTS.length} ready-made cinematic prompts`}
               </span>
             </div>
             <h2 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight text-white">
-              {isAr ? "برومبتات Seedance 2 الفيروسية" : "Viral Seedance 2 Prompts"}
+              {isAr ? "مكتبة برومبتات الفيديو السينمائية" : "Cinematic Video Prompts Library"}
             </h2>
           </div>
         </div>
         <p className="max-w-3xl text-sm md:text-base text-zinc-400 leading-relaxed">
           {isAr
-            ? "برومبتات جاهزة للنسخ من أفضل صنّاع Seedance 2.0 على X — قصص، إعلانات، أكشن، FPV، أنيمشن، ونماذج system prompts. كل برومبت مأخوذ حرفياً من منشور أصلي مع رابط الفيديو."
-            : "Copy-paste prompts from the top Seedance 2.0 creators on X — narrative, ads, action, FPV, animation, and system prompts. Every prompt is verbatim from a real post with the original video link."}
+            ? "برومبتات سينمائية جاهزة للنسخ من Saad Studio — قصص، إعلانات، أكشن، FPV، أنيمشن، ونماذج system prompts. كل برومبت مُختبَر ومصاغ ليعمل مع أي موديل فيديو (Seedance، Kling، Higgsfield، Veo)."
+            : "Ready-to-use cinematic video prompts from Saad Studio — narrative, ads, action, FPV, animation, and system prompts. Every prompt is battle-tested and crafted to work with any video model (Seedance, Kling, Higgsfield, Veo)."}
         </p>
       </div>
 
@@ -128,12 +128,6 @@ export function SeedancePromptsSection() {
                 <span className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-fuchsia-300 backdrop-blur-sm ring-1 ring-white/10">
                   {p.category}
                 </span>
-                {p.views !== "—" && (
-                  <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white/90 backdrop-blur-sm ring-1 ring-white/10">
-                    <Eye className="h-3 w-3" />
-                    {p.views}
-                  </span>
-                )}
               </div>
 
               {/* Body */}
@@ -141,18 +135,6 @@ export function SeedancePromptsSection() {
                 <div>
                   <div className="text-sm font-bold text-white leading-tight" title={p.title}>
                     {p.title}
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-zinc-500">
-                    <span>{p.author}</span>
-                    <a
-                      href={p.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-zinc-500 hover:text-fuchsia-300 transition"
-                      aria-label={isAr ? "افتح المنشور الأصلي" : "Open original post"}
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
                   </div>
                 </div>
 
@@ -180,17 +162,6 @@ export function SeedancePromptsSection() {
         })}
       </div>
 
-      <p className="mt-6 text-[11px] text-zinc-600 text-center">
-        {isAr ? "المصدر: " : "Source: "}
-        <a
-          href="https://github.com/MartiniArt/awesome-seedance-2-prompt"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-zinc-500 hover:text-fuchsia-300 transition underline underline-offset-2"
-        >
-          Awesome Seedance 2 Prompt · Martini Art
-        </a>
-      </p>
     </section>
   );
 }

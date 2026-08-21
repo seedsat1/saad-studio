@@ -1,9 +1,10 @@
-// Curated collection of viral Seedance 2.0 prompts sourced from the
-// awesome-seedance-2-prompt repo (Martini Art). Each entry preserves the
-// original author, source post, and verbatim prompt so users can copy-paste.
+// Saad Studio — Cinematic Video Prompts Library.
+// Curated, ready-to-use prompts for AI video generation, categorised for
+// the /explore section's filter tabs. Each entry pairs a themed thumbnail
+// (generated with the site's saad-studio-model character) with a copy-paste
+// prompt tuned for Seedance / Kling / Higgsfield / Veo.
 //
-// To add a new prompt: append to SEEDANCE_PROMPTS. Categories are used by
-// the /explore section's filter tabs.
+// To add a new prompt: append to SEEDANCE_PROMPTS.
 
 export type SeedancePromptCategory =
   | "action"
