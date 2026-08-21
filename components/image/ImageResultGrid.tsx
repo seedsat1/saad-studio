@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import type { Asset } from "@/components/AssetInspector";
 import { cn } from "@/lib/utils";
+import { SaadLoader } from "@/components/saad-loader";
 
 export interface ResultItem {
   id: string;
@@ -58,6 +59,7 @@ export interface ResultItem {
   date?: string;
   createdAt?: string;
   isFailed?: boolean;
+  isPending?: boolean;
   status?: string;
 }
 
@@ -526,6 +528,16 @@ export function ImageResultGrid({
       {/* Result Grid Container */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
         {items.map((item) => {
+          if (item.isPending) {
+            return (
+              <div
+                key={item.id}
+                className="relative aspect-square rounded-2xl overflow-hidden border border-zinc-800/80 bg-zinc-950/80 flex items-center justify-center"
+              >
+                <SaadLoader modelLabel={item.model} toolLabel={item.aspect} />
+              </div>
+            );
+          }
           if (item.isFailed) {
             return (
               <div
@@ -570,14 +582,17 @@ export function ImageResultGrid({
           const isVideoMenuOpen = activeVideoMenuId === item.id;
           const isToolsMenuOpen = activeToolsMenuId === item.id;
 
+          const isAnyMenuOpen = isMenuOpen || isVideoMenuOpen || isToolsMenuOpen;
+
           return (
             <div
               key={item.id}
               className={cn(
-                "group relative rounded-2xl overflow-hidden border bg-zinc-950/80 transition-all duration-200 shadow-sm hover:shadow-xl",
+                "group relative rounded-2xl transition-all duration-200 shadow-sm hover:shadow-xl",
+                isAnyMenuOpen ? "z-[60]" : "z-10 hover:z-20",
                 isSelected
-                  ? "border-pink-500 ring-2 ring-pink-500/40"
-                  : "border-zinc-800/80 hover:border-zinc-700"
+                  ? "ring-2 ring-indigo-500/70"
+                  : ""
               )}
               style={{ contentVisibility: "auto", containIntrinsicSize: "220px 220px" }}
             >
@@ -593,7 +608,7 @@ export function ImageResultGrid({
                     date: item.date || item.createdAt,
                   })
                 }
-                className="aspect-square w-full bg-zinc-950 relative overflow-hidden cursor-pointer flex items-center justify-center select-none"
+                className="aspect-square w-full bg-[#0a0d16] rounded-2xl overflow-hidden relative cursor-pointer flex items-center justify-center select-none border border-slate-800/60 group-hover:border-slate-700/80 transition-colors"
               >
                 {mediaSrc ? (
                   <img
@@ -621,7 +636,7 @@ export function ImageResultGrid({
                     className={cn(
                       "w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-lg backdrop-blur-md",
                       isSelected
-                        ? "bg-pink-600 border border-pink-400 text-white"
+                        ? "bg-indigo-600 border border-indigo-400 text-white"
                         : "bg-black/60 border border-white/25 text-transparent hover:border-white/50 hover:bg-black/80"
                     )}
                   >
@@ -676,14 +691,14 @@ export function ImageResultGrid({
                       className={cn(
                         "w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all shadow-lg",
                         isMenuOpen
-                          ? "bg-white text-zinc-900 border-white"
+                          ? "bg-indigo-600 text-white border-indigo-400"
                           : "bg-black/60 border-white/20 text-zinc-200 hover:text-white hover:bg-black/80 hover:border-white/40"
                       )}
                     >
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
 
-                    {/* 📋 Three-Dots Context Menu (Matches User Screenshot 2) */}
+                    {/* 📋 Three-Dots Context Menu (Floats cleanly outside with Saad Studio styling) */}
                     <AnimatePresence>
                       {isMenuOpen && (
                         <motion.div
@@ -691,7 +706,7 @@ export function ImageResultGrid({
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: -4 }}
                           transition={{ duration: 0.15 }}
-                          className="absolute right-0 top-10 z-50 w-52 rounded-2xl border border-zinc-800/90 bg-zinc-950/95 p-1.5 shadow-2xl backdrop-blur-2xl text-xs space-y-0.5"
+                          className="absolute right-0 top-11 z-[999] w-56 rounded-2xl border border-indigo-500/25 bg-[#0c101d]/95 p-1.5 shadow-[0_15px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(99,102,241,0.15)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-200"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
@@ -707,10 +722,10 @@ export function ImageResultGrid({
                                 date: item.date || item.createdAt,
                               });
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                           >
-                            <ArrowUpRight className="w-4 h-4 text-zinc-400" />
-                            <span>Open</span>
+                            <ArrowUpRight className="w-4 h-4 text-indigo-400" />
+                            <span>Open (عرض التفاصيل)</span>
                           </button>
 
                           <button
@@ -719,10 +734,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               onRemix(item);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                           >
-                            <RotateCw className="w-4 h-4 text-zinc-400" />
-                            <span>Regenerate</span>
+                            <RotateCw className="w-4 h-4 text-cyan-400" />
+                            <span>Regenerate (إعادة توليد)</span>
                           </button>
 
                           <button
@@ -732,10 +747,10 @@ export function ImageResultGrid({
                               if (onReuse) onReuse(item);
                               else onRemix(item);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                           >
-                            <Copy className="w-4 h-4 text-zinc-400" />
-                            <span>Reuse</span>
+                            <Copy className="w-4 h-4 text-slate-400" />
+                            <span>Reuse Prompt (استخدام الوصف)</span>
                           </button>
 
                           <button
@@ -744,10 +759,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               router.push(`/characters?newElementUrl=${encodeURIComponent(item.url || item.originalUrl || "")}`);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                           >
                             <AtSign className="w-4 h-4 text-indigo-400" />
-                            <span>Create Element</span>
+                            <span>Create Element (حفظ كعنصر)</span>
                           </button>
 
                           {/* Additional Sub-tools trigger */}
@@ -757,16 +772,16 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               setActiveToolsMenuId(item.id);
                             }}
-                            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                           >
                             <div className="flex items-center gap-2.5">
                               <Wand2 className="w-4 h-4 text-amber-400" />
-                              <span>Additional</span>
+                              <span>AI Tools (أدوات التعديل)</span>
                             </div>
-                            <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
                           </button>
 
-                          <div className="my-1 border-t border-zinc-800/80" />
+                          <div className="my-1 border-t border-slate-800/80" />
 
                           <button
                             type="button"
@@ -774,9 +789,9 @@ export function ImageResultGrid({
                               toggleLike(item.id, e);
                               setActiveMenuId(null);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                           >
-                            <Heart className={cn("w-4 h-4", isLiked ? "text-rose-500 fill-rose-500" : "text-zinc-400")} />
+                            <Heart className={cn("w-4 h-4", isLiked ? "text-rose-500 fill-rose-500" : "text-slate-400")} />
                             <span>{isLiked ? "Unlike" : "Like"}</span>
                           </button>
 
@@ -786,10 +801,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               void handleShare(item, e);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                           >
-                            <Share2 className="w-4 h-4 text-zinc-400" />
-                            <span>Share</span>
+                            <Share2 className="w-4 h-4 text-slate-400" />
+                            <span>Share (مشاركة)</span>
                           </button>
 
                           <button
@@ -798,10 +813,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               setAlbumPickerTargetItem(item);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                           >
                             <FolderPlus className="w-4 h-4 text-amber-300" />
-                            <span>Add to folder</span>
+                            <span>Add to folder (مجلد)</span>
                           </button>
 
                           <button
@@ -810,10 +825,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               void handlePublish(item, e);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                           >
                             <Send className="w-4 h-4 text-emerald-400" />
-                            <span>Publish</span>
+                            <span>Publish (نشر)</span>
                           </button>
 
                           <button
@@ -822,13 +837,13 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               void handleDownload(item, e);
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                           >
-                            <Download className="w-4 h-4 text-zinc-400" />
-                            <span>Download</span>
+                            <Download className="w-4 h-4 text-slate-400" />
+                            <span>Download (تنزيل)</span>
                           </button>
 
-                          <div className="my-1 border-t border-zinc-800/80" />
+                          <div className="my-1 border-t border-slate-800/80" />
 
                           <button
                             type="button"
@@ -839,7 +854,7 @@ export function ImageResultGrid({
                             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-colors font-medium"
                           >
                             <Trash2 className="w-4 h-4 text-rose-400" />
-                            <span>Delete</span>
+                            <span>Delete (حذف)</span>
                           </button>
                         </motion.div>
                       )}
