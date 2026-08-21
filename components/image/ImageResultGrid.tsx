@@ -636,8 +636,8 @@ export function ImageResultGrid({
                     className={cn(
                       "w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-lg backdrop-blur-md",
                       isSelected
-                        ? "bg-indigo-600 border border-indigo-400 text-white"
-                        : "bg-black/60 border border-white/25 text-transparent hover:border-white/50 hover:bg-black/80"
+                        ? "bg-gradient-to-r from-violet-600 to-indigo-600 border border-violet-400 text-white shadow-md shadow-violet-500/30"
+                        : "bg-[#131b2e]/85 border border-violet-500/30 text-transparent hover:border-violet-400/60 hover:bg-[#1a233b]"
                     )}
                   >
                     <Check className="w-4 h-4 text-white stroke-[3]" />
@@ -660,8 +660,8 @@ export function ImageResultGrid({
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all shadow-lg",
                       isLiked
-                        ? "bg-rose-950/80 border-rose-500/60 text-rose-400"
-                        : "bg-black/60 border-white/20 text-zinc-200 hover:text-rose-400 hover:bg-black/80 hover:border-white/40"
+                        ? "bg-rose-950/80 border-rose-500/60 text-rose-400 shadow-rose-500/20"
+                        : "bg-[#131b2e]/85 border border-violet-500/30 text-slate-200 hover:text-rose-400 hover:bg-[#1a233b] hover:border-rose-500/50"
                     )}
                   >
                     <Heart className={cn("w-4 h-4", isLiked && "fill-rose-500")} />
@@ -672,7 +672,7 @@ export function ImageResultGrid({
                     type="button"
                     title="Download"
                     onClick={(e) => void handleDownload(item, e)}
-                    className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-zinc-200 hover:text-white hover:bg-black/80 hover:border-white/40 transition-all shadow-lg"
+                    className="w-8 h-8 rounded-full bg-[#131b2e]/85 backdrop-blur-md border border-violet-500/30 flex items-center justify-center text-slate-200 hover:text-white hover:bg-[#1a233b] hover:border-violet-400/60 transition-all shadow-lg"
                   >
                     <Download className="w-4 h-4" />
                   </button>
@@ -691,14 +691,14 @@ export function ImageResultGrid({
                       className={cn(
                         "w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all shadow-lg",
                         isMenuOpen
-                          ? "bg-indigo-600 text-white border-indigo-400"
-                          : "bg-black/60 border-white/20 text-zinc-200 hover:text-white hover:bg-black/80 hover:border-white/40"
+                          ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white border-violet-400 shadow-md shadow-violet-500/30"
+                          : "bg-[#131b2e]/85 border border-violet-500/30 text-slate-200 hover:text-white hover:bg-[#1a233b] hover:border-violet-400/60"
                       )}
                     >
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
 
-                    {/* 📋 Three-Dots Context Menu (Floats cleanly outside with Saad Studio styling) */}
+                    {/* 📋 Three-Dots Context Menu (Opens cleanly outside with Saad Studio styling) */}
                     <AnimatePresence>
                       {isMenuOpen && (
                         <motion.div
@@ -706,7 +706,7 @@ export function ImageResultGrid({
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: -4 }}
                           transition={{ duration: 0.15 }}
-                          className="absolute right-0 top-11 z-[999] w-56 rounded-2xl border border-indigo-500/25 bg-[#0c101d]/95 p-1.5 shadow-[0_15px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(99,102,241,0.15)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-200"
+                          className="absolute right-0 top-full mt-2 z-[999] w-56 rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-100"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
@@ -862,7 +862,7 @@ export function ImageResultGrid({
                   </div>
                 </div>
 
-                {/* 🌟 Bottom-Right Floating Pill Bar (Matches User Screenshot 1) */}
+                {/* 🌟 Bottom-Right Floating Pill Bar (Saad Studio Glassmorphism) */}
                 <div
                   className={cn(
                     "absolute bottom-2.5 right-2.5 z-20 transition-opacity duration-200",
@@ -870,7 +870,7 @@ export function ImageResultGrid({
                   )}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="flex items-center gap-1 p-1 rounded-2xl bg-zinc-950/90 border border-zinc-700/80 shadow-2xl backdrop-blur-xl">
+                  <div className="flex items-center gap-1 p-1 rounded-2xl bg-[#131b2e]/90 border border-violet-500/35 shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_15px_rgba(139,92,246,0.2)] backdrop-blur-xl text-slate-200">
                     {/* 1. Quick Image Reference Button */}
                     <button
                       type="button"
@@ -880,7 +880,7 @@ export function ImageResultGrid({
                         if (onUse) void onUse(item);
                         showToast("Loaded image as Reference input 🖼️");
                       }}
-                      className="p-1.5 rounded-xl text-zinc-300 hover:text-white hover:bg-white/15 transition-all"
+                      className="p-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-violet-600/30 transition-all"
                     >
                       <ImageIcon className="w-4 h-4" />
                     </button>
@@ -899,25 +899,25 @@ export function ImageResultGrid({
                         className={cn(
                           "flex items-center gap-0.5 px-1.5 py-1.5 rounded-xl transition-all",
                           isVideoMenuOpen
-                            ? "bg-white text-zinc-950"
-                            : "text-zinc-300 hover:text-white hover:bg-white/15"
+                            ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/30"
+                            : "text-slate-300 hover:text-white hover:bg-violet-600/30"
                         )}
                       >
                         <VideoIcon className="w-4 h-4" />
                         <ChevronDown className="w-3 h-3 opacity-70" />
                       </button>
 
-                      {/* 🎬 Video Frame Placement Dropdown (Matches Screenshot 5) */}
+                      {/* 🎬 Video Frame Placement Dropdown (Opens downwards outside the image) */}
                       <AnimatePresence>
                         {isVideoMenuOpen && (
                           <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 4 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 4 }}
-                            className="absolute right-0 bottom-12 z-[999] w-48 rounded-2xl border border-indigo-500/25 bg-[#0c101d]/95 p-1.5 shadow-[0_15px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(99,102,241,0.15)] backdrop-blur-2xl text-xs space-y-1 text-slate-200"
+                            className="absolute right-0 top-full mt-2 z-[999] w-48 rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-1 text-slate-100"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-400">
+                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-violet-400">
                               Frame Placement
                             </div>
                             <button
@@ -926,7 +926,7 @@ export function ImageResultGrid({
                                 setActiveVideoMenuId(null);
                                 handleVideoFramePlacement(item, "start", e);
                               }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors font-medium"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all font-medium"
                             >
                               <ArrowRightCircle className="w-4 h-4 text-cyan-400" />
                               <span>Start Frame (بداية)</span>
@@ -937,7 +937,7 @@ export function ImageResultGrid({
                                 setActiveVideoMenuId(null);
                                 handleVideoFramePlacement(item, "end", e);
                               }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors font-medium"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all font-medium"
                             >
                               <ArrowLeftCircle className="w-4 h-4 text-purple-400" />
                               <span>End Frame (نهاية)</span>
@@ -961,39 +961,39 @@ export function ImageResultGrid({
                         className={cn(
                           "flex items-center gap-0.5 px-1.5 py-1.5 rounded-xl transition-all",
                           isToolsMenuOpen
-                            ? "bg-indigo-600 text-white"
-                            : "text-zinc-300 hover:text-white hover:bg-white/15"
+                            ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/30"
+                            : "text-slate-300 hover:text-white hover:bg-violet-600/30"
                         )}
                       >
                         <LayoutGrid className="w-4 h-4" />
                         <ChevronDown className="w-3 h-3 opacity-70" />
                       </button>
 
-                      {/* 🪄 Open In / Additional Tools Dropdown (Matches Screenshots 3 & 4) */}
+                      {/* 🪄 Open In / Additional Tools Dropdown (Opens downwards outside the image) */}
                       <AnimatePresence>
                         {isToolsMenuOpen && (
                           <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 4 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 4 }}
-                            className="absolute right-0 bottom-12 z-[999] w-56 max-h-[380px] overflow-y-auto rounded-2xl border border-indigo-500/25 bg-[#0c101d]/95 p-1.5 shadow-[0_15px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(99,102,241,0.15)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-200 scrollbar-thin scrollbar-thumb-slate-800"
+                            className="absolute right-0 top-full mt-2 z-[999] w-56 max-h-[380px] overflow-y-auto rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-100 scrollbar-thin scrollbar-thumb-violet-900/50"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-400">
+                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-violet-400">
                               Generate (توليد ثلاثي)
                             </div>
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "3d", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
                             >
                               <Box className="w-4 h-4 text-emerald-400" />
                               <span>Create 3D scene</span>
                             </button>
 
-                            <div className="my-1 border-t border-slate-800/80" />
+                            <div className="my-1 border-t border-slate-700/60" />
 
-                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-400">
+                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-violet-400">
                               AI Tools (أدوات التعديل)
                             </div>
 
@@ -1003,7 +1003,7 @@ export function ImageResultGrid({
                                 setActiveToolsMenuId(null);
                                 void handleExtractHex(item, e);
                               }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
                             >
                               <Pipette className="w-4 h-4 text-amber-400" />
                               <span>Extract Hex Colors</span>
@@ -1012,7 +1012,7 @@ export function ImageResultGrid({
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "multishot", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
                             >
                               <LayoutGrid className="w-4 h-4 text-indigo-400" />
                               <span>Multishot</span>
@@ -1021,7 +1021,7 @@ export function ImageResultGrid({
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "inpaint", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
                             >
                               <Wand2 className="w-4 h-4 text-pink-400" />
                               <span>Inpaint (فرشاة التعديل)</span>
@@ -1030,7 +1030,7 @@ export function ImageResultGrid({
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "skin", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
                             >
                               <ScanFace className="w-4 h-4 text-cyan-400" />
                               <span>Skin Enhancer (تحسين الوجه)</span>
@@ -1039,7 +1039,7 @@ export function ImageResultGrid({
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "angles", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
                             >
                               <Camera className="w-4 h-4 text-blue-400" />
                               <span>Angles (زوايا الكاميرا)</span>
@@ -1048,7 +1048,7 @@ export function ImageResultGrid({
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "relight", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
                             >
                               <Sun className="w-4 h-4 text-amber-300" />
                               <span>Relight (إعادة الإضاءة)</span>
@@ -1057,7 +1057,7 @@ export function ImageResultGrid({
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "stylist", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
                             >
                               <Shirt className="w-4 h-4 text-violet-400" />
                               <span>AI Stylist (تغيير الملابس)</span>
@@ -1066,7 +1066,7 @@ export function ImageResultGrid({
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "upscale", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20 hover:text-white transition-all"
                             >
                               <Maximize2 className="w-4 h-4 text-emerald-400" />
                               <span>Upscale (رفع الدقة)</span>

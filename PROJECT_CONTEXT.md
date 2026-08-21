@@ -48,14 +48,14 @@
 
 ---
 
-#### Latest task: Floating Glassmorphism Menus with Saad Studio Theme (2026-08-21)
+#### Latest task: Brand-Aligned Out-of-Bounds Glassmorphism Dropdowns (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Floating Out-of-Bounds Context Menus**:
-     - Removed `overflow-hidden` constraints from image card wrappers and assigned high dynamic z-index (`z-[60]`) so dropdown menus pop out cleanly outside image boundaries without overlapping internal buttons or being clipped.
-     - Applied Saad Studio dark indigo glassmorphism theme (`bg-[#0c101d]/95`, `border-indigo-500/25`, `backdrop-blur-2xl`, `hover:bg-indigo-600/20`) replacing solid black backgrounds.
-     - Enhanced Arabic & English labels with vibrant category accents.
-  2. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
+  1. **Fixed Menu Positioning (Out of Photo Bounds)**:
+     - Changed dropdown anchor positioning from bottom/inward to `top-full mt-2 right-0` so that menus pop downwards outside the image frame without obstructing or overlapping the generated image.
+  2. **Saad Studio Brand Colors & Glow**:
+     - Applied rich brand colors (`bg-gradient-to-b from-[#161c30] to-[#0f1424]`, `border-violet-500/35`, `shadow-violet-500/25`, `hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20`) across pill bars, action buttons, and dropdown overlays, eliminating plain black/zinc backgrounds.
+  3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
 - Status: Completed & Verified (PASS).
