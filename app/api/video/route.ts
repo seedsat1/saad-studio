@@ -1330,8 +1330,12 @@ async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<
   const maxReferenceImages = Math.max(0, 9 - (firstFrame ? 1 : 0) - (lastFrame ? 1 : 0));
   const referenceImages = await resolveOfficialSeedanceUrlList(payload.reference_image_urls, userId, "image", maxReferenceImages);
   for (const url of referenceImages) {
-    await verifyPublicMediaUrl(url, "reference_image", verifyOptions);
-    content.push({ type: "image_url", image_url: { url }, role: "reference_image" });
+    try {
+      await verifyPublicMediaUrl(url, "reference_image", verifyOptions);
+      content.push({ type: "image_url", image_url: { url }, role: "reference_image" });
+    } catch (err) {
+      console.warn(`[Seedance video] Skipping unreachable reference image: ${url}`, err);
+    }
   }
 
   const referenceVideos = await resolveOfficialSeedanceUrlList(payload.reference_video_urls, userId, "video", 3);
@@ -2759,7 +2763,11 @@ export async function POST(req: Request) {
         await verifyPublicMediaUrl(resolvedStartVideo, "google_start_video");
       }
       for (const url of resolvedReferenceSources) {
-        await verifyPublicMediaUrl(url, "google_reference_image");
+        try {
+          await verifyPublicMediaUrl(url, "google_reference_image");
+        } catch (err) {
+          console.warn(`[Google Veo] Skipping unreachable reference image: ${url}`, err);
+        }
       }
 
       const isGoogleVeo31ExtensionRoute =
@@ -3002,14 +3010,18 @@ export async function POST(req: Request) {
       const resolveMediaList = async (key: string, assetType: "image" | "video" | "audio", verifyLabel: string) => {
         const value = wsInput[key];
         if (!Array.isArray(value)) return;
-        wsInput[key] = await Promise.all(
-          value.map(async (u) => {
-            if (typeof u !== "string" || !u.trim()) return "";
+        const validItems: string[] = [];
+        for (const u of value) {
+          if (typeof u !== "string" || !u.trim()) continue;
+          try {
             const resolved = await resolveProviderMediaUrl(u, { userId, assetType });
             await verifyPublicMediaUrl(resolved, verifyLabel);
-            return resolved;
-          })
-        ).then(items => items.filter(Boolean));
+            validItems.push(resolved);
+          } catch (err) {
+            console.warn(`[WaveSpeed] Skipping unreachable reference media (${key}): ${u}`, err);
+          }
+        }
+        wsInput[key] = validItems;
       };
       await resolveMediaList("reference_image_urls", "image", "wavespeed_ref_image");
       await resolveMediaList("reference_images", "image", "wavespeed_ref_image");

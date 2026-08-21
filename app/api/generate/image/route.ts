@@ -716,21 +716,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const resolvedRefs: string[] = [];
     for (const ref of refUrls) {
-      await checkStoryboardReferenceImageSafety(ref);
-    }
-
-    const resolvedRefs = await Promise.all(
-      refUrls.map((r) => resolveProviderMediaUrl(r, { userId, assetType: "image" }))
-    );
-
-    for (const url of resolvedRefs) {
-      await verifyPublicMediaUrl(url, "reference_image");
+      try {
+        await checkStoryboardReferenceImageSafety(ref);
+        const resolved = await resolveProviderMediaUrl(ref, { userId, assetType: "image" });
+        await verifyPublicMediaUrl(resolved, "reference_image");
+        resolvedRefs.push(resolved);
+      } catch (err) {
+        console.warn(`[image generation] Reference image failed verification/resolution, skipping unreachable reference: ${ref}`, err);
+      }
     }
 
     if (waveSpeedImageRoute?.requiresReference && resolvedRefs.length === 0) {
       return NextResponse.json(
-        { error: "Selected WaveSpeed image edit model requires at least one reference image." },
+        { error: "Selected WaveSpeed image edit model requires at least one valid reference image." },
         { status: 400 },
       );
     }
