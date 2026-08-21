@@ -48,15 +48,14 @@
 
 ---
 
-#### Latest task: Shots Studio Navbar Integration, Full Lightbox View & Direct Download (2026-08-21)
+#### Latest task: Mobile File Upload (Start/End/Reference) & Error Handling Fix (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Navbar Navigation Integration**:
-     - Added `Shots Studio` into `IMAGE_FEATURES` list and `TopNavbar` menu routing (`imageFeatureHref`), with full bilingual Arabic translations.
-  2. **Shots Studio Lightbox & Direct Download**:
-     - Added full-screen Lightbox inspection modal in `app/(dash)/(routes)/shots/page.tsx` with high-resolution image viewing, shot metadata, and keyboard (Esc) dismissal.
-     - Implemented click-to-preview on each generated shot card and preview button in the action overlay.
-     - Enhanced `downloadImage` helper with robust blob generation, automatic revoke, toast feedback, and direct link fallbacks.
+  1. **Mobile Native File Inputs (iOS Safari & Android)**:
+     - Replaced asynchronous JS-triggered clicks in `mediaPicker` modal with direct native `<label>` wrapping `<input type="file">`, completely solving the iOS Safari silent click blocking issue.
+     - Upgraded mobile settings drawer (`setMobileSettingsOpen`) with direct native device upload buttons, visual thumbnail previews, and instant deletion (`X`) for Start Frame, End Frame, and Reference Media.
+  2. **Error Message Clarity & Safety Filter**:
+     - Fixed `lib/generation-errors.ts` so human-readable errors, provider feedback, and Arabic error messages are clearly presented to users instead of masked with a false "site under maintenance" banner.
   3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)

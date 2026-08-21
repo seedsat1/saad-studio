@@ -1,5 +1,5 @@
 export const SAFE_PUBLIC_GENERATION_ERROR =
-  "Sorry, something went wrong. The site is currently under maintenance. Please try again later.";
+  "Unable to complete video generation. Please check your settings or try again in a moment.";
 
 export const INSUFFICIENT_CREDITS_MESSAGE =
   "Insufficient credits. Please purchase more credits to continue.";
@@ -32,40 +32,31 @@ const SAFE_VALIDATION_MESSAGES = new Set([
 ]);
 
 export function isSafePublicGenerationMessage(message: unknown): message is string {
-  if (typeof message !== "string") return false;
-  if (SAFE_VALIDATION_MESSAGES.has(message)) return true;
-  return (
-    message.startsWith("Please ") ||
-    message.startsWith("Kling 3.0 ") ||
-    message.startsWith("Element @") ||
-    message.includes("multi-shot") ||
-    message.includes("shot prompt") ||
-    message.includes(" is required") ||
-    message.includes(" required") ||
-    message.includes("Unsupported file type") ||
-    message.includes("File too large") ||
-    message.includes("Veo") ||
-    message.includes("Gemini") ||
-    message.includes("Google") ||
-    message.includes("video") ||
-    message.includes("Video") ||
-    message.includes("frame") ||
-    message.includes("Frame") ||
-    message.includes("extension") ||
-    message.includes("Extension") ||
-    message.includes("Lyria") ||
-    message.includes("lyria") ||
-    message.includes("blocked") ||
-    message.includes("Blocked") ||
-    message.includes("policy") ||
-    message.includes("Policy") ||
-    message.includes("sensitive") ||
-    message.includes("Sensitive")
-  );
+  if (typeof message !== "string" || !message.trim()) return false;
+  const msg = message.trim();
+  if (SAFE_VALIDATION_MESSAGES.has(msg)) return true;
+
+  // Filter out internal server stack traces or database errors
+  const isInternalLeak =
+    msg.includes("PrismaClient") ||
+    msg.includes("PostgresError") ||
+    msg.includes("ECONNREFUSED") ||
+    msg.includes("ENOTFOUND") ||
+    msg.includes("SQLSTATE") ||
+    msg.includes("SELECT ") ||
+    msg.includes("INSERT INTO") ||
+    msg.includes("at Object.<anonymous>") ||
+    msg.includes("node:internal");
+
+  if (isInternalLeak) return false;
+
+  // Any non-internal message (Arabic, English, provider responses) is safe to display to user
+  return true;
 }
 
 export function toSafePublicGenerationMessage(message: unknown): string {
-  return isSafePublicGenerationMessage(message)
-    ? message
-    : SAFE_PUBLIC_GENERATION_ERROR;
+  if (typeof message === "string" && isSafePublicGenerationMessage(message)) {
+    return message.trim();
+  }
+  return SAFE_PUBLIC_GENERATION_ERROR;
 }

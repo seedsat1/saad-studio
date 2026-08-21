@@ -5844,47 +5844,47 @@ function VideoPageInner() {
               {/* Content area */}
               <div className="flex-1 overflow-y-auto p-4">
                 {pickerTab === "upload" ? (
-                  /* Device upload zone */
-                  <button
-                    className="w-full h-full min-h-48 flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed transition-all hover:border-opacity-60"
+                  /* Device upload zone with 100% native iOS/Android tap support */
+                  <label
+                    className="w-full h-full min-h-48 flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed transition-all hover:border-opacity-60 cursor-pointer"
                     style={{ borderColor: hexA(selectedModel.family_color, 0.3) }}
-                    onClick={() => {
-                      const target = mediaPicker;
-                      setMediaPicker(null);
-                      if (!target) return;
-
-                      const clickNativeInput = () => {
-                        if (target === "startFrame") startFrameRef.current?.click();
-                        else if (target === "endFrame") endFrameRef.current?.click();
-                        else if (target === "motionVideo") motionVideoRef.current?.click();
-                        else if (target === "referenceImages") referenceImagesRef.current?.click();
-                      };
-
-                      // On mobile / older browsers `showOpenFilePicker` isn't available;
-                      // await-ing it there would break the user-gesture chain and iOS Safari
-                      // would silently block the file input. Detect support synchronously and
-                      // click the native input immediately if we can't use the modern API.
-                      const anyWindow = window as any;
-                      const canUseFsAccess =
-                        typeof anyWindow.showOpenFilePicker === "function" && window.isSecureContext;
-
-                      if (!canUseFsAccess) {
-                        clickNativeInput();
-                        return;
-                      }
-
-                      void pickDeviceFiles(target).then((handled) => {
-                        if (!handled) clickNativeInput();
-                      });
-                    }}
                   >
+                    <input
+                      type="file"
+                      className="hidden"
+                      multiple={mediaPicker === "referenceImages"}
+                      accept={
+                        mediaPicker === "motionVideo"
+                          ? "video/mp4,video/quicktime,video/webm,video/x-matroska"
+                          : mediaPicker === "referenceImages" && isSeedanceV2Model
+                            ? "image/*,video/*,audio/*"
+                            : "image/*"
+                      }
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        if (files.length === 0) return;
+                        const target = mediaPicker;
+                        if (target === "startFrame") {
+                          setStartFrame(files[0]);
+                          setLinkedStartFrameUrl(null);
+                        } else if (target === "endFrame") {
+                          setEndFrame(files[0]);
+                          setLinkedEndFrameUrl(null);
+                        } else if (target === "motionVideo") {
+                          setMotionVideo(files[0]);
+                        } else if (target === "referenceImages") {
+                          setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+                        }
+                        setMediaPicker(null);
+                      }}
+                    />
                     <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                      className="w-14 h-14 rounded-2xl flex items-center justify-center pointer-events-none"
                       style={{ background: hexA(selectedModel.family_color, 0.1) }}
                     >
                       <Upload size={24} style={{ color: selectedModel.family_color }} />
                     </div>
-                    <div className="text-center">
+                    <div className="text-center pointer-events-none">
                       <p className="text-[14px] font-semibold" style={{ color: "#e2e8f0" }}>
                         Upload from device
                       </p>
@@ -5896,7 +5896,7 @@ function VideoPageInner() {
                             : "PNG, JPG, WebP"}
                       </p>
                     </div>
-                  </button>
+                  </label>
                 ) : pickerLoading ? (
                   <div className="flex items-center justify-center h-40">
                     <Loader2 size={24} className="animate-spin" style={{ color: "#94a3b8" }} />
@@ -6186,42 +6186,89 @@ function VideoPageInner() {
                 {/* Reference Images (mobile) */}
                 {(showReferenceImages || showSimpleKlingRefs) && (
                   <div className="mb-4">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>
-                      {isSeedanceV2Model ? "Reference Media" : "Reference Images"}
-                    </label>
-                    <button
-                      onClick={() => { setMobileSettingsOpen(false); openMediaPicker("referenceImages"); }}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl transition-all"
-                      style={{
-                        background: referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.1) : "rgba(255,255,255,0.04)",
-                        border: `1px solid ${referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                        color: referenceImages.length > 0 ? selectedModel.family_color : "#a1a1aa",
-                      }}
-                    >
-                      <ImageIcon size={14} />
-                      <span className="text-sm font-medium">
-                        {referenceImages.length > 0
-                          ? referenceFileSummary
-                          : isSeedanceV2Model ? "Add reference media" : "Add reference images"
-                        }
-                      </span>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
+                        {isSeedanceV2Model ? "Reference Media" : "Reference Images"}
+                      </label>
                       {referenceImages.length > 0 && (
                         <button
-                          onClick={e => { e.stopPropagation(); setReferenceImages([]); }}
-                          className="ml-auto"
+                          type="button"
+                          onClick={() => setReferenceImages([])}
+                          className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
                         >
-                          <X size={13} style={{ color: "#a1a1aa" }} />
+                          Clear all
                         </button>
                       )}
-                    </button>
+                    </div>
+                    <div className="flex gap-2 mb-2">
+                      <label
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl transition-all cursor-pointer text-center"
+                        style={{
+                          background: referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.12) : "rgba(255,255,255,0.04)",
+                          border: `1px solid ${referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.08)"}`,
+                          color: referenceImages.length > 0 ? selectedModel.family_color : "#e2e8f0",
+                        }}
+                      >
+                        <input
+                          type="file"
+                          multiple
+                          accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files ?? []);
+                            if (files.length > 0) {
+                              setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+                            }
+                          }}
+                        />
+                        <Upload size={13} />
+                        <span className="text-xs font-semibold">
+                          {referenceImages.length > 0 ? `Add More (${referenceImages.length})` : "Upload Device"}
+                        </span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => { setMobileSettingsOpen(false); openMediaPicker("referenceImages"); }}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl transition-all text-xs font-medium"
+                        style={{
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          color: "#a1a1aa",
+                        }}
+                      >
+                        <ImageIcon size={13} />
+                        <span>Gallery</span>
+                      </button>
+                    </div>
+                    {referenceImages.length > 0 && (
+                      <div className="flex gap-1.5 overflow-x-auto py-1">
+                        {referenceImages.map((f, idx) => (
+                          <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black/40">
+                            {f.type.startsWith("image/") ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={URL.createObjectURL(f)} alt="Ref preview" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-white/70">
+                                {f.type.startsWith("video/") ? "VID" : "AUD"}
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setReferenceImages((prev) => prev.filter((_, i) => i !== idx));
+                              }}
+                              className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/70 text-white"
+                            >
+                              <X size={9} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {showSimpleKlingRefs && (
                       <p className="text-[10px] mt-1" style={{ color: "#94a3b8" }}>
                         Kling uses Elements with @element_name
-                      </p>
-                    )}
-                    {isSeedanceV2Model && referenceImages.length > 0 && (
-                      <p className="text-[10px] mt-1" style={{ color: "#94a3b8" }}>
-                        {getPromptReferenceTagHint(selectedModel)} Tags follow reference order.
                       </p>
                     )}
                   </div>
@@ -6230,39 +6277,125 @@ function VideoPageInner() {
                 {/* Start Frame (mobile) */}
                 {(showImageInput || showEndFrame) && !showVideoInput && (
                   <div className="mb-4">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>Image Input</label>
-                    <div className="flex gap-2">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>
+                      Image Inputs
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
                       {showImageInput && (
-                        <button
-                          onClick={() => { setMobileSettingsOpen(false); openMediaPicker("startFrame"); }}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl transition-all"
-                          style={{
-                            background: startFrame ? hexA(selectedModel.family_color, 0.1) : "rgba(255,255,255,0.04)",
-                            border: `1px solid ${startFrame ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                            color: startFrame ? selectedModel.family_color : "#a1a1aa",
-                          }}
-                        >
-                          <ImageIcon size={14} />
-                          <span className="text-[12px] font-medium truncate">
-                            {startFrame ? "Uploaded" : "Start frame"}
-                          </span>
-                        </button>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] text-white/50 font-medium">Start Frame</span>
+                          {(startFrame || linkedStartFrameUrl || startFramePreview) ? (
+                            <div className="relative w-full h-20 rounded-xl overflow-hidden border border-white/10 bg-black/40">
+                              {startFramePreview && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={startFramePreview} alt="Start frame" className="w-full h-full object-cover" />
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setStartFrame(null);
+                                  setLinkedStartFrameUrl(null);
+                                  setStartFramePreview(null);
+                                }}
+                                className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white"
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-1">
+                              <label
+                                className="flex-1 flex flex-col items-center justify-center gap-1 p-2 rounded-xl border border-dashed transition-all cursor-pointer text-center"
+                                style={{
+                                  borderColor: hexA(selectedModel.family_color, 0.35),
+                                  background: "rgba(255,255,255,0.03)",
+                                }}
+                              >
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setStartFrame(file);
+                                      setLinkedStartFrameUrl(null);
+                                    }
+                                  }}
+                                />
+                                <Upload size={14} style={{ color: selectedModel.family_color }} />
+                                <span className="text-[10px] font-semibold text-white/80">Device</span>
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => { setMobileSettingsOpen(false); openMediaPicker("startFrame"); }}
+                                className="flex flex-col items-center justify-center gap-1 px-2.5 py-2 rounded-xl transition-all text-center"
+                                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
+                              >
+                                <ImageIcon size={14} className="text-white/60" />
+                                <span className="text-[10px] text-white/60">Gallery</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
                       {showEndFrame && (
-                        <button
-                          onClick={() => { setMobileSettingsOpen(false); openMediaPicker("endFrame"); }}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl transition-all"
-                          style={{
-                            background: endFrame ? hexA(selectedModel.family_color, 0.1) : "rgba(255,255,255,0.04)",
-                            border: `1px solid ${endFrame ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                            color: endFrame ? selectedModel.family_color : "#a1a1aa",
-                          }}
-                        >
-                          <ImageIcon size={14} />
-                          <span className="text-[12px] font-medium truncate">
-                            {endFrame ? "Uploaded" : "End frame"}
-                          </span>
-                        </button>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] text-white/50 font-medium">End Frame</span>
+                          {(endFrame || linkedEndFrameUrl || endFramePreview) ? (
+                            <div className="relative w-full h-20 rounded-xl overflow-hidden border border-white/10 bg-black/40">
+                              {endFramePreview && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={endFramePreview} alt="End frame" className="w-full h-full object-cover" />
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEndFrame(null);
+                                  setLinkedEndFrameUrl(null);
+                                  setEndFramePreview(null);
+                                }}
+                                className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white"
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-1">
+                              <label
+                                className="flex-1 flex flex-col items-center justify-center gap-1 p-2 rounded-xl border border-dashed transition-all cursor-pointer text-center"
+                                style={{
+                                  borderColor: hexA(selectedModel.family_color, 0.35),
+                                  background: "rgba(255,255,255,0.03)",
+                                }}
+                              >
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setEndFrame(file);
+                                      setLinkedEndFrameUrl(null);
+                                    }
+                                  }}
+                                />
+                                <Upload size={14} style={{ color: selectedModel.family_color }} />
+                                <span className="text-[10px] font-semibold text-white/80">Device</span>
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => { setMobileSettingsOpen(false); openMediaPicker("endFrame"); }}
+                                className="flex flex-col items-center justify-center gap-1 px-2.5 py-2 rounded-xl transition-all text-center"
+                                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
+                              >
+                                <ImageIcon size={14} className="text-white/60" />
+                                <span className="text-[10px] text-white/60">Gallery</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
