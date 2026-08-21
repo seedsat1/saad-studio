@@ -28,6 +28,7 @@ import { GenerationHealthDonut } from "@/components/admin/control-center/Generat
 import { JobsPipelineFunnel } from "@/components/admin/control-center/JobsPipelineFunnel";
 import { DataLinkageBar } from "@/components/admin/control-center/DataLinkageBar";
 import { FeatureGovernanceBar } from "@/components/admin/control-center/FeatureGovernanceBar";
+import { MobileHealthMatrix } from "@/components/admin/control-center/MobileHealthMatrix";
 import type { AdminControlCenterSnapshot } from "@/lib/admin/control-center";
 
 export default function AdminControlCenterPage() {
@@ -348,6 +349,14 @@ export default function AdminControlCenterPage() {
               )}
             </div>
           </div>
+        </section>
+
+        {/* ── LEVEL 4.5: MOBILE OPERATIONAL HEALTH & AUDIT MATRIX ── */}
+        <section>
+          <MobileHealthMatrix
+            initialSnapshot={snapshot?.mobileHealth}
+            onRefreshNeeded={loadControlCenter}
+          />
         </section>
 
         {/* ── LEVEL 5: SECONDARY OPERATIONS & DIAGNOSTICS ── */}

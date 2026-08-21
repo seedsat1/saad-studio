@@ -21,6 +21,7 @@ import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { getCentralizedDynamicMusicModels, type DynamicMusicModel } from "@/lib/model-definition-registry";
+import { reportMobileTelemetry } from "@/lib/mobile/client-telemetry";
 
 // ─── Music Models ─────────────────────────────────────────────────────────────
 const MUSIC_BASE_CREDITS: Record<string, number> = {
@@ -171,6 +172,12 @@ const MusicPage = () => {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      reportMobileTelemetry({
+        route: "/music",
+        feature: "music_download",
+        operation: "download",
+        status: "SUCCESS",
+      });
     } catch {
       const a = document.createElement("a");
       a.href = `/api/download?url=${encodeURIComponent(audioUrl)}&filename=${encodeURIComponent(filename)}`;
@@ -179,6 +186,13 @@ const MusicPage = () => {
       document.body.appendChild(a);
       a.click();
       a.remove();
+      reportMobileTelemetry({
+        route: "/music",
+        feature: "music_download",
+        operation: "download",
+        status: "FAILURE",
+        errorCode: "DOWNLOAD_FAILED",
+      });
     }
   };
 

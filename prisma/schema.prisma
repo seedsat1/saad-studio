@@ -867,4 +867,26 @@ model ReapWebhookLog {
   createdAt   DateTime @default(now())
 }
 
+/// Append-only diagnostic telemetry for mobile and client health auditing.
+model MobileTelemetryEvent {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  userId        String?
+  route         String
+  feature       String   // e.g. "image_upload", "video_start_frame", "voice_preview", "media_download"
+  operation     String   // e.g. "upload", "playback", "download", "record", "generate_trigger"
+  status        String   // "SUCCESS" | "FAILURE" | "DEGRADED"
+  deviceClass   String   // "desktop" | "ios" | "android" | "other"
+  browser       String?  // "safari" | "chrome" | "firefox" | "edge" | "other"
+  os            String?  // "ios" | "android" | "macos" | "windows" | "other"
+  errorCode     String?  // e.g. "SAFARI_MEDIA_ERROR", "UPLOAD_FAILED", "DOWNLOAD_FAILED", "MIC_PERMISSION_DENIED"
+  httpStatus    Int?
+  durationMs    Int?
+  generationId  String?
+  metadata      Json?    // Sanitized diagnostic payload (NO media bytes, tokens, or PII)
 
+  @@index([createdAt])
+  @@index([feature, deviceClass, createdAt])
+  @@index([status, createdAt])
+  @@index([userId])
+}

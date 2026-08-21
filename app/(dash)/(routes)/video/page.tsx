@@ -72,6 +72,8 @@ function hexA(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+import { reportMobileTelemetry } from "@/lib/mobile/client-telemetry";
+
 async function downloadVideoItem(item: MediaItem) {
   if (!hasPlayableVideo(item)) return;
   const filename = `saad-video-${item.id}.mp4`;
@@ -87,6 +89,12 @@ async function downloadVideoItem(item: MediaItem) {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    reportMobileTelemetry({
+      route: "/video",
+      feature: "video_download",
+      operation: "download",
+      status: "SUCCESS",
+    });
   } catch {
     const a = document.createElement("a");
     a.href = `/api/download?url=${encodeURIComponent(item.src)}&filename=${encodeURIComponent(filename)}`;
@@ -95,6 +103,13 @@ async function downloadVideoItem(item: MediaItem) {
     document.body.appendChild(a);
     a.click();
     a.remove();
+    reportMobileTelemetry({
+      route: "/video",
+      feature: "video_download",
+      operation: "download",
+      status: "FAILURE",
+      errorCode: "DOWNLOAD_FAILED",
+    });
   }
 }
 

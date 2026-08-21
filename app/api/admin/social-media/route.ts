@@ -690,9 +690,16 @@ Return ONLY a valid JSON object matching:
             const textToPublish = platformItem?.content
               ? `${platformItem.content}${platformItem.hashtags?.length ? `\n\n${platformItem.hashtags.join(" ")}` : ""}`
               : `${post.platforms.facebook?.content || post.platforms.twitter?.content || ""}`;
+            // Resolve either image or video URL to a Buffer-fetchable absolute URL.
+            // Relative paths get prefixed with SITE_URL so Buffer's servers can pull them.
+            const rawMediaUrl = post.imageUrl || post.videoUrl || "";
             const fullImageUrl = post.imageUrl
               ? (post.imageUrl.startsWith("http") ? post.imageUrl : `${SITE_URL}${post.imageUrl.startsWith("/") ? "" : "/"}${post.imageUrl}`)
               : "";
+            const fullVideoUrl = post.videoUrl
+              ? (post.videoUrl.startsWith("http") ? post.videoUrl : `${SITE_URL}${post.videoUrl.startsWith("/") ? "" : "/"}${post.videoUrl}`)
+              : "";
+            console.log("[Buffer publish] media URL to send:", { rawMediaUrl, fullImageUrl, fullVideoUrl });
 
             // 1. Try modern Buffer GraphQL API (https://api.buffer.com)
             let graphqlSuccess = false;
@@ -800,8 +807,12 @@ Return ONLY a valid JSON object matching:
                     mode: "addToQueue",
                   };
 
+                  // Attach media asset — image takes precedence; fall back to video.
+                  // Schema: AssetInput { image?: ImageAssetInput, video?: VideoAssetInput, … }
                   if (fullImageUrl) {
                     postInput.assets = [{ image: { url: fullImageUrl } }];
+                  } else if (fullVideoUrl) {
+                    postInput.assets = [{ video: { url: fullVideoUrl } }];
                   }
 
                   // Facebook requires PostTypeFacebook on `metadata.facebook.type`.
@@ -974,12 +985,21 @@ Return ONLY a valid JSON object matching:
           status: "published",
           publishedAt: new Date().toISOString(),
         });
-        return NextResponse.json({ success: true, results });
+        return NextResponse.json({
+          success: true,
+          results,
+          mediaUrlSent: post.imageUrl || post.videoUrl || null,
+        });
       } else {
         const errorDetail = lastBufferError
           ? `فشل النشر عبر Buffer: ${lastBufferError}`
           : "فشل النشر: يرجى التحقق من إعدادات المفاتيح والقنوات المستهدفة";
-        return NextResponse.json({ success: false, error: errorDetail, results }, { status: 400 });
+        return NextResponse.json({
+          success: false,
+          error: errorDetail,
+          results,
+          mediaUrlSent: post.imageUrl || post.videoUrl || null,
+        }, { status: 400 });
       }
     }
 

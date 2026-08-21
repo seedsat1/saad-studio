@@ -41,6 +41,8 @@ export type ControlSystemRow = {
   href: string | null;
 };
 
+import { loadAdminMobileHealthSnapshot, type AdminMobileHealthSnapshot } from "./mobile-health-read-model";
+
 export type AdminControlCenterSnapshot = {
   cards: {
     providers: { active: number; standby: number; offline: number };
@@ -54,6 +56,7 @@ export type AdminControlCenterSnapshot = {
     knowledge: { sources: number; approvedKnowledge: number; drafts: number };
     storage: { activeProvider: string; writeEnabled: boolean; readEnabled: boolean; legacyReadEnabled: boolean };
   };
+  mobileHealth?: AdminMobileHealthSnapshot;
   systems: ControlSystemRow[];
   alerts: ControlCenterAlert[];
   linkedSystems: Array<{ label: string; href: string; status: ControlSystemStatus }>;
@@ -96,15 +99,16 @@ export async function loadControlCenterSummary(): Promise<{
     const totalCatalogModels = imageModels.length + videoModels.length;
 
     // 2. Direct Server-Side Module Calls (Zero internal HTTP)
-    const [routingData, knowledgeHub, storageConfig] = await Promise.all([
+    const [routingData, knowledgeHub, storageConfig, mobileHealth] = await Promise.all([
       loadAdminRoutingData().catch(() => ({
         databaseAvailable: false,
-        rows: [],
-        providers: [],
+        rows: [] as any[],
+        providers: [] as any[],
         warning: "Routing state could not be loaded",
       })),
       loadKnowledgeHub().catch(() => null),
       readStorageRuntimeConfig().catch(() => null),
+      loadAdminMobileHealthSnapshot().catch(() => undefined),
     ]);
 
     // 3. Fast Server-Side Database Aggregations (Zero findMany with full rows)
@@ -228,7 +232,7 @@ export async function loadControlCenterSummary(): Promise<{
     const failureRate = totalGenerations > 0 ? Math.round((genFailed / totalGenerations) * 1000) / 10 : null;
 
     // Routing snapshot
-    const routingEnabled = routingData.rows.filter((r) => r.enabled).length;
+    const routingEnabled = (routingData.rows || []).filter((r: any) => r.enabled).length;
     const routing = {
       databaseAvailable: routingData.databaseAvailable,
       controlCenterRoutes: routingEnabled,
@@ -424,7 +428,16 @@ export async function loadControlCenterSummary(): Promise<{
           legacyReadEnabled: storageSummary.legacyReadEnabled,
         },
       },
-      systems,
+      mobileHealth,
+      systems: [
+        ...systems,
+        {
+          system: "Mobile Health",
+          status: mobileHealth?.overallStatus === "FAIL" ? "DEGRADED" : mobileHealth?.overallStatus === "DEGRADED" ? "PARTIAL" : "READY",
+          coverage: `${mobileHealth?.totalEvents24h ?? 0} events / ${mobileHealth?.activeIncidentsCount ?? 0} active incidents`,
+          href: "/admin/control-center",
+        },
+      ],
       alerts,
       linkedSystems: [
         { label: "Providers", href: "/admin/providers", status: systems[0].status },

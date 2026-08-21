@@ -41,7 +41,7 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;");
 }
 
-export function compileNewsletterHtml(data: NewsletterPayload, logoSrc: string, siteUrl: string): string {
+function compileNewsletterHtml(data: NewsletterPayload, logoSrc: string, siteUrl: string): string {
   const isAr = data.language === "ar";
   const dir = isAr ? "rtl" : "ltr";
   const textAlign = isAr ? "right" : "left";

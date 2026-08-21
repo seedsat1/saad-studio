@@ -80,6 +80,8 @@ export type UnifiedGenerationHistoryRow = {
   providerUsage: ProviderUsageHistory[];
   creditLedger: CreditLedgerHistory;
   observabilityGaps: string[];
+  clientDevice?: "desktop" | "ios" | "android" | "other" | null;
+  clientBrowser?: string | null;
 };
 
 export type HistoryFilterInput = {
@@ -256,6 +258,8 @@ export function mapGenerationToHistoryRow(
     providerUsage,
     creditLedger: ledger,
     observabilityGaps: [],
+    clientDevice: (requestPayload?.client as any)?.deviceClass ?? requestPayload?.deviceClass ?? null,
+    clientBrowser: (requestPayload?.client as any)?.browser ?? requestPayload?.browser ?? null,
   };
 
   return { ...row, observabilityGaps: detectHistoryGaps(row) };

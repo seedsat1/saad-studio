@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { reportMobileTelemetry } from "@/lib/mobile/client-telemetry";
 import {
   Download,
   ExternalLink,
@@ -353,6 +354,12 @@ export function ImageResultGrid({
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      reportMobileTelemetry({
+        route: "/image",
+        feature: "image_download",
+        operation: "download",
+        status: "SUCCESS",
+      });
     } catch {
       const filename = `saad_studio_${item.id}.png`;
       const a = document.createElement("a");
@@ -362,6 +369,13 @@ export function ImageResultGrid({
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      reportMobileTelemetry({
+        route: "/image",
+        feature: "image_download",
+        operation: "download",
+        status: "FAILURE",
+        errorCode: "DOWNLOAD_FAILED",
+      });
     }
   };
 

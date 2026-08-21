@@ -18,6 +18,7 @@ import { useLanguage } from "@/lib/use-language";
 import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { calculateMusicCredits } from "@/lib/pricing";
 import { SaadLoader } from "@/components/saad-loader";
+import { reportMobileTelemetry } from "@/lib/mobile/client-telemetry";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -740,6 +741,12 @@ export default function AudioPage() {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      reportMobileTelemetry({
+        route: "/audio",
+        feature: "audio_download",
+        operation: "download",
+        status: "SUCCESS",
+      });
     } catch {
       const a = document.createElement("a");
       a.href = `/api/download?url=${encodeURIComponent(track.audioUrl)}&filename=${encodeURIComponent(filenameParam)}`;
@@ -747,6 +754,13 @@ export default function AudioPage() {
       document.body.appendChild(a);
       a.click();
       a.remove();
+      reportMobileTelemetry({
+        route: "/audio",
+        feature: "audio_download",
+        operation: "download",
+        status: "FAILURE",
+        errorCode: "DOWNLOAD_FAILED",
+      });
     }
   };
 

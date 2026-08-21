@@ -17,8 +17,8 @@ import { promisify } from "util";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { getFfmpegPath } from "@/lib/server/ffmpeg-path";
 import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
+import { assertMobileCapabilityAllowed, MobileCapabilityDisabledError } from "@/lib/mobile/mobile-control-plane";
 
 const execFileAsync = promisify(execFile);
 
@@ -45,6 +45,8 @@ async function trimAudioBuffer(buffer: any, duration: number, format: "mp3" | "w
       outputPath
     ];
     
+
+
     await execFileAsync(ffmpegPath, args, { timeout: 30_000 });
     
     if (!fs.existsSync(outputPath)) {
@@ -109,6 +111,14 @@ export async function POST(req: Request) {
 
     if (!prompt?.trim()) {
       return new NextResponse("Prompt is required", { status: 400 });
+    }
+
+    try {
+      await assertMobileCapabilityAllowed("mobile.music.generate.enabled", req.headers.get("user-agent"));
+    } catch (mobileErr) {
+      if (mobileErr instanceof MobileCapabilityDisabledError) {
+        return NextResponse.json({ error: mobileErr.message, code: "mobile_capability_disabled" }, { status: 403 });
+      }
     }
 
     if (!isWaveSpeedModel(model)) {

@@ -29,9 +29,9 @@ import {
   verifyPublicMediaUrl,
   ValidationError,
 } from "@/lib/media/public-url-resolver";
-import { resolveProviderPublicUrl } from "@/lib/storage";
 import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
 import { isFinalProviderExecutionAllowed } from "@/lib/generation/runtime-safety";
+import { assertMobileCapabilityAllowed, MobileCapabilityDisabledError } from "@/lib/mobile/mobile-control-plane";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
@@ -2158,6 +2158,14 @@ export async function POST(req: Request) {
 
     if (!payload || typeof payload !== "object") {
       return NextResponse.json({ error: "payload is required" }, { status: 400 });
+    }
+
+    try {
+      await assertMobileCapabilityAllowed("mobile.video.generate.enabled", req.headers.get("user-agent"));
+    } catch (mobileErr) {
+      if (mobileErr instanceof MobileCapabilityDisabledError) {
+        return NextResponse.json({ error: mobileErr.message, code: "mobile_capability_disabled" }, { status: 403 });
+      }
     }
 
     const hasImage = payloadHasImageInput(payload);

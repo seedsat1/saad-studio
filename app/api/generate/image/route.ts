@@ -20,6 +20,7 @@ import {
   normalizeGoogleImageAspectRatio,
   normalizeGoogleImageSize,
 } from "@/lib/google-image-model-specs";
+import { assertMobileCapabilityAllowed, MobileCapabilityDisabledError } from "@/lib/mobile/mobile-control-plane";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -549,6 +550,14 @@ export async function POST(req: NextRequest) {
         { error: "Missing required fields: prompt, modelId." },
         { status: 400 },
       );
+    }
+
+    try {
+      await assertMobileCapabilityAllowed("mobile.image.generate.enabled", req.headers.get("user-agent"));
+    } catch (mobileErr) {
+      if (mobileErr instanceof MobileCapabilityDisabledError) {
+        return NextResponse.json({ error: mobileErr.message, code: "mobile_capability_disabled" }, { status: 403 });
+      }
     }
 
     if (feature === "influencers-nsfw" || feature === "nsfw" || feature === "influencers") {
