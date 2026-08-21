@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
+import { SaadLoader } from "@/components/saad-loader";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
 import { getCentralizedDynamicThreeDModels, type DynamicThreeDModel } from "@/lib/model-definition-registry";
@@ -74,38 +75,8 @@ function PerspectiveGrid() {
 // ─── Scanning animation ───────────────────────────────────────────────────────
 function ScanningAnimation() {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 z-10">
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full border border-violet-400/60"
-          style={{ width: 80 + i * 80, height: 80 + i * 80 }}
-          animate={{ scale: [1, 1.6, 1], opacity: [0.6, 0, 0.6] }}
-          transition={{ duration: 2, delay: i * 0.4, repeat: Infinity, ease: "easeInOut" }}
-        />
-      ))}
-      <motion.div
-        className="relative w-24 h-24"
-        animate={{ rotateY: 360, rotateX: 20 }}
-        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-        style={{ perspective: 400, transformStyle: "preserve-3d" }}
-      >
-        <div className="absolute inset-0 border-2 border-violet-400/80 rounded-md" />
-        <div className="absolute inset-0 border-2 border-fuchsia-400/60 rounded-md"
-          style={{ transform: "rotateY(45deg) rotateX(45deg)" }} />
-      </motion.div>
-      <motion.div
-        className="absolute left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-violet-400 to-transparent"
-        animate={{ top: ["15%", "85%", "15%"] }}
-        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.p
-        className="absolute bottom-[22%] text-violet-300 text-sm font-mono tracking-widest"
-        animate={{ opacity: [0.4, 1, 0.4] }}
-        transition={{ duration: 1.2, repeat: Infinity }}
-      >
-        MESHING GEOMETRY...
-      </motion.p>
+    <div className="absolute inset-0 flex items-center justify-center z-10">
+      <SaadLoader toolLabel="3D · Meshing" />
     </div>
   );
 }

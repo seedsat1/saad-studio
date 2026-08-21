@@ -5,6 +5,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Caveat } from "next/font/google";
 import { confirmAction } from "@/lib/confirm-action";
+import { SaadLoader } from "@/components/saad-loader";
 import {
   ArrowLeft,
   Upload,
@@ -1501,11 +1502,8 @@ export default function StoryboardProductionPage() {
             {/* Active AI generating Overlay on Chalkboard */}
             {isGenerating && (
               <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30 select-none">
-                <Loader2 className="h-10 w-10 animate-spin text-cyan-400 mb-4" />
-                <span className="text-sm font-black tracking-widest text-cyan-100 uppercase">
-                  {statusMessage || "Generating Storyboard..."}
-                </span>
-                <span className="text-xs text-slate-400 mt-2 max-w-[240px] leading-relaxed">
+                <SaadLoader toolLabel={statusMessage || "Generating Storyboard"} />
+                <span className="text-xs text-slate-400 mt-4 max-w-[240px] leading-relaxed">
                   Dividing inputs and illustrating scenes. Please do not close this tab.
                 </span>
               </div>

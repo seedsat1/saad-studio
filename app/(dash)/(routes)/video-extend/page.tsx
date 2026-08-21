@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, useEffect, Suspense, type ChangeEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { getFallbackUrls } from "@/lib/utils";
+import { SaadLoader } from "@/components/saad-loader";
 import {
   AlertCircle,
   CheckCircle2,
@@ -778,11 +779,8 @@ function VideoExtendPageInner() {
                   </>
                 ) : extending ? (
                   <div className="absolute inset-0 bg-[#03060f]/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 animate-fade-in">
-                    <Loader2 className="h-10 w-10 animate-spin text-cyan-400 mb-4" />
-                    <span className="text-sm font-black tracking-widest text-cyan-100 uppercase">
-                      {status || "Extending Video..."}
-                    </span>
-                    <span className="text-xs text-slate-500 mt-2 max-w-[240px] leading-relaxed">
+                    <SaadLoader toolLabel={status || "Extending Video"} />
+                    <span className="text-xs text-slate-500 mt-4 max-w-[240px] leading-relaxed">
                       AI is running multiple frame passes. Please stay on this page.
                     </span>
                   </div>

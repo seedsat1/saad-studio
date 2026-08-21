@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { SaadLoader } from "@/components/saad-loader";
 import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
 import { getImageCreditCost, IMAGE_MODELS } from "@/lib/image-models";
 import { cn } from "@/lib/utils";
@@ -1559,11 +1560,7 @@ export default function DrawToVideoPage() {
               {/* Generating Loading Overlay */}
               {isGenerating && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/85 backdrop-blur-md z-50">
-                  <div className="text-center p-6 bg-slate-950/80 border border-white/10 rounded-2xl shadow-2xl">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-violet-400" />
-                    <p className="mt-3 text-sm font-bold text-white">Generating with {studioMode === "draw-edit" ? selectedEditModel.name : selectedModel.name}</p>
-                    <p className="mt-1 text-xs text-zinc-500">Processing media... This may take a few minutes.</p>
-                  </div>
+                  <SaadLoader modelLabel={studioMode === "draw-edit" ? selectedEditModel.name : selectedModel.name} toolLabel="Draw-to-Video" />
                 </div>
               )}
 

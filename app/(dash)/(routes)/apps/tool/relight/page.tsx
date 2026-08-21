@@ -19,6 +19,7 @@ import {
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { SaadLoader } from "@/components/saad-loader";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/use-language";
 
@@ -476,9 +477,8 @@ export default function RelightPage(props: any) {
           )}
 
           {isUploading && (
-            <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4">
-              <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
-              <span className="text-sm font-bold text-zinc-300">{t("Uploading photo to secure cloud storage...")}</span>
+            <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex items-center justify-center">
+              <SaadLoader toolLabel={t("Uploading")} />
             </div>
           )}
 

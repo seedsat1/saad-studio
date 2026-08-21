@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SaadLoader } from "@/components/saad-loader";
 import {
   ArrowUpRight,
   Eye,
@@ -2058,8 +2059,7 @@ export default function ExplorePage() {
 
         {loadingCreations ? (
           <div className="w-full py-16 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">
-            <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mb-3" />
-            <p className="text-sm text-zinc-400 font-medium">{t("Loading creations...")}</p>
+            <SaadLoader toolLabel={t("Loading creations")} />
           </div>
         ) : (activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items).length === 0 ? (
           <div className="w-full py-16 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">

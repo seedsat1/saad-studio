@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
+import { SaadLoader } from "@/components/saad-loader";
 import {
   Film,
   Sparkles,
@@ -2052,14 +2053,8 @@ function RenderingViewer({
         ))}
       </div>
 
-      <div className="relative text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-amber-300" />
-        <p className="mt-4 font-serif text-2xl italic text-amber-200">
-          Rolling…
-        </p>
-        <p className="mt-2 text-xs text-slate-400">
-          {status || "Rendering frame by frame"}
-        </p>
+      <div className="relative flex flex-col items-center text-center">
+        <SaadLoader toolLabel={status || "Rendering"} />
         <div className="mt-4 font-mono text-[10px] text-slate-500">
           {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}{" "}
           elapsed

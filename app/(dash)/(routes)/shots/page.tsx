@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
+import { SaadLoader } from "@/components/saad-loader";
 import {
   Upload,
   Zap,
@@ -769,27 +770,11 @@ export default function ShotsStudioPage() {
 
           {/* Generation in-progress state */}
           {isGenerating && (
-            <div
-              className="rounded-2xl p-6 flex flex-col items-center gap-4"
-              style={{ background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.2)" }}
-            >
-              <div className="relative">
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(124,58,237,0.2)" }}
-                >
-                  <Loader2 className="w-7 h-7 text-violet-400 animate-spin" />
-                </div>
-              </div>
-              <div className="text-center">
-                <p className="text-white font-semibold">Generating {activePack?.shots.length} shots</p>
-                <p className="text-sm text-white/50 mt-1">
-                  Routing shots concurrently through smart model selection...
-                </p>
-                <p className="text-xs text-white/30 mt-1.5">
-                  This may take 30-90 seconds depending on pack size.
-                </p>
-              </div>
+            <div className="rounded-2xl p-6 flex flex-col items-center gap-4">
+              <SaadLoader toolLabel={activePack?.shots.length ? `${activePack.shots.length} shots` : "Shots"} />
+              <p className="text-xs text-white/40 text-center max-w-[280px]">
+                Routing shots concurrently through smart model selection. May take 30-90 seconds.
+              </p>
             </div>
           )}
 
