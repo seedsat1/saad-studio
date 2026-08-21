@@ -390,11 +390,11 @@ export function ImageResultGrid({
     e.stopPropagation();
     const url = item.originalUrl || item.url;
     if (type === "start") {
-      router.push(`/video?imageUrl=${encodeURIComponent(url)}&start=true`);
-      showToast("Loaded image as Video Start Frame 🎬");
+      router.push(`/video?startImageUrl=${encodeURIComponent(url)}&start=true`);
+      showToast(isAr ? "تم تعيين الصورة كإطار بداية للفيديو 🎬" : "Loaded image as Video Start Frame 🎬");
     } else {
       router.push(`/video?endImageUrl=${encodeURIComponent(url)}&end=true`);
-      showToast("Loaded image as Video End Frame 🎬");
+      showToast(isAr ? "تم تعيين الصورة كإطار نهاية للفيديو 🎬" : "Loaded image as Video End Frame 🎬");
     }
   };
 

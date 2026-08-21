@@ -1337,6 +1337,7 @@ function VideoPageInner() {
   const [startFrame,   setStartFrame]   = useState<File | null>(null);
   const [linkedStartFrameUrl, setLinkedStartFrameUrl] = useState<string | null>(null);
   const [endFrame,     setEndFrame]     = useState<File | null>(null);
+  const [linkedEndFrameUrl, setLinkedEndFrameUrl] = useState<string | null>(null);
   const [motionVideo,  setMotionVideo]  = useState<File | null>(null);
   const [referenceImages, setReferenceImages] = useState<File[]>([]); // unified: image + video + audio for Seedance 2
   const [startFramePreview, setStartFramePreview] = useState<string | null>(null);
@@ -1379,32 +1380,65 @@ function VideoPageInner() {
     const requestedPrompt = searchParams.get("prompt");
     if (requestedPrompt) setPrompt(requestedPrompt);
 
-    const requestedImageUrl = searchParams.get("imageUrl");
-    if (!requestedImageUrl || !/^https?:\/\//i.test(requestedImageUrl)) return;
+    const isEndParam = searchParams.get("end") === "true";
+    const requestedEndImageUrl = searchParams.get("endImageUrl") || searchParams.get("lastFrameUrl") || (isEndParam ? searchParams.get("imageUrl") : null);
+    const requestedStartImageUrl = searchParams.get("startImageUrl") || (!isEndParam ? searchParams.get("imageUrl") : null);
 
     let cancelled = false;
-    setLinkedStartFrameUrl(requestedImageUrl);
-    setStartFrame(null);
-    setOmniTab("frames");
 
-    const fallbacks = getFallbackUrls(requestedImageUrl);
-    const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedImageUrl;
+    // 1. Process Start Frame
+    if (requestedStartImageUrl && /^https?:\/\//i.test(requestedStartImageUrl)) {
+      setLinkedStartFrameUrl(requestedStartImageUrl);
+      setStartFramePreview(requestedStartImageUrl);
+      setStartFrame(null);
+      setOmniTab("frames");
 
-    void fetch(fetchUrl)
-      .then((res) => {
-        if (!res.ok) throw new Error("Unable to load linked image");
-        return res.blob();
-      })
-      .then((blob) => {
-        if (cancelled) return;
-        const type = blob.type || "image/jpeg";
-        const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
-        setStartFrame(new File([blob], `linked-start-frame.${ext}`, { type }));
-        setLinkedStartFrameUrl(null);
-      })
-      .catch(() => {
-        if (!cancelled) setLinkedStartFrameUrl(requestedImageUrl);
-      });
+      const fallbacks = getFallbackUrls(requestedStartImageUrl);
+      const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedStartImageUrl;
+
+      void fetch(fetchUrl)
+        .then((res) => {
+          if (!res.ok) throw new Error("Unable to load linked image");
+          return res.blob();
+        })
+        .then((blob) => {
+          if (cancelled) return;
+          const type = blob.type || "image/jpeg";
+          const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+          setStartFrame(new File([blob], `linked-start-frame.${ext}`, { type }));
+          setLinkedStartFrameUrl(null);
+        })
+        .catch(() => {
+          if (!cancelled) setLinkedStartFrameUrl(requestedStartImageUrl);
+        });
+    }
+
+    // 2. Process End Frame
+    if (requestedEndImageUrl && /^https?:\/\//i.test(requestedEndImageUrl)) {
+      setLinkedEndFrameUrl(requestedEndImageUrl);
+      setEndFramePreview(requestedEndImageUrl);
+      setEndFrame(null);
+      setOmniTab("frames");
+
+      const fallbacks = getFallbackUrls(requestedEndImageUrl);
+      const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedEndImageUrl;
+
+      void fetch(fetchUrl)
+        .then((res) => {
+          if (!res.ok) throw new Error("Unable to load linked end image");
+          return res.blob();
+        })
+        .then((blob) => {
+          if (cancelled) return;
+          const type = blob.type || "image/jpeg";
+          const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+          setEndFrame(new File([blob], `linked-end-frame.${ext}`, { type }));
+          setLinkedEndFrameUrl(null);
+        })
+        .catch(() => {
+          if (!cancelled) setLinkedEndFrameUrl(requestedEndImageUrl);
+        });
+    }
 
     return () => {
       cancelled = true;
@@ -1521,13 +1555,13 @@ function VideoPageInner() {
 
   useEffect(() => {
     if (!endFrame) {
-      setEndFramePreview(null);
+      setEndFramePreview(linkedEndFrameUrl);
       return;
     }
     const url = URL.createObjectURL(endFrame);
     setEndFramePreview(url);
     return () => URL.revokeObjectURL(url);
-  }, [endFrame]);
+  }, [linkedEndFrameUrl, endFrame]);
 
   useEffect(() => {
     if (!motionVideo) {
@@ -2492,10 +2526,12 @@ function VideoPageInner() {
         }
         if (endFrame) {
           payload.end_image = await fileToDataURL(endFrame);
+        } else if (linkedEndFrameUrl) {
+          payload.end_image = linkedEndFrameUrl;
         } else if (uploadedImageRefs[1]) {
           payload.end_image = uploadedImageRefs[1];
         }
-      } else if (((isSeedanceV2 || isMinimaxH3) && (referenceImages.length > 0 || !!startFrame || !!linkedStartFrameUrl || !!endFrame || characterReferenceUrls.length > 0)) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
+      } else if (((isSeedanceV2 || isMinimaxH3) && (referenceImages.length > 0 || !!startFrame || !!linkedStartFrameUrl || !!endFrame || !!linkedEndFrameUrl || characterReferenceUrls.length > 0)) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
         if (isSeedanceV2 || isMinimaxH3) {
           // Split unified reference media by type and let the API normalize provider field names.
           const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
@@ -2509,7 +2545,9 @@ function VideoPageInner() {
               ? linkedStartFrameUrl
               : null;
           const uploadedImageRefs = await Promise.all(refImgs.slice(0, referenceImageLimit).map(f => uploadVideoRequestFile(f, fetchWithAuth)));
-          const explicitEndImageForReference = isMinimaxH3 && endFrame ? await uploadVideoRequestFile(endFrame, fetchWithAuth) : null;
+          const explicitEndImageForReference = isMinimaxH3 && (endFrame || linkedEndFrameUrl)
+            ? (endFrame ? await uploadVideoRequestFile(endFrame, fetchWithAuth) : linkedEndFrameUrl)
+            : null;
           const mergedImageRefs = [
             ...(explicitStartImage ? [explicitStartImage] : []),
             ...characterReferenceUrls,
@@ -2531,8 +2569,8 @@ function VideoPageInner() {
           if (refAuds.length > 0)
             payload.reference_audio_urls = await Promise.all(refAuds.slice(0, Math.max(0, caps.max_reference_audios || 3)).map(f => uploadVideoRequestFile(f, fetchWithAuth)));
           // Also allow end frame alongside Seedance references
-          if (isSeedanceV2 && caps.has_end_frame && endFrame) {
-            const explicitEndImage = await uploadVideoRequestFile(endFrame, fetchWithAuth);
+          if (isSeedanceV2 && caps.has_end_frame && (endFrame || linkedEndFrameUrl)) {
+            const explicitEndImage = endFrame ? await uploadVideoRequestFile(endFrame, fetchWithAuth) : linkedEndFrameUrl;
             payload.last_image = explicitEndImage;
             payload.last_frame_url = explicitEndImage;
           }
@@ -2540,25 +2578,25 @@ function VideoPageInner() {
           const uploadedRefs = await Promise.all(referenceImages.filter((f) => f.type.startsWith("image/")).map((f) => fileToDataURL(f)));
           payload.reference_image_urls = [...characterReferenceUrls, ...uploadedRefs].slice(0, Math.max(1, caps.max_reference_images || 1));
         }
-      } else if ((caps.requires_image || caps.optional_image) && startFrame) {
-        payload[isSeedanceV2 ? "first_frame_url" : "image"] = isSeedanceV2
-          ? await uploadVideoRequestFile(startFrame, fetchWithAuth)
-          : await fileToDataURL(startFrame);
+      } else if ((caps.requires_image || caps.optional_image) && (startFrame || linkedStartFrameUrl)) {
+        payload[isSeedanceV2 ? "first_frame_url" : "image"] = startFrame
+          ? (isSeedanceV2 ? await uploadVideoRequestFile(startFrame, fetchWithAuth) : await fileToDataURL(startFrame))
+          : linkedStartFrameUrl;
       } else if ((caps.requires_image || caps.optional_image) && characterSupport.mode === "image_reference" && selectedCharacter?.referenceUrls?.[0]) {
         payload[isSeedanceV2 ? "first_frame_url" : "image"] = selectedCharacter.referenceUrls[0];
       }
       if ((caps.requires_video || caps.optional_video) && motionVideo) {
         payload.video = await uploadVideoRequestFile(motionVideo, fetchWithAuth);
       }
-      if (caps.has_end_frame && endFrame && referenceImages.length === 0) {
+      if (caps.has_end_frame && (endFrame || linkedEndFrameUrl) && referenceImages.length === 0) {
         const endKey = isSeedanceV2
           ? "last_frame_url"
           : selectedModel.api_route.startsWith("wavespeed-ai/wan")
             ? "last_image"
             : "end_image";
-        payload[endKey] = isSeedanceV2
-          ? await uploadVideoRequestFile(endFrame, fetchWithAuth)
-          : await fileToDataURL(endFrame);
+        payload[endKey] = endFrame
+          ? (isSeedanceV2 ? await uploadVideoRequestFile(endFrame, fetchWithAuth) : await fileToDataURL(endFrame))
+          : linkedEndFrameUrl;
       }
 
       if (isVeo31Model) {
@@ -4000,8 +4038,8 @@ function VideoPageInner() {
                     className="relative flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
                     style={{
                       height: 110,
-                      borderColor: startFrame ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                      background:  startFrame ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
+                      borderColor: (startFrame || linkedStartFrameUrl || startFramePreview) ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
+                      background:  (startFrame || linkedStartFrameUrl || startFramePreview) ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
                     }}
                   >
                     <input
@@ -4011,7 +4049,7 @@ function VideoPageInner() {
                       className="hidden"
                       onChange={e => setStartFrame(e.target.files?.[0] ?? null)}
                     />
-                    {startFrame ? (
+                    {(startFrame || linkedStartFrameUrl || startFramePreview) ? (
                       <>
                         {startFramePreview && (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -4025,7 +4063,7 @@ function VideoPageInner() {
                           type="button"
                           className="absolute top-2 left-2 z-10 rounded-full p-1"
                           style={{ background: "rgba(0,0,0,0.75)" }}
-                          onClick={e => { e.stopPropagation(); setStartFrame(null); }}
+                          onClick={e => { e.stopPropagation(); setStartFrame(null); setLinkedStartFrameUrl(null); setStartFramePreview(null); }}
                         >
                           <X size={11} style={{ color: "#fff" }} />
                         </button>
@@ -4055,8 +4093,8 @@ function VideoPageInner() {
                     className="relative flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
                     style={{
                       height: 110,
-                      borderColor: endFrame ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                      background:  endFrame ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
+                      borderColor: (endFrame || linkedEndFrameUrl || endFramePreview) ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
+                      background:  (endFrame || linkedEndFrameUrl || endFramePreview) ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
                     }}
                   >
                     <input
@@ -4066,7 +4104,7 @@ function VideoPageInner() {
                       className="hidden"
                       onChange={e => setEndFrame(e.target.files?.[0] ?? null)}
                     />
-                    {endFrame ? (
+                    {(endFrame || linkedEndFrameUrl || endFramePreview) ? (
                       <>
                         {endFramePreview && (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -4080,7 +4118,7 @@ function VideoPageInner() {
                           type="button"
                           className="absolute top-2 left-2 z-10 rounded-full p-1"
                           style={{ background: "rgba(0,0,0,0.75)" }}
-                          onClick={e => { e.stopPropagation(); setEndFrame(null); }}
+                          onClick={e => { e.stopPropagation(); setEndFrame(null); setLinkedEndFrameUrl(null); setEndFramePreview(null); }}
                         >
                           <X size={11} style={{ color: "#fff" }} />
                         </button>
@@ -4118,8 +4156,8 @@ function VideoPageInner() {
                   className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
                   style={{
                     height: 100,
-                    borderColor: startFrame ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                    background:  startFrame ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
+                    borderColor: (startFrame || linkedStartFrameUrl || startFramePreview) ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
+                    background:  (startFrame || linkedStartFrameUrl || startFramePreview) ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
                   }}
                 >
                   <input
@@ -4129,7 +4167,7 @@ function VideoPageInner() {
                     className="hidden"
                     onChange={e => setStartFrame(e.target.files?.[0] ?? null)}
                   />
-                  {startFrame ? (
+                  {(startFrame || linkedStartFrameUrl || startFramePreview) ? (
                     <>
                       {startFramePreview && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -4143,7 +4181,7 @@ function VideoPageInner() {
                         type="button"
                         className="absolute top-2 left-2 z-10 rounded-full p-1"
                         style={{ background: "rgba(0,0,0,0.75)" }}
-                        onClick={e => { e.stopPropagation(); setStartFrame(null); }}
+                        onClick={e => { e.stopPropagation(); setStartFrame(null); setLinkedStartFrameUrl(null); setStartFramePreview(null); }}
                       >
                         <X size={11} style={{ color: "#fff" }} />
                       </button>
@@ -4180,8 +4218,8 @@ function VideoPageInner() {
                   className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
                   style={{
                     height: 100,
-                    borderColor: endFrame ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                    background:  endFrame ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
+                    borderColor: (endFrame || linkedEndFrameUrl || endFramePreview) ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
+                    background:  (endFrame || linkedEndFrameUrl || endFramePreview) ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
                   }}
                 >
                   <input
@@ -4191,7 +4229,7 @@ function VideoPageInner() {
                     className="hidden"
                     onChange={e => setEndFrame(e.target.files?.[0] ?? null)}
                   />
-                  {endFrame ? (
+                  {(endFrame || linkedEndFrameUrl || endFramePreview) ? (
                     <>
                       {endFramePreview && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -4205,7 +4243,7 @@ function VideoPageInner() {
                         type="button"
                         className="absolute top-2 left-2 z-10 rounded-full p-1"
                         style={{ background: "rgba(0,0,0,0.75)" }}
-                        onClick={e => { e.stopPropagation(); setEndFrame(null); }}
+                        onClick={e => { e.stopPropagation(); setEndFrame(null); setLinkedEndFrameUrl(null); setEndFramePreview(null); }}
                       >
                         <X size={11} style={{ color: "#fff" }} />
                       </button>
@@ -4520,14 +4558,14 @@ function VideoPageInner() {
                     className="relative flex flex-col items-center justify-center gap-2 rounded-2xl transition-all overflow-hidden aspect-square w-full"
                     style={{
                       background: "rgba(255,255,255,0.03)",
-                      border: `1px solid ${startFrame ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.08)"}`,
+                      border: `1px solid ${(startFrame || linkedStartFrameUrl || startFramePreview) ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.08)"}`,
                     }}
                   >
                     <input ref={startFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setStartFrame(e.target.files?.[0] ?? null)} />
-                    {startFrame ? (
+                    {(startFrame || linkedStartFrameUrl || startFramePreview) ? (
                       <>
                         {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8, background: "#000" }} />}
-                        <button aria-label={t("Remove start frame")} className="absolute top-2 left-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setStartFrame(null); }}><X size={14} style={{ color: "#fff" }} /></button>
+                        <button aria-label={t("Remove start frame")} className="absolute top-2 left-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setStartFrame(null); setLinkedStartFrameUrl(null); setStartFramePreview(null); }}><X size={14} style={{ color: "#fff" }} /></button>
                       </>
                     ) : (
                       <>
@@ -4551,14 +4589,14 @@ function VideoPageInner() {
                       className="relative flex flex-col items-center justify-center gap-2 rounded-2xl transition-all overflow-hidden aspect-square w-full"
                       style={{
                         background: "rgba(255,255,255,0.03)",
-                        border: `1px solid ${endFrame ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.08)"}`,
+                        border: `1px solid ${(endFrame || linkedEndFrameUrl || endFramePreview) ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.08)"}`,
                       }}
                     >
                       <input ref={endFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setEndFrame(e.target.files?.[0] ?? null)} />
-                      {endFrame ? (
+                      {(endFrame || linkedEndFrameUrl || endFramePreview) ? (
                         <>
                           {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8, background: "#000" }} />}
-                          <button aria-label={t("Remove end frame")} className="absolute top-2 left-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setEndFrame(null); }}><X size={14} style={{ color: "#fff" }} /></button>
+                          <button aria-label={t("Remove end frame")} className="absolute top-2 left-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setEndFrame(null); setLinkedEndFrameUrl(null); setEndFramePreview(null); }}><X size={14} style={{ color: "#fff" }} /></button>
                         </>
                       ) : (
                         <>

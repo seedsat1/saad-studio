@@ -48,12 +48,14 @@
 
 ---
 
-#### Latest task: Dynamic Bilingual (Arabic/English) Language Integration (2026-08-21)
+#### Latest task: Video Start Frame & End Frame Passing & Preview Fix (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Dynamic Language Switch (English <-> Arabic)**:
-     - Hooked `useLanguage` into `ImageResultGrid` context and dropdown menus.
-     - All context menu items (Details, Remix, Reuse, Element, Tools, Like, Share, Folder, Publish, Download, Delete), Video placement actions (Start Frame, End Frame), and AI Edit Tools (3D Scene, Hex, Multishot, Inpaint, Skin Enhancer, Angles, Relight, Stylist, 4K Upscale) now render purely in Arabic when the site language is Arabic, and purely in English when switched to English.
+  1. **Start & End Frame State & Routing Fix**:
+     - Added `linkedEndFrameUrl` state and `endFramePreview` synchronization in `app/(dash)/(routes)/video/page.tsx`.
+     - Enhanced URL `searchParams` parsing to cleanly capture both `startImageUrl` / `imageUrl` (Start Frame) and `endImageUrl` / `lastFrameUrl` (End Frame).
+     - Switched all frame preview display conditions across Seedance, Minimax, and Kling 3.0 from raw `File` check to `(startFrame || linkedStartFrameUrl || startFramePreview)` and `(endFrame || linkedEndFrameUrl || endFramePreview)` so passed URL images render immediately into their respective boxes.
+     - Updated video generation payload pipelines to pass `linkedEndFrameUrl` and `linkedStartFrameUrl` whenever present.
   2. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
