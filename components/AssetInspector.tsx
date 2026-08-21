@@ -32,11 +32,10 @@ import {
   Cpu,
   ScanFace,
   Sparkles,
+  X,
 } from "lucide-react";
 import { cn, getFallbackUrls } from "@/lib/utils";
 import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
 
 export type AssetType = "image" | "video" | "audio" | "3d";
 
@@ -1137,7 +1136,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
   }, [effectiveUrl, asset, router, onClose, downloadAsset, fetchWithAuth, getSafeErrorMessage, guardGeneration]);
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-slate-950 rounded-2xl ring-1 ring-white/10 shadow-2xl shadow-black/60">
+    <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-slate-950 rounded-2xl ring-1 ring-white/10 shadow-2xl shadow-black/60">
 
       {/* ── Left: Masterpiece Canvas ──────────────────────────────────────────── */}
       <motion.div
@@ -1179,7 +1178,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900/80 backdrop-blur-md ring-1 ring-white/10 hover:ring-white/20 text-zinc-400 hover:text-white transition-colors"
             >
-              <Layers className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </motion.button>
           )}
           <motion.button

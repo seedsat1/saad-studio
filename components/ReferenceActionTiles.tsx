@@ -26,6 +26,7 @@ export interface ReferenceActionTilesProps {
   onClearEffect?: () => void;
   onClearCharacter?: () => void;
   isAr?: boolean;
+  hideLabel?: boolean;
 }
 
 export function ReferenceActionTiles({
@@ -43,6 +44,7 @@ export function ReferenceActionTiles({
   onClearEffect,
   onClearCharacter,
   isAr = true,
+  hideLabel = true,
 }: ReferenceActionTilesProps) {
   const activeStyle = HOOK_STYLES.find((s) => s.id === selectedStyle);
   const activeElement = HOOK_ELEMENTS.find((el) => el.id === selectedElementId);
@@ -56,9 +58,11 @@ export function ReferenceActionTiles({
 
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-        {isAr ? "المراجع والمظهر الفني" : "REFERENCES & STYLING"}
-      </label>
+      {!hideLabel && (
+        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+          {isAr ? "المراجع والمظهر الفني" : "REFERENCES & STYLING"}
+        </label>
+      )}
 
       {/* Quick Action Square Tiles Row (Style | Character | Add) */}
       <div className="grid grid-cols-3 gap-2 pb-1">

@@ -6188,15 +6188,42 @@ function VideoPageInner() {
                 {/* Duration */}
                 {durationChoices.length > 0 && (
                   <div className="mb-4">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>Duration</label>
-                    <div className="flex flex-wrap gap-2">
-                      {durationChoices.map(d => (
-                        <button key={d} onClick={() => setDuration(d)}
-                          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                          style={{ background: duration === d ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: duration === d ? selectedModel.family_color : "#a1a1aa", border: `1px solid ${duration === d ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
-                        >{d}s</button>
-                      ))}
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>{t("Duration")}</label>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full ring-1 ring-white/10" style={{ background: hexA(selectedModel.family_color, 0.15), color: selectedModel.family_color }}>
+                        {duration ?? durationChoices[0]}s
+                      </span>
                     </div>
+                    {durationChoices.length <= 6 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {durationChoices.map(d => (
+                          <button key={d} onClick={() => setDuration(d)}
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all"
+                            style={{ background: duration === d ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: duration === d ? selectedModel.family_color : "#a1a1aa", border: `1px solid ${duration === d ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
+                          >{d}s</button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 px-0.5">
+                        <input
+                          type="range"
+                          min={Math.min(...durationChoices)}
+                          max={Math.max(...durationChoices)}
+                          step={1}
+                          value={duration ?? durationChoices[0]}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            const closest = durationChoices.reduce((prev, curr) => Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev);
+                            setDuration(closest);
+                          }}
+                          className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                        />
+                        <div className="flex justify-between text-[10px] text-zinc-500 font-semibold">
+                          <span>{Math.min(...durationChoices)}s</span>
+                          <span>{Math.max(...durationChoices)}s</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
