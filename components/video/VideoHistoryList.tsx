@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import type { MediaItem } from "@/components/MediaGrid";
 import { useLanguage } from "@/lib/use-language";
+import { SaadLoader } from "@/components/saad-loader";
 import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
 import { getFallbackUrls } from "@/lib/utils";
 
@@ -465,8 +466,6 @@ export function VideoHistoryList({
   onDelete?: (id: string) => void;
 }) {
   const { lang } = useLanguage();
-  const statusText = lang === "ar" ? "جارٍ التوليد" : "Generating";
-
   return (
     <div className="w-full space-y-4 py-4">
       {/* Skeletons */}
@@ -475,26 +474,8 @@ export function VideoHistoryList({
           key={`pending-${index}`}
           className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_248px] gap-2.5 min-h-[380px] rounded-2xl overflow-hidden border border-white/5 bg-[#050a14] p-2"
         >
-          <div className="relative min-h-[280px] md:min-h-[380px] overflow-hidden rounded-[14px] bg-[#050a14] flex flex-col items-center justify-center gap-3">
-            <div className="relative h-14 w-14 animate-pulse">
-              <NextImage
-                alt="Saad Studio"
-                src="/icon-192.png"
-                fill
-                sizes="56px"
-                className="object-contain"
-              />
-            </div>
-            <div className="flex items-center gap-2 text-xs font-mono text-cyan-300">
-              <span>SAAD</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-              <span>{statusText}</span>
-            </div>
-            {item.name && (
-              <span className="px-2.5 py-1 rounded-full border border-white/10 bg-white/5 text-[11px] text-slate-300">
-                {item.name} {item.ratio ? `• ${item.ratio}` : ""}
-              </span>
-            )}
+          <div className="relative min-h-[280px] md:min-h-[380px] overflow-hidden rounded-[14px] bg-[#050a14] flex items-center justify-center">
+            <SaadLoader modelLabel={item.name} toolLabel={item.ratio} />
           </div>
           <div className="rounded-[14px] border border-white/5 bg-[#050a14] p-4 space-y-3">
             <div className="h-5 w-32 rounded bg-white/10 animate-pulse" />

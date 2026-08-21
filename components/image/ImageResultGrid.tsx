@@ -574,14 +574,14 @@ export function ImageResultGrid({
             <div
               key={item.id}
               className={cn(
-                "group relative rounded-2xl overflow-hidden border bg-zinc-950/80 transition-all duration-200 shadow-sm hover:shadow-xl",
+                "group relative rounded-2xl border bg-zinc-950/90 transition-all duration-200 shadow-sm hover:shadow-xl flex flex-col",
                 isSelected
                   ? "border-pink-500 ring-2 ring-pink-500/40"
                   : "border-zinc-800/80 hover:border-zinc-700"
               )}
-              style={{ contentVisibility: "auto", containIntrinsicSize: "220px 220px" }}
+              style={{ contentVisibility: "auto", containIntrinsicSize: "220px 280px" }}
             >
-              {/* Media Container */}
+              {/* Media Container (Photo + subtle top overlay actions) */}
               <div
                 onClick={() =>
                   onInspect({
@@ -593,7 +593,7 @@ export function ImageResultGrid({
                     date: item.date || item.createdAt,
                   })
                 }
-                className="aspect-square w-full bg-zinc-950 relative overflow-hidden cursor-pointer flex items-center justify-center select-none"
+                className="aspect-square w-full bg-zinc-950 relative overflow-hidden rounded-t-2xl cursor-pointer flex items-center justify-center select-none"
               >
                 {mediaSrc ? (
                   <img
@@ -607,10 +607,10 @@ export function ImageResultGrid({
                   <div className="text-xs text-zinc-600 font-mono">No Preview</div>
                 )}
 
-                {/* 🌟 Top-Left Selection Checkbox Overlay */}
+                {/* Top-Left Selection Checkbox Overlay */}
                 <div
                   className={cn(
-                    "absolute top-2.5 left-2.5 z-20 transition-opacity duration-200",
+                    "absolute top-2.5 left-2.5 z-10 transition-opacity duration-200",
                     isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                   )}
                   onClick={(e) => toggleSelect(item.id, e)}
@@ -629,90 +629,139 @@ export function ImageResultGrid({
                   </button>
                 </div>
 
-                {/* 🌟 Top-Right Action Controls (Clean, unified, non-overlapping) */}
+                {/* Top-Right Quick Overlay (Like & Download) */}
                 <div
-                  className={cn(
-                    "absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 transition-opacity duration-200",
-                    isMenuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                  )}
+                  className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Heart / Like Button */}
                   <button
                     type="button"
                     title={isLiked ? "Unlike" : "Like"}
                     onClick={(e) => toggleLike(item.id, e)}
                     className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all shadow-lg",
+                      "w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-md border transition-all shadow-md",
                       isLiked
                         ? "bg-rose-950/80 border-rose-500/60 text-rose-400"
                         : "bg-black/60 border-white/20 text-zinc-200 hover:text-rose-400 hover:bg-black/80 hover:border-white/40"
                     )}
                   >
-                    <Heart className={cn("w-4 h-4", isLiked && "fill-rose-500")} />
+                    <Heart className={cn("w-3.5 h-3.5", isLiked && "fill-rose-500")} />
                   </button>
 
-                  {/* Quick Download */}
                   <button
                     type="button"
                     title="Download"
                     onClick={(e) => void handleDownload(item, e)}
-                    className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-zinc-200 hover:text-white hover:bg-black/80 hover:border-white/40 transition-all shadow-lg"
+                    className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-zinc-200 hover:text-white hover:bg-black/80 hover:border-white/40 transition-all shadow-md"
                   >
-                    <Download className="w-4 h-4" />
+                    <Download className="w-3.5 h-3.5" />
                   </button>
+                </div>
+              </div>
 
-                  {/* Quick Image Reference */}
+              {/* 🌟 Dedicated Tools & Actions Footer (Completely Outside the Photo) */}
+              <div className="p-2.5 bg-zinc-950/95 border-t border-zinc-800/80 flex flex-col gap-2 rounded-b-2xl">
+                {/* Prompt snippet */}
+                <p
+                  onClick={() =>
+                    onInspect({
+                      id: item.id,
+                      url: item.url || item.originalUrl || "",
+                      type: "image",
+                      prompt: item.prompt,
+                      model: item.model,
+                      date: item.date || item.createdAt,
+                    })
+                  }
+                  className="text-[11px] font-medium text-zinc-300 truncate cursor-pointer hover:text-white transition-colors"
+                  title={item.prompt}
+                >
+                  {item.prompt || "Untitled generation"}
+                </p>
+
+                {/* 🛠️ Action Tool Bar (Completely Outside the Photo) */}
+                <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-zinc-900" onClick={(e) => e.stopPropagation()}>
+                  {/* Video Start Frame */}
                   <button
                     type="button"
-                    title="Use as Image Reference"
+                    title="تحويل لفيديو (Video Start Frame)"
+                    onClick={(e) => handleVideoFramePlacement(item, "start", e)}
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-purple-400 hover:bg-purple-950/30 transition-all"
+                  >
+                    <VideoIcon className="w-4 h-4" />
+                  </button>
+
+                  {/* Inpaint */}
+                  <button
+                    type="button"
+                    title="تعديل بالفرشاة (Inpaint)"
+                    onClick={(e) => handleOpenTool(item, "inpaint", e)}
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-pink-400 hover:bg-pink-950/30 transition-all"
+                  >
+                    <Wand2 className="w-4 h-4" />
+                  </button>
+
+                  {/* Upscale */}
+                  <button
+                    type="button"
+                    title="رفع الدقة والتفاصيل (Upscale 4K)"
+                    onClick={(e) => handleOpenTool(item, "upscale", e)}
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-400 hover:bg-emerald-950/30 transition-all"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
+
+                  {/* Relight */}
+                  <button
+                    type="button"
+                    title="إعادة توزيع الإضاءة (Relight)"
+                    onClick={(e) => handleOpenTool(item, "relight", e)}
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-amber-400 hover:bg-amber-950/30 transition-all"
+                  >
+                    <Sun className="w-4 h-4" />
+                  </button>
+
+                  {/* Image Reference */}
+                  <button
+                    type="button"
+                    title="استخدام كمرجع (Image Reference)"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (onUse) void onUse(item);
                       showToast("Loaded image as Reference input 🖼️");
                     }}
-                    className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-zinc-200 hover:text-cyan-300 hover:bg-black/80 hover:border-white/40 transition-all shadow-lg"
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-cyan-400 hover:bg-cyan-950/30 transition-all"
                   >
                     <ImageIcon className="w-4 h-4" />
                   </button>
 
-                  {/* Unified More Options Menu */}
+                  {/* More Dropdown (Secondary actions) */}
                   <div className="relative" data-image-menu>
                     <button
                       type="button"
-                      title="All Tools & Actions"
+                      title="المزيد من الخيارات (More Actions)"
                       onClick={(e) => {
                         e.stopPropagation();
                         setActiveMenuId(isMenuOpen ? null : item.id);
-                        setActiveVideoMenuId(null);
-                        setActiveToolsMenuId(null);
                       }}
                       className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all shadow-lg",
-                        isMenuOpen
-                          ? "bg-white text-zinc-900 border-white"
-                          : "bg-black/60 border-white/20 text-zinc-200 hover:text-white hover:bg-black/80 hover:border-white/40"
+                        "p-1.5 rounded-lg transition-all",
+                        isMenuOpen ? "text-white bg-zinc-800" : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
                       )}
                     >
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
 
-                    {/* 📋 Unified Context Menu with Clean Categorization */}
                     <AnimatePresence>
                       {isMenuOpen && (
                         <motion.div
-                          initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                          initial={{ opacity: 0, scale: 0.95, y: 4 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                          transition={{ duration: 0.15 }}
-                          className="absolute right-0 top-10 z-50 w-60 max-h-[420px] overflow-y-auto rounded-2xl border border-zinc-800/90 bg-zinc-950/95 p-2 shadow-2xl backdrop-blur-2xl text-xs space-y-1 scrollbar-thin scrollbar-thumb-zinc-800"
+                          exit={{ opacity: 0, scale: 0.95, y: 4 }}
+                          transition={{ duration: 0.12 }}
+                          className="absolute right-0 bottom-full mb-2 z-50 w-52 rounded-xl border border-zinc-800/90 bg-zinc-950/95 p-1.5 shadow-2xl backdrop-blur-2xl text-xs space-y-0.5"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {/* 1. Generate & Animate */}
-                          <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                            توليد وتحريك
-                          </div>
-
                           <button
                             type="button"
                             onClick={() => {
@@ -726,22 +775,10 @@ export function ImageResultGrid({
                                 date: item.date || item.createdAt,
                               });
                             }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
                           >
-                            <ArrowUpRight className="w-4 h-4 text-zinc-400" />
+                            <ArrowUpRight className="w-3.5 h-3.5 text-zinc-400" />
                             <span>عرض التفاصيل (Inspector)</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              setActiveMenuId(null);
-                              handleVideoFramePlacement(item, "start", e);
-                            }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
-                          >
-                            <VideoIcon className="w-4 h-4 text-purple-400" />
-                            <span>تحويل لفيديو (Start Frame)</span>
                           </button>
 
                           <button
@@ -750,19 +787,28 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               handleVideoFramePlacement(item, "end", e);
                             }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
                           >
-                            <ArrowLeftCircle className="w-4 h-4 text-pink-400" />
+                            <ArrowLeftCircle className="w-3.5 h-3.5 text-pink-400" />
                             <span>نهاية فيديو (End Frame)</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={(e) => handleOpenTool(item, "3d", e)}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
                           >
-                            <Box className="w-4 h-4 text-emerald-400" />
+                            <Box className="w-3.5 h-3.5 text-emerald-400" />
                             <span>مجسم ثلاثي الأبعاد (3D Scene)</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleOpenTool(item, "skin", e)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                          >
+                            <ScanFace className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>تحسين الوجه (Skin Enhancer)</span>
                           </button>
 
                           <button
@@ -771,10 +817,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               router.push(`/characters?newElementUrl=${encodeURIComponent(item.url || item.originalUrl || "")}`);
                             }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
                           >
-                            <AtSign className="w-4 h-4 text-indigo-400" />
-                            <span>حفظ كعنصر شخصية (Element)</span>
+                            <AtSign className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>حفظ كعنصر (Element)</span>
                           </button>
 
                           <button
@@ -783,53 +829,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               onRemix(item);
                             }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
                           >
-                            <RotateCw className="w-4 h-4 text-cyan-400" />
+                            <RotateCw className="w-3.5 h-3.5 text-cyan-400" />
                             <span>إعادة توليد (Regenerate)</span>
-                          </button>
-
-                          <div className="my-1 border-t border-zinc-800/80" />
-
-                          {/* 2. AI Editing Tools */}
-                          <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                            أدوات التعديل الذكية
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={(e) => handleOpenTool(item, "inpaint", e)}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
-                          >
-                            <Wand2 className="w-4 h-4 text-pink-400" />
-                            <span>تعديل بالفرشاة (Inpaint)</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => handleOpenTool(item, "upscale", e)}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
-                          >
-                            <Maximize2 className="w-4 h-4 text-emerald-400" />
-                            <span>رفع الدقة والتفاصيل (Upscale 4K)</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => handleOpenTool(item, "relight", e)}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
-                          >
-                            <Sun className="w-4 h-4 text-amber-300" />
-                            <span>إعادة توزيع الإضاءة (Relight)</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => handleOpenTool(item, "skin", e)}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
-                          >
-                            <ScanFace className="w-4 h-4 text-cyan-400" />
-                            <span>تحسين ملامح الوجه (Skin Enhancer)</span>
                           </button>
 
                           <button
@@ -838,18 +841,13 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               void handleExtractHex(item, e);
                             }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
                           >
-                            <Pipette className="w-4 h-4 text-amber-400" />
-                            <span>استخراج باليت الألوان (Hex Colors)</span>
+                            <Pipette className="w-3.5 h-3.5 text-amber-400" />
+                            <span>باليت الألوان (Hex Colors)</span>
                           </button>
 
                           <div className="my-1 border-t border-zinc-800/80" />
-
-                          {/* 3. Folder, Share & Delete */}
-                          <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                            المجلدات والمشاركة
-                          </div>
 
                           <button
                             type="button"
@@ -857,10 +855,10 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               setAlbumPickerTargetItem(item);
                             }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
                           >
-                            <FolderPlus className="w-4 h-4 text-amber-300" />
-                            <span>إضافة إلى مجلد (Add to folder)</span>
+                            <FolderPlus className="w-3.5 h-3.5 text-amber-300" />
+                            <span>إضافة لمجلد (Folder)</span>
                           </button>
 
                           <button
@@ -869,9 +867,9 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               void handleShare(item, e);
                             }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
                           >
-                            <Share2 className="w-4 h-4 text-zinc-400" />
+                            <Share2 className="w-3.5 h-3.5 text-zinc-400" />
                             <span>مشاركة الرابط (Share)</span>
                           </button>
 
@@ -883,9 +881,9 @@ export function ImageResultGrid({
                               setActiveMenuId(null);
                               setDeleteConfirmId(item.id);
                             }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-colors font-medium"
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-colors font-medium"
                           >
-                            <Trash2 className="w-4 h-4 text-rose-400" />
+                            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                             <span>حذف الصورة (Delete)</span>
                           </button>
                         </motion.div>
@@ -893,13 +891,6 @@ export function ImageResultGrid({
                     </AnimatePresence>
                   </div>
                 </div>
-              </div>
-
-              {/* Prompt snippet */}
-              <div className="p-2.5 bg-zinc-950 border-t border-zinc-800/80">
-                <p className="text-[11px] font-medium text-zinc-300 truncate" title={item.prompt}>
-                  {item.prompt || "Untitled generation"}
-                </p>
               </div>
             </div>
           );

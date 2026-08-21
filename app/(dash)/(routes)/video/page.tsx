@@ -5,6 +5,7 @@ import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { motion, AnimatePresence } from "framer-motion";
 import NextImage from "next/image";
 import { useSearchParams } from "next/navigation";
+import { SaadLoader } from "@/components/saad-loader";
 import {
   Film, Sparkles, ChevronDown, ImageIcon,
   Video, Clapperboard, Layers,

@@ -48,15 +48,19 @@
 
 ---
 
-#### Latest task: Resilient Reference Image Verification & Resolution Pipeline (2026-08-21)
+#### Latest task: Image Card Footer Tool Bar Redesign (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Non-Blocking Character & Reference Image Handling**:
-     - Updated `/api/generate/image` to gracefully catch and skip individual dead or unreachable reference URLs (such as expired or 404 storage paths from legacy characters) with a warning rather than failing the entire generation request with a fatal 400 error.
-     - Ensures models requiring explicit references (e.g. image-to-image edit) only error if zero valid references exist, while text-to-image models continue smoothly with prompt-based styling/identity.
-  2. **Video & Multi-Modal Reference Resilience**:
-     - Added corresponding try/catch guards in `/api/video` for Seedance reference images, Google Veo reference images, and WaveSpeed reference media arrays.
-  3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
+  1. **Tools Moved Outside Image Frame**:
+     - Removed the cramped, overlapping dropdown menu on top of the photo.
+     - Dedicated external action toolbar placed in the card footer below the image:
+       - 🎬 Video Start Frame (`تحويل لفيديو`)
+       - 🖌️ Inpaint Brush (`تعديل بالفرشاة`)
+       - ✨ Upscale 4K (`رفع الدقة والتفاصيل`)
+       - 💡 Relight (`إعادة توزيع الإضاءة`)
+       - 🖼️ Image Reference (`استخدام كمرجع`)
+       - ••• Secondary Actions (Inspector, End Frame, 3D Scene, Skin Enhancer, Element, Palette, Folder, Share, Delete).
+  2. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
 - Status: Completed & Verified (PASS).
