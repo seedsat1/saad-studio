@@ -17,6 +17,7 @@ import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useLanguage } from "@/lib/use-language";
 import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { calculateMusicCredits } from "@/lib/pricing";
+import { SaadLoader } from "@/components/saad-loader";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1259,68 +1260,18 @@ export default function AudioPage() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -8, scale: 0.98 }}
                         transition={{ duration: 0.25, ease: "easeOut" }}
-                        className="bg-[#111115] rounded-3xl border border-zinc-800/80 p-6 shadow-sm overflow-hidden"
+                        className="flex items-center justify-center py-6"
                       >
-                        <div
-                          className="absolute inset-0 opacity-5 pointer-events-none"
-                          style={{ background: "radial-gradient(ellipse at 50% 0%, #7c3aed, transparent 70%)" }}
+                        <SaadLoader
+                          modelLabel={
+                            selectedModel === "google/lyria-3-pro/music"
+                              ? "Google Lyria Pro"
+                              : selectedModel === "google/lyria-3-clip/music"
+                              ? "Google Lyria"
+                              : selectedModel
+                          }
+                          toolLabel={language === "ar" ? "توليد موسيقى" : "Music"}
                         />
-
-                        <div className="flex items-center justify-between mb-5">
-                          <div className="flex items-center gap-3">
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                              className="h-10 w-10 rounded-2xl flex items-center justify-center"
-                              style={{ background: "linear-gradient(135deg, #5b21b6, #a855f7)" }}
-                            >
-                              <Music2 className="h-5 w-5 text-white" />
-                            </motion.div>
-                            <div>
-                              <p className="text-sm font-semibold text-zinc-200">{t(GEN_STEPS[genStep])}</p>
-                              <p className="text-xs text-zinc-400">{t("AI is crafting your music...")}</p>
-                            </div>
-                          </div>
-                          <span className="text-lg font-bold text-cyan-400 tabular-nums">{Math.round(genProgress)}%</span>
-                        </div>
-
-                        <div className="h-2 bg-zinc-900 rounded-full overflow-hidden mb-5">
-                          <motion.div
-                            className="h-full rounded-full"
-                            style={{ background: "linear-gradient(90deg, #4c1d95, #a855f7)" }}
-                            animate={{ width: `${genProgress}%` }}
-                            transition={{ duration: 0.3, ease: "easeOut" }}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-4 gap-2">
-                          {GEN_STEPS.map((step, i) => {
-                            const isDone = i < genStep;
-                            const isActive = i === genStep;
-                            return (
-                              <div key={t(step)} className="flex flex-col items-center gap-1.5">
-                                <div
-                                  className={cn(
-                                    "h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300",
-                                    isDone
-                                      ? "bg-cyan-600 text-white"
-                                      : isActive
-                                      ? "bg-cyan-950/20 text-cyan-400 ring-2 ring-cyan-500 ring-offset-1 ring-offset-zinc-950"
-                                      : "bg-zinc-900 text-zinc-500"
-                                  )}
-                                >
-                                  {isDone ? <Check className="h-4 w-4" /> : i + 1}
-                                </div>
-                                <span className={cn(
-                                  "text-[10px] font-semibold text-center leading-tight",
-                                  isActive ? "text-cyan-400" : isDone ? "text-zinc-200" : "text-zinc-500"
-                                )}>
-                                  {t(step)}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
