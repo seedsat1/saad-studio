@@ -20,6 +20,8 @@ import { googleGenerateImage } from "@/lib/providers/google-images";
 export const maxDuration = 120;
 export const dynamic = "force-dynamic";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app";
+
 export async function GET(req: NextRequest) {
   if (!(await isAdmin())) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -680,13 +682,16 @@ Return ONLY a valid JSON object matching:
 
       // Buffer API Broadcast (Facebook, Instagram, X, LinkedIn) - Supports new Buffer GraphQL API & REST Fallback
       let lastBufferError = "";
-      if (targetPlatform === "facebook" || targetPlatform === "buffer" || targetPlatform === "all") {
+      if (targetPlatform === "facebook" || targetPlatform === "buffer" || targetPlatform === "all" || targetPlatform === "twitter" || targetPlatform === "instagram" || targetPlatform === "linkedin") {
         if (config.bufferAccessToken) {
           try {
             const apiKey = config.bufferAccessToken.trim();
-            const textToPublish = `${post.platforms.facebook?.content || post.platforms.twitter?.content || ""}\n\n${(post.platforms.facebook?.hashtags || []).join(" ")}`;
+            const platformItem = (post.platforms as any)?.[targetPlatform] || post.platforms.facebook || post.platforms.twitter;
+            const textToPublish = platformItem?.content
+              ? `${platformItem.content}${platformItem.hashtags?.length ? `\n\n${platformItem.hashtags.join(" ")}` : ""}`
+              : `${post.platforms.facebook?.content || post.platforms.twitter?.content || ""}`;
             const fullImageUrl = post.imageUrl
-              ? (post.imageUrl.startsWith("http") ? post.imageUrl : `${siteUrl}${post.imageUrl.startsWith("/") ? "" : "/"}${post.imageUrl}`)
+              ? (post.imageUrl.startsWith("http") ? post.imageUrl : `${SITE_URL}${post.imageUrl.startsWith("/") ? "" : "/"}${post.imageUrl}`)
               : "";
 
             // 1. Try modern Buffer GraphQL API (https://api.buffer.com)
