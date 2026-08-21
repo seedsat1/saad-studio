@@ -725,13 +725,29 @@ export default function AudioPage() {
     setTimeout(() => setCopied(null), 2000);
   }, []);
 
-  const handleDownloadTrack = (track: Track) => {
+  const handleDownloadTrack = async (track: Track) => {
     if (!track.audioUrl) return;
     const filenameParam = `${track.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${outputFmt}`;
-    const a = document.createElement("a");
-    a.href = `/api/download?url=${encodeURIComponent(track.audioUrl)}&filename=${encodeURIComponent(filenameParam)}`;
-    a.download = filenameParam;
-    a.click();
+    try {
+      const res = await fetch(track.audioUrl);
+      if (!res.ok) throw new Error("Direct audio fetch failed");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filenameParam;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      const a = document.createElement("a");
+      a.href = `/api/download?url=${encodeURIComponent(track.audioUrl)}&filename=${encodeURIComponent(filenameParam)}`;
+      a.download = filenameParam;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
   };
 
   const progress = currentTrack ? (audioDuration > 0 ? currentTime / audioDuration : 0) : 0;

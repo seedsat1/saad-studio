@@ -610,7 +610,7 @@ function UploadBox({ label, file, onFile, required = false, accept = "image/*" }
     };
   }, [preview]);
 
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (event: React.DragEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
     setDragActive(false);
@@ -622,13 +622,13 @@ function UploadBox({ label, file, onFile, required = false, accept = "image/*" }
     }
   };
 
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (event: React.DragEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
     setDragActive(true);
   };
 
-  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (event: React.DragEvent<HTMLElement>) => {
     event.preventDefault();
     setDragActive(false);
   };
@@ -636,11 +636,7 @@ function UploadBox({ label, file, onFile, required = false, accept = "image/*" }
   return (
     <div className="space-y-1.5">
       {label ? <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400">{t(label)}{required ? " *" : ""}</p> : null}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+      <label
         onDragOver={handleDragOver}
         onDragEnter={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -650,28 +646,35 @@ function UploadBox({ label, file, onFile, required = false, accept = "image/*" }
           dragActive ? "border-pink-400/60 bg-pink-500/[0.08]" : "border-white/15",
         )}
       >
+        <input
+          ref={inputRef}
+          type="file"
+          accept={accept}
+          className="hidden"
+          onChange={(e) => onFile(e.target.files?.[0] || null)}
+        />
         {preview ? (
           file?.type.startsWith("video/") ? (
-            <video src={preview} className="h-full w-full object-cover" muted playsInline />
+            <video src={preview} className="h-full w-full object-cover pointer-events-none" muted playsInline />
           ) : (
-            <img src={preview} alt="upload" className="h-full w-full object-cover" />
+            <img src={preview} alt="upload" className="h-full w-full object-cover pointer-events-none" />
           )
         ) : (
-          <div className="flex flex-col items-center gap-1 text-zinc-400">
+          <div className="flex flex-col items-center gap-1 text-zinc-400 pointer-events-none">
             <UploadCloud className="h-5 w-5" />
             <span className="text-xs">{dragActive ? "Drop here" : acceptVideo ? "Upload or drag media" : "Upload or drag image"}</span>
           </div>
         )}
         {file ? (
-          <span
-            onClick={(e) => { e.stopPropagation(); onFile(null); }}
-            className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-zinc-300"
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onFile(null); }}
+            className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-zinc-300 z-10"
           >
             <X className="h-3.5 w-3.5" />
-          </span>
+          </button>
         ) : null}
-      </div>
-      <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={(e) => onFile(e.target.files?.[0] || null)} />
+      </label>
     </div>
   );
 }

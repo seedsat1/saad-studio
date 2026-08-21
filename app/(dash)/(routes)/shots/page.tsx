@@ -85,11 +85,11 @@ async function downloadImage(url: string, filename: string) {
     setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
     toast.success("Image downloaded successfully 📥");
   } catch (err) {
-    console.warn("Direct blob download failed, falling back to direct link", err);
+    console.warn("Direct blob download failed, falling back to /api/download", err);
     const link = document.createElement("a");
-    link.href = url;
+    link.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
     link.download = filename;
-    link.target = "_blank";
+    link.rel = "noopener";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

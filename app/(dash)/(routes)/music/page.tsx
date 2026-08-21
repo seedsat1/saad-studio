@@ -156,12 +156,30 @@ const MusicPage = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!audioUrl) return;
-    const a = document.createElement("a");
-    a.href = audioUrl;
-    a.download = `saadstudio_music_${Date.now()}.mp3`;
-    a.click();
+    const filename = `saadstudio_music_${Date.now()}.mp3`;
+    try {
+      const res = await fetch(audioUrl);
+      if (!res.ok) throw new Error("Direct fetch failed");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      const a = document.createElement("a");
+      a.href = `/api/download?url=${encodeURIComponent(audioUrl)}&filename=${encodeURIComponent(filename)}`;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
   };
 
   const onGenerate = async () => {

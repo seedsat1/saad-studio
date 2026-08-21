@@ -342,8 +342,8 @@ export function ImageResultGrid({
     if (!url) return;
     try {
       showToast("Starting download...");
-      const res = await fetch(`/api/proxy-image?url=${encodeURIComponent(url)}`);
-      const blob = res.ok ? await res.blob() : await (await fetch(url)).blob();
+      const res = await fetch(`/api/proxy-image?url=${encodeURIComponent(url)}`).catch(() => null);
+      const blob = res?.ok ? await res.blob() : await (await fetch(url)).blob();
       const ext = (blob.type.split("/")[1] || "png").split("+")[0];
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -352,9 +352,16 @@ export function ImageResultGrid({
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     } catch {
-      window.open(url, "_blank");
+      const filename = `saad_studio_${item.id}.png`;
+      const a = document.createElement("a");
+      a.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
   };
 

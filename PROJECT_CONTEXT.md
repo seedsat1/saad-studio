@@ -48,13 +48,15 @@
 
 ---
 
-#### Latest task: Video Image Input Storage Upload Resilience & Multi-Tier Fallback (2026-08-21)
+#### Latest task: Full Mobile Upload & Download Universal Compatibility Overhaul (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Direct Signed Storage Upload for All Image Inputs**:
-     - Updated `app/(dash)/(routes)/video/page.tsx` so Kling 3.0 Standard/Pro image inputs and general start/end frames use direct `/api/media/upload` signed uploads with graceful fallback to base64.
-  2. **Multi-Tier Resilient Storage Fallback**:
-     - Upgraded `uploadDataUrlToStorage` (`lib/media/public-url-resolver.ts`), `uploadBuffer` (`lib/storage/runtime.ts`), and `lib/supabase-storage.ts` to automatically fall back to Supabase Storage if Backblaze B2/R2 upload encounters an issue.
+  1. **Universal Mobile Upload Reliability (iOS Safari & Android Chrome)**:
+     - Converted indirect script-triggered click zones in Image (`FileDrop`), Video (Settings Drawer & Media Picker), Lipsync, Audio, and Canvas tools to 100% native `<label>` touch targets with embedded `<input type="file">`.
+     - Completely prevents iOS Safari from blocking file/camera dialogs.
+  2. **Reliable Cross-Platform Media Downloads**:
+     - Upgraded download handlers across Video, Image (`ImageResultGrid`), Audio, Music, Lipsync, Cinema Studio, and Shots Studio.
+     - Implemented direct blob streaming with automatic fallback to `/api/download?url=...` with forced `Content-Disposition: attachment` headers, ensuring media files (MP4, MP3, PNG, WebP) download directly onto iPhones and Androids without getting stuck in browser preview tabs.
   3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)

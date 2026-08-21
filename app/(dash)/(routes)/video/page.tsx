@@ -72,16 +72,30 @@ function hexA(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
-function downloadVideoItem(item: MediaItem) {
+async function downloadVideoItem(item: MediaItem) {
   if (!hasPlayableVideo(item)) return;
-  const a = document.createElement("a");
   const filename = `saad-video-${item.id}.mp4`;
-  a.href = `/api/download?url=${encodeURIComponent(item.src)}&filename=${encodeURIComponent(filename)}`;
-  a.download = filename;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  try {
+    const res = await fetch(item.src);
+    if (!res.ok) throw new Error("Direct fetch failed");
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  } catch {
+    const a = document.createElement("a");
+    a.href = `/api/download?url=${encodeURIComponent(item.src)}&filename=${encodeURIComponent(filename)}`;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
 }
 
 async function copyTextToClipboard(text?: string | null) {

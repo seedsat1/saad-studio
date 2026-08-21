@@ -611,20 +611,26 @@ function LipsyncStudioPageInner() {
   };
 
   const handleDownload = async (url: string, name: string) => {
+    const filename = `${name.replace(/\s+/g, "_")}.mp4`;
     try {
-      const response = await fetch(`/api/download?url=${encodeURIComponent(url)}`, { cache: "no-store" });
-      if (!response.ok) throw new Error("Download failed");
-      const blob = await response.blob();
+      const response = await fetch(url).catch(() => null);
+      const blob = response?.ok ? await response.blob() : await (await fetch(`/api/download?url=${encodeURIComponent(url)}`)).blob();
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objectUrl;
-      a.download = `${name.replace(/\s+/g, "_")}.mp4`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(objectUrl);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
     } catch {
-      window.open(url, "_blank");
+      const a = document.createElement("a");
+      a.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
   };
 
