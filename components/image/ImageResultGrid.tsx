@@ -44,6 +44,7 @@ import {
 import type { Asset } from "@/components/AssetInspector";
 import { cn } from "@/lib/utils";
 import { SaadLoader } from "@/components/saad-loader";
+import { useLanguage } from "@/lib/use-language";
 
 export interface ResultItem {
   id: string;
@@ -265,6 +266,8 @@ export function ImageResultGrid({
   loadingMore?: boolean;
 }) {
   const router = useRouter();
+  const { lang } = useLanguage();
+  const isAr = lang === "ar";
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -632,7 +635,7 @@ export function ImageResultGrid({
                 >
                   <button
                     type="button"
-                    title={isSelected ? "Deselect" : "Select"}
+                    title={isSelected ? (isAr ? "إلغاء التحديد" : "Deselect") : (isAr ? "تحديد" : "Select")}
                     className={cn(
                       "w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-lg backdrop-blur-md",
                       isSelected
@@ -655,7 +658,7 @@ export function ImageResultGrid({
                   {/* Heart / Like Button */}
                   <button
                     type="button"
-                    title={isLiked ? "Unlike" : "Like"}
+                    title={isLiked ? (isAr ? "إلغاء الإعجاب" : "Unlike") : (isAr ? "إعجاب" : "Like")}
                     onClick={(e) => toggleLike(item.id, e)}
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all shadow-lg",
@@ -670,7 +673,7 @@ export function ImageResultGrid({
                   {/* Download Button */}
                   <button
                     type="button"
-                    title="Download"
+                    title={isAr ? "تنزيل" : "Download"}
                     onClick={(e) => void handleDownload(item, e)}
                     className="w-8 h-8 rounded-full bg-[#131b2e]/85 backdrop-blur-md border border-violet-500/30 flex items-center justify-center text-slate-200 hover:text-white hover:bg-[#1a233b] hover:border-violet-400/60 transition-all shadow-lg"
                   >
@@ -681,7 +684,7 @@ export function ImageResultGrid({
                   <div className="relative" data-image-menu>
                     <button
                       type="button"
-                      title="More Options"
+                      title={isAr ? "خيارات إضافية" : "More Options"}
                       onClick={(e) => {
                         e.stopPropagation();
                         setActiveMenuId(isMenuOpen ? null : item.id);
@@ -698,7 +701,7 @@ export function ImageResultGrid({
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
 
-                    {/* 📋 Three-Dots Context Menu (Compact & Sleek) */}
+                    {/* 📋 Three-Dots Context Menu (Compact & Sleek with Dynamic Language) */}
                     <AnimatePresence>
                       {isMenuOpen && (
                         <motion.div
@@ -725,7 +728,7 @@ export function ImageResultGrid({
                             className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
                             <ArrowUpRight className="w-3.5 h-3.5 text-indigo-400" />
-                            <span>عرض التفاصيل · Details</span>
+                            <span>{isAr ? "عرض التفاصيل" : "View Details"}</span>
                           </button>
 
                           <button
@@ -737,7 +740,7 @@ export function ImageResultGrid({
                             className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
                             <RotateCw className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>إعادة توليد · Remix</span>
+                            <span>{isAr ? "إعادة توليد" : "Regenerate"}</span>
                           </button>
 
                           <button
@@ -750,7 +753,7 @@ export function ImageResultGrid({
                             className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
                             <Copy className="w-3.5 h-3.5 text-slate-400" />
-                            <span>نسخ الوصف · Reuse</span>
+                            <span>{isAr ? "نسخ الوصف" : "Reuse Prompt"}</span>
                           </button>
 
                           <button
@@ -762,7 +765,7 @@ export function ImageResultGrid({
                             className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
                             <AtSign className="w-3.5 h-3.5 text-indigo-400" />
-                            <span>حفظ كعنصر · Element</span>
+                            <span>{isAr ? "حفظ كعنصر" : "Create Element"}</span>
                           </button>
 
                           {/* Additional Sub-tools trigger */}
@@ -776,7 +779,7 @@ export function ImageResultGrid({
                           >
                             <div className="flex items-center gap-2">
                               <Wand2 className="w-3.5 h-3.5 text-amber-400" />
-                              <span>أدوات التعديل · Tools</span>
+                              <span>{isAr ? "أدوات التعديل" : "AI Tools"}</span>
                             </div>
                             <ChevronRight className="w-3 h-3 text-slate-400" />
                           </button>
@@ -792,7 +795,7 @@ export function ImageResultGrid({
                             className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
                             <Heart className={cn("w-3.5 h-3.5", isLiked ? "text-rose-500 fill-rose-500" : "text-slate-400")} />
-                            <span>{isLiked ? "إلغاء الإعجاب" : "إعجاب · Like"}</span>
+                            <span>{isLiked ? (isAr ? "إلغاء الإعجاب" : "Unlike") : (isAr ? "إعجاب" : "Like")}</span>
                           </button>
 
                           <button
@@ -804,7 +807,7 @@ export function ImageResultGrid({
                             className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
                             <Share2 className="w-3.5 h-3.5 text-slate-400" />
-                            <span>مشاركة · Share</span>
+                            <span>{isAr ? "مشاركة" : "Share"}</span>
                           </button>
 
                           <button
@@ -816,7 +819,7 @@ export function ImageResultGrid({
                             className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
                             <FolderPlus className="w-3.5 h-3.5 text-amber-300" />
-                            <span>مجلد · Folder</span>
+                            <span>{isAr ? "إضافة لمجلد" : "Add to folder"}</span>
                           </button>
 
                           <button
@@ -828,7 +831,7 @@ export function ImageResultGrid({
                             className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
                             <Send className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>نشر · Publish</span>
+                            <span>{isAr ? "نشر" : "Publish"}</span>
                           </button>
 
                           <button
@@ -840,7 +843,7 @@ export function ImageResultGrid({
                             className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-colors"
                           >
                             <Download className="w-3.5 h-3.5 text-slate-400" />
-                            <span>تنزيل · Download</span>
+                            <span>{isAr ? "تنزيل" : "Download"}</span>
                           </button>
 
                           <div className="my-0.5 border-t border-slate-700/60" />
@@ -854,7 +857,7 @@ export function ImageResultGrid({
                             className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-colors font-medium"
                           >
                             <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                            <span>حذف · Delete</span>
+                            <span>{isAr ? "حذف" : "Delete"}</span>
                           </button>
                         </motion.div>
                       )}
@@ -874,11 +877,11 @@ export function ImageResultGrid({
                     {/* 1. Quick Image Reference Button */}
                     <button
                       type="button"
-                      title="Use as Image Reference"
+                      title={isAr ? "استخدام كصورة مرجعية" : "Use as Image Reference"}
                       onClick={(e) => {
                         e.stopPropagation();
                         if (onUse) void onUse(item);
-                        showToast("Loaded image as Reference input 🖼️");
+                        showToast(isAr ? "تم تحميل الصورة كمدخل مرجعي 🖼️" : "Loaded image as Reference input 🖼️");
                       }}
                       className="p-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-violet-600/30 transition-all"
                     >
@@ -889,7 +892,7 @@ export function ImageResultGrid({
                     <div className="relative" data-image-menu>
                       <button
                         type="button"
-                        title="Frame Placement (Start/End Frame for Video)"
+                        title={isAr ? "تحديد الإطار للفيديو" : "Frame Placement for Video"}
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveVideoMenuId(isVideoMenuOpen ? null : item.id);
@@ -907,7 +910,7 @@ export function ImageResultGrid({
                         <ChevronDown className="w-3 h-3 opacity-70" />
                       </button>
 
-                      {/* 🎬 Video Frame Placement Dropdown (Compact) */}
+                      {/* 🎬 Video Frame Placement Dropdown (Compact & Dynamic Language) */}
                       <AnimatePresence>
                         {isVideoMenuOpen && (
                           <motion.div
@@ -918,7 +921,7 @@ export function ImageResultGrid({
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-400">
-                              Frame Placement
+                              {isAr ? "تحديد الإطار" : "Frame Placement"}
                             </div>
                             <button
                               type="button"
@@ -929,7 +932,7 @@ export function ImageResultGrid({
                               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all font-medium"
                             >
                               <ArrowRightCircle className="w-3.5 h-3.5 text-cyan-400" />
-                              <span>Start Frame · بداية</span>
+                              <span>{isAr ? "إطار البداية" : "Start Frame"}</span>
                             </button>
                             <button
                               type="button"
@@ -940,7 +943,7 @@ export function ImageResultGrid({
                               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all font-medium"
                             >
                               <ArrowLeftCircle className="w-3.5 h-3.5 text-purple-400" />
-                              <span>End Frame · نهاية</span>
+                              <span>{isAr ? "إطار النهاية" : "End Frame"}</span>
                             </button>
                           </motion.div>
                         )}
@@ -951,7 +954,7 @@ export function ImageResultGrid({
                     <div className="relative" data-image-menu>
                       <button
                         type="button"
-                        title="Additional AI Tools"
+                        title={isAr ? "أدوات الذكاء الاصطناعي" : "Additional AI Tools"}
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveToolsMenuId(isToolsMenuOpen ? null : item.id);
@@ -969,7 +972,7 @@ export function ImageResultGrid({
                         <ChevronDown className="w-3 h-3 opacity-70" />
                       </button>
 
-                      {/* 🪄 Open In / Additional Tools Dropdown (Compact & Sleek) */}
+                      {/* 🪄 Open In / Additional Tools Dropdown (Compact & Dynamic Language) */}
                       <AnimatePresence>
                         {isToolsMenuOpen && (
                           <motion.div
@@ -980,7 +983,7 @@ export function ImageResultGrid({
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-400">
-                              Generate · توليد
+                              {isAr ? "توليد ثلاثي" : "Generate 3D"}
                             </div>
                             <button
                               type="button"
@@ -988,13 +991,13 @@ export function ImageResultGrid({
                               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
                               <Box className="w-3.5 h-3.5 text-emerald-400" />
-                              <span>Create 3D scene (ثلاثي)</span>
+                              <span>{isAr ? "مشهد ثلاثي الأبعاد" : "Create 3D scene"}</span>
                             </button>
 
                             <div className="my-0.5 border-t border-slate-700/60" />
 
                             <div className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-400">
-                              AI Tools · أدوات التعديل
+                              {isAr ? "أدوات التعديل" : "AI Edit Tools"}
                             </div>
 
                             <button
@@ -1006,7 +1009,7 @@ export function ImageResultGrid({
                               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
                               <Pipette className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Hex Colors (باليت الألوان)</span>
+                              <span>{isAr ? "استخراج الألوان" : "Extract Hex Colors"}</span>
                             </button>
 
                             <button
@@ -1015,7 +1018,7 @@ export function ImageResultGrid({
                               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
                               <LayoutGrid className="w-3.5 h-3.5 text-indigo-400" />
-                              <span>Multishot (توليد متعدد)</span>
+                              <span>{isAr ? "توليد متعدد" : "Multishot"}</span>
                             </button>
 
                             <button
@@ -1024,7 +1027,7 @@ export function ImageResultGrid({
                               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
                               <Wand2 className="w-3.5 h-3.5 text-pink-400" />
-                              <span>Inpaint (تعديل بالفرشاة)</span>
+                              <span>{isAr ? "فرشاة التعديل (Inpaint)" : "Inpaint"}</span>
                             </button>
 
                             <button
@@ -1033,7 +1036,7 @@ export function ImageResultGrid({
                               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
                               <ScanFace className="w-3.5 h-3.5 text-cyan-400" />
-                              <span>Skin (تحسين الوجه)</span>
+                              <span>{isAr ? "تحسين الوجه" : "Skin Enhancer"}</span>
                             </button>
 
                             <button
@@ -1042,7 +1045,7 @@ export function ImageResultGrid({
                               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
                               <Camera className="w-3.5 h-3.5 text-blue-400" />
-                              <span>Angles (زوايا الكاميرا)</span>
+                              <span>{isAr ? "زوايا الكاميرا" : "Camera Angles"}</span>
                             </button>
 
                             <button
@@ -1051,7 +1054,7 @@ export function ImageResultGrid({
                               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
                               <Sun className="w-3.5 h-3.5 text-amber-300" />
-                              <span>Relight (إعادة الإضاءة)</span>
+                              <span>{isAr ? "إعادة الإضاءة" : "Relight"}</span>
                             </button>
 
                             <button
@@ -1060,7 +1063,7 @@ export function ImageResultGrid({
                               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
                               <Shirt className="w-3.5 h-3.5 text-violet-400" />
-                              <span>Stylist (تغيير الملابس)</span>
+                              <span>{isAr ? "تغيير الملابس" : "AI Stylist"}</span>
                             </button>
 
                             <button
@@ -1069,7 +1072,7 @@ export function ImageResultGrid({
                               className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-slate-200 hover:bg-violet-600/30 hover:text-white transition-all"
                             >
                               <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
-                              <span>Upscale 4K (رفع الدقة)</span>
+                              <span>{isAr ? "رفع الدقة 4K" : "4K Upscale"}</span>
                             </button>
                           </motion.div>
                         )}

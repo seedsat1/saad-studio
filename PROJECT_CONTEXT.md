@@ -48,12 +48,12 @@
 
 ---
 
-#### Latest task: Streamlined Compact Side Dropdowns (2026-08-21)
+#### Latest task: Dynamic Bilingual (Arabic/English) Language Integration (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Compact & Streamlined Dropdown Menus**:
-     - Reduced dropdown dimensions (`w-44` / `w-46`), optimized font size (`text-[11px]`), streamlined padding (`px-2 py-1`), and reduced icon sizes (`w-3.5 h-3.5`).
-     - Refactored labels into single-line bilingual items with zero line wrapping so all options fit completely in view without overflowing or scrolling.
+  1. **Dynamic Language Switch (English <-> Arabic)**:
+     - Hooked `useLanguage` into `ImageResultGrid` context and dropdown menus.
+     - All context menu items (Details, Remix, Reuse, Element, Tools, Like, Share, Folder, Publish, Download, Delete), Video placement actions (Start Frame, End Frame), and AI Edit Tools (3D Scene, Hex, Multishot, Inpaint, Skin Enhancer, Angles, Relight, Stylist, 4K Upscale) now render purely in Arabic when the site language is Arabic, and purely in English when switched to English.
   2. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
