@@ -48,13 +48,14 @@
 
 ---
 
-#### Latest task: Brand-Aligned Out-of-Bounds Glassmorphism Dropdowns (2026-08-21)
+#### Latest task: Side-Anchored Floating Dropdown Menus (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Fixed Menu Positioning (Out of Photo Bounds)**:
-     - Changed dropdown anchor positioning from bottom/inward to `top-full mt-2 right-0` so that menus pop downwards outside the image frame without obstructing or overlapping the generated image.
-  2. **Saad Studio Brand Colors & Glow**:
-     - Applied rich brand colors (`bg-gradient-to-b from-[#161c30] to-[#0f1424]`, `border-violet-500/35`, `shadow-violet-500/25`, `hover:bg-gradient-to-r hover:from-violet-600/30 hover:to-indigo-600/20`) across pill bars, action buttons, and dropdown overlays, eliminating plain black/zinc backgrounds.
+  1. **Side-Anchored Popover Positioning (Zero Image Overlap)**:
+     - Shifted all menu popovers (Three-dots menu, Video Placement, and AI Tools) to anchor to the side outside the photo layer (`absolute right-full top-0/bottom-0 mr-3 z-[999]`).
+     - Ensures that clicking any menu trigger leaves 100% of the photo surface clean and completely unobstructed.
+  2. **Saad Studio Indigo/Violet Theme**:
+     - Applied rich gradient glassmorphism and subtle lighting matching the platform aesthetics.
   3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)

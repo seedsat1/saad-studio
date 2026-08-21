@@ -698,15 +698,15 @@ export function ImageResultGrid({
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
 
-                    {/* 📋 Three-Dots Context Menu (Opens cleanly outside with Saad Studio styling) */}
+                    {/* 📋 Three-Dots Context Menu (Opens to the side completely outside photo layer) */}
                     <AnimatePresence>
                       {isMenuOpen && (
                         <motion.div
-                          initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                          initial={{ opacity: 0, scale: 0.95, x: 8 }}
+                          animate={{ opacity: 1, scale: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, x: 8 }}
                           transition={{ duration: 0.15 }}
-                          className="absolute right-0 top-full mt-2 z-[999] w-56 rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-100"
+                          className="absolute right-full top-0 mr-3 z-[999] w-56 rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-100"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
@@ -907,14 +907,14 @@ export function ImageResultGrid({
                         <ChevronDown className="w-3 h-3 opacity-70" />
                       </button>
 
-                      {/* 🎬 Video Frame Placement Dropdown (Opens downwards outside the image) */}
+                      {/* 🎬 Video Frame Placement Dropdown (Opens to the side completely outside photo layer) */}
                       <AnimatePresence>
                         {isVideoMenuOpen && (
                           <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 4 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 4 }}
-                            className="absolute right-0 top-full mt-2 z-[999] w-48 rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-1 text-slate-100"
+                            initial={{ opacity: 0, scale: 0.95, x: 8 }}
+                            animate={{ opacity: 1, scale: 1, x: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, x: 8 }}
+                            className="absolute right-full bottom-0 mr-3 z-[999] w-48 rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-1 text-slate-100"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-violet-400">
@@ -969,14 +969,14 @@ export function ImageResultGrid({
                         <ChevronDown className="w-3 h-3 opacity-70" />
                       </button>
 
-                      {/* 🪄 Open In / Additional Tools Dropdown (Opens downwards outside the image) */}
+                      {/* 🪄 Open In / Additional Tools Dropdown (Opens to the side completely outside photo layer) */}
                       <AnimatePresence>
                         {isToolsMenuOpen && (
                           <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 4 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 4 }}
-                            className="absolute right-0 top-full mt-2 z-[999] w-56 max-h-[380px] overflow-y-auto rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-100 scrollbar-thin scrollbar-thumb-violet-900/50"
+                            initial={{ opacity: 0, scale: 0.95, x: 8 }}
+                            animate={{ opacity: 1, scale: 1, x: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, x: 8 }}
+                            className="absolute right-full bottom-0 mr-3 z-[999] w-56 max-h-[380px] overflow-y-auto rounded-2xl border border-violet-500/35 bg-gradient-to-b from-[#161c30] to-[#0f1424] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-100 scrollbar-thin scrollbar-thumb-violet-900/50"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-violet-400">
