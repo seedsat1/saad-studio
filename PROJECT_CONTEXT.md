@@ -48,14 +48,13 @@
 
 ---
 
-#### Latest task: Mobile File Upload (Start/End/Reference) & Error Handling Fix (2026-08-21)
+#### Latest task: Video Image Input Storage Upload Resilience & Multi-Tier Fallback (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Mobile Native File Inputs (iOS Safari & Android)**:
-     - Replaced asynchronous JS-triggered clicks in `mediaPicker` modal with direct native `<label>` wrapping `<input type="file">`, completely solving the iOS Safari silent click blocking issue.
-     - Upgraded mobile settings drawer (`setMobileSettingsOpen`) with direct native device upload buttons, visual thumbnail previews, and instant deletion (`X`) for Start Frame, End Frame, and Reference Media.
-  2. **Error Message Clarity & Safety Filter**:
-     - Fixed `lib/generation-errors.ts` so human-readable errors, provider feedback, and Arabic error messages are clearly presented to users instead of masked with a false "site under maintenance" banner.
+  1. **Direct Signed Storage Upload for All Image Inputs**:
+     - Updated `app/(dash)/(routes)/video/page.tsx` so Kling 3.0 Standard/Pro image inputs and general start/end frames use direct `/api/media/upload` signed uploads with graceful fallback to base64.
+  2. **Multi-Tier Resilient Storage Fallback**:
+     - Upgraded `uploadDataUrlToStorage` (`lib/media/public-url-resolver.ts`), `uploadBuffer` (`lib/storage/runtime.ts`), and `lib/supabase-storage.ts` to automatically fall back to Supabase Storage if Backblaze B2/R2 upload encounters an issue.
   3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)

@@ -33,7 +33,7 @@ export async function uploadDataUrlToStorage(
   const buffer = Buffer.from(fileData, "base64");
   const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   
-  const uploaded = await uploadBufferToStorage({
+  let uploaded = await uploadBufferToStorage({
     buffer,
     contentType: mime,
     userId,
@@ -41,6 +41,22 @@ export async function uploadDataUrlToStorage(
     generationId: `input-${uniqueId}`,
     fileName: `input.${ext}`,
   });
+
+  if (!uploaded) {
+    try {
+      const { uploadBufferToSupabaseOnly } = await import("@/lib/supabase-storage");
+      uploaded = await uploadBufferToSupabaseOnly({
+        buffer,
+        contentType: mime,
+        userId,
+        assetType,
+        generationId: `input-${uniqueId}`,
+        fileName: `input.${ext}`,
+      });
+    } catch (err) {
+      console.error("[public-url-resolver] uploadDataUrlToStorage fallback failed:", err);
+    }
+  }
 
   if (!uploaded) {
     throw new Error(`Failed to upload ${assetType} buffer to storage`);

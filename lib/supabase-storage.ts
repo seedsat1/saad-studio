@@ -147,8 +147,8 @@ export async function uploadUrlToStorage(params: {
   }
 }
 
-// ─── Upload raw Buffer/ArrayBuffer → Storage ─────────────────────────────────
-export async function uploadBufferToStorage(params: {
+// ─── Direct Supabase Storage buffer upload (for resilient fallback) ───────────
+export async function uploadBufferToSupabaseOnly(params: {
   buffer:       Buffer | ArrayBuffer;
   contentType:  string;
   userId:       string;
@@ -156,17 +156,13 @@ export async function uploadBufferToStorage(params: {
   generationId: string;
   fileName?:    string;
 }): Promise<string | null> {
-  if (isR2FullyConfigured()) {
-    return r2.uploadBufferToStorage(params);
-  }
-
   const { userId, assetType, generationId, contentType } = params;
   const buf = Buffer.isBuffer(params.buffer)
     ? params.buffer
     : Buffer.from(params.buffer);
 
   try {
-    const bucket = bucketForAssetType(assetType);
+    const bucket: string = assetType.toLowerCase().includes("video") ? "videos" : assetType.toLowerCase().includes("audio") ? "audio" : "images";
     const ext    = params.fileName
       ? `.${params.fileName.split(".").pop()}`
       : extensionFromContentType(contentType);
@@ -182,9 +178,8 @@ export async function uploadBufferToStorage(params: {
       });
 
     if (error) {
-      console.error(`[supabase-storage] buffer upload error for bucket ${bucket}:`, error.message);
+      console.warn(`[supabase-storage] buffer upload error for bucket ${bucket}:`, error.message);
       if (bucket !== "media") {
-        console.log("[supabase-storage] Attempting fallback upload to 'media' bucket...");
         const fallbackResult = await supabase.storage
           .from("media")
           .upload(path, buf, {
@@ -193,19 +188,36 @@ export async function uploadBufferToStorage(params: {
             cacheControl: "2592000",
           });
         if (!fallbackResult.error) {
-          console.log("[supabase-storage] Fallback upload to 'media' bucket succeeded!");
           return `media/${path}`;
         }
-        console.error("[supabase-storage] Fallback upload to 'media' bucket failed:", fallbackResult.error.message);
       }
       return null;
     }
 
     return `${bucket}/${path}`;
   } catch (err) {
-    console.error("[supabase-storage] uploadBufferToStorage failed:", err);
+    console.error("[supabase-storage] uploadBufferToSupabaseOnly failed:", err);
     return null;
   }
+}
+
+// ─── Upload raw Buffer/ArrayBuffer → Storage ─────────────────────────────────
+export async function uploadBufferToStorage(params: {
+  buffer:       Buffer | ArrayBuffer;
+  contentType:  string;
+  userId:       string;
+  assetType:    string;
+  generationId: string;
+  fileName?:    string;
+}): Promise<string | null> {
+  if (isR2FullyConfigured()) {
+    const r2Result = await r2.uploadBufferToStorage(params);
+    if (r2Result) return r2Result;
+    console.warn("[storage] Primary R2/B2 upload returned null, falling back to Supabase...");
+    return uploadBufferToSupabaseOnly(params);
+  }
+
+  return uploadBufferToSupabaseOnly(params);
 }
 
 // ─── Delete a file from Storage ──────────────────────────────────────────────

@@ -306,7 +306,14 @@ export async function uploadBuffer(params: {
       cacheControl: "public, max-age=2592000, immutable",
     });
   } catch (error) {
-    console.error("[storage-runtime] uploadBuffer failed:", error);
+    console.error("[storage-runtime] uploadBuffer primary provider failed, attempting Supabase fallback:", error);
+    try {
+      const { uploadBufferToSupabaseOnly } = await import("@/lib/supabase-storage");
+      const fallbackResult = await uploadBufferToSupabaseOnly(params);
+      if (fallbackResult) return fallbackResult;
+    } catch (fallbackError) {
+      console.error("[storage-runtime] Supabase fallback error:", fallbackError);
+    }
     return null;
   }
 }

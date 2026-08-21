@@ -2555,10 +2555,16 @@ function VideoPageInner() {
 
       if (isKling30StdImage) {
         const uploadedImageRefs = await Promise.all(
-          referenceImages.filter((f) => f.type.startsWith("image/")).slice(0, 2).map((f) => fileToDataURL(f))
+          referenceImages.filter((f) => f.type.startsWith("image/")).slice(0, 2).map(async (f) => {
+            try { return await uploadVideoRequestFile(f, fetchWithAuth); } catch { return await fileToDataURL(f); }
+          })
         );
         if (startFrame) {
-          payload.image = await fileToDataURL(startFrame);
+          try {
+            payload.image = await uploadVideoRequestFile(startFrame, fetchWithAuth);
+          } catch {
+            payload.image = await fileToDataURL(startFrame);
+          }
         } else if (linkedStartFrameUrl) {
           payload.image = linkedStartFrameUrl;
         } else if (characterSupport.mode === "image_reference" && selectedCharacter?.referenceUrls?.[0]) {
@@ -2567,7 +2573,11 @@ function VideoPageInner() {
           payload.image = uploadedImageRefs[0];
         }
         if (endFrame) {
-          payload.end_image = await fileToDataURL(endFrame);
+          try {
+            payload.end_image = await uploadVideoRequestFile(endFrame, fetchWithAuth);
+          } catch {
+            payload.end_image = await fileToDataURL(endFrame);
+          }
         } else if (linkedEndFrameUrl) {
           payload.end_image = linkedEndFrameUrl;
         } else if (uploadedImageRefs[1]) {
@@ -2617,13 +2627,21 @@ function VideoPageInner() {
             payload.last_frame_url = explicitEndImage;
           }
         } else {
-          const uploadedRefs = await Promise.all(referenceImages.filter((f) => f.type.startsWith("image/")).map((f) => fileToDataURL(f)));
+          const uploadedRefs = await Promise.all(referenceImages.filter((f) => f.type.startsWith("image/")).map(async (f) => {
+            try { return await uploadVideoRequestFile(f, fetchWithAuth); } catch { return await fileToDataURL(f); }
+          }));
           payload.reference_image_urls = [...characterReferenceUrls, ...uploadedRefs].slice(0, Math.max(1, caps.max_reference_images || 1));
         }
       } else if ((caps.requires_image || caps.optional_image) && (startFrame || linkedStartFrameUrl)) {
-        payload[isSeedanceV2 ? "first_frame_url" : "image"] = startFrame
-          ? (isSeedanceV2 ? await uploadVideoRequestFile(startFrame, fetchWithAuth) : await fileToDataURL(startFrame))
-          : linkedStartFrameUrl;
+        if (startFrame) {
+          try {
+            payload[isSeedanceV2 ? "first_frame_url" : "image"] = await uploadVideoRequestFile(startFrame, fetchWithAuth);
+          } catch {
+            payload[isSeedanceV2 ? "first_frame_url" : "image"] = await fileToDataURL(startFrame);
+          }
+        } else {
+          payload[isSeedanceV2 ? "first_frame_url" : "image"] = linkedStartFrameUrl;
+        }
       } else if ((caps.requires_image || caps.optional_image) && characterSupport.mode === "image_reference" && selectedCharacter?.referenceUrls?.[0]) {
         payload[isSeedanceV2 ? "first_frame_url" : "image"] = selectedCharacter.referenceUrls[0];
       }
@@ -2636,9 +2654,15 @@ function VideoPageInner() {
           : selectedModel.api_route.startsWith("wavespeed-ai/wan")
             ? "last_image"
             : "end_image";
-        payload[endKey] = endFrame
-          ? (isSeedanceV2 ? await uploadVideoRequestFile(endFrame, fetchWithAuth) : await fileToDataURL(endFrame))
-          : linkedEndFrameUrl;
+        if (endFrame) {
+          try {
+            payload[endKey] = await uploadVideoRequestFile(endFrame, fetchWithAuth);
+          } catch {
+            payload[endKey] = await fileToDataURL(endFrame);
+          }
+        } else {
+          payload[endKey] = linkedEndFrameUrl;
+        }
       }
 
       if (isVeo31Model) {
