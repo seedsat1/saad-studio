@@ -148,10 +148,8 @@ export function CameraMovementsSection() {
                   </div>
                 </div>
 
-                {/* Prompt in code-block style — like the source aicameramovements.com layout */}
-                <pre className="flex-1 whitespace-pre-wrap break-words rounded-lg border border-white/5 bg-black/40 p-2.5 text-[11px] leading-relaxed text-zinc-300 font-mono max-h-40 overflow-auto select-all" dir="ltr">
-                  {m.promptDescription}
-                </pre>
+                {/* Prompt text is intentionally hidden — only the Copy button below.
+                    The full prompt string is still passed to the clipboard via handleCopy. */}
 
                 <button
                   type="button"
