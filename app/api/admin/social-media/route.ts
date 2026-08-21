@@ -711,6 +711,9 @@ Return ONLY a valid JSON object matching:
               });
 
               let channelIds: string[] = [];
+              // Track each channel's Buffer service ("facebook", "facebookPage", "twitter", …)
+              // so per-channel required metadata (e.g. Facebook `type`) can be attached.
+              const channelServices = new Map<string, string>();
 
               if (config.bufferProfileId && config.bufferProfileId.trim()) {
                 channelIds.push(config.bufferProfileId.trim());
@@ -746,22 +749,29 @@ Return ONLY a valid JSON object matching:
                       if (targetPlatform === "facebook") {
                         if (ch.service === "facebook" || ch.service === "facebookPage" || ch.service === "facebook_page") {
                           channelIds.push(ch.id);
+                          channelServices.set(ch.id, ch.service);
                         }
                       } else {
                         channelIds.push(ch.id);
+                        channelServices.set(ch.id, ch.service);
                       }
                     }
 
                     if (channelIds.length === 0 && channels.length > 0) {
                       channelIds = channels.map((c: any) => c.id);
+                      for (const c of channels) channelServices.set(c.id, c.service);
                     }
                   }
                 }
               }
 
-              // Fallback to active Saad Studio channel if not discovered
+              // Fallback to active Saad Studio channel if not discovered.
+              // This id is the Saad Studio Facebook Page channel, so mark it as such
+              // to satisfy Buffer's required Facebook `metadata.facebook.type` field.
               if (channelIds.length === 0) {
-                channelIds.push("6e070a5cccaf649a67e102eb");
+                const fallbackId = "6e070a5cccaf649a67e102eb";
+                channelIds.push(fallbackId);
+                if (targetPlatform === "facebook") channelServices.set(fallbackId, "facebook");
               }
 
               if (channelIds.length > 0) {
@@ -792,6 +802,14 @@ Return ONLY a valid JSON object matching:
 
                   if (fullImageUrl) {
                     postInput.assets = [{ image: { url: fullImageUrl } }];
+                  }
+
+                  // Facebook requires PostTypeFacebook on `metadata.facebook.type`.
+                  // Schema: FacebookPostMetadataInput { type: PostTypeFacebook! }
+                  // Values: "post" | "story" | "reel" — we publish regular posts.
+                  const svc = channelServices.get(chId) || (targetPlatform === "facebook" ? "facebook" : "");
+                  if (svc === "facebook" || svc === "facebookPage" || svc === "facebook_page") {
+                    postInput.metadata = { ...(postInput.metadata || {}), facebook: { type: "post" } };
                   }
 
                   const publishRes = await fetch("https://api.buffer.com", {
