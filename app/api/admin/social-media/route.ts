@@ -693,43 +693,50 @@ Return ONLY a valid JSON object matching:
             let graphqlSuccess = false;
             try {
               // Fetch user organizations and channels
-              const gqlChannelsQuery = {
-                query: `
-                  query GetChannels {
-                    account {
-                      id
-                      organizations {
-                        id
-                        channels {
-                          id
-                          name
-                          service
-                        }
-                      }
-                    }
-                  }
-                `,
-              };
-
-              const gqlRes = await fetch("https://api.buffer.com", {
+              // 1. Fetch organization ID from account
+              const orgsRes = await fetch("https://api.buffer.com", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                   Authorization: `Bearer ${apiKey}`,
                 },
-                body: JSON.stringify(gqlChannelsQuery),
+                body: JSON.stringify({
+                  query: `query GetOrganizations { account { organizations { id } } }`,
+                }),
               });
 
-              if (gqlRes.ok) {
-                const gqlData = await gqlRes.json();
-                const orgs = gqlData?.data?.account?.organizations || gqlData?.data?.user?.organizations || gqlData?.data?.organizations || [];
-                let channelIds: string[] = [];
+              let channelIds: string[] = [];
 
-                if (config.bufferProfileId && config.bufferProfileId.trim()) {
-                  channelIds.push(config.bufferProfileId.trim());
-                } else {
-                  for (const org of orgs) {
-                    const channels = org?.channels || [];
+              if (config.bufferProfileId && config.bufferProfileId.trim()) {
+                channelIds.push(config.bufferProfileId.trim());
+              } else if (orgsRes.ok) {
+                const orgsData = await orgsRes.json().catch(() => ({}));
+                const orgId = orgsData?.data?.account?.organizations?.[0]?.id;
+
+                if (orgId) {
+                  // 2. Fetch channels for this organization
+                  const chRes = await fetch("https://api.buffer.com", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${apiKey}`,
+                    },
+                    body: JSON.stringify({
+                      query: `query GetChannels($input: ChannelsInput!) {
+                        channels(input: $input) {
+                          id
+                          name
+                          displayName
+                          service
+                        }
+                      }`,
+                      variables: { input: { organizationId: orgId } },
+                    }),
+                  });
+
+                  if (chRes.ok) {
+                    const chData = await chRes.json().catch(() => ({}));
+                    const channels = chData?.data?.channels || [];
                     for (const ch of channels) {
                       if (targetPlatform === "facebook") {
                         if (ch.service === "facebook" || ch.service === "facebookPage" || ch.service === "facebook_page") {
@@ -739,116 +746,72 @@ Return ONLY a valid JSON object matching:
                         channelIds.push(ch.id);
                       }
                     }
-                  }
 
-                  // If no specific channel matched, use all available channels
-                  if (channelIds.length === 0 && orgs[0]?.channels?.length) {
-                    channelIds = orgs[0].channels.map((c: any) => c.id);
-                  }
-
-                  // Fallback: Query organizations directly if account wrapper was empty
-                  if (channelIds.length === 0) {
-                    try {
-                      const fbRes = await fetch("https://api.buffer.com", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-                        body: JSON.stringify({
-                          query: `query { organizations { id channels { id name service } } }`,
-                        }),
-                      });
-                      if (fbRes.ok) {
-                        const fbData = await fbRes.json();
-                        const fbOrgs = fbData?.data?.organizations || [];
-                        for (const org of fbOrgs) {
-                          for (const ch of org?.channels || []) {
-                            channelIds.push(ch.id);
-                          }
-                        }
-                      }
-                    } catch {}
-                  }
-
-                  // Ultimate smart fallback for Saad Studio active Facebook channel
-                  if (channelIds.length === 0) {
-                    channelIds.push("6e070a5cccaf649a67e102eb");
+                    if (channelIds.length === 0 && channels.length > 0) {
+                      channelIds = channels.map((c: any) => c.id);
+                    }
                   }
                 }
+              }
 
-                if (channelIds.length > 0) {
-                  for (const chId of channelIds) {
-                    // Try immediate publish first, then fallback to automatic queue
-                    const createPostMutation = `
-                      mutation CreatePost($input: CreatePostInput!) {
-                        createPost(input: $input) {
-                          ... on PostActionSuccess {
-                            post {
-                              id
-                              status
-                            }
-                          }
-                          ... on UserError {
-                            message
-                          }
+              // Fallback to active Saad Studio channel if not discovered
+              if (channelIds.length === 0) {
+                channelIds.push("6e070a5cccaf649a67e102eb");
+              }
+
+              if (channelIds.length > 0) {
+                const createPostMutation = `
+                  mutation CreatePost($input: CreatePostInput!) {
+                    createPost(input: $input) {
+                      ... on PostActionSuccess {
+                        post {
+                          id
+                          text
+                          dueAt
                         }
                       }
-                    `;
-
-                    const postInputNow: any = {
-                      channelId: chId,
-                      text: textToPublish,
-                      schedulingType: "now",
-                    };
-                    if (fullImageUrl) {
-                      postInputNow.assets = [{ type: "IMAGE", url: fullImageUrl }];
-                    }
-
-                    let publishRes = await fetch("https://api.buffer.com", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${apiKey}`,
-                      },
-                      body: JSON.stringify({ query: createPostMutation, variables: { input: postInputNow } }),
-                    });
-
-                    let pubData = await publishRes.json().catch(() => ({}));
-                    if (pubData?.data?.createPost?.post?.id) {
-                      graphqlSuccess = true;
-                    } else {
-                      // Try fallback with schedulingType: "automatic" (Queue)
-                      const postInputQueue: any = {
-                        channelId: chId,
-                        text: textToPublish,
-                        schedulingType: "automatic",
-                      };
-                      if (fullImageUrl) {
-                        postInputQueue.assets = [{ type: "IMAGE", url: fullImageUrl }];
-                      }
-
-                      publishRes = await fetch("https://api.buffer.com", {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${apiKey}`,
-                        },
-                        body: JSON.stringify({ query: createPostMutation, variables: { input: postInputQueue } }),
-                      });
-
-                      pubData = await publishRes.json().catch(() => ({}));
-                      if (pubData?.data?.createPost?.post?.id) {
-                        graphqlSuccess = true;
-                      } else {
-                        const errMsg = pubData?.data?.createPost?.message || pubData?.errors?.[0]?.message;
-                        if (errMsg) lastBufferError = errMsg;
-                        console.error("[Buffer GraphQL Publish Error]:", errMsg, pubData);
+                      ... on MutationError {
+                        message
                       }
                     }
                   }
-                } else {
-                  lastBufferError = "لم يتم العثور على أي قنوات مربوطة في حساب Buffer الخاص بك";
+                `;
+
+                for (const chId of channelIds) {
+                  const postInput: any = {
+                    channelId: chId,
+                    text: textToPublish,
+                    schedulingType: "automatic",
+                    mode: "addToQueue",
+                  };
+
+                  if (fullImageUrl) {
+                    postInput.assets = [{ image: { url: fullImageUrl } }];
+                  }
+
+                  const publishRes = await fetch("https://api.buffer.com", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${apiKey}`,
+                    },
+                    body: JSON.stringify({
+                      query: createPostMutation,
+                      variables: { input: postInput },
+                    }),
+                  });
+
+                  const pubData = await publishRes.json().catch(() => ({}));
+                  if (pubData?.data?.createPost?.post?.id) {
+                    graphqlSuccess = true;
+                  } else {
+                    const errMsg = pubData?.data?.createPost?.message || pubData?.errors?.[0]?.message;
+                    if (errMsg) lastBufferError = errMsg;
+                    console.error("[Buffer GraphQL Publish Error]:", errMsg, pubData);
+                  }
                 }
               } else {
-                lastBufferError = `فشل المصادقة مع Buffer (HTTP ${gqlRes.status})`;
+                lastBufferError = "لم يتم العثور على أي قنوات مربوطة في حساب Buffer الخاص بك";
               }
             } catch (gqlErr: any) {
               console.warn("Buffer GraphQL failed, trying REST fallback:", gqlErr);

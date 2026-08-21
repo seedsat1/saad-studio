@@ -48,12 +48,15 @@
 
 ---
 
-#### Latest task: Buffer Automatic Channel Discovery & Direct Fallback (2026-08-21)
+#### Latest task: Official Buffer GraphQL API Schema Alignment & Auto Publishing (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Automatic Channel Fallback**:
-     - Added multi-tier fallback querying for Buffer GraphQL organizations.
-     - Automatically injects and routes to the active Saad Studio Facebook channel (`6e070a5cccaf649a67e102eb`) if GraphQL root channel discovery returns empty.
+  1. **Aligned with Official Buffer GraphQL API Specs**:
+     - Query 1: `query GetOrganizations { account { organizations { id } } }`.
+     - Query 2: `query GetChannels($input: ChannelsInput!) { channels(input: $input) { id name displayName service } }`.
+     - Mutation: `mutation CreatePost($input: CreatePostInput!) { createPost(input: $input) { ... on PostActionSuccess { post { id text dueAt } } ... on MutationError { message } } }`.
+     - Properly structures `assets: [{ image: { url: ... } }]`, `schedulingType: "automatic"`, `mode: "addToQueue"`.
+     - Direct fallback to active Saad Studio Facebook channel ID (`6e070a5cccaf649a67e102eb`).
   2. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
