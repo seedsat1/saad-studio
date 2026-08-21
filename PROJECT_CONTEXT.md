@@ -48,18 +48,16 @@
 
 ---
 
-#### Latest task: Image Card Footer Tool Bar Redesign (2026-08-21)
+#### Latest task: Pure Full-Bleed Image Grid Card Design (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Tools Moved Outside Image Frame**:
-     - Removed the cramped, overlapping dropdown menu on top of the photo.
-     - Dedicated external action toolbar placed in the card footer below the image:
-       - 🎬 Video Start Frame (`تحويل لفيديو`)
-       - 🖌️ Inpaint Brush (`تعديل بالفرشاة`)
-       - ✨ Upscale 4K (`رفع الدقة والتفاصيل`)
-       - 💡 Relight (`إعادة توزيع الإضاءة`)
-       - 🖼️ Image Reference (`استخدام كمرجع`)
-       - ••• Secondary Actions (Inspector, End Frame, 3D Scene, Skin Enhancer, Element, Palette, Folder, Share, Delete).
+  1. **Pure Full-Bleed Image Gallery**:
+     - Restored the full-bleed, borderless image gallery layout matching the design reference.
+     - Removed the black footer/prompt box below the photos.
+     - Overlaid glassmorphism tools and controls directly on the image upon hover:
+       - Top-left: Selection Checkbox.
+       - Top-right: Heart (Like), Quick Download, and More Options (`...`).
+       - Bottom-right: Image Reference, Video Frame Placement, AI Tools (Inpaint, Stylist, Upscale, Relight), and Details.
   2. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
