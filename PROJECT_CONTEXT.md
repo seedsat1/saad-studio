@@ -48,16 +48,15 @@
 
 ---
 
-#### Latest task: Multishot / Shots Studio & Edit Image Input Transfer Fix (2026-08-21)
+#### Latest task: Shots Studio Navbar Integration, Full Lightbox View & Direct Download (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Shots Studio Reference Image Loading**:
-     - Added `useSearchParams` and `sessionStorage` payload bridging to `/shots` (`app/(dash)/(routes)/shots/page.tsx`).
-     - Directly populates `referencePreview` and converts image payloads into a browser `File` object (`referenceFile`) with fallback support.
-     - Updated `handleGenerate` in Shots Studio to support generating directly with `referenceFile` or `referencePreview`.
-  2. **AI Tools Image Transfer**:
-     - Updated `handleOpenTool` in `ImageResultGrid.tsx` to save payload to `sessionStorage` for multishot, upscale, relight, face swap, etc., avoiding URL character length limits.
-     - Updated `/edit` page to recognize `imageUrl` alongside `image` and `url`.
+  1. **Navbar Navigation Integration**:
+     - Added `Shots Studio` into `IMAGE_FEATURES` list and `TopNavbar` menu routing (`imageFeatureHref`), with full bilingual Arabic translations.
+  2. **Shots Studio Lightbox & Direct Download**:
+     - Added full-screen Lightbox inspection modal in `app/(dash)/(routes)/shots/page.tsx` with high-resolution image viewing, shot metadata, and keyboard (Esc) dismissal.
+     - Implemented click-to-preview on each generated shot card and preview button in the action overlay.
+     - Enhanced `downloadImage` helper with robust blob generation, automatic revoke, toast feedback, and direct link fallbacks.
   3. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)

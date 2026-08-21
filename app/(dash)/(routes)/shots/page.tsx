@@ -19,6 +19,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
+  Maximize2,
+  Eye,
 } from "lucide-react";
 import {
   SHOT_PACKS,
@@ -70,15 +72,27 @@ async function downloadImage(url: string, filename: string) {
     if (proxyUrl) {
       fetchUrl = proxyUrl;
     }
-    const res  = await fetch(fetchUrl);
+    const res = await fetch(fetchUrl);
+    if (!res.ok) throw new Error("Fetch failed");
     const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href     = URL.createObjectURL(blob);
+    link.href = blobUrl;
     link.download = filename;
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(link.href);
-  } catch {
-    window.open(url, "_blank");
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+    toast.success("Image downloaded successfully 📥");
+  } catch (err) {
+    console.warn("Direct blob download failed, falling back to direct link", err);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }
 
@@ -88,17 +102,24 @@ function ShotResultCard({
   output,
   onRegenerate,
   isRegenerating,
+  onPreview,
 }: {
   output: NormalizedShotOutput;
   onRegenerate: (shotType: ShotType) => void;
   isRegenerating: boolean;
+  onPreview: (output: NormalizedShotOutput) => void;
 }) {
   const preset = SHOT_PRESETS[output.shot_type];
-  const isFailed   = output.generation_status === "failed";
+  const isFailed = output.generation_status === "failed";
   const isFallback = output.fallback_used;
 
   return (
-    <div className="group relative rounded-xl overflow-hidden border border-white/10 bg-white/5 hover:border-white/20 transition-all duration-300">
+    <div
+      onClick={() => {
+        if (output.asset_url) onPreview(output);
+      }}
+      className="group relative rounded-xl overflow-hidden border border-white/10 bg-white/5 hover:border-violet-500/50 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-300 cursor-pointer"
+    >
       {/* Image area */}
       <div className="relative aspect-[4/3] bg-white/5 overflow-hidden">
         {output.asset_url ? (
@@ -120,24 +141,37 @@ function ShotResultCard({
 
         {/* Overlay actions */}
         {output.asset_url && (
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
+          <div
+            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2.5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
+              type="button"
+              onClick={() => onPreview(output)}
+              className="p-2.5 rounded-full bg-white/20 hover:bg-violet-600 text-white transition-all transform hover:scale-110 shadow-lg"
+              title="View Full Size"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
               onClick={() =>
-                downloadImage(
+                void downloadImage(
                   output.asset_url!,
                   `${output.shot_type}_${output.output_id}.jpg`,
                 )
               }
-              className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
-              title="Download"
+              className="p-2.5 rounded-full bg-white/20 hover:bg-emerald-600 text-white transition-all transform hover:scale-110 shadow-lg"
+              title="Download Image"
             >
               <Download className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => onRegenerate(output.shot_type)}
               disabled={isRegenerating}
-              className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50"
-              title="Regenerate"
+              className="p-2.5 rounded-full bg-white/20 hover:bg-cyan-600 text-white transition-all transform hover:scale-110 disabled:opacity-50 shadow-lg"
+              title="Regenerate Shot"
             >
               {isRegenerating ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -151,15 +185,15 @@ function ShotResultCard({
         {/* Status badge */}
         <div className="absolute top-2 right-2">
           {isFailed ? (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/80 text-white">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/80 text-white shadow">
               FAILED
             </span>
           ) : isFallback ? (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/80 text-white">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/80 text-white shadow">
               FALLBACK
             </span>
           ) : (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/80 text-white">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/80 text-white shadow">
               ✓
             </span>
           )}
@@ -225,8 +259,18 @@ export default function ShotsStudioPage() {
   const [summary, setSummary]                       = useState<GenerationSummary | null>(null);
   const [regeneratingShot, setRegeneratingShot]     = useState<ShotType | null>(null);
   const [isDragging, setIsDragging]                 = useState(false);
+  const [lightboxOutput, setLightboxOutput]         = useState<NormalizedShotOutput | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Escape key listener for Lightbox ──
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxOutput(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // ── Load image from URL searchParams or sessionStorage ──
   useEffect(() => {
@@ -874,7 +918,6 @@ export default function ShotsStudioPage() {
               </div>
             </div>
           )}
-
           {/* Results grid */}
           {(results.length > 0 || isGenerating) && (
             <div>
@@ -901,6 +944,7 @@ export default function ShotsStudioPage() {
                       output={output}
                       onRegenerate={handleRegenerate}
                       isRegenerating={regeneratingShot === output.shot_type}
+                      onPreview={setLightboxOutput}
                     />
                   );
                 })}
@@ -930,6 +974,75 @@ export default function ShotsStudioPage() {
           )}
         </div>
       </div>
+
+      {/* 🌟 Lightbox Modal for Full View and Download */}
+      {lightboxOutput && lightboxOutput.asset_url && (
+        <div
+          className="fixed inset-0 z-[999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200"
+          onClick={() => setLightboxOutput(null)}
+        >
+          <div
+            className="relative max-w-5xl w-full max-h-[92vh] flex flex-col items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header controls bar */}
+            <div className="w-full flex items-center justify-between py-2.5 px-4 mb-3 rounded-xl bg-white/10 backdrop-blur-lg border border-white/10 shadow-2xl">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-sm font-bold text-white truncate">
+                  {SHOT_PRESETS[lightboxOutput.shot_type]?.label || lightboxOutput.shot_type}
+                </span>
+                <span className="text-xs text-white/50 hidden sm:inline truncate">
+                  {SHOT_PRESETS[lightboxOutput.shot_type]?.description}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() =>
+                    void downloadImage(
+                      lightboxOutput.asset_url!,
+                      `${lightboxOutput.shot_type}_${lightboxOutput.output_id}.jpg`,
+                    )
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleRegenerate(lightboxOutput.shot_type);
+                    setLightboxOutput(null);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Regenerate</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLightboxOutput(null)}
+                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/25 text-white transition-all ml-1"
+                  title="Close (Esc)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Image display */}
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black/60 max-h-[78vh] flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={lightboxOutput.asset_url}
+                alt={SHOT_PRESETS[lightboxOutput.shot_type]?.label || "Preview"}
+                className="max-h-[78vh] max-w-full w-auto h-auto object-contain select-none rounded-xl"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

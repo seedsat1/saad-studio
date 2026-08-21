@@ -57,6 +57,7 @@ import {
   Atom,
   Box,
   Plug,
+  Camera,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -98,6 +99,8 @@ const getTranslation = (key: string, lang: "en" | "ar") => {
     "Storyboard": "القصة المصورة",
     "Storyboard Studio": "استوديو القصة المصورة",
     "Hook Studio": "استوديو الهوكات",
+    "Shots Studio": "استوديو اللقطات",
+    "Open Shots Studio": "افتح استوديو اللقطات",
     "Credit Balance": "رصيد النقاط",
     "My Profile": "ملفي الشخصي",
     "Settings": "الإعدادات",
@@ -128,6 +131,7 @@ const LanguageSwitcher = () => {
 
 const IMAGE_FEATURES = [
   { label: "Create Image", icon: Wand2, color: "text-pink-400", description: "Generate stunning AI images instantly", badge: "TOP" },
+  { label: "Shots Studio", icon: Camera, color: "text-indigo-400", description: "Multi-shot consistent photo pack generator", badge: "NEW" },
   { label: "Prompt", icon: GalleryHorizontalEnd, color: "text-cyan-400", description: "Private prompt and result library", badge: "NEW" },
   { label: "Prompt Extractor", icon: ScanFace, color: "text-teal-400", description: "Extract prompts from images", badge: "NEW" },
   { label: "Cinema Studio Image 2.0", icon: Clapperboard, color: "text-violet-400", description: "Cinematic quality image generation", badge: "NEW" },
@@ -398,6 +402,7 @@ function imageFeatureHref(label: string): string {
   if (label === "Prompt") return "/prompt";
   if (label === "Prompt Extractor") return "/prompt-extractor";
   if (label === "Cinema Studio Image 2.0") return "/cinema-studio";
+  if (label === "Shots Studio" || label === "Multishot") return "/shots";
 
   const editToolsMap: Record<string, string> = {
     Relight: "relight",
