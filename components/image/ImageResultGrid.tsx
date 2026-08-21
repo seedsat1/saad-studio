@@ -914,10 +914,10 @@ export function ImageResultGrid({
                             initial={{ opacity: 0, scale: 0.95, y: 4 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 4 }}
-                            className="absolute right-0 bottom-10 z-50 w-48 rounded-2xl border border-zinc-800 bg-zinc-950/95 p-2 shadow-2xl backdrop-blur-2xl text-xs space-y-1"
+                            className="absolute right-0 bottom-12 z-[999] w-48 rounded-2xl border border-indigo-500/25 bg-[#0c101d]/95 p-1.5 shadow-[0_15px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(99,102,241,0.15)] backdrop-blur-2xl text-xs space-y-1 text-slate-200"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-400">
                               Frame Placement
                             </div>
                             <button
@@ -926,10 +926,10 @@ export function ImageResultGrid({
                                 setActiveVideoMenuId(null);
                                 handleVideoFramePlacement(item, "start", e);
                               }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors font-medium"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors font-medium"
                             >
                               <ArrowRightCircle className="w-4 h-4 text-cyan-400" />
-                              <span>Start Frame</span>
+                              <span>Start Frame (بداية)</span>
                             </button>
                             <button
                               type="button"
@@ -937,10 +937,10 @@ export function ImageResultGrid({
                                 setActiveVideoMenuId(null);
                                 handleVideoFramePlacement(item, "end", e);
                               }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors font-medium"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors font-medium"
                             >
                               <ArrowLeftCircle className="w-4 h-4 text-purple-400" />
-                              <span>End Frame</span>
+                              <span>End Frame (نهاية)</span>
                             </button>
                           </motion.div>
                         )}
@@ -961,7 +961,7 @@ export function ImageResultGrid({
                         className={cn(
                           "flex items-center gap-0.5 px-1.5 py-1.5 rounded-xl transition-all",
                           isToolsMenuOpen
-                            ? "bg-white text-zinc-950"
+                            ? "bg-indigo-600 text-white"
                             : "text-zinc-300 hover:text-white hover:bg-white/15"
                         )}
                       >
@@ -976,25 +976,25 @@ export function ImageResultGrid({
                             initial={{ opacity: 0, scale: 0.95, y: 4 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 4 }}
-                            className="absolute right-0 bottom-10 z-50 w-56 max-h-[380px] overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950/95 p-1.5 shadow-2xl backdrop-blur-2xl text-xs space-y-0.5"
+                            className="absolute right-0 bottom-12 z-[999] w-56 max-h-[380px] overflow-y-auto rounded-2xl border border-indigo-500/25 bg-[#0c101d]/95 p-1.5 shadow-[0_15px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(99,102,241,0.15)] backdrop-blur-2xl text-xs space-y-0.5 text-slate-200 scrollbar-thin scrollbar-thumb-slate-800"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                              Generate
+                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-400">
+                              Generate (توليد ثلاثي)
                             </div>
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "3d", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                             >
                               <Box className="w-4 h-4 text-emerald-400" />
                               <span>Create 3D scene</span>
                             </button>
 
-                            <div className="my-1 border-t border-zinc-800/80" />
+                            <div className="my-1 border-t border-slate-800/80" />
 
-                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                              Open in
+                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-400">
+                              AI Tools (أدوات التعديل)
                             </div>
 
                             <button
@@ -1003,16 +1003,16 @@ export function ImageResultGrid({
                                 setActiveToolsMenuId(null);
                                 void handleExtractHex(item, e);
                               }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                             >
                               <Pipette className="w-4 h-4 text-amber-400" />
-                              <span>Extract Hex in Soul 2.0</span>
+                              <span>Extract Hex Colors</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "multishot", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                             >
                               <LayoutGrid className="w-4 h-4 text-indigo-400" />
                               <span>Multishot</span>
@@ -1021,55 +1021,55 @@ export function ImageResultGrid({
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "inpaint", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                             >
                               <Wand2 className="w-4 h-4 text-pink-400" />
-                              <span>Inpaint</span>
+                              <span>Inpaint (فرشاة التعديل)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "skin", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                             >
                               <ScanFace className="w-4 h-4 text-cyan-400" />
-                              <span>Skin Enhancer</span>
+                              <span>Skin Enhancer (تحسين الوجه)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "angles", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                             >
                               <Camera className="w-4 h-4 text-blue-400" />
-                              <span>Angles</span>
+                              <span>Angles (زوايا الكاميرا)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "relight", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                             >
                               <Sun className="w-4 h-4 text-amber-300" />
-                              <span>Relight</span>
+                              <span>Relight (إعادة الإضاءة)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "stylist", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                             >
                               <Shirt className="w-4 h-4 text-violet-400" />
-                              <span>AI Stylist</span>
+                              <span>AI Stylist (تغيير الملابس)</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={(e) => handleOpenTool(item, "upscale", e)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-zinc-200 hover:bg-white/10 hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-slate-200 hover:bg-indigo-600/20 hover:text-white transition-colors"
                             >
                               <Maximize2 className="w-4 h-4 text-emerald-400" />
-                              <span>Upscale</span>
+                              <span>Upscale (رفع الدقة)</span>
                             </button>
                           </motion.div>
                         )}

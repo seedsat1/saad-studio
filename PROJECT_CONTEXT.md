@@ -48,16 +48,13 @@
 
 ---
 
-#### Latest task: Pure Full-Bleed Image Grid Card Design (2026-08-21)
+#### Latest task: Floating Glassmorphism Menus with Saad Studio Theme (2026-08-21)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  1. **Pure Full-Bleed Image Gallery**:
-     - Restored the full-bleed, borderless image gallery layout matching the design reference.
-     - Removed the black footer/prompt box below the photos.
-     - Overlaid glassmorphism tools and controls directly on the image upon hover:
-       - Top-left: Selection Checkbox.
-       - Top-right: Heart (Like), Quick Download, and More Options (`...`).
-       - Bottom-right: Image Reference, Video Frame Placement, AI Tools (Inpaint, Stylist, Upscale, Relight), and Details.
+  1. **Floating Out-of-Bounds Context Menus**:
+     - Removed `overflow-hidden` constraints from image card wrappers and assigned high dynamic z-index (`z-[60]`) so dropdown menus pop out cleanly outside image boundaries without overlapping internal buttons or being clipped.
+     - Applied Saad Studio dark indigo glassmorphism theme (`bg-[#0c101d]/95`, `border-indigo-500/25`, `backdrop-blur-2xl`, `hover:bg-indigo-600/20`) replacing solid black backgrounds.
+     - Enhanced Arabic & English labels with vibrant category accents.
   2. Verification: `tsc --noEmit` passed with 0 errors, Git committed & pushed to `main`.
 
 #### Previous task: Image Generation Provider Output Extraction & Direct URL Previews Fix (2026-08-20)
