@@ -718,7 +718,7 @@ function StyleLibraryGatewayCard() {
   return (
     <a
       href="/image-presets"
-      className="group relative block overflow-hidden rounded-2xl border border-amber-400/25 bg-black/40 transition-all hover:border-amber-400/55 hover:shadow-xl hover:shadow-amber-500/20"
+      className="hidden lg:block group relative overflow-hidden rounded-2xl border border-amber-400/25 bg-black/40 transition-all hover:border-amber-400/55 hover:shadow-xl hover:shadow-amber-500/20"
     >
       {/* Hero image — tall to give the collage room to breathe */}
       <div className="relative h-44 overflow-hidden">

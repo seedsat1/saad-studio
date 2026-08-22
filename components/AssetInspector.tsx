@@ -1139,11 +1139,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
     <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-slate-950 rounded-2xl ring-1 ring-white/10 shadow-2xl shadow-black/60">
 
       {/* ── Left: Masterpiece Canvas ──────────────────────────────────────────── */}
-      <motion.div
-        animate={{ width: expanded ? "100%" : "70%" }}
-        transition={{ type: "spring", stiffness: 280, damping: 32 }}
-        className="relative h-full shrink-0 overflow-hidden"
-      >
+      <div className={cn("relative shrink-0 overflow-hidden transition-all duration-300", expanded ? "w-full h-full" : "w-full h-[52%] sm:h-[58%] lg:h-full lg:w-[70%]")}>
         {/* Canvas */}
         {asset.type === "image" && <ImageCanvas asset={{ ...asset, url: effectiveUrl }} />}
         {asset.type === "video" && <VideoCanvas asset={{ ...asset, url: effectiveUrl }} />}
@@ -1195,18 +1191,12 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
             )}
           </motion.button>
         </div>
-      </motion.div>
+      </div>
 
       {/* ── Right: Dynamic Inspector Panel ───────────────────────────────────── */}
-      <motion.div
-        animate={{
-          width: expanded ? "0%" : "30%",
-          opacity: expanded ? 0 : 1,
-        }}
-        transition={{ type: "spring", stiffness: 280, damping: 32 }}
-        className="shrink-0 h-full overflow-hidden border-l border-white/[0.08]"
-      >
-        <div className="flex h-full w-full min-w-[280px] flex-col bg-slate-950/80 backdrop-blur-2xl">
+      {!expanded && (
+        <div className="flex-1 min-h-0 w-full lg:w-[30%] lg:h-full overflow-hidden border-t lg:border-t-0 lg:border-l border-white/[0.08] bg-slate-950/80 backdrop-blur-2xl flex flex-col">
+          <div className="flex h-full w-full min-w-0 flex-col">
 
           {/* Panel header */}
           <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4 shrink-0">
@@ -1484,7 +1474,8 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
+      )}
 
       {/* Lightbox Media Overlay Modal */}
       <AnimatePresence>
