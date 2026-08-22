@@ -16,6 +16,7 @@ import {
   FolderPlus,
   ImageIcon,
   Lightbulb,
+  Maximize2,
   Paperclip,
   ScanFace,
   Search,
@@ -758,17 +759,116 @@ function StyleLibraryGatewayCard() {
   );
 }
 
-function CompareSlider({ before, after }: { before: string; after: string }) {
+function CompareSlider({
+  before,
+  after,
+  onInspect,
+}: {
+  before: string;
+  after: string;
+  onInspect?: (url: string) => void;
+}) {
   const [position, setPosition] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { lang } = useLanguage();
+  const isAr = lang === "ar";
+
+  const updatePosition = (clientX: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const pos = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setPosition(pos);
+  };
+
   return (
-    <div className="relative h-full min-h-[260px] overflow-hidden rounded-2xl ring-1 ring-white/10">
-      <img src={before} alt="before" className="absolute inset-0 h-full w-full object-contain bg-black" />
-      <div className="absolute inset-0 overflow-hidden" style={{ width: `${position}%` }}>
-        <img src={after} alt="after" className="h-full w-full object-contain bg-black" />
+    <div
+      ref={containerRef}
+      className="relative h-full w-full min-h-[360px] select-none overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 shadow-2xl group cursor-ew-resize"
+      onMouseDown={(e) => {
+        setIsDragging(true);
+        updatePosition(e.clientX);
+      }}
+      onMouseMove={(e) => {
+        if (isDragging || e.buttons === 1) updatePosition(e.clientX);
+      }}
+      onMouseUp={() => setIsDragging(false)}
+      onTouchMove={(e) => {
+        if (e.touches[0]) updatePosition(e.touches[0].clientX);
+      }}
+    >
+      {/* Before Image (Base Full Image) */}
+      <img
+        src={before}
+        alt="Before"
+        className="absolute inset-0 h-full w-full object-contain select-none pointer-events-none"
+        draggable={false}
+      />
+
+      {/* After Image (Clipped Overlay — same aspect ratio & coordinate alignment) */}
+      <div
+        className="absolute inset-0 h-full w-full pointer-events-none select-none"
+        style={{ clipPath: `inset(0 0 0 ${position}%)` }}
+      >
+        <img
+          src={after}
+          alt="After"
+          className="h-full w-full object-contain select-none pointer-events-none"
+          draggable={false}
+        />
       </div>
-      <div className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-black/55 px-2 py-1 text-[11px] text-zinc-300">Before</div>
-      <div className="pointer-events-none absolute bottom-3 right-3 rounded-md bg-black/55 px-2 py-1 text-[11px] text-zinc-300">After</div>
-      <input type="range" min={0} max={100} value={position} onChange={(e) => setPosition(Number(e.target.value))} className="absolute bottom-4 left-1/2 w-56 -translate-x-1/2 accent-pink-500" />
+
+      {/* Vertical Divider Line with Glowing Handle */}
+      <div
+        className="absolute top-0 bottom-0 pointer-events-none z-20 flex items-center justify-center -translate-x-1/2"
+        style={{ left: `${position}%` }}
+      >
+        <div className="h-full w-0.5 bg-gradient-to-b from-pink-500/80 via-white to-pink-500/80 shadow-[0_0_12px_rgba(236,72,153,0.9)]" />
+        <div className="absolute top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/90 text-white shadow-xl ring-2 ring-pink-500 backdrop-blur-md transition-transform group-hover:scale-110">
+          <SlidersHorizontal className="h-3.5 w-3.5 text-pink-400 rotate-90" />
+        </div>
+      </div>
+
+      {/* Floating Badges (Before / After) */}
+      <div className="pointer-events-none absolute top-4 left-4 z-20">
+        <span className="rounded-full bg-slate-950/80 backdrop-blur-md px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-300 ring-1 ring-white/10 shadow-lg">
+          {isAr ? "قبل" : "Before"}
+        </span>
+      </div>
+
+      <div className="pointer-events-none absolute top-4 right-4 z-20">
+        <span className="rounded-full bg-pink-500/20 backdrop-blur-md px-3 py-1 text-xs font-bold uppercase tracking-wider text-pink-300 ring-1 ring-pink-500/40 shadow-lg">
+          {isAr ? "بعد" : "After"}
+        </span>
+      </div>
+
+      {/* Quick Action: Click to inspect in full HD / Zoom */}
+      <div className="absolute bottom-4 right-4 z-30 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onInspect) onInspect(position > 50 ? before : after);
+          }}
+          className="flex items-center gap-1.5 rounded-xl bg-slate-900/85 px-3 py-1.5 text-xs font-bold text-white ring-1 ring-white/15 backdrop-blur-md hover:bg-slate-800 hover:ring-pink-500/50 transition-all shadow-xl active:scale-95 cursor-pointer"
+          title={isAr ? "مشاهدة وتكبير الصورة" : "Inspect full-size image"}
+        >
+          <Maximize2 className="h-3.5 w-3.5 text-pink-400" />
+          <span>{isAr ? "مشاهدة بدقة كاملة" : "Inspect Image"}</span>
+        </button>
+      </div>
+
+      {/* Transparent full-card range input for smooth interaction */}
+      <input
+        type="range"
+        min={0}
+        max={100}
+        value={position}
+        onChange={(e) => setPosition(Number(e.target.value))}
+        aria-label="Comparison slider"
+        className="absolute inset-0 h-full w-full opacity-0 cursor-ew-resize z-10"
+      />
     </div>
   );
 }
@@ -2014,7 +2114,7 @@ export default function ImageWorkspacePage() {
       );
     }
     if (activeTool === "inpaint") return <InpaintWorkspace source={inpaintFile} setSource={setInpaintFile} brushSize={brushSize} setBrushSize={setBrushSize} maskVersion={maskVersion} setMaskVersion={setMaskVersion} registerMaskExporter={(fn) => { maskExporterRef.current = fn; }} />;
-    if (compare) return <CompareSlider before={compare.before} after={compare.after} />;
+    if (compare) return <CompareSlider before={compare.before} after={compare.after} onInspect={(url) => setInspectorAsset({ type: "image", url, title: activeTool.toUpperCase() })} />;
     if (activeTool === "enhance") {
       return <div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 text-zinc-400">
         <Zap className="h-10 w-10 text-amber-400/60" />
