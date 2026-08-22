@@ -48,7 +48,18 @@
 
 ---
 
-#### Latest task: Image Studio Interactive Before/After Compare Slider & Full Inspection (2026-08-22)
+#### Latest task: Image Studio Unified Generation Loading Indicator (`SaadLoader`) (2026-08-22)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. **Unified Studio Loading Indicator (`SaadLoader`) in Tool Workspace (`app/(dash)/(routes)/image/page.tsx`)**:
+     - Connected the official unified `SaadLoader` to render centered in the workspace during active generation and AI processing across all tools (`Upscale`, `Enhance`, `Relight`, `Inpaint`, `Face Swap`).
+     - Includes breathing studio mark, glowing status dot, animated progress bar, model badge, and tool indicator (`UPSCALE`, `ENHANCE`, etc.).
+  2. **Verification**:
+     - `tsc --noEmit`: 0 errors.
+     - Vitest suite: 9/9 passed.
+     - Git commit: `bf1b5e3` pushed cleanly to `main`.
+
+#### Previous task: Image Studio Interactive Before/After Compare Slider & Full Inspection (2026-08-22)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. **High-Precision Before/After Overlay Compare Slider (`app/(dash)/(routes)/image/page.tsx`)**:
