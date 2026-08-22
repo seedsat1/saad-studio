@@ -217,7 +217,7 @@ export default function MobileImagePage() {
       <MobileDesktopGuard desktopFallbackHref="/image" toolName="استوديو الصور" />
       <SimpleToast show={Boolean(toastMessage)} message={toastMessage || ""} onHide={() => setToastMessage(null)} />
 
-      <div className="w-full max-w-[430px] min-h-screen relative overflow-hidden bg-gradient-to-b from-[#070D1F] via-[#0B1330] to-[#070D1F] pb-[160px]">
+      <div className="w-full max-w-[430px] min-h-screen relative overflow-hidden bg-gradient-to-b from-[#070D1F] via-[#0B1330] to-[#070D1F] pb-[280px]">
         {/* Top bar */}
         <MobileTopBar title="توليد صور" subtitle="استوديو الهاتف — Saad Studio" />
 
@@ -468,16 +468,18 @@ export default function MobileImagePage() {
                 <div
                   key={m.id}
                   onClick={() => setSelectedModel(m)}
-                  className={`flex-1 min-w-[170px] p-3 rounded-2xl border cursor-pointer transition-all duration-200 relative ${
+                  className={`flex-1 min-w-[170px] p-3 rounded-2xl border cursor-pointer transition-all duration-200 ${
                     isSelected
                       ? "border-[#38C2F0] bg-gradient-to-br from-[#38C2F0]/15 to-[#8A65F7]/10 shadow-lg shadow-cyan-950/30"
                       : "border-[#38C2F0]/15 bg-[#16244C]/45 hover:border-[#38C2F0]/30"
                   }`}
                 >
-                  <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-[#8A65F7] text-white absolute -top-2 left-3">
-                    {m.provider}
-                  </span>
-                  <strong className="block text-sm font-bold text-slate-100 mt-1">{m.name}</strong>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <strong className="block text-sm font-bold text-slate-100">{m.name}</strong>
+                    <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-[#8A65F7]/25 text-[#DCD0FF] border border-[#8A65F7]/40 shrink-0">
+                      {m.provider}
+                    </span>
+                  </div>
                   <p className="text-[11px] text-slate-400 leading-snug my-1.5 min-h-[30px] line-clamp-2">
                     {m.description}
                   </p>

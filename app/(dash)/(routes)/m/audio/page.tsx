@@ -157,7 +157,7 @@ export default function MobileAudioPage() {
         onEnded={() => setIsPlaying(false)}
       />
 
-      <div className="w-full max-w-[430px] min-h-screen relative overflow-hidden bg-[#08090C] pb-[210px]">
+      <div className="w-full max-w-[430px] min-h-screen relative overflow-hidden bg-[#08090C] pb-[280px]">
         {/* Top Bar */}
         <MobileTopBar title="Audio Suite" subtitle="استوديو الصوتيات — Saad Studio" />
 
