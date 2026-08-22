@@ -815,12 +815,20 @@ Return ONLY a valid JSON object matching:
                     postInput.assets = [{ video: { url: fullVideoUrl } }];
                   }
 
-                  // Facebook requires PostTypeFacebook on `metadata.facebook.type`.
-                  // Schema: FacebookPostMetadataInput { type: PostTypeFacebook! }
-                  // Values: "post" | "story" | "reel" — we publish regular posts.
-                  const svc = channelServices.get(chId) || (targetPlatform === "facebook" ? "facebook" : "");
-                  if (svc === "facebook" || svc === "facebookPage" || svc === "facebook_page") {
-                    postInput.metadata = { ...(postInput.metadata || {}), facebook: { type: "post" } };
+                  // Attach per-platform metadata as Buffer's schema requires.
+                  //   FacebookPostMetadataInput  { type: PostTypeFacebook! }   → "post" | "story" | "reel"
+                  //   InstagramPostMetadataInput { type: PostTypeInstagram!, shouldShareToFeed: Boolean! }
+                  //   TwitterPostMetadataInput, LinkedInPostMetadataInput, TikTokPostMetadataInput — no required metadata.
+                  const svc = channelServices.get(chId) || (targetPlatform === "facebook" ? "facebook" : targetPlatform === "instagram" ? "instagram" : "");
+                  const metadata: Record<string, unknown> = { ...(postInput.metadata || {}) };
+                  if (svc === "facebook" || svc === "facebookPage" || svc === "facebook_page" || svc === "facebookGroup") {
+                    metadata.facebook = { type: "post" };
+                  }
+                  if (svc === "instagram" || svc === "instagramBusiness" || svc === "instagram_business") {
+                    metadata.instagram = { type: "post", shouldShareToFeed: true };
+                  }
+                  if (Object.keys(metadata).length > 0) {
+                    postInput.metadata = metadata;
                   }
 
                   const publishRes = await fetch("https://api.buffer.com", {
