@@ -149,8 +149,11 @@ export default function MobileImagePage() {
         modelId: selectedModel.id,
         aspectRatio: ratio,
         quality,
+        numImages: batchCount,
         numOutputs: batchCount,
         negativePrompt: negativePrompt || undefined,
+        imageUrl: refImages[0] || undefined,
+        imageUrls: refImages.length > 0 ? refImages : undefined,
         inputImages: refImages.length > 0 ? refImages : undefined,
       };
 

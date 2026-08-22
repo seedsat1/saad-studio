@@ -27,11 +27,19 @@ export default function MobileGalleryPage() {
     let active = true;
     const fetchMedia = async () => {
       try {
-        const res = await fetch("/api/user/generations", { cache: "no-store" });
+        const res = await fetch("/api/assets", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           if (active && Array.isArray(data.items)) {
-            setItems(data.items);
+            const mapped: MediaItem[] = data.items.map((it: any) => ({
+              id: it.id || String(Math.random()),
+              type: it.type === "video" ? "video" : it.type === "audio" ? "audio" : "image",
+              url: it.url || it.originalUrl || it.mediaUrl || "",
+              prompt: it.prompt || "",
+              model: it.model || "",
+              createdAt: it.createdAt || new Date().toISOString(),
+            })).filter((it: MediaItem) => Boolean(it.url));
+            setItems(mapped);
           }
         }
       } catch {

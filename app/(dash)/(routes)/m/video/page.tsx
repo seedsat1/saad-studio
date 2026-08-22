@@ -163,35 +163,66 @@ export default function MobileVideoPage() {
       const payload: Record<string, any> = {
         prompt,
         model: selectedModel.apiRoute,
-        modelId: selectedModel.id,
         duration,
         aspectRatio: ratio,
         resolution,
+        sound: selectedModel.hasAudio && generateAudio,
+        startImage: refImages[0] || undefined,
+        referenceImages: refImages.length > 0 ? refImages : undefined,
         negativePrompt: negativePrompt || undefined,
-        motionStrength: motionIntensity,
-        generateAudio: selectedModel.hasAudio && generateAudio,
-        inputImages: refImages.length > 0 ? refImages : undefined,
-        mode,
       };
 
-      const res = await fetch("/api/generate/video", {
+      const res = await fetch("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      clearInterval(progressTimer);
-
       if (!res.ok) {
+        clearInterval(progressTimer);
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || err.message || "فشل توليد الفيديو");
+        throw new Error(err.error || err.message || "فشل إرسال طلب توليد الفيديو");
       }
 
       const data = await res.json();
-      const videoUrl = data.videoUrl || data.url || (Array.isArray(data.outputs) && data.outputs[0]?.url);
+      let videoUrl = data.videoUrl || data.url || (Array.isArray(data.outputs) && data.outputs[0]);
+
+      // If task is processing/pending, poll GET /api/video?taskId=...
+      if (!videoUrl && data.taskId) {
+        const taskId = data.taskId;
+        const maxPollAttempts = 120; // 4 minutes
+        let attempts = 0;
+
+        while (!videoUrl && attempts < maxPollAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          attempts++;
+
+          try {
+            const pollRes = await fetch(`/api/video?taskId=${encodeURIComponent(taskId)}`, { cache: "no-store" });
+            if (pollRes.ok) {
+              const pollData = await pollRes.json();
+              if (pollData.status === "failed") {
+                throw new Error(pollData.error || "فشل توليد الفيديو من المزود");
+              }
+              if (pollData.status === "completed" || pollData.status === "succeeded") {
+                videoUrl =
+                  pollData.videoUrl ||
+                  pollData.url ||
+                  (Array.isArray(pollData.outputs) && pollData.outputs[0]);
+                break;
+              }
+            }
+          } catch (pollErr: any) {
+            if (pollErr.message?.includes("فشل توليد الفيديو")) throw pollErr;
+            // continue polling on transient network hiccup
+          }
+        }
+      }
+
+      clearInterval(progressTimer);
 
       if (!videoUrl) {
-        throw new Error("لم يتم استلام رابط الفيديو المولد");
+        throw new Error("استغرق التوليد وقتاً أطول من المتوقع، يرجى مراجعة المعرض بعد قليل");
       }
 
       setProgress(100);

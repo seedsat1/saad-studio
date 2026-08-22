@@ -75,21 +75,29 @@ export default function MobileAudioPage() {
 
     setLoading(true);
     try {
-      const payload = {
-        prompt,
-        type: suiteTab === "song" ? "song" : studioMode,
-        voice: selectedVoice.name,
-        pitch,
-        speed,
-        emotion,
-        genre: musicGenre,
-        mood: musicMood,
-        bpm,
-        duration: songDuration,
-        instrumental: instrumentalOnly,
-      };
+      const isMusic = suiteTab === "song" || studioMode === "music";
+      const targetEndpoint = isMusic ? "/api/music" : "/api/generate/audio";
 
-      const res = await fetch("/api/generate/audio", {
+      const payload = isMusic
+        ? {
+            prompt,
+            genre: musicGenre,
+            mood: musicMood,
+            bpm,
+            duration: songDuration,
+            instrumental: instrumentalOnly,
+          }
+        : {
+            prompt,
+            action: studioMode === "sfx" ? "sfx" : "tts",
+            type: studioMode,
+            voice: selectedVoice.name,
+            pitch,
+            speed,
+            emotion,
+          };
+
+      const res = await fetch(targetEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -101,7 +109,7 @@ export default function MobileAudioPage() {
       }
 
       const data = await res.json();
-      const audioUrl = data.audioUrl || data.url;
+      const audioUrl = data.audioUrl || data.url || data.trackUrl || (Array.isArray(data.outputs) && data.outputs[0]);
       if (!audioUrl) throw new Error("لم يتم استلام رابط الملف الصوتي");
 
       setCurrentAudioUrl(audioUrl);

@@ -21,11 +21,12 @@ export default function MobileTopBar({ title, subtitle = "Saad Studio", backHref
     let active = true;
     const fetchBalance = async () => {
       try {
-        const res = await fetch("/api/user/credits", { cache: "no-store" });
+        const res = await fetch("/api/editor/credits", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          if (active && typeof data.credits === "number") {
-            setCredits(data.credits);
+          const bal = data.credits ?? data.balance;
+          if (active && typeof bal === "number") {
+            setCredits(bal);
           }
         }
       } catch {
@@ -33,9 +34,19 @@ export default function MobileTopBar({ title, subtitle = "Saad Studio", backHref
       }
     };
     fetchBalance();
+
+    const handleUpdate = (ev: Event) => {
+      const customEv = ev as CustomEvent<{ credits?: number; balance?: number }>;
+      const val = customEv.detail?.credits ?? customEv.detail?.balance;
+      if (typeof val === "number") setCredits(val);
+      else fetchBalance();
+    };
+
+    window.addEventListener("saad-credits-updated", handleUpdate);
     const timer = setInterval(fetchBalance, 15000);
     return () => {
       active = false;
+      window.removeEventListener("saad-credits-updated", handleUpdate);
       clearInterval(timer);
     };
   }, [isSignedIn]);
