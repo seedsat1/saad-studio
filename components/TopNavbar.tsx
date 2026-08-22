@@ -1478,11 +1478,11 @@ const TopNavbar = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                   {/* 1. Image Studio */}
                   <Link
-                    href="/image"
+                    href="/m/image"
                     onClick={() => setMobileOpen(false)}
                     className={cn(
                       "flex items-center justify-between rounded-2xl p-3.5 border transition-all active:scale-[0.98]",
-                      pathname === "/image"
+                      pathname === "/m/image" || pathname === "/image"
                         ? "bg-pink-500/15 border-pink-500/40 text-white shadow-lg shadow-pink-500/10"
                         : "bg-white/[0.03] border-white/10 text-zinc-200 hover:bg-white/[0.06] hover:border-white/20"
                     )}
@@ -1501,11 +1501,11 @@ const TopNavbar = () => {
 
                   {/* 2. Video Studio */}
                   <Link
-                    href="/video"
+                    href="/m/video"
                     onClick={() => setMobileOpen(false)}
                     className={cn(
                       "flex items-center justify-between rounded-2xl p-3.5 border transition-all active:scale-[0.98]",
-                      pathname === "/video"
+                      pathname === "/m/video" || pathname === "/video"
                         ? "bg-orange-500/15 border-orange-500/40 text-white shadow-lg shadow-orange-500/10"
                         : "bg-white/[0.03] border-white/10 text-zinc-200 hover:bg-white/[0.06] hover:border-white/20"
                     )}
@@ -1524,11 +1524,11 @@ const TopNavbar = () => {
 
                   {/* 3. Audio & Voices */}
                   <Link
-                    href="/audio"
+                    href="/m/audio"
                     onClick={() => setMobileOpen(false)}
                     className={cn(
                       "flex items-center justify-between rounded-2xl p-3.5 border transition-all active:scale-[0.98]",
-                      pathname === "/audio"
+                      pathname === "/m/audio" || pathname === "/audio"
                         ? "bg-emerald-500/15 border-emerald-500/40 text-white shadow-lg shadow-emerald-500/10"
                         : "bg-white/[0.03] border-white/10 text-zinc-200 hover:bg-white/[0.06] hover:border-white/20"
                     )}
@@ -1547,11 +1547,11 @@ const TopNavbar = () => {
 
                   {/* 4. Music & Songs */}
                   <Link
-                    href="/music"
+                    href="/m/audio"
                     onClick={() => setMobileOpen(false)}
                     className={cn(
                       "flex items-center justify-between rounded-2xl p-3.5 border transition-all active:scale-[0.98]",
-                      pathname === "/music"
+                      pathname === "/m/audio" || pathname === "/music"
                         ? "bg-indigo-500/15 border-indigo-500/40 text-white shadow-lg shadow-indigo-500/10"
                         : "bg-white/[0.03] border-white/10 text-zinc-200 hover:bg-white/[0.06] hover:border-white/20"
                     )}
