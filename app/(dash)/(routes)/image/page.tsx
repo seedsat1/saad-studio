@@ -49,6 +49,7 @@ import { useAssetStore } from "@/hooks/use-asset-store";
 import { useSearchParams } from "next/navigation";
 import NextImage from "next/image";
 import { useLanguage } from "@/lib/use-language";
+import { SaadLoader } from "@/components/saad-loader";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 import { PromptEditorModal } from "@/components/PromptEditorModal";
@@ -2111,6 +2112,17 @@ export default function ImageWorkspacePage() {
           loadingMore={loadingMoreResults}
           onLoadMore={() => void loadPersistedImages(resultsPage + 1, "append")}
         />
+      );
+    }
+    if (generating) {
+      return (
+        <div className="relative flex h-full min-h-[380px] w-full flex-col items-center justify-center rounded-2xl border border-white/10 bg-slate-950/80 p-6 backdrop-blur-2xl shadow-2xl overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-t from-pink-500/5 via-transparent to-transparent pointer-events-none" />
+          <SaadLoader
+            modelLabel={selectedModel?.label || "Image Studio"}
+            toolLabel={activeTool.toUpperCase()}
+          />
+        </div>
       );
     }
     if (activeTool === "inpaint") return <InpaintWorkspace source={inpaintFile} setSource={setInpaintFile} brushSize={brushSize} setBrushSize={setBrushSize} maskVersion={maskVersion} setMaskVersion={setMaskVersion} registerMaskExporter={(fn) => { maskExporterRef.current = fn; }} />;
