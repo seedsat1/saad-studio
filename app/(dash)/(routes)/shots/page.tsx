@@ -33,6 +33,7 @@ import {
   type ShotPack,
 } from "@/lib/shots-studio";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { getFallbackUrls } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -242,6 +243,7 @@ function ShotPendingCard({ shotType }: { shotType: ShotType }) {
 
 export default function ShotsStudioPage() {
   const { guardGeneration, getSafeErrorMessage, insufficientCreditsMessage } = useGenerationGate();
+  const { imageModels: dynamicImageModels } = useFullDynamicModels();
   const searchParams = useSearchParams();
 
   // ── Controls state ──
@@ -865,16 +867,6 @@ export default function ShotsStudioPage() {
             )}
           </div>
 
-          {/* Generation in-progress state */}
-          {isGenerating && (
-            <div className="rounded-2xl p-6 flex flex-col items-center gap-4">
-              <SaadLoader toolLabel={activePack?.shots.length ? `${activePack.shots.length} shots` : "Shots"} />
-              <p className="text-xs text-white/40 text-center max-w-[280px]">
-                Routing shots concurrently through smart model selection. May take 30-90 seconds.
-              </p>
-            </div>
-          )}
-
           {/* Generation summary */}
           {summary && !isGenerating && (
             <div
@@ -918,8 +910,22 @@ export default function ShotsStudioPage() {
               </div>
             </div>
           )}
+
+          {/* Prominent Unified Central Loader when Generating initial pack */}
+          {isGenerating && results.length === 0 && (
+            <div className="rounded-2xl border border-white/10 bg-slate-950/80 p-12 flex flex-col items-center justify-center gap-4 shadow-2xl backdrop-blur-2xl text-center min-h-[380px]">
+              <SaadLoader
+                modelLabel={dynamicImageModels.find((m) => m.id === "google/nano-banana-pro")?.label || "Nano Banana Pro"}
+                toolLabel={activePack?.label || "Shots Pack"}
+              />
+              <p className="text-xs text-zinc-400 text-center max-w-[320px] mt-2">
+                Generating cinematic shot pack with smart model routing. This may take 30-60 seconds.
+              </p>
+            </div>
+          )}
+
           {/* Results grid */}
-          {(results.length > 0 || isGenerating) && (
+          {(results.length > 0 || (isGenerating && results.length > 0)) && (
             <div>
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-semibold text-white/70">
@@ -955,7 +961,7 @@ export default function ShotsStudioPage() {
           {/* Empty state */}
           {results.length === 0 && !isGenerating && (
             <div
-              className="rounded-2xl p-10 flex flex-col items-center justify-center gap-3 text-center"
+              className="rounded-2xl p-10 flex flex-col items-center justify-center gap-3 text-center min-h-[340px]"
               style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.08)" }}
             >
               <div
