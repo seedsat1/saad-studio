@@ -43,7 +43,7 @@ const VIDEO_MODELS: VideoModelConfig[] = [
     provider: "BYTEDANCE",
     note: "الأسرع والأوفر للتجارب",
     description: "محرك سينمائي سريع واقتصادي بحركة انسيابية ممتازة ودعم صوت مدمج.",
-    ratePerSec: 8,
+    ratePerSec: 4,
     apiRoute: "bytedance/seedance-2.0-mini/text-to-video",
     durations: [4, 5, 6, 7, 8, 9, 10, 12, 15],
     aspectRatios: ["9:16", "1:1", "16:9"],
@@ -443,7 +443,9 @@ export default function MobileVideoPage() {
         <section className="px-4 pt-3">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xs font-bold text-slate-400">المحرك المعتمد</h2>
-            <em className="text-[11px] not-italic text-[#38C2F0]">{selectedModel.name} — {selectedModel.note}</em>
+            <span className="text-[10px] font-semibold text-[#38C2F0] px-2 py-0.5 rounded-full bg-[#38C2F0]/10 border border-[#38C2F0]/20">
+              {selectedModel.name}
+            </span>
           </div>
           <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none">
             {VIDEO_MODELS.map((m) => {

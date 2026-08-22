@@ -25,9 +25,9 @@ const IMAGE_MODELS: ImageModelConfig[] = [
     id: "nano-banana-pro",
     name: "Nano Banana Pro",
     provider: "GOOGLE",
-    note: "التزام فائق بالوصف ودقة 4K",
+    note: "التزام فائق ودقة 4K",
     description: "محرك Google الرسمي فائق الدقة، ممتاز للرسوم التوضيحية والصور الواقعية وتفاصيل الخامات.",
-    ratePerImage: 14,
+    ratePerImage: 2,
     apiRoute: "nano-banana-pro",
     aspectRatios: ["1:1", "4:5", "9:16", "16:9"],
     qualities: ["1K", "2K", "4K"],
@@ -37,9 +37,9 @@ const IMAGE_MODELS: ImageModelConfig[] = [
     id: "gpt-image-2-text-to-image",
     name: "GPT Image 2",
     provider: "OPENAI",
-    note: "كتابة نصوص وتكوين متقدم",
+    note: "تضمين نصوص وتكوين متقدم",
     description: "محرك OpenAI الأحدث لتوليد الصور وتضمين النصوص والطباعة بدقة سينمائية.",
-    ratePerImage: 18,
+    ratePerImage: 2,
     apiRoute: "gpt-image-2-text-to-image",
     aspectRatios: ["1:1", "4:5", "9:16", "16:9"],
     qualities: ["1K", "2K", "4K"],
@@ -72,11 +72,10 @@ export default function MobileImagePage() {
   const [selectedImageIndices, setSelectedImageIndices] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const qualityMultiplier = quality === "4K" ? 1.8 : quality === "1K" ? 0.7 : 1.0;
-  const estimatedCost = Math.round(selectedModel.ratePerImage * batchCount * qualityMultiplier);
+  const costPerImage = quality === "4K" ? 4 : 2;
+  const estimatedCost = costPerImage * batchCount;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -447,7 +446,9 @@ export default function MobileImagePage() {
         <section className="px-4 pt-3">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xs font-bold text-slate-400">المحرك المعتمد</h2>
-            <em className="text-[11px] not-italic text-[#38C2F0]">{selectedModel.name} — {selectedModel.note}</em>
+            <span className="text-[10px] font-semibold text-[#38C2F0] px-2 py-0.5 rounded-full bg-[#38C2F0]/10 border border-[#38C2F0]/20">
+              {selectedModel.name}
+            </span>
           </div>
           <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none">
             {IMAGE_MODELS.map((m) => {
@@ -470,7 +471,7 @@ export default function MobileImagePage() {
                     {m.description}
                   </p>
                   <span className="text-xs text-[#C9A227] font-bold font-mono">
-                    {m.ratePerImage} نقاط / صورة
+                    {costPerImage} نقاط / صورة
                   </span>
                 </div>
               );
