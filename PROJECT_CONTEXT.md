@@ -48,7 +48,24 @@
 
 ---
 
-#### Latest task: Deletion of Cinema Studio (Next Scene Engine) & Traffic Redirection to Shots Studio (2026-08-22)
+#### Latest task: Launch Standalone Mobile-First Studio Suite (`/m`) with Exact Official Model Specs (2026-08-22)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. **Built Mobile-First Standalone Suite (`/m`) with Zero Desktop Interference**:
+     - `app/(dash)/(routes)/m/video/page.tsx`: Mobile Video Studio with Viewfinder (9:16/1:1/16:9), film-strip duration selector (3s-10s for Gemini Omni, 4s-15s for Seedance Mini), exact 3cr/sec for Gemini Omni and 8cr/sec for Seedance Mini, live progress ring, and direct camera roll download.
+     - `app/(dash)/(routes)/m/image/page.tsx`: Mobile Image Studio with Contact Sheet grid (1/2/4/6 batch counts), exact 14cr for Nano Banana Pro (Google) and 18cr for GPT Image 2 (OpenAI), visual styles carousel, 1K/2K/4K qualities, and camera roll download.
+     - `app/(dash)/(routes)/m/audio/page.tsx`: Mobile Audio Suite with Voice TTS (Arabic/English), Song generator with lyrics/BPM/genre, SFX presets, and audio player.
+     - `app/(dash)/(routes)/m/gallery/page.tsx`: Fast Mobile Gallery for all generated media with 1-tap playback and direct Save to Photos.
+     - `components/mobile/MobileTopBar.tsx`, `components/mobile/MobileBottomNav.tsx`, `components/mobile/MobileDesktopGuard.tsx`.
+  2. **Exact Specs Enforced (No Random/Placeholder Data)**:
+     - Video: `Gemini Omni` (`google/gemini-omni-flash` @ 3cr/sec, 3s-10s, 720p, max 3 refs) & `Seedance Mini` (`bytedance/seedance-2.0-mini/text-to-video` @ 8cr/sec, 4s-15s, 720p/1080p, max 9 refs).
+     - Image: `Nano Banana Pro` (14cr/img, 1:1/4:5/9:16/16:9, max 6 refs) & `GPT Image 2` (18cr/img, 1:1/4:5/9:16/16:9, max 4 refs).
+  3. **Verification**:
+     - `tsc --noEmit`: 0 errors.
+     - Vitest suite: 9/9 passed.
+     - Git commit: `e36f1c2` pushed cleanly to `main`.
+
+#### Previous task: Deletion of Cinema Studio (Next Scene Engine) & Traffic Redirection to Shots Studio (2026-08-22)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. **Removed Legacy Page (`app/(dash)/(routes)/cinema-studio/page.tsx`)**:
