@@ -1,200 +1,32 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import MobileTopBar from "@/components/mobile/MobileTopBar";
 import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import MobileDesktopGuard from "@/components/mobile/MobileDesktopGuard";
 import { downloadMediaFile } from "@/lib/client-download";
 import SimpleToast from "@/components/SimpleToast";
-
-interface VoiceOption {
-  id: string;
-  name: string;
-  desc: string;
-  category: "arabic" | "google" | "elevenlabs";
-  gender: "female" | "male";
-  langTag: string;
-  sampleText: string;
-  sampleLang: string;
-}
-
-const VOICES: VoiceOption[] = [
-  // ── الأصوات العربية الفصيحة ──
-  {
-    id: "shorouk",
-    name: "شروق",
-    desc: "عربي فصيح · معبر ودافئ للقصص والأفلام",
-    category: "arabic",
-    gender: "female",
-    langTag: "عربي فصيح",
-    sampleText: "مرحبًا بكم في استوديو سعد للصوتيات والذكاء الاصطناعي، أقدم لكم نبرة دافئة ومعبرة.",
-    sampleLang: "ar-SA",
-  },
-  {
-    id: "saad",
-    name: "سعد",
-    desc: "عربي فصيح · رسمي وواثق للإعلانات والتقارير",
-    category: "arabic",
-    gender: "male",
-    langTag: "عربي فصيح",
-    sampleText: "أهلًا بكم، هذا صوت رسمي وواثق ومناسب للتقارير الإخبارية والمحتوى الإعلاني الاحترافي.",
-    sampleLang: "ar-SA",
-  },
-  {
-    id: "tariq",
-    name: "طارق",
-    desc: "عربي فصيح · هادئ وعميق للبودكاست",
-    category: "arabic",
-    gender: "male",
-    langTag: "عربي فصيح",
-    sampleText: "في هذا البودكاست نسرد لكم حكايات ملهمة بنبرة هادئة ورصينة تناسب الاستماع الطويل.",
-    sampleLang: "ar-SA",
-  },
-  {
-    id: "mariam",
-    name: "مريم",
-    desc: "عربي فصيح · نبرة شابة ومرحة للتواصل الاجتماعي",
-    category: "arabic",
-    gender: "female",
-    langTag: "عربي فصيح",
-    sampleText: "مرحبًا جميعًا! تابعوا معنا أحدث المستجدات والقصص المشوقة بأسلوب حيوي وسريع.",
-    sampleLang: "ar-SA",
-  },
-  {
-    id: "khaled",
-    name: "خالد",
-    desc: "عربي فصيح · وثائقي وأفلام سينمائية",
-    category: "arabic",
-    gender: "male",
-    langTag: "عربي فصيح",
-    sampleText: "عبر آلاف السنين، سطرت الحضارات تاريخًا عظيمًا تتناقله الأجيال جيلًا بعد جيل.",
-    sampleLang: "ar-SA",
-  },
-  {
-    id: "fatima",
-    name: "فاطمة",
-    desc: "عربي فصيح · إخباري ورصين للموجزات",
-    category: "arabic",
-    gender: "female",
-    langTag: "عربي فصيح",
-    sampleText: "نوافيكم الآن بموجز لأبرز التطورات والأخبار من استوديو سعد الرقمي.",
-    sampleLang: "ar-SA",
-  },
-
-  // ── أصوات Google Gemini الرسمية ──
-  {
-    id: "Sulafat",
-    name: "Sulafat",
-    desc: "Google Gemini · Warm, balanced & narrative",
-    category: "google",
-    gender: "female",
-    langTag: "Google",
-    sampleText: "Hello! I am Sulafat, powered by Google Gemini with clear, warm articulation.",
-    sampleLang: "en-US",
-  },
-  {
-    id: "Zephyr",
-    name: "Zephyr",
-    desc: "Google Gemini · Bright, uplifting & conversational",
-    category: "google",
-    gender: "female",
-    langTag: "Google",
-    sampleText: "Hey there! Zephyr is here to bring energy and brightness to your creative audio.",
-    sampleLang: "en-US",
-  },
-  {
-    id: "Puck",
-    name: "Puck",
-    desc: "Google Gemini · Upbeat, energetic & modern",
-    category: "google",
-    gender: "male",
-    langTag: "Google",
-    sampleText: "Welcome aboard! Let's create something extraordinary with fast, crisp voice delivery.",
-    sampleLang: "en-US",
-  },
-  {
-    id: "Charon",
-    name: "Charon",
-    desc: "Google Gemini · Informative, clear & grounded",
-    category: "google",
-    gender: "male",
-    langTag: "Google",
-    sampleText: "Welcome to this deep-dive report. I provide accurate and balanced narration.",
-    sampleLang: "en-US",
-  },
-  {
-    id: "Fenrir",
-    name: "Fenrir",
-    desc: "Google Gemini · Bold, cinematic & commanding",
-    category: "google",
-    gender: "male",
-    langTag: "Google",
-    sampleText: "Power, precision, and cinematic impact. That is the essence of my voice profile.",
-    sampleLang: "en-US",
-  },
-  {
-    id: "Aoede",
-    name: "Aoede",
-    desc: "Google Gemini · Breezy, gentle & soothing",
-    category: "google",
-    gender: "female",
-    langTag: "Google",
-    sampleText: "Take a deep breath, and let this soothing voice guide your listeners gently.",
-    sampleLang: "en-US",
-  },
-
-  // ── أصوات ElevenLabs العالمية ──
-  {
-    id: "Aria",
-    name: "Aria",
-    desc: "ElevenLabs · Expressive & emotionally rich",
-    category: "elevenlabs",
-    gender: "female",
-    langTag: "ElevenLabs",
-    sampleText: "Hello, I am Aria. I deliver deep emotional inflection and expressive character nuances.",
-    sampleLang: "en-US",
-  },
-  {
-    id: "Roger",
-    name: "Roger",
-    desc: "ElevenLabs · Confident, authoritative narrator",
-    category: "elevenlabs",
-    gender: "male",
-    langTag: "ElevenLabs",
-    sampleText: "This is Roger. Perfect for documentaries, corporate explainers, and audiobooks.",
-    sampleLang: "en-US",
-  },
-  {
-    id: "Sarah",
-    name: "Sarah",
-    desc: "ElevenLabs · Warm & professional commercial tone",
-    category: "elevenlabs",
-    gender: "female",
-    langTag: "ElevenLabs",
-    sampleText: "Welcome! Sarah brings a trustworthy, pleasant tone to advertisements and promos.",
-    sampleLang: "en-US",
-  },
-  {
-    id: "George",
-    name: "George",
-    desc: "ElevenLabs · Classic British storyteller",
-    category: "elevenlabs",
-    gender: "male",
-    langTag: "ElevenLabs",
-    sampleText: "Once upon a time in a realm of pure imagination, a remarkable journey began.",
-    sampleLang: "en-GB",
-  },
-];
+import { VOICE_CATALOG, VoiceDefinition } from "@/lib/voice-catalog";
 
 const SFX_PRESETS = [
   "🚪 إغلاق باب بقوة",
   "⚡ صوت رعد ومطر",
-  "👥 ضجيج جمهور",
+  "👥 ضجيج جمهور وتصفيق",
   "🌧 قطرات مطر هادئة",
-  "💥 انفجار سينمائي",
-  "👣 خطوات أقدام",
-  "⚔ اشتباك سيوف",
+  "💥 انفجار سينمائي ضخم",
+  "👣 خطوات أقدام سريعة",
+  "⚔ اشتباك سيوف ملحمي",
   "✨ تأثير سحري ولمعان",
+];
+
+const CATEGORY_TABS = [
+  { id: "all", label: "الكل" },
+  { id: "arabic", label: "الأصوات العربية 🇸🇦" },
+  { id: "narration", label: "السرد والرواية 📖" },
+  { id: "conversational", label: "حوار ومحادثة 💬" },
+  { id: "epic", label: "سينمائي وملحمي 🎬" },
+  { id: "characters", label: "شخصيات كرتونية 🎭" },
+  { id: "gemini", label: "Google Gemini ⚡" },
 ];
 
 interface AudioLibraryItem {
@@ -208,8 +40,15 @@ interface AudioLibraryItem {
 export default function MobileAudioPage() {
   const [suiteTab, setSuiteTab] = useState<"studio" | "song" | "lib">("studio");
   const [studioMode, setStudioMode] = useState<"voice" | "music" | "sfx">("voice");
-  const [voiceCategory, setVoiceCategory] = useState<"all" | "arabic" | "google" | "elevenlabs">("all");
-  const [selectedVoice, setSelectedVoice] = useState<VoiceOption>(VOICES[0]);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Voice list initialized with the full official platform catalog
+  const [voices, setVoices] = useState<VoiceDefinition[]>(VOICE_CATALOG);
+  const [selectedVoice, setSelectedVoice] = useState<VoiceDefinition>(
+    VOICE_CATALOG.find((v) => v.category === "arabic") || VOICE_CATALOG[0]
+  );
+
   const [prompt, setPrompt] = useState("");
   const [pitch, setPitch] = useState(0);
   const [speed, setSpeed] = useState(1.0);
@@ -227,14 +66,16 @@ export default function MobileAudioPage() {
   const [audioDuration, setAudioDuration] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Previewing specific voice
+  // Audio Preview state for voice samples
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+  const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
 
   // Library items
   const [libraryItems, setLibraryItems] = useState<AudioLibraryItem[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
 
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const sampleAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const cost =
     suiteTab === "song"
@@ -244,6 +85,24 @@ export default function MobileAudioPage() {
       : studioMode === "music"
       ? 6
       : 4;
+
+  // Initialize and load any server-side cached registry voices
+  useEffect(() => {
+    let active = true;
+    fetch("/api/voices", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (active && Array.isArray(data.voices) && data.voices.length > 0) {
+          setVoices(data.voices);
+        }
+      })
+      .catch(() => {
+        // Fallback to imported static catalog
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Fetch audio library when switching to library tab
   useEffect(() => {
@@ -280,46 +139,89 @@ export default function MobileAudioPage() {
     };
   }, [suiteTab]);
 
-  // Voice Preview Engine (Web Speech Synthesis / Audio Preview)
-  const handlePreviewVoice = (v: VoiceOption, e: React.MouseEvent) => {
+  // Filter voices according to active category and search
+  const filteredVoices = useMemo(() => {
+    return voices.filter((v) => {
+      const matchesCategory =
+        activeCategory === "all"
+          ? true
+          : activeCategory === "arabic"
+          ? v.category === "arabic" || v.language.toLowerCase() === "arabic"
+          : activeCategory === "gemini"
+          ? v.provider === "gemini"
+          : v.category === activeCategory;
+
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        v.name.toLowerCase().includes(q) ||
+        v.accent.toLowerCase().includes(q) ||
+        v.language.toLowerCase().includes(q) ||
+        (v.geminiVoiceId && v.geminiVoiceId.toLowerCase().includes(q));
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [voices, activeCategory, searchQuery]);
+
+  // Direct MP3 sample preview handler
+  const handlePreviewVoice = (v: VoiceDefinition, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // If currently previewing this voice, stop it
+    // If already playing this voice sample, pause and stop
     if (previewingVoiceId === v.id) {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
+      if (sampleAudioRef.current) {
+        sampleAudioRef.current.pause();
+        sampleAudioRef.current.src = "";
       }
       setPreviewingVoiceId(null);
+      setLoadingPreviewId(null);
       return;
     }
 
-    // Stop previous preview
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-
-      const utterance = new SpeechSynthesisUtterance(v.sampleText);
-      utterance.lang = v.sampleLang;
-      utterance.rate = 1.0;
-      utterance.pitch = v.gender === "female" ? 1.1 : 0.9;
-
-      const voices = window.speechSynthesis.getVoices();
-      const match = voices.find(
-        (voice) =>
-          voice.lang.startsWith(v.sampleLang.slice(0, 2)) &&
-          (v.gender === "female"
-            ? /female|zira|samantha|salma|hoda/i.test(voice.name)
-            : /male|david|george|tariq|maged/i.test(voice.name))
-      );
-      if (match) utterance.voice = match;
-
-      utterance.onstart = () => setPreviewingVoiceId(v.id);
-      utterance.onend = () => setPreviewingVoiceId(null);
-      utterance.onerror = () => setPreviewingVoiceId(null);
-
-      window.speechSynthesis.speak(utterance);
-    } else {
-      setToastMessage(`معاينة: "${v.name}" (${v.desc})`);
+    // Stop currently running playback
+    if (sampleAudioRef.current) {
+      sampleAudioRef.current.pause();
     }
+
+    const sampleUrl =
+      v.sampleUrl ||
+      (v.geminiVoiceId
+        ? `/api/voice-sample?voice=${encodeURIComponent(v.geminiVoiceId)}&lang=${
+            v.language.toLowerCase() === "arabic" || v.category === "arabic" ? "ar" : "en"
+          }`
+        : null);
+
+    if (!sampleUrl) {
+      setToastMessage(`لا تتوفر عينة مسجلة للصوت "${v.name}"`);
+      return;
+    }
+
+    setLoadingPreviewId(v.id);
+    setPreviewingVoiceId(v.id);
+
+    if (!sampleAudioRef.current) {
+      sampleAudioRef.current = new Audio();
+    }
+
+    const audio = sampleAudioRef.current;
+    audio.src = sampleUrl;
+    audio.oncanplay = () => {
+      setLoadingPreviewId(null);
+    };
+    audio.onended = () => {
+      setPreviewingVoiceId(null);
+      setLoadingPreviewId(null);
+    };
+    audio.onerror = () => {
+      setLoadingPreviewId(null);
+      setPreviewingVoiceId(null);
+      setToastMessage("تعذر تشغيل العينة الصوتية حالياً");
+    };
+
+    audio.play().catch(() => {
+      setLoadingPreviewId(null);
+      setPreviewingVoiceId(null);
+    });
   };
 
   const handleGenerate = async () => {
@@ -327,6 +229,12 @@ export default function MobileAudioPage() {
     if (!prompt.trim()) {
       setToastMessage("يرجى كتابة النص أو وصف المقطع الصوتي");
       return;
+    }
+
+    // Stop preview if running
+    if (sampleAudioRef.current) {
+      sampleAudioRef.current.pause();
+      setPreviewingVoiceId(null);
     }
 
     setLoading(true);
@@ -347,7 +255,7 @@ export default function MobileAudioPage() {
             prompt,
             action: studioMode === "sfx" ? "sfx" : "tts",
             type: studioMode,
-            voice: selectedVoice.name,
+            voice: selectedVoice.geminiVoiceId || selectedVoice.name,
             pitch,
             speed,
             emotion,
@@ -413,8 +321,6 @@ export default function MobileAudioPage() {
     });
     setToastMessage("تم بدء تنزيل الملف الصوتي 📲");
   };
-
-  const filteredVoices = VOICES.filter((v) => voiceCategory === "all" || v.category === voiceCategory);
 
   return (
     <div className="min-h-screen bg-[#08090C] text-[#EDEFF3] flex justify-center selection:bg-[#E0B252] selection:text-black">
@@ -499,31 +405,52 @@ export default function MobileAudioPage() {
               </button>
             </div>
 
-            {/* Voice Catalog with Audio Preview */}
+            {/* Voice Catalog with MP3 Previews */}
             {studioMode === "voice" && (
-              <section className="px-4 space-y-2">
+              <section className="px-4 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold text-slate-400">مكتبة الأصوات والمعلقين</h2>
-                  <span className="text-[10px] font-semibold text-[#E0B252]">
+                  <h2 className="text-xs font-bold text-slate-400">
+                    مكتبة الأصوات والمعلقين ({voices.length})
+                  </h2>
+                  <span className="text-[11px] font-semibold text-[#E0B252]">
                     المحدد: {selectedVoice.name}
                   </span>
                 </div>
 
-                {/* Voice Category Filter */}
+                {/* Search Bar */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="ابحث عن معلق، نبرة، أو لهجة..."
+                    className="w-full py-2 px-3.5 pr-8 rounded-xl border border-white/10 bg-[#101216] text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:border-[#E0B252]/40"
+                  />
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    className="absolute right-2.5 top-2.5 text-slate-500"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </div>
+
+                {/* Categories Scroll */}
                 <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  {[
-                    { id: "all", label: "الكل" },
-                    { id: "arabic", label: "الأصوات العربية 🇸🇦" },
-                    { id: "google", label: "Google Gemini" },
-                    { id: "elevenlabs", label: "ElevenLabs" },
-                  ].map((cat) => (
+                  {CATEGORY_TABS.map((cat) => (
                     <button
                       key={cat.id}
-                      onClick={() => setVoiceCategory(cat.id as any)}
+                      onClick={() => setActiveCategory(cat.id)}
                       className={`flex-none py-1.5 px-3 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${
-                        voiceCategory === cat.id
+                        activeCategory === cat.id
                           ? "border-[#E0B252] bg-[#E0B252]/15 text-[#E0B252]"
-                          : "border-white/10 bg-[#15181E] text-slate-400"
+                          : "border-white/10 bg-[#15181E] text-slate-400 hover:text-slate-200"
                       }`}
                     >
                       {cat.label}
@@ -531,62 +458,69 @@ export default function MobileAudioPage() {
                   ))}
                 </div>
 
-                {/* Voice Cards */}
-                <div className="space-y-2 max-h-[290px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+                {/* Voice List */}
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
                   {filteredVoices.map((v) => {
                     const isSelected = selectedVoice.id === v.id;
                     const isPreviewing = previewingVoiceId === v.id;
+                    const isLoadingThis = loadingPreviewId === v.id;
+                    const isArabic = v.language.toLowerCase() === "arabic" || v.category === "arabic";
+
                     return (
                       <div
                         key={v.id}
                         onClick={() => setSelectedVoice(v)}
-                        className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${
+                        className={`flex items-center gap-3 p-2.5 rounded-2xl border cursor-pointer transition-all ${
                           isSelected
-                            ? "border-[#E0B252] bg-[#E0B252]/10 shadow-md shadow-amber-950/20"
+                            ? "border-[#E0B252] bg-[#E0B252]/10 shadow-md shadow-amber-950/25"
                             : "border-white/5 bg-[#15181E] hover:border-white/15"
                         }`}
                       >
-                        {/* Voice Avatar */}
+                        {/* Avatar */}
                         <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${
+                          className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                             isSelected ? "bg-[#E0B252] text-[#1A1206]" : "bg-slate-700 text-slate-200"
                           }`}
                         >
                           {v.name[0]}
                         </div>
 
-                        {/* Voice Details */}
+                        {/* Details */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <strong className="block text-xs font-bold text-slate-100">{v.name}</strong>
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/5 text-slate-400 border border-white/10">
+                          <div className="flex items-center gap-1.5">
+                            <strong className="block text-xs font-bold text-slate-100 truncate">{v.name}</strong>
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/5 text-slate-400 border border-white/10 shrink-0">
                               {v.gender === "female" ? "أنثى" : "ذكر"}
                             </span>
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">
-                              {v.langTag}
-                            </span>
+                            {isArabic && (
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 shrink-0">
+                                🇸🇦 فصحى
+                              </span>
+                            )}
                           </div>
-                          <span className="text-[10px] text-slate-400 truncate block mt-0.5">{v.desc}</span>
+                          <span className="text-[10px] text-slate-400 truncate block mt-0.5">{v.accent}</span>
                         </div>
 
-                        {/* Live Audio Preview Button */}
+                        {/* Real MP3 Sample Preview Button */}
                         <button
                           onClick={(e) => handlePreviewVoice(v, e)}
-                          title="استمع لعينة الصوت"
-                          className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-all shrink-0 active:scale-95 ${
+                          title="استمع للمعاينة الصوتية"
+                          className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-all shrink-0 active:scale-95 ${
                             isPreviewing
-                              ? "bg-[#E0B252] text-[#1A1206] border-[#E0B252] animate-pulse"
+                              ? "bg-[#E0B252] text-[#1A1206] border-[#E0B252] shadow-sm shadow-amber-500/30"
                               : "bg-white/5 border-white/10 text-slate-300 hover:border-[#E0B252]/40 hover:text-[#E0B252]"
                           }`}
                         >
-                          {isPreviewing ? (
+                          {isLoadingThis ? (
+                            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : isPreviewing ? (
                             <>
                               <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />
                               إيقاف
                             </>
                           ) : (
                             <>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M8 5v14l11-7z" />
                               </svg>
                               معاينة
