@@ -48,7 +48,20 @@
 
 ---
 
-#### Latest task: Image Studio Unified Generation Loading Indicator (`SaadLoader`) (2026-08-22)
+#### Latest task: Dynamic Dashboard Models & Central SaadLoader for Shots & Sub-Tools (2026-08-22)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. **Dynamic Dashboard Models Integration (`app/(dash)/(routes)/shots/page.tsx`)**:
+     - Linked `Shots Studio` with dynamic central models from Admin Dashboard via `useFullDynamicModels()`.
+     - Smart model routing now synchronizes with active models and pricing configured in the admin dashboard.
+  2. **Prominent Central `SaadLoader` in Shots Studio Canvas**:
+     - Moved generation loading indicator to the large central canvas, rendering the full breathing studio mark, live status dot, dynamic model label, and animated progress bar while generating shot packs.
+  3. **Verification**:
+     - `tsc --noEmit`: 0 errors.
+     - Vitest suite: 9/9 passed.
+     - Git commit: `6ae898b` pushed cleanly to `main`.
+
+#### Previous task: Image Studio Unified Generation Loading Indicator (`SaadLoader`) (2026-08-22)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. **Unified Studio Loading Indicator (`SaadLoader`) in Tool Workspace (`app/(dash)/(routes)/image/page.tsx`)**:
