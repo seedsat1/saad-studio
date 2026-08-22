@@ -752,19 +752,27 @@ Return ONLY a valid JSON object matching:
                   if (chRes.ok) {
                     const chData = await chRes.json().catch(() => ({}));
                     const channels = chData?.data?.channels || [];
+                    // Map every target platform to the Buffer service names it may appear under.
+                    const PLATFORM_SERVICES: Record<string, string[]> = {
+                      facebook:  ["facebook", "facebookPage", "facebook_page", "facebookGroup"],
+                      instagram: ["instagram", "instagramBusiness", "instagram_business"],
+                      twitter:   ["twitter", "x"],
+                      linkedin:  ["linkedin", "linkedinCompany", "linkedinPage", "linkedin_company", "linkedin_page"],
+                      tiktok:    ["tiktok"],
+                      threads:   ["threads"],
+                      pinterest: ["pinterest"],
+                      youtube:   ["youtube", "youtubeChannel"],
+                      mastodon:  ["mastodon"],
+                      bluesky:   ["bluesky"],
+                    };
+                    const allowedServices = PLATFORM_SERVICES[targetPlatform] ?? null;
                     for (const ch of channels) {
-                      if (targetPlatform === "facebook") {
-                        if (ch.service === "facebook" || ch.service === "facebookPage" || ch.service === "facebook_page") {
-                          channelIds.push(ch.id);
-                          channelServices.set(ch.id, ch.service);
-                        }
-                      } else {
-                        channelIds.push(ch.id);
-                        channelServices.set(ch.id, ch.service);
-                      }
+                      if (allowedServices && !allowedServices.includes(String(ch.service))) continue;
+                      channelIds.push(ch.id);
+                      channelServices.set(ch.id, ch.service);
                     }
 
-                    if (channelIds.length === 0 && channels.length > 0) {
+                    if (channelIds.length === 0 && channels.length > 0 && (targetPlatform === "all" || targetPlatform === "buffer")) {
                       channelIds = channels.map((c: any) => c.id);
                       for (const c of channels) channelServices.set(c.id, c.service);
                     }
