@@ -23,6 +23,7 @@ const isPublicRoute = createRouteMatcher([
   '/code(.*)',
   '/conversation(.*)',
   '/assist(.*)',
+  '/m(.*)',
   '/apps(.*)',
   '/gallery(.*)',
   '/prompt(.*)',
