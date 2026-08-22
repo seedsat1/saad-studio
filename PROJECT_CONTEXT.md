@@ -48,7 +48,20 @@
 
 ---
 
-#### Latest task: Decouple Shots Studio from KIE & Route Nano Banana to Official Google Provider (2026-08-22)
+#### Latest task: Deletion of Cinema Studio (Next Scene Engine) & Traffic Redirection to Shots Studio (2026-08-22)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. **Removed Legacy Page (`app/(dash)/(routes)/cinema-studio/page.tsx`)**:
+     - Permanently deleted `app/(dash)/(routes)/cinema-studio/page.tsx` (893 lines).
+     - Added 301 permanent redirect in `middleware.ts` from `/cinema-studio` to `/shots` to prevent broken links or 404s.
+  2. **Cleaned Navigation, CMS & Hero Links**:
+     - Replaced all `/cinema-studio` references across `lib/navigation.ts`, `components/TopNavbar.tsx`, `components/Footer.tsx`, `components/HeroCarousel.tsx`, `components/TopChoiceGrid.tsx`, `components/CoreToolsSection.tsx`, `components/WelcomeHero.tsx`, `components/CommunityGallery.tsx`, `app/(dash)/(routes)/cinema-board/page.tsx`, `app/(dash)/(routes)/explore/page.tsx`, `app/admin/cms/[slug]/page.tsx`, `app/admin/cms/discover/page.tsx`, `app/admin/cms/explore/page.tsx`, `lib/explore-cms.ts`, `lib/product/feature-registry.ts`, `lib/ads/verified-routes.ts`, and `app/sitemap.ts`.
+  3. **Verification**:
+     - `tsc --noEmit`: 0 errors.
+     - Vitest suite: 9/9 passed.
+     - Git commit: `615d97a` pushed cleanly to `main`.
+
+#### Previous task: Decouple Shots Studio from KIE & Route Nano Banana to Official Google Provider (2026-08-22)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. **Direct Official Google Generation for Nano Banana (`lib/shots-adapters.ts`)**:
