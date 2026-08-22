@@ -66,10 +66,12 @@
      - `app/(dash)/(routes)/m/audio/page.tsx` routes music and songs to `/api/music` and voice TTS / SFX to `/api/generate/audio`.
      - `app/(dash)/(routes)/m/gallery/page.tsx` fetches directly from central platform store `/api/assets`.
      - `components/mobile/MobileTopBar.tsx` reads from `/api/editor/credits` with live `saad-credits-updated` event synchronization.
+     - Connected "حسّن الوصف / Enhance Prompt" button directly to `/api/prompt/copilot` (powered by Gemini AI with lighting, composition, and texture expansion) with animated loading spinner.
+     - Fixed image credit pricing to exact platform rules (2 cr standard / 4 cr 4K).
   4. **Verification**:
      - `tsc --noEmit`: 0 errors.
      - Vitest suite: 9/9 passed.
-     - Git commits: `e36f1c2` and `861bfeb` pushed cleanly to `main`.
+     - Git commits: `e36f1c2`, `861bfeb`, `94df678`, and `490765d` pushed cleanly to `main`.
 
 #### Previous task: Deletion of Cinema Studio (Next Scene Engine) & Traffic Redirection to Shots Studio (2026-08-22)
 - Status: Completed & Verified (PASS).
