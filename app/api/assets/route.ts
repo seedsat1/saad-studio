@@ -15,7 +15,17 @@ function toAssetType(raw: string): AssetType {
   const normalized = String(raw || "").toLowerCase();
   if (normalized.includes("image") || normalized === "storyboard" || normalized === "makeup" || normalized === "relight" || normalized === "thumbnail") return "image";
   if (normalized.includes("video") || normalized.includes("transition")) return "video";
-  if (normalized.includes("audio")) return "audio";
+  if (
+    normalized.includes("audio") ||
+    normalized.includes("music") ||
+    normalized.includes("voice") ||
+    normalized.includes("song") ||
+    normalized.includes("sound") ||
+    normalized.includes("sfx") ||
+    normalized.includes("tts")
+  ) {
+    return "audio";
+  }
   if (normalized === "3d") return "3d";
 
   // Text-like generation records (assist / conversation / code)
@@ -97,7 +107,19 @@ function buildAssetTypeWhere(type: string): any {
     };
   }
   if (type === "video") return { assetType: { contains: "video", mode: "insensitive" } };
-  if (type === "audio") return { assetType: { contains: "audio", mode: "insensitive" } };
+  if (type === "audio") {
+    return {
+      OR: [
+        { assetType: { contains: "audio", mode: "insensitive" } },
+        { assetType: { contains: "music", mode: "insensitive" } },
+        { assetType: { contains: "voice", mode: "insensitive" } },
+        { assetType: { contains: "song", mode: "insensitive" } },
+        { assetType: { contains: "sound", mode: "insensitive" } },
+        { assetType: { contains: "sfx", mode: "insensitive" } },
+        { assetType: { contains: "tts", mode: "insensitive" } },
+      ],
+    };
+  }
   if (type === "3d") return { assetType: "3d" };
   if (type === "text") {
     return {

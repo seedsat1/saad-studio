@@ -104,39 +104,36 @@ export default function MobileAudioPage() {
     };
   }, []);
 
+  const fetchLibrary = async () => {
+    setLoadingLibrary(true);
+    try {
+      const res = await fetch("/api/assets?type=audio", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.items)) {
+          const mapped: AudioLibraryItem[] = data.items
+            .map((it: any) => ({
+              id: it.id || String(Math.random()),
+              type: it.type || "audio",
+              url: it.url || it.originalUrl || it.mediaUrl || "",
+              prompt: it.prompt || "مقطع صوتي",
+              createdAt: it.createdAt || new Date().toISOString(),
+            }))
+            .filter((it: AudioLibraryItem) => Boolean(it.url));
+          setLibraryItems(mapped);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingLibrary(false);
+    }
+  };
+
   // Fetch audio library when switching to library tab
   useEffect(() => {
     if (suiteTab !== "lib") return;
-    let active = true;
-    setLoadingLibrary(true);
-    const fetchLib = async () => {
-      try {
-        const res = await fetch("/api/assets?type=audio", { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          if (active && Array.isArray(data.items)) {
-            const mapped: AudioLibraryItem[] = data.items
-              .map((it: any) => ({
-                id: it.id || String(Math.random()),
-                type: it.type || "audio",
-                url: it.url || it.originalUrl || it.mediaUrl || "",
-                prompt: it.prompt || "مقطع صوتي",
-                createdAt: it.createdAt || new Date().toISOString(),
-              }))
-              .filter((it: AudioLibraryItem) => Boolean(it.url));
-            setLibraryItems(mapped);
-          }
-        }
-      } catch {
-        // ignore
-      } finally {
-        if (active) setLoadingLibrary(false);
-      }
-    };
-    fetchLib();
-    return () => {
-      active = false;
-    };
+    fetchLibrary();
   }, [suiteTab]);
 
   // Filter voices according to active category and search
@@ -163,7 +160,42 @@ export default function MobileAudioPage() {
     });
   }, [voices, activeCategory, searchQuery]);
 
-  // Direct MP3 sample preview handler
+  // Speech Synthesis fallback helper
+  const speakSampleFallback = (v: VoiceDefinition) => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const isArabic = v.language.toLowerCase() === "arabic" || v.category === "arabic";
+      const text = isArabic
+        ? `مرحباً بكم في استوديو سعد للصوتيات، أنا ${v.name}، صوت ${v.gender === "female" ? "أنثوي" : "رجالي"} فصيح.`
+        : `Hello, I am ${v.name}, a voice model from Saad Studio.`;
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = isArabic ? "ar-SA" : "en-US";
+      utterance.pitch = v.gender === "female" ? 1.15 : 0.85;
+      utterance.rate = 0.95;
+
+      utterance.onstart = () => {
+        setLoadingPreviewId(null);
+        setPreviewingVoiceId(v.id);
+      };
+      utterance.onend = () => {
+        setPreviewingVoiceId(null);
+        setLoadingPreviewId(null);
+      };
+      utterance.onerror = () => {
+        setPreviewingVoiceId(null);
+        setLoadingPreviewId(null);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } else {
+      setLoadingPreviewId(null);
+      setPreviewingVoiceId(null);
+      setToastMessage(`معاينة: "${v.name}" (${v.accent})`);
+    }
+  };
+
+  // Direct MP3 sample preview handler with bulletproof fallback
   const handlePreviewVoice = (v: VoiceDefinition, e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -172,6 +204,9 @@ export default function MobileAudioPage() {
       if (sampleAudioRef.current) {
         sampleAudioRef.current.pause();
         sampleAudioRef.current.src = "";
+      }
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
       }
       setPreviewingVoiceId(null);
       setLoadingPreviewId(null);
@@ -182,6 +217,9 @@ export default function MobileAudioPage() {
     if (sampleAudioRef.current) {
       sampleAudioRef.current.pause();
     }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
 
     const sampleUrl =
       v.sampleUrl ||
@@ -191,13 +229,13 @@ export default function MobileAudioPage() {
           }`
         : null);
 
-    if (!sampleUrl) {
-      setToastMessage(`لا تتوفر عينة مسجلة للصوت "${v.name}"`);
-      return;
-    }
-
     setLoadingPreviewId(v.id);
     setPreviewingVoiceId(v.id);
+
+    if (!sampleUrl) {
+      speakSampleFallback(v);
+      return;
+    }
 
     if (!sampleAudioRef.current) {
       sampleAudioRef.current = new Audio();
@@ -213,14 +251,13 @@ export default function MobileAudioPage() {
       setLoadingPreviewId(null);
     };
     audio.onerror = () => {
-      setLoadingPreviewId(null);
-      setPreviewingVoiceId(null);
-      setToastMessage("تعذر تشغيل العينة الصوتية حالياً");
+      // Fallback seamlessly to speech synthesis
+      speakSampleFallback(v);
     };
 
     audio.play().catch(() => {
-      setLoadingPreviewId(null);
-      setPreviewingVoiceId(null);
+      // If browser autoplay blocks audio stream, fallback to speech synthesis
+      speakSampleFallback(v);
     });
   };
 
@@ -633,7 +670,19 @@ export default function MobileAudioPage() {
           <div className="px-4 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-bold text-slate-400">مكتبة المقاطع الصوتية المولدة</h2>
-              <span className="text-[10px] font-mono text-[#E0B252]">{libraryItems.length} ملفات</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchLibrary}
+                  disabled={loadingLibrary}
+                  className="py-1 px-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-bold text-slate-300 hover:text-white flex items-center gap-1 active:scale-95 disabled:opacity-50 transition-all"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className={loadingLibrary ? "animate-spin" : ""}>
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                  </svg>
+                  تحديث
+                </button>
+                <span className="text-[10px] font-mono text-[#E0B252]">{libraryItems.length} ملفات</span>
+              </div>
             </div>
 
             {loadingLibrary && (
