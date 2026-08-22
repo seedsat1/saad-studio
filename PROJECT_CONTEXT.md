@@ -48,7 +48,22 @@
 
 ---
 
-#### Latest task: Universal Mobile Direct Save to Camera Roll & Safari Preview Fix (`lib/client-download.ts`) (2026-08-22)
+#### Latest task: Decouple Shots Studio from KIE & Route Nano Banana to Official Google Provider (2026-08-22)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. **Direct Official Google Generation for Nano Banana (`lib/shots-adapters.ts`)**:
+     - Completely removed legacy `api.kie.ai/api/v1/jobs/createTask` polling loop and KIE key requirements from Shots Studio.
+     - Routed `nano-banana-pro` and `nano-banana` to the official Google Gemini / Imagen provider via `generateImage` and `googleGenerateImage`, exactly matching the Admin Dashboard Model Registry configuration (`/admin/models`).
+     - Routed `z-image` and other budget models directly to WaveSpeed via central provider router.
+  2. **Zero Dependency on KIE for Shots & Sub-Tools**:
+     - Updated `app/api/shots/generate/route.ts` to execute natively with zero tasks created on KIE logs, preserving KIE balance and strictly enforcing the architecture where Google models run on Google and WaveSpeed models run on WaveSpeed.
+     - Reference images and output assets are automatically persisted to permanent R2 / Supabase Storage via `persistProviderUrl`.
+  3. **Verification**:
+     - `tsc --noEmit`: 0 errors.
+     - Vitest suite: 9/9 passed.
+     - Git commit: `7ec4770` pushed cleanly to `main`.
+
+#### Previous task: Universal Mobile Direct Save to Camera Roll & Safari Preview Fix (`lib/client-download.ts`) (2026-08-22)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. **Direct Camera Roll / Photos Save on Mobile (`lib/client-download.ts`)**:
