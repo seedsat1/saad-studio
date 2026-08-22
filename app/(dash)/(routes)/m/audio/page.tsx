@@ -8,19 +8,182 @@ import { downloadMediaFile } from "@/lib/client-download";
 import SimpleToast from "@/components/SimpleToast";
 
 interface VoiceOption {
+  id: string;
   name: string;
   desc: string;
-  lang: string;
-  isArabic: boolean;
+  category: "arabic" | "google" | "elevenlabs";
+  gender: "female" | "male";
+  langTag: string;
+  sampleText: string;
+  sampleLang: string;
 }
 
 const VOICES: VoiceOption[] = [
-  { name: "شروق", desc: "عربي فصيح · معبر ودافئ", lang: "AR", isArabic: true },
-  { name: "سعد", desc: "عربي فصيح · رسمي وواثق", lang: "AR", isArabic: true },
-  { name: "Liam", desc: "Warm & Friendly", lang: "EN", isArabic: false },
-  { name: "Anya", desc: "Professional & Calm", lang: "EN", isArabic: false },
-  { name: "Marcus", desc: "Deep & Authoritative", lang: "EN", isArabic: false },
-  { name: "Chloe", desc: "Energetic & Bright", lang: "EN", isArabic: false },
+  // ── الأصوات العربية الفصيحة ──
+  {
+    id: "shorouk",
+    name: "شروق",
+    desc: "عربي فصيح · معبر ودافئ للقصص والأفلام",
+    category: "arabic",
+    gender: "female",
+    langTag: "عربي فصيح",
+    sampleText: "مرحبًا بكم في استوديو سعد للصوتيات والذكاء الاصطناعي، أقدم لكم نبرة دافئة ومعبرة.",
+    sampleLang: "ar-SA",
+  },
+  {
+    id: "saad",
+    name: "سعد",
+    desc: "عربي فصيح · رسمي وواثق للإعلانات والتقارير",
+    category: "arabic",
+    gender: "male",
+    langTag: "عربي فصيح",
+    sampleText: "أهلًا بكم، هذا صوت رسمي وواثق ومناسب للتقارير الإخبارية والمحتوى الإعلاني الاحترافي.",
+    sampleLang: "ar-SA",
+  },
+  {
+    id: "tariq",
+    name: "طارق",
+    desc: "عربي فصيح · هادئ وعميق للبودكاست",
+    category: "arabic",
+    gender: "male",
+    langTag: "عربي فصيح",
+    sampleText: "في هذا البودكاست نسرد لكم حكايات ملهمة بنبرة هادئة ورصينة تناسب الاستماع الطويل.",
+    sampleLang: "ar-SA",
+  },
+  {
+    id: "mariam",
+    name: "مريم",
+    desc: "عربي فصيح · نبرة شابة ومرحة للتواصل الاجتماعي",
+    category: "arabic",
+    gender: "female",
+    langTag: "عربي فصيح",
+    sampleText: "مرحبًا جميعًا! تابعوا معنا أحدث المستجدات والقصص المشوقة بأسلوب حيوي وسريع.",
+    sampleLang: "ar-SA",
+  },
+  {
+    id: "khaled",
+    name: "خالد",
+    desc: "عربي فصيح · وثائقي وأفلام سينمائية",
+    category: "arabic",
+    gender: "male",
+    langTag: "عربي فصيح",
+    sampleText: "عبر آلاف السنين، سطرت الحضارات تاريخًا عظيمًا تتناقله الأجيال جيلًا بعد جيل.",
+    sampleLang: "ar-SA",
+  },
+  {
+    id: "fatima",
+    name: "فاطمة",
+    desc: "عربي فصيح · إخباري ورصين للموجزات",
+    category: "arabic",
+    gender: "female",
+    langTag: "عربي فصيح",
+    sampleText: "نوافيكم الآن بموجز لأبرز التطورات والأخبار من استوديو سعد الرقمي.",
+    sampleLang: "ar-SA",
+  },
+
+  // ── أصوات Google Gemini الرسمية ──
+  {
+    id: "Sulafat",
+    name: "Sulafat",
+    desc: "Google Gemini · Warm, balanced & narrative",
+    category: "google",
+    gender: "female",
+    langTag: "Google",
+    sampleText: "Hello! I am Sulafat, powered by Google Gemini with clear, warm articulation.",
+    sampleLang: "en-US",
+  },
+  {
+    id: "Zephyr",
+    name: "Zephyr",
+    desc: "Google Gemini · Bright, uplifting & conversational",
+    category: "google",
+    gender: "female",
+    langTag: "Google",
+    sampleText: "Hey there! Zephyr is here to bring energy and brightness to your creative audio.",
+    sampleLang: "en-US",
+  },
+  {
+    id: "Puck",
+    name: "Puck",
+    desc: "Google Gemini · Upbeat, energetic & modern",
+    category: "google",
+    gender: "male",
+    langTag: "Google",
+    sampleText: "Welcome aboard! Let's create something extraordinary with fast, crisp voice delivery.",
+    sampleLang: "en-US",
+  },
+  {
+    id: "Charon",
+    name: "Charon",
+    desc: "Google Gemini · Informative, clear & grounded",
+    category: "google",
+    gender: "male",
+    langTag: "Google",
+    sampleText: "Welcome to this deep-dive report. I provide accurate and balanced narration.",
+    sampleLang: "en-US",
+  },
+  {
+    id: "Fenrir",
+    name: "Fenrir",
+    desc: "Google Gemini · Bold, cinematic & commanding",
+    category: "google",
+    gender: "male",
+    langTag: "Google",
+    sampleText: "Power, precision, and cinematic impact. That is the essence of my voice profile.",
+    sampleLang: "en-US",
+  },
+  {
+    id: "Aoede",
+    name: "Aoede",
+    desc: "Google Gemini · Breezy, gentle & soothing",
+    category: "google",
+    gender: "female",
+    langTag: "Google",
+    sampleText: "Take a deep breath, and let this soothing voice guide your listeners gently.",
+    sampleLang: "en-US",
+  },
+
+  // ── أصوات ElevenLabs العالمية ──
+  {
+    id: "Aria",
+    name: "Aria",
+    desc: "ElevenLabs · Expressive & emotionally rich",
+    category: "elevenlabs",
+    gender: "female",
+    langTag: "ElevenLabs",
+    sampleText: "Hello, I am Aria. I deliver deep emotional inflection and expressive character nuances.",
+    sampleLang: "en-US",
+  },
+  {
+    id: "Roger",
+    name: "Roger",
+    desc: "ElevenLabs · Confident, authoritative narrator",
+    category: "elevenlabs",
+    gender: "male",
+    langTag: "ElevenLabs",
+    sampleText: "This is Roger. Perfect for documentaries, corporate explainers, and audiobooks.",
+    sampleLang: "en-US",
+  },
+  {
+    id: "Sarah",
+    name: "Sarah",
+    desc: "ElevenLabs · Warm & professional commercial tone",
+    category: "elevenlabs",
+    gender: "female",
+    langTag: "ElevenLabs",
+    sampleText: "Welcome! Sarah brings a trustworthy, pleasant tone to advertisements and promos.",
+    sampleLang: "en-US",
+  },
+  {
+    id: "George",
+    name: "George",
+    desc: "ElevenLabs · Classic British storyteller",
+    category: "elevenlabs",
+    gender: "male",
+    langTag: "ElevenLabs",
+    sampleText: "Once upon a time in a realm of pure imagination, a remarkable journey began.",
+    sampleLang: "en-GB",
+  },
 ];
 
 const SFX_PRESETS = [
@@ -34,9 +197,18 @@ const SFX_PRESETS = [
   "✨ تأثير سحري ولمعان",
 ];
 
+interface AudioLibraryItem {
+  id: string;
+  type: string;
+  url: string;
+  prompt: string;
+  createdAt: string;
+}
+
 export default function MobileAudioPage() {
   const [suiteTab, setSuiteTab] = useState<"studio" | "song" | "lib">("studio");
   const [studioMode, setStudioMode] = useState<"voice" | "music" | "sfx">("voice");
+  const [voiceCategory, setVoiceCategory] = useState<"all" | "arabic" | "google" | "elevenlabs">("all");
   const [selectedVoice, setSelectedVoice] = useState<VoiceOption>(VOICES[0]);
   const [prompt, setPrompt] = useState("");
   const [pitch, setPitch] = useState(0);
@@ -55,6 +227,13 @@ export default function MobileAudioPage() {
   const [audioDuration, setAudioDuration] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Previewing specific voice
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+
+  // Library items
+  const [libraryItems, setLibraryItems] = useState<AudioLibraryItem[]>([]);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
   const cost =
@@ -65,6 +244,83 @@ export default function MobileAudioPage() {
       : studioMode === "music"
       ? 6
       : 4;
+
+  // Fetch audio library when switching to library tab
+  useEffect(() => {
+    if (suiteTab !== "lib") return;
+    let active = true;
+    setLoadingLibrary(true);
+    const fetchLib = async () => {
+      try {
+        const res = await fetch("/api/assets?type=audio", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (active && Array.isArray(data.items)) {
+            const mapped: AudioLibraryItem[] = data.items
+              .map((it: any) => ({
+                id: it.id || String(Math.random()),
+                type: it.type || "audio",
+                url: it.url || it.originalUrl || it.mediaUrl || "",
+                prompt: it.prompt || "مقطع صوتي",
+                createdAt: it.createdAt || new Date().toISOString(),
+              }))
+              .filter((it: AudioLibraryItem) => Boolean(it.url));
+            setLibraryItems(mapped);
+          }
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (active) setLoadingLibrary(false);
+      }
+    };
+    fetchLib();
+    return () => {
+      active = false;
+    };
+  }, [suiteTab]);
+
+  // Voice Preview Engine (Web Speech Synthesis / Audio Preview)
+  const handlePreviewVoice = (v: VoiceOption, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // If currently previewing this voice, stop it
+    if (previewingVoiceId === v.id) {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      setPreviewingVoiceId(null);
+      return;
+    }
+
+    // Stop previous preview
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(v.sampleText);
+      utterance.lang = v.sampleLang;
+      utterance.rate = 1.0;
+      utterance.pitch = v.gender === "female" ? 1.1 : 0.9;
+
+      const voices = window.speechSynthesis.getVoices();
+      const match = voices.find(
+        (voice) =>
+          voice.lang.startsWith(v.sampleLang.slice(0, 2)) &&
+          (v.gender === "female"
+            ? /female|zira|samantha|salma|hoda/i.test(voice.name)
+            : /male|david|george|tariq|maged/i.test(voice.name))
+      );
+      if (match) utterance.voice = match;
+
+      utterance.onstart = () => setPreviewingVoiceId(v.id);
+      utterance.onend = () => setPreviewingVoiceId(null);
+      utterance.onerror = () => setPreviewingVoiceId(null);
+
+      window.speechSynthesis.speak(utterance);
+    } else {
+      setToastMessage(`معاينة: "${v.name}" (${v.desc})`);
+    }
+  };
 
   const handleGenerate = async () => {
     if (loading) return;
@@ -109,7 +365,8 @@ export default function MobileAudioPage() {
       }
 
       const data = await res.json();
-      const audioUrl = data.audioUrl || data.url || data.trackUrl || (Array.isArray(data.outputs) && data.outputs[0]);
+      const audioUrl =
+        data.audioUrl || data.url || data.trackUrl || (Array.isArray(data.outputs) && data.outputs[0]);
       if (!audioUrl) throw new Error("لم يتم استلام رابط الملف الصوتي");
 
       setCurrentAudioUrl(audioUrl);
@@ -138,13 +395,26 @@ export default function MobileAudioPage() {
     }
   };
 
-  const handleDownload = async () => {
-    if (!currentAudioUrl) return;
-    await downloadMediaFile(currentAudioUrl, `saadstudio_audio_${Date.now()}.mp3`, {
+  const playTrack = (url: string) => {
+    setCurrentAudioUrl(url);
+    if (audioElementRef.current) {
+      audioElementRef.current.src = url;
+      audioElementRef.current.play().catch(() => {});
+      setIsPlaying(true);
+    }
+  };
+
+  const handleDownload = async (url?: string) => {
+    const targetUrl = url || currentAudioUrl;
+    if (!targetUrl) return;
+    await downloadMediaFile(targetUrl, `saadstudio_audio_${Date.now()}.mp3`, {
       title: "صوت استوديو سعد",
       fallbackExt: "mp3",
     });
+    setToastMessage("تم بدء تنزيل الملف الصوتي 📲");
   };
+
+  const filteredVoices = VOICES.filter((v) => voiceCategory === "all" || v.category === voiceCategory);
 
   return (
     <div className="min-h-screen bg-[#08090C] text-[#EDEFF3] flex justify-center selection:bg-[#E0B252] selection:text-black">
@@ -193,7 +463,7 @@ export default function MobileAudioPage() {
                 : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            المكتبة
+            المكتبة ({libraryItems.length})
             <small className="text-[9px] font-mono text-slate-500 font-normal">LIBRARY</small>
           </button>
         </div>
@@ -229,41 +499,100 @@ export default function MobileAudioPage() {
               </button>
             </div>
 
-            {/* Voice List */}
+            {/* Voice Catalog with Audio Preview */}
             {studioMode === "voice" && (
-              <section className="px-4">
-                <h2 className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-2">اختر المعلق الصوتي</h2>
-                <div className="space-y-1.5">
-                  {VOICES.map((v) => {
-                    const isSelected = selectedVoice.name === v.name;
+              <section className="px-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xs font-bold text-slate-400">مكتبة الأصوات والمعلقين</h2>
+                  <span className="text-[10px] font-semibold text-[#E0B252]">
+                    المحدد: {selectedVoice.name}
+                  </span>
+                </div>
+
+                {/* Voice Category Filter */}
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  {[
+                    { id: "all", label: "الكل" },
+                    { id: "arabic", label: "الأصوات العربية 🇸🇦" },
+                    { id: "google", label: "Google Gemini" },
+                    { id: "elevenlabs", label: "ElevenLabs" },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setVoiceCategory(cat.id as any)}
+                      className={`flex-none py-1.5 px-3 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${
+                        voiceCategory === cat.id
+                          ? "border-[#E0B252] bg-[#E0B252]/15 text-[#E0B252]"
+                          : "border-white/10 bg-[#15181E] text-slate-400"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Voice Cards */}
+                <div className="space-y-2 max-h-[290px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+                  {filteredVoices.map((v) => {
+                    const isSelected = selectedVoice.id === v.id;
+                    const isPreviewing = previewingVoiceId === v.id;
                     return (
                       <div
-                        key={v.name}
+                        key={v.id}
                         onClick={() => setSelectedVoice(v)}
-                        className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                        className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${
                           isSelected
-                            ? "border-[#E0B252]/60 bg-[#E0B252]/10"
+                            ? "border-[#E0B252] bg-[#E0B252]/10 shadow-md shadow-amber-950/20"
                             : "border-white/5 bg-[#15181E] hover:border-white/15"
                         }`}
                       >
+                        {/* Voice Avatar */}
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${
+                          className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${
                             isSelected ? "bg-[#E0B252] text-[#1A1206]" : "bg-slate-700 text-slate-200"
                           }`}
                         >
                           {v.name[0]}
                         </div>
+
+                        {/* Voice Details */}
                         <div className="flex-1 min-w-0">
-                          <strong className="block text-xs font-bold text-slate-100">{v.name}</strong>
-                          <span className="text-[10px] text-slate-400 truncate block">{v.desc}</span>
+                          <div className="flex items-center gap-2">
+                            <strong className="block text-xs font-bold text-slate-100">{v.name}</strong>
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/5 text-slate-400 border border-white/10">
+                              {v.gender === "female" ? "أنثى" : "ذكر"}
+                            </span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">
+                              {v.langTag}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 truncate block mt-0.5">{v.desc}</span>
                         </div>
-                        <span
-                          className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-                            v.isArabic ? "bg-cyan-500/20 text-cyan-300" : "bg-slate-700 text-slate-300"
+
+                        {/* Live Audio Preview Button */}
+                        <button
+                          onClick={(e) => handlePreviewVoice(v, e)}
+                          title="استمع لعينة الصوت"
+                          className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-all shrink-0 active:scale-95 ${
+                            isPreviewing
+                              ? "bg-[#E0B252] text-[#1A1206] border-[#E0B252] animate-pulse"
+                              : "bg-white/5 border-white/10 text-slate-300 hover:border-[#E0B252]/40 hover:text-[#E0B252]"
                           }`}
                         >
-                          {v.lang}
-                        </span>
+                          {isPreviewing ? (
+                            <>
+                              <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />
+                              إيقاف
+                            </>
+                          ) : (
+                            <>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                              معاينة
+                            </>
+                          )}
+                        </button>
                       </div>
                     );
                   })}
@@ -274,7 +603,7 @@ export default function MobileAudioPage() {
             {/* SFX Quick Presets */}
             {studioMode === "sfx" && (
               <section className="px-4">
-                <h2 className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-2">نماذج مؤثرات جاهزة</h2>
+                <h2 className="text-xs font-bold text-slate-400 mb-2">نماذج مؤثرات صوتية جاهزة</h2>
                 <div className="flex flex-wrap gap-1.5">
                   {SFX_PRESETS.map((preset) => (
                     <button
@@ -367,13 +696,92 @@ export default function MobileAudioPage() {
 
         {/* ─── LIBRARY TAB ─── */}
         {suiteTab === "lib" && (
-          <div className="px-4 space-y-2">
-            <div className="p-3 rounded-2xl border border-white/10 bg-[#101216] flex items-center justify-between">
-              <div>
-                <strong className="block text-xs font-bold text-slate-100">المقاطع الصوتية الأخيرة</strong>
-                <span className="text-[10px] text-slate-400">يتم حفظ الملفات تلقائياً في حسابك</span>
-              </div>
+          <div className="px-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold text-slate-400">مكتبة المقاطع الصوتية المولدة</h2>
+              <span className="text-[10px] font-mono text-[#E0B252]">{libraryItems.length} ملفات</span>
             </div>
+
+            {loadingLibrary && (
+              <div className="py-16 text-center text-xs text-slate-400">
+                <div className="w-7 h-7 mx-auto border-2 border-[#E0B252] border-t-transparent rounded-full animate-spin mb-3" />
+                جارٍ تحميل مكتبة الأصوات...
+              </div>
+            )}
+
+            {!loadingLibrary && libraryItems.length === 0 && (
+              <div className="py-16 text-center px-4 rounded-2xl border border-white/5 bg-[#101216]">
+                <div className="w-12 h-12 mx-auto rounded-full bg-[#E0B252]/10 text-[#E0B252] flex items-center justify-center mb-3">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M9 18V5l12-2v13" />
+                    <circle cx="6" cy="18" r="3" />
+                    <circle cx="18" cy="16" r="3" />
+                  </svg>
+                </div>
+                <p className="text-xs font-bold text-slate-200">لا توجد تسجيلات صوتية بعد</p>
+                <span className="text-[11px] text-slate-400 block mt-1">
+                  قم بتوليد أي تعليق صوتي أو أغنية أو مؤثر صوتي لتظهر هنا فوراً.
+                </span>
+              </div>
+            )}
+
+            {!loadingLibrary && libraryItems.length > 0 && (
+              <div className="space-y-2">
+                {libraryItems.map((item) => {
+                  const isCurrent = currentAudioUrl === item.url;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-3 rounded-2xl border transition-all flex items-center gap-3 ${
+                        isCurrent
+                          ? "border-[#E0B252] bg-[#E0B252]/10"
+                          : "border-white/5 bg-[#101216] hover:border-white/15"
+                      }`}
+                    >
+                      {/* Play Button */}
+                      <button
+                        onClick={() => (isCurrent ? togglePlay() : playTrack(item.url))}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 ${
+                          isCurrent && isPlaying
+                            ? "bg-[#E0B252] text-[#1A1206]"
+                            : "bg-white/10 text-white hover:bg-[#E0B252] hover:text-[#1A1206]"
+                        }`}
+                      >
+                        {isCurrent && isPlaying ? (
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="6" y="4" width="4" height="16" />
+                            <rect x="14" y="4" width="4" height="16" />
+                          </svg>
+                        ) : (
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5l11 7-11 7z" />
+                          </svg>
+                        )}
+                      </button>
+
+                      {/* Track Details */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-200 truncate">{item.prompt}</p>
+                        <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                          {new Date(item.createdAt).toLocaleDateString("ar-SA")}
+                        </span>
+                      </div>
+
+                      {/* Direct Download Button */}
+                      <button
+                        onClick={() => handleDownload(item.url)}
+                        title="تنزيل الملف"
+                        className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center shrink-0 active:scale-95"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                          <path d="M12 4v12M8 12l4 4 4-4M4 20h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -412,7 +820,7 @@ export default function MobileAudioPage() {
               </div>
 
               <button
-                onClick={handleDownload}
+                onClick={() => handleDownload()}
                 className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300 active:scale-95 flex-none"
               >
                 تنزيل
@@ -421,21 +829,29 @@ export default function MobileAudioPage() {
           )}
 
           {/* Action Button */}
-          <div className="p-3">
-            <button
-              onClick={handleGenerate}
-              disabled={loading}
-              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 active:scale-[0.985] disabled:opacity-50 transition-all ${
-                suiteTab === "song"
-                  ? "bg-gradient-to-r from-[#22B8CF] to-[#7B3FBF] text-white shadow-lg shadow-cyan-500/20"
-                  : "bg-[#E0B252] text-[#1A1206] shadow-lg shadow-amber-500/20"
-              }`}
-            >
-              {loading ? "جارٍ معالجة الصوت..." : suiteTab === "song" ? "توليد الموسيقى والأغنية" : "توليد المقطع الصوتي"}
-              <span className="font-mono text-xs opacity-75">· {cost} CR</span>
-            </button>
-            <MobileBottomNav />
-          </div>
+          {suiteTab !== "lib" && (
+            <div className="p-3">
+              <button
+                onClick={handleGenerate}
+                disabled={loading}
+                className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 active:scale-[0.985] disabled:opacity-50 transition-all ${
+                  suiteTab === "song"
+                    ? "bg-gradient-to-r from-[#22B8CF] to-[#7B3FBF] text-white shadow-lg shadow-cyan-500/20"
+                    : "bg-[#E0B252] text-[#1A1206] shadow-lg shadow-amber-500/20"
+                }`}
+              >
+                {loading ? "جارٍ معالجة الصوت..." : suiteTab === "song" ? "توليد الموسيقى والأغنية" : "توليد المقطع الصوتي"}
+                <span className="font-mono text-xs opacity-75">· {cost} CR</span>
+              </button>
+              <MobileBottomNav />
+            </div>
+          )}
+
+          {suiteTab === "lib" && (
+            <div className="p-3">
+              <MobileBottomNav />
+            </div>
+          )}
         </div>
       </div>
     </div>
