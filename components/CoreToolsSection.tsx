@@ -39,7 +39,7 @@ const TOOLS = [
     image: "/explore/tool-motion-control.jpg",
     name: "Motion Control",
     desc: "Precise character control",
-    href: "/cinema-studio",
+    href: "/video",
     badge: "NEW",
     badgeColor: "bg-emerald-500/20 text-emerald-300",
     glow: "rgba(139,92,246,0.3)",
@@ -122,7 +122,7 @@ type LayoutBlock = {
 const CORE_SLOT_IDS = TOOLS.map((t) => `explore/tool-${t.id}`);
 
 function normalizeExploreHref(href: string): string {
-  if (href === "/video/cinema-studio") return "/cinema-studio";
+  if (href === "/video/cinema-studio" || href === "/cinema-studio") return "/video";
   if (href === "/edit/upscale") return "/apps/tool/image-upscale";
   return href;
 }

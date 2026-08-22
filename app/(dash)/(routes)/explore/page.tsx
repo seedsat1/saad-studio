@@ -503,7 +503,7 @@ function NextSceneEngineAd() {
   const promo = usePromoMedia();
   const content = usePromoContent();
   const slotId = "explore/ad/next-scene-engine";
-  const href = promoText(content, slotId, "ctaHref", "https://www.saadstudio.app/cinema-studio");
+  const href = promoText(content, slotId, "ctaHref", "/shots");
   const image = promoUrl(promo, `${slotId}/hero`, "/NEXT%20SCENE%20ENGINE.webp");
   const title = promoText(content, slotId, "title", "NEXT SCENE ENGINE");
   const cta = promoText(content, slotId, "cta", "Open");

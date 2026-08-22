@@ -28,8 +28,8 @@ const QUICK_TOOLS = [
     glow: "rgba(139,92,246,0.25)",
   },
   {
-    label: "Next Scene",
-    href: "/cinema-studio",
+    label: "Shots Studio",
+    href: "/shots",
     image: "/explore/tool-motion-control.jpg",
     glow: "rgba(236,72,153,0.25)",
   },

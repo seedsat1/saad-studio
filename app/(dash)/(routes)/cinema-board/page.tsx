@@ -597,10 +597,10 @@ export default function CinemaBoardPage() {
               </button>
               {linkedProjectId && (
                 <a
-                  href="/cinema-studio"
+                  href="/shots"
                   className="mt-2 block rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-xs font-black text-white hover:bg-white/10"
                 >
-                  Open Next Scene Studio
+                  Open Shots Studio
                 </a>
               )}
               {syncMessage && (

@@ -91,7 +91,7 @@ export const DEFAULT_EXPLORE_MODULES: ExploreModule[] = [
     layout: "banner",
     title: "NEXT SCENE ENGINE",
     cta: "Open",
-    href: "https://www.saadstudio.app/cinema-studio",
+    href: "/shots",
     hero: image("hero", "/NEXT%20SCENE%20ENGINE.webp", "Next Scene Engine hero"),
     gallery: [],
   },

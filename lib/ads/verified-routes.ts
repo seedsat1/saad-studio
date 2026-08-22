@@ -79,10 +79,10 @@ export const VERIFIED_SUBSCRIBER_ROUTES: VerifiedSubscriberRoute[] = [
     description: "Infinite workspace for spatial composition and multi-asset editing",
   },
   {
-    path: "/cinema-studio",
-    name: "Cinema Studio",
+    path: "/shots",
+    name: "Shots Studio",
     category: "Core Studio",
-    description: "Multi-shot directorial timeline and sequence generator",
+    description: "Multi-shot cinematic packs and sequence generator",
   },
   {
     path: "/hook-studio",

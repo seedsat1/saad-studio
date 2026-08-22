@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     cinemaProjectId: cinemaProject.id,
-    redirectUrl: `/cinema-studio?projectId=${cinemaProject.id}`,
+    redirectUrl: `/shots?projectId=${cinemaProject.id}`,
     shotCount: shots.length,
   });
 }

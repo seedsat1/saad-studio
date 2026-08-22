@@ -134,7 +134,7 @@ const EXPLORE_ADS: ExploreAdCms[] = [
     slotId: "explore/ad/next-scene-engine",
     name: "NEXT SCENE ENGINE",
     fallbackHero: "/NEXT%20SCENE%20ENGINE.webp",
-    defaults: { title: "NEXT SCENE ENGINE", cta: "Open", ctaHref: "https://www.saadstudio.app/cinema-studio" },
+    defaults: { title: "NEXT SCENE ENGINE", cta: "Open", ctaHref: "/shots" },
   },
   {
     slotId: "explore/ad/transitions",

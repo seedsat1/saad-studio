@@ -31,7 +31,7 @@ const TOP_TOOLS = [
     image: "/explore/top-motion-control.jpg",
     name: "Motion Control",
     desc: "Character actions up to 30 seconds with precise cinematic control.",
-    href: "/cinema-studio",
+    href: "/video",
     badge: "",
     accent: "#8b5cf6",
     glow: "rgba(139,92,246,0.2)",

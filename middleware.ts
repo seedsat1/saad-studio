@@ -27,7 +27,6 @@ const isPublicRoute = createRouteMatcher([
   '/gallery(.*)',
   '/prompt(.*)',
   '/edit(.*)',
-  '/cinema-studio(.*)',
   '/cinema-flow(.*)',
   '/hook-studio(.*)',
   '/cinematic-video(.*)',
@@ -175,7 +174,6 @@ function getCmsSlugFromPath(pathname: string) {
   if (p === "/video" || p.startsWith("/video/")) return "video";
   if (p === "/audio" || p.startsWith("/audio/")) return "audio";
   if (p === "/apps" || p.startsWith("/apps/")) return "apps";
-  if (p === "/cinema-studio" || p.startsWith("/cinema-studio/")) return "cinema-studio";
   if (p === "/shots" || p.startsWith("/shots/")) return "shots";
   if (p === "/variations" || p.startsWith("/variations/")) return "variations";
   return null;
@@ -250,6 +248,12 @@ export default clerkMiddleware(async (auth, req) => {
   if (pathname === "/") {
     const exploreUrl = new URL("/explore", req.url);
     return applySecurityHeaders(NextResponse.redirect(exploreUrl), req);
+  }
+
+  // Redirect deleted cinema-studio route to /shots
+  if (pathname === "/cinema-studio" || pathname.startsWith("/cinema-studio/")) {
+    const shotsUrl = new URL("/shots", req.url);
+    return applySecurityHeaders(NextResponse.redirect(shotsUrl, 301), req);
   }
 
   const slug = getCmsSlugFromPath(pathname);

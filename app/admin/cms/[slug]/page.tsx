@@ -185,7 +185,7 @@ const HOME_CORE_TOOLS: ToolCard[] = [
     title: "Cinema Studio Video",
     description: "Professional cinematic AI production",
     image: "/landing/tool-cinema.png",
-    href: "/cinema-studio",
+    href: "/video",
     badge: "PRO",
     gradient: "from-violet-600/40 via-purple-700/30 to-slate-900/60",
     accentColor: "text-violet-400",
@@ -253,11 +253,11 @@ const HOME_TOP_CHOICE: ToolCard[] = [
 const EXPLORE_HERO_SLIDES: HeroSlide[] = [
   {
     _id: "explore-hero-cinema-studio",
-    title: "Next Scene Engine",
-    subtitle: "Director-level control over AI video generation. Create cinematic masterpieces with unprecedented precision and style.",
+    title: "Shots Studio",
+    subtitle: "Professional cinematic shot packs with smart model routing. Generate cohesive multi-angle coverage in seconds.",
     tag: "NEW",
     bgImage: "/explore/hero-cinema-studio.jpg",
-    ctaHref: "/cinema-studio",
+    ctaHref: "/shots",
     gradient: "from-slate-950 via-cyan-950/50 to-slate-950",
     accentFrom: "from-cyan-500",
     accentTo: "to-blue-500",
@@ -300,7 +300,7 @@ const EXPLORE_HERO_SLIDES: HeroSlide[] = [
 const EXPLORE_CORE_TOOLS: ToolCard[] = [
   { _id: "explore-core-create-image", id: "create-image", title: "Create Image", description: "Generate AI images", image: "/explore/tool-create-image.jpg", href: "/image", badge: "TOP", gradient: "from-pink-600/40 via-violet-700/30 to-indigo-900/60", accentColor: "text-pink-400" },
   { _id: "explore-core-create-video", id: "create-video", title: "Create Video", description: "Generate AI videos", image: "/explore/tool-create-video.jpg", href: "/video", badge: "", gradient: "from-orange-600/40 via-rose-700/30 to-violet-900/60", accentColor: "text-orange-400" },
-  { _id: "explore-core-motion-control", id: "motion-control", title: "Motion Control", description: "Precise character control", image: "/explore/tool-motion-control.jpg", href: "/cinema-studio", badge: "NEW", gradient: "from-violet-600/40 via-purple-700/30 to-slate-900/60", accentColor: "text-violet-400" },
+  { _id: "explore-core-motion-control", id: "motion-control", title: "Motion Control", description: "Precise character control", image: "/explore/tool-motion-control.jpg", href: "/video", badge: "NEW", gradient: "from-violet-600/40 via-purple-700/30 to-slate-900/60", accentColor: "text-violet-400" },
   { _id: "explore-core-soul-2", id: "soul-2", title: "ماجك", description: "Ultra-realistic fashion visuals", image: "/explore/tool-soul-2.jpg", href: "/image/soul-id-character", badge: "NEW", gradient: "from-cyan-600/40 via-sky-700/30 to-indigo-900/60", accentColor: "text-cyan-400" },
   { _id: "explore-core-soul-id", id: "soul-id", title: "Soul ID", description: "Create unique characters", image: "/explore/tool-soul-id.jpg", href: "/image/soul-id-character", badge: "", gradient: "from-indigo-500/40 via-blue-600/30 to-sky-900/60", accentColor: "text-sky-400" },
   { _id: "explore-core-upscale", id: "upscale", title: "Upscale", description: "Enhance media quality", image: "/explore/tool-upscale.jpg", href: "/apps/tool/image-upscale", badge: "", gradient: "from-emerald-600/40 via-teal-700/30 to-cyan-900/60", accentColor: "text-teal-400" },
@@ -312,7 +312,7 @@ const EXPLORE_CORE_TOOLS: ToolCard[] = [
 
 const EXPLORE_TOP_CHOICE: ToolCard[] = [
   { _id: "explore-top-nano-banana-pro", id: "nano-banana-pro", title: "Nano Banana Pro", description: "Best 4K image model. Photorealistic output with state-of-the-art quality.", image: "/explore/top-nano-banana-pro.jpg", href: "/image", badge: "Popular", gradient: "from-yellow-500/40 via-amber-600/30 to-orange-900/60", accentColor: "text-amber-400" },
-  { _id: "explore-top-motion-control", id: "motion-control", title: "Motion Control", description: "Character actions up to 30 seconds with precise cinematic control.", image: "/explore/top-motion-control.jpg", href: "/cinema-studio", badge: "", gradient: "from-violet-600/40 via-purple-700/30 to-slate-900/60", accentColor: "text-violet-400" },
+  { _id: "explore-top-motion-control", id: "motion-control", title: "Motion Control", description: "Character actions up to 30 seconds with precise cinematic control.", image: "/explore/top-motion-control.jpg", href: "/video", badge: "", gradient: "from-violet-600/40 via-purple-700/30 to-slate-900/60", accentColor: "text-violet-400" },
   { _id: "explore-top-skin-enhancer", id: "skin-enhancer", title: "Skin Enhancer", description: "Natural, flawless skin textures with zero artifacts and real depth.", image: "/explore/top-skin-enhancer.jpg", href: "/apps/tool/skin-enhancer", badge: "Pro", gradient: "from-rose-600/40 via-pink-700/30 to-purple-900/60", accentColor: "text-pink-400" },
   { _id: "explore-top-shots", id: "shots", title: "Shots", description: "9 unique cinematic shots from a single image. Instant variety.", image: "/explore/top-shots.jpg", href: "/image/shots", badge: "", gradient: "from-cyan-600/40 via-sky-700/30 to-indigo-900/60", accentColor: "text-cyan-400" },
   { _id: "explore-top-angles-2", id: "angles-2", title: "Angles 2.0", description: "Multi-angle character and product generation from one source image.", image: "/explore/top-angles-2.jpg", href: "/image/angles", badge: "Pro", gradient: "from-emerald-600/40 via-teal-700/30 to-cyan-900/60", accentColor: "text-emerald-400" },
@@ -328,7 +328,7 @@ const HOME_STUDIO_PATHWAYS: AdCard[] = [
   { _id: "home-path-image", title: "Image Studio", description: "High-detail images, ads, portraits, product visuals, and edits.", image: "/GPT%20Image%202/SHOT%203.webp", href: "/image", badge: "", gradient: "", accentColor: "text-cyan-300" },
   { _id: "home-path-video", title: "Video Studio", description: "Generate cinematic motion, character shots, and social clips.", image: "/seedance%202/1%20(4).webp", href: "/video", badge: "", gradient: "", accentColor: "text-fuchsia-300" },
   { _id: "home-path-canvas", title: "AI Canvas", description: "Build complete creative workflows from one visual workspace.", image: "/canvas.webp", href: "/canvas", badge: "", gradient: "", accentColor: "text-amber-200" },
-  { _id: "home-path-next-scene", title: "Next Scene", description: "Direct scenes, storyboards, shots, and cinematic worlds.", image: "/NEXT%20SCENE%20ENGINE.webp", href: "/cinema-studio", badge: "", gradient: "", accentColor: "text-emerald-300" },
+  { _id: "home-path-next-scene", title: "Shots Studio", description: "Direct scenes, storyboards, shots, and cinematic worlds.", image: "/NEXT%20SCENE%20ENGINE.webp", href: "/shots", badge: "", gradient: "", accentColor: "text-emerald-300" },
   { _id: "home-path-character", title: "Character", description: "Create consistent characters for brands, stories, and campaigns.", image: "/seedance%202/1%20(7).webp", href: "/character", badge: "", gradient: "", accentColor: "text-violet-300" },
   { _id: "home-path-apps", title: "Apps", description: "Specialized tools for edit, audio, relight, transitions, and more.", image: "/transitions/1%20(2).webp", href: "/apps", badge: "", gradient: "", accentColor: "text-lime-300" },
 ];
@@ -336,7 +336,7 @@ const HOME_STUDIO_PATHWAYS: AdCard[] = [
 const HOME_SHOWCASE_TILES: AdCard[] = [
   { _id: "home-showcase-campaign", title: "Campaign visuals", description: "", image: "/GPT%20Image%202/SHOT%204.webp", href: "/image", badge: "", gradient: "", className: "md:col-span-5 md:row-span-2" },
   { _id: "home-showcase-cinematic", title: "Cinematic models", description: "", image: "/seedance%202/Hero.webp", href: "/video", badge: "", gradient: "", className: "md:col-span-4 md:row-span-2" },
-  { _id: "home-showcase-scene", title: "Scene engine", description: "", image: "/NEXT%20SCENE%20ENGINE.webp", href: "/cinema-studio", badge: "", gradient: "", className: "md:col-span-3" },
+  { _id: "home-showcase-scene", title: "Shots Studio", description: "", image: "/NEXT%20SCENE%20ENGINE.webp", href: "/shots", badge: "", gradient: "", className: "md:col-span-3" },
   { _id: "home-showcase-transitions", title: "Transitions", description: "", image: "/transitions/Hero.webp", href: "/apps/tool/transitions", badge: "", gradient: "", className: "md:col-span-3" },
   { _id: "home-showcase-nano", title: "Nano Banana", description: "", image: "/nano.webp", href: "/image?model=nano-banana-pro", badge: "", gradient: "", className: "md:col-span-4" },
   { _id: "home-showcase-canvas", title: "Canvas workflow", description: "", image: "/canvas.webp", href: "/canvas", badge: "", gradient: "", className: "md:col-span-5" },

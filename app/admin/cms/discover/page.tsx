@@ -110,7 +110,7 @@ interface DiscoverCmsData {
 const SEED_CORE_TOOLS: CoreTool[] = [
   { _id: uid(), id: "create-image", name: "Create Image", desc: "Generate AI images", href: "/image", badge: "TOP", image: "" },
   { _id: uid(), id: "create-video", name: "Create Video", desc: "Generate AI videos", href: "/video", badge: "", image: "" },
-  { _id: uid(), id: "motion-control", name: "Motion Control", desc: "Precise character control", href: "/cinema-studio", badge: "NEW", image: "" },
+  { _id: uid(), id: "motion-control", name: "Motion Control", desc: "Precise character control", href: "/video", badge: "NEW", image: "" },
   { _id: uid(), id: "soul-2", name: "ماجك", desc: "Ultra-realistic fashion visuals", href: "/image/soul-id-character", badge: "NEW", image: "" },
   { _id: uid(), id: "soul-id", name: "Soul ID", desc: "Create unique characters", href: "/image/soul-id-character", badge: "", image: "" },
   { _id: uid(), id: "upscale", name: "Upscale", desc: "Enhance media quality", href: "/apps/tool/image-upscale", badge: "", image: "" },
@@ -122,7 +122,7 @@ const SEED_CORE_TOOLS: CoreTool[] = [
 
 const SEED_TOP_TOOLS: TopTool[] = [
   { _id: uid(), id: "nano-banana-pro", name: "Nano Banana Pro", desc: "Best 4K image model. Photorealistic output with state-of-the-art quality.", href: "/image", badge: "Popular", image: "" },
-  { _id: uid(), id: "motion-control", name: "Motion Control", desc: "Character actions up to 30 seconds with precise cinematic control.", href: "/cinema-studio", badge: "", image: "" },
+  { _id: uid(), id: "motion-control", name: "Motion Control", desc: "Character actions up to 30 seconds with precise cinematic control.", href: "/video", badge: "", image: "" },
   { _id: uid(), id: "skin-enhancer", name: "Skin Enhancer", desc: "Natural, flawless skin textures with zero artifacts and real depth.", href: "/apps/tool/skin-enhancer", badge: "Pro", image: "" },
   { _id: uid(), id: "shots", name: "Shots", desc: "9 unique cinematic shots from a single image. Instant variety.", href: "/image/shots", badge: "", image: "" },
   { _id: uid(), id: "angles-2", name: "Angles 2.0", desc: "Multi-angle character and product generation from one source image.", href: "/image/angles", badge: "Pro", image: "" },
@@ -181,7 +181,7 @@ const SEED_FOOTER: FooterData = {
         { _id: uid(), label: "Image Generation", href: "/image" },
         { _id: uid(), label: "Video Generation", href: "/video" },
         { _id: uid(), label: "Character Studio", href: "/character" },
-        { _id: uid(), label: "Next Scene", href: "/cinema-studio" },
+        { _id: uid(), label: "Shots Studio", href: "/shots" },
         { _id: uid(), label: "Apps Gallery", href: "/apps" },
       ],
     },
