@@ -60,10 +60,16 @@
   2. **Exact Specs Enforced (No Random/Placeholder Data)**:
      - Video: `Gemini Omni` (`google/gemini-omni-flash` @ 3cr/sec, 3s-10s, 720p, max 3 refs) & `Seedance Mini` (`bytedance/seedance-2.0-mini/text-to-video` @ 8cr/sec, 4s-15s, 720p/1080p, max 9 refs).
      - Image: `Nano Banana Pro` (14cr/img, 1:1/4:5/9:16/16:9, max 6 refs) & `GPT Image 2` (18cr/img, 1:1/4:5/9:16/16:9, max 4 refs).
-  3. **Verification**:
+  3. **Full Backend Audit & Connection Alignment (Zero Guesswork)**:
+     - `app/(dash)/(routes)/m/video/page.tsx` directly submits to production `/api/video` and asynchronously polls `GET /api/video?taskId=...` to completion.
+     - `app/(dash)/(routes)/m/image/page.tsx` maps full payloads to `/api/generate/image` with multiple outputs and resolution/aspect parameters.
+     - `app/(dash)/(routes)/m/audio/page.tsx` routes music and songs to `/api/music` and voice TTS / SFX to `/api/generate/audio`.
+     - `app/(dash)/(routes)/m/gallery/page.tsx` fetches directly from central platform store `/api/assets`.
+     - `components/mobile/MobileTopBar.tsx` reads from `/api/editor/credits` with live `saad-credits-updated` event synchronization.
+  4. **Verification**:
      - `tsc --noEmit`: 0 errors.
      - Vitest suite: 9/9 passed.
-     - Git commit: `e36f1c2` pushed cleanly to `main`.
+     - Git commits: `e36f1c2` and `861bfeb` pushed cleanly to `main`.
 
 #### Previous task: Deletion of Cinema Studio (Next Scene Engine) & Traffic Redirection to Shots Studio (2026-08-22)
 - Status: Completed & Verified (PASS).
