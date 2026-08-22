@@ -48,7 +48,25 @@
 
 ---
 
-#### Latest task: Responsive Phone & Tablet Navigation Simplification (2026-08-22)
+#### Latest task: Mobile & Tablet Tool Simplification Overhaul (2026-08-22)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. **Responsive Asset Inspector on Mobile & Tablet (`components/AssetInspector.tsx`)**:
+     - Converted inspector from cramped fixed side-by-side split into a responsive adaptive layout (`flex-col lg:flex-row`).
+     - Image/Video preview canvas is prominent at the top with full viewport width on mobile/tablet, while prompt, details, and 1-tap assistance tools (Download, Animate, Upscale, Remove BG) scroll smoothly in a clean bottom card.
+     - Added clean dismiss button with standard `<X />` icon.
+  2. **Clean Settings Drawers & De-cluttering (`ReferenceActionTiles.tsx` & `image/page.tsx`)**:
+     - Removed redundant duplicate `REFERENCES & STYLING` section header in `components/ReferenceActionTiles.tsx`.
+     - Hid bulky 300px desktop promotional banner (`StyleLibraryGatewayCard`) from mobile settings bottom sheets to maximize screen space for prompt and model controls.
+  3. **Smart Compact Duration Selector (`app/(dash)/(routes)/video/page.tsx`)**:
+     - Replaced 27-button grid on continuous models (like Seedance 2.5 4s..30s) with an interactive slider and live seconds pill.
+  4. **Verification**:
+     - `tsc --noEmit`: 0 errors.
+     - Vitest suite: 9/9 passed.
+     - `npm run build`: Production build passed with code 0.
+     - Git commit: `5b1cdf2` pushed cleanly to `main`.
+
+#### Previous task: Responsive Phone & Tablet Navigation Simplification (2026-08-22)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. **Unified Phone & Tablet Simplified Product Navigation (`PHONE_NAV_ITEMS === TABLET_NAV_ITEMS`)**:
