@@ -48,7 +48,30 @@
 
 ---
 
-#### Latest task: Dynamic Dashboard Models & Central SaadLoader for Shots & Sub-Tools (2026-08-22)
+#### Latest task: Universal Mobile Direct Save to Camera Roll & Safari Preview Fix (`lib/client-download.ts`) (2026-08-22)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. **Direct Camera Roll / Photos Save on Mobile (`lib/client-download.ts`)**:
+     - Built `downloadMediaFile(url, filename, options)` utilizing the native Web Share API (`navigator.share({ files: [file] })`) on iOS Safari and Android.
+     - On iPhone / iPad, tapping download immediately opens the native iOS Action Sheet with **"Save Image / حفظ الصورة"** and **"Save Video / حفظ الفيديو"** directly to the Photos Camera Roll, eliminating the intermediate black Safari document preview screen (`asset.jpg / فتح في المعاينة`).
+     - On desktop, executes clean, silent Blob object anchor downloads with auto cleanup.
+  2. **Connected Across All Studios & Components**:
+     - `components/AssetInspector.tsx`
+     - `components/image/ImageResultGrid.tsx`
+     - `components/video/VideoHistoryList.tsx`
+     - `components/MediaGrid.tsx`
+     - `app/(dash)/(routes)/video/page.tsx`
+     - `app/(dash)/(routes)/audio/page.tsx`
+     - `app/(dash)/(routes)/shots/page.tsx`
+     - `app/(dash)/(routes)/music/page.tsx`
+     - `app/(dash)/(routes)/hook-studio/page.tsx`
+     - `app/(dash)/(routes)/lipsync/page.tsx`
+  3. **Verification**:
+     - `tsc --noEmit`: 0 errors.
+     - Vitest suite: 9/9 passed.
+     - Git commit: `7613227` pushed cleanly to `main`.
+
+#### Previous task: Dynamic Dashboard Models & Central SaadLoader for Shots & Sub-Tools (2026-08-22)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. **Dynamic Dashboard Models Integration (`app/(dash)/(routes)/shots/page.tsx`)**:
