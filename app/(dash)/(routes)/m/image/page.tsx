@@ -71,6 +71,7 @@ export default function MobileImagePage() {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [selectedImageIndices, setSelectedImageIndices] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -85,14 +86,13 @@ export default function MobileImagePage() {
 
     toProcess.forEach((file) => {
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (typeof ev.target?.result === "string") {
-          setRefImages((prev) => [...prev, ev.target!.result as string]);
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setRefImages((prev) => [...prev, reader.result as string].slice(0, selectedModel.maxImages));
         }
       };
       reader.readAsDataURL(file);
     });
-    if (e.target) e.target.value = "";
   };
 
   const removeRefImage = (index: number) => {
@@ -106,25 +106,31 @@ export default function MobileImagePage() {
   };
 
   const handleEnhancePrompt = async () => {
+    if (isEnhancing) return;
     if (!prompt.trim()) {
-      setToastMessage("يرجى كتابة وصف الصورة أولاً");
+      setToastMessage("يرجى كتابة وصف الصورة أولاً ليتم تحسينه");
       return;
     }
+    setIsEnhancing(true);
     try {
-      const res = await fetch("/api/enhance-prompt", {
+      const res = await fetch("/api/prompt/copilot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, mode: "image" }),
+        body: JSON.stringify({ prompt, mode: "enhance", type: "image" }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.enhancedPrompt) {
-          setPrompt(data.enhancedPrompt);
-          setToastMessage("تم تحسين الوصف بنجاح ✨");
-        }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "فشل تحسين الوصف");
       }
-    } catch {
-      setToastMessage("تعذر تحسين الوصف حالياً");
+      const data = await res.json();
+      if (data.result) {
+        setPrompt(data.result);
+        setToastMessage("تم تحسين وصف الصورة بذكاء ✨");
+      }
+    } catch (err: any) {
+      setToastMessage(err.message || "تعذر تحسين الوصف حالياً");
+    } finally {
+      setIsEnhancing(false);
     }
   };
 
@@ -407,12 +413,17 @@ export default function MobileImagePage() {
             <div className="flex items-center gap-2 px-3 py-2 border-t border-[#38C2F0]/15 bg-[#070D1F]/40">
               <button
                 onClick={handleEnhancePrompt}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#38C2F0]/30 bg-[#38C2F0]/10 text-[#38C2F0] text-xs font-bold active:scale-95 transition-transform"
+                disabled={isEnhancing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#38C2F0]/30 bg-[#38C2F0]/10 text-[#38C2F0] text-xs font-bold active:scale-95 disabled:opacity-50 transition-transform"
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15.5l-1.8-4.7L5.5 9l4.7-1.3z" />
-                </svg>
-                حسّن الوصف
+                {isEnhancing ? (
+                  <div className="w-3 h-3 border-2 border-[#38C2F0] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15.5l-1.8-4.7L5.5 9l4.7-1.3z" />
+                  </svg>
+                )}
+                {isEnhancing ? "جارٍ التحسين..." : "حسّن الوصف"}
               </button>
               <span className="mr-auto text-[11px] text-slate-400 font-mono">{prompt.length} / 1500</span>
             </div>
