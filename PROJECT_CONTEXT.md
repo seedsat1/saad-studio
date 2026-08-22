@@ -48,7 +48,20 @@
 
 ---
 
-#### Latest task: Mobile & Tablet Tool Simplification Overhaul (2026-08-22)
+#### Latest task: Image Studio Interactive Before/After Compare Slider & Full Inspection (2026-08-22)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. **High-Precision Before/After Overlay Compare Slider (`app/(dash)/(routes)/image/page.tsx`)**:
+     - Upgraded `CompareSlider` to use CSS `clipPath` (`inset(0 0 0 ${position}%)`), ensuring both Before and After images stay 100% in place without scaling down or displacing.
+     - Interactive glowing divider line with draggable central handle icon (`SlidersHorizontal`).
+     - Floating `Before` (قبل) and `After` (بعد) localized status tags.
+     - Added 1-tap **"Inspect Image" (مشاهدة بدقة كاملة)** action on the comparison card that launches the high-definition `AssetInspector` for zoom, prompt details, download, and multi-tool workflows.
+  2. **Verification**:
+     - `tsc --noEmit`: 0 errors.
+     - Vitest suite: 9/9 passed.
+     - Git commit: `b157e7c` pushed cleanly to `main`.
+
+#### Previous task: Mobile & Tablet Tool Simplification Overhaul (2026-08-22)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
   1. **Responsive Asset Inspector on Mobile & Tablet (`components/AssetInspector.tsx`)**:
