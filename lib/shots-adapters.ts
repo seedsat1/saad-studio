@@ -1,4 +1,4 @@
-// ─── Shots Studio – Provider Adapters & KIE.ai Integration ───────────────────
+// ─── Shots Studio – Provider Adapters & Native Engine Integration ─────────────
 // SERVER-SIDE ONLY. Do not import from client components.
 
 import type {
@@ -8,218 +8,138 @@ import type {
   ShotPreset,
   NormalizedShotOutput,
 } from "@/lib/shots-studio";
-import { SHOT_PRESETS, KIE_SHOT_MODEL_IDS, SHOT_CREDIT_COSTS, IDENTITY_CRITICAL_SHOTS } from "@/lib/shots-studio";
-
-// ─── KIE.ai API Constants ─────────────────────────────────────────────────────
-
-const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
-const KIE_QUERY_TASK_URL  = "https://api.kie.ai/api/v1/jobs/recordInfo";
-const KIE_FILE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-base64-upload";
-
-// ─── KIE.ai Low-Level Helpers ────────────────────────────────────────────────
-
-interface KieTaskData {
-  taskId?: string;
-  state?: string;
-  resultJson?: string;
-  failMsg?: string;
-  failCode?: string;
-}
-
-interface KieApiResponse {
-  code?: number;
-  msg?: string;
-  data?: KieTaskData;
-}
-
-/**
- * Upload a base64-encoded image to KIE and return the hosted URL.
- * Used when frontend sends a data: URI as the reference image.
- */
-export async function uploadBase64ToKie(base64Data: string, apiKey: string): Promise<string> {
-  const res = await fetch(KIE_FILE_UPLOAD_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ base64Data, uploadPath: "shots-refs" }),
-  });
-
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json?.success === false) {
-    throw new Error(
-      `KIE file upload failed (${res.status}): ${json?.msg ?? JSON.stringify(json)}`,
-    );
-  }
-
-  const fileUrl: string | undefined =
-    json?.data?.downloadUrl ??
-    json?.data?.download_url ??
-    json?.data?.fileUrl ??
-    json?.data?.file_url ??
-    json?.data?.url ??
-    (typeof json?.data === "string" ? json.data : undefined) ??
-    json?.fileUrl ??
-    json?.url;
-
-  if (!fileUrl) {
-    throw new Error(
-      `KIE file upload returned no URL. Response: ${JSON.stringify(json)}`,
-    );
-  }
-  return fileUrl;
-}
-
-async function createKieTask(
-  apiKey: string,
-  kieModelId: string,
-  input: Record<string, unknown>,
-): Promise<string> {
-  const res = await fetch(KIE_CREATE_TASK_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model: kieModelId, input }),
-  });
-
-  const json: KieApiResponse = await res.json().catch(() => ({}));
-
-  if (!res.ok || (json.code !== undefined && json.code !== 200 && json.code !== 0)) {
-    throw new Error(
-      `KIE createTask failed (HTTP ${res.status}, code ${json.code}): ${json.msg ?? res.statusText}`,
-    );
-  }
-
-  const taskId = json?.data?.taskId;
-  if (!taskId) {
-    throw new Error(
-      `KIE createTask returned no taskId. Response: ${JSON.stringify(json)}`,
-    );
-  }
-  return taskId;
-}
-
-async function pollKieTask(
-  apiKey: string,
-  taskId: string,
-  maxAttempts = 100,
-  intervalMs  = 3000,
-): Promise<string[]> {
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise((r) => setTimeout(r, intervalMs));
-
-    const res = await fetch(
-      `${KIE_QUERY_TASK_URL}?taskId=${encodeURIComponent(taskId)}`,
-      { headers: { Authorization: `Bearer ${apiKey}` } },
-    );
-
-    if (!res.ok) throw new Error(`KIE poll failed (${res.status})`);
-
-    const json: KieApiResponse = await res.json().catch(() => ({}));
-    const state = json?.data?.state;
-
-    if (state === "success") {
-      const resultJson = json?.data?.resultJson;
-      if (!resultJson) throw new Error("KIE succeeded but resultJson is empty.");
-      const parsed = JSON.parse(resultJson) as { resultUrls?: string[] };
-      const urls = parsed?.resultUrls ?? [];
-      if (!urls.length) throw new Error("KIE succeeded but resultUrls is empty.");
-      return urls;
-    }
-
-    if (state === "fail") {
-      const msg = json?.data?.failMsg ?? json?.data?.failCode ?? "Unknown failure";
-      throw new Error(`KIE generation failed: ${msg}`);
-    }
-    // Continue polling: waiting | queuing | generating
-  }
-
-  throw new Error("Shot generation timed out after maximum poll attempts.");
-}
+import { SHOT_PRESETS, SHOT_CREDIT_COSTS, IDENTITY_CRITICAL_SHOTS } from "@/lib/shots-studio";
+import { generateImage } from "@/lib/provider-router";
+import { persistProviderUrl } from "@/lib/providers/persist-output";
 
 // ─── Adapter Input / Output ───────────────────────────────────────────────────
+
+/**
+ * Upload a base64-encoded image to persistent storage and return the hosted URL.
+ */
+export async function uploadBase64ToStorage(
+  base64Data: string,
+  userId = "system",
+  generationId = `upload_${Date.now()}`
+): Promise<string> {
+  return persistProviderUrl({
+    url: base64Data,
+    userId,
+    generationId,
+    assetType: "IMAGE",
+  });
+}
+
+/** Compatibility alias */
+export const uploadBase64ToKie = uploadBase64ToStorage;
 
 export interface AdapterInput {
   preset: ShotPreset;
   userPrompt: string;
-  /** Resolved hosted URL (never a data: URI – upload first). */
+  /** Resolved hosted URL or data: URI. */
   referenceImageUrl?: string;
   aspectRatioOverride?: string;
+  userId?: string;
+  generationId?: string;
 }
 
 // ─── Abstract Base Adapter ────────────────────────────────────────────────────
 
 abstract class BaseShotAdapter {
   abstract readonly modelId: ShotModel;
-  abstract readonly kieModelId: string;
   /** Whether this adapter accepts a reference image in its payload */
   abstract readonly supportsReferenceImage: boolean;
 
-  abstract buildPayload(input: AdapterInput): Record<string, unknown>;
-
-  async submit(apiKey: string, input: AdapterInput): Promise<string> {
-    return createKieTask(apiKey, this.kieModelId, this.buildPayload(input));
-  }
-
-  async poll(apiKey: string, taskId: string): Promise<string[]> {
-    return pollKieTask(apiKey, taskId);
-  }
+  abstract generate(input: AdapterInput): Promise<string[]>;
 }
 
-// ─── Nano Banana Adapter ──────────────────────────────────────────────────────
+// ─── Google Nano Banana Adapter (Direct Google Gemini / Imagen) ───────────────
 
 export class NanoBananaAdapter extends BaseShotAdapter {
   readonly modelId: ShotModel = "nano-banana-pro";
-  readonly kieModelId = KIE_SHOT_MODEL_IDS["nano-banana-pro"];
   readonly supportsReferenceImage = true;
 
-  buildPayload(input: AdapterInput): Record<string, unknown> {
-    const { preset, userPrompt, referenceImageUrl, aspectRatioOverride } = input;
+  async generate(input: AdapterInput): Promise<string[]> {
+    const { preset, userPrompt, referenceImageUrl, aspectRatioOverride, userId, generationId } = input;
 
     const assembledPrompt = userPrompt
       ? `${preset.systemPrompt}. ${userPrompt}. Cinematic, professional photography.`
       : `${preset.systemPrompt}. Cinematic, professional photography.`;
 
-    const payload: Record<string, unknown> = {
-      prompt: assembledPrompt,
-      aspect_ratio: aspectRatioOverride ?? preset.aspectRatio,
-      num_images: 1,
-      negative_prompt: preset.negativePrompt,
-    };
+    const aspectRatio = aspectRatioOverride ?? preset.aspectRatio;
 
-    // Nano Banana Pro accepts reference images via image_input array
-    if (referenceImageUrl) {
-      payload.image_input = [referenceImageUrl];
+    // Direct Google Image Generation via Central Provider Router
+    const result = await generateImage({
+      modelId: "nano-banana-pro",
+      prompt: assembledPrompt,
+      negativePrompt: preset.negativePrompt,
+      aspectRatio,
+      numImages: 1,
+      imageUrl: referenceImageUrl || undefined,
+      imageUrls: referenceImageUrl ? [referenceImageUrl] : undefined,
+    });
+
+    if (!result.urls || result.urls.length === 0) {
+      throw new Error("Google Nano Banana returned no image results.");
     }
 
-    return payload;
+    // Persist result URLs to R2 / Supabase Storage
+    const persistedUrls = await Promise.all(
+      result.urls.map(async (rawUrl) => {
+        if (!userId || !generationId) return rawUrl;
+        return persistProviderUrl({
+          url: rawUrl,
+          userId,
+          generationId,
+          assetType: "IMAGE",
+        });
+      })
+    );
+
+    return persistedUrls;
   }
 }
 
-// ─── Z-Image Adapter ──────────────────────────────────────────────────────────
+// ─── Z-Image / WaveSpeed Adapter ──────────────────────────────────────────────
 
 export class ZImageAdapter extends BaseShotAdapter {
   readonly modelId: ShotModel = "z-image";
-  readonly kieModelId = KIE_SHOT_MODEL_IDS["z-image"];
-  // Z-Image does not support reference images (maxRefImages: 0)
   readonly supportsReferenceImage = false;
 
-  buildPayload(input: AdapterInput): Record<string, unknown> {
-    const { preset, userPrompt, aspectRatioOverride } = input;
+  async generate(input: AdapterInput): Promise<string[]> {
+    const { preset, userPrompt, aspectRatioOverride, userId, generationId } = input;
 
     const assembledPrompt = userPrompt
       ? `${preset.systemPrompt}. ${userPrompt}. Professional photography.`
       : `${preset.systemPrompt}. Professional photography.`;
 
-    return {
+    const aspectRatio = aspectRatioOverride ?? preset.aspectRatio;
+
+    const result = await generateImage({
+      modelId: "z-image",
       prompt: assembledPrompt,
-      aspect_ratio: aspectRatioOverride ?? preset.aspectRatio,
-      num_images: 1,
-      negative_prompt: preset.negativePrompt,
-    };
+      negativePrompt: preset.negativePrompt,
+      aspectRatio,
+      numImages: 1,
+    });
+
+    if (!result.urls || result.urls.length === 0) {
+      throw new Error("Z-Image provider returned no image results.");
+    }
+
+    const persistedUrls = await Promise.all(
+      result.urls.map(async (rawUrl) => {
+        if (!userId || !generationId) return rawUrl;
+        return persistProviderUrl({
+          url: rawUrl,
+          userId,
+          generationId,
+          assetType: "IMAGE",
+        });
+      })
+    );
+
+    return persistedUrls;
   }
 }
 
@@ -231,13 +151,13 @@ const ADAPTER_REGISTRY: Record<ShotModel, BaseShotAdapter> = {
 };
 
 export function getAdapter(model: ShotModel): BaseShotAdapter {
-  return ADAPTER_REGISTRY[model];
+  return ADAPTER_REGISTRY[model] || ADAPTER_REGISTRY["nano-banana-pro"];
 }
 
 // ─── Single Shot Generation with Fallback ─────────────────────────────────────
 
 export interface GenerateShotOptions {
-  apiKey: string;
+  apiKey?: string;
   shotType: ShotType;
   primaryModel: ShotModel;
   userPrompt: string;
@@ -245,17 +165,18 @@ export interface GenerateShotOptions {
   mode: GenerationMode;
   /** Compound output ID for this specific shot result */
   outputId: string;
+  userId?: string;
+  generationId?: string;
 }
 
 /**
- * Generates one shot with automatic server-side fallback logic.
- * Implements retry + fallback per the routing spec.
+ * Generates one shot with automatic server-side fallback logic using native Google / Wavespeed engines.
  * Never throws — always returns a NormalizedShotOutput.
  */
 export async function generateShotWithFallback(
   opts: GenerateShotOptions,
 ): Promise<NormalizedShotOutput> {
-  const { apiKey, shotType, primaryModel, userPrompt, referenceImageUrl, mode, outputId } = opts;
+  const { shotType, primaryModel, userPrompt, referenceImageUrl, mode, outputId, userId, generationId } = opts;
   const preset = SHOT_PRESETS[shotType];
   const now = new Date().toISOString();
 
@@ -267,12 +188,12 @@ export async function generateShotWithFallback(
     const adapterInput: AdapterInput = {
       preset,
       userPrompt,
-      // Do not pass reference image to adapters that don't support it
       referenceImageUrl: adapter.supportsReferenceImage ? referenceImageUrl : undefined,
+      userId,
+      generationId,
     };
 
-    const taskId = await adapter.submit(apiKey, adapterInput);
-    const urls   = await adapter.poll(apiKey, taskId);
+    const urls = await adapter.generate(adapterInput);
     const imageUrl = urls[0] ?? null;
 
     return {
@@ -292,14 +213,16 @@ export async function generateShotWithFallback(
   // ── Primary attempt ──
   try {
     return await tryModel(primaryModel, false);
-  } catch {
+  } catch (primaryErr) {
+    console.warn(`[ShotsStudio] Primary model ${primaryModel} failed:`, primaryErr);
     // ── Retry primary once (covers transient failures) ──
     try {
       return await tryModel(primaryModel, false);
     } catch (retryErr) {
+      console.warn(`[ShotsStudio] Primary model ${primaryModel} retry failed:`, retryErr);
+
       // ── Decide whether fallback to Z-Image is allowed ──
       const isIdentityCritical = IDENTITY_CRITICAL_SHOTS.has(shotType);
-      // Safety rule: never silently downgrade identity-critical shots in Standard mode
       const canFallback =
         primaryModel === "nano-banana-pro" &&
         (mode === "budget" || !isIdentityCritical);

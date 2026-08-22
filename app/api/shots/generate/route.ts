@@ -19,7 +19,8 @@ import {
   SHOT_PRESETS,
   routeShotModel,
 } from "@/lib/shots-studio";
-import { generateShotWithFallback, uploadBase64ToKie } from "@/lib/shots-adapters";
+import { generateShotWithFallback } from "@/lib/shots-adapters";
+import { persistProviderUrl } from "@/lib/providers/persist-output";
 
 /** Allow up to 5 minutes for serverless execution (large packs run concurrently) */
 export const maxDuration = 300;
@@ -133,18 +134,17 @@ export async function POST(req: NextRequest) {
     chargedUserId  = userId;
     generationId   = spent.generationId;
 
-    // ── Get API key ──
-    const apiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
-    if (!apiKey) {
-      throw new Error("KIE_API_KEY is not configured on the server.");
-    }
-
-    // ── Resolve reference image to a hosted URL ──
+    // ── Resolve reference image ──
     let referenceImageUrl: string | undefined;
     if (referenceImage) {
-      if (referenceImage.startsWith("data:")) {
-        referenceImageUrl = await uploadBase64ToKie(referenceImage, apiKey);
-      } else if (referenceImage.startsWith("https://") || referenceImage.startsWith("http://")) {
+      if (referenceImage.startsWith("data:") && userId && generationId) {
+        referenceImageUrl = await persistProviderUrl({
+          url: referenceImage,
+          userId,
+          generationId,
+          assetType: "IMAGE",
+        });
+      } else if (referenceImage.startsWith("https://") || referenceImage.startsWith("http://") || referenceImage.startsWith("data:")) {
         referenceImageUrl = referenceImage;
       }
     }
@@ -152,13 +152,14 @@ export async function POST(req: NextRequest) {
     // ── Generate all shots concurrently with per-shot routing & fallback ──
     const tasks = estimate.breakdown.map((b, idx) =>
       generateShotWithFallback({
-        apiKey,
         shotType: b.shotType,
         primaryModel: routeShotModel(b.shotType, mode, consistencyLock),
         userPrompt: sanitizedPrompt,
         referenceImageUrl,
         mode,
         outputId: `${generationId}_${idx}`,
+        userId: userId || undefined,
+        generationId: generationId || undefined,
       }),
     );
 
