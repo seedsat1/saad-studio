@@ -70,10 +70,11 @@
      - Fixed image credit pricing to exact platform rules (2 cr standard / 4 cr 4K).
      - Overhauled layout & spacing across mobile pages: increased bottom padding to `pb-[280px]` preventing fixed bar content occlusion, moved model badges inside header rows eliminating clipping, and fixed RTL bidirectional duration text reversal.
      - Built comprehensive Voice Library catalog with categories (Arabic 🇸🇦, Google Gemini, ElevenLabs), instant Audio Sample Preview (🔊 Play/Stop per voice), and connected the real Audio Library tab to `/api/assets?type=audio` with inline playback and camera roll download.
+     - Connected complete 50+ voice platform catalog (`VOICE_CATALOG` and `/api/voices`) with real MP3 streaming preview endpoints (`/api/voice-sample?voice=...&lang=...`).
   4. **Verification**:
      - `tsc --noEmit`: 0 errors.
      - Vitest suite: 9/9 passed.
-     - Git commits: `e36f1c2`, `861bfeb`, `94df678`, `490765d`, `c531015`, and `886b110` pushed cleanly to `main`.
+     - Git commits: `e36f1c2`, `861bfeb`, `94df678`, `490765d`, `c531015`, `886b110`, and `f00a428` pushed cleanly to `main`.
 
 #### Previous task: Deletion of Cinema Studio (Next Scene Engine) & Traffic Redirection to Shots Studio (2026-08-22)
 - Status: Completed & Verified (PASS).
