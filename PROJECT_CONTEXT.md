@@ -68,10 +68,11 @@
      - `components/mobile/MobileTopBar.tsx` reads from `/api/editor/credits` with live `saad-credits-updated` event synchronization.
      - Connected "حسّن الوصف / Enhance Prompt" button directly to `/api/prompt/copilot` (powered by Gemini AI with lighting, composition, and texture expansion) with animated loading spinner.
      - Fixed image credit pricing to exact platform rules (2 cr standard / 4 cr 4K).
+     - Overhauled layout & spacing across mobile pages: increased bottom padding to `pb-[280px]` preventing fixed bar content occlusion, moved model badges inside header rows eliminating clipping, and fixed RTL bidirectional duration text reversal.
   4. **Verification**:
      - `tsc --noEmit`: 0 errors.
      - Vitest suite: 9/9 passed.
-     - Git commits: `e36f1c2`, `861bfeb`, `94df678`, and `490765d` pushed cleanly to `main`.
+     - Git commits: `e36f1c2`, `861bfeb`, `94df678`, `490765d`, and `c531015` pushed cleanly to `main`.
 
 #### Previous task: Deletion of Cinema Studio (Next Scene Engine) & Traffic Redirection to Shots Studio (2026-08-22)
 - Status: Completed & Verified (PASS).
