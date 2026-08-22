@@ -57,6 +57,7 @@ import { useUser } from "@clerk/nextjs";
 import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { getGenerationCostSync } from "@/lib/pricing";
 import { VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
+import { downloadMediaFile } from "@/lib/client-download";
 
 import { getFallbackUrls } from "@/lib/utils";
 
@@ -1265,26 +1266,9 @@ export default function HookStudioPage() {
   };
 
   const handleDownload = async (url: string, filename: string = "media-file") => {
-    try {
-      let fetchUrl = url;
-      const fallbacks = getFallbackUrls(url);
-      const proxyUrl = fallbacks.find((u) => u.startsWith("/api/media/"));
-      if (proxyUrl) {
-        fetchUrl = proxyUrl;
-      }
-      const response = await fetch(fetchUrl);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-      window.open(url, "_blank");
-    }
+    await downloadMediaFile(url, filename, {
+      title: filename,
+    });
   };
 
   const handleRemoveBackground = async (url: string) => {

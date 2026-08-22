@@ -19,6 +19,7 @@ import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { calculateMusicCredits } from "@/lib/pricing";
 import { SaadLoader } from "@/components/saad-loader";
 import { reportMobileTelemetry } from "@/lib/mobile/client-telemetry";
+import { downloadMediaFile } from "@/lib/client-download";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -730,30 +731,17 @@ export default function AudioPage() {
     if (!track.audioUrl) return;
     const filenameParam = `${track.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${outputFmt}`;
     try {
-      const res = await fetch(track.audioUrl);
-      if (!res.ok) throw new Error("Direct audio fetch failed");
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = filenameParam;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      const ok = await downloadMediaFile(track.audioUrl, filenameParam, {
+        title: track.title || "Saad Studio Audio",
+        fallbackExt: `.${outputFmt}`,
+      });
       reportMobileTelemetry({
         route: "/audio",
         feature: "audio_download",
         operation: "download",
-        status: "SUCCESS",
+        status: ok ? "SUCCESS" : "FAILURE",
       });
     } catch {
-      const a = document.createElement("a");
-      a.href = `/api/download?url=${encodeURIComponent(track.audioUrl)}&filename=${encodeURIComponent(filenameParam)}`;
-      a.download = filenameParam;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
       reportMobileTelemetry({
         route: "/audio",
         feature: "audio_download",

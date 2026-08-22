@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, Heart, Trash2, Play, X, Zap, Sparkles } from "lucide-react";
 import { cn, getFallbackUrls } from "@/lib/utils";
+import { downloadMediaFile } from "@/lib/client-download";
 
 function hexA(hex: string, a: number) {
   const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
@@ -52,16 +53,12 @@ interface MediaGridProps {
 
 function downloadMedia(item: MediaItem) {
   if (!item.src || item.src.startsWith("gradient:")) return;
-  const a = document.createElement("a");
-  const filename = `saad-${item.id}`;
-  a.href = item.src.startsWith("data:") || item.src.startsWith("blob:")
-    ? item.src
-    : `/api/download?url=${encodeURIComponent(item.src)}&filename=${encodeURIComponent(filename)}`;
-  a.download = filename;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  const ext = item.type === "video" ? ".mp4" : ".png";
+  const filename = `saad-${item.id}${ext}`;
+  void downloadMediaFile(item.src, filename, {
+    title: item.prompt || "Saad Studio Media",
+    fallbackExt: ext,
+  });
 }
 
 // ─── Aspect ratio CSS map ─────────────────────────────────────────────────────

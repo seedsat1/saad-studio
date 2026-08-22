@@ -35,6 +35,7 @@ import {
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useFullDynamicModels } from "@/hooks/use-dynamic-models";
 import { getFallbackUrls } from "@/lib/utils";
+import { downloadMediaFile } from "@/lib/client-download";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,35 +67,11 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 async function downloadImage(url: string, filename: string) {
-  try {
-    let fetchUrl = url;
-    const fallbacks = getFallbackUrls(url);
-    const proxyUrl = fallbacks.find((u) => u.startsWith("/api/media/"));
-    if (proxyUrl) {
-      fetchUrl = proxyUrl;
-    }
-    const res = await fetch(fetchUrl);
-    if (!res.ok) throw new Error("Fetch failed");
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = blobUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
-    toast.success("Image downloaded successfully 📥");
-  } catch (err) {
-    console.warn("Direct blob download failed, falling back to /api/download", err);
-    const link = document.createElement("a");
-    link.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
-    link.download = filename;
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+  const ok = await downloadMediaFile(url, filename, {
+    title: filename,
+    fallbackExt: ".png",
+  });
+  if (ok) toast.success("Image downloaded successfully 📥");
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

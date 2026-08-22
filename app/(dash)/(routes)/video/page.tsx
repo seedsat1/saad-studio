@@ -73,36 +73,23 @@ function hexA(hex: string, a: number): string {
 }
 
 import { reportMobileTelemetry } from "@/lib/mobile/client-telemetry";
+import { downloadMediaFile } from "@/lib/client-download";
 
 async function downloadVideoItem(item: MediaItem) {
   if (!hasPlayableVideo(item)) return;
   const filename = `saad-video-${item.id}.mp4`;
   try {
-    const res = await fetch(item.src);
-    if (!res.ok) throw new Error("Direct fetch failed");
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    const ok = await downloadMediaFile(item.src, filename, {
+      title: item.prompt || "Saad Studio Video",
+      fallbackExt: ".mp4",
+    });
     reportMobileTelemetry({
       route: "/video",
       feature: "video_download",
       operation: "download",
-      status: "SUCCESS",
+      status: ok ? "SUCCESS" : "FAILURE",
     });
   } catch {
-    const a = document.createElement("a");
-    a.href = `/api/download?url=${encodeURIComponent(item.src)}&filename=${encodeURIComponent(filename)}`;
-    a.download = filename;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
     reportMobileTelemetry({
       route: "/video",
       feature: "video_download",

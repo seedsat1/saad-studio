@@ -25,6 +25,7 @@ import { useLanguage } from "@/lib/use-language";
 import { SaadLoader } from "@/components/saad-loader";
 import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
 import { getFallbackUrls } from "@/lib/utils";
+import { downloadMediaFile } from "@/lib/client-download";
 
 function hexA(hex: string, a: number): string {
   const cleanHex = hex.replace("#", "");
@@ -47,16 +48,11 @@ function hasPlayableVideo(item: MediaItem) {
 
 function downloadVideoItem(item: MediaItem) {
   if (!hasPlayableVideo(item)) return;
-  const a = document.createElement("a");
   const filename = `saad-video-${item.id}.mp4`;
-  a.href = `/api/download?url=${encodeURIComponent(item.src)}&filename=${encodeURIComponent(
-    filename
-  )}`;
-  a.download = filename;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  void downloadMediaFile(item.src, filename, {
+    title: item.prompt || "Saad Studio Video",
+    fallbackExt: ".mp4",
+  });
 }
 
 async function copyTextToClipboard(text?: string | null) {

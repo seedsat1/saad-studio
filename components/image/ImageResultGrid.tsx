@@ -46,6 +46,7 @@ import type { Asset } from "@/components/AssetInspector";
 import { cn } from "@/lib/utils";
 import { SaadLoader } from "@/components/saad-loader";
 import { useLanguage } from "@/lib/use-language";
+import { downloadMediaFile } from "@/lib/client-download";
 
 export interface ResultItem {
   id: string;
@@ -343,32 +344,18 @@ export function ImageResultGrid({
     if (!url) return;
     try {
       showToast("Starting download...");
-      const res = await fetch(`/api/proxy-image?url=${encodeURIComponent(url)}`).catch(() => null);
-      const blob = res?.ok ? await res.blob() : await (await fetch(url)).blob();
-      const ext = (blob.type.split("/")[1] || "png").split("+")[0];
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `saad_studio_${item.id}.${ext}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      const filename = `saad_studio_${item.id}.png`;
+      const ok = await downloadMediaFile(url, filename, {
+        title: item.prompt || "Saad Studio Image",
+        fallbackExt: ".png",
+      });
       reportMobileTelemetry({
         route: "/image",
         feature: "image_download",
         operation: "download",
-        status: "SUCCESS",
+        status: ok ? "SUCCESS" : "FAILURE",
       });
     } catch {
-      const filename = `saad_studio_${item.id}.png`;
-      const a = document.createElement("a");
-      a.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
-      a.download = filename;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
       reportMobileTelemetry({
         route: "/image",
         feature: "image_download",

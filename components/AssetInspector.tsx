@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { cn, getFallbackUrls } from "@/lib/utils";
 import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
+import { downloadMediaFile } from "@/lib/client-download";
 
 export type AssetType = "image" | "video" | "audio" | "3d";
 
@@ -978,26 +979,11 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
   };
 
   const downloadAsset = useCallback(async (url: string, fallbackExt: string) => {
-    try {
-      const baseName = `${asset.title?.slice(0, 40) ?? "asset"}`;
-      const tentative = `${baseName}${fallbackExt}`;
-      const downloadUrl = url.startsWith("data:") || url.startsWith("blob:")
-        ? url
-        : `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(tentative)}`;
-      const res = await fetch(downloadUrl);
-      const blob = await res.blob();
-      const ext = extensionFromBlobType(blob.type || "", fallbackExt);
-      const filename = `${baseName}${ext}`;
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(a.href);
-    } catch {
-      window.open(url, "_blank");
-    }
+    const baseName = `${asset.title?.slice(0, 40) ?? "asset"}`;
+    await downloadMediaFile(url, `${baseName}${fallbackExt}`, {
+      title: asset.title || "Saad Studio Media",
+      fallbackExt,
+    });
   }, [asset.title]);
 
   const handleAction = useCallback(async (label: string) => {

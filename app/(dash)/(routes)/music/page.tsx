@@ -22,6 +22,7 @@ import { NewModelsBanner } from "@/components/NewModelsBanner";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { getCentralizedDynamicMusicModels, type DynamicMusicModel } from "@/lib/model-definition-registry";
 import { reportMobileTelemetry } from "@/lib/mobile/client-telemetry";
+import { downloadMediaFile } from "@/lib/client-download";
 
 // ─── Music Models ─────────────────────────────────────────────────────────────
 const MUSIC_BASE_CREDITS: Record<string, number> = {
@@ -161,31 +162,17 @@ const MusicPage = () => {
     if (!audioUrl) return;
     const filename = `saadstudio_music_${Date.now()}.mp3`;
     try {
-      const res = await fetch(audioUrl);
-      if (!res.ok) throw new Error("Direct fetch failed");
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      const ok = await downloadMediaFile(audioUrl, filename, {
+        title: prompt || "Saad Studio Music",
+        fallbackExt: ".mp3",
+      });
       reportMobileTelemetry({
         route: "/music",
         feature: "music_download",
         operation: "download",
-        status: "SUCCESS",
+        status: ok ? "SUCCESS" : "FAILURE",
       });
     } catch {
-      const a = document.createElement("a");
-      a.href = `/api/download?url=${encodeURIComponent(audioUrl)}&filename=${encodeURIComponent(filename)}`;
-      a.download = filename;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
       reportMobileTelemetry({
         route: "/music",
         feature: "music_download",
