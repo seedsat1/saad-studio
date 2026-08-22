@@ -11,6 +11,7 @@ import {
 } from "@/lib/credit-ledger";
 import { applyAnnualUnlimitedImageSlowdown, getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
 import { getGenerationCost } from "@/lib/pricing";
+import { applyImageWatermarkMany } from "@/lib/watermark";
 import { sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
@@ -272,9 +273,10 @@ export async function POST(req: NextRequest) {
         ).catch(() => {});
       }
 
+      const wmUrls = await applyImageWatermarkMany(imageUrls, { userId, generationIdPrefix: generationId });
       return NextResponse.json({
-        imageUrls,
-        imageUrl: imageUrls[0] ?? null,
+        imageUrls: wmUrls,
+        imageUrl: wmUrls[0] ?? null,
         generationId,
         taskId,
         provider: "wavespeed",
@@ -298,9 +300,10 @@ export async function POST(req: NextRequest) {
         imageUrl: refUrls[0],
         imageUrls: refUrls,
       });
+      const wmUrls2 = await applyImageWatermarkMany(result.imageUrls ?? [], { userId, generationIdPrefix: result.generationId });
       return NextResponse.json({
-        imageUrls: result.imageUrls ?? [],
-        imageUrl: result.imageUrl ?? null,
+        imageUrls: wmUrls2,
+        imageUrl: wmUrls2[0] ?? result.imageUrl ?? null,
         generationId: result.generationId,
       });
     }

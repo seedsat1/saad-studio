@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
+import { applyImageWatermark } from "@/lib/watermark";
 import { InsufficientCreditsError } from "@/lib/credit-ledger";
 import { runInlineGeneration } from "@/lib/generation/inline-orchestrator";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
@@ -240,7 +241,8 @@ export async function POST(req: NextRequest) {
         return { mediaUrl: outputs[0], taskId };
       },
     });
-    const url = result.providerResult.mediaUrl;
+    const rawUrl = result.providerResult.mediaUrl;
+    const url = isVideo ? rawUrl : await applyImageWatermark(rawUrl, { userId, generationId: result.generationId });
 
     return NextResponse.json(
       {

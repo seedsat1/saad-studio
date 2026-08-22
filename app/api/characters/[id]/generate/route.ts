@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { applyImageWatermarkMany } from "@/lib/watermark";
 import { getGenerationCost } from "@/lib/pricing";
 import {
   InsufficientCreditsError,
@@ -543,12 +544,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       await saveAdditionalGenerationUrls(userId, sanitizePrompt(fullPrompt, 5000), WAVESPEED_MODEL, "IMAGE", imageUrls.slice(1)).catch(() => null);
     }
 
+    const watermarkedUrls = await applyImageWatermarkMany(imageUrls, { userId, generationIdPrefix: generationId });
     return NextResponse.json({
       generationId,
-      imageUrls,
-      resultUrls: imageUrls,
-      imageUrl: imageUrls[0] ?? null,
-      mediaUrl: imageUrls[0] ?? null,
+      imageUrls: watermarkedUrls,
+      resultUrls: watermarkedUrls,
+      imageUrl: watermarkedUrls[0] ?? null,
+      mediaUrl: watermarkedUrls[0] ?? null,
       taskId,
       credits: creditsToCharge,
     });

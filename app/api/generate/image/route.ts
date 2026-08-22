@@ -11,6 +11,7 @@ import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { isStorageConfigured, uploadBufferToStorage } from "@/lib/supabase-storage";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 import { normalizeMediaUrl } from "@/lib/storage";
+import { applyImageWatermarkMany } from "@/lib/watermark";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 import { buildWaveSpeedImageInput, resolveWaveSpeedImageModelRoute, normalizeWaveSpeedModelEndpoint, type WaveSpeedImageRouteConfig } from "@/lib/wavespeed-image-routing";
 import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
@@ -815,12 +816,13 @@ export async function POST(req: NextRequest) {
       }
 
       const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
+      const watermarkedImageUrls = await applyImageWatermarkMany(normalizedImageUrls, { userId: chargedUserId || undefined, generationIdPrefix: generationId });
       return NextResponse.json({
         generationId,
-        imageUrls: normalizedImageUrls,
-        resultUrls: normalizedImageUrls,
-        imageUrl: normalizedImageUrls[0] ?? null,
-        mediaUrl: normalizedImageUrls[0] ?? null,
+        imageUrls: watermarkedImageUrls,
+        resultUrls: watermarkedImageUrls,
+        imageUrl: watermarkedImageUrls[0] ?? null,
+        mediaUrl: watermarkedImageUrls[0] ?? null,
         provider: "openai",
         model: openAIImageModel,
       }, { status: 200 });
@@ -884,12 +886,13 @@ export async function POST(req: NextRequest) {
       }
 
       const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
+      const watermarkedImageUrls = await applyImageWatermarkMany(normalizedImageUrls, { userId: chargedUserId || undefined, generationIdPrefix: generationId });
       return NextResponse.json({
         generationId,
-        imageUrls: normalizedImageUrls,
-        resultUrls: normalizedImageUrls,
-        imageUrl: normalizedImageUrls[0] ?? null,
-        mediaUrl: normalizedImageUrls[0] ?? null,
+        imageUrls: watermarkedImageUrls,
+        resultUrls: watermarkedImageUrls,
+        imageUrl: watermarkedImageUrls[0] ?? null,
+        mediaUrl: watermarkedImageUrls[0] ?? null,
         provider: "google",
         model: googleImageModel,
       }, { status: 200 });
@@ -969,13 +972,14 @@ export async function POST(req: NextRequest) {
       }
 
       const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
+      const watermarkedImageUrls = await applyImageWatermarkMany(normalizedImageUrls, { userId: chargedUserId || undefined, generationIdPrefix: generationId });
       return NextResponse.json({
         generationId,
         taskId,
-        imageUrls: normalizedImageUrls,
-        resultUrls: normalizedImageUrls,
-        imageUrl: normalizedImageUrls[0] ?? null,
-        mediaUrl: normalizedImageUrls[0] ?? null,
+        imageUrls: watermarkedImageUrls,
+        resultUrls: watermarkedImageUrls,
+        imageUrl: watermarkedImageUrls[0] ?? null,
+        mediaUrl: watermarkedImageUrls[0] ?? null,
         provider: "wavespeed",
         model: waveSpeedImageRoute.model,
         credits: creditsToCharge,
