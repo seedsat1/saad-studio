@@ -13906,3 +13906,16 @@
   - Vitest storage suites (`storage-runtime.test.ts`, `storage-backend-hardening.test.ts`, `storage-media-lifecycle-integrity.test.ts`, `storage-visuals.test.ts`): 38/38 tests passed.
   - `npx.cmd tsc --noEmit` passed with 0 errors.
   - `npm run build` compiled successfully.
+
+#### Latest task: Video History Reference Inputs In-App Lightbox Modal (2026-08-23)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Replaced raw external `<a href="..." target="_blank">` navigation on Reference Inputs (`Start`, `End`, `Ref 1`, `Ref 2`, etc.) in `components/video/VideoHistoryList.tsx` with an in-app `ReferenceImageModal` Lightbox.
+  - Clicking any reference image thumbnail now opens a high-resolution in-app preview overlay with backdrop blur, title badge, direct download button, and close triggers (X button, backdrop click, Escape key) with zero external URL navigation.
+- Affected files:
+  - `components/video/VideoHistoryList.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed with 0 errors.
+  - `npm run build` compiled successfully.
+
