@@ -13907,15 +13907,22 @@
   - `npx.cmd tsc --noEmit` passed with 0 errors.
   - `npm run build` compiled successfully.
 
-#### Latest task: Video History Reference Inputs In-App Lightbox Modal (2026-08-23)
+#### Latest task: Comprehensive Brand Icon & Favicon Regeneration (2026-08-23)
 - Status: Completed & Verified (PASS).
 - Key Deliverables:
-  - Replaced raw external `<a href="..." target="_blank">` navigation on Reference Inputs (`Start`, `End`, `Ref 1`, `Ref 2`, etc.) in `components/video/VideoHistoryList.tsx` with an in-app `ReferenceImageModal` Lightbox.
-  - Clicking any reference image thumbnail now opens a high-resolution in-app preview overlay with backdrop blur, title badge, direct download button, and close triggers (X button, backdrop click, Escape key) with zero external URL navigation.
+  - Replaced legacy multi-color Eve logo icons with the official canonical `logo-saad.png` / `logo-saad-transparent.png` across the entire codebase.
+  - Regenerated all web app icons and favicons (`public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`, `public/favicon.ico`, `public/favicon-v2.ico`, `public/favicon.ico.png`, `public/EveLogo.png`, `app/favicon.ico`, `app/icon.png`, `app/apple-icon.png`).
+  - Configured ClerkProvider appearance (`layout.logoImageUrl`) to display the official Saad Studio logo in authentication modals.
+  - Updated legacy logo references in `components/sidebar.tsx`, `components/landing-navbar.tsx`, `components/bot-avatar.tsx`, `app/(dash)/(routes)/hook-studio/page.tsx`.
+  - Updated Adobe CEP Extension icons (`adobe/saadstudio-cep/icons/logo.png`, `adobe/saadstudio-cep/icons/logo-48.png`, `adobe/saadstudio-cep/client/public/logo-saad.png`, `adobe/saadstudio-cep/client/dist/logo-saad.png`).
 - Affected files:
-  - `components/video/VideoHistoryList.tsx`
+  - `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`, `public/favicon.ico`, `public/favicon-v2.ico`, `public/favicon.ico.png`, `public/EveLogo.png`
+  - `app/favicon.ico`, `app/icon.png`, `app/apple-icon.png`, `app/layout.tsx`
+  - `components/sidebar.tsx`, `components/landing-navbar.tsx`, `components/bot-avatar.tsx`, `app/(dash)/(routes)/hook-studio/page.tsx`
+  - `adobe/saadstudio-cep/icons/logo.png`, `adobe/saadstudio-cep/icons/logo-48.png`, `adobe/saadstudio-cep/client/public/logo-saad.png`
   - `PROJECT_CONTEXT.md`
 - Verification:
   - `npx.cmd tsc --noEmit` passed with 0 errors.
-  - `npm run build` compiled successfully.
+  - `npm run build` compiled successfully (with App Router icons automatically bundled).
+
 
