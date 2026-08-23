@@ -14016,6 +14016,29 @@
   - All 67 pricing & tariff tests passed (`npx.cmd vitest run ...`).
   - `npm run build` compiled successfully.
 
+#### Latest task: Calibrate Full Seedance Suite from Live Provider Prediction Evidence (2026-08-24)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Seedance 2.5 Turbo: 720p at $0.18/s (30s @ $5.40 -> 302.40 cr), 480p at $0.162/s (4s @ $0.648 -> 36.29 cr), 1080p at $0.24/s (4s @ $0.96 -> 53.76 cr), 4k at $0.36/s (4s @ $1.44 -> 80.64 cr).
+  - Seedance 2.0 Turbo: 1080p at $0.144/s (5s @ $0.72 -> 40.32 cr, 15s @ $2.16 -> 120.96 cr).
+  - Seedance 2.0 Mini: 1080p at $0.180/s (15s @ $2.70 -> 151.20 cr).
+  - Seedance 2.0 Standard: 1080p at $0.540/s (15s @ $8.10 -> 453.60 cr).
+  - Synced `lib/credit-pricing.ts`, `lib/pricing.ts`, `lib/provider-tariff-registry.ts` with all 67 tests passing.
+- Affected files:
+  - `lib/credit-pricing.ts`
+  - `lib/pricing.ts`
+  - `lib/provider-tariff-registry.ts`
+  - `test/pricing-core.test.ts`
+  - `test/provider-cost-attribution-remediation.test.ts`
+  - `test/provider-cost-audit.test.ts`
+  - `test/provider-cost-capture-and-reconciliation.test.ts`
+  - `test/universal-checkpoint-routing.test.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 67 pricing & tariff tests passed (`npx.cmd vitest run ...`).
+  - `npm run build` compiled successfully.
+
+
 
 
 
