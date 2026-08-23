@@ -49,6 +49,23 @@ if ($ffmpegExe) {
     $ffmpegDir = Join-Path $extensionDir "tools\ffmpeg"
     New-Item -ItemType Directory -Path $ffmpegDir -Force | Out-Null
     Copy-Item $ffmpegExe (Join-Path $ffmpegDir "ffmpeg.exe") -Force
+    $vcRuntimeSourceDirs = @(
+        (Split-Path $ffmpegExe -Parent),
+        (Join-Path $root "tools\ffmpeg"),
+        (Join-Path $root "share-package\app.saadstudio.cep\tools\ffmpeg"),
+        (Join-Path $root "..\exe\payload-work\tools\ffmpeg")
+    )
+    foreach ($dllName in @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll", "concrt140.dll")) {
+        $dllSource = $vcRuntimeSourceDirs |
+            ForEach-Object { Join-Path $_ $dllName } |
+            Where-Object { Test-Path $_ } |
+            Select-Object -First 1
+        if ($dllSource) {
+            Copy-Item $dllSource (Join-Path $ffmpegDir $dllName) -Force
+        } else {
+            Write-Warning "Visual C++ runtime DLL not found for FFmpeg: $dllName"
+        }
+    }
     $ffprobeExe = Join-Path (Split-Path $ffmpegExe -Parent) "ffprobe.exe"
     if (Test-Path $ffprobeExe) {
         Write-Host "Bundling FFprobe binary from $ffprobeExe"
