@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import NextImage from "next/image";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Heart,
   Copy,
@@ -19,6 +19,8 @@ import {
   Play,
   Sparkles,
   Layers,
+  X,
+  Eye,
 } from "lucide-react";
 import type { MediaItem } from "@/components/MediaGrid";
 import { useLanguage } from "@/lib/use-language";
@@ -462,8 +464,17 @@ export function VideoHistoryList({
   onDelete?: (id: string) => void;
 }) {
   const { lang } = useLanguage();
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
+
   return (
     <div className="w-full space-y-4 py-4">
+      {/* Reference Image Lightbox Modal */}
+      <ReferenceImageModal
+        preview={previewImage}
+        onClose={() => setPreviewImage(null)}
+        lang={lang}
+      />
+
       {/* Skeletons */}
       {(skeletonModels ?? []).map((item, index) => (
         <div
@@ -541,45 +552,57 @@ export function VideoHistoryList({
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {item.startImageUrl && (
-                        <a
-                          href={item.startImageUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="group/ref relative h-10 w-10 overflow-hidden rounded-lg border border-cyan-500/40 bg-black/50 hover:border-cyan-400 transition"
-                          title="Start Frame"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewImage({
+                              url: item.startImageUrl!,
+                              title: lang === "ar" ? "الإطار الأولي (Start Frame)" : "Start Frame",
+                            });
+                          }}
+                          className="group/ref relative h-10 w-10 overflow-hidden rounded-lg border border-cyan-500/40 bg-black/50 hover:border-cyan-400 hover:scale-105 active:scale-95 transition cursor-pointer"
+                          title={lang === "ar" ? "الإطار الأولي" : "Start Frame"}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={item.startImageUrl} alt="Start Frame" className="h-full w-full object-cover" />
                           <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[7.5px] text-cyan-300 font-bold text-center leading-tight py-0.5">
                             Start
                           </span>
-                        </a>
+                        </button>
                       )}
                       {item.endImageUrl && (
-                        <a
-                          href={item.endImageUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="group/ref relative h-10 w-10 overflow-hidden rounded-lg border border-indigo-500/40 bg-black/50 hover:border-indigo-400 transition"
-                          title="End Frame"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewImage({
+                              url: item.endImageUrl!,
+                              title: lang === "ar" ? "الإطار النهائي (End Frame)" : "End Frame",
+                            });
+                          }}
+                          className="group/ref relative h-10 w-10 overflow-hidden rounded-lg border border-indigo-500/40 bg-black/50 hover:border-indigo-400 hover:scale-105 active:scale-95 transition cursor-pointer"
+                          title={lang === "ar" ? "الإطار النهائي" : "End Frame"}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={item.endImageUrl} alt="End Frame" className="h-full w-full object-cover" />
                           <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[7.5px] text-indigo-300 font-bold text-center leading-tight py-0.5">
                             End
                           </span>
-                        </a>
+                        </button>
                       )}
                       {item.referenceImageUrls?.filter(url => url !== item.startImageUrl && url !== item.endImageUrl).map((url, idx) => (
-                        <a
+                        <button
                           key={idx}
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="group/ref relative h-10 w-10 overflow-hidden rounded-lg border border-white/15 bg-black/50 hover:border-cyan-400 transition"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewImage({
+                              url,
+                              title: lang === "ar" ? `صورة مرجعية ${idx + 1}` : `Reference ${idx + 1}`,
+                            });
+                          }}
+                          className="group/ref relative h-10 w-10 overflow-hidden rounded-lg border border-white/15 bg-black/50 hover:border-cyan-400 hover:scale-105 active:scale-95 transition cursor-pointer"
                           title={`Reference ${idx + 1}`}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -587,7 +610,7 @@ export function VideoHistoryList({
                           <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[7.5px] text-slate-300 font-bold text-center leading-tight py-0.5">
                             Ref {idx + 1}
                           </span>
-                        </a>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -622,6 +645,95 @@ export function VideoHistoryList({
         </div>
       )}
     </div>
+  );
+}
+
+function ReferenceImageModal({
+  preview,
+  onClose,
+  lang,
+}: {
+  preview: { url: string; title: string } | null;
+  onClose: () => void;
+  lang: string;
+}) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    if (preview) {
+      document.addEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [preview, onClose]);
+
+  if (!preview) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-[300] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"
+      >
+        <motion.div
+          initial={{ scale: 0.94, opacity: 0, y: 12 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.94, opacity: 0, y: 12 }}
+          transition={{ type: "spring", stiffness: 320, damping: 28 }}
+          onClick={(e) => e.stopPropagation()}
+          className="relative max-w-4xl max-h-[90vh] w-full rounded-2xl border border-white/10 bg-[#0c1222] p-4 shadow-2xl flex flex-col"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div className="flex items-center gap-2 text-sm font-bold text-white">
+              <Sparkles className="h-4 w-4 text-cyan-400" />
+              <span>{preview.title}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void downloadMediaFile(preview.url, `saad-reference-${Date.now()}.png`, {
+                    title: preview.title,
+                    fallbackExt: ".png",
+                  });
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-200 transition-colors cursor-pointer"
+                title={lang === "ar" ? "تنزيل الصورة" : "Download Image"}
+              >
+                <Download size={13} />
+                <span>{lang === "ar" ? "تنزيل" : "Download"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                aria-label={lang === "ar" ? "إغلاق" : "Close"}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Image Container */}
+          <div className="relative flex-1 min-h-0 flex items-center justify-center p-2 mt-3 rounded-xl bg-black/50 border border-white/5 overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={preview.url}
+              alt={preview.title}
+              className="max-h-[72vh] max-w-full w-auto h-auto object-contain rounded-lg shadow-2xl"
+            />
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
