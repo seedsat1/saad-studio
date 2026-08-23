@@ -53,7 +53,7 @@ const parityCases: PricingCase[] = [
     modelRef: "bytedance/seedance-2.5/text-to-video-turbo",
     durationSec: 30,
     quality: "720p",
-    expected: 604.8,
+    expected: 302.4,
   },
   {
     name: "Seedance 2.0 Fast",

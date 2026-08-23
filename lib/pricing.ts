@@ -484,9 +484,9 @@ const SEEDANCE_25_CREDITS_PER_USD = 40;
 const SEEDANCE_25_MARGIN_MULTIPLIER = 1.4;
 const SEEDANCE_25_USD_PER_SECOND = {
   "480p": 0.162,
-  "720p": 0.360,
-  "1080p": 0.900,
-  "4k": 1.800,
+  "720p": 0.180,
+  "1080p": 0.240,
+  "4k": 0.360,
 } as const;
 const MINIMAX_H3_CREDITS_PER_USD = 40;
 const MINIMAX_H3_MARGIN_MULTIPLIER = 1.4;
@@ -586,29 +586,36 @@ const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "bytedance/seedance-2-fast":                  { "720p": 1.0, "1080p": 2.16 / 2.10 },
   "bytedance/seedance-2.0/text-to-video-turbo": { "720p": 1.0, "1080p": 2.16 / 2.10 },
   "bytedance/seedance-2.0/image-to-video-turbo": { "720p": 1.0, "1080p": 2.16 / 2.10 },
-  "bytedance/seedance-2.5/text-to-video-turbo": { "480p": 0.162 / 0.360, "720p": 1.0, "1080p": 0.900 / 0.360 },
-  "bytedance/seedance-2.5/image-to-video-turbo": { "480p": 0.162 / 0.360, "720p": 1.0, "1080p": 0.900 / 0.360 },
-  "bytedance/seedance-2.5/image-to-video-spicy": { "480p": 0.162 / 0.360, "720p": 1.0, "1080p": 0.900 / 0.360, "4k": 1.800 / 0.360 },
-  "bytedance/seedance-2-mini":                  { "480p": 0.5, "720p": 1.0, "1080p": 90 / 64, "4k": 300 / 64 },
-  "bytedance/seedance-2.0-mini/text-to-video":  { "480p": 0.5, "720p": 1.0, "1080p": 90 / 64, "4k": 300 / 64 },
-  "bytedance/seedance-2.0-mini/image-to-video": { "480p": 0.5, "720p": 1.0, "1080p": 90 / 64, "4k": 300 / 64 },
+  "bytedance/seedance-2.5/text-to-video-turbo": { "480p": 0.162 / 0.180, "720p": 1.0, "1080p": 0.240 / 0.180 },
+  "bytedance/seedance-2.5/image-to-video-turbo": { "480p": 0.162 / 0.180, "720p": 1.0, "1080p": 0.240 / 0.180 },
+  "bytedance/seedance-2.5/image-to-video-spicy": { "480p": 0.162 / 0.180, "720p": 1.0, "1080p": 0.240 / 0.180, "4k": 0.360 / 0.180 },
+  "bytedance/seedance-2-mini":                  { "480p": 0.5, "720p": 1.0, "1080p": 151.2 / 64, "4k": 300 / 64 },
+  "bytedance/seedance-2.0-mini/text-to-video":  { "480p": 0.5, "720p": 1.0, "1080p": 151.2 / 64, "4k": 300 / 64 },
+  "bytedance/seedance-2.0-mini/image-to-video": { "480p": 0.5, "720p": 1.0, "1080p": 151.2 / 64, "4k": 300 / 64 },
   "bytedance/seedance-v2/text-to-video-fast":   { "720p": 1.0, "1080p": 2.16 / 2.10 },
-  "bytedance/seedance-v2/text-to-video-mini":   { "480p": 0.5, "720p": 1.0, "1080p": 90 / 64, "4k": 300 / 64 },
+  "bytedance/seedance-v2/text-to-video-mini":   { "480p": 0.5, "720p": 1.0, "1080p": 151.2 / 64, "4k": 300 / 64 },
   "seedance2f":                                 { "720p": 1.0, "1080p": 2.16 / 2.10 },
-  "seedance2mini":                              { "480p": 0.5, "720p": 1.0, "1080p": 90 / 64, "4k": 300 / 64 },
-  "bytedance/seedance-2":                       { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
-  "bytedance/seedance-2.0/text-to-video":       { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
-  "bytedance/seedance-2.0/image-to-video":      { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
-  "bytedance/seedance-v2/text-to-video":        { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
-  "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
-  "seedance2":                                  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "seedance2mini":                              { "480p": 0.5, "720p": 1.0, "1080p": 151.2 / 64, "4k": 300 / 64 },
+  "bytedance/seedance-2":                       { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
+  "bytedance/seedance-2.0/text-to-video":       { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
+  "bytedance/seedance-2.0/image-to-video":      { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
+  "bytedance/seedance-v2/text-to-video":        { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
+  "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
+  "seedance2":                                  { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
   "kwaivgi/kling-v3.0-std/text-to-video":        { "pro": 1.6, "std": 1.0 },
   "kwaivgi/kling-v3.0-pro/text-to-video":        { "pro": 1.6, "std": 1.0 },
   "kwaivgi/kling-v3.0-pro/motion-control":       { "pro": 1.6, "std": 1.0 },
   "kling-3.0/video":                            { "pro": 1.6, "std": 1.0 },
-  "kling-3.0/motion-control":                   { "pro": 1.6, "std": 1.0 },
-  "kling30":                                    { "pro": 1.6, "std": 1.0 },
-  "kling30_mc":                                 { "pro": 1.6, "std": 1.0 },
+  "kwaivgi/kling-v3.0-pro/image-to-video":      { "pro": 1.6, "std": 1.0 },
+  "kwaivgi/kling-v3.0-std/image-to-video":      { "pro": 1.6, "std": 1.0 },
+  "kwaivgi/kling-v3.0-pro/video-to-video":      { "pro": 1.6, "std": 1.0 },
+  "kwaivgi/kling-v3.0-std/video-to-video":      { "pro": 1.6, "std": 1.0 },
+  "kling-2.6/video":                            { "pro": 1.6, "std": 1.0 },
+  "kling-2.6/image-to-video":                   { "pro": 1.6, "std": 1.0 },
+  "kwaivgi/kling-v2.6-pro/text-to-video":       { "pro": 1.6, "std": 1.0 },
+  "kwaivgi/kling-v2.6-pro/image-to-video":      { "pro": 1.6, "std": 1.0 },
+  "kwaivgi/kling-v2.6-std/text-to-video":       { "pro": 1.6, "std": 1.0 },
+  "kwaivgi/kling-v2.6-std/image-to-video":      { "pro": 1.6, "std": 1.0 },
 };
 
 function qualityMultiplierForModel(modelRef: string, quality: string | null | undefined): number {
@@ -674,7 +681,7 @@ function resolveModelUserCharge(
     const perSec15 = ({
       "480p": 32 / 15,
       "720p": 64 / 15,
-      "1080p": 90 / 15,
+      "1080p": 151.2 / 15,
       "4k": 300 / 15,
     } as Record<string, number>)[q] ?? 64 / 15;
     return parseFloat((perSec15 * durationSec * numUnits).toFixed(2));
@@ -693,7 +700,7 @@ function resolveModelUserCharge(
     const perSec15 = ({
       "480p": 58 / 15,
       "720p": 116 / 15,
-      "1080p": 290 / 15,
+      "1080p": 453.6 / 15,
       "4k": 580 / 15,
     } as Record<string, number>)[q] ?? 116 / 15;
     return parseFloat((perSec15 * durationSec * numUnits).toFixed(2));

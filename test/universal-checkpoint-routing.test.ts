@@ -177,7 +177,7 @@ describe("Universal Product Checkpoint Routing — Reality Audit & Route Matrix"
 
     // User credit cost for Seedance 2.5 720p 30s = 302.4 credits
     const s25Credits = getGenerationCostSync("bytedance/seedance-2.5/text-to-video-turbo", 30, 1, "720p");
-    expect(s25Credits).toBe(604.8);
+    expect(s25Credits).toBe(302.4);
   });
 
   it("8. surfaces route compatibility differences across providers", () => {

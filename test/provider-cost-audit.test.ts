@@ -58,10 +58,10 @@ describe("Provider Cost Pricing & Recency Audit Suite", () => {
     expect(s25_480.source).toBe("estimated");
     expect(s25_480.usd).toBe(0.81);
 
-    // 720p: $0.36/s -> 5s = $1.80
+    // 720p: $0.18/s -> 5s = $0.90
     const s25_720 = estimateProviderCostSync("bytedance/seedance-2.5/image-to-video", 5, "720p");
     expect(s25_720.source).toBe("estimated");
-    expect(s25_720.usd).toBe(1.80);
+    expect(s25_720.usd).toBe(0.90);
   });
 
   it("5. verifies Reap / ClipCraft provider cost calculation", () => {

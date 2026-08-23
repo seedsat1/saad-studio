@@ -132,7 +132,7 @@ describe("Provider Cost Capture & Reconciliation Hardening Suite", () => {
     });
 
     expect(res.costTrust).toBe("ESTIMATED_VERIFIED");
-    expect(res.providerCostUsd).toBe(1.80);
+    expect(res.providerCostUsd).toBe(0.90);
     expect(res.billingUnit).toBe("USD/sec");
   });
 
@@ -295,6 +295,6 @@ describe("Provider Cost Capture & Reconciliation Hardening Suite", () => {
     expect(veoCredits).toBe(26.88);
 
     const s25Credits = getGenerationCostSync("bytedance/seedance-2.5/text-to-video-turbo", 30, 1, "720p");
-    expect(s25Credits).toBe(604.8);
+    expect(s25Credits).toBe(302.4);
   });
 });

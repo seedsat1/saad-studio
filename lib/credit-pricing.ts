@@ -18,9 +18,9 @@ const SEEDANCE_25_CREDITS_PER_USD = 40;
 const SEEDANCE_25_MARGIN_MULTIPLIER = 1.4;
 const SEEDANCE_25_USD_PER_SECOND = {
   "480p": 0.162,
-  "720p": 0.360,
-  "1080p": 0.900,
-  "4k": 1.800,
+  "720p": 0.180,
+  "1080p": 0.240,
+  "4k": 0.360,
 } as const;
 const MINIMAX_H3_CREDITS_PER_USD = 40;
 const MINIMAX_H3_MARGIN_MULTIPLIER = 1.4;

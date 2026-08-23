@@ -197,7 +197,7 @@ function resolveBytePlusTariff(input: ProviderCostEstimateInput): ProviderCostEs
     const is480 = q.includes("480");
     const is1080 = q.includes("1080");
     const is4k = q.includes("4k");
-    const rateUsd = is4k ? 1.800 : is1080 ? 0.900 : is480 ? 0.162 : 0.360;
+    const rateUsd = is4k ? 0.360 : is1080 ? 0.240 : is480 ? 0.162 : 0.180;
     const resKey = is4k ? "4k" : is1080 ? "1080p" : is480 ? "480p" : "720p";
     const totalUsd = parseFloat((rateUsd * duration * units).toFixed(4));
     const tariffKey = `byteplus:seedance-2.5:${resKey}`;
