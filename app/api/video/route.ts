@@ -888,7 +888,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
       exact.aspect_ratio = out.aspect_ratio;
     }
     const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "720p";
-    exact.resolution = resolution === "480p" ? "480p" : "720p";
+    exact.resolution = ["480p", "720p", "1080p"].includes(resolution) ? resolution : "720p";
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
     exact.duration = Number.isFinite(duration) ? Math.min(30, Math.max(4, duration)) : 5;
     exact.generate_audio = out.generate_audio !== false;
@@ -920,7 +920,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
       exact.aspect_ratio = out.aspect_ratio;
     }
     const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "720p";
-    const allowedResolutions = ["480p", "720p"];
+    const allowedResolutions = isSeedance25SpicyImageRoute ? ["480p", "720p", "1080p", "4k"] : ["480p", "720p", "1080p"];
     exact.resolution = allowedResolutions.includes(resolution) ? resolution : "720p";
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
     exact.duration = Number.isFinite(duration) ? Math.min(30, Math.max(4, duration)) : 5;
