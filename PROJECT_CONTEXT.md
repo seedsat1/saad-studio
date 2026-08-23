@@ -13980,6 +13980,19 @@
 - Verification:
   - `npm run build` compiled successfully.
 
+#### Latest task: Sync Seedance 2.5 1080p in Core Pricing Matrix (2026-08-24)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Updated `lib/pricing.ts` with `1080p` ($0.24/s) and `4k` ($0.36/s) in `SEEDANCE_25_USD_PER_SECOND`, `getSeedance25ProviderUsd`, and `VIDEO_MODEL_QUALITY_MULTIPLIER`.
+  - Fixed client-side button calculation so choosing `1080p` (4s) computes `53.76 cr` instead of defaulting to `720p` (`40.32 cr`).
+- Affected files:
+  - `lib/pricing.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd vitest run test/pricing-core.test.ts test/provider-cost-audit.test.ts test/universal-checkpoint-routing.test.ts` passed (37 tests).
+  - `npm run build` compiled successfully.
+
+
 
 
 
