@@ -67,7 +67,7 @@ function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: Dynamic
     isActive: existing?.isDeleted ? false : (existing?.isActive ?? (curated as DynamicVideoModel).isActive ?? true),
     isDeleted: existing?.isDeleted ?? false,
     creditCost: existing?.creditCost ?? (curated as DynamicVideoModel).creditCost,
-    capabilities: existing?.capabilities ? { ...curated.capabilities, ...existing.capabilities } : curated.capabilities,
+    capabilities: curated.capabilities,
   };
 }
 
