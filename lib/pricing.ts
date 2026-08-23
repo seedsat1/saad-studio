@@ -485,6 +485,8 @@ const SEEDANCE_25_MARGIN_MULTIPLIER = 1.4;
 const SEEDANCE_25_USD_PER_SECOND = {
   "480p": 0.162,
   "720p": 0.18,
+  "1080p": 0.24,
+  "4k": 0.36,
 } as const;
 const MINIMAX_H3_CREDITS_PER_USD = 40;
 const MINIMAX_H3_MARGIN_MULTIPLIER = 1.4;
@@ -498,7 +500,13 @@ function getSeedance25ProviderUsd(modelRef: string, durationSec: number, quality
   if (!route.includes("bytedance/seedance-2.5")) return null;
   const q = (quality || "720p").trim().toLowerCase();
   const duration = Math.max(1, Number.isFinite(durationSec) ? durationSec : 5);
-  const usdPerSecond = q.includes("480") ? SEEDANCE_25_USD_PER_SECOND["480p"] : SEEDANCE_25_USD_PER_SECOND["720p"];
+  const usdPerSecond = q.includes("4k")
+    ? SEEDANCE_25_USD_PER_SECOND["4k"]
+    : q.includes("1080")
+    ? SEEDANCE_25_USD_PER_SECOND["1080p"]
+    : q.includes("480")
+    ? SEEDANCE_25_USD_PER_SECOND["480p"]
+    : SEEDANCE_25_USD_PER_SECOND["720p"];
   return parseFloat((usdPerSecond * duration).toFixed(4));
 }
 
@@ -578,9 +586,9 @@ const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "bytedance/seedance-2-fast":                  { "720p": 1.0, "1080p": 2.16 / 2.10 },
   "bytedance/seedance-2.0/text-to-video-turbo": { "720p": 1.0, "1080p": 2.16 / 2.10 },
   "bytedance/seedance-2.0/image-to-video-turbo": { "720p": 1.0, "1080p": 2.16 / 2.10 },
-  "bytedance/seedance-2.5/text-to-video-turbo": { "480p": 0.5, "720p": 1.0 },
-  "bytedance/seedance-2.5/image-to-video-turbo": { "480p": 0.5, "720p": 1.0 },
-  "bytedance/seedance-2.5/image-to-video-spicy": { "480p": 0.5, "720p": 1.0 },
+  "bytedance/seedance-2.5/text-to-video-turbo": { "480p": 0.162 / 0.18, "720p": 1.0, "1080p": 0.24 / 0.18 },
+  "bytedance/seedance-2.5/image-to-video-turbo": { "480p": 0.162 / 0.18, "720p": 1.0, "1080p": 0.24 / 0.18 },
+  "bytedance/seedance-2.5/image-to-video-spicy": { "480p": 0.162 / 0.18, "720p": 1.0, "1080p": 0.24 / 0.18, "4k": 0.36 / 0.18 },
   "bytedance/seedance-2-mini":                  { "480p": 0.5, "720p": 1.0, "1080p": 90 / 64, "4k": 300 / 64 },
   "bytedance/seedance-2.0-mini/text-to-video":  { "480p": 0.5, "720p": 1.0, "1080p": 90 / 64, "4k": 300 / 64 },
   "bytedance/seedance-2.0-mini/image-to-video": { "480p": 0.5, "720p": 1.0, "1080p": 90 / 64, "4k": 300 / 64 },
