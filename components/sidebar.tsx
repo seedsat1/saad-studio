@@ -79,10 +79,10 @@ const SideBar = ({apiLimit = 0, isPro=false}: SideBarProps) => {
             <div className="px-3 py-2 flex-1">
                 <Link href="/explore" className="flex items-center pl-3 mb-14">
                     <div className="relative h-8 w-8 mr-4">
-                        <Image fill alt="Logo" src="/EveLogo.png"/>
+                        <Image fill alt="Saad Studio Logo" src="/logo-saad-transparent.png" className="object-contain" />
                     </div>
                     <h1 className={cn("text-2xl font-bold", montserrat.className)}>
-                        Eve
+                        Saad Studio
                     </h1>
                 </Link>
                 <div className="space-y-1">

@@ -46,9 +46,16 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/favicon-v2.ico",
-    shortcut: "/favicon-v2.ico",
-    apple: "/apple-touch-icon.png",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", sizes: "48x48", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 };
 
@@ -89,7 +96,13 @@ export default function RootLayout({
 
   return (
     <ClerkProvider
-      appearance={{ baseTheme: dark }}
+      appearance={{
+        baseTheme: dark,
+        layout: {
+          logoImageUrl: "/logo-saad-transparent.png",
+          logoPlacement: "inside",
+        },
+      }}
       signInUrl="/?auth=login"
       signUpUrl="/?auth=signup"
       signInForceRedirectUrl="/dash"
@@ -98,6 +111,9 @@ export default function RootLayout({
     >
       <html lang="en" dir="ltr" translate="no" className="notranslate" suppressHydrationWarning>
         <head>
+          <link rel="icon" href="/favicon.ico" sizes="any" />
+          <link rel="icon" href="/icon.png" type="image/png" sizes="48x48" />
+          <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
           <link rel="preconnect" href="https://f003.backblazeb2.com" crossOrigin="anonymous" />
           <link rel="preconnect" href="https://saadstudio-storage.s3.eu-central-003.backblazeb2.com" crossOrigin="anonymous" />
           <Script

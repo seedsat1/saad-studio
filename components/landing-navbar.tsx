@@ -17,10 +17,10 @@ const LandingNavbar = () => {
         <nav className="p-4 bg-transparent flex items-center justify-between">
             <Link href="/" className="flex items-center">
                 <div className="relative h-8 w-8 mr-4">
-                    <Image fill alt="Logo" src="/EveLogo.png" />
+                    <Image fill alt="Saad Studio Logo" src="/logo-saad-transparent.png" className="object-contain" />
                 </div>
                 <h1 className={cn("text-2xl font-bold text-white", font.className)}>
-                    Eve
+                    Saad Studio
                 </h1>
             </Link>
             <div className="flex items-center gap-x-2">

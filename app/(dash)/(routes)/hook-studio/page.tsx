@@ -1347,8 +1347,8 @@ export default function HookStudioPage() {
                   <Bot className="w-4.5 h-4.5 text-indigo-400" />
                 ) : (
                   <img
-                    src="/EveLogo.png"
-                    alt="AI Agent Logo"
+                    src="/logo-saad-transparent.png"
+                    alt="Saad Studio AI Agent"
                     className="w-full h-full object-contain p-1"
                     onError={() => setLogoError(true)}
                   />
