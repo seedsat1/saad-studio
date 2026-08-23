@@ -28,7 +28,7 @@ export const defaultProvider: StorageProvider = {
     return attempts.some((attempt) => attempt.found);
   },
   getPublicUrl(bucket, path) {
-    return resolvePublicUrl(bucket, path, { deliveryMode: "proxy" });
+    return resolvePublicUrl(bucket, path);
   },
   isStoredAssetUrl(url) {
     return Boolean(url && (url.includes("/api/media/") || url.includes("backblazeb2.com") || url.includes("r2.dev") || url.includes("saadstudio-storage")));
@@ -38,7 +38,7 @@ export const defaultProvider: StorageProvider = {
     const signed = await active.provider.createSignedUploadUrl(params);
     return {
       ...signed,
-      publicUrl: resolvePublicUrl(params.bucket, params.path, { deliveryMode: "proxy" }),
+      publicUrl: resolvePublicUrl(params.bucket, params.path),
       key: objectKeyFor(params.bucket, params.path),
     };
   },
@@ -55,6 +55,8 @@ export {
   getStorageProviderDescriptors,
   getStorageReadProvidersForConfig,
   getStorageReadProviders,
+  getStorageRuntimeConfigSync,
+  setStorageRuntimeConfigCache,
   headObject,
   isStoredAssetUrl,
   normalizeMediaUrl,

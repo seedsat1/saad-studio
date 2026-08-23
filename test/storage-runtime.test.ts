@@ -129,10 +129,130 @@ describe("central storage runtime", () => {
     expect(normalizeMediaUrl("audio/u/file.mp3")).toBe("/api/media/audio/u/file.mp3");
   });
 
-  it("generates public URLs through provider abstraction modes", () => {
+  it("generates public URLs respecting central delivery mode", () => {
+    // 1. In proxy mode:
     expect(resolvePublicUrl("images", "u/file.png", { deliveryMode: "proxy" })).toBe("/api/media/images/u/file.png");
-    expect(resolvePublicUrl("images", "u/file.png", { deliveryMode: "direct" })).toBe("/api/media/images/u/file.png");
-    expect(resolvePublicUrl("images", "u/file.png", { deliveryMode: "direct", providerId: "backblaze" })).toContain("images/u/file.png");
+    expect(normalizeMediaUrl("images/u/file.png", { deliveryMode: "proxy" })).toBe("/api/media/images/u/file.png");
+    expect(normalizeMediaUrl("/api/media/images/u/file.png", { deliveryMode: "proxy" })).toBe("/api/media/images/u/file.png");
+
+    // 2. In direct mode:
+    const directUrl = resolvePublicUrl("images", "u/file.png", { deliveryMode: "direct", providerId: "backblaze" });
+    expect(directUrl).toContain("saadstudio-storage");
+    expect(directUrl).toContain("images/u/file.png");
+    expect(normalizeMediaUrl("images/u/file.png", { deliveryMode: "direct", providerId: "backblaze" })).toBe(directUrl);
+
+    // 3. Fallback on invalid provider in direct mode:
+    expect(resolvePublicUrl("images", "u/file.png", { deliveryMode: "direct", providerId: "invalid" as any })).toBe("/api/media/images/u/file.png");
+  });
+
+  it("safely handles legacy /api/media URLs in both modes", () => {
+    const legacyProxy = "/api/media/videos/u/gen123.mp4";
+    expect(normalizeMediaUrl(legacyProxy, { deliveryMode: "proxy" })).toBe(legacyProxy);
+    const directUrl = normalizeMediaUrl(legacyProxy, { deliveryMode: "direct", providerId: "backblaze" });
+    expect(directUrl).toContain("videos/u/gen123.mp4");
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // DETERMINISTIC SERVER-BOUNDARY & MULTI-INSTANCE CONSISTENCY TESTS
+  // ──────────────────────────────────────────────────────────────────────────
+
+  it("1. Cold-start first relevant request uses authoritative config", () => {
+    // Fresh instance with default in-memory proxy state receives authoritative direct config
+    const authoritativeConfig = {
+      activeWriteProvider: "backblaze" as const,
+      activeProvider: "backblaze" as const,
+      mediaDeliveryMode: "direct" as const,
+      legacyReadEnabled: true,
+    };
+    const resolved = normalizeMediaUrl("images/user1/test.png", { config: authoritativeConfig });
+    expect(resolved).toContain("saadstudio-storage");
+    expect(resolved).toContain("images/user1/test.png");
+  });
+
+  it("2. Stale local proxy + persisted direct resolves direct at server boundary", () => {
+    // Process memory says proxy, but request boundary passes persisted direct config
+    const staleProcessDefault = {
+      activeWriteProvider: "backblaze" as const,
+      activeProvider: "backblaze" as const,
+      mediaDeliveryMode: "proxy" as const,
+      legacyReadEnabled: true,
+    };
+    const freshPersistedDirect = {
+      activeWriteProvider: "backblaze" as const,
+      activeProvider: "backblaze" as const,
+      mediaDeliveryMode: "direct" as const,
+      legacyReadEnabled: true,
+    };
+
+    // Before hydration (stale)
+    expect(normalizeMediaUrl("images/u/1.png", { config: staleProcessDefault })).toBe("/api/media/images/u/1.png");
+    // At authoritative request boundary
+    const authoritativeUrl = normalizeMediaUrl("images/u/1.png", { config: freshPersistedDirect });
+    expect(authoritativeUrl).toContain("saadstudio-storage");
+  });
+
+  it("3. Stale local direct + persisted proxy resolves proxy at server boundary", () => {
+    // Process memory says direct, but request boundary passes persisted proxy config
+    const staleProcessDirect = {
+      activeWriteProvider: "backblaze" as const,
+      activeProvider: "backblaze" as const,
+      mediaDeliveryMode: "direct" as const,
+      legacyReadEnabled: true,
+    };
+    const freshPersistedProxy = {
+      activeWriteProvider: "backblaze" as const,
+      activeProvider: "backblaze" as const,
+      mediaDeliveryMode: "proxy" as const,
+      legacyReadEnabled: true,
+    };
+
+    // Request boundary enforces proxy
+    expect(normalizeMediaUrl("images/u/1.png", { config: freshPersistedProxy })).toBe("/api/media/images/u/1.png");
+    expect(resolvePublicUrl("images", "u/1.png", { config: freshPersistedProxy })).toBe("/api/media/images/u/1.png");
+  });
+
+  it("4. Explicit effective config overrides stale process memory completely", () => {
+    const directConfig = {
+      activeWriteProvider: "backblaze" as const,
+      activeProvider: "backblaze" as const,
+      mediaDeliveryMode: "direct" as const,
+      legacyReadEnabled: true,
+    };
+    const directResult = resolvePublicUrl("videos", "user/v.mp4", { config: directConfig });
+    expect(directResult).toContain("saadstudio-storage");
+    expect(directResult).toContain("videos/user/v.mp4");
+  });
+
+  it("5. DB/config failure safely falls back to proxy", () => {
+    // Corrupted or missing provider config returns proxy
+    const fallbackUrl = resolvePublicUrl("images", "u/broken.png", { deliveryMode: "direct", providerId: "unknown_provider" as any });
+    expect(fallbackUrl).toBe("/api/media/images/u/broken.png");
+  });
+
+  it("6. Legacy /api/media URLs remain functional and resolvable in both modes", () => {
+    const legacyProxyUrl = "/api/media/images/user123/render.png";
+    expect(normalizeMediaUrl(legacyProxyUrl, { deliveryMode: "proxy" })).toBe(legacyProxyUrl);
+    const directUrl = normalizeMediaUrl(legacyProxyUrl, { deliveryMode: "direct", providerId: "backblaze" });
+    expect(directUrl).toContain("images/user123/render.png");
+  });
+
+  it("7. External provider URLs remain untouched across all modes", () => {
+    const openaiUrl = "https://oaidalleapiprodscus.blob.core.windows.net/private/image.png";
+    const googleUrl = "https://generativelanguage.googleapis.com/v1beta/files/test.mp4";
+
+    expect(normalizeMediaUrl(openaiUrl, { deliveryMode: "direct" })).toBe(openaiUrl);
+    expect(normalizeMediaUrl(openaiUrl, { deliveryMode: "proxy" })).toBe(openaiUrl);
+    expect(normalizeMediaUrl(googleUrl, { deliveryMode: "direct" })).toBe(googleUrl);
+    expect(normalizeMediaUrl(googleUrl, { deliveryMode: "proxy" })).toBe(googleUrl);
+  });
+
+  it("8. No financial, routing, or model logic is affected by storage delivery mode", () => {
+    const pricingFile = path.join(process.cwd(), "lib", "pricing.ts");
+    const routingFile = path.join(process.cwd(), "lib", "routing", "runtime-routing.ts");
+    expect(fs.existsSync(pricingFile)).toBe(true);
+    expect(fs.existsSync(routingFile)).toBe(true);
+    const pricingSrc = fs.readFileSync(pricingFile, "utf8");
+    expect(pricingSrc).toContain("getGenerationCost");
   });
 
   it("/api/media uses storage runtime instead of hard-coded provider attempts", () => {

@@ -10,7 +10,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { isStorageConfigured, uploadBufferToStorage } from "@/lib/supabase-storage";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
-import { normalizeMediaUrl } from "@/lib/storage";
+import { normalizeMediaUrl, readStorageRuntimeConfig } from "@/lib/storage";
 import { applyImageWatermarkMany } from "@/lib/watermark";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 import { buildWaveSpeedImageInput, resolveWaveSpeedImageModelRoute, normalizeWaveSpeedModelEndpoint, type WaveSpeedImageRouteConfig } from "@/lib/wavespeed-image-routing";
@@ -524,6 +524,8 @@ export async function POST(req: NextRequest) {
     }
     chargedUserId = userId;
 
+    const storageConfig = await readStorageRuntimeConfig();
+
     const ip = getClientIp(req);
     const rate = checkRateLimit(`image:${userId}:${ip}`, 30, 60_000);
     if (!rate.allowed) {
@@ -815,7 +817,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
+      const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url, { config: storageConfig }) || url);
       const watermarkedImageUrls = await applyImageWatermarkMany(normalizedImageUrls, { userId: chargedUserId || undefined, generationIdPrefix: generationId });
       return NextResponse.json({
         generationId,
@@ -885,7 +887,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
+      const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url, { config: storageConfig }) || url);
       const watermarkedImageUrls = await applyImageWatermarkMany(normalizedImageUrls, { userId: chargedUserId || undefined, generationIdPrefix: generationId });
       return NextResponse.json({
         generationId,
@@ -971,7 +973,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
+      const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url, { config: storageConfig }) || url);
       const watermarkedImageUrls = await applyImageWatermarkMany(normalizedImageUrls, { userId: chargedUserId || undefined, generationIdPrefix: generationId });
       return NextResponse.json({
         generationId,

@@ -13884,5 +13884,25 @@
   - `npx.cmd tsc --noEmit` passed with 0 errors.
   - Vitest test suites (`admin-knowledge-hub.test.ts`, `models-backend-hardening.test.ts`) passed: 10/10 tests.
 
-
-
+#### Latest task: Centralized Storage Delivery Architecture Refactor & Request-Boundary Hydration (2026-08-23)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Centralized Storage Delivery Architecture: Restored `PlatformConfig` (`storage_runtime_config_v1`) as persistent source of truth with bounded eventual consistency (5s process-local cache) and explicit request-boundary config hydration.
+  2. Request-Boundary Propagation: Explicitly hydrated and passed `storageConfig` in all media-producing and media-serving API routes (`/api/assets`, `/api/video`, `/api/generate/image`, `/api/music`, `/api/generate/audio`, `/api/media/upload`, `/api/download`).
+  3. B2 Empirical Protocol Verification: Confirmed Backblaze B2 public read, CORS preflight/GET, HEAD, Range requests, and HTTP 206 Partial Content (including iOS Safari 2-byte probe).
+  4. Non-Destructive Invariants: Zero changes to database records (`storage_runtime_config_v1` remains null until authorized), zero pricing/financial alterations, zero AI routing changes.
+- Affected files:
+  - `lib/storage/runtime.ts`
+  - `lib/storage/index.ts`
+  - `lib/r2-storage.ts`
+  - `app/api/assets/route.ts`
+  - `app/api/video/route.ts`
+  - `app/api/generate/image/route.ts`
+  - `app/api/music/route.ts`
+  - `app/api/generate/audio/route.ts`
+  - `test/storage-runtime.test.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Vitest storage suites (`storage-runtime.test.ts`, `storage-backend-hardening.test.ts`, `storage-media-lifecycle-integrity.test.ts`, `storage-visuals.test.ts`): 38/38 tests passed.
+  - `npx.cmd tsc --noEmit` passed with 0 errors.
+  - `npm run build` compiled successfully.

@@ -52,7 +52,7 @@ export function extensionFromContentType(ct: string): string {
 }
 
 export function getPublicObjectUrl(bucket: string, path: string): string {
-  return resolvePublicUrl(bucket, path, { deliveryMode: "direct" });
+  return resolvePublicUrl(bucket, path);
 }
 
 export function normalizeMediaUrl(url: string | null | undefined): string | null {

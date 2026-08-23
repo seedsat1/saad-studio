@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { deleteFromStorage } from "@/lib/supabase-storage";
 import { reconcilePendingBytePlusGenerations } from "@/lib/providers/byteplus-reconcile";
-import { normalizeMediaUrl } from "@/lib/r2-storage";
+import { normalizeMediaUrl, readStorageRuntimeConfig, type StorageRuntimeConfig } from "@/lib/storage";
 import { scheduleImageThumbnailGeneration } from "@/lib/image-thumbnails";
 import { scheduleVideoPosterGeneration } from "@/lib/video-posters";
 
@@ -72,7 +72,7 @@ function generationFailureReason(row: { mediaUrl?: string | null; outputUrl?: st
     || decodeStatusMarker(String(row.outputUrl || ""))
     || "Generation failed. Credits were returned. Please retry or delete this result.";
 }
-function resolveAssetUrl(mediaUrl: string | null, outputUrl: string | null): string {
+function resolveAssetUrl(mediaUrl: string | null, outputUrl: string | null, config?: StorageRuntimeConfig): string {
   const media = String(mediaUrl || "").trim();
   const output = String(outputUrl || "").trim();
 
@@ -80,8 +80,8 @@ function resolveAssetUrl(mediaUrl: string | null, outputUrl: string | null): str
   if (media.startsWith("text:")) return media;
   
   // Normalize media and output URLs
-  const normalizedMedia = normalizeMediaUrl(media) || "";
-  const normalizedOutput = normalizeMediaUrl(output) || "";
+  const normalizedMedia = normalizeMediaUrl(media, { config }) || "";
+  const normalizedOutput = normalizeMediaUrl(output, { config }) || "";
   
   if (normalizedMedia && !normalizedMedia.startsWith("task:")) return normalizedMedia;
   if (normalizedOutput) return normalizedOutput;
@@ -138,9 +138,9 @@ function galleryThumbnailUrl(id: string, type: AssetType): string | undefined {
   if (type !== "image") return undefined;
   return `/api/assets/thumbnail?id=${encodeURIComponent(id)}`;
 }
-function videoPosterUrl(id: string, type: AssetType, storedPosterUrl?: string | null): string | undefined {
+function videoPosterUrl(id: string, type: AssetType, storedPosterUrl?: string | null, config?: StorageRuntimeConfig): string | undefined {
   if (type !== "video") return undefined;
-  const normalizedPoster = normalizeMediaUrl(String(storedPosterUrl || "").trim());
+  const normalizedPoster = normalizeMediaUrl(String(storedPosterUrl || "").trim(), { config });
   if (normalizedPoster) return normalizedPoster;
   return undefined;
 }
@@ -199,6 +199,8 @@ export async function GET(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const storageConfig = await readStorageRuntimeConfig();
 
     const requestedContextId = req.nextUrl.searchParams.get("contextId");
     if (requestedContextId) {
@@ -351,7 +353,7 @@ export async function GET(req: NextRequest) {
 
     const normalized = pageRows
       .map((row: any) => {
-        const resolvedUrl = resolveAssetUrl(row.mediaUrl, row.outputUrl);
+        const resolvedUrl = resolveAssetUrl(row.mediaUrl, row.outputUrl, storageConfig);
         const failed = isFailedGeneration(row);
         return {
           ...row,
@@ -366,7 +368,7 @@ export async function GET(req: NextRequest) {
         const isTextMarker = mediaUrl.startsWith("text:");
         const dimensions = type === "image" ? galleryImageDimensions(row.resolution, row.aspectRatio) : {};
         const posterIsVideoFrame = type === "video" && row.posterStatus === "ready_video_frame";
-        const videoPoster = videoPosterUrl(row.id, type, row.posterUrl);
+        const videoPoster = videoPosterUrl(row.id, type, row.posterUrl, storageConfig);
 
         const payload = row.generationRequestSnapshot?.requestPayload as any;
         const startImageUrl = firstString(payload, ["first_frame_url", "firstFrameUrl", "image", "image_url", "imageUrl", "startFrame"]) ?? undefined;

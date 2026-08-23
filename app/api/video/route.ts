@@ -20,7 +20,7 @@ import { VIDEO_PROVIDER_BUSY_MESSAGE } from "@/lib/generation-errors";
 import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput, urlToVideoInput, type VeoImageInput, type VeoVideoInput, type VeoOperationHandle, type VeoResolution, type VeoTier } from "@/lib/gemini-veo";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { fetchBytePlusTask } from "@/lib/providers/byteplus-reconcile";
-import { normalizeMediaUrl } from "@/lib/r2-storage";
+import { normalizeMediaUrl, readStorageRuntimeConfig, type StorageRuntimeConfig } from "@/lib/storage";
 import {
   isProviderSafeUrl,
   parseStorageKey,
@@ -375,10 +375,10 @@ function extractStoredVideoTaskId(mediaUrl: string | null | undefined): string |
   return normalizePollingTaskId(mediaUrl.slice("task:".length));
 }
 
-function resolveCompletedGenerationUrl(generation: VideoTaskGeneration | null | undefined): string | null {
+function resolveCompletedGenerationUrl(generation: VideoTaskGeneration | null | undefined, config?: StorageRuntimeConfig): string | null {
   const candidate = generation?.outputUrl || generation?.mediaUrl || null;
   if (!candidate || candidate.startsWith("task:") || candidate.startsWith("failed:")) return null;
-  return normalizeMediaUrl(candidate) || candidate;
+  return normalizeMediaUrl(candidate, { config }) || candidate;
 }
 
 function resolveFailedGenerationError(generation: VideoTaskGeneration | null | undefined): string | null {
@@ -3434,6 +3434,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const storageConfig = await readStorageRuntimeConfig();
+
     const { searchParams } = new URL(req.url);
     const requestedTaskId = searchParams.get("taskId");
 
@@ -3447,7 +3449,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ taskId: requestedTaskId, status: "failed", outputs: [], error: failedGenerationError });
     }
 
-    const completedGenerationUrl = resolveCompletedGenerationUrl(initialLinkedGeneration);
+    const completedGenerationUrl = resolveCompletedGenerationUrl(initialLinkedGeneration, storageConfig);
     if (completedGenerationUrl) {
       return NextResponse.json({ taskId: requestedTaskId, status: "completed", outputs: [completedGenerationUrl], error: null });
     }
@@ -3556,7 +3558,7 @@ export async function GET(req: Request) {
         await completeTaskGeneration({ generationId: linkedGeneration.id, mediaUrl: publicUrl });
       }
 
-      return NextResponse.json({ taskId: requestedTaskId, status: "completed", outputs: [normalizeMediaUrl(publicUrl) || publicUrl], error: null });
+      return NextResponse.json({ taskId: requestedTaskId, status: "completed", outputs: [normalizeMediaUrl(publicUrl, { config: storageConfig }) || publicUrl], error: null });
     }
 
     // -- WaveSpeed polling ---
@@ -3579,7 +3581,7 @@ export async function GET(req: Request) {
 
       if (linkedGeneration?.mediaUrl && !linkedGeneration.mediaUrl.startsWith("task:")) {
         if (!linkedGeneration.mediaUrl.startsWith("failed:")) {
-          return NextResponse.json({ taskId, status: "completed", outputs: [normalizeMediaUrl(linkedGeneration.mediaUrl) || linkedGeneration.mediaUrl], error: null });
+          return NextResponse.json({ taskId, status: "completed", outputs: [normalizeMediaUrl(linkedGeneration.mediaUrl, { config: storageConfig }) || linkedGeneration.mediaUrl], error: null });
         }
       }
 
@@ -3625,7 +3627,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ taskId, status: "failed", outputs: [], error: missingOutputError });
       }
 
-      return NextResponse.json({ taskId, status, outputs: outputs.map(url => normalizeMediaUrl(url) || url), error });
+      return NextResponse.json({ taskId, status, outputs: outputs.map(url => normalizeMediaUrl(url, { config: storageConfig }) || url), error });
     }
 
     if (taskId.startsWith("ws:")) {
@@ -3701,7 +3703,7 @@ export async function GET(req: Request) {
         }
       } catch { /* best-effort */ }
 
-      return NextResponse.json({ taskId, status: wsStatus, outputs: wsOutputs.map(url => normalizeMediaUrl(url) || url), error: wsError });
+      return NextResponse.json({ taskId, status: wsStatus, outputs: wsOutputs.map(url => normalizeMediaUrl(url, { config: storageConfig }) || url), error: wsError });
     }
 
     // Veo 3.1 polling (dedicated endpoint /api/v1/veo/record-info).
@@ -3809,7 +3811,7 @@ export async function GET(req: Request) {
         }
       } catch { /* best-effort */ }
 
-      return NextResponse.json({ taskId, status: veoStatus, outputs: veoOutputs.map(url => normalizeMediaUrl(url) || url), error: veoError });
+      return NextResponse.json({ taskId, status: veoStatus, outputs: veoOutputs.map(url => normalizeMediaUrl(url, { config: storageConfig }) || url), error: veoError });
     }
 
     // -- KIE polling ---
@@ -3882,7 +3884,7 @@ export async function GET(req: Request) {
           return NextResponse.json({ taskId, status: "failed", outputs: [], error: errMsg });
         }
         // Already has a real URL from callback
-        return NextResponse.json({ taskId, status: "completed", outputs: [normalizeMediaUrl(linkedGeneration.mediaUrl) || linkedGeneration.mediaUrl], error: null });
+        return NextResponse.json({ taskId, status: "completed", outputs: [normalizeMediaUrl(linkedGeneration.mediaUrl, { config: storageConfig }) || linkedGeneration.mediaUrl], error: null });
       }
 
       if (status === "completed" && outputs.length > 0 && linkedGeneration) {
@@ -3902,7 +3904,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       taskId: String(data.taskId || taskId),
       status,
-      outputs: outputs.map(url => normalizeMediaUrl(url) || url),
+      outputs: outputs.map(url => normalizeMediaUrl(url, { config: storageConfig }) || url),
       error,
     });
   } catch (err) {

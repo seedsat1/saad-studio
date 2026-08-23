@@ -7,6 +7,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { normalizeMediaUrl } from "@/lib/storage";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 import { isFinalProviderExecutionAllowed } from "@/lib/generation/runtime-safety";
 import { isMp3Buffer, transcodeToMp3, ensureCanonicalMp3Url, validateAndNormalizeCloneAudio } from "@/lib/server/audio-transcode";
@@ -564,7 +565,7 @@ async function runGeminiTts(params: {
     fileName: isMp3 ? "gemini-tts.mp3" : "gemini-tts.wav",
   });
   if (!url) throw new Error("Audio media storage is not configured.");
-  return url.startsWith("/") || url.startsWith("http") ? url : `/api/media/${url}`;
+  return normalizeMediaUrl(url) || url;
 }
 
 function buildUniqueCustomVoiceId(raw?: string): string {

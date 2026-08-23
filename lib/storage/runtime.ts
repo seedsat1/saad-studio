@@ -170,19 +170,45 @@ export function resolveMediaObject(input: string | null | undefined): ResolvedMe
   return { kind: "unknown", value };
 }
 
-export async function readStorageRuntimeConfig(): Promise<StorageRuntimeConfig> {
+let cachedRuntimeConfig: StorageRuntimeConfig = { ...DEFAULT_STORAGE_RUNTIME_CONFIG };
+let cachedConfigTimestamp = 0;
+const CACHE_TTL_MS = 5000;
+
+export function getStorageRuntimeConfigSync(): StorageRuntimeConfig {
+  return cachedRuntimeConfig;
+}
+
+export function setStorageRuntimeConfigCache(config: StorageRuntimeConfig): void {
+  cachedRuntimeConfig = { ...config };
+  cachedConfigTimestamp = Date.now();
+}
+
+export async function readStorageRuntimeConfig(forceFresh = false): Promise<StorageRuntimeConfig> {
+  const now = Date.now();
+  if (!forceFresh && now - cachedConfigTimestamp < CACHE_TTL_MS) {
+    return cachedRuntimeConfig;
+  }
   try {
     const row = await prismadb.platformConfig.findUnique({ where: { key: STORAGE_RUNTIME_CONFIG_KEY } });
-    if (!row?.value) return { ...DEFAULT_STORAGE_RUNTIME_CONFIG };
+    if (!row?.value) {
+      cachedRuntimeConfig = { ...DEFAULT_STORAGE_RUNTIME_CONFIG };
+      cachedConfigTimestamp = now;
+      return cachedRuntimeConfig;
+    }
     const parsed = JSON.parse(row.value);
-    return normalizeStoragePolicyForRuntime(sanitizeStorageRuntimeConfig(parsed));
+    const normalized = normalizeStoragePolicyForRuntime(sanitizeStorageRuntimeConfig(parsed));
+    cachedRuntimeConfig = normalized;
+    cachedConfigTimestamp = now;
+    return normalized;
   } catch {
-    return { ...DEFAULT_STORAGE_RUNTIME_CONFIG };
+    cachedRuntimeConfig = { ...DEFAULT_STORAGE_RUNTIME_CONFIG };
+    cachedConfigTimestamp = now;
+    return cachedRuntimeConfig;
   }
 }
 
 export async function writeStorageRuntimeConfig(input: Partial<StorageRuntimeConfig>): Promise<StorageRuntimeConfig> {
-  const current = await readStorageRuntimeConfig();
+  const current = await readStorageRuntimeConfig(true);
   const next = sanitizeStorageRuntimeConfig({ ...current, ...input, updatedAt: new Date().toISOString() });
   const validation = validateActiveWriteProvider(next.activeWriteProvider);
   if (!validation.ok) throw new Error(validation.error);
@@ -191,6 +217,7 @@ export async function writeStorageRuntimeConfig(input: Partial<StorageRuntimeCon
     update: { value: JSON.stringify(next) },
     create: { key: STORAGE_RUNTIME_CONFIG_KEY, value: JSON.stringify(next) },
   });
+  setStorageRuntimeConfigCache(next);
   return next;
 }
 
@@ -357,7 +384,7 @@ export async function createSignedUploadUrl(params: {
   const result = await active.provider.createSignedUploadUrl(params);
   return {
     signedUrl: result.signedUrl,
-    publicUrl: resolvePublicUrl(params.bucket, params.path, { deliveryMode: "proxy" }),
+    publicUrl: resolvePublicUrl(params.bucket, params.path),
     key: objectKeyFor(params.bucket, params.path),
   };
 }
@@ -427,12 +454,23 @@ export async function headObject(params: { objectKey: string }): Promise<Storage
 export function resolvePublicUrl(
   bucket: string,
   path: string,
-  options: { deliveryMode?: StorageDeliveryMode; providerId?: StorageProviderId } = {},
+  options: { deliveryMode?: StorageDeliveryMode; providerId?: StorageProviderId; config?: StorageRuntimeConfig } = {},
 ): string {
-  const deliveryMode = options.deliveryMode ?? DEFAULT_STORAGE_RUNTIME_CONFIG.mediaDeliveryMode;
+  const activeConfig = options.config ?? getStorageRuntimeConfigSync();
+  const deliveryMode = options.deliveryMode ?? activeConfig.mediaDeliveryMode;
+  const providerId = options.providerId ?? activeConfig.activeWriteProvider;
   const key = objectKeyFor(bucket, path);
-  if (deliveryMode === "proxy" || !options.providerId) return `/api/media/${key}`;
-  return getStorageProvider(options.providerId).getPublicUrl(bucket, path);
+
+  if (deliveryMode === "direct") {
+    try {
+      const provider = getStorageProvider(providerId);
+      return provider.getPublicUrl(bucket, path);
+    } catch {
+      return `/api/media/${key}`;
+    }
+  }
+
+  return `/api/media/${key}`;
 }
 
 export async function resolveProviderPublicUrl(bucket: string, path: string): Promise<string> {
@@ -440,10 +478,30 @@ export async function resolveProviderPublicUrl(bucket: string, path: string): Pr
   return active.provider.getPublicUrl(bucket, path);
 }
 
-export function normalizeMediaUrl(url: string | null | undefined): string | null {
+export function normalizeMediaUrl(
+  url: string | null | undefined,
+  options: { deliveryMode?: StorageDeliveryMode; providerId?: StorageProviderId; config?: StorageRuntimeConfig } = {},
+): string | null {
   const resolved = resolveMediaObject(url);
   if (!resolved) return null;
-  if (resolved.kind === "owned_storage") return `/api/media/${resolved.objectKey}`;
+
+  if (resolved.kind === "owned_storage") {
+    const activeConfig = options.config ?? getStorageRuntimeConfigSync();
+    const deliveryMode = options.deliveryMode ?? activeConfig.mediaDeliveryMode;
+    const providerId = options.providerId ?? activeConfig.activeWriteProvider;
+
+    if (deliveryMode === "direct") {
+      try {
+        const provider = getStorageProvider(providerId);
+        return provider.getPublicUrl(resolved.bucket, resolved.path);
+      } catch {
+        return `/api/media/${resolved.objectKey}`;
+      }
+    }
+
+    return `/api/media/${resolved.objectKey}`;
+  }
+
   if (resolved.kind === "external_provider_url") return resolved.url;
   return resolved.value;
 }
