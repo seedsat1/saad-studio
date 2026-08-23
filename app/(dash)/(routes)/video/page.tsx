@@ -1872,6 +1872,22 @@ function VideoPageInner() {
           : ["16:9", "9:16", "1:1", "4:3", "3:4"]
   );
 
+  const maxPromptChars = useMemo(() => {
+    const route = (selectedModel?.api_route || "").toLowerCase();
+    if (route.includes("minimax") || route.includes("hailuo")) return 2000;
+    if (route.includes("luma") || route.includes("dream-machine")) return 2000;
+    if (route.includes("pixverse")) return 2000;
+    if (route.includes("kling")) return 2500;
+    if (route.includes("seedance") || route.includes("bytedance")) return 2500;
+    if (route.includes("veo") || route.includes("google")) return 2500;
+    if (route.includes("sora")) return 2500;
+    if (route.includes("wan")) return 2500;
+    return 2500;
+  }, [selectedModel?.api_route]);
+
+  const remainingPromptChars = maxPromptChars - prompt.length;
+  const isPromptOverLimit = remainingPromptChars < 0;
+
   useEffect(() => {
     if (!isGoogleVeoModel) return;
 
@@ -2318,6 +2334,16 @@ function VideoPageInner() {
       selectedModel.api_route === "kwaivgi/kling-v3.0-pro/image-to-video";
     // Skip the generic prompt guard for Kling 3.0 and Lipsync
     if (activeTool !== "lipsync" && !isKling30VideoEarly && !isKling30StdImageEarly && !caps.requires_video && !hasMain && !(multiOn && hasMulti)) return;
+
+    if (isPromptOverLimit) {
+      setGenerationError(
+        lang === "ar"
+          ? `نص الوصف يتجاوز الحد الأقصى المسموح به لهذا النموذج (${maxPromptChars} حرف). يرجى تقليصه بمقدار ${prompt.length - maxPromptChars} حرف.`
+          : `Prompt exceeds the maximum allowed limit of ${maxPromptChars} characters for this model by ${prompt.length - maxPromptChars} characters.`
+      );
+      return;
+    }
+
     const gate = await guardGeneration({ requiredCredits: estimatedCredits, action: `video:${selectedModel.api_route}` });
     if (!gate.ok) {
       if (gate.reason === "error") setGenerationError(gate.message ?? getSafeErrorMessage(gate.message));
@@ -3167,23 +3193,25 @@ function VideoPageInner() {
   const hasRequiredImageInput =
     !caps.requires_image || !!startFrame || !!linkedStartFrameUrl || referenceImages.length > 0 || Boolean(selectedCharacter?.referenceUrls?.length);
   const hasRequiredVideoInput = !caps.requires_video || !!motionVideo;
-  const canGenerate = activeTool === "lipsync"
-    ? Boolean((startFrame || linkedStartFrameUrl) && lipsyncAudioFile)
-    : isKling30Video
-    ? (
-        (kling30MultiEnabled
-          ? (kling30MultiMode === "auto"
-              ? true // auto builds prompts automatically
-              : kling30CustomShots.some(s => s.prompt.trim()) && kling30CustomDurationValid)
-          : (hasMainPrompt || caps.requires_video)) &&
-        hasRequiredImageInput &&
-        hasRequiredVideoInput
-      )
-    : (
-        (hasMainPrompt || (multiShotEnabled && hasMultiPrompt) || caps.requires_video || !!motionVideo) &&
-        hasRequiredImageInput &&
-        hasRequiredVideoInput
-      );
+  const canGenerate = (
+    activeTool === "lipsync"
+      ? Boolean((startFrame || linkedStartFrameUrl) && lipsyncAudioFile)
+      : isKling30Video
+      ? (
+          (kling30MultiEnabled
+            ? (kling30MultiMode === "auto"
+                ? true // auto builds prompts automatically
+                : kling30CustomShots.some(s => s.prompt.trim()) && kling30CustomDurationValid)
+            : (hasMainPrompt || caps.requires_video)) &&
+          hasRequiredImageInput &&
+          hasRequiredVideoInput
+        )
+      : (
+          (hasMainPrompt || (multiShotEnabled && hasMultiPrompt) || caps.requires_video || !!motionVideo) &&
+          hasRequiredImageInput &&
+          hasRequiredVideoInput
+        )
+  ) && !isPromptOverLimit;
   const activeMultiPromptIndexes = multiPrompts
     .map((value, index) => ({ value: value.trim(), index }))
     .filter((item) => item.value.length > 0);
@@ -3423,6 +3451,39 @@ function VideoPageInner() {
               className="w-full bg-transparent outline-none text-[13.5px] sm:text-[14px] resize-y min-h-[64px] max-h-[220px] p-1.5 leading-relaxed overflow-y-auto custom-scrollbar"
               style={{ color: "#f8fafc" }}
             />
+
+            {/* Live Character Countdown Counter */}
+            <div className="flex items-center justify-between px-1.5 pt-1 text-[11px]">
+              <span className="text-slate-500 text-[10.5px]">
+                {isPromptOverLimit ? (
+                  <span className="text-red-400 font-semibold">
+                    {lang === "ar" ? "تنبيه: تم تجاوز الحد الأقصى للأحرف" : "Warning: Character limit exceeded"}
+                  </span>
+                ) : null}
+              </span>
+              <span
+                className={`font-mono transition-all ${
+                  isPromptOverLimit
+                    ? "text-red-400 font-bold bg-red-500/15 px-2 py-0.5 rounded-md border border-red-500/30 shadow-sm"
+                    : remainingPromptChars <= 200
+                      ? "text-amber-400 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded"
+                      : "text-slate-400"
+                }`}
+                title={
+                  lang === "ar"
+                    ? `الحد الأقصى للنموذج: ${maxPromptChars} حرف | المتبقي: ${remainingPromptChars}`
+                    : `Model limit: ${maxPromptChars} chars | Remaining: ${remainingPromptChars}`
+                }
+              >
+                {lang === "ar"
+                  ? (isPromptOverLimit
+                      ? `تجاوز الحد بـ ${Math.abs(remainingPromptChars)} حرف (${prompt.length}/${maxPromptChars})`
+                      : `متبقي: ${remainingPromptChars} / ${maxPromptChars}`)
+                  : (isPromptOverLimit
+                      ? `${Math.abs(remainingPromptChars)} over limit (${prompt.length}/${maxPromptChars})`
+                      : `${remainingPromptChars} left (${prompt.length}/${maxPromptChars})`)}
+              </span>
+            </div>
 
             {/* Negative Prompt Expandable Box */}
             {caps.has_negative_prompt && (showNegPrompt || negPrompt.length > 0) && (
