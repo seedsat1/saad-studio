@@ -195,9 +195,12 @@ function resolveBytePlusTariff(input: ProviderCostEstimateInput): ProviderCostEs
   // Seedance 2.5
   if (modelLower.includes("seedance-2.5") || modelLower.includes("seedance25")) {
     const is480 = q.includes("480");
-    const rateUsd = is480 ? 0.162 : 0.180;
+    const is1080 = q.includes("1080");
+    const is4k = q.includes("4k");
+    const rateUsd = is4k ? 1.800 : is1080 ? 0.900 : is480 ? 0.162 : 0.360;
+    const resKey = is4k ? "4k" : is1080 ? "1080p" : is480 ? "480p" : "720p";
     const totalUsd = parseFloat((rateUsd * duration * units).toFixed(4));
-    const tariffKey = `byteplus:seedance-2.5:${is480 ? "480p" : "720p"}`;
+    const tariffKey = `byteplus:seedance-2.5:${resKey}`;
     return {
       usd: totalUsd,
       source: "estimated",
@@ -209,12 +212,12 @@ function resolveBytePlusTariff(input: ProviderCostEstimateInput): ProviderCostEs
         providerRoute: input.providerRoute || "bytedance/seedance-2.5",
         rateUsd,
         billingUnit: "USD/sec",
-        resolution: is480 ? "480p" : "720p",
+        resolution: resKey,
         sourceType: "official_docs",
         sourceReference: "BytePlus Ark Seedance 2.5 Official Pricing",
-        effectiveDate: "2026-08-16",
-        capturedAt: "2026-08-16T20:08:39+03:00",
-        verificationStatus: checkTariffStaleness("2026-08-16T20:08:39+03:00"),
+        effectiveDate: "2026-08-24",
+        capturedAt: "2026-08-24T00:26:00+03:00",
+        verificationStatus: checkTariffStaleness("2026-08-24T00:26:00+03:00"),
         tariffKey,
       },
     };

@@ -119,7 +119,7 @@ describe("Provider Cost Attribution Remediation Suite", () => {
     });
     expect(seedance25.source).toBe("estimated");
     expect(seedance25.provenance?.verificationStatus).toBe("VERIFIED_CURRENT");
-    expect(seedance25.usd).toBe(0.90); // $0.18/s * 5s
+    expect(seedance25.usd).toBe(1.80); // $0.36/s * 5s
   });
 
   it("7. verifies OpenAI execution uses OpenAI tariff as ESTIMATED_VERIFIED", () => {
@@ -142,7 +142,7 @@ describe("Provider Cost Attribution Remediation Suite", () => {
     expect(veoUserCredits).toBe(26.88);
 
     const s25UserCredits = getGenerationCostSync("bytedance/seedance-2.5/text-to-video-turbo", 30, 1, "720p");
-    expect(s25UserCredits).toBe(302.4);
+    expect(s25UserCredits).toBe(604.8);
 
     // Kling user credits
     const klingUserCredits = getGenerationCostSync("kling-3.0/video", 5);
