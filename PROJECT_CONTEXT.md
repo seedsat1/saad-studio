@@ -13992,6 +13992,31 @@
   - `npx.cmd vitest run test/pricing-core.test.ts test/provider-cost-audit.test.ts test/universal-checkpoint-routing.test.ts` passed (37 tests).
   - `npm run build` compiled successfully.
 
+#### Latest task: Calibrate Exact Seedance 2.5 Provider Tariffs & User Pricing (2026-08-24)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Calibrated exact provider costs per second: 480p ($0.162/s), 720p ($0.360/s), 1080p ($0.900/s), 4k ($1.800/s).
+  - Applied 1.4x margin multiplier (56 cr/$) for 4 seconds generation:
+    - 480p (4s @ $0.648): 36.29 cr (~9.07 cr/s)
+    - 720p (4s @ $1.440): 80.64 cr (~20.16 cr/s)
+    - 1080p (4s @ $3.600): 201.60 cr (~50.40 cr/s)
+    - 4k (4s @ $7.200): 403.20 cr (~100.80 cr/s)
+  - Synced `lib/credit-pricing.ts`, `lib/pricing.ts`, and `lib/provider-tariff-registry.ts`.
+- Affected files:
+  - `lib/credit-pricing.ts`
+  - `lib/pricing.ts`
+  - `lib/provider-tariff-registry.ts`
+  - `test/pricing-core.test.ts`
+  - `test/provider-cost-attribution-remediation.test.ts`
+  - `test/provider-cost-audit.test.ts`
+  - `test/provider-cost-capture-and-reconciliation.test.ts`
+  - `test/universal-checkpoint-routing.test.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 67 pricing & tariff tests passed (`npx.cmd vitest run ...`).
+  - `npm run build` compiled successfully.
+
+
 
 
 
