@@ -13940,5 +13940,20 @@
 - Verification:
   - `npm run build` compiled successfully.
 
+#### Latest task: Dynamic Live Character Countdown Counter & Limit Guard in Video Studio (2026-08-23)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Implemented dynamic model-aware character limit calculation (e.g. 2,500 chars for Kling / Seedance / Veo / Sora; 2,000 chars for MiniMax / Hailuo / Luma / PixVerse).
+  - Added live character countdown badge in the Video Prompt Composer showing remaining characters in real-time (`متبقي: 2500 / 2500`).
+  - Added visual threshold warnings: amber highlighting when <= 200 characters remain, and pulsing red alert if the character limit is exceeded.
+  - Added client-side submission guard disabling the generate button and displaying a clear warning when the prompt exceeds the model limit.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed with 0 errors.
+  - `npm run build` compiled successfully.
+
+
 
 
