@@ -13954,6 +13954,22 @@
   - `npx.cmd tsc --noEmit` passed with 0 errors.
   - `npm run build` compiled successfully.
 
+#### Latest task: Seedance 2.5 1080p Resolution Exact Support & Pricing Alignment (2026-08-23)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Updated `lib/video-model-registry.ts` with exact `1080p` capability across Seedance 2.5 variants (`bytedance-seedance-v25-t2v-turbo`, `bytedance-seedance-v25-i2v-turbo`, `bytedance-seedance-v25-i2v-spicy`).
+  - Added exact unit pricing in `lib/credit-pricing.ts` mapping `1080p` ($0.24/s) and `4k` ($0.36/s) with dynamic calculation for turbo and spicy modes.
+  - Updated server route validation in `app/api/video/route.ts` ensuring `1080p` is passed as an exact supported resolution without fallback downgrades.
+- Affected files:
+  - `lib/video-model-registry.ts`
+  - `lib/credit-pricing.ts`
+  - `app/api/video/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd vitest run test/pricing-core.test.ts test/provider-cost-audit.test.ts test/universal-checkpoint-routing.test.ts` passed (37 tests).
+  - `npm run build` compiled successfully.
+
+
 
 
 
