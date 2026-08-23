@@ -13969,6 +13969,18 @@
   - `npx.cmd vitest run test/pricing-core.test.ts test/provider-cost-audit.test.ts test/universal-checkpoint-routing.test.ts` passed (37 tests).
   - `npm run build` compiled successfully.
 
+#### Latest task: Fix Curated Model Capabilities Precedence in Dynamic Loader (2026-08-23)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Fixed `mergeCuratedVideoModel` in `lib/dynamic-model-loader.ts` to always prioritize the latest certified `curated.capabilities` from `VIDEO_MODEL_REGISTRY`.
+  - Resolved the issue where previously cached database entries in `PlatformConfig` retained the old `["480p", "720p"]` array, ensuring `1080p` appears immediately in the Quality dropdown across all video studios.
+- Affected files:
+  - `lib/dynamic-model-loader.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm run build` compiled successfully.
+
+
 
 
 
