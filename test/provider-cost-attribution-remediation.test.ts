@@ -132,9 +132,9 @@ describe("Provider Cost Attribution Remediation Suite", () => {
     });
 
     expect(wan30.source).toBe("estimated");
-    expect(wan30.usd).toBe(0.40); // $0.20/s * 2s
+    expect(wan30.usd).toBe(0.56); // $0.28/s * 2s
     expect(wan30.provenance?.provider).toBe("WaveSpeed");
-    expect(wan30.tariffKey).toBe("wavespeed:video:alibaba-wan-3.0:1080p");
+    expect(wan30.tariffKey).toBe("wavespeed:video:alibaba-wan-3.0:reference-to-video:1080p");
   });
 
   it("7. verifies OpenAI execution uses OpenAI tariff as ESTIMATED_VERIFIED", () => {

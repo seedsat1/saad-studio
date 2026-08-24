@@ -111,10 +111,12 @@ describe("Admin Models Backend Hardening Test Suite", () => {
         api_route: "alibaba/wan-3.0/text-to-video",
         text_api_route: "alibaba/wan-3.0/text-to-video",
         image_api_route: "alibaba/wan-3.0/image-to-video",
+        reference_api_route: "alibaba/wan-3.0/reference-to-video",
       };
 
       expect(resolveDynamicVideoSubRoute(unifiedModel, false)).toBe("alibaba/wan-3.0/text-to-video");
       expect(resolveDynamicVideoSubRoute(unifiedModel, true)).toBe("alibaba/wan-3.0/image-to-video");
+      expect(resolveDynamicVideoSubRoute(unifiedModel, true, true)).toBe("alibaba/wan-3.0/reference-to-video");
     });
 
     it("publishes Wan 3.0 as one visible video model in the central registry", () => {
@@ -125,9 +127,14 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(wan30?.api_route).toBe("alibaba/wan-3.0/text-to-video");
       expect(wan30?.text_api_route).toBe("alibaba/wan-3.0/text-to-video");
       expect(wan30?.image_api_route).toBe("alibaba/wan-3.0/image-to-video");
+      expect(wan30?.reference_api_route).toBe("alibaba/wan-3.0/reference-to-video");
+      expect(wan30?.capabilities.aspect_ratios).toEqual(["16:9", "9:16", "1:1", "4:3", "3:4"]);
       expect(wan30?.capabilities.resolutions).toEqual(["480p", "720p", "1080p"]);
       expect(wan30?.capabilities.durations).toContain(2);
       expect(wan30?.capabilities.durations).toContain(30);
+      expect(wan30?.capabilities.max_reference_images).toBe(10);
+      expect(wan30?.capabilities.max_reference_videos).toBe(5);
+      expect(wan30?.capabilities.max_reference_audios).toBe(5);
     });
 
     it("lets Admin Models override Wan 3.0 capability options while keeping curated Seedance capabilities protected", async () => {
@@ -198,6 +205,8 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(wan30Specs.modality).toBe("video");
       expect(wan30Specs.textRoute).toBe("alibaba/wan-3.0/text-to-video");
       expect(wan30Specs.imageRoute).toBe("alibaba/wan-3.0/image-to-video");
+      expect(wan30Specs.referenceRoute).toBe("alibaba/wan-3.0/reference-to-video");
+      expect(wan30Specs.aspectRatios).toEqual(["16:9", "9:16", "1:1", "4:3", "3:4"]);
       expect(wan30Specs.resolutions).toEqual(["480p", "720p", "1080p"]);
       expect(wan30Specs.durations).toContain(30);
     });

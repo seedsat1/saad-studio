@@ -597,7 +597,8 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
   const isSeedanceTurboImageRoute = route === "bytedance/seedance-2.0/image-to-video-turbo";
   const isSeedanceMiniImageRoute = route === "bytedance/seedance-2.0-mini/image-to-video";
   const isWan30TextRoute = route === "alibaba/wan-3.0/text-to-video";
-  const isWan30ImageRoute = route === "alibaba/wan-3.0/image-to-video" || route === "alibaba/wan-3.0/reference-to-video";
+  const isWan30ImageRoute = route === "alibaba/wan-3.0/image-to-video";
+  const isWan30ReferenceRoute = route === "alibaba/wan-3.0/reference-to-video";
   const isKling30ImageRoute =
     route === "kwaivgi/kling-v3.0-std/image-to-video" ||
     route === "kwaivgi/kling-v3.0-pro/image-to-video";
@@ -607,7 +608,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     route === "kwaivgi/kling-v3-turbo-pro/image-to-video";
   const isKlingO3Route = typeof route === "string" && route.startsWith("kwaivgi/kling-video-o3-");
   const isKling26Route = typeof route === "string" && route.startsWith("kwaivgi/kling-v2.6-");
-  const hasAudio = isSeedance25TextTurboRoute || isSeedance25TurboImageRoute || isSeedance25SpicyImageRoute || isSeedanceBaseImageRoute || route?.includes("seedance-2.0-mini") || isSeedanceTurboImageRoute || isWan30TextRoute || isWan30ImageRoute
+  const hasAudio = isSeedance25TextTurboRoute || isSeedance25TurboImageRoute || isSeedance25SpicyImageRoute || isSeedanceBaseImageRoute || route?.includes("seedance-2.0-mini") || isSeedanceTurboImageRoute || isWan30TextRoute || isWan30ImageRoute || isWan30ReferenceRoute
     ? payload.generate_audio !== false
     : payload.sound === true || payload.generate_audio === true;
   out.generate_audio = hasAudio;
@@ -664,10 +665,22 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     return exact;
   }
 
-  if (isWan30TextRoute || isWan30ImageRoute) {
+  if (isWan30TextRoute || isWan30ImageRoute || isWan30ReferenceRoute) {
     const referenceImages = Array.isArray(out.reference_image_urls)
       ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : Array.isArray(payload.referenceImageUrls)
+        ? payload.referenceImageUrls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       : [];
+    const referenceVideos = Array.isArray(out.reference_video_urls)
+      ? out.reference_video_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : Array.isArray(payload.referenceVideoUrls)
+        ? payload.referenceVideoUrls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        : [];
+    const referenceAudios = Array.isArray(out.reference_audio_urls)
+      ? out.reference_audio_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : Array.isArray(payload.referenceAudioUrls)
+        ? payload.referenceAudioUrls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        : [];
     const imageUrls = Array.isArray(payload.image_urls)
       ? payload.image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       : [];
@@ -677,20 +690,35 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
       imageUrls[0] ||
       referenceImages[0] ||
       null;
+    const endImage =
+      (typeof out.last_image === "string" ? out.last_image : null) ||
+      (typeof out.last_frame_url === "string" ? out.last_frame_url : null) ||
+      (typeof out.end_image === "string" ? out.end_image : null) ||
+      null;
     const exact: Record<string, unknown> = {};
     if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
     else throw new ValidationError("Wan 3.0 requires a prompt.");
     if (isWan30ImageRoute) {
       if (startImage) exact.image = startImage;
       else throw new ValidationError("Wan 3.0 Image-to-Video requires an image or reference image.");
+      if (endImage) exact.last_image = endImage;
     }
-    if (typeof out.aspect_ratio === "string" && ["16:9"].includes(out.aspect_ratio)) {
+    if (isWan30ReferenceRoute) {
+      if (referenceImages.length > 0) exact.reference_images = referenceImages.slice(0, 10);
+      if (referenceVideos.length > 0) exact.reference_videos = referenceVideos.slice(0, 5);
+      if (referenceAudios.length > 0) exact.reference_audios = referenceAudios.slice(0, 5);
+      if (!exact.reference_images && !exact.reference_videos && !exact.reference_audios) {
+        throw new ValidationError("Wan 3.0 Reference-to-Video requires at least one reference image, video, or audio.");
+      }
+    }
+    if (typeof out.aspect_ratio === "string" && ["16:9", "9:16", "1:1", "4:3", "3:4"].includes(out.aspect_ratio)) {
       exact.aspect_ratio = out.aspect_ratio;
     }
     const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "720p";
     exact.resolution = ["480p", "720p", "1080p"].includes(resolution) ? resolution : "720p";
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
     exact.duration = Number.isFinite(duration) ? Math.min(30, Math.max(2, duration)) : 5;
+    if (typeof out.thinking_mode === "boolean") exact.thinking_mode = out.thinking_mode;
     exact.enable_audio = out.generate_audio !== false;
     if (typeof payload.seed === "number" && Number.isFinite(payload.seed)) exact.seed = payload.seed;
     return exact;
@@ -2326,24 +2354,39 @@ export async function POST(req: Request) {
 
     const dynamicVideoModels = await getCentralizedDynamicVideoModels();
     let dynamicVideoModel = dynamicVideoModels.find(
-      (m) => (m.api_route === modelRoute || m.id === modelRoute || m.text_api_route === modelRoute || m.image_api_route === modelRoute) && m.isActive !== false
+      (m) => (m.api_route === modelRoute || m.id === modelRoute || m.text_api_route === modelRoute || m.image_api_route === modelRoute || m.reference_api_route === modelRoute) && m.isActive !== false
     );
 
     // Intelligent background sub-route dispatch for unified dynamic models
     if (dynamicVideoModel) {
-      const dynamicHasImageOrReferenceInput =
-        hasImage ||
-        hasNonEmptyStringList(payload.reference_image_urls) ||
-        hasNonEmptyStringList(payload.referenceImageUrls);
-      modelRoute = resolveDynamicVideoSubRoute(dynamicVideoModel, dynamicHasImageOrReferenceInput) || modelRoute;
-    } else if (modelRoute.startsWith("alibaba/wan-3.0")) {
-      const hasWanImageOrReferenceInput =
-        hasImage ||
+      const dynamicHasReferenceInput =
         hasNonEmptyStringList(payload.reference_image_urls) ||
         hasNonEmptyStringList(payload.referenceImageUrls) ||
+        hasNonEmptyStringList(payload.reference_video_urls) ||
+        hasNonEmptyStringList(payload.referenceVideoUrls) ||
+        hasNonEmptyStringList(payload.reference_audio_urls) ||
+        hasNonEmptyStringList(payload.referenceAudioUrls);
+      const dynamicHasImageOrReferenceInput =
+        hasImage ||
+        dynamicHasReferenceInput;
+      modelRoute = resolveDynamicVideoSubRoute(dynamicVideoModel, dynamicHasImageOrReferenceInput, dynamicHasReferenceInput) || modelRoute;
+    } else if (modelRoute.startsWith("alibaba/wan-3.0")) {
+      const hasWanReferenceInput =
+        hasNonEmptyStringList(payload.reference_image_urls) ||
+        hasNonEmptyStringList(payload.referenceImageUrls) ||
+        hasNonEmptyStringList(payload.reference_video_urls) ||
+        hasNonEmptyStringList(payload.referenceVideoUrls) ||
+        hasNonEmptyStringList(payload.reference_audio_urls) ||
+        hasNonEmptyStringList(payload.referenceAudioUrls);
+      const hasWanImageInput =
+        hasImage ||
         hasNonEmptyStringList(payload.image_urls) ||
         hasNonEmptyStringList(payload.imageUrls);
-      modelRoute = hasWanImageOrReferenceInput ? "alibaba/wan-3.0/image-to-video" : "alibaba/wan-3.0/text-to-video";
+      modelRoute = hasWanReferenceInput
+        ? "alibaba/wan-3.0/reference-to-video"
+        : hasWanImageInput
+          ? "alibaba/wan-3.0/image-to-video"
+          : "alibaba/wan-3.0/text-to-video";
     }
 
     let kieModel = (isDirectGoogleVeo31Route || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);

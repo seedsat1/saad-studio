@@ -1046,9 +1046,10 @@ function resolveSeedance25Route(baseRoute: string, hasImageInput: boolean, selec
   return "bytedance/seedance-2.5/image-to-video-turbo";
 }
 
-function resolveWan30Route(baseRoute: string, hasImageOrReferenceInput: boolean): string {
+function resolveWan30Route(baseRoute: string, hasImageInput: boolean, hasReferenceInput: boolean): string {
   if (!baseRoute.startsWith("alibaba/wan-3.0")) return baseRoute;
-  return hasImageOrReferenceInput ? "alibaba/wan-3.0/image-to-video" : "alibaba/wan-3.0/text-to-video";
+  if (hasReferenceInput) return "alibaba/wan-3.0/reference-to-video";
+  return hasImageInput ? "alibaba/wan-3.0/image-to-video" : "alibaba/wan-3.0/text-to-video";
 }
 const MODEL_GROUPS = getModelGroups()
   .map((group) => ({
@@ -1824,6 +1825,7 @@ function VideoPageInner() {
     [selectableCharacters, selectedCharacterId, supportsCharacterReference],
   );
   const isSoraModel = selectedModel.api_route.includes("openai/sora-2");
+  const isWan30Model = selectedModel.api_route.startsWith("alibaba/wan-3.0");
   const isVeo31Model =
     selectedModel.api_route.startsWith("google/veo3.1") ||
     selectedModel.api_route === "google/veo-3.1-generate-preview" ||
@@ -2631,21 +2633,25 @@ function VideoPageInner() {
         } else if (uploadedImageRefs[1]) {
           payload.end_image = uploadedImageRefs[1];
         }
-      } else if (((isSeedanceV2 || isMinimaxH3) && (referenceImages.length > 0 || !!startFrame || !!linkedStartFrameUrl || !!endFrame || !!linkedEndFrameUrl || characterReferenceUrls.length > 0)) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
-        if (isSeedanceV2 || isMinimaxH3) {
+      } else if (((isSeedanceV2 || isMinimaxH3) && (referenceImages.length > 0 || !!startFrame || !!linkedStartFrameUrl || !!endFrame || !!linkedEndFrameUrl || characterReferenceUrls.length > 0)) || (isWan30Model && (referenceImages.length > 0 || characterReferenceUrls.length > 0)) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
+        if (isSeedanceV2 || isMinimaxH3 || isWan30Model) {
           // Split unified reference media by type and let the API normalize provider field names.
           const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
           const refVids  = referenceImages.filter(f => f.type.startsWith("video/"));
           const refAuds  = referenceImages.filter(f => f.type.startsWith("audio/"));
           const seedanceImageLimit = Math.max(1, caps.max_reference_images || 9);
-          const referenceImageLimit = isMinimaxH3 ? Math.max(1, Math.min(9, caps.max_reference_images || 9)) : seedanceImageLimit;
+          const referenceImageLimit = isWan30Model
+            ? Math.max(1, Math.min(10, caps.max_reference_images || 10))
+            : isMinimaxH3
+              ? Math.max(1, Math.min(9, caps.max_reference_images || 9))
+              : seedanceImageLimit;
           const explicitStartImage = startFrame
             ? await uploadVideoRequestFile(startFrame, fetchWithAuth)
             : linkedStartFrameUrl
               ? linkedStartFrameUrl
               : null;
           const uploadedImageRefs = await Promise.all(refImgs.slice(0, referenceImageLimit).map(f => uploadVideoRequestFile(f, fetchWithAuth)));
-          const explicitEndImageForReference = isMinimaxH3 && (endFrame || linkedEndFrameUrl)
+          const explicitEndImageForReference = (isMinimaxH3 || isWan30Model) && (endFrame || linkedEndFrameUrl)
             ? (endFrame ? await uploadVideoRequestFile(endFrame, fetchWithAuth) : linkedEndFrameUrl)
             : null;
           const mergedImageRefs = [
@@ -2699,7 +2705,7 @@ function VideoPageInner() {
       if (caps.has_end_frame && (endFrame || linkedEndFrameUrl) && referenceImages.length === 0) {
         const endKey = isSeedanceV2
           ? "last_frame_url"
-          : selectedModel.api_route.startsWith("wavespeed-ai/wan")
+          : selectedModel.api_route.startsWith("wavespeed-ai/wan") || isWan30Model
             ? "last_image"
             : "end_image";
         if (endFrame) {
@@ -2997,11 +3003,17 @@ function VideoPageInner() {
       if (requestModelRoute.startsWith("bytedance/seedance-2.5")) {
         requestModelRoute = resolveSeedance25Route(requestModelRoute, payloadHasImageInput, resolution);
       } else if (requestModelRoute.startsWith("alibaba/wan-3.0")) {
-        const payloadHasWanImageOrReferenceInput = payloadHasImageInput || (
+        const payloadHasWanReferenceInput = (
           Array.isArray(payload.reference_image_urls) &&
           payload.reference_image_urls.some((value) => typeof value === "string" && value.trim())
+        ) || (
+          Array.isArray(payload.reference_video_urls) &&
+          payload.reference_video_urls.some((value) => typeof value === "string" && value.trim())
+        ) || (
+          Array.isArray(payload.reference_audio_urls) &&
+          payload.reference_audio_urls.some((value) => typeof value === "string" && value.trim())
         );
-        requestModelRoute = resolveWan30Route(requestModelRoute, payloadHasWanImageOrReferenceInput);
+        requestModelRoute = resolveWan30Route(requestModelRoute, payloadHasImageInput, payloadHasWanReferenceInput);
       } else if (requestModelRoute.includes("seedance")) {
         if (requestModelRoute.includes("mini")) {
           requestModelRoute = payloadHasImageInput
@@ -3146,7 +3158,7 @@ function VideoPageInner() {
       setIsSubmitting(false);
     }
   }, [
-    activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isVeo31Model, isGoogleVeoModel, isVeo31FastModel, isVeo31FixedEightSecond,
+    activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isWan30Model, isVeo31Model, isGoogleVeoModel, isVeo31FastModel, isVeo31FixedEightSecond,
     startFrame, linkedStartFrameUrl, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId, selectedPalette, startPolling,
@@ -5890,7 +5902,7 @@ function VideoPageInner() {
                   <span className="text-[14px] font-semibold" style={{ color: "#e2e8f0" }}>
                     {mediaPicker === "motionVideo"
                       ? "Select Video"
-                      : mediaPicker === "referenceImages" && isSeedanceV2Model
+                      : mediaPicker === "referenceImages" && (isSeedanceV2Model || isWan30Model)
                         ? `Upload media - ${referenceFileSummary}`
                         : mediaPicker === "referenceImages"
                           ? `Select Reference Image (${referenceFileSummary})`
@@ -5969,7 +5981,7 @@ function VideoPageInner() {
                       accept={
                         mediaPicker === "motionVideo"
                           ? "video/mp4,video/quicktime,video/webm,video/x-matroska"
-                          : mediaPicker === "referenceImages" && isSeedanceV2Model
+                          : mediaPicker === "referenceImages" && (isSeedanceV2Model || isWan30Model)
                             ? "image/*,video/*,audio/*"
                             : "image/*"
                       }
@@ -6004,7 +6016,7 @@ function VideoPageInner() {
                       <p className="text-[12px] mt-1" style={{ color: "#94a3b8" }}>
                         {mediaPicker === "motionVideo"
                           ? "MP4, MOV, WebM"
-                          : mediaPicker === "referenceImages" && isSeedanceV2Model
+                          : mediaPicker === "referenceImages" && (isSeedanceV2Model || isWan30Model)
                             ? "Image, Video or Audio"
                             : "PNG, JPG, WebP"}
                       </p>

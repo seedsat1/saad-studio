@@ -30,10 +30,15 @@ const MINIMAX_H3_USD_PER_SECOND = {
 } as const;
 const WAN_30_CREDITS_PER_USD = 40;
 const WAN_30_MARGIN_MULTIPLIER = 1.4;
-const WAN_30_USD_PER_SECOND = {
-  "480p": 0.05,
-  "720p": 0.10,
-  "1080p": 0.20,
+const WAN_30_TEXT_REFERENCE_USD_PER_SECOND = {
+  "480p": 0.07,
+  "720p": 0.13,
+  "1080p": 0.28,
+} as const;
+const WAN_30_IMAGE_USD_PER_SECOND = {
+  "480p": 0.06,
+  "720p": 0.12,
+  "1080p": 0.24,
 } as const;
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
@@ -253,11 +258,14 @@ function getSeedance25SpicyCredits(payload?: VideoPayload): number {
   return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_MARGIN_MULTIPLIER * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }
 
-function getWan30Credits(payload?: VideoPayload): number {
+function getWan30Credits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
-  const q: keyof typeof WAN_30_USD_PER_SECOND = quality.includes("1080") ? "1080p" : quality.includes("480") ? "480p" : "720p";
-  const usdPerSecond = WAN_30_USD_PER_SECOND[q] ?? WAN_30_USD_PER_SECOND["720p"];
+  const q: keyof typeof WAN_30_TEXT_REFERENCE_USD_PER_SECOND = quality.includes("1080") ? "1080p" : quality.includes("480") ? "480p" : "720p";
+  const rateTable = modelRoute.includes("/image-to-video")
+    ? WAN_30_IMAGE_USD_PER_SECOND
+    : WAN_30_TEXT_REFERENCE_USD_PER_SECOND;
+  const usdPerSecond = rateTable[q] ?? rateTable["720p"];
   return parseFloat(Math.max(1, usdPerSecond * duration * WAN_30_MARGIN_MULTIPLIER * WAN_30_CREDITS_PER_USD).toFixed(2));
 }
 function getSora2Credits(modelRoute: string, payload?: VideoPayload): number {
@@ -478,7 +486,7 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
     return getSeedance25SpicyCredits(payload);
   }
   if (modelRoute.startsWith("alibaba/wan-3.0")) {
-    return getWan30Credits(payload);
+    return getWan30Credits(modelRoute, payload);
   }
   if (
     modelRoute === "google/veo3.1-lite-text-to-video" ||

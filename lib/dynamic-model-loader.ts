@@ -10,6 +10,7 @@ export interface DynamicImageModel extends ImageModel {
   color?: string;
   text_api_route?: string;
   image_api_route?: string;
+  reference_api_route?: string;
 }
 
 export interface DynamicVideoModel extends WaveSpeedVideoModel {
@@ -21,6 +22,7 @@ export interface DynamicVideoModel extends WaveSpeedVideoModel {
   color?: string;
   text_api_route?: string;
   image_api_route?: string;
+  reference_api_route?: string;
 }
 
 const BLOCKED_DYNAMIC_IMAGE_IDS = new Set([
@@ -72,6 +74,18 @@ function mergeWan30AdminCapabilities(
     max_reference_images: typeof existing.max_reference_images === "number"
       ? existing.max_reference_images
       : curated.max_reference_images,
+    max_reference_videos: typeof existing.max_reference_videos === "number"
+      ? existing.max_reference_videos
+      : curated.max_reference_videos,
+    max_reference_video_total_seconds: typeof existing.max_reference_video_total_seconds === "number"
+      ? existing.max_reference_video_total_seconds
+      : curated.max_reference_video_total_seconds,
+    max_reference_audios: typeof existing.max_reference_audios === "number"
+      ? existing.max_reference_audios
+      : curated.max_reference_audios,
+    max_reference_audio_total_seconds: typeof existing.max_reference_audio_total_seconds === "number"
+      ? existing.max_reference_audio_total_seconds
+      : curated.max_reference_audio_total_seconds,
     has_sound: typeof existing.has_sound === "boolean" ? existing.has_sound : curated.has_sound,
     has_seed: typeof existing.has_seed === "boolean" ? existing.has_seed : curated.has_seed,
   };
@@ -274,6 +288,7 @@ export interface InferredModelSpecs {
   maxRefImages: number;
   textRoute: string;
   imageRoute: string;
+  referenceRoute?: string;
   creditCost: number;
 }
 
@@ -494,13 +509,14 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
         provider: "wavespeed",
         group: "Wan",
         familyColor: "#f59e0b",
-        aspectRatios: ["16:9"],
+        aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
         durations: [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30],
         resolutions: ["480p", "720p", "1080p"],
-        maxRefImages: 1,
+        maxRefImages: 10,
         textRoute: "alibaba/wan-3.0/text-to-video",
         imageRoute: "alibaba/wan-3.0/image-to-video",
-        creditCost: 5.6,
+        referenceRoute: "alibaba/wan-3.0/reference-to-video",
+        creditCost: 7.28,
       };
     }
     if (isImg) {
@@ -557,9 +573,14 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
 }
 
 export function resolveDynamicVideoSubRoute(
-  model: Pick<DynamicVideoModel, "api_route" | "text_api_route" | "image_api_route">,
-  hasImageOrReferenceInput: boolean
+  model: Pick<DynamicVideoModel, "api_route" | "text_api_route" | "image_api_route" | "reference_api_route">,
+  hasImageOrReferenceInput: boolean,
+  hasReferenceInput = false
 ): string {
+  if (hasReferenceInput && model.reference_api_route?.trim()) {
+    return model.reference_api_route.trim();
+  }
+
   if (hasImageOrReferenceInput && model.image_api_route?.trim()) {
     return model.image_api_route.trim();
   }
@@ -568,5 +589,5 @@ export function resolveDynamicVideoSubRoute(
     return model.text_api_route.trim();
   }
 
-  return model.api_route?.trim() || model.text_api_route?.trim() || model.image_api_route?.trim() || "";
+  return model.api_route?.trim() || model.text_api_route?.trim() || model.image_api_route?.trim() || model.reference_api_route?.trim() || "";
 }

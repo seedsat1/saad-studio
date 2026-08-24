@@ -113,8 +113,10 @@ export interface WaveSpeedVideoModel {
   api_route: string;
   /** Optional unified public model sub-route for text-only requests. */
   text_api_route?: string;
-  /** Optional unified public model sub-route for image/reference requests. */
+  /** Optional unified public model sub-route for image/start-frame requests. */
   image_api_route?: string;
+  /** Optional unified public model sub-route for multimodal reference requests. */
+  reference_api_route?: string;
   capabilities: VideoModelCapabilities;
   /** Whether the API route has been verified against official docs curl examples */
   route_confirmed: boolean;
@@ -763,10 +765,11 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
 
   // ╔══════════════════════════════════════════════════════════════════════════
   // ║ WaveSpeed Alibaba Wan 3.0 Unified Video
-  // ║ Owner-provided source pricing screenshots:
-  // ║ - 480p: $0.05/sec, 720p: $0.10/sec, 1080p: $0.20/sec
+  // ║ Owner-supplied official WaveSpeed docs:
+  // ║ - T2V/Reference: 480p $0.07/s, 720p $0.13/s, 1080p $0.28/s
+  // ║ - I2V: 480p $0.06/s, 720p $0.12/s, 1080p $0.24/s
   // ║ - duration examples confirm 2s and 30s.
-  // ║ Public UI shows one model; runtime routes text-only vs image/reference.
+  // ║ Public UI shows one model; runtime routes text-only vs image vs references.
   // ╚══════════════════════════════════════════════════════════════════════════
   {
     id: "alibaba-wan-3.0-video",
@@ -775,17 +778,22 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     family_label: "Wan",
     family_color: "#f59e0b",
     badge: "NEW",
-    description: "Alibaba Wan 3.0 unified video model. Text-only requests use T2V; image/reference requests use I2V in the background.",
+    description: "Alibaba Wan 3.0 unified video model. Text-only requests use T2V; start images use I2V; reference media use reference-to-video in the background.",
     api_route: "alibaba/wan-3.0/text-to-video",
     text_api_route: "alibaba/wan-3.0/text-to-video",
     image_api_route: "alibaba/wan-3.0/image-to-video",
+    reference_api_route: "alibaba/wan-3.0/reference-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
-      aspect_ratios: ["16:9"],
+      aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
       durations: [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30],
       resolutions: ["480p", "720p", "1080p"],
-      max_reference_images: 1,
+      max_reference_images: 10,
+      max_reference_videos: 5,
+      max_reference_video_total_seconds: 15,
+      max_reference_audios: 5,
+      max_reference_audio_total_seconds: 15,
       has_seed: true,
       has_sound: true,
       sound_param: "generate_audio",

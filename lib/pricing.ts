@@ -496,10 +496,15 @@ const MINIMAX_H3_USD_PER_SECOND = {
 } as const;
 const WAN_30_CREDITS_PER_USD = 40;
 const WAN_30_MARGIN_MULTIPLIER = 1.4;
-const WAN_30_USD_PER_SECOND = {
-  "480p": 0.05,
-  "720p": 0.10,
-  "1080p": 0.20,
+const WAN_30_TEXT_REFERENCE_USD_PER_SECOND = {
+  "480p": 0.07,
+  "720p": 0.13,
+  "1080p": 0.28,
+} as const;
+const WAN_30_IMAGE_USD_PER_SECOND = {
+  "480p": 0.06,
+  "720p": 0.12,
+  "1080p": 0.24,
 } as const;
 
 function getSeedance25ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
@@ -531,11 +536,14 @@ function getWan30ProviderUsd(modelRef: string, durationSec: number, quality?: st
   if (!route.startsWith("alibaba/wan-3.0")) return null;
   const duration = Math.max(1, Number.isFinite(durationSec) ? durationSec : 5);
   const q = (quality || "720p").trim().toLowerCase();
+  const rateTable = route.includes("/image-to-video")
+    ? WAN_30_IMAGE_USD_PER_SECOND
+    : WAN_30_TEXT_REFERENCE_USD_PER_SECOND;
   const usdPerSecond = q.includes("1080")
-    ? WAN_30_USD_PER_SECOND["1080p"]
+    ? rateTable["1080p"]
     : q.includes("480")
-    ? WAN_30_USD_PER_SECOND["480p"]
-    : WAN_30_USD_PER_SECOND["720p"];
+    ? rateTable["480p"]
+    : rateTable["720p"];
   return parseFloat((usdPerSecond * duration).toFixed(4));
 }
 
