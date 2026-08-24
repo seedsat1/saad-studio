@@ -111,6 +111,10 @@ export interface WaveSpeedVideoModel {
    *      "google/veo3"
    */
   api_route: string;
+  /** Optional unified public model sub-route for text-only requests. */
+  text_api_route?: string;
+  /** Optional unified public model sub-route for image/reference requests. */
+  image_api_route?: string;
   capabilities: VideoModelCapabilities;
   /** Whether the API route has been verified against official docs curl examples */
   route_confirmed: boolean;
@@ -758,6 +762,37 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
   },
 
   // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ WaveSpeed Alibaba Wan 3.0 Unified Video
+  // ║ Owner-provided source pricing screenshots:
+  // ║ - 480p: $0.05/sec, 720p: $0.10/sec, 1080p: $0.20/sec
+  // ║ - duration examples confirm 2s and 30s.
+  // ║ Public UI shows one model; runtime routes text-only vs image/reference.
+  // ╚══════════════════════════════════════════════════════════════════════════
+  {
+    id: "alibaba-wan-3.0-video",
+    name: "Wan 3.0",
+    family: "wan",
+    family_label: "Wan",
+    family_color: "#f59e0b",
+    badge: "NEW",
+    description: "Alibaba Wan 3.0 unified video model. Text-only requests use T2V; image/reference requests use I2V in the background.",
+    api_route: "alibaba/wan-3.0/text-to-video",
+    text_api_route: "alibaba/wan-3.0/text-to-video",
+    image_api_route: "alibaba/wan-3.0/image-to-video",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      aspect_ratios: ["16:9"],
+      durations: [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30],
+      resolutions: ["480p", "720p", "1080p"],
+      max_reference_images: 1,
+      has_seed: true,
+      has_sound: true,
+      sound_param: "generate_audio",
+    }),
+  },
+
+  // ╔══════════════════════════════════════════════════════════════════════════
   // ║ Bytedance Seedance 2.5
   // ║ Confirmed from WaveSpeed model pages provided with the task:
   // ║ - text-to-video-turbo: prompt, reference_images 0..30,
@@ -1001,6 +1036,7 @@ export function getVideoModelDisplayPriority(model: Pick<WaveSpeedVideoModel, "i
   if (id === "bytedance-seedance-v25-t2v-turbo" || route === "bytedance/seedance-2.5/text-to-video-turbo") return 0;
   if (id === "bytedance-seedance-v25-i2v-turbo" || route === "bytedance/seedance-2.5/image-to-video-turbo") return 1;
   if (id === "bytedance-seedance-v25-i2v-spicy" || route === "bytedance/seedance-2.5/image-to-video-spicy") return 2;
+  if (id === "alibaba-wan-3.0-video" || route.startsWith("alibaba/wan-3.0")) return 3;
   return 100;
 }
 
@@ -1048,4 +1084,3 @@ export function getModelById(id: string): WaveSpeedVideoModel | undefined {
 }
 
 export const DEFAULT_MODEL = getModelById("bytedance-seedance-v25-t2v-turbo") ?? VIDEO_MODEL_REGISTRY[0];
-

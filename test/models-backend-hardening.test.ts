@@ -116,6 +116,19 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(resolveDynamicVideoSubRoute(unifiedModel, false)).toBe("alibaba/wan-3.0/text-to-video");
       expect(resolveDynamicVideoSubRoute(unifiedModel, true)).toBe("alibaba/wan-3.0/image-to-video");
     });
+
+    it("publishes Wan 3.0 as one visible video model in the central registry", () => {
+      const wan30 = VIDEO_MODEL_REGISTRY.find((model) => model.id === "alibaba-wan-3.0-video");
+
+      expect(wan30).toBeDefined();
+      expect(wan30?.name).toBe("Wan 3.0");
+      expect(wan30?.api_route).toBe("alibaba/wan-3.0/text-to-video");
+      expect(wan30?.text_api_route).toBe("alibaba/wan-3.0/text-to-video");
+      expect(wan30?.image_api_route).toBe("alibaba/wan-3.0/image-to-video");
+      expect(wan30?.capabilities.resolutions).toEqual(["480p", "720p", "1080p"]);
+      expect(wan30?.capabilities.durations).toContain(2);
+      expect(wan30?.capabilities.durations).toContain(30);
+    });
   });
 
   describe("5. Model Branding Normalization & Specs Auto-Detection", () => {
@@ -141,6 +154,14 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(klingSpecs.textRoute).toBe("kwaivgi/kling-v3.0-pro/text-to-video");
       expect(klingSpecs.imageRoute).toBe("kwaivgi/kling-v3.0-pro/image-to-video");
       expect(klingSpecs.durations).toEqual([5, 10, 15]);
+
+      const wan30Specs = inferModelCapabilitiesAndSpecs("Alibaba Wan 3.0 Image To Video API Documentation");
+      expect(wan30Specs.cleanName).toBe("Wan 3.0");
+      expect(wan30Specs.modality).toBe("video");
+      expect(wan30Specs.textRoute).toBe("alibaba/wan-3.0/text-to-video");
+      expect(wan30Specs.imageRoute).toBe("alibaba/wan-3.0/image-to-video");
+      expect(wan30Specs.resolutions).toEqual(["480p", "720p", "1080p"]);
+      expect(wan30Specs.durations).toContain(30);
     });
   });
 });

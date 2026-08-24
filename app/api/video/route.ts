@@ -596,6 +596,8 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
   const isSeedanceBaseImageRoute = route === "bytedance/seedance-2.0/image-to-video";
   const isSeedanceTurboImageRoute = route === "bytedance/seedance-2.0/image-to-video-turbo";
   const isSeedanceMiniImageRoute = route === "bytedance/seedance-2.0-mini/image-to-video";
+  const isWan30TextRoute = route === "alibaba/wan-3.0/text-to-video";
+  const isWan30ImageRoute = route === "alibaba/wan-3.0/image-to-video" || route === "alibaba/wan-3.0/reference-to-video";
   const isKling30ImageRoute =
     route === "kwaivgi/kling-v3.0-std/image-to-video" ||
     route === "kwaivgi/kling-v3.0-pro/image-to-video";
@@ -605,7 +607,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     route === "kwaivgi/kling-v3-turbo-pro/image-to-video";
   const isKlingO3Route = typeof route === "string" && route.startsWith("kwaivgi/kling-video-o3-");
   const isKling26Route = typeof route === "string" && route.startsWith("kwaivgi/kling-v2.6-");
-  const hasAudio = isSeedance25TextTurboRoute || isSeedance25TurboImageRoute || isSeedance25SpicyImageRoute || isSeedanceBaseImageRoute || route?.includes("seedance-2.0-mini") || isSeedanceTurboImageRoute
+  const hasAudio = isSeedance25TextTurboRoute || isSeedance25TurboImageRoute || isSeedance25SpicyImageRoute || isSeedanceBaseImageRoute || route?.includes("seedance-2.0-mini") || isSeedanceTurboImageRoute || isWan30TextRoute || isWan30ImageRoute
     ? payload.generate_audio !== false
     : payload.sound === true || payload.generate_audio === true;
   out.generate_audio = hasAudio;
@@ -659,6 +661,38 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(4, duration)) : 5;
     if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
     if (out.loop === true) exact.loop = true;
+    return exact;
+  }
+
+  if (isWan30TextRoute || isWan30ImageRoute) {
+    const referenceImages = Array.isArray(out.reference_image_urls)
+      ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const imageUrls = Array.isArray(payload.image_urls)
+      ? payload.image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const startImage =
+      (typeof out.image === "string" ? out.image : null) ||
+      (typeof out.image_url === "string" ? out.image_url : null) ||
+      imageUrls[0] ||
+      referenceImages[0] ||
+      null;
+    const exact: Record<string, unknown> = {};
+    if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    else throw new ValidationError("Wan 3.0 requires a prompt.");
+    if (isWan30ImageRoute) {
+      if (startImage) exact.image = startImage;
+      else throw new ValidationError("Wan 3.0 Image-to-Video requires an image or reference image.");
+    }
+    if (typeof out.aspect_ratio === "string" && ["16:9"].includes(out.aspect_ratio)) {
+      exact.aspect_ratio = out.aspect_ratio;
+    }
+    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "720p";
+    exact.resolution = ["480p", "720p", "1080p"].includes(resolution) ? resolution : "720p";
+    const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
+    exact.duration = Number.isFinite(duration) ? Math.min(30, Math.max(2, duration)) : 5;
+    exact.enable_audio = out.generate_audio !== false;
+    if (typeof payload.seed === "number" && Number.isFinite(payload.seed)) exact.seed = payload.seed;
     return exact;
   }
 
@@ -2286,6 +2320,7 @@ export async function POST(req: Request) {
       modelRoute === "kwaivgi/kling-v3.0-pro/text-to-video" ||
       modelRoute.startsWith("kling/v3-turbo") ||
       modelRoute.startsWith("kling/v2-5-turbo") ||
+      modelRoute.startsWith("alibaba/wan-3.0") ||
       modelRoute === "bytedance/seedream-v5.0-pro/edit" ||
       modelRoute === "gpt-image-2-text-to-image";
 
@@ -2301,6 +2336,14 @@ export async function POST(req: Request) {
         hasNonEmptyStringList(payload.reference_image_urls) ||
         hasNonEmptyStringList(payload.referenceImageUrls);
       modelRoute = resolveDynamicVideoSubRoute(dynamicVideoModel, dynamicHasImageOrReferenceInput) || modelRoute;
+    } else if (modelRoute.startsWith("alibaba/wan-3.0")) {
+      const hasWanImageOrReferenceInput =
+        hasImage ||
+        hasNonEmptyStringList(payload.reference_image_urls) ||
+        hasNonEmptyStringList(payload.referenceImageUrls) ||
+        hasNonEmptyStringList(payload.image_urls) ||
+        hasNonEmptyStringList(payload.imageUrls);
+      modelRoute = hasWanImageOrReferenceInput ? "alibaba/wan-3.0/image-to-video" : "alibaba/wan-3.0/text-to-video";
     }
 
     let kieModel = (isDirectGoogleVeo31Route || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);

@@ -1013,6 +1013,7 @@ const FAMILY_GRADIENTS: Record<string, string> = {
   hailuo:    "from-amber-900  via-amber-800  to-slate-900",
   seedance:  "from-emerald-900 via-emerald-800 to-slate-900",
   gemini:    "from-green-900 via-emerald-800 to-slate-900",
+  wan:       "from-amber-900 via-orange-800 to-slate-900",
   luma:      "from-purple-900 via-purple-800 to-slate-900",
   pika:      "from-pink-900   via-pink-800   to-slate-900",
   pixverse:  "from-rose-900   via-rose-800   to-slate-900",
@@ -1043,6 +1044,11 @@ function resolveSeedance25Route(baseRoute: string, hasImageInput: boolean, selec
   }
 
   return "bytedance/seedance-2.5/image-to-video-turbo";
+}
+
+function resolveWan30Route(baseRoute: string, hasImageOrReferenceInput: boolean): string {
+  if (!baseRoute.startsWith("alibaba/wan-3.0")) return baseRoute;
+  return hasImageOrReferenceInput ? "alibaba/wan-3.0/image-to-video" : "alibaba/wan-3.0/text-to-video";
 }
 const MODEL_GROUPS = getModelGroups()
   .map((group) => ({
@@ -2990,6 +2996,12 @@ function VideoPageInner() {
       let requestModelRoute = selectedModel.api_route;
       if (requestModelRoute.startsWith("bytedance/seedance-2.5")) {
         requestModelRoute = resolveSeedance25Route(requestModelRoute, payloadHasImageInput, resolution);
+      } else if (requestModelRoute.startsWith("alibaba/wan-3.0")) {
+        const payloadHasWanImageOrReferenceInput = payloadHasImageInput || (
+          Array.isArray(payload.reference_image_urls) &&
+          payload.reference_image_urls.some((value) => typeof value === "string" && value.trim())
+        );
+        requestModelRoute = resolveWan30Route(requestModelRoute, payloadHasWanImageOrReferenceInput);
       } else if (requestModelRoute.includes("seedance")) {
         if (requestModelRoute.includes("mini")) {
           requestModelRoute = payloadHasImageInput

@@ -39,6 +39,24 @@
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
 
+#### Latest task: Surface Wan 3.0 in Subscriber Video Model Selector (2026-08-24)
+- Status: Completed & Verified (PASS).
+- Issue:
+  - Commit `77a672b` reached Production, but `/video` did not show Wan 3.0 because the previous change added dispatch/pricing support without adding a visible central video registry row.
+- Key Deliverables:
+  1. Added curated visible model `alibaba-wan-3.0-video` / `Wan 3.0` to `lib/video-model-registry.ts`.
+  2. Preserved one subscriber-facing model name while keeping internal sub-routes:
+     - text-only: `alibaba/wan-3.0/text-to-video`.
+     - image/reference input: `alibaba/wan-3.0/image-to-video`.
+  3. Updated `/video` client-side route resolution and `/api/video` server-side fallback so image/reference uploads route to I2V even if a cached client sends the T2V route.
+  4. Added Wan 3.0 auto-detection in `inferModelCapabilitiesAndSpecs()` so Admin Models/Knowledge Hub publishing no longer downgrades Wan 3.0 docs to Wan 2.5/2.7 defaults.
+- Guardrails:
+  - Used only owner-provided confirmed values for Wan 3.0: 480p/720p/1080p and 2s..30s duration evidence.
+  - Reference count remains conservative at 1 for the current `image-to-video` route binding; no unverified multi-reference limit was invented.
+- Verification:
+  - `npx.cmd vitest run test/models-backend-hardening.test.ts test/model-definition-registry.test.ts test/pricing-core.test.ts test/provider-cost-audit.test.ts test/provider-cost-attribution-remediation.test.ts` passed: 70/70 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+
 #### Latest task: WaveSpeed Alibaba Wan 3.0 Source Pricing + Platform Margin (2026-08-24)
 - Status: Completed & Verified (PASS).
 - Source Pricing Evidence:
@@ -95,8 +113,19 @@
 - Verification:
   - Read-only source audit; no tests run.
 
-#### Latest task: Easing Curves Keyframe Baking & Shift Precision Fix (2026-08-24)
+#### Latest task: Auto-Editing Dashboard (المونتاج الذكي) UI Integration (2026-08-24)
 - Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. **Built Premium Auto-Editing Dashboard**:
+     - Completely replaced the generic chat interface in `ai-copilot.ts` with the high-fidelity Auto-Editing Dashboard matching the user's mockup.
+     - Implemented dynamic active project/sequence detection, "Editor Guidance" textarea, 3-column project analysis (Video, Audio with speaker breakdown, Content text transcripts), dynamic summary statistics row, 5-step smart editing checklist, and the timeline execution footer.
+  2. **Wired Interactive Event Listeners**:
+     - Connected "Analyze" (`حلّل المشروع أولاً`) to simulate loading states, scan sequence info, and check off steps 1 and 2.
+     - Connected "Start Editing" (`ابدأ المونتاج`) to trigger the WaveSpeed Claude 3.5 Sonnet completions, dynamically fill the timeline writing progress, and execute the generated ExtendScript code directly inside Premiere Pro.
+  3. **Vite Compilation & CEP Sync**:
+     - Successfully built the production package, resolving TypeScript types and casting `window.__adobe_cep__` imports.
+
+#### Previous task: Easing Curves Keyframe Baking & Shift Precision Fix (2026-08-24)
 - Key Deliverables:
   1. **Fixed Premiere Pro ExtendScript Time Object Requirements**:
      - Identified that Premiere's `ComponentParam.addKey()`, `setValueAtKey()`, and `removeKey()` require active `new Time()` objects to function accurately on the timeline, and fail or crash when passed raw Javascript floats.
@@ -14117,7 +14146,6 @@
 - Verification:
   - All 67 pricing & tariff tests passed (`npx.cmd vitest run ...`).
   - `npm run build` compiled successfully.
-
 
 
 

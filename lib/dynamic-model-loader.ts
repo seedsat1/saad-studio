@@ -454,7 +454,26 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
 
   // 6. Wan Video/Image
   if (text.includes("wan")) {
+    const isWan30 = text.includes("3.0") || text.includes("wan-3") || text.includes("wan 3");
+    const isWan30Video = isWan30 && (text.includes("video") || text.includes("t2v") || text.includes("i2v"));
     const isImg = text.includes("image");
+    if (isWan30Video) {
+      return {
+        cleanName: "Wan 3.0",
+        cleanId: "alibaba-wan-3-0-video",
+        modality: "video",
+        provider: "wavespeed",
+        group: "Wan",
+        familyColor: "#f59e0b",
+        aspectRatios: ["16:9"],
+        durations: [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30],
+        resolutions: ["480p", "720p", "1080p"],
+        maxRefImages: 1,
+        textRoute: "alibaba/wan-3.0/text-to-video",
+        imageRoute: "alibaba/wan-3.0/image-to-video",
+        creditCost: 5.6,
+      };
+    }
     if (isImg) {
       return {
         cleanName: "Wan 2.7 Image Pro",
