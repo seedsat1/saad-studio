@@ -52,11 +52,40 @@ function mergeCuratedImageModel(curated: ImageModel, existing?: DynamicImageMode
   };
 }
 
+function mergeWan30AdminCapabilities(
+  curated: WaveSpeedVideoModel["capabilities"],
+  existing?: DynamicVideoModel["capabilities"]
+): WaveSpeedVideoModel["capabilities"] {
+  if (!existing) return curated;
+
+  return {
+    ...curated,
+    aspect_ratios: Array.isArray(existing.aspect_ratios) && existing.aspect_ratios.length > 0
+      ? existing.aspect_ratios
+      : curated.aspect_ratios,
+    durations: Array.isArray(existing.durations) && existing.durations.length > 0
+      ? existing.durations
+      : curated.durations,
+    resolutions: Array.isArray(existing.resolutions) && existing.resolutions.length > 0
+      ? existing.resolutions
+      : curated.resolutions,
+    max_reference_images: typeof existing.max_reference_images === "number"
+      ? existing.max_reference_images
+      : curated.max_reference_images,
+    has_sound: typeof existing.has_sound === "boolean" ? existing.has_sound : curated.has_sound,
+    has_seed: typeof existing.has_seed === "boolean" ? existing.has_seed : curated.has_seed,
+  };
+}
+
 function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: DynamicVideoModel): DynamicVideoModel {
   const group = existing?.group ?? (curated as any).group ?? curated.family_label ?? curated.family ?? "Video Models";
   const familyColor = existing?.family_color ?? existing?.color ?? curated.family_color ?? "#8b5cf6";
   const familySlug = group.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   const name = existing?.name ?? (existing as any)?.label ?? curated.name;
+  const capabilities = curated.id === "alibaba-wan-3.0-video"
+    ? mergeWan30AdminCapabilities(curated.capabilities, existing?.capabilities)
+    : curated.capabilities;
+
   return {
     ...curated,
     name,
@@ -67,7 +96,7 @@ function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: Dynamic
     isActive: existing?.isDeleted ? false : (existing?.isActive ?? (curated as DynamicVideoModel).isActive ?? true),
     isDeleted: existing?.isDeleted ?? false,
     creditCost: existing?.creditCost ?? (curated as DynamicVideoModel).creditCost,
-    capabilities: curated.capabilities,
+    capabilities,
   };
 }
 
