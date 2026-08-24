@@ -447,10 +447,16 @@ export const TRANSLATIONS = {
     "synchronize_desc": "Sync audio and video perfectly",
     "multi-cam-auto-switch_name": "Multi-Cam Auto Switch",
     "multi-cam-auto-switch_desc": "Auto switch between cameras",
+    "saad-curves_name": "Saad Curves",
+    "saad-curves_desc": "Apply Bezier easing to selected keyframes",
     "noise-removal_name": "Noise removal",
     "noise-removal_desc": "Remove unwanted noise",
     "eye-correction_name": "Eye correction",
     "eye-correction_desc": "Correct eye contact automatically",
+    "mcp-bridge_name": "MCP Bridge",
+    "mcp-bridge_desc": "Connect AI agents to Premiere Pro",
+    "ai-copilot_name": "AI Copilot",
+    "ai-copilot_desc": "Chat with AI to automatically edit your timeline",
     editClipsMinDurationError: "AI Clip Maker requires a video that is at least 1 minute long.",
     editClipsMaxDurationError: "AI Clip Maker accepts videos up to 3 hours.",
     editClipsFileTooLargeError: "AI Clip Maker accepts files up to 5 GB.",
@@ -889,10 +895,16 @@ export const TRANSLATIONS = {
     "synchronize_desc": "مزامنة الصوت والفيديو بشكل مثالي",
     "multi-cam-auto-switch_name": "تبديل الكاميرات",
     "multi-cam-auto-switch_desc": "التبديل التلقائي الذكي بين الكاميرات",
+    "saad-curves_name": "منحنيات سعد",
+    "saad-curves_desc": "تطبيق منحنيات Bezier على الكي فريمات المحددة",
     "noise-removal_name": "إزالة الضوضاء",
     "noise-removal_desc": "تنظيف الصوت وإزالة الضوضاء الخلفية",
     "eye-correction_name": "تصحيح النظر",
     "eye-correction_desc": "تصحيح اتجاه العين نحو الكاميرا",
+    "mcp-bridge_name": "جسر MCP الذكي",
+    "mcp-bridge_desc": "تحكم بالذكاء الاصطناعي في بريمير برو",
+    "ai-copilot_name": "مساعد المونتاج الذكي",
+    "ai-copilot_desc": "تحدث مع الذكاء الاصطناعي لتعديل التايم لاين تلقائياً",
     editClipsMinDurationError: "صانع المقاطع الذكي يتطلب فيديو لا تقل مدته عن دقيقة واحدة.",
     editClipsMaxDurationError: "صانع المقاطع الذكي يقبل الفيديوهات حتى 3 ساعات.",
     editClipsFileTooLargeError: "صانع المقاطع الذكي يقبل الملفات حتى 5 جيجابايت.",
@@ -906,3 +918,4 @@ export function t(key: keyof typeof TRANSLATIONS["en"]): string {
   const lang = getLanguage();
   return TRANSLATIONS[lang][key] || TRANSLATIONS["en"][key] || String(key);
 }
+

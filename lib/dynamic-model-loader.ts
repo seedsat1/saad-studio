@@ -507,3 +507,18 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
     creditCost: isVideo ? 3.0 : 2.0,
   };
 }
+
+export function resolveDynamicVideoSubRoute(
+  model: Pick<DynamicVideoModel, "api_route" | "text_api_route" | "image_api_route">,
+  hasImageOrReferenceInput: boolean
+): string {
+  if (hasImageOrReferenceInput && model.image_api_route?.trim()) {
+    return model.image_api_route.trim();
+  }
+
+  if (!hasImageOrReferenceInput && model.text_api_route?.trim()) {
+    return model.text_api_route.trim();
+  }
+
+  return model.api_route?.trim() || model.text_api_route?.trim() || model.image_api_route?.trim() || "";
+}

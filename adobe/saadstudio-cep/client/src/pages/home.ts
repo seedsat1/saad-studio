@@ -158,7 +158,7 @@ export function HomePage(): HTMLElement {
     { id: "EDIT", icon: "magic-wand", titleKey: "sectionEdit" as const, apps: ["remove-bg", "upscale", "transitions"] },
     { id: "AUDIO", icon: "waveform", titleKey: "sectionAudio" as const, apps: ["edit-video", "ai-dubbing", "audiogram", "transcription", "avatar-pro"] },
     { id: "PRODUCTION", icon: "video", titleKey: "sectionProduction" as const, apps: ["add-captions", "edit-clips", "auto-reframe", "multi-cam-auto-switch"] },
-    { id: "SYNC", icon: "settings", titleKey: "sectionSync" as const, apps: ["synchronize", "noise-removal", "eye-correction"] }
+    { id: "SYNC", icon: "settings", titleKey: "sectionSync" as const, apps: ["ai-copilot", "saad-curves", "mcp-bridge", "synchronize", "noise-removal", "eye-correction"] }
   ];
 
   // Check if app matches tag filter
@@ -174,10 +174,10 @@ export function HomePage(): HTMLElement {
       return ["edit-video", "ai-dubbing", "audiogram", "transcription", "noise-removal"].includes(app.id);
     }
     if (filter === "AI") {
-      return ["image-gen", "video-gen", "ai-dubbing", "edit-clips"].includes(app.id);
+      return ["image-gen", "video-gen", "ai-dubbing", "edit-clips", "ai-copilot"].includes(app.id);
     }
     if (filter === "Utility") {
-      return ["synchronize", "multi-cam-auto-switch", "noise-removal", "eye-correction"].includes(app.id);
+      return ["saad-curves", "synchronize", "multi-cam-auto-switch", "noise-removal", "eye-correction"].includes(app.id);
     }
     return true;
   }

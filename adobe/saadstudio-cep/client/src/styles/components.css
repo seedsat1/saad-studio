@@ -3614,5 +3614,1103 @@
   margin-top: 4px;
 }
 
+/* --- Saad Curves --- */
+.saad-curves-page {
+  padding: 14px;
+}
+
+.saad-curves-shell {
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  border-radius: 10px;
+  background:
+    radial-gradient(600px 260px at 30% -10%, rgba(34, 211, 238, 0.08), transparent 60%),
+    radial-gradient(500px 260px at 90% 120%, rgba(167, 139, 250, 0.06), transparent 60%),
+    linear-gradient(180deg, rgba(12, 20, 39, 0.96), rgba(6, 12, 26, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  padding: 14px;
+  color: var(--text-primary);
+}
+
+.saad-curves-topbar,
+.saad-curves-bezier-row,
+.saad-curves-controls,
+.saad-curves-status {
+  display: flex;
+  align-items: center;
+}
+
+.saad-curves-topbar {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.saad-curves-kicker {
+  color: #22d3ee;
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+}
+
+.saad-curves-title {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.saad-curves-status {
+  gap: 8px;
+  border-top: 1px solid rgba(56, 189, 248, 0.16);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.16);
+  color: var(--text-secondary);
+  padding: 8px 4px;
+  font-size: 12px;
+  min-height: 34px;
+}
+
+.saad-curves-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22d3ee;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.45);
+  flex: 0 0 auto;
+}
+
+.saad-curves-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.95fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.saad-curves-panel {
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 8px;
+  background: rgba(11, 18, 34, 0.72);
+  padding: 12px;
+}
+
+.saad-curves-panel h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.saad-curves-curve {
+  aspect-ratio: 1;
+  max-height: 380px;
+  border: 1px solid rgba(56, 189, 248, 0.26);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 30% 70%, rgba(34, 211, 238, 0.06), transparent 55%),
+    radial-gradient(circle at 70% 30%, rgba(167, 139, 250, 0.06), transparent 55%),
+    rgba(4, 11, 24, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 12px 30px rgba(3, 9, 20, 0.55);
+  overflow: hidden;
+  position: relative;
+}
+
+.saad-curves-curve svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.saad-curves-grid-rect {
+  fill: rgba(15, 23, 42, 0.32);
+  stroke: rgba(148, 163, 184, 0.16);
+}
+
+.saad-curves-grid-lines line {
+  stroke: rgba(148, 163, 184, 0.08);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+
+.saad-curves-diagonal {
+  stroke: rgba(148, 163, 184, 0.18);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.saad-curves-time-mark,
+.saad-curves-value-mark {
+  stroke: rgba(34, 211, 238, 0.22);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  transition: stroke 0.2s;
+}
+
+.saad-curves-handle {
+  stroke: rgba(125, 211, 252, 0.55);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  transition: stroke 0.2s;
+}
+
+.saad-curves-path-glow {
+  fill: none;
+  stroke: url(#sc-stroke);
+  stroke-width: 10;
+  opacity: 0.18;
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+.saad-curves-path {
+  fill: none;
+  stroke: url(#sc-stroke);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.45));
+  pointer-events: none;
+}
+
+.saad-curves-point {
+  fill: #0f172a;
+  stroke: #22d3ee;
+  stroke-width: 2.5;
+  cursor: grab;
+  transition: transform 0.18s, filter 0.18s, stroke 0.18s;
+  transform-box: fill-box;
+  transform-origin: center;
+  filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.55));
+}
+
+.saad-curves-point:hover {
+  stroke: #a78bfa;
+  filter: drop-shadow(0 0 10px rgba(167, 139, 250, 0.65));
+}
+
+.saad-curves-point.dragging {
+  cursor: grabbing;
+  stroke: #a78bfa;
+  filter: drop-shadow(0 0 14px rgba(167, 139, 250, 0.9));
+}
+
+.saad-curves-ball {
+  filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.75));
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+.saad-curves-endpoint {
+  fill: rgba(203, 213, 225, 0.6);
+  stroke: rgba(148, 163, 184, 0.4);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.saad-curves-controls {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.saad-curves-number {
+  flex: 1 1 72px;
+  min-width: 72px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.saad-curves-number input,
+.saad-curves-bezier-row input {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  background: rgba(5, 10, 22, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: var(--text-primary);
+  padding: 0 8px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.saad-curves-bezier-row {
+  flex: 1 0 100%;
+  gap: 8px;
+}
+
+.saad-curves-bezier-row .btn-secondary {
+  height: 32px;
+  flex: 0 0 58px;
+}
+
+.saad-curves-apply {
+  width: 100%;
+  margin-top: 12px;
+  height: 40px;
+  font-weight: 800;
+  background: linear-gradient(90deg, #22d3ee 0%, #7dd3fc 55%, #a78bfa 100%);
+  color: #03131a;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: none;
+  box-shadow: 0 6px 18px rgba(34, 211, 238, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+}
+
+.saad-curves-apply:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 10px 24px rgba(34, 211, 238, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.saad-curves-apply:disabled {
+  opacity: 0.55;
+  filter: grayscale(0.3);
+  cursor: not-allowed;
+}
+
+.saad-curves-property-picker {
+  border-top: 1px solid rgba(56, 189, 248, 0.16);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.saad-curves-property-picker.empty p {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.saad-curves-property-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.saad-curves-property-picker-title {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.saad-curves-property-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.saad-curves-property-actions .btn-secondary {
+  height: 28px;
+  min-width: 46px;
+  padding: 0 10px;
+}
+
+.saad-curves-property-list {
+  display: grid;
+  gap: 6px;
+  max-height: 168px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.saad-curves-property-row {
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.46);
+  padding: 7px 8px;
+  cursor: pointer;
+}
+
+.saad-curves-property-row input {
+  width: 14px;
+  height: 14px;
+  accent-color: #22d3ee;
+}
+
+.saad-curves-property-name {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saad-curves-property-count {
+  color: var(--text-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.saad-curves-diagnostics {
+  border-top: 1px solid rgba(56, 189, 248, 0.16);
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.saad-curves-diagnostics summary {
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.saad-curves-diagnostics-list {
+  display: grid;
+  gap: 5px;
+  margin-top: 8px;
+  max-height: 150px;
+  overflow: auto;
+}
+
+.saad-curves-diagnostic-row {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  border-radius: 5px;
+  background: rgba(5, 10, 22, 0.48);
+  padding: 6px 7px;
+}
+
+.saad-curves-diagnostic-name {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saad-curves-diagnostic-meta {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.saad-curves-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 7px;
+}
+
+.saad-curves-preset-group + .saad-curves-preset-group {
+  margin-top: 12px;
+}
+
+.saad-curves-preset-heading {
+  margin-bottom: 7px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.saad-curves-preset {
+  min-height: 92px;
+  text-align: center;
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.66), rgba(11, 18, 34, 0.72));
+  color: var(--text-primary);
+  padding: 8px 5px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.18s ease, border-color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+
+.saad-curves-preset:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 211, 238, 0.45);
+  box-shadow: 0 8px 18px rgba(3, 9, 20, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.1);
+}
+
+.saad-curves-preset.active {
+  border-color: rgba(34, 211, 238, 0.7);
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.12), rgba(167, 139, 250, 0.08));
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.28), 0 6px 18px rgba(34, 211, 238, 0.15);
+}
+
+.saad-curves-preset span,
+.saad-curves-preset small {
+  display: block;
+}
+
+.saad-curves-preset span {
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.saad-curves-preset small {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 8px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  line-height: 1.25;
+}
+
+.saad-curves-mini {
+  width: 58px;
+  height: 46px;
+  display: block;
+  overflow: visible;
+}
+
+.saad-curves-mini-guide {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.18);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.saad-curves-mini-path {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.25s;
+}
+
+.saad-curves-mini-dot {
+  fill: rgba(148, 163, 184, 0.45);
+}
+
+.saad-curves-mini-ball {
+  fill: #22d3ee;
+  filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.9));
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity 0.2s;
+}
+
+.saad-curves-preset:hover .saad-curves-mini-ball,
+.saad-curves-preset.active .saad-curves-mini-ball {
+  opacity: 1;
+  animation: sc-mini-travel 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes sc-mini-travel {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(48px, -44px); }
+}
+
+.saad-curves-preset.active .saad-curves-mini-path {
+  stroke: #22d3ee;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
+}
+
+.saad-curves-preset:hover .saad-curves-mini-path {
+  stroke: #a5f3fc;
+}
+
+/* Motion preview strip under the graph */
+.saad-curves-motion {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  border-radius: 8px;
+  background: rgba(6, 12, 26, 0.7);
+}
+
+.saad-curves-motion-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.saad-curves-motion-label small {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+
+.saad-curves-motion-track {
+  position: relative;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.55));
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  overflow: hidden;
+}
+
+.saad-curves-motion-progress {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.28), rgba(167, 139, 250, 0.22));
+  transition: width 60ms linear;
+}
+
+.saad-curves-motion-block {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: calc(100% - 8px - 18px);
+  transform: translateX(0);
+  transition: transform 60ms linear;
+  pointer-events: none;
+  height: 0;
+}
+
+.saad-curves-motion-block > span {
+  position: absolute;
+  top: -8px;
+  left: 0;
+  width: 18px;
+  height: 16px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #22d3ee, #7dd3fc);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  display: block;
+}
+
+.saad-curves-divider {
+  height: 1px;
+  background: rgba(56, 189, 248, 0.16);
+  margin: 14px 0;
+}
+
+.saad-curves-summary dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 10px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.saad-curves-summary dt {
+  color: var(--text-muted);
+}
+
+.saad-curves-summary dd {
+  margin: 0;
+  text-align: right;
+  color: var(--text-primary);
+}
+
+.saad-curves-affected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.saad-curves-affected span {
+  max-width: 100%;
+  border: 1px solid rgba(34, 211, 238, 0.24);
+  border-radius: 4px;
+  background: rgba(34, 211, 238, 0.08);
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.3;
+  padding: 4px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saad-curves-summary p {
+  margin: 12px 0 0;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .saad-curves-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Tabs (Easing / Keys)
+   ═══════════════════════════════════════════════════════════════════ */
+.saad-curves-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(6, 12, 26, 0.6);
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  margin-bottom: 12px;
+}
+
+.saad-curves-tab {
+  flex: 1;
+  height: 34px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.saad-curves-tab:hover {
+  color: var(--text-primary);
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.saad-curves-tab.active {
+  color: #03131a;
+  background: linear-gradient(90deg, #22d3ee, #a78bfa);
+  box-shadow: 0 4px 14px rgba(34, 211, 238, 0.28);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Saad Keys — dense icon-based keyframe toolbar (Keystone-style)
+   ═══════════════════════════════════════════════════════════════════ */
+.sk-shell {
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  border-radius: 8px;
+  background: rgba(6, 12, 26, 0.55);
+  padding: 8px 10px 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.sk-selection-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.08), rgba(167, 139, 250, 0.04));
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  font-size: 10px;
+}
+
+.sk-sel-host {
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(34, 211, 238, 0.18);
+  color: #22d3ee;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-size: 9px;
+}
+
+.sk-sel-count {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 11px;
+  padding-left: 8px;
+}
+
+.sk-sel-lbl {
+  color: var(--text-muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-left: 2px;
+}
+
+.sk-refresh {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.7);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sk-refresh:hover:not(:disabled) {
+  color: #22d3ee;
+  border-color: rgba(34, 211, 238, 0.5);
+}
+
+.sk-refresh:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.sk-block {
+  display: grid;
+  gap: 4px;
+  padding: 6px 4px 8px;
+  border-top: 1px solid rgba(56, 189, 248, 0.08);
+}
+
+.sk-block:first-of-type { border-top: none; padding-top: 0; }
+
+.sk-section-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sk-section-title .sk-sep { color: var(--text-muted); }
+
+.sk-badge {
+  margin-left: auto;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(167, 139, 250, 0.14);
+  color: #a78bfa;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+}
+
+.sk-btn-row {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.sk-btn-row--4 .sk-btn { flex: 1; }
+
+.sk-btn {
+  flex: 1;
+  min-width: 46px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.75), rgba(11, 18, 34, 0.85));
+  color: var(--text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s, border-color 0.12s, background 0.12s, color 0.12s, box-shadow 0.12s;
+  overflow: hidden;
+}
+
+.sk-btn.wide { flex: 0 0 88px; min-width: 88px; }
+
+.sk-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(34, 211, 238, 0.55);
+  color: #22d3ee;
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.12), rgba(11, 18, 34, 0.85));
+  box-shadow: 0 4px 10px rgba(3, 9, 20, 0.55), 0 0 0 1px rgba(34, 211, 238, 0.15) inset;
+}
+
+.sk-btn:active:not(:disabled) {
+  transform: translateY(0);
+  background: rgba(34, 211, 238, 0.18);
+}
+
+.sk-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+}
+
+.sk-icon {
+  width: 28px;
+  height: 18px;
+  display: block;
+  overflow: visible;
+}
+
+/* ── Icon hover animations ─────────────────────────────────────────
+ * Each icon has semantic classes on its animatable pieces:
+ *   .sk-ic-fx        — the "after" state (post-operation dots/highlight)
+ *   .sk-ic-anchor    — the fixed pivot key
+ *   .sk-ic-cti       — the CTI line
+ *   .sk-ic-s1..s4    — stagger dots that shift
+ *   .sk-ic-r1..r4    — random-stagger dots that jitter
+ *   .sk-ic-swap-a/b  — two elements that swap position
+ */
+.sk-icon .sk-ic-fx {
+  transform-origin: center;
+  transition: opacity 0.2s;
+}
+
+.sk-btn:hover:not(:disabled) .sk-icon .sk-ic-fx {
+  opacity: 1;
+  animation: sk-fx-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes sk-fx-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.sk-btn:hover:not(:disabled) .sk-icon .sk-ic-anchor {
+  filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.9));
+}
+
+.sk-btn:hover:not(:disabled) .sk-icon .sk-ic-cti {
+  animation: sk-cti-blink 1s ease-in-out infinite;
+}
+
+@keyframes sk-cti-blink {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Stagger asc/desc: dots translate slightly to hint motion */
+.sk-btn:hover:not(:disabled) .sk-icon--staggerAsc .sk-ic-s1,
+.sk-btn:hover:not(:disabled) .sk-icon--staggerDesc .sk-ic-s1 { animation: sk-slide 1s ease-in-out infinite; animation-delay: 0s; }
+.sk-btn:hover:not(:disabled) .sk-icon--staggerAsc .sk-ic-s2,
+.sk-btn:hover:not(:disabled) .sk-icon--staggerDesc .sk-ic-s2 { animation: sk-slide 1s ease-in-out infinite; animation-delay: 0.1s; }
+.sk-btn:hover:not(:disabled) .sk-icon--staggerAsc .sk-ic-s3,
+.sk-btn:hover:not(:disabled) .sk-icon--staggerDesc .sk-ic-s3 { animation: sk-slide 1s ease-in-out infinite; animation-delay: 0.2s; }
+.sk-btn:hover:not(:disabled) .sk-icon--staggerAsc .sk-ic-s4,
+.sk-btn:hover:not(:disabled) .sk-icon--staggerDesc .sk-ic-s4 { animation: sk-slide 1s ease-in-out infinite; animation-delay: 0.3s; }
+@keyframes sk-slide {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(1.5px); }
+}
+
+/* Random stagger: dots jitter vertically */
+.sk-btn:hover:not(:disabled) .sk-icon--staggerRandom .sk-ic-r1 { animation: sk-jitter 0.9s ease-in-out infinite; animation-delay: 0s; }
+.sk-btn:hover:not(:disabled) .sk-icon--staggerRandom .sk-ic-r2 { animation: sk-jitter 0.9s ease-in-out infinite; animation-delay: 0.15s; }
+.sk-btn:hover:not(:disabled) .sk-icon--staggerRandom .sk-ic-r3 { animation: sk-jitter 0.9s ease-in-out infinite; animation-delay: 0.3s; }
+.sk-btn:hover:not(:disabled) .sk-icon--staggerRandom .sk-ic-r4 { animation: sk-jitter 0.9s ease-in-out infinite; animation-delay: 0.45s; }
+@keyframes sk-jitter {
+  0%, 100% { transform: translateY(0); }
+  33% { transform: translateY(-2px); }
+  66% { transform: translateY(2px); }
+}
+
+/* Swap animation for Flip and OverlapClean */
+.sk-btn:hover:not(:disabled) .sk-icon--flip .sk-ic-swap-a { animation: sk-swap-l 1.2s ease-in-out infinite; }
+.sk-btn:hover:not(:disabled) .sk-icon--flip .sk-ic-swap-b { animation: sk-swap-r 1.2s ease-in-out infinite; }
+@keyframes sk-swap-l { 0%,100% { transform: translateX(0); } 50% { transform: translateX(22px); } }
+@keyframes sk-swap-r { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-22px); } }
+
+.sk-btn:hover:not(:disabled) .sk-icon--overlapClean .sk-ic-swap-a { animation: sk-merge-l 1.2s ease-in-out infinite; }
+.sk-btn:hover:not(:disabled) .sk-icon--overlapClean .sk-ic-swap-b { animation: sk-merge-r 1.2s ease-in-out infinite; }
+@keyframes sk-merge-l { 0%,100% { transform: translateX(0); opacity: 0.55; } 50% { transform: translateX(1px); opacity: 0.2; } }
+@keyframes sk-merge-r { 0%,100% { transform: translateX(0); opacity: 0.55; } 50% { transform: translateX(-1px); opacity: 0.2; } }
+
+/* Duplicate: the copy fades in and out */
+.sk-btn:hover:not(:disabled) .sk-icon--duplicate .sk-ic-fx,
+.sk-btn:hover:not(:disabled) .sk-icon--duplicateFlip .sk-ic-fx {
+  animation: sk-copy 1.2s ease-in-out infinite;
+}
+@keyframes sk-copy { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+/* ── Radio-as-text (mimics Keystone's clickable-label style) ── */
+.sk-radio-seg {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.sk-radio {
+  height: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: color 0.12s;
+}
+.sk-radio:hover { color: var(--text-primary); }
+.sk-radio.active {
+  color: #22d3ee;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+}
+
+/* Dual title row for Duplicate | Flip */
+.sk-dual-title {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.1);
+}
+.sk-dual-title .sk-section-title { border-bottom: none; padding-bottom: 0; }
+
+.sk-split-row {
+  display: flex;
+  gap: 6px;
+}
+.sk-split-row .sk-btn-row { flex: 1; }
+
+.sk-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sk-num {
+  width: 46px;
+  height: 24px;
+  padding: 0 6px;
+  background: rgba(5, 10, 22, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: var(--text-primary);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+}
+
+.sk-unit {
+  color: var(--text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sk-labels {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+}
+
+.sk-label {
+  height: 18px;
+  min-width: 0;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.sk-label:hover:not(:disabled) {
+  transform: scale(1.15);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.25);
+  z-index: 1;
+  position: relative;
+}
+
+.sk-label:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.sk-label {
+  height: 22px;
+}
+
+/* Warn state on the selection strip when nothing is actionable */
+.sk-selection-strip.sk-warn {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.09), rgba(6, 12, 26, 0.55));
+}
+.sk-selection-strip.sk-warn .sk-sel-host {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+/* Instructional hint line under the strip */
+.sk-hint {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(251, 191, 36, 0.06);
+  border: 1px solid rgba(251, 191, 36, 0.18);
+}
+.sk-hint kbd {
+  display: inline-block;
+  min-width: 18px;
+  text-align: center;
+  padding: 1px 5px;
+  margin: 0 1px;
+  border-radius: 3px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.7);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  color: var(--text-primary);
+}
+
+/* Premiere property picker inside Keys tab */
+.sk-ppro-picker {
+  padding: 6px 6px 4px;
+  border: 1px solid rgba(56, 189, 248, 0.14);
+  border-radius: 6px;
+  background: rgba(6, 12, 26, 0.55);
+  display: grid;
+  gap: 4px;
+}
+.sk-ppro-picker-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+.sk-mini-btn {
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 3px;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  background: rgba(15, 23, 42, 0.65);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sk-mini-btn:hover { color: #22d3ee; border-color: rgba(34, 211, 238, 0.5); }
+.sk-ppro-picker-head .sk-mini-btn:first-of-type { margin-left: auto; }
+
+.sk-ppro-picker-list {
+  display: grid;
+  gap: 3px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+.sk-ppro-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(56, 189, 248, 0.1);
+  cursor: pointer;
+}
+.sk-ppro-row input { width: 14px; height: 14px; accent-color: #22d3ee; }
+.sk-ppro-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+.sk-ppro-count {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+
 
 

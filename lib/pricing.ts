@@ -494,6 +494,13 @@ const MINIMAX_H3_USD_PER_SECOND = {
   "768p": 0.10,
   "2k": 0.14,
 } as const;
+const WAN_30_CREDITS_PER_USD = 40;
+const WAN_30_MARGIN_MULTIPLIER = 1.4;
+const WAN_30_USD_PER_SECOND = {
+  "480p": 0.05,
+  "720p": 0.10,
+  "1080p": 0.20,
+} as const;
 
 function getSeedance25ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
   const route = (modelRef || "").toLowerCase();
@@ -519,6 +526,19 @@ function getMinimaxH3ProviderUsd(modelRef: string, durationSec: number, quality?
   return parseFloat((usdPerSecond * duration).toFixed(4));
 }
 
+function getWan30ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
+  const route = (modelRef || "").toLowerCase();
+  if (!route.startsWith("alibaba/wan-3.0")) return null;
+  const duration = Math.max(1, Number.isFinite(durationSec) ? durationSec : 5);
+  const q = (quality || "720p").trim().toLowerCase();
+  const usdPerSecond = q.includes("1080")
+    ? WAN_30_USD_PER_SECOND["1080p"]
+    : q.includes("480")
+    ? WAN_30_USD_PER_SECOND["480p"]
+    : WAN_30_USD_PER_SECOND["720p"];
+  return parseFloat((usdPerSecond * duration).toFixed(4));
+}
+
 function getMinimaxH3DefaultCredits(modelRef: string, durationSec: number, numUnits: number, quality?: string | null): number | null {
   const usd = getMinimaxH3ProviderUsd(modelRef, durationSec, quality);
   if (usd === null) return null;
@@ -529,6 +549,12 @@ function getSeedance25DefaultCredits(modelRef: string, durationSec: number, numU
   const usd = getSeedance25ProviderUsd(modelRef, durationSec, quality);
   if (usd === null) return null;
   return parseFloat(Math.max(1, usd * SEEDANCE_25_MARGIN_MULTIPLIER * SEEDANCE_25_CREDITS_PER_USD * numUnits).toFixed(2));
+}
+
+function getWan30DefaultCredits(modelRef: string, durationSec: number, numUnits: number, quality?: string | null): number | null {
+  const usd = getWan30ProviderUsd(modelRef, durationSec, quality);
+  if (usd === null) return null;
+  return parseFloat(Math.max(1, usd * WAN_30_MARGIN_MULTIPLIER * WAN_30_CREDITS_PER_USD * numUnits).toFixed(2));
 }
 function isVeo31ModelRef(modelRef: string): boolean {
   return (
@@ -647,6 +673,9 @@ function resolveSpecialUserCharge(
 
   const minimaxH3Credits = getMinimaxH3DefaultCredits(modelRef, durationSec, numUnits, quality);
   if (minimaxH3Credits !== null) return minimaxH3Credits;
+
+  const wan30Credits = getWan30DefaultCredits(modelRef, durationSec, numUnits, quality);
+  if (wan30Credits !== null) return wan30Credits;
 
   return null;
 }

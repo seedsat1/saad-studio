@@ -293,6 +293,17 @@ export const WAVESPEED_PROVENANCE_REGISTRY: Record<string, Omit<TariffProvenance
     capturedAt: "2026-08-16T20:08:39+03:00",
     verificationStatus: "VERIFIED_CURRENT",
   },
+  "alibaba/wan-3.0": {
+    provider: "WaveSpeed",
+    providerRoute: "alibaba/wan-3.0",
+    rateUsd: 0.10, // 480p: 0.05, 720p: 0.10, 1080p: 0.20
+    billingUnit: "USD/sec",
+    sourceType: "verified_manual",
+    sourceReference: "Owner-provided WaveSpeed Alibaba Wan 3.0 source pricing screenshots",
+    effectiveDate: "2026-08-24",
+    capturedAt: "2026-08-24T00:00:00+03:00",
+    verificationStatus: "VERIFIED_CURRENT",
+  },
   "image-upscaler": {
     provider: "WaveSpeed",
     providerRoute: "wavespeed-ai/image-upscaler",
@@ -375,6 +386,31 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
         tariffKey,
         rateUsd,
         resolution: is2k ? "2k" : "768p",
+        verificationStatus: checkTariffStaleness(provMeta.capturedAt),
+      },
+    };
+  }
+
+  // Alibaba Wan 3.0 via WaveSpeed
+  if (modelLower.startsWith("alibaba/wan-3.0")) {
+    const is1080 = q.includes("1080");
+    const is480 = q.includes("480");
+    const rateUsd = is1080 ? 0.20 : is480 ? 0.05 : 0.10;
+    const resKey = is1080 ? "1080p" : is480 ? "480p" : "720p";
+    const provMeta = WAVESPEED_PROVENANCE_REGISTRY["alibaba/wan-3.0"];
+    const tariffKey = `wavespeed:video:alibaba-wan-3.0:${resKey}`;
+    return {
+      usd: parseFloat((rateUsd * duration * units).toFixed(4)),
+      source: "estimated",
+      tariffKey,
+      providerName: "WaveSpeed",
+      unit: "USD/sec",
+      provenance: {
+        ...provMeta,
+        tariffKey,
+        providerRoute: input.providerRoute || modelLower,
+        rateUsd,
+        resolution: resKey,
         verificationStatus: checkTariffStaleness(provMeta.capturedAt),
       },
     };

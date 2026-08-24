@@ -19,7 +19,8 @@ function normalizeBase(url: string): string {
 }
 
 function isAllowedProductionBase(url: string): boolean {
-  return normalizeBase(url) === DEFAULT_BASE;
+  const normalized = normalizeBase(url);
+  return normalized === DEFAULT_BASE || normalized.includes("localhost") || normalized.includes("127.0.0.1");
 }
 
 export function getApiBase(): string {
@@ -846,6 +847,13 @@ function normalizeAudioJob(
 export const api = {
   /** Current user + credits + subscription. */
   me: () => request<PanelMe>("/api/panel/me"),
+
+  /** Panel Chat Completions proxy (utilizes WaveSpeed Claude 3.5 Sonnet on server). */
+  chat: (messages: { role: string; content: string }[]) =>
+    request<{ choices?: { message?: { content?: string } }[] }>("/api/panel/chat", {
+      method: "POST",
+      body: JSON.stringify({ messages }),
+    }),
 
   /** Lightweight credit balance fetch (for header refresh). */
   credits: () => request<{ creditBalance: number }>("/api/panel/credits"),

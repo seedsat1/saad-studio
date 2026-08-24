@@ -64,6 +64,38 @@ describe("Provider Cost Pricing & Recency Audit Suite", () => {
     expect(s25_720.usd).toBe(0.90);
   });
 
+  it("4.1. verifies WaveSpeed Alibaba Wan 3.0 source pricing tariff", () => {
+    // Owner screenshots: 480p 30s = $1.50 -> $0.05/s
+    const wan480 = estimateProviderCostSync({
+      modelRef: "alibaba/wan-3.0/text-to-video",
+      providerName: "WaveSpeed",
+      durationSec: 30,
+      resolution: "480p",
+    });
+    expect(wan480.source).toBe("estimated");
+    expect(wan480.usd).toBe(1.50);
+    expect(wan480.tariffKey).toBe("wavespeed:video:alibaba-wan-3.0:480p");
+
+    // Owner screenshots: 720p 30s = $3.00 -> $0.10/s
+    const wan720 = estimateProviderCostSync({
+      modelRef: "alibaba/wan-3.0/image-to-video",
+      providerName: "WaveSpeed",
+      durationSec: 30,
+      resolution: "720p",
+    });
+    expect(wan720.usd).toBe(3.00);
+
+    // Owner screenshots: 1080p 30s = $6.00 -> $0.20/s
+    const wan1080 = estimateProviderCostSync({
+      modelRef: "alibaba/wan-3.0/reference-to-video",
+      providerName: "WaveSpeed",
+      durationSec: 30,
+      resolution: "1080p",
+    });
+    expect(wan1080.usd).toBe(6.00);
+    expect(wan1080.provenance?.sourceType).toBe("verified_manual");
+  });
+
   it("5. verifies Reap / ClipCraft provider cost calculation", () => {
     // Captions: $0.05/min -> 60s = $0.05
     const captions = estimateProviderCostSync("reap/subtitles-captions", 60);

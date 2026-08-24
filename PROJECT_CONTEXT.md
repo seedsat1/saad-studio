@@ -38,6 +38,86 @@
 18. **Final Production Release**: Full Vitest pass, TypeScript 0 errors, production build pass, clean git diff, deployed to `main`.
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
+
+#### Latest task: WaveSpeed Alibaba Wan 3.0 Source Pricing + Platform Margin (2026-08-24)
+- Status: Completed & Verified (PASS).
+- Source Pricing Evidence:
+  - Owner-provided screenshots show WaveSpeed Alibaba Wan 3.0 provider/source cost:
+    - 480p: 2s = `$0.10`, 30s = `$1.50` => `$0.05/sec`.
+    - 720p: 2s = `$0.20`, 30s = `$3.00` => `$0.10/sec`.
+    - 1080p: 2s = `$0.40`, 30s = `$6.00` => `$0.20/sec`.
+- Key Deliverables:
+  1. Added exact Wan 3.0 customer-credit calculation in `lib/pricing.ts` and `lib/credit-pricing.ts` for `alibaba/wan-3.0/*` routes.
+  2. Preserved the existing platform margin convention: `40 credits/USD * 1.4 margin = 56 credits per provider USD`.
+  3. Resulting subscriber prices:
+     - 480p: `2.8 cr/sec` (30s = 84 cr, 2s = 5.6 cr).
+     - 720p: `5.6 cr/sec` (30s = 168 cr, 2s = 11.2 cr).
+     - 1080p: `11.2 cr/sec` (30s = 336 cr, 2s = 22.4 cr).
+  4. Added WaveSpeed provider tariff support in `lib/provider-tariff-registry.ts` with `verified_manual` provenance from owner screenshots, preventing KIE/BytePlus tariff leakage.
+- Guardrails:
+  - No DB row was inserted and no production model activation was performed.
+  - No reference-count, aspect-ratio, quality, or duration limits were guessed beyond the owner-provided pricing evidence.
+- Verification:
+  - `npx.cmd vitest run test/pricing-core.test.ts test/provider-cost-audit.test.ts test/provider-cost-attribution-remediation.test.ts test/provider-cost-capture-and-reconciliation.test.ts test/universal-checkpoint-routing.test.ts test/models-backend-hardening.test.ts` passed: 83/83 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+
+#### Latest task: Unified Dynamic Video Model Dispatch for WaveSpeed Alibaba Routes (2026-08-24)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. Preserved the subscriber-facing contract where one Admin Models row shows only the public model name while server-side dispatch chooses the execution sub-route.
+  2. Added `resolveDynamicVideoSubRoute()` in `lib/dynamic-model-loader.ts`:
+     - text-only payloads route to `text_api_route`.
+     - image/start/end/reference-image payloads route to `image_api_route`.
+     - fallback remains `api_route` to preserve legacy rows.
+  3. Updated `/api/video` dynamic-model dispatch to consider `reference_image_urls` and `referenceImageUrls` only for unified dynamic models, preserving existing Seedance behavior where reference lists are not treated as start-frame images.
+  4. Classified `alibaba/...` video routes as WaveSpeed-owned in `lib/model-source-map.ts`, matching imported WaveSpeed Alibaba/Wan documentation and preventing KIE metadata misclassification.
+  5. Ensured dynamic WaveSpeed custom video rows execute the resolved sub-route, not the display/default route, after background dispatch.
+- Guardrails:
+  - No pricing values were added or guessed.
+  - No DB migration or production model row was inserted.
+  - Knowledge/admin documents remain references only; exact model limits/prices must come from owner-provided specs before activation.
+- Verification:
+  - `npx.cmd vitest run test/models-backend-hardening.test.ts test/model-definition-registry.test.ts` passed: 21/21 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+
+#### Latest task: Admin Model Propagation Audit (2026-08-24)
+- Status: Completed (read-only audit).
+- Findings:
+  - `/admin/models` creates image/video models through `POST /api/admin/models` with `newModel`, saving to `PlatformConfig.dynamic_image_models` or `PlatformConfig.dynamic_video_models`.
+  - `saveModelConfigurationsAtomic()` normalizes both registries, synchronizes `PricingConstitution`, and appends `model_registry_audit_log`.
+  - Subscriber-facing dynamic propagation happens through `/api/models` and `useFullDynamicModels()`.
+  - Confirmed connected consumers: `/image`, `/video`, Hook Studio, Cinematic Styles, Transitions, AI Canvas node settings, Shots label lookup, and Audio music list through `/api/models`.
+  - Runtime execution for core image/video routes also resolves central dynamic models in `/api/generate/image` and `/api/video`.
+- Caveats:
+  - Admin Add Model UI currently supports new `image` and `video` models only; audio/3D/Lipsync/TTS are centrally defined but not generic new-model creations from that dialog.
+  - `selectedStudioPages` and `newPinToTop` are UI-only state in the Add Model modal and are not persisted in `POST /api/admin/models`.
+  - Video provider execution inference in `/api/video` still relies partly on route/family/isCustom logic, so non-WaveSpeed custom video models require careful route/provider validation before production activation.
+- Verification:
+  - Read-only source audit; no tests run.
+
+#### Latest task: Easing Curves Keyframe Baking & Shift Precision Fix (2026-08-24)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. **Fixed Premiere Pro ExtendScript Time Object Requirements**:
+     - Identified that Premiere's `ComponentParam.addKey()`, `setValueAtKey()`, and `removeKey()` require active `new Time()` objects to function accurately on the timeline, and fail or crash when passed raw Javascript floats.
+     - Updated the baking logic in `jsx/index.jsx` to wrap all calculated fractional keyframe time values into `Time` objects using `var tKey = new Time(); tKey.seconds = timeSec;`.
+     - Patched the Shift operation loop in `jsx/index.jsx` (line 6687+) to wrap all relative and absolute keytimes in `Time` objects before deletion and insertion.
+  2. **Rebuilt & Staged CEP Extension**:
+     - Ran `npm run build:cep` compilation, ensuring the updated `index.jsx` was successfully bundled and synced to the active directory.
+
+#### Previous task: Saad Studio Native AI Copilot Chat Interface & WaveSpeed Claude LLM Proxy (2026-08-24)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  1. **Integrated Adobe Premiere Pro MCP Bridge into Saad Studio**:
+     - Created new sub-page "MCP Bridge" (`client/src/pages/mcp-bridge.ts`).
+     - Added file-based JSON IPC bridge between MCP clients and Premiere Pro.
+     - Registered the route `/mcp-bridge` in `client/src/main.ts` and cataloged in `client/src/lib/apps.ts`.
+  2. **Implemented Bezier curves keyframe baking for Premiere Pro**:
+     - Embedded Bezier math samplers into `saadCurvesApplyPproInterpolation` in `jsx/index.jsx`.
+     - Simulates custom easing curves by adding interpolated keyframes to compound and scalar clip properties.
+  3. **Standalone Installer & Packages**:
+     - Compiled standalone `SaadStudio-Setup.exe` and manual package ZIP including new features.
+
 - **PHASE 1 (P1 — Active Generation Integrity)**: Job Queue Worker Isolation & Stuck Generation Auto-Recovery with deterministic failure timeout and auto-refund.
 - **PHASE 2 (P2 — Active Operations & Storage)**:
   - Manual Transfer Operator Audit Logging (Record approver ID/email in `AdminTransaction`).
@@ -1843,7 +1923,7 @@
   - `CSXS/manifest.xml` (incremented CEP version to 3.0.0 to resolve caching and file locks).
   - `jsx/index.jsx` (added `getAudioTrackClips` and `getActiveSequence` with Nest sequences resolution support, and corrected secondsToTicksReferenceError).
   - `client/src/lib/podcast/services/silence-removal-service.ts` (new file implementing local FFmpeg silence detection, segment extraction, and waveform calculation).
-  - `client/src/pages/multi-cam-auto-switch.ts` (added Silence Removal tab and redesigned UI to match MachiCut layout and logic, and added dynamic canvas auto-resizing to fix the empty black waveform box, and fixed a critical bug where custom DOM library 'el' did not support react-style 'ref' callback properties by switching to explicit canvas ID lookup and direct event binding, and replaced the two-column grid .podcast-sync-layout container with a single-column full-width container to prevent the panels from being squeezed to the right side, and successfully recompiled the C# Standalone Installer SaadStudio-Setup.exe containing the updated payload).
+  - `client/src/pages/multi-cam-auto-switch.ts` (added Silence Removal tab and redesigned UI to match MachiCut layout and logic, and added dynamic canvas auto-resizing to fix the empty black waveform box, and fixed a critical bug where custom DOM library 'el' did not support react-style 'ref' callback properties by switching to explicit canvas ID lookup and direct event binding, and replaced the two-column grid .podcast-sync-layout container with a single-column full-width container to prevent the panels from being squeezed to the right side, and successfully recompiled the C# Standalone Installer SaadStudio-Setup.exe containing the updated payload, and integrated OpenCurve's keyframe baking math into Saad Curves to enable full custom Bezier easing support in Premiere Pro).
   - `client/src/lib/icons.ts` (added refresh and search SVG icon shapes).
   - `client/src/styles/components.css` (added track-chip styling rules).
 - Behavior:
@@ -14037,10 +14117,6 @@
 - Verification:
   - All 67 pricing & tariff tests passed (`npx.cmd vitest run ...`).
   - `npm run build` compiled successfully.
-
-
-
-
 
 
 

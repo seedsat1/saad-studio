@@ -104,8 +104,15 @@ namespace SaadStudioInstaller
                 EnablePlayerDebugMode();
 
                 var targetRoot = GetTargetRoot();
-                var extensionDir = Path.Combine(targetRoot, "app.saadstudio.cep");
+                var extensionDir = Path.Combine(targetRoot, "saadstudio-cep");
+                var legacySystemExtensionDir = Path.Combine(targetRoot, "app.saadstudio.cep");
                 var userExtensionDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "Adobe",
+                    "CEP",
+                    "extensions",
+                    "saadstudio-cep");
+                var legacyUserExtensionDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                     "Adobe",
                     "CEP",
@@ -124,10 +131,20 @@ namespace SaadStudioInstaller
                         Log("Removing old extension folder...");
                         Directory.Delete(extensionDir, true);
                     }
+                    if (Directory.Exists(legacySystemExtensionDir))
+                    {
+                        Log("Removing old legacy extension folder...");
+                        Directory.Delete(legacySystemExtensionDir, true);
+                    }
                     if (Directory.Exists(userExtensionDir))
                     {
                         Log("Removing old per-user extension folder...");
                         Directory.Delete(userExtensionDir, true);
+                    }
+                    if (Directory.Exists(legacyUserExtensionDir))
+                    {
+                        Log("Removing old legacy per-user extension folder...");
+                        Directory.Delete(legacyUserExtensionDir, true);
                     }
 
                     Directory.CreateDirectory(extensionDir);

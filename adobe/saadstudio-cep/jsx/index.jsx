@@ -5465,7 +5465,1391 @@
         return { removed: removed, total: ranges.length, errors: errors };
     };
 
+    function saadCurvesUnsupported(message) {
+        return {
+            ok: false,
+            host: APP,
+            clipCount: 0,
+            componentCount: 0,
+            scannedPropertyCount: 0,
+            propertyCount: 0,
+            selectedKeyCount: 0,
+            pairCount: 0,
+            appliedPairs: 0,
+            errors: [],
+            message: message
+        };
+    }
+
+    function saadCurvesParseBezier(value) {
+        var raw = String(value || "0.33,0,0.67,1").replace(/cubic-bezier|\(|\)|\s/g, "");
+        var parts = raw.split(",");
+        if (parts.length !== 4) throw new Error("Invalid cubic-bezier values.");
+        var out = [];
+        for (var i = 0; i < 4; i++) {
+            var n = parseFloat(parts[i]);
+            if (isNaN(n)) throw new Error("Invalid cubic-bezier number.");
+            out.push(i === 0 || i === 2 ? Math.max(0, Math.min(1, n)) : Math.max(-1.5, Math.min(2.5, n)));
+        }
+        return out;
+    }
+
+    function saadCurvesSelectedAeProperties() {
+        if (!IS_AEFT) return [];
+        var comp = app.project && app.project.activeItem;
+        if (!comp || !comp.selectedProperties) return [];
+        var props = [];
+        for (var i = 0; i < comp.selectedProperties.length; i++) {
+            var prop = comp.selectedProperties[i];
+            try {
+                if (prop.propertyType === PropertyType.PROPERTY && prop.numKeys > 0 && prop.selectedKeys && prop.selectedKeys.length > 0) {
+                    props.push(prop);
+                }
+            } catch (_) {}
+        }
+        return props;
+    }
+
+    function saadCurvesPairCount(keys) {
+        var count = 0;
+        for (var i = 0; i < keys.length - 1; i++) {
+            if (keys[i + 1] === keys[i] + 1) count++;
+        }
+        return count;
+    }
+
+    function saadCurvesDimensionCount(prop) {
+        try {
+            var value = prop.value;
+            if (value instanceof Array) return Math.max(1, value.length);
+        } catch (_) {}
+        return 1;
+    }
+
+    function saadCurvesBuildEaseArray(dimensions, speed, influence) {
+        var arr = [];
+        var safeInfluence = Math.max(0.1, Math.min(100, influence));
+        for (var i = 0; i < dimensions; i++) {
+            arr.push(new KeyframeEase(speed, safeInfluence));
+        }
+        return arr;
+    }
+
+    function saadCurvesValueArray(value, dimensions) {
+        var out = [];
+        if (value instanceof Array) {
+            for (var i = 0; i < dimensions; i++) {
+                var n = Number(value[i]);
+                out.push(isNaN(n) ? 0 : n);
+            }
+            return out;
+        }
+        var scalar = Number(value);
+        if (isNaN(scalar)) scalar = 0;
+        for (var d = 0; d < dimensions; d++) out.push(d === 0 ? scalar : 0);
+        return out;
+    }
+
+    function saadCurvesBuildEaseArrayFromSpeeds(speeds, influence) {
+        var arr = [];
+        var safeInfluence = Math.max(0.1, Math.min(100, influence));
+        for (var i = 0; i < speeds.length; i++) {
+            var speed = Number(speeds[i]);
+            arr.push(new KeyframeEase(isNaN(speed) ? 0 : speed, safeInfluence));
+        }
+        return arr;
+    }
+
+    function saadCurvesPairVelocity(prop, k1, k2, dimensions) {
+        try {
+            var t1 = Number(prop.keyTime(k1));
+            var t2 = Number(prop.keyTime(k2));
+            var duration = t2 - t1;
+            if (!(duration > 0)) return saadCurvesValueArray(0, dimensions);
+            var v1 = saadCurvesValueArray(prop.keyValue(k1), dimensions);
+            var v2 = saadCurvesValueArray(prop.keyValue(k2), dimensions);
+            var speeds = [];
+            for (var i = 0; i < dimensions; i++) {
+                speeds.push((v2[i] - v1[i]) / duration);
+            }
+            return speeds;
+        } catch (_) {
+            return saadCurvesValueArray(0, dimensions);
+        }
+    }
+
+    function saadCurvesScaleSpeeds(baseSpeeds, ratio) {
+        var out = [];
+        for (var i = 0; i < baseSpeeds.length; i++) out.push(baseSpeeds[i] * ratio);
+        return out;
+    }
+
+    function saadCurvesPproSelectedClips() {
+        if (!IS_PPRO) return [];
+        var seq = getActiveOrFirstSequence();
+        if (!seq) return [];
+        var selected = [];
+        var seen = {};
+
+        function clipName(clip, fallback) {
+            try { if (clip && clip.name) return String(clip.name); } catch (_) {}
+            return fallback;
+        }
+
+        function clipKey(clip, fallback) {
+            try { if (clip && clip.nodeId) return String(clip.nodeId); } catch (_) {}
+            try { if (clip && clip.projectItem && clip.projectItem.nodeId) return String(clip.projectItem.nodeId) + ":" + String(clip.start && clip.start.ticks); } catch (_) {}
+            return fallback + ":" + clipName(clip, "Clip");
+        }
+
+        function addClip(clip, trackIndex, clipIndex, label) {
+            if (!clip) return;
+            var key = clipKey(clip, label + ":" + trackIndex + ":" + clipIndex);
+            if (seen[key]) return;
+            seen[key] = true;
+            selected.push({
+                clip: clip,
+                trackIndex: trackIndex,
+                clipIndex: clipIndex,
+                name: clipName(clip, label + " " + (trackIndex + 1) + " Clip " + (clipIndex + 1))
+            });
+        }
+
+        try {
+            if (typeof seq.getSelection === "function") {
+                var directSelection = seq.getSelection();
+                if (directSelection && typeof directSelection.length !== "undefined") {
+                    for (var s = 0; s < directSelection.length; s++) {
+                        addClip(directSelection[s], -1, s, "Selected");
+                    }
+                }
+            }
+        } catch (_) {}
+
+        function scanTracks(tracks, label) {
+            if (!tracks) return;
+            for (var t = 0; t < tracks.numTracks; t++) {
+                var clips = tracks[t].clips;
+                if (!clips) continue;
+                for (var c = 0; c < clips.numItems; c++) {
+                    var clip = clips[c];
+                    try {
+                        var isSel = false;
+                        if (clip && typeof clip.isSelected === "function") {
+                            isSel = clip.isSelected();
+                        } else if (clip && typeof clip.isSelected !== "undefined") {
+                            isSel = !!clip.isSelected;
+                        }
+                        if (clip && isSel) {
+                            addClip(clip, t, c, label);
+                        }
+                    } catch (_) {}
+                }
+            }
+        }
+
+        scanTracks(seq.videoTracks, "V");
+        scanTracks(seq.audioTracks, "A");
+        return selected;
+    }
+
+    function saadCurvesPproPropertyName(property) {
+        try { if (property.displayName) return String(property.displayName); } catch (_) {}
+        try { if (property.matchName) return String(property.matchName); } catch (_) {}
+        return "Property";
+    }
+
+    function saadCurvesPproComponentName(component) {
+        try { if (component.displayName) return String(component.displayName); } catch (_) {}
+        try { if (component.matchName) return String(component.matchName); } catch (_) {}
+        return "Component";
+    }
+
+    function saadCurvesPproReadKeyTimes(property) {
+        if (!property || typeof property.getKeys !== "function") {
+            return { keyTimes: [], canReadKeys: false, error: "getKeys unavailable" };
+        }
+        try {
+            var keys = property.getKeys();
+            if (!keys || typeof keys.length === "undefined") {
+                return { keyTimes: [], canReadKeys: true, error: "getKeys returned no array" };
+            }
+            var out = [];
+            for (var i = 0; i < keys.length; i++) {
+                if (typeof keys[i] !== "undefined" && keys[i] !== null) out.push(keys[i]);
+            }
+            return { keyTimes: out, canReadKeys: true, error: "" };
+        } catch (_) {
+            return { keyTimes: [], canReadKeys: true, error: "getKeys failed" };
+        }
+    }
+
+    function saadCurvesPproKeyTimes(property) {
+        return saadCurvesPproReadKeyTimes(property).keyTimes;
+    }
+
+    function saadCurvesPproInspectProperties() {
+        var clips = saadCurvesPproSelectedClips();
+        var props = [];
+        var diagnostics = [];
+        var componentCount = 0;
+        var scannedPropertyCount = 0;
+
+        function addDiagnostic(clipName, componentName, propertyName, keyCount, canReadKeys, canWriteInterpolation, reason) {
+            if (diagnostics.length >= 80) return;
+            diagnostics.push({
+                clip: clipName,
+                component: componentName,
+                property: propertyName,
+                keyCount: keyCount,
+                canReadKeys: !!canReadKeys,
+                canWriteInterpolation: !!canWriteInterpolation,
+                reason: reason
+            });
+        }
+
+        for (var c = 0; c < clips.length; c++) {
+            var clipEntry = clips[c];
+            var clip = clipEntry && clipEntry.clip;
+            var components = clip && clip.components;
+            if (!components) {
+                addDiagnostic(clipEntry.name, "No components", "No properties", 0, false, false, "clip exposes no components");
+                continue;
+            }
+            for (var i = 0; i < components.numItems; i++) {
+                var component = components[i];
+                componentCount++;
+                var componentName = saadCurvesPproComponentName(component);
+                var properties = component && component.properties;
+                if (!properties) {
+                    addDiagnostic(clipEntry.name, componentName, "No properties", 0, false, false, "component exposes no properties");
+                    continue;
+                }
+                for (var p = 0; p < properties.numItems; p++) {
+                    var property = properties[p];
+                    scannedPropertyCount++;
+                    var propertyName = saadCurvesPproPropertyName(property);
+                    var canWriteInterpolation = !!(property && typeof property.setInterpolationTypeAtKey === "function");
+                    var keyRead = saadCurvesPproReadKeyTimes(property);
+                    var keyTimes = keyRead.keyTimes;
+                    if (!property) {
+                        addDiagnostic(clipEntry.name, componentName, propertyName, 0, false, false, "property missing");
+                        continue;
+                    }
+                    if (!keyRead.canReadKeys) {
+                        addDiagnostic(clipEntry.name, componentName, propertyName, 0, false, canWriteInterpolation, keyRead.error);
+                        continue;
+                    }
+                    if (!canWriteInterpolation) {
+                        addDiagnostic(clipEntry.name, componentName, propertyName, keyTimes.length, true, false, "interpolation write unavailable");
+                        continue;
+                    }
+                    if (keyTimes.length < 2) {
+                        addDiagnostic(clipEntry.name, componentName, propertyName, keyTimes.length, true, true, "needs 2+ keyframes");
+                        continue;
+                    }
+                    addDiagnostic(clipEntry.name, componentName, propertyName, keyTimes.length, true, true, "supported");
+                    props.push({
+                        id: clipEntry.trackIndex + ":" + clipEntry.clipIndex + ":" + i + ":" + p,
+                        property: property,
+                        keyTimes: keyTimes,
+                        keyCount: keyTimes.length,
+                        pairCount: Math.max(0, keyTimes.length - 1),
+                        clipName: clipEntry.name,
+                        name: clipEntry.name + " > " + componentName + " > " + propertyName
+                    });
+                }
+            }
+        }
+        return {
+            clips: clips,
+            props: props,
+            diagnostics: diagnostics,
+            componentCount: componentCount,
+            scannedPropertyCount: scannedPropertyCount
+        };
+    }
+
+    function saadCurvesPproKeyedProperties() {
+        return saadCurvesPproInspectProperties().props;
+    }
+
+    function saadCurvesPproPropertyInfos(props) {
+        var infos = [];
+        for (var i = 0; i < props.length; i++) {
+            infos.push({
+                id: props[i].id,
+                name: props[i].name,
+                keyCount: props[i].keyCount,
+                pairCount: props[i].pairCount
+            });
+        }
+        return infos;
+    }
+
+    function saadCurvesPproSelectedIdMap(selectedIds) {
+        var map = {};
+        if (!selectedIds) return null;
+        if (typeof selectedIds === "string") {
+            try {
+                selectedIds = selectedIds.split(",");
+            } catch (_) {
+                selectedIds = [];
+            }
+        }
+        if (!selectedIds || typeof selectedIds.length === "undefined" || selectedIds.length === 0) return null;
+        for (var i = 0; i < selectedIds.length; i++) {
+            map[String(selectedIds[i])] = true;
+        }
+        return map;
+    }
+
+    function saadCurvesPproSummary() {
+        var scan = saadCurvesPproInspectProperties();
+        var clips = scan.clips;
+        var props = scan.props;
+        var keyCount = 0;
+        var pairCount = 0;
+        for (var i = 0; i < props.length; i++) {
+            keyCount += props[i].keyTimes.length;
+            pairCount += Math.max(0, props[i].keyTimes.length - 1);
+        }
+        var ok = pairCount > 0;
+        return {
+            ok: ok,
+            host: APP,
+            clipCount: clips.length,
+            componentCount: scan.componentCount,
+            scannedPropertyCount: scan.scannedPropertyCount,
+            propertyCount: props.length,
+            selectedKeyCount: keyCount,
+            pairCount: pairCount,
+            appliedPairs: 0,
+            errors: [],
+            properties: saadCurvesPproPropertyInfos(props),
+            diagnostics: scan.diagnostics,
+            affectedProperties: (function () {
+                var out = [];
+                var limit = Math.min(props.length, 8);
+                for (var idx = 0; idx < limit; idx++) {
+                    out.push(props[idx].name + " (" + props[idx].keyTimes.length + " keys)");
+                }
+                return out;
+            })(),
+            message: ok
+                ? "Ready: " + pairCount + " Premiere keyframe pair(s) found on selected clip(s)."
+                : (clips.length > 0
+                    ? "Selected clip was scanned, but no supported Effect Controls property with 2+ keyframes was exposed."
+                    : "Select a clip with two or more Premiere keyframes.")
+        };
+    }
+
+    function saadCurvesPproDetectFps(sequence) {
+        try {
+            var settings = sequence.getSettings();
+            if (settings && settings.videoFrameRate) {
+                var fps = parseFloat(settings.videoFrameRate.value);
+                if (fps > 0) return fps;
+            }
+        } catch(e) {}
+        return 25.0;
+    }
+
+    function saadCurvesBx(t, p1x, p2x) {
+        var mt = 1 - t;
+        return 3*mt*mt*t*p1x + 3*mt*t*t*p2x + t*t*t;
+    }
+
+    function saadCurvesBxd(t, p1x, p2x) {
+        var mt = 1 - t;
+        return 3*mt*mt*p1x + 6*mt*t*(p2x - p1x) + 3*t*t*(1 - p2x);
+    }
+
+    function saadCurvesBy(t, p1y, p2y) {
+        var mt = 1 - t;
+        return 3*mt*mt*t*p1y + 3*mt*t*t*p2y + t*t*t;
+    }
+
+    function saadCurvesTForX(x, p1x, p2x) {
+        var t = x;
+        for (var i = 0; i < 12; i++) {
+            var err = saadCurvesBx(t, p1x, p2x) - x;
+            if (Math.abs(err) < 1e-8) return t;
+            var d = saadCurvesBxd(t, p1x, p2x);
+            if (Math.abs(d) < 1e-8) break;
+            t = Math.max(0, Math.min(1, t - err / d));
+        }
+        var lo = 0, hi = 1;
+        for (var j = 0; j < 20; j++) {
+            var mid = (lo + hi) / 2;
+            if (saadCurvesBx(mid, p1x, p2x) < x) lo = mid;
+            else hi = mid;
+        }
+        return (lo + hi) / 2;
+    }
+
+    function saadCurvesSampleBezier(x, curve) {
+        var cx = Math.max(0, Math.min(1, x));
+        if (cx === 0) return 0;
+        if (cx === 1) return 1;
+        var t = saadCurvesTForX(cx, curve.p1x, curve.p2x);
+        return saadCurvesBy(t, curve.p1y, curve.p2y);
+    }
+
+    function saadCurvesApplyPproInterpolation(bezierText, selectedIds) {
+        var bezier = saadCurvesParseBezier(bezierText);
+        var isLinear = bezier[0] === 0 && bezier[1] === 0 && bezier[2] === 1 && bezier[3] === 1;
+        var interpolationType = isLinear ? 0 : 1;
+        var scan = saadCurvesPproInspectProperties();
+        var allProps = scan.props;
+        var selectedMap = saadCurvesPproSelectedIdMap(selectedIds);
+        var props = [];
+        for (var selectedIndex = 0; selectedIndex < allProps.length; selectedIndex++) {
+            if (!selectedMap || selectedMap[allProps[selectedIndex].id]) props.push(allProps[selectedIndex]);
+        }
+        var keyCount = 0;
+        var pairCount = 0;
+        var appliedPairs = 0;
+        var errors = [];
+        var affectedProperties = [];
+
+        var sequence = app.project.activeSequence;
+        var fps = saadCurvesPproDetectFps(sequence);
+        var curve = { p1x: bezier[0], p1y: bezier[1], p2x: bezier[2], p2y: bezier[3] };
+
+        for (var p = 0; p < props.length; p++) {
+            var entry = props[p];
+            var keyTimes = entry.keyTimes;
+            keyCount += keyTimes.length;
+            pairCount += Math.max(0, keyTimes.length - 1);
+            var successfulKeys = 0;
+
+            if (isLinear) {
+                for (var k = 0; k < keyTimes.length; k++) {
+                    try {
+                        var tKey = new Time();
+                        tKey.seconds = keyTimes[k];
+                        var writeResult = entry.property.setInterpolationTypeAtKey(tKey, 0, true);
+                        successfulKeys++;
+                    } catch (e) {
+                        errors.push(entry.name + " key " + (k + 1) + ": " + String(e.message || e));
+                    }
+                }
+            } else {
+                for (var k = 0; k < keyTimes.length - 1; k++) {
+                    var k1Time = keyTimes[k];
+                    var k2Time = keyTimes[k + 1];
+                    try {
+                        var tK1 = new Time();
+                        tK1.seconds = k1Time;
+                        var tK2 = new Time();
+                        tK2.seconds = k2Time;
+
+                        var val0 = entry.property.getValueAtKey(tK1);
+                        var val1 = entry.property.getValueAtKey(tK2);
+                        var isCompound = (typeof val0 === "object" && val0 !== null && typeof val0.length !== "undefined");
+                        var totalFrames = Math.round((k2Time - k1Time) * fps);
+
+                        for (var f = 1; f < totalFrames; f++) {
+                            var t = f / totalFrames;
+                            var easedT = saadCurvesSampleBezier(t, curve);
+                            var value;
+                            if (isCompound) {
+                                value = [];
+                                for (var vi = 0; vi < val0.length; vi++) {
+                                    value.push(val0[vi] + (val1[vi] - val0[vi]) * easedT);
+                                }
+                            } else {
+                                value = val0 + (val1 - val0) * easedT;
+                            }
+                            var timeSec = k1Time + f / fps;
+                            var tKey = new Time();
+                            tKey.seconds = timeSec;
+                            entry.property.addKey(tKey);
+                            entry.property.setValueAtKey(tKey, value, f === totalFrames - 1);
+                        }
+
+                        entry.property.setInterpolationTypeAtKey(tK1, 1, true);
+                        entry.property.setInterpolationTypeAtKey(tK2, 1, true);
+                        successfulKeys += 2;
+                    } catch (e) {
+                        errors.push(entry.name + " pair " + (k + 1) + ": " + String(e.message || e));
+                    }
+                }
+            }
+
+            if (successfulKeys > 1) {
+                appliedPairs += (isLinear ? successfulKeys - 1 : keyTimes.length - 1);
+                affectedProperties.push(entry.name + " (" + keyTimes.length + " keys baked)");
+            }
+        }
+
+        return {
+            ok: appliedPairs > 0 && errors.length === 0,
+            host: APP,
+            clipCount: scan.clips.length,
+            componentCount: scan.componentCount,
+            scannedPropertyCount: scan.scannedPropertyCount,
+            propertyCount: allProps.length,
+            selectedKeyCount: keyCount,
+            pairCount: pairCount,
+            appliedPairs: appliedPairs,
+            errors: errors,
+            properties: saadCurvesPproPropertyInfos(allProps),
+            diagnostics: scan.diagnostics,
+            affectedProperties: affectedProperties,
+            message: appliedPairs > 0
+                ? "Applied Premiere " + (isLinear ? "linear" : "bezier") + " curve baking to " + appliedPairs + " keyframe pair(s)."
+                : (allProps.length > 0
+                    ? "No checked Premiere keyed properties were available to apply."
+                    : "No supported Premiere keyframe pairs were found on selected clip(s).")
+        };
+    }
+
+    host.saadstudio.inspectSaadEaseSelection = function () {
+        if (IS_PPRO) {
+            return saadCurvesPproSummary();
+        }
+        if (!IS_AEFT) {
+            return saadCurvesUnsupported("Open this tool inside After Effects or Premiere Pro.");
+        }
+        var props = saadCurvesSelectedAeProperties();
+        var selectedKeyCount = 0;
+        var pairCount = 0;
+        for (var i = 0; i < props.length; i++) {
+            var keys = props[i].selectedKeys;
+            selectedKeyCount += keys.length;
+            pairCount += saadCurvesPairCount(keys);
+        }
+        var ok = pairCount > 0;
+        return {
+            ok: ok,
+            host: APP,
+            propertyCount: props.length,
+            selectedKeyCount: selectedKeyCount,
+            pairCount: pairCount,
+            appliedPairs: 0,
+            errors: [],
+            message: ok
+                ? "Ready: " + pairCount + " consecutive keyframe pair(s) selected."
+                : "Select 2+ consecutive keyframes on a property in After Effects."
+        };
+    };
+
+    host.saadstudio.applySaadEaseToSelectedKeyframes = function (bezierText, selectedIds) {
+        if (IS_PPRO) {
+            return saadCurvesApplyPproInterpolation(bezierText, selectedIds);
+        }
+        if (!IS_AEFT) {
+            return saadCurvesUnsupported("Open this tool inside After Effects or Premiere Pro.");
+        }
+
+        var bezier = saadCurvesParseBezier(bezierText);
+        var x1 = bezier[0];
+        var y1 = bezier[1];
+        var x2 = bezier[2];
+        var y2 = bezier[3];
+        var props = saadCurvesSelectedAeProperties();
+        var selectedKeyCount = 0;
+        var pairCount = 0;
+        var appliedPairs = 0;
+        var errors = [];
+
+        app.beginUndoGroup("Saad Curves");
+        try {
+            for (var p = 0; p < props.length; p++) {
+                var prop = props[p];
+                var keys = prop.selectedKeys;
+                selectedKeyCount += keys.length;
+                pairCount += saadCurvesPairCount(keys);
+                var dimensions = saadCurvesDimensionCount(prop);
+
+                var outInfluence = Math.max(1, Math.min(100, x1 * 100));
+                var inInfluence = Math.max(1, Math.min(100, (1 - x2) * 100));
+                var flatEase = saadCurvesBuildEaseArray(dimensions, 0, 33);
+
+                for (var i = 0; i < keys.length - 1; i++) {
+                    var k1 = keys[i];
+                    var k2 = keys[i + 1];
+                    if (k2 !== k1 + 1) continue;
+                    try {
+                        var baseSpeeds = saadCurvesPairVelocity(prop, k1, k2, dimensions);
+                        var outRatio = x1 > 0.0001 ? y1 / x1 : 0;
+                        var inRatio = (1 - x2) > 0.0001 ? (1 - y2) / (1 - x2) : 0;
+                        var outEase = saadCurvesBuildEaseArrayFromSpeeds(saadCurvesScaleSpeeds(baseSpeeds, outRatio), outInfluence);
+                        var inEase = saadCurvesBuildEaseArrayFromSpeeds(saadCurvesScaleSpeeds(baseSpeeds, inRatio), inInfluence);
+                        prop.setInterpolationTypeAtKey(k1, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);
+                        prop.setInterpolationTypeAtKey(k2, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);
+                        prop.setTemporalEaseAtKey(k1, flatEase, outEase);
+                        prop.setTemporalEaseAtKey(k2, inEase, flatEase);
+                        appliedPairs++;
+                    } catch (e) {
+                        errors.push((prop.name || "Property") + " keys " + k1 + "-" + k2 + ": " + String(e.message || e));
+                    }
+                }
+            }
+        } finally {
+            app.endUndoGroup();
+        }
+
+        return {
+            ok: appliedPairs > 0 && errors.length === 0,
+            host: APP,
+            propertyCount: props.length,
+            selectedKeyCount: selectedKeyCount,
+            pairCount: pairCount,
+            appliedPairs: appliedPairs,
+            errors: errors,
+            message: appliedPairs > 0
+                ? "Applied easing to " + appliedPairs + " keyframe pair(s)."
+                : "No consecutive selected keyframe pairs were found."
+        };
+    };
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SAAD KEYS — keyframe manipulation (align / shift / distribute / etc)
+    // AE-first with Premiere Motion-property shift fallback.
+    // ═══════════════════════════════════════════════════════════════════
+
+    function saadKeysAeContext() {
+        var comp = app.project && app.project.activeItem;
+        if (!comp || !(comp instanceof CompItem)) {
+            return { ok: false, reason: "No active composition." };
+        }
+        return { ok: true, comp: comp, cti: Number(comp.time), frameDur: Number(comp.frameDuration) };
+    }
+
+    function saadKeysAeSelectedProps() {
+        var ctx = saadKeysAeContext();
+        if (!ctx.ok) return { ok: false, reason: ctx.reason, props: [] };
+        var comp = ctx.comp;
+        var out = [];
+        var selectedProps = comp.selectedProperties || [];
+        for (var i = 0; i < selectedProps.length; i++) {
+            var p = selectedProps[i];
+            try {
+                if (p.propertyType === PropertyType.PROPERTY && p.canVaryOverTime && p.numKeys > 0) {
+                    out.push(p);
+                }
+            } catch (_) {}
+        }
+        return { ok: true, comp: comp, cti: ctx.cti, frameDur: ctx.frameDur, props: out };
+    }
+
+    // Strict selection: requires at least `minKeys` HIGHLIGHTED keyframes.
+    // Returns { list: [{prop, keys[], data[]}], skipped: [{name, reason}], totalKeys }.
+    // NEVER falls back to "all keys" — respects user intent like Keystone does.
+    function saadKeysAeGatherSelected(minKeys) {
+        var ctx = saadKeysAeSelectedProps();
+        if (!ctx.ok) return { ok: false, reason: ctx.reason, list: [], skipped: [], totalKeys: 0 };
+        var min = Math.max(1, Number(minKeys) || 1);
+        var list = [];
+        var skipped = [];
+        var totalKeys = 0;
+        for (var i = 0; i < ctx.props.length; i++) {
+            var prop = ctx.props[i];
+            var sel;
+            try { sel = prop.selectedKeys ? [].concat(prop.selectedKeys) : []; }
+            catch (_) { sel = []; }
+            if (sel.length < min) {
+                skipped.push({ name: prop.name || "?", reason: sel.length + "/" + min + " keys selected" });
+                continue;
+            }
+            sel.sort(function (a, b) { return a - b; });
+            var data;
+            try { data = saadKeysReadKeyData(prop, sel); }
+            catch (e) { skipped.push({ name: prop.name || "?", reason: "read failed: " + e.message }); continue; }
+            list.push({ prop: prop, keys: sel, data: data });
+            totalKeys += sel.length;
+        }
+        return { ok: true, ctx: ctx, list: list, skipped: skipped, totalKeys: totalKeys };
+    }
+
+    function saadKeysAeRequire(gathered, minKeys) {
+        if (!gathered.ok) return { ok: false, host: APP, message: gathered.reason || "No active composition." };
+        if (gathered.list.length === 0) {
+            var hint = minKeys > 1
+                ? "Select " + minKeys + "+ keyframes (click each diamond ◆ in the timeline)."
+                : "Select at least one keyframe (click a diamond ◆ in the timeline).";
+            var skipDesc = [];
+            for (var si = 0; si < gathered.skipped.length; si++) {
+                skipDesc.push(gathered.skipped[si].name + " (" + gathered.skipped[si].reason + ")");
+            }
+            var detail = skipDesc.length ? " Skipped: " + skipDesc.join(", ") : "";
+            return { ok: false, host: APP, message: hint + detail };
+        }
+        return null; // no error — proceed
+    }
+
+    function saadKeysAeSelectedLayers() {
+        var comp = app.project && app.project.activeItem;
+        if (!comp || !(comp instanceof CompItem)) return [];
+        var out = [];
+        for (var i = 0; i < comp.selectedLayers.length; i++) out.push(comp.selectedLayers[i]);
+        return out;
+    }
+
+    function saadKeysReadKeyData(prop, indexList) {
+        var data = [];
+        for (var i = 0; i < indexList.length; i++) {
+            var idx = indexList[i];
+            data.push({
+                time: Number(prop.keyTime(idx)),
+                value: prop.keyValue(idx),
+                inInterp: prop.keyInInterpolationType(idx),
+                outInterp: prop.keyOutInterpolationType(idx),
+                inTemporalEase: prop.keyInTemporalEase(idx),
+                outTemporalEase: prop.keyOutTemporalEase(idx)
+            });
+        }
+        return data;
+    }
+
+    function saadKeysApplyKeyData(prop, times, data) {
+        // Assumes prop currently has no keys at the given times.
+        for (var i = 0; i < times.length; i++) {
+            var t = times[i];
+            prop.setValueAtTime(t, data[i].value);
+        }
+        // Now that keys exist, set interp/ease.
+        for (var j = 0; j < times.length; j++) {
+            var t2 = times[j];
+            var newIdx = prop.nearestKeyIndex(t2);
+            try { prop.setInterpolationTypeAtKey(newIdx, data[j].inInterp, data[j].outInterp); } catch (_) {}
+            try { prop.setTemporalEaseAtKey(newIdx, data[j].inTemporalEase, data[j].outTemporalEase); } catch (_) {}
+        }
+    }
+
+    function saadKeysAeShift(deltaFrames) {
+        var frames = Number(deltaFrames);
+        if (isNaN(frames) || frames === 0) return { ok: false, host: APP, message: "Invalid shift amount." };
+        var gathered = saadKeysAeGatherSelected(1);
+        var abort = saadKeysAeRequire(gathered, 1);
+        if (abort) return abort;
+        var delta = frames * gathered.ctx.frameDur;
+        var shifted = 0, affected = 0, errors = [];
+
+        app.beginUndoGroup("Saad Keys — Shift " + frames + "f");
+        try {
+            for (var i = 0; i < gathered.list.length; i++) {
+                var entry = gathered.list[i];
+                var indicesDesc = [].concat(entry.keys).sort(function (a, b) { return b - a; });
+                for (var r = 0; r < indicesDesc.length; r++) {
+                    try { entry.prop.removeKey(indicesDesc[r]); }
+                    catch (eRm) { errors.push((entry.prop.name||"?") + " removeKey: " + eRm.message); }
+                }
+                var newTimes = [];
+                for (var d = 0; d < entry.data.length; d++) newTimes.push(entry.data[d].time + delta);
+                try {
+                    saadKeysApplyKeyData(entry.prop, newTimes, entry.data);
+                    shifted += entry.keys.length;
+                    affected++;
+                } catch (eApply) { errors.push((entry.prop.name||"?") + " apply: " + eApply.message); }
+            }
+        } finally { app.endUndoGroup(); }
+
+        return {
+            ok: shifted > 0 && errors.length === 0,
+            host: APP,
+            message: shifted > 0
+                ? "Shifted " + shifted + " key(s) by " + frames + "f on " + affected + " prop" + (affected===1?"":"s") + "."
+                : "No keys shifted.",
+            errors: errors
+        };
+    }
+
+    function saadKeysFindLayer(prop) {
+        // Walk parentProperty until we hit an object with .inPoint (Layer has it,
+        // PropertyGroup does not). `instanceof Layer` is unreliable in ExtendScript,
+        // so duck-type on inPoint/outPoint and a null parent (Layer.parentProperty === null).
+        var walker = prop;
+        var guard = 0;
+        while (walker && guard < 32) {
+            try {
+                if (typeof walker.inPoint === "number" && typeof walker.outPoint === "number") return walker;
+            } catch (_) {}
+            try {
+                if (walker.parentProperty == null) break;
+                walker = walker.parentProperty;
+            } catch (eParent) { break; }
+            guard++;
+        }
+        try {
+            if (walker && typeof walker.inPoint === "number") return walker;
+        } catch (_) {}
+        return null;
+    }
+
+    function saadKeysAeAlign(mode) {
+        // mode: "firstToCTI" | "lastToCTI" | "firstToInPoint" | "lastToOutPoint"
+        var gathered = saadKeysAeGatherSelected(1);
+        var abort = saadKeysAeRequire(gathered, 1);
+        if (abort) return abort;
+        var moved = 0, errors = [];
+        app.beginUndoGroup("Saad Keys — Align " + mode);
+        try {
+            for (var i = 0; i < gathered.list.length; i++) {
+                var entry = gathered.list[i];
+                var prop = entry.prop;
+                var data = entry.data;
+                var firstT = data[0].time;
+                var lastT = data[data.length - 1].time;
+                var target;
+                var layerObj = saadKeysFindLayer(prop);
+
+                if (mode === "firstToCTI") target = gathered.ctx.cti - firstT;
+                else if (mode === "lastToCTI") target = gathered.ctx.cti - lastT;
+                else if (mode === "firstToInPoint") {
+                    if (!layerObj) { errors.push((prop.name||"?") + ": no layer"); continue; }
+                    target = Number(layerObj.inPoint) - firstT;
+                } else if (mode === "lastToOutPoint") {
+                    if (!layerObj) { errors.push((prop.name||"?") + ": no layer"); continue; }
+                    target = Number(layerObj.outPoint) - lastT;
+                } else continue;
+
+                if (Math.abs(target) < 1e-6) continue;
+                var indicesDesc = [].concat(entry.keys).sort(function (a, b) { return b - a; });
+                for (var r = 0; r < indicesDesc.length; r++) {
+                    try { prop.removeKey(indicesDesc[r]); } catch (eRm) { errors.push("remove: " + eRm.message); }
+                }
+                var newTimes = [];
+                for (var d2 = 0; d2 < data.length; d2++) newTimes.push(data[d2].time + target);
+                try { saadKeysApplyKeyData(prop, newTimes, data); moved += entry.keys.length; }
+                catch (eApply) { errors.push("apply: " + eApply.message); }
+            }
+        } finally { app.endUndoGroup(); }
+        return {
+            ok: moved > 0 && errors.length === 0,
+            host: APP,
+            message: moved > 0 ? "Aligned " + moved + " key(s) (" + mode + ")." : "No keys were moved.",
+            errors: errors
+        };
+    }
+
+    function saadKeysAeReverse() {
+        var gathered = saadKeysAeGatherSelected(2);
+        var abort = saadKeysAeRequire(gathered, 2);
+        if (abort) return abort;
+        var reversed = 0, errors = [];
+        app.beginUndoGroup("Saad Keys — Reverse");
+        try {
+            for (var i = 0; i < gathered.list.length; i++) {
+                var entry = gathered.list[i];
+                var prop = entry.prop, data = entry.data;
+                var firstT = data[0].time, lastT = data[data.length - 1].time;
+                var pairs = [];
+                for (var pi = 0; pi < data.length; pi++) pairs.push({ time: firstT + (lastT - data[pi].time), data: data[pi] });
+                pairs.sort(function (a, b) { return a.time - b.time; });
+                var indicesDesc = [].concat(entry.keys).sort(function (a, b) { return b - a; });
+                for (var r = 0; r < indicesDesc.length; r++) {
+                    try { prop.removeKey(indicesDesc[r]); } catch (eRm) { errors.push("remove: " + eRm.message); }
+                }
+                var sortedTimes = [], sortedData = [];
+                for (var s = 0; s < pairs.length; s++) { sortedTimes.push(pairs[s].time); sortedData.push(pairs[s].data); }
+                try { saadKeysApplyKeyData(prop, sortedTimes, sortedData); reversed++; }
+                catch (eApply) { errors.push("apply: " + eApply.message); }
+            }
+        } finally { app.endUndoGroup(); }
+        return { ok: reversed > 0 && errors.length === 0, host: APP, message: reversed > 0 ? "Reversed " + reversed + " prop(s)." : "Nothing reversed.", errors: errors };
+    }
+
+    function saadKeysAeDuplicate() {
+        var gathered = saadKeysAeGatherSelected(2);
+        var abort = saadKeysAeRequire(gathered, 2);
+        if (abort) return abort;
+        var added = 0, errors = [];
+        app.beginUndoGroup("Saad Keys — Duplicate");
+        try {
+            for (var i = 0; i < gathered.list.length; i++) {
+                var entry = gathered.list[i];
+                var data = entry.data;
+                var span = data[data.length - 1].time - data[0].time;
+                if (span <= 0) continue;
+                var offset = span + gathered.ctx.frameDur;
+                var newTimes = [];
+                for (var d = 0; d < data.length; d++) newTimes.push(data[d].time + offset);
+                try { saadKeysApplyKeyData(entry.prop, newTimes, data); added += data.length; }
+                catch (e) { errors.push((entry.prop.name||"?") + ": " + e.message); }
+            }
+        } finally { app.endUndoGroup(); }
+        return { ok: added > 0 && errors.length === 0, host: APP, message: added > 0 ? "Duplicated " + added + " key(s)." : "Nothing duplicated.", errors: errors };
+    }
+
+    function saadKeysAeDuplicateFlip() {
+        var gathered = saadKeysAeGatherSelected(2);
+        var abort = saadKeysAeRequire(gathered, 2);
+        if (abort) return abort;
+        var added = 0, errors = [];
+        app.beginUndoGroup("Saad Keys — Duplicate & Flip");
+        try {
+            for (var i = 0; i < gathered.list.length; i++) {
+                var entry = gathered.list[i];
+                var data = entry.data;
+                var span = data[data.length - 1].time - data[0].time;
+                if (span <= 0) continue;
+                var offset = span + gathered.ctx.frameDur;
+                var newTimes = [];
+                var flipped = [];
+                for (var d = 0; d < data.length; d++) {
+                    newTimes.push(data[d].time + offset);
+                    flipped.push(data[data.length - 1 - d]);
+                }
+                try { saadKeysApplyKeyData(entry.prop, newTimes, flipped); added += data.length; }
+                catch (e) { errors.push((entry.prop.name||"?") + ": " + e.message); }
+            }
+        } finally { app.endUndoGroup(); }
+        return { ok: added > 0 && errors.length === 0, host: APP, message: added > 0 ? "Duplicated & flipped " + added + " key(s)." : "Nothing duplicated.", errors: errors };
+    }
+
+    function saadKeysAeConstantSpeed() {
+        var gathered = saadKeysAeGatherSelected(1);
+        var abort = saadKeysAeRequire(gathered, 1);
+        if (abort) return abort;
+        var applied = 0;
+        app.beginUndoGroup("Saad Keys — Constant Speed");
+        try {
+            for (var i = 0; i < gathered.list.length; i++) {
+                var entry = gathered.list[i];
+                for (var s = 0; s < entry.keys.length; s++) {
+                    try {
+                        entry.prop.setInterpolationTypeAtKey(entry.keys[s], KeyframeInterpolationType.LINEAR, KeyframeInterpolationType.LINEAR);
+                        applied++;
+                    } catch (_) {}
+                }
+            }
+        } finally { app.endUndoGroup(); }
+        return { ok: applied > 0, host: APP, message: "Set constant speed on " + applied + " key(s)." };
+    }
+
+    function saadKeysAeSnapNearestFrame() {
+        var gathered = saadKeysAeGatherSelected(1);
+        var abort = saadKeysAeRequire(gathered, 1);
+        if (abort) return abort;
+        var snapped = 0, errors = [];
+        var f = gathered.ctx.frameDur;
+        app.beginUndoGroup("Saad Keys — Snap to Frame");
+        try {
+            for (var i = 0; i < gathered.list.length; i++) {
+                var entry = gathered.list[i];
+                var indicesDesc = [].concat(entry.keys).sort(function (a, b) { return b - a; });
+                for (var r = 0; r < indicesDesc.length; r++) {
+                    try { entry.prop.removeKey(indicesDesc[r]); } catch (eRm) { errors.push("remove: " + eRm.message); }
+                }
+                var newTimes = [];
+                for (var d = 0; d < entry.data.length; d++) newTimes.push(Math.round(entry.data[d].time / f) * f);
+                try { saadKeysApplyKeyData(entry.prop, newTimes, entry.data); snapped += entry.data.length; }
+                catch (eApply) { errors.push("apply: " + eApply.message); }
+            }
+        } finally { app.endUndoGroup(); }
+        return { ok: snapped > 0 && errors.length === 0, host: APP, message: snapped > 0 ? "Snapped " + snapped + " key(s)." : "Nothing snapped.", errors: errors };
+    }
+
+    // ── Distribute: evenly space selected keys at intervalFrames apart,
+    // keeping the earliest key in place. If unit is "even", it distributes
+    // between first and last (uniform spacing = (last-first)/(n-1)).
+    function saadKeysAeDistribute(intervalFrames, unit) {
+        var gathered = saadKeysAeGatherSelected(2);
+        var abort = saadKeysAeRequire(gathered, 2);
+        if (abort) return abort;
+        var f = gathered.ctx.frameDur;
+        var distributed = 0, errors = [];
+        var stepSec;
+        if (unit === "seconds") stepSec = Number(intervalFrames);
+        else if (unit === "even") stepSec = null; // computed per property
+        else stepSec = Number(intervalFrames) * f;
+        app.beginUndoGroup("Saad Keys — Distribute");
+        try {
+            for (var i = 0; i < gathered.list.length; i++) {
+                var entry = gathered.list[i];
+                var prop = entry.prop, data = entry.data;
+                var n = data.length;
+                var start = data[0].time;
+                var step = stepSec === null ? (data[n - 1].time - start) / (n - 1) : stepSec;
+                if (!isFinite(step) || step <= 0) continue;
+                var indicesDesc = [].concat(entry.keys).sort(function (a, b) { return b - a; });
+                for (var r = 0; r < indicesDesc.length; r++) {
+                    try { prop.removeKey(indicesDesc[r]); } catch (eRm) { errors.push("remove: " + eRm.message); }
+                }
+                var newTimes = [];
+                for (var d = 0; d < n; d++) newTimes.push(start + d * step);
+                try { saadKeysApplyKeyData(prop, newTimes, data); distributed += n; }
+                catch (eApply) { errors.push("apply: " + eApply.message); }
+            }
+        } finally { app.endUndoGroup(); }
+        return { ok: distributed > 0 && errors.length === 0, host: APP, message: distributed > 0 ? "Distributed " + distributed + " key(s)." : "Nothing distributed.", errors: errors };
+    }
+
+    // ── Stretch: scale the time distance between selected keys.
+    // mode: "firstKey" | "lastKey" | "CTI"
+    // unit: "percent" | "frames" | "seconds"
+    function saadKeysAeStretch(value, unit, mode) {
+        var gathered = saadKeysAeGatherSelected(2);
+        var abort = saadKeysAeRequire(gathered, 2);
+        if (abort) return abort;
+        var v = Number(value);
+        if (!isFinite(v) || v <= 0) return { ok: false, host: APP, message: "Invalid stretch value." };
+        var f = gathered.ctx.frameDur;
+        var stretched = 0, errors = [];
+        app.beginUndoGroup("Saad Keys — Stretch (" + mode + " / " + unit + ")");
+        try {
+            for (var i = 0; i < gathered.list.length; i++) {
+                var entry = gathered.list[i];
+                var prop = entry.prop, data = entry.data;
+                var firstT = data[0].time;
+                var lastT = data[data.length - 1].time;
+                var span = lastT - firstT;
+                if (span <= 0) continue;
+                var targetSpan;
+                if (unit === "percent") targetSpan = span * (v / 100);
+                else if (unit === "frames") targetSpan = v * f;
+                else targetSpan = v; // seconds
+                if (targetSpan <= 0) continue;
+                var scale = targetSpan / span;
+                var pivot;
+                if (mode === "firstKey") pivot = firstT;
+                else if (mode === "lastKey") pivot = lastT;
+                else pivot = gathered.ctx.cti;
+                var indicesDesc = [].concat(entry.keys).sort(function (a, b) { return b - a; });
+                for (var r = 0; r < indicesDesc.length; r++) {
+                    try { prop.removeKey(indicesDesc[r]); } catch (eRm) { errors.push("remove: " + eRm.message); }
+                }
+                var newTimes = [];
+                for (var d = 0; d < data.length; d++) {
+                    var t = pivot + (data[d].time - pivot) * scale;
+                    if (t < 0) t = 0;
+                    newTimes.push(t);
+                }
+                try { saadKeysApplyKeyData(prop, newTimes, data); stretched++; }
+                catch (eApply) { errors.push("apply: " + eApply.message); }
+            }
+        } finally { app.endUndoGroup(); }
+        return { ok: stretched > 0 && errors.length === 0, host: APP, message: stretched > 0 ? "Stretched " + stretched + " prop(s) to " + (v + " " + unit) + " (" + mode + ")." : "Nothing stretched.", errors: errors };
+    }
+
+    // ── Overlap cleaning: remove keys that are within 1 frame of a neighbour.
+    // Keeps the earliest key in each cluster. Only touches SELECTED keys.
+    function saadKeysAeOverlapClean() {
+        var gathered = saadKeysAeGatherSelected(2);
+        var abort = saadKeysAeRequire(gathered, 2);
+        if (abort) return abort;
+        var f = gathered.ctx.frameDur;
+        var removed = 0, errors = [];
+        app.beginUndoGroup("Saad Keys — Overlap cleaning");
+        try {
+            for (var i = 0; i < gathered.list.length; i++) {
+                var entry = gathered.list[i];
+                var prop = entry.prop, data = entry.data;
+                var toRemove = [];
+                for (var d = 1; d < data.length; d++) {
+                    if ((data[d].time - data[d - 1].time) < (f * 0.5)) toRemove.push(entry.keys[d]);
+                }
+                toRemove.sort(function (a, b) { return b - a; });
+                for (var r = 0; r < toRemove.length; r++) {
+                    try { prop.removeKey(toRemove[r]); removed++; } catch (eRm) { errors.push("remove: " + eRm.message); }
+                }
+            }
+        } finally { app.endUndoGroup(); }
+        return { ok: removed > 0 && errors.length === 0, host: APP, message: removed > 0 ? "Cleaned " + removed + " overlapping key(s)." : "No overlapping keys found.", errors: errors };
+    }
+
+    // ── Copy: snapshot selected keys into a jsx-side clipboard.
+    // Stored as {time, value, in/out interp, in/out ease} relative to firstT.
+    function saadKeysAeCopy() {
+        var gathered = saadKeysAeGatherSelected(1);
+        var abort = saadKeysAeRequire(gathered, 1);
+        if (abort) return abort;
+        var snapshot = { host: APP, entries: [], stamp: new Date().getTime(), frameDur: gathered.ctx.frameDur };
+        for (var i = 0; i < gathered.list.length; i++) {
+            var entry = gathered.list[i];
+            var base = entry.data[0].time;
+            var keys = [];
+            for (var d = 0; d < entry.data.length; d++) {
+                var k = entry.data[d];
+                keys.push({ offset: k.time - base, value: k.value, inInterp: k.inInterp, outInterp: k.outInterp, inTemporalEase: k.inTemporalEase, outTemporalEase: k.outTemporalEase });
+            }
+            snapshot.entries.push({ propName: entry.prop.name || "", keys: keys });
+        }
+        host.__saadKeysClipboard = snapshot;
+        return { ok: true, host: APP, message: "Copied " + gathered.totalKeys + " key(s) from " + gathered.list.length + " prop(s)." };
+    }
+
+    // ── Paste: apply clipboard to currently selected properties.
+    // anchor: "inPoint" | "outPoint" | "CTI" | "selection"
+    // mode: "absolute" (place at anchor+offset) | "relative" (offset from existing key selection)
+    function saadKeysAePaste(anchor, mode) {
+        var clip = host.__saadKeysClipboard;
+        if (!clip || !clip.entries || clip.entries.length === 0) {
+            return { ok: false, host: APP, message: "Clipboard empty. Copy some keys first." };
+        }
+        var ctx = saadKeysAeSelectedProps();
+        if (!ctx.ok) return { ok: false, host: APP, message: ctx.reason };
+        if (ctx.props.length === 0) return { ok: false, host: APP, message: "Select at least one target property." };
+        var pasted = 0, errors = [];
+        app.beginUndoGroup("Saad Keys — Paste " + mode + " @ " + anchor);
+        try {
+            for (var i = 0; i < ctx.props.length; i++) {
+                var prop = ctx.props[i];
+                var entry = clip.entries[Math.min(i, clip.entries.length - 1)];
+                var layer = saadKeysFindLayer(prop);
+                var anchorT;
+                if (anchor === "inPoint") anchorT = layer ? Number(layer.inPoint) : ctx.cti;
+                else if (anchor === "outPoint") anchorT = layer ? Number(layer.outPoint) - (entry.keys[entry.keys.length - 1].offset) : ctx.cti;
+                else if (anchor === "selection") {
+                    var sk = [];
+                    try { sk = prop.selectedKeys ? [].concat(prop.selectedKeys) : []; } catch (_) { sk = []; }
+                    anchorT = sk.length > 0 ? Number(prop.keyTime(sk[0])) : ctx.cti;
+                } else anchorT = ctx.cti;
+                if (mode === "relative") anchorT = ctx.cti;
+                var times = [], data = [];
+                for (var d = 0; d < entry.keys.length; d++) {
+                    var k = entry.keys[d];
+                    var t = anchorT + k.offset;
+                    if (t < 0) t = 0;
+                    times.push(t);
+                    data.push({ value: k.value, inInterp: k.inInterp, outInterp: k.outInterp, inTemporalEase: k.inTemporalEase, outTemporalEase: k.outTemporalEase });
+                }
+                try { saadKeysApplyKeyData(prop, times, data); pasted += times.length; }
+                catch (eApply) { errors.push((prop.name||"?") + ": " + eApply.message); }
+            }
+        } finally { app.endUndoGroup(); }
+        return { ok: pasted > 0 && errors.length === 0, host: APP, message: pasted > 0 ? "Pasted " + pasted + " key(s)." : "Nothing pasted.", errors: errors };
+    }
+
+    function saadKeysAeStagger(intervalFrames, direction, unit) {
+        var gathered = saadKeysAeGatherSelected(1);
+        var abort = saadKeysAeRequire(gathered, 1);
+        if (abort) return abort;
+        if (gathered.list.length < 2) return { ok: false, host: APP, message: "Stagger needs 2+ properties with selected keys." };
+        var ordered = [].concat(gathered.list);
+        ordered.sort(function (a, b) { return a.data[0].time - b.data[0].time; });
+        var f = gathered.ctx.frameDur;
+        var stepSec = unit === "seconds" ? Number(intervalFrames) : Number(intervalFrames) * f;
+        // Random assignment: shuffle offset multipliers
+        var multipliers = [];
+        for (var mi = 0; mi < ordered.length; mi++) multipliers.push(mi);
+        if (direction === "random") {
+            // Fisher-Yates
+            for (var mj = multipliers.length - 1; mj > 0; mj--) {
+                var r0 = Math.floor(Math.random() * (mj + 1));
+                var tmp = multipliers[mj]; multipliers[mj] = multipliers[r0]; multipliers[r0] = tmp;
+            }
+        } else if (direction === "desc") {
+            multipliers.reverse();
+        }
+        var staggered = 0, errors = [];
+        app.beginUndoGroup("Saad Keys — Stagger " + direction);
+        try {
+            for (var i = 0; i < ordered.length; i++) {
+                var entry = ordered[i];
+                var offset = multipliers[i] * stepSec;
+                if (Math.abs(offset) < 1e-6) continue;
+                var indicesDesc = [].concat(entry.keys).sort(function (a, b) { return b - a; });
+                for (var r = 0; r < indicesDesc.length; r++) {
+                    try { entry.prop.removeKey(indicesDesc[r]); } catch (eRm) { errors.push("remove: " + eRm.message); }
+                }
+                var newTimes = [];
+                for (var d = 0; d < entry.data.length; d++) newTimes.push(entry.data[d].time + offset);
+                try { saadKeysApplyKeyData(entry.prop, newTimes, entry.data); staggered++; }
+                catch (eApply) { errors.push("apply: " + eApply.message); }
+            }
+        } finally { app.endUndoGroup(); }
+        return { ok: staggered > 0 && errors.length === 0, host: APP, message: staggered > 0 ? "Staggered " + staggered + " prop(s) (" + direction + " @ " + intervalFrames + (unit === "seconds" ? "s" : "f") + ")." : "Nothing staggered.", errors: errors };
+    }
+
+    function saadKeysAeLabel(colorIndex) {
+        var layers = saadKeysAeSelectedLayers();
+        if (layers.length === 0) return { ok: false, host: APP, message: "Select at least one layer." };
+        var applied = 0;
+        app.beginUndoGroup("Saad Keys — Label " + colorIndex);
+        try {
+            for (var i = 0; i < layers.length; i++) {
+                try { layers[i].label = Number(colorIndex); applied++; } catch (_) {}
+            }
+        } finally { app.endUndoGroup(); }
+        return { ok: true, host: APP, message: "Labeled " + applied + " layer(s)." };
+    }
+
+    // ── Premiere shift: offset selected clip's Motion/Effect keyframes ────
+    // Optional selectedIds filters which scanned properties to shift.
+    function saadKeysPproShift(deltaFrames, selectedIds) {
+        var scan = saadCurvesPproInspectProperties();
+        var allProps = scan.props;
+        if (!allProps || allProps.length === 0) return { ok: false, host: APP, message: "No supported Premiere keyed properties on selected clip(s)." };
+        var selMap = saadCurvesPproSelectedIdMap(selectedIds);
+        var props = [];
+        for (var pi = 0; pi < allProps.length; pi++) {
+            if (!selMap || selMap[allProps[pi].id]) props.push(allProps[pi]);
+        }
+        if (props.length === 0) return { ok: false, host: APP, message: "Check the Premiere property/properties to shift." };
+        var seq = app.project && app.project.activeSequence;
+        var fps = seq && seq.timebase ? PREMIERE_TICKS_PER_SECOND / Number(seq.timebase) : 25;
+        var deltaTicks = Number(deltaFrames) * (PREMIERE_TICKS_PER_SECOND / fps);
+        var moved = 0, errors = [];
+        for (var i = 0; i < props.length; i++) {
+            var entry = props[i];
+            var keyTimes = entry.keyTimes;
+            if (!keyTimes || keyTimes.length === 0) continue;
+            var vals = [];
+            for (var k = 0; k < keyTimes.length; k++) {
+                try { vals.push(entry.property.getValueAtKey(keyTimes[k])); } catch (e) { vals.push(null); }
+            }
+            for (var r = keyTimes.length - 1; r >= 0; r--) {
+                try {
+                    var tRem = new Time();
+                    tRem.seconds = keyTimes[r];
+                    entry.property.removeKey(tRem);
+                } catch (_) {}
+            }
+            for (var j = 0; j < keyTimes.length; j++) {
+                var newTime = Number(keyTimes[j]) + deltaTicks;
+                if (newTime < 0) newTime = 0;
+                try {
+                    var tKey = new Time();
+                    tKey.seconds = newTime;
+                    entry.property.addKey(tKey);
+                    if (vals[j] !== null) entry.property.setValueAtKey(tKey, vals[j], true);
+                    moved++;
+                } catch (e) { errors.push(entry.name + " key " + (j + 1) + ": " + String(e.message || e)); }
+            }
+        }
+        return {
+            ok: moved > 0 && errors.length === 0,
+            host: APP,
+            message: moved > 0 ? "Shifted " + moved + " Premiere key(s) by " + deltaFrames + "f." : "No Premiere keys shifted.",
+            errors: errors
+        };
+    }
+
+    // ── Public host bindings ────────────────────────────────────────────
+
+    host.saadstudio.saadKeysInspect = function () {
+        if (IS_AEFT) {
+            var ctx = saadKeysAeSelectedProps();
+            var totalKeys = 0;
+            var selectedKeyCount = 0;
+            for (var i = 0; i < ctx.props.length; i++) {
+                totalKeys += ctx.props[i].numKeys;
+                try {
+                    var sk = ctx.props[i].selectedKeys;
+                    if (sk && sk.length) selectedKeyCount += sk.length;
+                } catch (_) {}
+            }
+            var layers = saadKeysAeSelectedLayers();
+            var msg;
+            if (ctx.props.length === 0) {
+                msg = "Select a layer, press U to reveal animated properties, then click a property name.";
+            } else if (selectedKeyCount === 0) {
+                msg = "Property(s) selected. Now click the ◆ keyframes to highlight them (shift-click for multiple).";
+            } else {
+                msg = "Ready: " + selectedKeyCount + " selected key(s) across " + ctx.props.length + " property/properties.";
+            }
+            return {
+                ok: selectedKeyCount > 0, host: APP,
+                propertyCount: ctx.props.length,
+                keyCount: selectedKeyCount,
+                totalKeys: totalKeys,
+                layerCount: layers.length,
+                cti: ctx.cti || 0,
+                frameDur: ctx.frameDur || 0,
+                message: msg
+            };
+        }
+        if (IS_PPRO) {
+            var scan = saadCurvesPproInspectProperties();
+            var pKeys = 0;
+            for (var pi = 0; pi < scan.props.length; pi++) pKeys += scan.props[pi].keyTimes.length;
+            return {
+                ok: scan.props.length > 0, host: APP,
+                propertyCount: scan.props.length,
+                keyCount: pKeys,
+                layerCount: scan.clips.length,
+                message: scan.props.length > 0
+                    ? "Ready: " + scan.props.length + " Premiere keyed property/properties on " + scan.clips.length + " clip(s)."
+                    : "Select a clip with 2+ Premiere keyframes on Motion or an Effect."
+            };
+        }
+        return { ok: false, host: APP, message: "Open inside After Effects or Premiere Pro." };
+    };
+
+    host.saadstudio.saadKeysShift = function (deltaFrames, selectedIds) {
+        if (IS_AEFT) return saadKeysAeShift(deltaFrames);
+        if (IS_PPRO) return saadKeysPproShift(deltaFrames, selectedIds);
+        return { ok: false, host: APP, message: "Not supported on this host." };
+    };
+
+    host.saadstudio.saadKeysAlign = function (mode) {
+        if (IS_AEFT) return saadKeysAeAlign(String(mode));
+        return { ok: false, host: APP, message: "Align is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysReverse = function () {
+        if (IS_AEFT) return saadKeysAeReverse();
+        return { ok: false, host: APP, message: "Reverse is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysDuplicate = function () {
+        if (IS_AEFT) return saadKeysAeDuplicate();
+        return { ok: false, host: APP, message: "Duplicate is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysDuplicateFlip = function () {
+        if (IS_AEFT) return saadKeysAeDuplicateFlip();
+        return { ok: false, host: APP, message: "Duplicate & Flip is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysConstantSpeed = function () {
+        if (IS_AEFT) return saadKeysAeConstantSpeed();
+        return { ok: false, host: APP, message: "Constant Speed is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysSnapNearestFrame = function () {
+        if (IS_AEFT) return saadKeysAeSnapNearestFrame();
+        return { ok: false, host: APP, message: "Snap to frame is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysStagger = function (intervalFrames, direction, unit) {
+        if (IS_AEFT) return saadKeysAeStagger(intervalFrames, direction, unit || "frames");
+        return { ok: false, host: APP, message: "Stagger is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysDistribute = function (intervalFrames, unit) {
+        if (IS_AEFT) return saadKeysAeDistribute(intervalFrames, unit || "frames");
+        return { ok: false, host: APP, message: "Distribute is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysStretch = function (value, unit, mode) {
+        if (IS_AEFT) return saadKeysAeStretch(value, unit || "percent", mode || "firstKey");
+        return { ok: false, host: APP, message: "Stretch is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysOverlapClean = function () {
+        if (IS_AEFT) return saadKeysAeOverlapClean();
+        return { ok: false, host: APP, message: "Overlap cleaning is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysCopy = function () {
+        if (IS_AEFT) return saadKeysAeCopy();
+        return { ok: false, host: APP, message: "Copy is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysPaste = function (anchor, mode) {
+        if (IS_AEFT) return saadKeysAePaste(anchor || "CTI", mode || "absolute");
+        return { ok: false, host: APP, message: "Paste is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysFlip = function () {
+        // Alias for Reverse (Keystone naming)
+        if (IS_AEFT) return saadKeysAeReverse();
+        return { ok: false, host: APP, message: "Flip is only available in After Effects." };
+    };
+
+    host.saadstudio.saadKeysLabel = function (colorIndex) {
+        if (IS_AEFT) return saadKeysAeLabel(colorIndex);
+        return { ok: false, host: APP, message: "Labels are only available in After Effects." };
+    };
+
     host.saadstudio.ping = function () {
         return { ok: true, host: APP, time: new Date().getTime() };
     };
 })();
+

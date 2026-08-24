@@ -43,7 +43,7 @@
   },
   "selfTest": {
     "script": "runtime-assets/faster-whisper-runtime-self-test.py",
-    "sha256": "a666d8a24fbb8b8e06f6cb21502b3ef898382715f69e613c355d6341592e5165",
+    "sha256": "92e447d767d09c1591f32faf08f496fefea157b4d283bcc8fa951a991f44f3b1",
     "timeoutMs": 120000
   }
 }

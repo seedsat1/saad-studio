@@ -148,6 +148,15 @@ const ALL_APPS: AppDef[] = [
     color: "#22d3ee", // teal
   },
   {
+    id: "saad-curves",
+    name: "Saad Curves",
+    description: "Apply Bezier easing presets to selected keyframes.",
+    route: "/saad-curves",
+    icon: "settings",
+    color: "#22d3ee",
+    badge: "NEW",
+  },
+  {
     id: "synchronize",
     name: "Synchronize",
     description: "Check podcast timeline sync before automatic camera switching.",
@@ -183,6 +192,24 @@ const ALL_APPS: AppDef[] = [
     color: "#4ade80", // green
     comingSoon: true,
   },
+  {
+    id: "mcp-bridge",
+    name: "MCP Bridge",
+    description: "Connect LLM clients to automate Premiere Pro using Model Context Protocol.",
+    route: "/mcp-bridge",
+    icon: "link",
+    color: "#60a5fa", // sky blue
+    badge: "NEW",
+  },
+  {
+    id: "ai-copilot",
+    name: "AI Copilot",
+    description: "Chat with Saad AI to automatically edit your timeline and execute commands.",
+    route: "/ai-copilot",
+    icon: "spark",
+    color: "#a855f7", // purple
+    badge: "NEW",
+  },
 ];
 
 export const APPS: AppDef[] = getHostApp() === "PHXS"
@@ -194,3 +221,4 @@ export const APPS: AppDef[] = getHostApp() === "PHXS"
 export function findApp(id: string): AppDef | undefined {
   return APPS.find((a) => a.id === id);
 }
+

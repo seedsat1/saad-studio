@@ -31,6 +31,9 @@ import { AudiogramPage } from "./pages/audiogram";
 import { MultiCamAutoSwitchPage } from "./pages/multi-cam-auto-switch";
 import { NoiseRemovalPage } from "./pages/noise-removal";
 import { EyeCorrectionPage } from "./pages/eye-correction";
+import { SaadCurvesPage } from "./pages/saad-curves";
+import { MCPBridgePage } from "./pages/mcp-bridge";
+import { AICopilotPage } from "./pages/ai-copilot";
 
 async function bootstrap() {
   if (isInsideAdobe()) {
@@ -110,6 +113,9 @@ async function bootstrap() {
       "/multi-cam-auto-switch": requireAuth(MultiCamAutoSwitchPage),
       "/noise-removal":  requireAuth(NoiseRemovalPage),
       "/eye-correction": requireAuth(EyeCorrectionPage),
+      "/saad-curves":       requireAuth(SaadCurvesPage),
+      "/mcp-bridge":        requireAuth(MCPBridgePage),
+      "/ai-copilot":        requireAuth(AICopilotPage),
     },
     fallback: () => {
       navigate("/");

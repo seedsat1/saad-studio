@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $repoExe = Split-Path -Parent $MyInvocation.MyCommand.Path
 $adobeRoot = Split-Path -Parent $repoExe
-$sourceRoot = Join-Path $adobeRoot "saadstudio-cep\release\extension\app.saadstudio.cep"
+$sourceRoot = Join-Path $adobeRoot "saadstudio-cep\release\extension\saadstudio-cep"
 $payloadZip = Join-Path $repoExe "payload.zip"
 $installerSource = Join-Path $repoExe "SaadStudioInstaller.cs"
 $installerExe = Join-Path $repoExe "SaadStudio-Setup.exe"

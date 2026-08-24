@@ -28,6 +28,13 @@ const MINIMAX_H3_USD_PER_SECOND = {
   "768p": 0.10,
   "2k": 0.14,
 } as const;
+const WAN_30_CREDITS_PER_USD = 40;
+const WAN_30_MARGIN_MULTIPLIER = 1.4;
+const WAN_30_USD_PER_SECOND = {
+  "480p": 0.05,
+  "720p": 0.10,
+  "1080p": 0.20,
+} as const;
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["minimax/h3/reference-to-video", 28.0],
@@ -245,6 +252,14 @@ function getSeedance25SpicyCredits(payload?: VideoPayload): number {
   const usdPerSecond = SEEDANCE_25_USD_PER_SECOND[q] ?? SEEDANCE_25_USD_PER_SECOND["720p"];
   return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_MARGIN_MULTIPLIER * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }
+
+function getWan30Credits(payload?: VideoPayload): number {
+  const duration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const q: keyof typeof WAN_30_USD_PER_SECOND = quality.includes("1080") ? "1080p" : quality.includes("480") ? "480p" : "720p";
+  const usdPerSecond = WAN_30_USD_PER_SECOND[q] ?? WAN_30_USD_PER_SECOND["720p"];
+  return parseFloat(Math.max(1, usdPerSecond * duration * WAN_30_MARGIN_MULTIPLIER * WAN_30_CREDITS_PER_USD).toFixed(2));
+}
 function getSora2Credits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 4);
   const isPro = modelRoute.includes("text-to-video-pro") || modelRoute.includes("sora-2-pro");
@@ -461,6 +476,9 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
   }
   if (modelRoute === "bytedance/seedance-2.5/image-to-video-spicy") {
     return getSeedance25SpicyCredits(payload);
+  }
+  if (modelRoute.startsWith("alibaba/wan-3.0")) {
+    return getWan30Credits(payload);
   }
   if (
     modelRoute === "google/veo3.1-lite-text-to-video" ||

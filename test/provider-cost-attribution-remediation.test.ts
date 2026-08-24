@@ -122,6 +122,21 @@ describe("Provider Cost Attribution Remediation Suite", () => {
     expect(seedance25.usd).toBe(0.90); // $0.18/s * 5s
   });
 
+  it("6.1. verifies WaveSpeed Alibaba Wan 3.0 uses WaveSpeed tariff without BytePlus or KIE leakage", () => {
+    const wan30 = estimateProviderCostSync({
+      modelRef: "alibaba/wan-3.0/reference-to-video",
+      providerName: "WaveSpeed",
+      providerModel: "alibaba/wan-3.0/reference-to-video",
+      durationSec: 2,
+      resolution: "1080p",
+    });
+
+    expect(wan30.source).toBe("estimated");
+    expect(wan30.usd).toBe(0.40); // $0.20/s * 2s
+    expect(wan30.provenance?.provider).toBe("WaveSpeed");
+    expect(wan30.tariffKey).toBe("wavespeed:video:alibaba-wan-3.0:1080p");
+  });
+
   it("7. verifies OpenAI execution uses OpenAI tariff as ESTIMATED_VERIFIED", () => {
     const dalle3 = estimateProviderCostSync({
       modelRef: "openai/dall-e-3",

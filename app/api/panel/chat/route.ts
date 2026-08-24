@@ -22,37 +22,58 @@ export async function POST(req: NextRequest) {
       where: { id: verified.userId },
       select: { isBanned: true },
     });
+    console.log("[CHAT_API] Incoming request for userId:", verified.userId, "isBanned:", dbUser?.isBanned);
     if (dbUser?.isBanned) {
       return NextResponse.json({ error: "Account suspended." }, { status: 403 });
     }
 
-    const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
-    if (!kieApiKey) throw new Error("KIE API key not configured on server.");
+    const wavespeedKey = process.env.WAVESPEED_API_KEY;
+    if (!wavespeedKey) throw new Error("WaveSpeed API key not configured on server.");
 
-    const body = await req.json() as { messages?: unknown[]; reasoning_effort?: string };
+    const body = await req.json() as { messages?: unknown[] };
     if (!body.messages?.length) {
       return NextResponse.json({ error: "Please provide messages." }, { status: 400 });
     }
 
-    const res = await fetch(KIE_CHAT_URL, {
+    // Format OpenAI messages array into a single prompt for WaveSpeed any-llm
+    const formattedMessages = (body.messages as { role: string; content: string }[]).map((m) => {
+      if (m.role === "system") return `System: ${m.content}`;
+      if (m.role === "user") return `User: ${m.content}`;
+      return `Assistant: ${m.content}`;
+    });
+    const prompt = formattedMessages.join("\n\n") + "\n\nAssistant:";
+
+    const res = await fetch("https://api.wavespeed.ai/api/v3/wavespeed-ai/any-llm", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${kieApiKey}`,
+        Authorization: `Bearer ${wavespeedKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        messages: body.messages,
-        reasoning_effort: body.reasoning_effort ?? "high",
+        model: "anthropic/claude-3-5-sonnet",
+        prompt: prompt,
+        enable_sync_mode: true,
       }),
     });
 
-    const json = await res.json().catch(() => null) as Record<string, unknown> | null;
-    if (!res.ok) {
-      const msg = (json && (json.msg || json.message)) ? String(json.msg || json.message) : `HTTP ${res.status}`;
+    const json = await res.json().catch(() => null) as any;
+    if (!res.ok || json?.code !== 200) {
+      const msg = json?.message || json?.msg || `HTTP ${res.status}`;
       throw new Error(msg);
     }
 
-    return NextResponse.json(json);
+    const textOutput = json?.data?.outputs?.[0] || "";
+
+    // Return in standard OpenAI chat completions shape for the client
+    return NextResponse.json({
+      choices: [
+        {
+          message: {
+            content: textOutput,
+          },
+        },
+      ],
+    });
   } catch (err) {
     console.error("[panel/chat]", err);
     const msg = err instanceof Error ? err.message : "Server error";

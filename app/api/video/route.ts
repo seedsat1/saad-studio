@@ -13,6 +13,7 @@ import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { getCentralizedDynamicVideoModels } from "@/lib/model-definition-registry";
+import { resolveDynamicVideoSubRoute } from "@/lib/dynamic-model-loader";
 import { getGoogleVideoConstraints, isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
@@ -2295,11 +2296,11 @@ export async function POST(req: Request) {
 
     // Intelligent background sub-route dispatch for unified dynamic models
     if (dynamicVideoModel) {
-      if (hasImage && dynamicVideoModel.image_api_route) {
-        modelRoute = dynamicVideoModel.image_api_route;
-      } else if (!hasImage && dynamicVideoModel.text_api_route) {
-        modelRoute = dynamicVideoModel.text_api_route;
-      }
+      const dynamicHasImageOrReferenceInput =
+        hasImage ||
+        hasNonEmptyStringList(payload.reference_image_urls) ||
+        hasNonEmptyStringList(payload.referenceImageUrls);
+      modelRoute = resolveDynamicVideoSubRoute(dynamicVideoModel, dynamicHasImageOrReferenceInput) || modelRoute;
     }
 
     let kieModel = (isDirectGoogleVeo31Route || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);
@@ -2309,9 +2310,16 @@ export async function POST(req: Request) {
     }
 
     if (dynamicVideoModel) {
-      const isWaveSpeed = dynamicVideoModel.family === "hailuo" || dynamicVideoModel.family === "seedance" || dynamicVideoModel.isCustom;
+      const isWaveSpeed =
+        dynamicVideoModel.family === "hailuo" ||
+        dynamicVideoModel.family === "seedance" ||
+        dynamicVideoModel.family === "wan" ||
+        dynamicVideoModel.api_route?.startsWith("alibaba/") ||
+        dynamicVideoModel.text_api_route?.startsWith("alibaba/") ||
+        dynamicVideoModel.image_api_route?.startsWith("alibaba/") ||
+        dynamicVideoModel.isCustom;
       if (isWaveSpeed) {
-        wavespeedRoute = dynamicVideoModel.api_route || modelRoute;
+        wavespeedRoute = modelRoute;
         kieModel = undefined;
       } else {
         kieModel = resolveKieVideoModel(dynamicVideoModel.api_route) || dynamicVideoModel.id;

@@ -91,6 +91,27 @@ const parityCases: PricingCase[] = [
     expected: 39.2,
   },
   {
+    name: "Alibaba Wan 3.0 480p",
+    modelRef: "alibaba/wan-3.0/text-to-video",
+    durationSec: 30,
+    quality: "480p",
+    expected: 84,
+  },
+  {
+    name: "Alibaba Wan 3.0 720p",
+    modelRef: "alibaba/wan-3.0/image-to-video",
+    durationSec: 30,
+    quality: "720p",
+    expected: 168,
+  },
+  {
+    name: "Alibaba Wan 3.0 1080p",
+    modelRef: "alibaba/wan-3.0/reference-to-video",
+    durationSec: 30,
+    quality: "1080p",
+    expected: 336,
+  },
+  {
     name: "GPT Image 2",
     modelRef: "gpt-image-2-text-to-image",
     numUnits: 1,
@@ -203,6 +224,15 @@ describe("pricing core user charge parity", () => {
       getVideoCreditsByRoute("bytedance/seedance-2.5/text-to-video-turbo", routePayload),
     );
     await expect(getMusicCreditsAsync("elevenlabs/music", 60)).resolves.toBe(getMusicCredits("elevenlabs/music", 60));
+  });
+
+  it("prices Alibaba Wan 3.0 short generations from source screenshot rates plus platform margin", async () => {
+    invalidatePricingCache();
+
+    await expect(getGenerationCost("alibaba/wan-3.0/text-to-video", 2, 1, "480p")).resolves.toBe(5.6);
+    await expect(getGenerationCost("alibaba/wan-3.0/image-to-video", 2, 1, "720p")).resolves.toBe(11.2);
+    await expect(getGenerationCost("alibaba/wan-3.0/reference-to-video", 2, 1, "1080p")).resolves.toBe(22.4);
+    expect(getVideoCreditsByRoute("alibaba/wan-3.0/reference-to-video", { duration: 2, resolution: "1080p" })).toBe(22.4);
   });
 
   it("keeps direct provider video dispatch pricing in parity with the previous sync helper when DB is unavailable", async () => {

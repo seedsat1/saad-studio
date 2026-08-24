@@ -80,6 +80,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
   describe("4. WaveSpeed Route Normalization & Grok Routing", () => {
     it("correctly routes Grok text-to-image and edit to official WaveSpeed endpoints", async () => {
       const { resolveWaveSpeedImageModelRoute, normalizeWaveSpeedModelEndpoint } = await import("@/lib/wavespeed-image-routing");
+      const { resolveVideoModelSource } = await import("@/lib/model-source-map");
 
       const textRoute = resolveWaveSpeedImageModelRoute("grok-imagine/text-to-image", false, 1);
       expect(textRoute?.model).toBe("x-ai/grok-imagine-image-quality/text-to-image");
@@ -94,6 +95,26 @@ describe("Admin Models Backend Hardening Test Suite", () => {
 
       const customNormalized = normalizeWaveSpeedModelEndpoint("bytedance-seedream-v5.0-pro-text-to-image");
       expect(customNormalized).toBe("bytedance/seedream-v5.0-pro/text-to-image");
+
+      const alibabaSource = resolveVideoModelSource({
+        id: "wan-3-unified",
+        api_route: "alibaba/wan-3.0/text-to-video",
+      });
+      expect(alibabaSource.runtimeSource).toBe("wavespeed");
+      expect(alibabaSource.pricingProvider).toBe("wavespeed");
+    });
+
+    it("keeps one subscriber-facing dynamic video model while dispatching text versus image/reference routes", async () => {
+      const { resolveDynamicVideoSubRoute } = await import("@/lib/dynamic-model-loader");
+
+      const unifiedModel = {
+        api_route: "alibaba/wan-3.0/text-to-video",
+        text_api_route: "alibaba/wan-3.0/text-to-video",
+        image_api_route: "alibaba/wan-3.0/image-to-video",
+      };
+
+      expect(resolveDynamicVideoSubRoute(unifiedModel, false)).toBe("alibaba/wan-3.0/text-to-video");
+      expect(resolveDynamicVideoSubRoute(unifiedModel, true)).toBe("alibaba/wan-3.0/image-to-video");
     });
   });
 

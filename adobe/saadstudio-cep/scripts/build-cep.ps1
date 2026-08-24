@@ -5,7 +5,7 @@ $clientDir = Join-Path $root "client"
 $distDir = Join-Path $clientDir "dist"
 $releaseDir = Join-Path $root "release"
 $stageRoot = Join-Path $releaseDir "extension"
-$extensionDir = Join-Path $stageRoot "app.saadstudio.cep"
+$extensionDir = Join-Path $stageRoot "saadstudio-cep"
 $manualZip = Join-Path $releaseDir "SaadStudio-manual.zip"
 $manifestPath = Join-Path $root "CSXS\manifest.xml"
 
@@ -108,7 +108,7 @@ Hosts: $hostNames
 If the installer fails, use SaadStudio-manual.zip:
 
 1. Extract the zip file.
-2. Copy the app.saadstudio.cep folder to:
+2. Copy the saadstudio-cep folder to:
    - Windows: %APPDATA%\Adobe\CEP\extensions\
 3. Enable CEP PlayerDebugMode if Adobe blocks unsigned beta panels.
 4. Restart the Adobe host app and open:
@@ -125,7 +125,7 @@ $troubleshootingDoc = @"
 ## The panel does not appear in Premiere Pro or After Effects
 
 - Restart the Adobe app after installation.
-- Confirm the extension folder exists under %APPDATA%\Adobe\CEP\extensions\app.saadstudio.cep.
+- Confirm the extension folder exists under %APPDATA%\Adobe\CEP\extensions\saadstudio-cep.
 - If you used manual install, make sure the folder contains CSXS\manifest.xml and client\dist\index.html.
 
 ## Installer rejects the beta package
