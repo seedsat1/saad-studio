@@ -60,11 +60,21 @@ function mergeWan30AdminCapabilities(
 ): WaveSpeedVideoModel["capabilities"] {
   if (!existing) return curated;
 
+  const mergeOptions = (baseline: string[], override?: string[]) => {
+    const ordered = [...baseline];
+    if (Array.isArray(override)) {
+      for (const option of override) {
+        if (typeof option === "string" && option.trim() && !ordered.includes(option)) {
+          ordered.push(option);
+        }
+      }
+    }
+    return ordered;
+  };
+
   return {
     ...curated,
-    aspect_ratios: Array.isArray(existing.aspect_ratios) && existing.aspect_ratios.length > 0
-      ? existing.aspect_ratios
-      : curated.aspect_ratios,
+    aspect_ratios: mergeOptions(curated.aspect_ratios, existing.aspect_ratios),
     durations: Array.isArray(existing.durations) && existing.durations.length > 0
       ? existing.durations
       : curated.durations,

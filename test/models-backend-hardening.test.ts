@@ -137,7 +137,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(wan30?.capabilities.max_reference_audios).toBe(5);
     });
 
-    it("lets Admin Models override Wan 3.0 capability options while keeping curated Seedance capabilities protected", async () => {
+    it("keeps official Wan 3.0 ratios visible when stale Admin Models rows only contain one ratio", async () => {
       const { normalizeDynamicVideoModels } = await import("@/lib/dynamic-model-loader");
       const wan30 = VIDEO_MODEL_REGISTRY.find((model) => model.id === "alibaba-wan-3.0-video");
       const seedance25 = VIDEO_MODEL_REGISTRY.find((model) => model.id === "bytedance-seedance-v25-t2v-turbo");
@@ -150,7 +150,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
           ...wan30!,
           capabilities: {
             ...wan30!.capabilities,
-            aspect_ratios: ["16:9", "9:16"],
+            aspect_ratios: ["16:9"],
             durations: [2, 10, 30],
             resolutions: ["720p"],
             max_reference_images: 3,
@@ -168,7 +168,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       const normalizedWan30 = normalized.find((model) => model.id === "alibaba-wan-3.0-video");
       const normalizedSeedance25 = normalized.find((model) => model.id === "bytedance-seedance-v25-t2v-turbo");
 
-      expect(normalizedWan30?.capabilities.aspect_ratios).toEqual(["16:9", "9:16"]);
+      expect(normalizedWan30?.capabilities.aspect_ratios).toEqual(["16:9", "9:16", "1:1", "4:3", "3:4"]);
       expect(normalizedWan30?.capabilities.durations).toEqual([2, 10, 30]);
       expect(normalizedWan30?.capabilities.resolutions).toEqual(["720p"]);
       expect(normalizedWan30?.capabilities.max_reference_images).toBe(3);
