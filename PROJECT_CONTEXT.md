@@ -53,6 +53,46 @@
   - `npx.cmd vitest run test/assets-route.test.ts test/video-media-picker-assets.test.ts` passed: 5/5 tests.
   - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
 
+#### Latest task: Saad Voice Agent Admin Dashboard Correction (2026-08-25)
+- Status: Completed with TypeScript/tests verified; lint blocked by pre-existing unrelated lint errors.
+- Scope:
+  - Corrected Saad Voice Agent to live inside the Admin Dashboard under `/admin/voice-agent`, not the subscriber dashboard.
+  - Added subpages:
+    - `/admin/voice-agent`
+    - `/admin/voice-agent/tasks/[id]`
+    - `/admin/voice-agent/agents`
+    - `/admin/voice-agent/integrations`
+    - `/admin/voice-agent/settings`
+  - Added navigation entry `Voice Agent` to `AdminSidebar` under OPERATIONS and removed subscriber-dashboard navigation links for this feature.
+- Key Deliverables:
+  1. Added Prisma schema models for `VoiceAgent`, `VoiceAgentTask`, `TaskStep`, `VoiceAgentCall`, `CallTranscript`, `AgentToolExecution`, `ApprovalRequest`, `VoiceAgentContact`, `VoiceAgentIntegrationConnection`, `VoiceAgentUsage`, and `VoiceAgentAuditLog`, plus non-destructive manual SQL migration `prisma/migrations/manual/2026-08-25-voice-agent.sql`.
+  2. Added `lib/voice-agent/*` domain layer: typed task states, Zod schemas, approval policy logic, usage estimation, tools registry, and `MockTelephonyProvider`.
+  3. Added admin-gated `/api/voice-agent/*` routes using Clerk `userId` isolation and rate limiting for task creation.
+  4. Added RTL admin dashboard UI components inside `AdminShell` for chat-first task creation, live task timeline, approval decisions, transcript display, usage/cost summary, agents, integrations, and settings.
+  5. Preserved safety constraints: no real calls, no real messages, no frontend API keys, explicit AI caller disclosure script, and no automatic credit ledger mutation in the mock provider path.
+- Files affected:
+  - `prisma/schema.prisma`
+  - `prisma/migrations/manual/2026-08-25-voice-agent.sql`
+  - `lib/voice-agent/*`
+  - `app/api/voice-agent/*`
+  - `components/voice-agent/*`
+  - `app/admin/voice-agent/*`
+  - `components/admin/AdminSidebar.tsx`
+  - removed mistaken `app/(dash)/(routes)/dashboard/voice-agent/*` subscriber pages
+  - `app/(dash)/(routes)/video/page.tsx` (small local type widening for existing generated-media picker fields used by the file)
+  - `test/voice-agent-core.test.ts`
+- Verification:
+  - `npx.cmd prisma generate` passed.
+  - `npx.cmd vitest run test/voice-agent-core.test.ts` passed: 4/4 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+  - `npm.cmd run lint` failed due unrelated existing lint issues in files outside the Voice Agent feature, including `app/(dash)/(routes)/agent-studio/page.tsx`, `app/(dash)/(routes)/apps/tool/face-swap/page.tsx`, `app/(dash)/(routes)/drama-studio/page.tsx`, and missing configured rule `@typescript-eslint/no-explicit-any` in `lib/providers/kie.ts`, `lib/runninghub.ts`, and `lib/studio-img.ts`.
+- Decisions:
+  - Corrected the route prefix to `/admin/voice-agent` after the owner clarified that "dashboard" means Admin Dashboard, not subscriber dashboard.
+  - Kept provider execution mocked until real Twilio/Telnyx/SIP/WhatsApp/Email credentials and webhook signatures are explicitly configured.
+  - Did not debit user credits during mock execution; only checks sufficiency and records `VoiceAgentUsage` to avoid corrupting the production credit ledger.
+- Remaining step:
+  - Apply SQL migration to the real database, then wire a real telephony provider with signed webhooks and explicit production credit debit policy after owner approval.
+
 #### Latest task: Video Media Picker Generated Assets Audit (2026-08-25)
 - Status: Completed & Verified (PASS).
 - Issue:
@@ -14272,3 +14312,18 @@
   - Production build compiled successfully.
 
 
+
+
+#### Latest task: Video Studio Reference Grid Inline Add-More Button & Wan 3.0 Multi-Ref Preservation (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Added an intuitive, visible `+ Add` button square right inside the reference thumbnails grid next to existing uploaded reference items (e.g. `@Image1`), allowing users to easily add up to 10 images, 5 videos, and 5 audios directly from the grid.
+  - Reset file input values on selection (`e.target.value = ""`) so re-selection of media files from device works reliably.
+  - Guarded Wan 3.0 reference capacities across `lib/dynamic-model-loader.ts` to ensure certified multi-reference limits (up to 10 images, 5 videos, 5 audios) are always enabled.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `lib/dynamic-model-loader.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - `npm run build` compiled successfully.
