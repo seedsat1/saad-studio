@@ -71,6 +71,8 @@ export interface VideoModelCapabilities {
   has_loop: boolean;
   has_seed: boolean;
   has_cfg_scale: boolean;
+  /** Exact maximum character length allowed for the generation prompt by the provider API */
+  max_prompt_characters?: number;
 
   // ── Advanced controls ─────────────────────────────────────────────────────
   /** sound / generate_audio param */

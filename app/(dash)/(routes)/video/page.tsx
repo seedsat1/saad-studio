@@ -1904,17 +1904,24 @@ function VideoPageInner() {
   );
 
   const maxPromptChars = useMemo(() => {
+    if (typeof selectedModel?.capabilities?.max_prompt_characters === "number" && selectedModel.capabilities.max_prompt_characters > 0) {
+      return selectedModel.capabilities.max_prompt_characters;
+    }
     const route = (selectedModel?.api_route || "").toLowerCase();
-    if (route.includes("minimax") || route.includes("hailuo")) return 2000;
-    if (route.includes("luma") || route.includes("dream-machine")) return 2000;
-    if (route.includes("pixverse")) return 2000;
-    if (route.includes("kling")) return 2500;
-    if (route.includes("seedance") || route.includes("bytedance")) return 2500;
-    if (route.includes("veo") || route.includes("google")) return 2500;
-    if (route.includes("sora")) return 2500;
-    if (route.includes("wan")) return 2500;
+    const family = (selectedModel?.family || "").toLowerCase();
+    if (route.includes("vidu") || family.includes("vidu")) return 1500;
+    if (route.includes("minimax") || route.includes("hailuo") || family.includes("minimax") || family.includes("hailuo")) return 2000;
+    if (route.includes("luma") || route.includes("dream-machine") || family.includes("luma")) return 2000;
+    if (route.includes("pixverse") || family.includes("pixverse")) return 2000;
+    if (route.includes("hunyuan") || family.includes("hunyuan")) return 2000;
+    if (route.includes("cogvideo") || family.includes("cogvideo")) return 2000;
+    if (route.includes("kling") || family.includes("kling")) return 2500;
+    if (route.includes("seedance") || route.includes("bytedance") || family.includes("seedance")) return 2500;
+    if (route.includes("veo") || route.includes("google") || family.includes("google")) return 2500;
+    if (route.includes("sora") || family.includes("sora") || family.includes("openai")) return 2500;
+    if (route.includes("wan") || family.includes("wan") || family.includes("alibaba")) return 2500;
     return 2500;
-  }, [selectedModel?.api_route]);
+  }, [selectedModel]);
 
   const remainingPromptChars = maxPromptChars - prompt.length;
   const isPromptOverLimit = remainingPromptChars < 0;
