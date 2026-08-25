@@ -1,8 +1,9 @@
 import { BackblazeProvider } from "./backblaze";
 import { R2Provider } from "./r2";
+import { SupabaseStorageProvider } from "./supabase";
 import type { StorageProvider } from "./types";
 
-export type StorageProviderId = "backblaze" | "r2" | (string & {});
+export type StorageProviderId = "backblaze" | "r2" | "supabase" | (string & {});
 export type StorageProviderStatus = "configured" | "unavailable" | "disabled";
 
 export type StorageProviderDefinition = {
@@ -24,6 +25,7 @@ export type StorageProviderDefinition = {
 const providerSingletons: Record<string, StorageProvider> = {
   backblaze: new BackblazeProvider(),
   r2: new R2Provider(),
+  supabase: new SupabaseStorageProvider(),
 };
 
 export function isBackblazeConfigured(): boolean {
@@ -84,6 +86,21 @@ export function getStorageProviderRegistry(): StorageProviderDefinition[] {
       endpoint: "https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev",
       publicBaseUrl: "https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev",
       lastError: r2Configured ? null : "Legacy R2 public read endpoint is not configured.",
+    },
+    {
+      id: "supabase",
+      displayName: "Supabase Storage Legacy",
+      provider: getStorageProvider("supabase"),
+      configured: Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
+      readEnabled: true,
+      writeEnabled: false,
+      legacyReadOnly: true,
+      status: Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) ? "configured" : "unavailable",
+      bucket: "images",
+      region: null,
+      endpoint: safeEndpoint(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
+      publicBaseUrl: safeEndpoint(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
+      lastError: null,
     },
   ];
 }

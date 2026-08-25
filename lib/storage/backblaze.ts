@@ -88,10 +88,22 @@ export class BackblazeProvider implements StorageProvider {
       })
     );
 
+    let bodyData: any = getResponse.Body;
+    if (getResponse.Body && typeof (getResponse.Body as any).transformToByteArray === "function") {
+      try {
+        const bytes = await (getResponse.Body as any).transformToByteArray();
+        bodyData = Buffer.from(bytes);
+      } catch {
+        bodyData = getResponse.Body;
+      }
+    }
+
+    const byteLength = Buffer.isBuffer(bodyData) ? bodyData.length : (getResponse.ContentLength ?? headResponse.ContentLength ?? 0);
+
     return {
-      body: getResponse.Body,
-      contentLength: getResponse.ContentLength ?? headResponse.ContentLength ?? 0,
-      totalSize: headResponse.ContentLength ?? 0,
+      body: bodyData,
+      contentLength: byteLength,
+      totalSize: headResponse.ContentLength ?? byteLength,
       contentType: getResponse.ContentType || headResponse.ContentType || "application/octet-stream",
       cacheControl: getResponse.CacheControl || headResponse.CacheControl || "public, max-age=31536000, immutable",
       etag: getResponse.ETag || headResponse.ETag || undefined,

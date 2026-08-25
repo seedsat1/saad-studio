@@ -142,6 +142,25 @@ export async function GET(
       });
     }
 
+    // Fallback: If not found in storage providers, attempt direct fetch from storage public endpoint
+    const b2FallbackUrl = `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/${decodedKey}`;
+    try {
+      const b2Res = await fetch(b2FallbackUrl, { signal: AbortSignal.timeout(6000) });
+      if (b2Res.ok) {
+        const buffer = Buffer.from(await b2Res.arrayBuffer());
+        const fixedCt = fixContentType(b2Res.headers.get("content-type") || undefined, decodedKey);
+        return new NextResponse(buffer, {
+          status: 200,
+          headers: {
+            "Content-Type": fixedCt,
+            "Content-Length": String(buffer.length),
+            "Cache-Control": "public, max-age=31536000, immutable",
+            ...corsHeaders,
+          },
+        });
+      }
+    } catch {}
+
     const attempts = await headObject({ objectKey: decodedKey }).catch(() => []);
     console.warn(`[api/media GET] Key not found in storage runtime: ${decodedKey}`, attempts);
     return new NextResponse("Not Found", { status: 404, headers: corsHeaders });
