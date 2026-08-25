@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 type AssetType = "image" | "video" | "audio" | "3d" | "text";
 
-function toAssetType(raw: string): AssetType {
+function assetTypeFromToken(raw: string): AssetType | null {
   const normalized = String(raw || "").toLowerCase();
   if (normalized.includes("image") || normalized === "storyboard" || normalized === "makeup" || normalized === "relight" || normalized === "thumbnail") return "image";
   if (normalized.includes("video") || normalized.includes("transition")) return "video";
@@ -33,7 +33,42 @@ function toAssetType(raw: string): AssetType {
     return "text";
   }
 
-  return "3d";
+  return null;
+}
+
+function looksLikeMediaType(url: string, type: AssetType): boolean {
+  const lower = String(url || "").toLowerCase();
+  if (!lower) return false;
+  if (type === "image") return /(?:^|[./_-])(images?|thumbnails?)(?:[./_-]|$)/.test(lower) || /\.(png|jpe?g|webp|gif|bmp|tiff|avif)(?:[?#].*)?$/i.test(lower);
+  if (type === "video") return /(?:^|[./_-])videos?(?:[./_-]|$)/.test(lower) || /\.(mp4|mov|webm|avi|mkv|m4v|flv|3gp)(?:[?#].*)?$/i.test(lower);
+  if (type === "audio") return /(?:^|[./_-])audio(?:[./_-]|$)/.test(lower) || /\.(mp3|wav|m4a|aac|ogg|flac)(?:[?#].*)?$/i.test(lower);
+  return false;
+}
+
+function inferAssetType(row: {
+  type?: string | null;
+  assetType?: string | null;
+  mediaUrl?: string | null;
+  outputUrl?: string | null;
+  modelUsed?: string | null;
+}): AssetType {
+  const persistedType = assetTypeFromToken(row.type || "");
+  if (persistedType) return persistedType;
+
+  const declaredType = assetTypeFromToken(row.assetType || "");
+  if (declaredType) return declaredType;
+
+  const mediaUrl = String(row.mediaUrl || "");
+  const outputUrl = String(row.outputUrl || "");
+  for (const candidate of ["image", "video", "audio"] as const) {
+    if (looksLikeMediaType(mediaUrl, candidate) || looksLikeMediaType(outputUrl, candidate)) return candidate;
+  }
+
+  const model = String(row.modelUsed || "").toLowerCase();
+  if (model.includes("video") || model.includes("transition") || model.includes("veo") || model.includes("seedance") || model.includes("sora") || model.includes("kling") || model.includes("hailuo") || model.includes("minimax") || model.includes("wan-")) return "video";
+  if (model.includes("audio") || model.includes("music") || model.includes("voice") || model.includes("speech") || model.includes("tts") || model.includes("elevenlabs")) return "audio";
+  if (model.includes("3d") || model.includes("mesh")) return "3d";
+  return "image";
 }
 
 function isRenderableAssetUrl(url: string): boolean {
@@ -84,12 +119,16 @@ function resolveAssetUrl(mediaUrl: string | null, outputUrl: string | null, conf
   const normalizedOutput = normalizeMediaUrl(output, { config }) || "";
   
   if (normalizedMedia && !normalizedMedia.startsWith("task:")) return normalizedMedia;
+  if (media && /^https?:\/\//i.test(media) && !media.startsWith("task:")) return media;
   if (normalizedOutput) return normalizedOutput;
+  if (output && /^https?:\/\//i.test(output)) return output;
   return "";
 }
 
 function firstNumberParam(req: NextRequest, key: string, fallback: number, min: number, max: number): number {
-  const raw = Number(req.nextUrl.searchParams.get(key));
+  const rawParam = req.nextUrl.searchParams.get(key);
+  if (rawParam == null || rawParam.trim() === "") return fallback;
+  const raw = Number(rawParam);
   if (!Number.isFinite(raw)) return fallback;
   return Math.min(max, Math.max(min, Math.floor(raw)));
 }
@@ -98,18 +137,57 @@ function buildAssetTypeWhere(type: string): any {
   if (type === "image") {
     return {
       OR: [
+        { type: { equals: "image", mode: "insensitive" } },
         { assetType: { contains: "image", mode: "insensitive" } },
         { assetType: { contains: "storyboard", mode: "insensitive" } },
         { assetType: { contains: "makeup", mode: "insensitive" } },
         { assetType: { contains: "relight", mode: "insensitive" } },
         { assetType: { contains: "thumbnail", mode: "insensitive" } },
+        { mediaUrl: { contains: "/image", mode: "insensitive" } },
+        { mediaUrl: { contains: ".png", mode: "insensitive" } },
+        { mediaUrl: { contains: ".jpg", mode: "insensitive" } },
+        { mediaUrl: { contains: ".jpeg", mode: "insensitive" } },
+        { mediaUrl: { contains: ".webp", mode: "insensitive" } },
+        { outputUrl: { contains: "/image", mode: "insensitive" } },
+        { outputUrl: { contains: ".png", mode: "insensitive" } },
+        { outputUrl: { contains: ".jpg", mode: "insensitive" } },
+        { outputUrl: { contains: ".jpeg", mode: "insensitive" } },
+        { outputUrl: { contains: ".webp", mode: "insensitive" } },
+        { modelUsed: { contains: "image", mode: "insensitive" } },
+        { modelUsed: { contains: "imagen", mode: "insensitive" } },
+        { modelUsed: { contains: "flux", mode: "insensitive" } },
+        { modelUsed: { contains: "nano-banana", mode: "insensitive" } },
       ],
     };
   }
-  if (type === "video") return { assetType: { contains: "video", mode: "insensitive" } };
+  if (type === "video") {
+    return {
+      OR: [
+        { type: { equals: "video", mode: "insensitive" } },
+        { assetType: { contains: "video", mode: "insensitive" } },
+        { assetType: { contains: "transition", mode: "insensitive" } },
+        { mediaUrl: { contains: "/video", mode: "insensitive" } },
+        { mediaUrl: { contains: ".mp4", mode: "insensitive" } },
+        { mediaUrl: { contains: ".mov", mode: "insensitive" } },
+        { mediaUrl: { contains: ".webm", mode: "insensitive" } },
+        { outputUrl: { contains: "/video", mode: "insensitive" } },
+        { outputUrl: { contains: ".mp4", mode: "insensitive" } },
+        { outputUrl: { contains: ".mov", mode: "insensitive" } },
+        { outputUrl: { contains: ".webm", mode: "insensitive" } },
+        { modelUsed: { contains: "video", mode: "insensitive" } },
+        { modelUsed: { contains: "kling", mode: "insensitive" } },
+        { modelUsed: { contains: "seedance", mode: "insensitive" } },
+        { modelUsed: { contains: "veo", mode: "insensitive" } },
+        { modelUsed: { contains: "wan-", mode: "insensitive" } },
+        { modelUsed: { contains: "hailuo", mode: "insensitive" } },
+        { modelUsed: { contains: "minimax", mode: "insensitive" } },
+      ],
+    };
+  }
   if (type === "audio") {
     return {
       OR: [
+        { type: { equals: "audio", mode: "insensitive" } },
         { assetType: { contains: "audio", mode: "insensitive" } },
         { assetType: { contains: "music", mode: "insensitive" } },
         { assetType: { contains: "voice", mode: "insensitive" } },
@@ -117,6 +195,18 @@ function buildAssetTypeWhere(type: string): any {
         { assetType: { contains: "sound", mode: "insensitive" } },
         { assetType: { contains: "sfx", mode: "insensitive" } },
         { assetType: { contains: "tts", mode: "insensitive" } },
+        { mediaUrl: { contains: "/audio", mode: "insensitive" } },
+        { mediaUrl: { contains: ".mp3", mode: "insensitive" } },
+        { mediaUrl: { contains: ".wav", mode: "insensitive" } },
+        { mediaUrl: { contains: ".m4a", mode: "insensitive" } },
+        { outputUrl: { contains: "/audio", mode: "insensitive" } },
+        { outputUrl: { contains: ".mp3", mode: "insensitive" } },
+        { outputUrl: { contains: ".wav", mode: "insensitive" } },
+        { outputUrl: { contains: ".m4a", mode: "insensitive" } },
+        { modelUsed: { contains: "audio", mode: "insensitive" } },
+        { modelUsed: { contains: "music", mode: "insensitive" } },
+        { modelUsed: { contains: "voice", mode: "insensitive" } },
+        { modelUsed: { contains: "tts", mode: "insensitive" } },
       ],
     };
   }
@@ -329,6 +419,7 @@ export async function GET(req: NextRequest) {
           status: true,
           prompt: true,
           modelUsed: true,
+          type: true,
           assetType: true,
           cost: true,
           isFavorite: true,
@@ -363,7 +454,7 @@ export async function GET(req: NextRequest) {
       })
       .filter((row: any) => row.failed || isRenderableAssetUrl(row.resolvedUrl))
       .map((row: any) => {
-        const type = toAssetType(row.assetType);
+        const type = inferAssetType(row);
         const mediaUrl = row.failed ? `failed:${row.id}` : row.resolvedUrl;
         const isTextMarker = mediaUrl.startsWith("text:");
         const dimensions = type === "image" ? galleryImageDimensions(row.resolution, row.aspectRatio) : {};
@@ -425,7 +516,8 @@ export async function GET(req: NextRequest) {
           referenceVideoUrls,
           referenceAudioUrls,
         };
-      });
+      })
+      .filter((asset: any) => requestedType === "all" || asset.type === requestedType);
 
     const counts = {
       all: allCount,

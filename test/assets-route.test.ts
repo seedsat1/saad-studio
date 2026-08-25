@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { GET as assetsHandler } from "../app/api/assets/route";
 import prismadb from "../lib/prismadb";
@@ -24,6 +24,10 @@ vi.mock("../lib/prismadb", () => ({
 }));
 
 describe("Assets API Endpoint", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("returns assets and counts successfully", async () => {
     const mockGenerations = [
       {
@@ -65,6 +69,96 @@ describe("Assets API Endpoint", () => {
     expect(data.assets[0].type).toBe("video");
     expect(data.counts.video).toBe(1);
     expect(data.counts.image).toBe(1);
+  });
+
+  it("infers generated media tabs from stored type and URLs when assetType is not canonical", async () => {
+    const mockGenerations = [
+      {
+        id: "gen-image-url",
+        type: null,
+        mediaUrl: "https://media.saadstudio.app/assets/generated/photo.webp",
+        outputUrl: null,
+        status: "completed",
+        prompt: "Generated image",
+        modelUsed: "nano-banana-pro",
+        assetType: "generation",
+        cost: 3,
+        isFavorite: false,
+        providerRequestId: null,
+        resolution: null,
+        aspectRatio: "1:1",
+        duration: null,
+        generationRequestSnapshot: null,
+        posterUrl: null,
+        posterStatus: null,
+        posterGeneratedAt: null,
+        posterError: null,
+        createdAt: new Date("2026-06-25T01:00:00Z"),
+      },
+      {
+        id: "gen-video-type",
+        type: "video",
+        mediaUrl: "https://media.saadstudio.app/outputs/result",
+        outputUrl: null,
+        status: "completed",
+        prompt: "Generated video",
+        modelUsed: "alibaba-wan-3.0-video",
+        assetType: "generation",
+        cost: 8,
+        isFavorite: false,
+        providerRequestId: null,
+        resolution: "720p",
+        aspectRatio: "16:9",
+        duration: 2,
+        generationRequestSnapshot: null,
+        posterUrl: null,
+        posterStatus: null,
+        posterGeneratedAt: null,
+        posterError: null,
+        createdAt: new Date("2026-06-25T02:00:00Z"),
+      },
+      {
+        id: "gen-audio-url",
+        type: null,
+        mediaUrl: null,
+        outputUrl: "https://media.saadstudio.app/audio/result.mp3",
+        status: "completed",
+        prompt: "Generated audio",
+        modelUsed: "music-generator",
+        assetType: "generation",
+        cost: 4,
+        isFavorite: false,
+        providerRequestId: null,
+        resolution: null,
+        aspectRatio: null,
+        duration: 12,
+        generationRequestSnapshot: null,
+        posterUrl: null,
+        posterStatus: null,
+        posterGeneratedAt: null,
+        posterError: null,
+        createdAt: new Date("2026-06-25T03:00:00Z"),
+      },
+    ];
+
+    vi.mocked(prismadb.generation.findMany).mockResolvedValue(mockGenerations as any);
+    vi.mocked(prismadb.generation.count).mockResolvedValue(3 as any);
+
+    const videoResponse = await assetsHandler(new NextRequest("http://localhost/api/assets?type=video"));
+    const videoData = await videoResponse.json();
+    expect(videoData.assets).toHaveLength(1);
+    expect(videoData.assets[0]).toMatchObject({ id: "gen-video-type", type: "video" });
+    expect(videoData.limit).toBe(25);
+
+    const audioResponse = await assetsHandler(new NextRequest("http://localhost/api/assets?type=audio"));
+    const audioData = await audioResponse.json();
+    expect(audioData.assets).toHaveLength(1);
+    expect(audioData.assets[0]).toMatchObject({ id: "gen-audio-url", type: "audio" });
+
+    const imageResponse = await assetsHandler(new NextRequest("http://localhost/api/assets?type=image"));
+    const imageData = await imageResponse.json();
+    expect(imageData.assets).toHaveLength(1);
+    expect(imageData.assets[0]).toMatchObject({ id: "gen-image-url", type: "image" });
   });
 
   it("returns unauthorized when userId is missing", async () => {
