@@ -14460,3 +14460,16 @@
 - Verification:
   - All 90 vitest tests passed.
   - Production build compiled successfully.
+
+#### Latest task: Official Google Gemini Omni Flash Tags & Image Binding Syntax (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Aligned Google Gemini Omni Flash integration in `lib/gemini-veo.ts` with Google's official OpenAPI specification.
+  - Formatted prompt with explicit role declarations: `[# Sources <FIRST_FRAME>@Image1] [# References <IMAGE_REF_0>@Image2 <IMAGE_REF_1>@Image3...]` and trailing guiding instructions.
+  - Automatically bound user `@Image1`, `@Image2`, `@Image3` references to native tags `<FIRST_FRAME>` and `<IMAGE_REF_N>`.
+- Affected files:
+  - `lib/gemini-veo.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
