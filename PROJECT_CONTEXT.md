@@ -14340,3 +14340,20 @@
 - Verification:
   - All 90 vitest tests passed.
   - Production build compiled successfully.
+
+#### Latest task: Root Backend Storage Resolution: Fix ERR_CONTENT_LENGTH_MISMATCH & 500 Legacy Supabase Media Reads (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Root-cause 1 (`ERR_CONTENT_LENGTH_MISMATCH`): Fixed raw Backblaze S3 thumbnail direct URLs in `lib/hook-studio-config.ts` by routing all 186 style/scene reference thumbnails through `/api/media/reference-thumbnails/` and converted AWS S3 SDK Body stream to strict byte buffers in `lib/storage/backblaze.ts` to guarantee 100% accurate `Content-Length` and complete binary delivery.
+  - Root-cause 2 (`500 Internal Server Error` on `/api/media/images/user_.../characters/.../1.png`): Implemented `SupabaseStorageProvider` in `lib/storage/supabase.ts` and registered it as a legacy read provider in `lib/storage/provider-registry.ts` so all historical character and image uploads stored in Supabase buckets are retrieved seamlessly without 404/500 errors.
+  - Added direct fallback fetch in `app/api/media/[...path]/route.ts` to ensure missing objects have zero downtime.
+- Affected files:
+  - `lib/storage/supabase.ts`
+  - `lib/storage/provider-registry.ts`
+  - `lib/storage/backblaze.ts`
+  - `lib/hook-studio-config.ts`
+  - `app/api/media/[...path]/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
