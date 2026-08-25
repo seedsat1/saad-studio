@@ -14394,3 +14394,16 @@
 - Verification:
   - All 90 vitest tests passed.
   - Production build compiled successfully.
+
+#### Latest task: Reference Studio Uploads Gallery Sanitation & CSP Error Resolution (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Added `isValidMediaUrl` helper in `components/ReferenceStudioModal.tsx` to filter out generation failure markers (`failed:...`, `error:...`, `task:...`).
+  - Passed `validOnly=true` to `/api/assets?type=image` in `fetchUserAssets` to fetch only successfully rendered images.
+  - Sanitized local storage and merged asset arrays to completely eliminate the blank dark squares and Chrome CSP violation errors (`Loading the image 'failed:...' violates CSP directive`).
+- Affected files:
+  - `components/ReferenceStudioModal.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
