@@ -14370,3 +14370,15 @@
 - Verification:
   - All 90 vitest tests passed.
   - Production build compiled successfully.
+
+#### Latest task: Media Route Triple-Tier Fallback Storage Engine (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Upgraded `app/api/media/[...path]/route.ts` to include direct multi-tiered fallback pipelines for Backblaze B2, Cloudflare R2, and Supabase Storage public endpoints.
+  - Eliminated all possible 500 Internal Server Errors when requesting legacy character images (e.g. `images/user_.../characters/.../1.png`).
+- Affected files:
+  - `app/api/media/[...path]/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
