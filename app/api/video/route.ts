@@ -2515,11 +2515,14 @@ export async function POST(req: Request) {
       const supportsGoogleReferenceImages =
         modelRoute === GOOGLE_VEO31_PRO_ROUTE ||
         modelRoute === GOOGLE_VEO31_ROUTE ||
-        modelRoute === GOOGLE_VEO31_FAST_ROUTE;
+        modelRoute === GOOGLE_VEO31_FAST_ROUTE ||
+        modelRoute === "google/gemini-omni-flash" ||
+        modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE ||
+        modelRoute === "google/veo-3.1-generate-preview";
       if (referenceUrls.length > 0 && !supportsGoogleReferenceImages) {
         return NextResponse.json(
           {
-            error: "This Google Veo model does not support referenceImages. Use a start image / last frame instead, or choose Veo 3.1 / Veo 3.1 Fast.",
+            error: "This Google Veo model does not support referenceImages. Use a start image / last frame instead, or choose Veo 3.1 / Veo 3.1 Fast / Gemini Omni.",
             publicError: "This Veo model does not support reference images.",
           },
           { status: 400 },
@@ -2533,7 +2536,8 @@ export async function POST(req: Request) {
         typeof payload.last_frame_url === "string" ||
         typeof payload.last_image === "string";
 
-      if (hasReferenceInput || requestedResolution === "1080p" || requestedResolution === "4k") {
+      const isOmniModel = modelRoute === "google/gemini-omni-flash" || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE;
+      if (!isOmniModel && (hasReferenceInput || requestedResolution === "1080p" || requestedResolution === "4k")) {
         payload.duration = 8;
       }
 
