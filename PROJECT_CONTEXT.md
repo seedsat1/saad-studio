@@ -14421,3 +14421,16 @@
 - Verification:
   - All 90 vitest tests passed.
   - Production build compiled successfully.
+
+#### Latest task: Google Gemini Omni Flash Multi-Reference Routing & Duration Protection (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Resolved HTTP 400 `This Veo model does not support reference images` when generating with `Gemini Omni` (`google/gemini-omni-flash`).
+  - Added `google/gemini-omni-flash` and `google/gemini-omni-video` to `supportsGoogleReferenceImages` whitelist in `app/api/video/route.ts`.
+  - Protected Gemini Omni custom duration range (3s-10s) from being forced to 8s.
+- Affected files:
+  - `app/api/video/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
