@@ -817,7 +817,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Seedance 2.5",
     family: "seedance", family_label: "Seedance", family_color: "#10b981",
     badge: "NEW",
-    description: "Bytedance Seedance 2.5 Turbo - 480p/720p, 4-30s, up to 30 images + 10 videos + 10 audios on text/reference generation.",
+    description: "Bytedance Seedance 2.5 Turbo - 480p/720p/1080p, 4-30s, up to 30 images + 10 videos + 10 audios on text/reference generation.",
     api_route: "bytedance/seedance-2.5/text-to-video-turbo",
     route_confirmed: true,
     capabilities: t2vCaps({
