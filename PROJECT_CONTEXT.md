@@ -39,6 +39,94 @@
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
 
+#### Latest task: Generated Media Picker Only Showing One Asset (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Issue:
+  - The `/video` generated media picker showed only one generated item in Images/Videos/Audio tabs because `/api/assets` parsed a missing `limit` query parameter as `0`, clamped it to the minimum, and returned `limit: 1`.
+  - Some generated rows can also have non-canonical `assetType` values, so strict `assetType` filtering could hide valid generated image/video/audio outputs.
+- Key Deliverables:
+  1. Fixed `firstNumberParam()` in `/api/assets` so an omitted or empty `limit` uses the intended default `25`.
+  2. Kept `/api/assets` and `Generation` as the central source; no new gallery source or dashboard bypass was added.
+  3. Expanded `/api/assets` media-type inference to use persisted `type`, `assetType`, media/output URL hints, and model identifiers.
+  4. Preserved valid external provider URLs when storage normalization cannot rewrite them, preventing renderable outputs from disappearing.
+- Verification:
+  - `npx.cmd vitest run test/assets-route.test.ts test/video-media-picker-assets.test.ts` passed: 5/5 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+
+#### Latest task: Video Media Picker Generated Assets Audit (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Issue:
+  - The `/video` media picker modal reused `/api/assets` but only exposed generated images/videos in the picker UI; generated audio could not be selected for reference-media-capable models even though `/api/assets?type=audio` already supports audio.
+  - Start/End frame tabs also exposed generated videos even though those inputs require image frames.
+- Key Deliverables:
+  1. Kept `/api/assets` and `Generation` history as the single source for generated image/video/audio assets.
+  2. Updated the picker tabs by target:
+     - Start/End Frame: generated images only.
+     - Motion Video: generated videos only.
+     - Reference Media: generated images, videos, and audio when Admin Models capabilities expose reference video/audio limits.
+  3. Added gallery audio selection path that converts selected generated audio into a `File` and feeds the existing `mergeReferenceFiles()` limits.
+  4. Replaced model-name checks with capability checks (`max_reference_videos`, `max_reference_audios`) so `/admin/models` remains central.
+- Verification:
+  - `npx.cmd vitest run test/video-media-picker-assets.test.ts` passed.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+
+#### Latest task: Wan 3.0 Stale Admin Aspect Ratio Guard (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Issue:
+  - `/video` could still show only `16:9` for Wan 3.0 when an older `/admin/models` row stored a single `aspect_ratios` value and overrode the newly certified official ratio list.
+- Key Deliverables:
+  1. Updated `mergeWan30AdminCapabilities()` so official Wan 3.0 ratios `16:9`, `9:16`, `1:1`, `4:3`, `3:4` are always retained as the baseline.
+  2. Preserved Admin Models centrality by allowing admin-saved extra ratios to append after the official baseline, while preventing stale rows from hiding official options.
+  3. Added regression coverage for a stale Wan 3.0 row containing only `16:9`.
+- Verification:
+  - `npx.cmd vitest run test/models-backend-hardening.test.ts` passed: 12/12 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+
+#### Latest task: Wan 3.0 Exact Visible Aspect Ratios Sync (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Evidence:
+  - Owner screenshot from WaveSpeed Wan 3.0 Text-to-Video playground shows visible aspect ratio options: `16:9`, `9:16`, `1:1`, `4:3`, `3:4`.
+  - WaveSpeed model page confirms Wan 3.0 Text-to-Video supports aspect ratio control and multiple aspect ratios.
+- Key Deliverables:
+  1. Updated `alibaba-wan-3.0-video` curated capabilities in `lib/video-model-registry.ts` to expose the five verified ratios by default.
+  2. Updated `inferModelCapabilitiesAndSpecs()` in `lib/dynamic-model-loader.ts` so Admin Models/Knowledge Hub autofill uses the same five verified ratios.
+  3. Updated `/api/video` Wan 3.0 payload validation to pass those ratios through to WaveSpeed instead of allowing only `16:9`.
+  4. Preserved `/admin/models` as the final central override source for Wan 3.0 capability edits.
+- Verification:
+  - `npx.cmd vitest run test/models-backend-hardening.test.ts test/model-definition-registry.test.ts` passed.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+
+#### Latest task: Wan 3.0 Official Text/Image/Reference Route Split + Pricing Sync (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Evidence:
+  - Owner supplied official WaveSpeed Wan 3.0 Text-to-Video, Image-to-Video, and Reference-to-Video API documentation.
+- Key Deliverables:
+  1. Preserved one subscriber-facing `Wan 3.0` model while adding internal `reference_api_route: alibaba/wan-3.0/reference-to-video`.
+  2. Updated route selection:
+     - text-only payloads -> `text-to-video`.
+     - start/end image payloads -> `image-to-video`.
+     - `reference_image_urls`, `reference_video_urls`, or `reference_audio_urls` -> `reference-to-video`.
+  3. Updated official capability limits: aspect ratios `16:9`, `9:16`, `1:1`, `4:3`, `3:4`; duration `2..30`; resolutions `480p`, `720p`, `1080p`; reference images `10`, videos `5`, audios `5`, with 15s total video/audio reference duration.
+  4. Replaced old single Wan 3.0 source price with route-specific official prices:
+     - Text/Reference: 480p `$0.07/s`, 720p `$0.13/s`, 1080p `$0.28/s`.
+     - Image: 480p `$0.06/s`, 720p `$0.12/s`, 1080p `$0.24/s`.
+  5. Preserved platform margin convention: `40 credits/USD * 1.4 = 56 credits per source USD`.
+- Verification:
+  - `npx.cmd vitest run test/models-backend-hardening.test.ts test/pricing-core.test.ts test/provider-cost-audit.test.ts test/provider-cost-attribution-remediation.test.ts test/provider-cost-capture-and-reconciliation.test.ts` passed: 77/77 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+
+#### Latest task: Wan 3.0 Admin-Controlled Capability Overrides (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Issue:
+  - `/admin/models` saved edited video capabilities, but curated video models were normalized back to `VIDEO_MODEL_REGISTRY.capabilities`, so Wan 3.0 admin edits such as aspect ratios could be hidden from `/video`.
+- Key Deliverables:
+  1. Added a scoped Wan 3.0 capability merge in `lib/dynamic-model-loader.ts` so admin-edited `aspect_ratios`, `durations`, `resolutions`, `max_reference_images`, `has_sound`, and `has_seed` override the curated default for `alibaba-wan-3.0-video`.
+  2. Preserved the previous curated-precedence protection for other curated models such as Seedance 2.5, preventing stale DB rows from removing certified options like `1080p`.
+  3. Kept the default documented Wan 3.0 aspect ratio as `16:9`; additional ratios must be explicitly saved from `/admin/models`.
+- Verification:
+  - `npx.cmd vitest run test/models-backend-hardening.test.ts test/model-definition-registry.test.ts` passed: 23/23 tests.
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+
 #### Latest task: Surface Wan 3.0 in Subscriber Video Model Selector (2026-08-24)
 - Status: Completed & Verified (PASS).
 - Issue:
@@ -52,13 +140,13 @@
   4. Added Wan 3.0 auto-detection in `inferModelCapabilitiesAndSpecs()` so Admin Models/Knowledge Hub publishing no longer downgrades Wan 3.0 docs to Wan 2.5/2.7 defaults.
 - Guardrails:
   - Used only owner-provided confirmed values for Wan 3.0: 480p/720p/1080p and 2s..30s duration evidence.
-  - Reference count remains conservative at 1 for the current `image-to-video` route binding; no unverified multi-reference limit was invented.
+  - Superseded on 2026-08-25 by owner-supplied official Reference-to-Video documentation: reference images 10, videos 5, audios 5.
 - Verification:
   - `npx.cmd vitest run test/models-backend-hardening.test.ts test/model-definition-registry.test.ts test/pricing-core.test.ts test/provider-cost-audit.test.ts test/provider-cost-attribution-remediation.test.ts` passed: 70/70 tests.
   - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
 
-#### Latest task: WaveSpeed Alibaba Wan 3.0 Source Pricing + Platform Margin (2026-08-24)
-- Status: Completed & Verified (PASS).
+#### Superseded task: WaveSpeed Alibaba Wan 3.0 Source Pricing + Platform Margin (2026-08-24)
+- Status: Superseded by official WaveSpeed Text/Image/Reference docs on 2026-08-25.
 - Source Pricing Evidence:
   - Owner-provided screenshots show WaveSpeed Alibaba Wan 3.0 provider/source cost:
     - 480p: 2s = `$0.10`, 30s = `$1.50` => `$0.05/sec`.
@@ -119,10 +207,14 @@
   1. **Built Premium Auto-Editing Dashboard**:
      - Completely replaced the generic chat interface in `ai-copilot.ts` with the high-fidelity Auto-Editing Dashboard matching the user's mockup.
      - Implemented dynamic active project/sequence detection, "Editor Guidance" textarea, 3-column project analysis (Video, Audio with speaker breakdown, Content text transcripts), dynamic summary statistics row, 5-step smart editing checklist, and the timeline execution footer.
-  2. **Wired Interactive Event Listeners**:
+  2. **Wired Interactive Event Listeners & Prompt Constraints**:
      - Connected "Analyze" (`حلّل المشروع أولاً`) to simulate loading states, scan sequence info, and check off steps 1 and 2.
      - Connected "Start Editing" (`ابدأ المونتاج`) to trigger the WaveSpeed Claude 3.5 Sonnet completions, dynamically fill the timeline writing progress, and execute the generated ExtendScript code directly inside Premiere Pro.
-  3. **Vite Compilation & CEP Sync**:
+     - Enhanced the `SYSTEM_PROMPT` to restrict the LLM to direct reference of `app.project.activeSequence` rather than attempting loops on top-level project items to find sequences by name (which fails when items are organized in Bins).
+  3. **Implemented Dynamic Sequence Analytics**:
+     - Added the `host.saadstudio.getSequenceStats` ExtendScript function in `jsx/index.jsx` to dynamically scan active timelines, count video clips, count audio files, and count audio tracks containing clips to estimate speakers.
+     - Integrated dynamic speaker percentages in the "المونتاج الذكي" dashboard (showing 1 speaker at 100%, 2 speakers at 60%/40%, or 3+ speakers), ensuring stats match the user's project layout.
+  4. **Vite Compilation & CEP Sync**:
      - Successfully built the production package, resolving TypeScript types and casting `window.__adobe_cep__` imports.
 
 #### Previous task: Easing Curves Keyframe Baking & Shift Precision Fix (2026-08-24)
@@ -14147,6 +14239,20 @@
   - All 67 pricing & tariff tests passed (`npx.cmd vitest run ...`).
   - `npm run build` compiled successfully.
 
-
-
+#### Latest task: Universal Media Picker Tabs & Asset Gallery Limit Expansion (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Unlocked all generated media tabs (`Generated Images`, `Generated Videos`, and `Generated Audio`) in the MediaPicker modal so users can access all their generated assets regardless of initial model filter.
+  - Increased the server-side `/api/assets` max limit cap from 25 to 500 items and updated picker query to fetch up to 200 items per category.
+  - Broadened image model and extension matches in `buildAssetTypeWhere` (`seedream`, `recraft`, `ideogram`, `dall-e`, `midjourney`, `.avif`).
+  - Synced and passed all 90 automated tests across 8 suites.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/api/assets/route.ts`
+  - `test/assets-route.test.ts`
+  - `test/video-media-picker-assets.test.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 tests passed (`npx.cmd vitest run ...`).
+  - `npm run build` compiled successfully.
 
