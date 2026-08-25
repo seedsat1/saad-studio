@@ -2547,6 +2547,26 @@ function VideoPageInner() {
         ? prompt.trim()
         : filledMultiPrompts.map((s) => s.trim()).join(" | ");
       const selectedCharacterTag = selectedCharacter ? normalizeCharacterTag(selectedCharacter.name) : "";
+      const rawCharacterUrls = [
+        ...(selectedCharacter?.referenceUrls ?? []),
+        ...(selectedCharacter?.coverUrl ? [selectedCharacter.coverUrl] : []),
+      ];
+      const characterReferenceUrls = supportsCharacterReference
+        ? Array.from(new Set(rawCharacterUrls))
+            .map((url) => {
+              if (!url || typeof url !== "string") return "";
+              const trimmed = url.trim();
+              if (/^https?:\/\//i.test(trimmed)) return trimmed;
+              if (trimmed.startsWith("/")) {
+                return `${typeof window !== "undefined" ? window.location.origin : "https://www.saadstudio.app"}${trimmed}`;
+              }
+              if (/^(images|videos|audio|thumbnails|media)\//i.test(trimmed)) {
+                return `${typeof window !== "undefined" ? window.location.origin : "https://www.saadstudio.app"}/api/media/${trimmed.replace(/^\/+/, "")}`;
+              }
+              return trimmed;
+            })
+            .filter((url) => typeof url === "string" && /^https?:\/\//i.test(url))
+        : [];
       const pkg = selectedCharacter?.metadata?.characterPackage;
       const characterPrompt = selectedCharacter && characterSupport.mode !== "kling_element"
         ? [
@@ -2588,23 +2608,6 @@ function VideoPageInner() {
         selectedModel.api_route === "kwaivgi/kling-v3.0-std/image-to-video" ||
         selectedModel.api_route === "kwaivgi/kling-v3.0-pro/image-to-video";
 
-      const characterReferenceUrls = supportsCharacterReference
-        ? (selectedCharacter?.referenceUrls ?? [])
-            .map((url) => {
-              if (!url || typeof url !== "string") return "";
-              const trimmed = url.trim();
-              if (/^https?:\/\//i.test(trimmed)) return trimmed;
-              if (trimmed.startsWith("/")) {
-                return `${typeof window !== "undefined" ? window.location.origin : "https://www.saadstudio.app"}${trimmed}`;
-              }
-              if (/^(images|videos|audio|thumbnails|media)\//i.test(trimmed)) {
-                return `${typeof window !== "undefined" ? window.location.origin : "https://www.saadstudio.app"}/api/media/${trimmed.replace(/^\/+/, "")}`;
-              }
-              return trimmed;
-            })
-            .filter((url) => typeof url === "string" && /^https?:\/\//i.test(url))
-        : [];
-
       // Image inputs — saved characters + uploaded reference media take priority
       if (selectedCharacter && characterSupport.mode === "kling_element" && characterReferenceUrls.length < characterSupport.minImages) {
         setGenerationError(`${selectedCharacter.name} needs at least ${characterSupport.minImages} reference images for Kling 3.0 Elements.`);
@@ -2619,7 +2622,7 @@ function VideoPageInner() {
         const hasStartImage =
           !!startFrame ||
           (characterSupport.mode === "image_reference" &&
-            !!selectedCharacter?.referenceUrls?.[0]);
+            !!characterReferenceUrls[0]);
         const hasEndImage = !!endFrame;
         const imageCount =
           refImgs.length +
@@ -2664,8 +2667,8 @@ function VideoPageInner() {
           }
         } else if (linkedStartFrameUrl) {
           payload.image = linkedStartFrameUrl;
-        } else if (characterSupport.mode === "image_reference" && selectedCharacter?.referenceUrls?.[0]) {
-          payload.image = selectedCharacter.referenceUrls[0];
+        } else if (characterSupport.mode === "image_reference" && characterReferenceUrls[0]) {
+          payload.image = characterReferenceUrls[0];
         } else if (uploadedImageRefs[0]) {
           payload.image = uploadedImageRefs[0];
         }
@@ -2746,8 +2749,8 @@ function VideoPageInner() {
         } else {
           payload[isSeedanceV2 ? "first_frame_url" : "image"] = linkedStartFrameUrl;
         }
-      } else if ((caps.requires_image || caps.optional_image) && characterSupport.mode === "image_reference" && selectedCharacter?.referenceUrls?.[0]) {
-        payload[isSeedanceV2 ? "first_frame_url" : "image"] = selectedCharacter.referenceUrls[0];
+      } else if ((caps.requires_image || caps.optional_image) && characterSupport.mode === "image_reference" && characterReferenceUrls[0]) {
+        payload[isSeedanceV2 ? "first_frame_url" : "image"] = characterReferenceUrls[0];
       }
       if ((caps.requires_video || caps.optional_video) && motionVideo) {
         payload.video = await uploadVideoRequestFile(motionVideo, fetchWithAuth);
