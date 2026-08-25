@@ -2637,7 +2637,7 @@ function VideoPageInner() {
         } else if (uploadedImageRefs[1]) {
           payload.end_image = uploadedImageRefs[1];
         }
-      } else if (((isSeedanceV2 || isMinimaxH3) && (referenceImages.length > 0 || !!startFrame || !!linkedStartFrameUrl || !!endFrame || !!linkedEndFrameUrl || characterReferenceUrls.length > 0)) || (isWan30Model && (referenceImages.length > 0 || characterReferenceUrls.length > 0)) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
+      } else if (((isSeedanceV2 || isMinimaxH3 || isWan30Model) && (referenceImages.length > 0 || !!startFrame || !!linkedStartFrameUrl || !!endFrame || !!linkedEndFrameUrl || characterReferenceUrls.length > 0)) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
         if (isSeedanceV2 || isMinimaxH3 || isWan30Model) {
           // Split unified reference media by type and let the API normalize provider field names.
           const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
@@ -2668,9 +2668,12 @@ function VideoPageInner() {
             if (isSeedanceV2 && !selectedModel.api_route.startsWith("bytedance/seedance-2.5")) {
               payload.image = mergedImageRefs[0];
               payload.first_frame_url = mergedImageRefs[0];
-            } else if (isSeedanceV2 && explicitStartImage) {
+            } else if ((isSeedanceV2 || isWan30Model) && explicitStartImage) {
               payload.image = explicitStartImage;
               payload.first_frame_url = explicitStartImage;
+            }
+            if (isWan30Model && explicitEndImageForReference) {
+              payload.last_image = explicitEndImageForReference;
             }
             payload.reference_image_urls = mergedImageRefs;
           }

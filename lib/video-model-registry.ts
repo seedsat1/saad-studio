@@ -786,6 +786,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
+      has_end_frame: true,
       aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
       durations: [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30],
       resolutions: ["480p", "720p", "1080p"],
