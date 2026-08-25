@@ -14256,3 +14256,19 @@
   - All 90 tests passed (`npx.cmd vitest run ...`).
   - `npm run build` compiled successfully.
 
+#### Latest task: Media Picker Blazing Performance Optimization & Broken/Failed Assets Auto-Purge (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Fixed extreme browser lag/freeze by eliminating concurrent HTML5 video stream downloads: replaced raw unpaused `<video>` with lightweight poster image preview (`asset.posterUrl || asset.thumbnailUrl`), `loading="lazy"`, and `preload="none"`.
+  - Filtered out all failed/cancelled/broken generations from the picker by introducing `validOnly=true` in `/api/assets` so only 100% valid, renderable media assets are delivered to the picker.
+  - Calibrated picker query limit to 60 fast, immediate assets per tab.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/api/assets/route.ts`
+  - `test/video-media-picker-assets.test.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
+
+
