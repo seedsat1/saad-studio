@@ -14357,3 +14357,16 @@
 - Verification:
   - All 90 vitest tests passed.
   - Production build compiled successfully.
+
+#### Latest task: Reference Studio 10-Tools Architectural Audit & In-Production Pipeline Verification (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Conducted deep architectural review of the 10 Reference Studio tools (`Stock`, `Style`, `Character`, `Element`, `Location`, `Color`, `Effects`, `Camera`, `Sketch`, `Storyboard`).
+  - Verified prompt-level injection via `withPresetsAppended` across `/image`, `/video`, `/cinema-flow`, and `/hook-studio`.
+  - Synced `onAttachFile` in `app/(dash)/(routes)/video/page.tsx` to route through `mergeReferenceFiles` with timestamped unique filenames to preserve reference limits and prevent object collision.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
