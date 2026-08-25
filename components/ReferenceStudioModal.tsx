@@ -250,12 +250,36 @@ export function ReferenceStudioModal({
   const [isSavingPal, setIsSavingPal] = useState(false);
   const [createPalError, setCreatePalError] = useState<string | null>(null);
 
+  const isValidMediaUrl = (url?: string | null): boolean => {
+    if (!url || typeof url !== "string") return false;
+    const trimmed = url.trim();
+    if (
+      trimmed.startsWith("failed:") ||
+      trimmed.startsWith("error:") ||
+      trimmed.startsWith("task:") ||
+      trimmed.startsWith("text:") ||
+      trimmed === "undefined" ||
+      trimmed === "null"
+    ) {
+      return false;
+    }
+    return (
+      trimmed.startsWith("http://") ||
+      trimmed.startsWith("https://") ||
+      trimmed.startsWith("/") ||
+      trimmed.startsWith("data:")
+    );
+  };
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem("saad_studio_user_uploads");
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) setUploadedItems(parsed);
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter((item: any) => isValidMediaUrl(item?.url) && !String(item?.url).startsWith("blob:"));
+          setUploadedItems(valid);
+        }
       }
     } catch (e) {
       console.warn("Failed to load reference uploads from localStorage", e);
@@ -263,9 +287,10 @@ export function ReferenceStudioModal({
   }, []);
 
   const saveUploadedItems = (items: UploadedItem[]) => {
-    setUploadedItems(items);
+    const valid = items.filter((item) => isValidMediaUrl(item?.url) && !String(item?.url).startsWith("blob:"));
+    setUploadedItems(valid);
     try {
-      localStorage.setItem("saad_studio_user_uploads", JSON.stringify(items.slice(0, 50)));
+      localStorage.setItem("saad_studio_user_uploads", JSON.stringify(valid.slice(0, 50)));
     } catch (e) {
       console.warn("Failed to save reference uploads to localStorage", e);
     }
@@ -274,17 +299,19 @@ export function ReferenceStudioModal({
   const fetchUserAssets = async () => {
     setIsLoadingAssets(true);
     try {
-      const res = await fetch("/api/assets?type=image", { cache: "no-store" });
+      const res = await fetch("/api/assets?type=image&validOnly=true&limit=100", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json().catch(() => null);
         if (Array.isArray(data?.assets)) {
-          const mapped: UploadedItem[] = data.assets.map((asset: any) => ({
-            id: asset.id,
-            url: asset.url,
-            name: asset.prompt || asset.model || "Asset",
-            type: asset.type || "image",
-            createdAt: new Date(asset.createdAt || Date.now()).getTime(),
-          }));
+          const mapped: UploadedItem[] = data.assets
+            .filter((asset: any) => isValidMediaUrl(asset.url) && !asset.isFailed)
+            .map((asset: any) => ({
+              id: asset.id,
+              url: asset.url,
+              name: asset.prompt || asset.model || "Asset",
+              type: asset.type || "image",
+              createdAt: new Date(asset.createdAt || Date.now()).getTime(),
+            }));
           setServerAssets(mapped);
         }
       }
@@ -894,10 +921,10 @@ export function ReferenceStudioModal({
 
   const allCombinedAssets = useMemo(() => {
     const map = new Map<string, UploadedItem>();
-    uploadedItems.forEach((item) => map.set(item.url, item));
+    uploadedItems.filter((item) => isValidMediaUrl(item?.url)).forEach((item) => map.set(item.url, item));
     
     const assetsToUse = serverAssets.length > 0 ? serverAssets : DEFAULT_PRESET_ASSETS;
-    assetsToUse.forEach((item) => {
+    assetsToUse.filter((item) => isValidMediaUrl(item?.url)).forEach((item) => {
       if (!map.has(item.url)) {
         map.set(item.url, item);
       }
