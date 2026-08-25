@@ -1108,6 +1108,16 @@ const NO_CHARACTER_SUPPORT: CharacterSupport = {
 function getVideoCharacterSupport(model: WaveSpeedVideoModel): CharacterSupport {
   const route = model.api_route;
 
+  if (model.id === "alibaba-wan-3.0-video" || route.startsWith("alibaba/wan-3.0") || model.family === "wan") {
+    return {
+      mode: "image_reference",
+      label: "Reference images",
+      minImages: 1,
+      maxImages: Math.max(1, model.capabilities.max_reference_images || 10),
+      note: "Wan 3.0 accepts saved character images as visual identity references.",
+    };
+  }
+
   if (model.family === "kling" && model.capabilities.has_element_list) {
     return {
       mode: "kling_element",
@@ -1118,27 +1128,27 @@ function getVideoCharacterSupport(model: WaveSpeedVideoModel): CharacterSupport 
     };
   }
 
-  if (model.id.startsWith("bytedance-seedance-v2")) {
+  if (model.id.startsWith("bytedance-seedance-v2") || model.id.startsWith("bytedance-seedance-v25")) {
     return {
       mode: "image_reference",
       label: "Reference images",
       minImages: 1,
       maxImages: 9,
-      note: "Seedance 2.0 accepts saved character images as visual references.",
+      note: "Seedance accepts saved character images as visual references.",
     };
   }
 
-  if (route === "google/veo3.1-fast-text-to-video") {
+  if (route === "google/veo3.1-fast-text-to-video" || route.startsWith("google/veo3.1")) {
     return {
       mode: "image_reference",
       label: "Reference-to-video",
       minImages: 1,
       maxImages: 3,
-      note: "Veo 3.1 Fast supports REFERENCE_2_VIDEO with up to 3 images.",
+      note: "Veo 3.1 supports reference images for character identity.",
     };
   }
 
-  if (route === "x-ai/grok-imagine-video/edit-video") {
+  if (route === "x-ai/grok-imagine-video/edit-video" || route.startsWith("x-ai/grok")) {
     return {
       mode: "image_reference",
       label: "Image references",
@@ -1155,6 +1165,16 @@ function getVideoCharacterSupport(model: WaveSpeedVideoModel): CharacterSupport 
       minImages: 0,
       maxImages: 0,
       note: "Sora character reuse requires a provider character ID, not ordinary reference images.",
+    };
+  }
+
+  if ((model.capabilities.max_reference_images || 0) > 0) {
+    return {
+      mode: "image_reference",
+      label: "Reference images",
+      minImages: 1,
+      maxImages: model.capabilities.max_reference_images,
+      note: `${model.name} accepts saved character images as visual references.`,
     };
   }
 
