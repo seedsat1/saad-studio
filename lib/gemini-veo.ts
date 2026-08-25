@@ -142,9 +142,7 @@ export async function startVeoGeneration(
       });
     }
 
-    // 1. Add starting frame (image) if present. For stateful edits the previous
-    // interaction carries the video state, but image references may still be
-    // resent to reinforce identity/style continuity.
+    // 1. Add starting frame (image) if present.
     if (params.image) {
       inputList.push({
         type: "image",
@@ -164,22 +162,47 @@ export async function startVeoGeneration(
       }
     }
 
-    // 3. Formulate the prompt text with correct image reference tags
-    let promptText = params.prompt;
+    // 3. Formulate the prompt text with official Google Gemini Omni Flash tags
+    let promptText = params.prompt.trim();
     if (params.negativePrompt && params.negativePrompt.trim()) {
       promptText += `. Do not include: ${params.negativePrompt.trim()}`;
     }
-    if (params.image) {
-      promptText = `<FIRST_FRAME> ${promptText}`;
+
+    const hasStartFrame = Boolean(params.image);
+    const refCount = params.referenceImages?.length || 0;
+
+    let prefixTags = "";
+    let guidingSuffix = "";
+
+    if (hasStartFrame && refCount > 0) {
+      const refTags = Array.from({ length: refCount }, (_, i) => `<IMAGE_REF_${i}>@Image${i + 2}`).join(" ");
+      prefixTags = `[# Sources <FIRST_FRAME>@Image1] [# References ${refTags}]`;
+      guidingSuffix = `\nUse Image1 as the starting frame. Use the given reference image(s) as references for character identity, style, and video generation. Do not use the reference images as literal initial frames.`;
+      promptText = promptText
+        .replace(/@Image1\b/g, "<FIRST_FRAME>")
+        .replace(/@Image(\d+)\b/g, (m, d) => {
+          const idx = parseInt(d, 10) - 2;
+          return idx >= 0 && idx < refCount ? `<IMAGE_REF_${idx}>` : m;
+        });
+    } else if (hasStartFrame) {
+      prefixTags = `[# Sources <FIRST_FRAME>@Image1]`;
+      guidingSuffix = `\nUse Image1 as the starting frame.`;
+      promptText = promptText.replace(/@Image1\b/g, "<FIRST_FRAME>");
+    } else if (refCount > 0) {
+      const refTags = Array.from({ length: refCount }, (_, i) => `<IMAGE_REF_${i}>@Image${i + 1}`).join(" ");
+      prefixTags = `[# References ${refTags}]`;
+      guidingSuffix = `\nUse the given image(s) as references for video generation. The images should not be used as literal initial frames.`;
+      promptText = promptText.replace(/@Image(\d+)\b/g, (m, d) => {
+        const idx = parseInt(d, 10) - 1;
+        return idx >= 0 && idx < refCount ? `<IMAGE_REF_${idx}>` : m;
+      });
     }
-    if (params.referenceImages && params.referenceImages.length > 0) {
-      const refs = params.referenceImages.map((_, idx) => `<IMAGE_REF_${idx}>`).join(" and ");
-      promptText = `${refs} ${promptText}`;
-    }
+
+    const finalPrompt = prefixTags ? `${prefixTags} ${promptText}${guidingSuffix}` : `${promptText}${guidingSuffix}`;
 
     inputList.push({
       type: "text",
-      text: promptText,
+      text: finalPrompt,
     });
 
     // 4. Determine task type
