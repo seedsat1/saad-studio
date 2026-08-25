@@ -81,19 +81,19 @@ function mergeWan30AdminCapabilities(
     resolutions: Array.isArray(existing.resolutions) && existing.resolutions.length > 0
       ? existing.resolutions
       : curated.resolutions,
-    max_reference_images: typeof existing.max_reference_images === "number"
+    max_reference_images: typeof existing.max_reference_images === "number" && existing.max_reference_images > 0
       ? existing.max_reference_images
       : curated.max_reference_images,
-    max_reference_videos: typeof existing.max_reference_videos === "number"
+    max_reference_videos: typeof existing.max_reference_videos === "number" && existing.max_reference_videos > 0
       ? existing.max_reference_videos
       : curated.max_reference_videos,
-    max_reference_video_total_seconds: typeof existing.max_reference_video_total_seconds === "number"
+    max_reference_video_total_seconds: typeof existing.max_reference_video_total_seconds === "number" && existing.max_reference_video_total_seconds > 0
       ? existing.max_reference_video_total_seconds
       : curated.max_reference_video_total_seconds,
-    max_reference_audios: typeof existing.max_reference_audios === "number"
+    max_reference_audios: typeof existing.max_reference_audios === "number" && existing.max_reference_audios > 0
       ? existing.max_reference_audios
       : curated.max_reference_audios,
-    max_reference_audio_total_seconds: typeof existing.max_reference_audio_total_seconds === "number"
+    max_reference_audio_total_seconds: typeof existing.max_reference_audio_total_seconds === "number" && existing.max_reference_audio_total_seconds > 0
       ? existing.max_reference_audio_total_seconds
       : curated.max_reference_audio_total_seconds,
     has_sound: typeof existing.has_sound === "boolean" ? existing.has_sound : curated.has_sound,

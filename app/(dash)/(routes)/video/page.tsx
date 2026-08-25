@@ -1545,7 +1545,16 @@ function VideoPageInner() {
   // Media gallery picker
   type PickerTarget = "startFrame" | "endFrame" | "motionVideo" | "referenceImages";
   const [mediaPicker, setMediaPicker]     = useState<PickerTarget | null>(null);
-  const [pickerGallery, setPickerGallery] = useState<Array<{ id: string; url: string; type: string }>>([]);
+  const [pickerGallery, setPickerGallery] = useState<
+    Array<{
+      id: string;
+      url: string;
+      type: string;
+      posterUrl?: string;
+      thumbnailUrl?: string;
+      prompt?: string;
+    }>
+  >([]);
   const [pickerTab, setPickerTab]         = useState<"upload" | "images" | "videos" | "audio">("images");
   const [pickerLoading, setPickerLoading] = useState(false);
 
@@ -3987,6 +3996,26 @@ function VideoPageInner() {
                       </div>
                     );
                   })}
+
+                  {/* Add More Reference Slot */}
+                  {referenceImages.length < (currentReferenceLimits.images + currentReferenceLimits.videos + currentReferenceLimits.audios) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openMediaPicker("referenceImages");
+                      }}
+                      className="relative aspect-square rounded-lg border border-dashed border-slate-700/80 bg-slate-900/40 hover:bg-slate-800/60 hover:border-cyan-500/50 flex flex-col items-center justify-center gap-1 transition-all group"
+                      title={lang === "ar" ? "إضافة مرجع آخر" : "Add another reference"}
+                    >
+                      <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 group-hover:text-cyan-400 group-hover:border-cyan-500/40 transition-colors">
+                        <Plus size={12} />
+                      </div>
+                      <span className="text-[9px] font-medium text-slate-400 group-hover:text-slate-200">
+                        {lang === "ar" ? "إضافة" : "Add"}
+                      </span>
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -6021,6 +6050,7 @@ function VideoPageInner() {
                         } else if (target === "referenceImages") {
                           setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
                         }
+                        e.target.value = "";
                         setMediaPicker(null);
                       }}
                     />
