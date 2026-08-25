@@ -816,7 +816,7 @@ function getPromptReferenceTagHint(model: WaveSpeedVideoModel): string {
   if (limits.videos > 0) parts.push(`@Video1..@Video${limits.videos}`);
   if (limits.audios > 0) parts.push(`@Audio1..@Audio${limits.audios}`);
   const joined = parts.length > 0 ? parts.join(", ") : "@Image1";
-  return `Seedance supports ${joined}. Audio requires at least one image or video reference.`;
+  return `Reference media supports ${joined}. Audio requires at least one image or video reference.`;
 }
 
 function getPromptReferenceDescriptors(files: File[], promptTagsEnabled: boolean) {
@@ -1546,7 +1546,7 @@ function VideoPageInner() {
   type PickerTarget = "startFrame" | "endFrame" | "motionVideo" | "referenceImages";
   const [mediaPicker, setMediaPicker]     = useState<PickerTarget | null>(null);
   const [pickerGallery, setPickerGallery] = useState<Array<{ id: string; url: string; type: string }>>([]);
-  const [pickerTab, setPickerTab]         = useState<"upload" | "images" | "videos">("images");
+  const [pickerTab, setPickerTab]         = useState<"upload" | "images" | "videos" | "audio">("images");
   const [pickerLoading, setPickerLoading] = useState(false);
 
   const allowDrop = useCallback((event: DragEvent<HTMLElement>) => {
@@ -2019,7 +2019,7 @@ function VideoPageInner() {
 
   // -- Media picker -----------------------------------------------------------
 
-  const loadPickerAssets = useCallback(async (type: "image" | "video") => {
+  const loadPickerAssets = useCallback(async (type: "image" | "video" | "audio") => {
     setPickerLoading(true);
     try {
       const res  = await fetchWithAuth(`/api/assets?type=${type}`, { cache: "no-store" });
@@ -2052,14 +2052,16 @@ function VideoPageInner() {
     }
   }, [loadPickerAssets]);
 
-  const pickGalleryAsset = useCallback(async (url: string, target: PickerTarget) => {
+  const pickGalleryAsset = useCallback(async (url: string, target: PickerTarget, assetType?: string) => {
     setMediaPicker(null);
     try {
-      const isVideo = /\.(mp4|mov|webm|avi|mkv|m4v|flv|3gp)(?:\?|$)/i.test(url.toLowerCase());
+      const lowerUrl = url.toLowerCase();
+      const isVideo = assetType === "video" || /\.(mp4|mov|webm|avi|mkv|m4v|flv|3gp)(?:\?|$)/i.test(lowerUrl);
+      const isAudio = assetType === "audio" || /\.(mp3|wav|m4a|aac|ogg|flac)(?:\?|$)/i.test(lowerUrl);
       
       let fetchUrl = url;
-      if (isVideo) {
-        // Resolve fallbacks for video to get a same-origin proxy or direct CORS-enabled URL
+      if (isVideo || isAudio) {
+        // Resolve fallbacks for media to get a same-origin proxy or direct CORS-enabled URL.
         const fallbacks = getFallbackUrls(url);
         const proxyUrl = fallbacks.find((u) => u.startsWith("/api/media/"));
         fetchUrl = proxyUrl || fallbacks[0] || url;
@@ -2072,7 +2074,7 @@ function VideoPageInner() {
       if (!res.ok) throw new Error(`Fetch returned ${res.status}`);
       const blob = await res.blob();
       const ext  = (url.split(".").pop()?.split("?")[0] ?? "jpg").toLowerCase();
-      const mime = blob.type || (ext === "mp4" ? "video/mp4" : "image/jpeg");
+      const mime = blob.type || (isAudio ? "audio/mpeg" : isVideo ? "video/mp4" : "image/jpeg");
       const file = new File([blob], `gallery-pick.${ext}`, { type: mime });
       if (target === "startFrame")       setStartFrame(file);
       else if (target === "endFrame")    setEndFrame(file);
@@ -2093,6 +2095,8 @@ function VideoPageInner() {
     if (!window.isSecureContext) return false;
 
     const multiple = target === "referenceImages";
+    const referenceLimits = getReferenceFileLimits(selectedModel);
+    const supportsReferenceMedia = referenceLimits.videos > 0 || referenceLimits.audios > 0;
 
     const types =
       target === "motionVideo"
@@ -2102,7 +2106,7 @@ function VideoPageInner() {
               accept: { "video/*": [".mp4", ".mov", ".webm", ".mkv", ".avi"] },
             },
           ]
-        : target === "referenceImages" && isSeedanceV2VideoModel(selectedModel)
+        : target === "referenceImages" && supportsReferenceMedia
           ? [
               {
                 description: "Images",
@@ -3210,9 +3214,12 @@ function VideoPageInner() {
   const canAddMoreShots = multiPrompts.length < maxShotsAllowed;
   const hasMainPrompt = prompt.trim().length > 0;
   const hasMultiPrompt = multiPrompts.some((s) => s.trim().length > 0);
-  const isSeedanceV2Model = isSeedanceV2VideoModel(selectedModel);
   const referenceFileSummary = getReferenceFileSummary(referenceImages, selectedModel);
   const referenceFileMaxLabel = getReferenceFileMaxLabel(selectedModel);
+  const currentReferenceLimits = getReferenceFileLimits(selectedModel);
+  const canPickReferenceVideos = currentReferenceLimits.videos > 0;
+  const canPickReferenceAudio = currentReferenceLimits.audios > 0;
+  const canPickReferenceMedia = canPickReferenceVideos || canPickReferenceAudio;
   const promptReferenceTagsEnabled = supportsPromptReferenceTags(selectedModel);
   const hasRequiredImageInput =
     !caps.requires_image || !!startFrame || !!linkedStartFrameUrl || referenceImages.length > 0 || Boolean(selectedCharacter?.referenceUrls?.length);
@@ -3983,7 +3990,7 @@ function VideoPageInner() {
               <input
                 ref={referenceImagesRef}
                 type="file"
-                accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
+                accept={canPickReferenceMedia ? "image/*,video/*,audio/*" : "image/*"}
                 multiple
                 className="hidden"
                 onChange={e => {
@@ -4479,8 +4486,8 @@ function VideoPageInner() {
               <p className="text-[10px] leading-relaxed text-slate-500 mt-0.5">
                 {showSimpleKlingRefs
                   ? "Kling uses Elements with @element_name, not @Image prompt tags."
-                  : isSeedanceV2Model
-                    ? "Seedance supports @Image1..@Image30, @Video1..@Video10, @Audio1..@Audio10. Audio requires at least one image or video reference."
+                  : canPickReferenceMedia
+                    ? getPromptReferenceTagHint(selectedModel)
                     : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
               </p>
             </div>
@@ -5902,7 +5909,7 @@ function VideoPageInner() {
                   <span className="text-[14px] font-semibold" style={{ color: "#e2e8f0" }}>
                     {mediaPicker === "motionVideo"
                       ? "Select Video"
-                      : mediaPicker === "referenceImages" && (isSeedanceV2Model || isWan30Model)
+                      : mediaPicker === "referenceImages" && canPickReferenceMedia
                         ? `Upload media - ${referenceFileSummary}`
                         : mediaPicker === "referenceImages"
                           ? `Select Reference Image (${referenceFileSummary})`
@@ -5952,18 +5959,35 @@ function VideoPageInner() {
                   </button>
                 )}
                 {/* Generated videos */}
-                <button
-                  onClick={async () => { setPickerTab("videos"); await loadPickerAssets("video"); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-                  style={{
-                    background: pickerTab === "videos" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
-                    border:     `1px solid ${pickerTab === "videos" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                    color:      pickerTab === "videos" ? selectedModel.family_color : "#a1a1aa",
-                  }}
-                >
-                  <Film size={11} />
-                  Generated Videos
-                </button>
+                {(mediaPicker === "motionVideo" || (mediaPicker === "referenceImages" && canPickReferenceVideos)) && (
+                  <button
+                    onClick={async () => { setPickerTab("videos"); await loadPickerAssets("video"); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                    style={{
+                      background: pickerTab === "videos" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
+                      border:     `1px solid ${pickerTab === "videos" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
+                      color:      pickerTab === "videos" ? selectedModel.family_color : "#a1a1aa",
+                    }}
+                  >
+                    <Film size={11} />
+                    Generated Videos
+                  </button>
+                )}
+                {/* Generated audio */}
+                {mediaPicker === "referenceImages" && canPickReferenceAudio && (
+                  <button
+                    onClick={async () => { setPickerTab("audio"); await loadPickerAssets("audio"); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                    style={{
+                      background: pickerTab === "audio" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
+                      border:     `1px solid ${pickerTab === "audio" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
+                      color:      pickerTab === "audio" ? selectedModel.family_color : "#a1a1aa",
+                    }}
+                  >
+                    <AudioLines size={11} />
+                    Generated Audio
+                  </button>
+                )}
               </div>
 
               {/* Content area */}
@@ -5981,7 +6005,7 @@ function VideoPageInner() {
                       accept={
                         mediaPicker === "motionVideo"
                           ? "video/mp4,video/quicktime,video/webm,video/x-matroska"
-                          : mediaPicker === "referenceImages" && (isSeedanceV2Model || isWan30Model)
+                          : mediaPicker === "referenceImages" && canPickReferenceMedia
                             ? "image/*,video/*,audio/*"
                             : "image/*"
                       }
@@ -6016,7 +6040,7 @@ function VideoPageInner() {
                       <p className="text-[12px] mt-1" style={{ color: "#94a3b8" }}>
                         {mediaPicker === "motionVideo"
                           ? "MP4, MOV, WebM"
-                          : mediaPicker === "referenceImages" && (isSeedanceV2Model || isWan30Model)
+                          : mediaPicker === "referenceImages" && canPickReferenceMedia
                             ? "Image, Video or Audio"
                             : "PNG, JPG, WebP"}
                       </p>
@@ -6030,10 +6054,12 @@ function VideoPageInner() {
                   <div className="flex flex-col items-center justify-center h-40 gap-3">
                     {pickerTab === "images"
                       ? <ImageIcon size={32} style={{ color: "#94a3b8" }} />
-                      : <Film      size={32} style={{ color: "#94a3b8" }} />
+                      : pickerTab === "audio"
+                        ? <AudioLines size={32} style={{ color: "#94a3b8" }} />
+                        : <Film      size={32} style={{ color: "#94a3b8" }} />
                     }
                     <p className="text-[12px]" style={{ color: "#94a3b8" }}>
-                      No {pickerTab === "images" ? "generated images" : "generated videos"} yet
+                      No {pickerTab === "images" ? "generated images" : pickerTab === "audio" ? "generated audio" : "generated videos"} yet
                     </p>
                     <button
                       onClick={() => {
@@ -6054,7 +6080,7 @@ function VideoPageInner() {
                     {pickerGallery.map(asset => (
                       <button
                         key={asset.id}
-                        onClick={() => pickGalleryAsset(asset.url, mediaPicker!)}
+                        onClick={() => pickGalleryAsset(asset.url, mediaPicker!, asset.type)}
                         className="group relative overflow-hidden rounded-xl transition-all ring-0 hover:ring-2"
                         style={{
                           aspectRatio: "1",
@@ -6069,6 +6095,13 @@ function VideoPageInner() {
                             muted
                             className="w-full h-full object-cover pointer-events-none"
                           />
+                        ) : asset.type === "audio" ? (
+                          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-950/80 px-2">
+                            <AudioLines size={24} style={{ color: selectedModel.family_color }} />
+                            <span className="line-clamp-2 text-center text-[10px] font-semibold text-slate-200">
+                              Audio
+                            </span>
+                          </div>
                         ) : (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -6340,7 +6373,7 @@ function VideoPageInner() {
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
-                        {isSeedanceV2Model ? "Reference Media" : "Reference Images"}
+                        {canPickReferenceMedia ? "Reference Media" : "Reference Images"}
                       </label>
                       {referenceImages.length > 0 && (
                         <button
@@ -6364,7 +6397,7 @@ function VideoPageInner() {
                         <input
                           type="file"
                           multiple
-                          accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
+                          accept={canPickReferenceMedia ? "image/*,video/*,audio/*" : "image/*"}
                           className="hidden"
                           onChange={(e) => {
                             const files = Array.from(e.target.files ?? []);
