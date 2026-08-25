@@ -7,7 +7,7 @@ describe("Video media picker generated assets", () => {
   it("loads generated image, video, and audio assets through the central assets API with expanded limit", () => {
     expect(videoPage).toContain('useState<"upload" | "images" | "videos" | "audio">("images")');
     expect(videoPage).toContain('async (type: "image" | "video" | "audio")');
-    expect(videoPage).toContain("/api/assets?type=${type}&limit=200");
+    expect(videoPage).toContain("/api/assets?type=${type}&validOnly=true&limit=60");
     expect(videoPage).toContain("Generated Images");
     expect(videoPage).toContain("Generated Videos");
     expect(videoPage).toContain("Generated Audio");

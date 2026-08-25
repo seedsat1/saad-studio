@@ -384,21 +384,31 @@ export async function GET(req: NextRequest) {
     }
 
     const requestedType = (req.nextUrl.searchParams.get("type") || "all").toLowerCase();
+    const validOnly = req.nextUrl.searchParams.get("validOnly") === "true";
     const limit = firstNumberParam(req, "limit", 50, 1, 500);
     const page = firstNumberParam(req, "page", 0, 0, 10_000);
     const skip = page * limit;
     const typeWhere = requestedType === "all" ? {} : buildAssetTypeWhere(requestedType);
-    const baseWhere = {
-      userId,
-      OR: [
-        { mediaUrl: { not: null as string | null } },
-        { outputUrl: { not: null as string | null } },
-        { status: "failed" },
-        { status: "error" },
-        { status: "cancelled" },
-        { status: "canceled" },
-      ],
-    };
+    const baseWhere = validOnly
+      ? {
+          userId,
+          status: { notIn: ["failed", "error", "cancelled", "canceled"] },
+          OR: [
+            { mediaUrl: { not: null as string | null } },
+            { outputUrl: { not: null as string | null } },
+          ],
+        }
+      : {
+          userId,
+          OR: [
+            { mediaUrl: { not: null as string | null } },
+            { outputUrl: { not: null as string | null } },
+            { status: "failed" },
+            { status: "error" },
+            { status: "cancelled" },
+            { status: "canceled" },
+          ],
+        };
 
     // Resolve this user's pending Seedance jobs before loading the gallery.
     // This works even when the original browser session was closed.
@@ -459,7 +469,12 @@ export async function GET(req: NextRequest) {
           failed,
         };
       })
-      .filter((row: any) => row.failed || isRenderableAssetUrl(row.resolvedUrl))
+      .filter((row: any) => {
+        if (validOnly) {
+          return !row.failed && isRenderableAssetUrl(row.resolvedUrl) && !row.resolvedUrl?.startsWith("failed:") && !row.resolvedUrl?.startsWith("task:");
+        }
+        return row.failed || isRenderableAssetUrl(row.resolvedUrl);
+      })
       .map((row: any) => {
         const type = inferAssetType(row);
         const mediaUrl = row.failed ? `failed:${row.id}` : row.resolvedUrl;

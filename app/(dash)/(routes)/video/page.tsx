@@ -2022,7 +2022,7 @@ function VideoPageInner() {
   const loadPickerAssets = useCallback(async (type: "image" | "video" | "audio") => {
     setPickerLoading(true);
     try {
-      const res  = await fetchWithAuth(`/api/assets?type=${type}&limit=200`, { cache: "no-store" });
+      const res  = await fetchWithAuth(`/api/assets?type=${type}&validOnly=true&limit=60`, { cache: "no-store" });
       const data = await res.json().catch(() => null);
       if (res.ok && Array.isArray(data?.assets)) {
         setPickerGallery(data.assets);
@@ -6087,23 +6087,43 @@ function VideoPageInner() {
                         }}
                       >
                         {asset.type === "video" ? (
-                          <video
-                            src={asset.url}
-                            muted
-                            className="w-full h-full object-cover pointer-events-none"
-                          />
+                          <div className="relative w-full h-full bg-slate-900">
+                            {asset.posterUrl || asset.thumbnailUrl ? (
+                              <img
+                                src={asset.posterUrl || asset.thumbnailUrl}
+                                alt="Video preview"
+                                loading="lazy"
+                                decoding="async"
+                                className="w-full h-full object-cover pointer-events-none"
+                              />
+                            ) : (
+                              <video
+                                src={asset.url}
+                                preload="metadata"
+                                muted
+                                playsInline
+                                className="w-full h-full object-cover pointer-events-none"
+                              />
+                            )}
+                            <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-sm text-[9px] text-white flex items-center gap-1">
+                              <Film size={9} />
+                              <span>Video</span>
+                            </div>
+                          </div>
                         ) : asset.type === "audio" ? (
                           <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-950/80 px-2">
                             <AudioLines size={24} style={{ color: selectedModel.family_color }} />
                             <span className="line-clamp-2 text-center text-[10px] font-semibold text-slate-200">
-                              Audio
+                              {asset.prompt || "Audio"}
                             </span>
                           </div>
                         ) : (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={asset.url}
+                            src={asset.thumbnailUrl || asset.url}
                             alt="Gallery asset"
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover"
                           />
                         )}
