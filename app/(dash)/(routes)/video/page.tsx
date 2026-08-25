@@ -6786,8 +6786,8 @@ function VideoPageInner() {
           fetch(targetUrl)
             .then((r) => r.blob())
             .then((blob) => {
-              const f = new File([blob], `${file.name || "ref"}.jpg`, { type: "image/jpeg" });
-              setReferenceImages((prev) => [...prev, f]);
+              const f = new File([blob], `${file.name || "ref"}-${Date.now()}.jpg`, { type: "image/jpeg" });
+              setReferenceImages((prev) => mergeReferenceFiles(prev, [f], selectedModel));
             })
             .catch((err) => console.error("Failed to attach reference file:", err));
         }}
