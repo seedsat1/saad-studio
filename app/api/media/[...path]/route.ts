@@ -142,7 +142,7 @@ export async function GET(
       });
     }
 
-    // Fallback: If not found in storage providers, attempt direct fetch from storage public endpoint
+    // Fallback 1: If not found in storage providers, attempt direct fetch from Backblaze B2
     const b2FallbackUrl = `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/${decodedKey}`;
     try {
       const b2Res = await fetch(b2FallbackUrl, { signal: AbortSignal.timeout(6000) });
@@ -160,6 +160,53 @@ export async function GET(
         });
       }
     } catch {}
+
+    // Fallback 2: Direct fetch from Cloudflare R2 legacy public URL
+    const r2FallbackUrl = `https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev/${decodedKey}`;
+    try {
+      const r2Res = await fetch(r2FallbackUrl, { signal: AbortSignal.timeout(6000) });
+      if (r2Res.ok) {
+        const buffer = Buffer.from(await r2Res.arrayBuffer());
+        const fixedCt = fixContentType(r2Res.headers.get("content-type") || undefined, decodedKey);
+        return new NextResponse(buffer, {
+          status: 200,
+          headers: {
+            "Content-Type": fixedCt,
+            "Content-Length": String(buffer.length),
+            "Cache-Control": "public, max-age=31536000, immutable",
+            ...corsHeaders,
+          },
+        });
+      }
+    } catch {}
+
+    // Fallback 3: Direct fetch from Supabase Storage public URL
+    const supabaseBase = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
+    if (supabaseBase) {
+      const cleanPath = decodedKey.replace(/^images\//, "");
+      const supabaseUrls = [
+        `${supabaseBase}/storage/v1/object/public/images/${cleanPath}`,
+        `${supabaseBase}/storage/v1/object/public/${decodedKey}`,
+      ];
+      for (const sbUrl of supabaseUrls) {
+        try {
+          const sbRes = await fetch(sbUrl, { signal: AbortSignal.timeout(6000) });
+          if (sbRes.ok) {
+            const buffer = Buffer.from(await sbRes.arrayBuffer());
+            const fixedCt = fixContentType(sbRes.headers.get("content-type") || undefined, decodedKey);
+            return new NextResponse(buffer, {
+              status: 200,
+              headers: {
+                "Content-Type": fixedCt,
+                "Content-Length": String(buffer.length),
+                "Cache-Control": "public, max-age=31536000, immutable",
+                ...corsHeaders,
+              },
+            });
+          }
+        } catch {}
+      }
+    }
 
     const attempts = await headObject({ objectKey: decodedKey }).catch(() => []);
     console.warn(`[api/media GET] Key not found in storage runtime: ${decodedKey}`, attempts);
