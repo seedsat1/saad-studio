@@ -2317,6 +2317,8 @@ export async function POST(req: Request) {
           modelRoute = "openai/sora-2/image-to-video";
         } else if (modelRoute === "x-ai/grok-imagine-video/text-to-video") {
           modelRoute = "x-ai/grok-imagine-video/edit-video";
+        } else if (modelRoute === "x-ai/grok-imagine-video/text-to-video-1-5") {
+          modelRoute = "x-ai/grok-imagine-video/edit-video-1-5";
         } else if (modelRoute === "hailuo/02-text-to-video-pro" || modelRoute === "hailuo/02-text-to-video-standard") {
           modelRoute = "hailuo/02-image-to-video-pro";
         }
@@ -2325,6 +2327,8 @@ export async function POST(req: Request) {
           modelRoute = "openai/sora-2/text-to-video";
         } else if (modelRoute === "x-ai/grok-imagine-video/edit-video") {
           modelRoute = "x-ai/grok-imagine-video/text-to-video";
+        } else if (modelRoute === "x-ai/grok-imagine-video/edit-video-1-5") {
+          modelRoute = "x-ai/grok-imagine-video/text-to-video-1-5";
         } else if (modelRoute === "hailuo/02-image-to-video-pro") {
           modelRoute = "hailuo/02-text-to-video-pro";
         }
@@ -2349,6 +2353,7 @@ export async function POST(req: Request) {
       modelRoute.startsWith("kling/v3-turbo") ||
       modelRoute.startsWith("kling/v2-5-turbo") ||
       modelRoute.startsWith("alibaba/wan-3.0") ||
+      modelRoute.startsWith("x-ai/") ||
       modelRoute === "bytedance/seedream-v5.0-pro/edit" ||
       modelRoute === "gpt-image-2-text-to-image";
 
