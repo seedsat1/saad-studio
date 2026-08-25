@@ -14382,3 +14382,15 @@
 - Verification:
   - All 90 vitest tests passed.
   - Production build compiled successfully.
+
+#### Latest task: Wan 3.0 & Reference Models Character Reference Support Activation (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Updated `getVideoCharacterSupport` in `app/(dash)/(routes)/video/page.tsx` to declare native image reference character support (`mode: "image_reference"`, `maxImages: 10`) for Wan 3.0 (`alibaba-wan-3.0-video` and `alibaba/wan-3.0` routes) as well as all models with `capabilities.max_reference_images > 0`.
+  - Rendered the `CHARACTER REFERENCE` selector for Wan 3.0 and ensured character reference URLs are merged with prompt identity packages on video generation.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
