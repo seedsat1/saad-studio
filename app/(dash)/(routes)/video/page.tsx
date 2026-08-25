@@ -743,10 +743,11 @@ function supportsPromptReferenceTags(model: WaveSpeedVideoModel): boolean {
 
 function getReferenceFileLimits(model: WaveSpeedVideoModel) {
   const isKling30 = isKling30Route(model.api_route);
+  const isWan30 = model.id === "alibaba-wan-3.0-video" || model.api_route.startsWith("alibaba/wan-3.0");
   return {
-    images: isKling30 ? 3 : Math.max(0, model.capabilities.max_reference_images || 0),
-    videos: Math.max(0, model.capabilities.max_reference_videos || 0),
-    audios: Math.max(0, model.capabilities.max_reference_audios || 0),
+    images: isKling30 ? 3 : isWan30 ? 10 : Math.max(0, model.capabilities.max_reference_images || 0),
+    videos: isWan30 ? 5 : Math.max(0, model.capabilities.max_reference_videos || 0),
+    audios: isWan30 ? 5 : Math.max(0, model.capabilities.max_reference_audios || 0),
   };
 }
 
@@ -761,31 +762,24 @@ function isAllowedReferenceFile(file: File, model: WaveSpeedVideoModel): boolean
   return false;
 }
 
-function sortReferenceFilesByNaturalName(files: File[]): File[] {
-  return files
-    .map((file, index) => ({ file, index }))
-    .sort((a, b) => {
-      const byName = a.file.name.localeCompare(b.file.name, undefined, {
-        numeric: true,
-        sensitivity: "base",
-      });
-      return byName || a.index - b.index;
-    })
-    .map((entry) => entry.file);
-}
-
 function mergeReferenceFiles(current: File[], incoming: File[], model: WaveSpeedVideoModel): File[] {
-  const allFiles = [...current, ...incoming].filter((file) => isAllowedReferenceFile(file, model));
+  const incomingAllowed = incoming.filter((file) => isAllowedReferenceFile(file, model));
   const limits = getReferenceFileLimits(model);
 
-  if (limits.videos > 0 || limits.audios > 0) {
-    const images = sortReferenceFilesByNaturalName(allFiles.filter((file) => file.type.startsWith("image/"))).slice(0, limits.images);
-    const videos = sortReferenceFilesByNaturalName(allFiles.filter((file) => file.type.startsWith("video/"))).slice(0, limits.videos);
-    const audios = sortReferenceFilesByNaturalName(allFiles.filter((file) => file.type.startsWith("audio/"))).slice(0, limits.audios);
-    return [...images, ...videos, ...audios];
-  }
+  // Preserve insertion order: keep existing files first and append new files up to limits
+  const currentImages = current.filter((f) => f.type.startsWith("image/"));
+  const incomingImages = incomingAllowed.filter((f) => f.type.startsWith("image/"));
+  const mergedImages = [...currentImages, ...incomingImages].slice(0, Math.max(1, limits.images));
 
-  return sortReferenceFilesByNaturalName(allFiles.filter((file) => file.type.startsWith("image/"))).slice(0, limits.images);
+  const currentVideos = current.filter((f) => f.type.startsWith("video/"));
+  const incomingVideos = incomingAllowed.filter((f) => f.type.startsWith("video/"));
+  const mergedVideos = limits.videos > 0 ? [...currentVideos, ...incomingVideos].slice(0, limits.videos) : [];
+
+  const currentAudios = current.filter((f) => f.type.startsWith("audio/"));
+  const incomingAudios = incomingAllowed.filter((f) => f.type.startsWith("audio/"));
+  const mergedAudios = limits.audios > 0 ? [...currentAudios, ...incomingAudios].slice(0, limits.audios) : [];
+
+  return [...mergedImages, ...mergedVideos, ...mergedAudios];
 }
 
 function getReferenceFileSummary(files: File[], model: WaveSpeedVideoModel): string {
@@ -2084,7 +2078,7 @@ function VideoPageInner() {
       const blob = await res.blob();
       const ext  = (url.split(".").pop()?.split("?")[0] ?? "jpg").toLowerCase();
       const mime = blob.type || (isAudio ? "audio/mpeg" : isVideo ? "video/mp4" : "image/jpeg");
-      const file = new File([blob], `gallery-pick.${ext}`, { type: mime });
+      const file = new File([blob], `ref-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`, { type: mime });
       if (target === "startFrame")       setStartFrame(file);
       else if (target === "endFrame")    setEndFrame(file);
       else if (target === "motionVideo") setMotionVideo(file);
