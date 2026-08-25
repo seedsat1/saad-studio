@@ -14327,3 +14327,16 @@
 - Verification:
   - All 90 vitest tests passed.
   - `npm run build` compiled successfully.
+
+#### Latest task: Fix Multi-Reference Insertion Order & Elimination of Image Replacement Bug (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Fixed reference merge logic in `app/(dash)/(routes)/video/page.tsx` (`mergeReferenceFiles`): replaced alphabetic sorting that was reordering/truncating files with strict insertion order preservation (`[...currentImages, ...incomingImages]`).
+  - Hardcoded guaranteed capacity for Wan 3.0 (`images: 10`, `videos: 5`, `audios: 5`) in `getReferenceFileLimits` to prevent dynamic loading cache from capping references to 1.
+  - Ensured unique file names for gallery-picked assets to avoid name collision.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
