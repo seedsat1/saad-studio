@@ -14448,3 +14448,15 @@
 - Verification:
   - All 90 vitest tests passed.
   - Production build compiled successfully.
+
+#### Latest task: Character CoverUrl & Multi-Reference Payload Resolution (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Fixed Wan 3.0 / Seedance / Minimax H3 generation omitting character reference images when stored as coverUrl or relative proxy paths.
+  - Normalized `rawCharacterUrls` by merging `selectedCharacter.referenceUrls` and `selectedCharacter.coverUrl`, ensuring full absolute public URL conversion and automatic inclusion into `payload.reference_image_urls` and `payload.image`.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
