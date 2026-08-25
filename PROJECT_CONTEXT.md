@@ -14407,3 +14407,17 @@
 - Verification:
   - All 90 vitest tests passed.
   - Production build compiled successfully.
+
+#### Latest task: Dynamic OpenAPI Real Prompt Limits Audit & Registry Mapping (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Conducted deep audit across official OpenAPI provider specifications (Kling, Wan, ByteDance/Seedance, Google DeepMind Veo, OpenAI Sora, MiniMax/Hailuo, Luma, Pixverse, Vidu, Tencent Hunyuan, CogVideoX).
+  - Extended `VideoModelCapabilities` with `max_prompt_characters?: number` in `lib/video-model-registry.ts`.
+  - Wired `app/(dash)/(routes)/video/page.tsx` to read `selectedModel.capabilities.max_prompt_characters` dynamically with exact provider-fallback constraints (Vidu: 1500, MiniMax/Luma/Pixverse/Hunyuan: 2000, Kling/Wan/Seedance/Veo/Sora: 2500).
+- Affected files:
+  - `lib/video-model-registry.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
