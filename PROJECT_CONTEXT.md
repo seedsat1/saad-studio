@@ -14434,3 +14434,17 @@
 - Verification:
   - All 90 vitest tests passed.
   - Production build compiled successfully.
+
+#### Latest task: Centralized Model Reference & Character Storage Auto-Migration (2026-08-25)
+- Status: Completed & Verified (PASS).
+- Key Deliverables:
+  - Fixed character references not being delivered to AI models due to relative URL filtering in `app/(dash)/(routes)/video/page.tsx`. All reference URLs (relative, proxy, absolute) are now resolved into fully qualified public URLs.
+  - Hardened `lib/media/public-url-resolver.ts` with `ensureMigratedToB2`: checks Backblaze B2, and if a legacy asset resides on Supabase Storage or Cloudflare R2, automatically pulls the buffer and migrates it to Backblaze B2 on the fly with immutable public caching.
+  - Centralized reference delivery across all 7 model families (Seedance, Minimax Hailuo, Kling, Sora, Google Veo / Gemini Omni, Alibaba Wan, xAI Grok).
+- Affected files:
+  - `lib/media/public-url-resolver.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - All 90 vitest tests passed.
+  - Production build compiled successfully.
