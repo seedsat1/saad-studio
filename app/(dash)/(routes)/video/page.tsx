@@ -2589,7 +2589,20 @@ function VideoPageInner() {
         selectedModel.api_route === "kwaivgi/kling-v3.0-pro/image-to-video";
 
       const characterReferenceUrls = supportsCharacterReference
-        ? (selectedCharacter?.referenceUrls ?? []).filter((url) => typeof url === "string" && /^https?:\/\//i.test(url))
+        ? (selectedCharacter?.referenceUrls ?? [])
+            .map((url) => {
+              if (!url || typeof url !== "string") return "";
+              const trimmed = url.trim();
+              if (/^https?:\/\//i.test(trimmed)) return trimmed;
+              if (trimmed.startsWith("/")) {
+                return `${typeof window !== "undefined" ? window.location.origin : "https://www.saadstudio.app"}${trimmed}`;
+              }
+              if (/^(images|videos|audio|thumbnails|media)\//i.test(trimmed)) {
+                return `${typeof window !== "undefined" ? window.location.origin : "https://www.saadstudio.app"}/api/media/${trimmed.replace(/^\/+/, "")}`;
+              }
+              return trimmed;
+            })
+            .filter((url) => typeof url === "string" && /^https?:\/\//i.test(url))
         : [];
 
       // Image inputs — saved characters + uploaded reference media take priority

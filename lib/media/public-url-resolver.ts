@@ -102,14 +102,14 @@ export async function resolveProviderMediaUrl(
     const mediaPath = trimmed.slice(apiMediaIndex + "/api/media/".length);
     const parsed = parseStorageKey(mediaPath);
     if (parsed) {
-      return resolveProviderPublicUrl(parsed.bucket, parsed.path);
+      return await ensureMigratedToB2(parsed.bucket, parsed.path);
     }
   }
 
   // 3. If it's a relative storage path (e.g. "images/user/file.jpg")
   const parsedRelative = parseStorageKey(trimmed);
   if (parsedRelative) {
-    return resolveProviderPublicUrl(parsedRelative.bucket, parsedRelative.path);
+    return await ensureMigratedToB2(parsedRelative.bucket, parsedRelative.path);
   }
 
   // 4. If it's an absolute URL
@@ -120,26 +120,40 @@ export async function resolveProviderMediaUrl(
     
     const owned = resolveMediaObject(trimmed);
     if (owned?.kind === "owned_storage") {
-      const { bucket, path, objectKey } = owned;
-      try {
-        const attempts = await headObject({ objectKey });
-        if (attempts[0]?.found) {
-          return resolveProviderPublicUrl(bucket, path);
-        }
-        
-        // If not on B2, try migrating from legacy R2 with a timeout
-        console.log(`[resolveProviderMediaUrl] Key ${bucket}/${path} not on B2. Attempting migration...`);
-        const r2Url = `https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev/${bucket}/${path}`;
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 second limit for migration fetching
-        
-        const res = await fetch(r2Url, { signal: controller.signal });
-        clearTimeout(timeoutId);
+      const { bucket, path } = owned;
+      return await ensureMigratedToB2(bucket, path);
+    }
+    return trimmed;
+  }
 
+  throw new ValidationError(`Unresolved media path or invalid URL format: ${trimmed}`);
+}
+
+async function ensureMigratedToB2(bucket: string, path: string): Promise<string> {
+  const objectKey = `${bucket}/${path}`;
+  try {
+    const attempts = await headObject({ objectKey });
+    if (attempts[0]?.found) {
+      return resolveProviderPublicUrl(bucket, path);
+    }
+  } catch {}
+
+  console.log(`[resolveProviderMediaUrl] Key ${objectKey} not found on B2. Attempting auto-migration...`);
+
+  // 1. Try migrating from Supabase Storage
+  const supabaseBase = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
+  if (supabaseBase) {
+    const cleanPath = path.replace(/^\/+/, "");
+    const supabaseUrls = [
+      `${supabaseBase}/storage/v1/object/public/${bucket}/${cleanPath}`,
+      `${supabaseBase}/storage/v1/object/public/${cleanPath}`,
+    ];
+    for (const sbUrl of supabaseUrls) {
+      try {
+        const res = await fetch(sbUrl, { signal: AbortSignal.timeout(8000) });
         if (res.ok) {
           const buffer = Buffer.from(await res.arrayBuffer());
-          const contentType = res.headers.get("content-type") || "application/octet-stream";
+          const contentType = res.headers.get("content-type") || "image/png";
           await putObject({
             bucket,
             path,
@@ -147,22 +161,34 @@ export async function resolveProviderMediaUrl(
             contentType,
             cacheControl: "public, max-age=2592000, immutable",
           });
-          console.log(`[resolveProviderMediaUrl] Successfully migrated R2 key ${bucket}/${path} to B2.`);
+          console.log(`[resolveProviderMediaUrl] Successfully migrated Supabase key ${objectKey} to B2.`);
           return resolveProviderPublicUrl(bucket, path);
-        } else {
-          console.warn(`[resolveProviderMediaUrl] Failed to fetch legacy R2 asset at ${r2Url}: Status ${res.status}`);
         }
-      } catch (e) {
-        console.warn(`[resolveProviderMediaUrl] Migration failed or timed out for R2 key ${bucket}/${path}`, e);
-      }
-      
-      // If we cannot migrate it, throw ValidationError so we do not send broken URLs to providers.
-      throw new ValidationError(`Legacy asset (${bucket}/${path}) is unavailable on B2 and migration failed.`);
+      } catch {}
     }
-    return trimmed;
   }
 
-  throw new ValidationError(`Unresolved media path or invalid URL format: ${trimmed}`);
+  // 2. Try migrating from legacy Cloudflare R2
+  const r2Url = `https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev/${bucket}/${path}`;
+  try {
+    const res = await fetch(r2Url, { signal: AbortSignal.timeout(8000) });
+    if (res.ok) {
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const contentType = res.headers.get("content-type") || "image/png";
+      await putObject({
+        bucket,
+        path,
+        body: buffer,
+        contentType,
+        cacheControl: "public, max-age=2592000, immutable",
+      });
+      console.log(`[resolveProviderMediaUrl] Successfully migrated R2 key ${objectKey} to B2.`);
+      return resolveProviderPublicUrl(bucket, path);
+    }
+  } catch {}
+
+  // Fallback: return provider public URL
+  return resolveProviderPublicUrl(bucket, path);
 }
 
 async function uploadDataUrlToKieOrB2(
