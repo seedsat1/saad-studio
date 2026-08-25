@@ -148,12 +148,13 @@ describe("Assets API Endpoint", () => {
     const videoData = await videoResponse.json();
     expect(videoData.assets).toHaveLength(1);
     expect(videoData.assets[0]).toMatchObject({ id: "gen-video-type", type: "video" });
-    expect(videoData.limit).toBe(25);
+    expect(videoData.limit).toBe(50);
 
     const audioResponse = await assetsHandler(new NextRequest("http://localhost/api/assets?type=audio"));
     const audioData = await audioResponse.json();
     expect(audioData.assets).toHaveLength(1);
     expect(audioData.assets[0]).toMatchObject({ id: "gen-audio-url", type: "audio" });
+    expect(audioData.limit).toBe(50);
 
     const imageResponse = await assetsHandler(new NextRequest("http://localhost/api/assets?type=image"));
     const imageData = await imageResponse.json();

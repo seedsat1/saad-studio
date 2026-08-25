@@ -148,15 +148,22 @@ function buildAssetTypeWhere(type: string): any {
         { mediaUrl: { contains: ".jpg", mode: "insensitive" } },
         { mediaUrl: { contains: ".jpeg", mode: "insensitive" } },
         { mediaUrl: { contains: ".webp", mode: "insensitive" } },
+        { mediaUrl: { contains: ".avif", mode: "insensitive" } },
         { outputUrl: { contains: "/image", mode: "insensitive" } },
         { outputUrl: { contains: ".png", mode: "insensitive" } },
         { outputUrl: { contains: ".jpg", mode: "insensitive" } },
         { outputUrl: { contains: ".jpeg", mode: "insensitive" } },
         { outputUrl: { contains: ".webp", mode: "insensitive" } },
+        { outputUrl: { contains: ".avif", mode: "insensitive" } },
         { modelUsed: { contains: "image", mode: "insensitive" } },
         { modelUsed: { contains: "imagen", mode: "insensitive" } },
         { modelUsed: { contains: "flux", mode: "insensitive" } },
         { modelUsed: { contains: "nano-banana", mode: "insensitive" } },
+        { modelUsed: { contains: "seedream", mode: "insensitive" } },
+        { modelUsed: { contains: "recraft", mode: "insensitive" } },
+        { modelUsed: { contains: "ideogram", mode: "insensitive" } },
+        { modelUsed: { contains: "dall-e", mode: "insensitive" } },
+        { modelUsed: { contains: "midjourney", mode: "insensitive" } },
       ],
     };
   }
@@ -377,7 +384,7 @@ export async function GET(req: NextRequest) {
     }
 
     const requestedType = (req.nextUrl.searchParams.get("type") || "all").toLowerCase();
-    const limit = firstNumberParam(req, "limit", 25, 1, 25);
+    const limit = firstNumberParam(req, "limit", 50, 1, 500);
     const page = firstNumberParam(req, "page", 0, 0, 10_000);
     const skip = page * limit;
     const typeWhere = requestedType === "all" ? {} : buildAssetTypeWhere(requestedType);

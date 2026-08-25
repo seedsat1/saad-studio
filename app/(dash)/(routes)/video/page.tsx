@@ -2022,7 +2022,7 @@ function VideoPageInner() {
   const loadPickerAssets = useCallback(async (type: "image" | "video" | "audio") => {
     setPickerLoading(true);
     try {
-      const res  = await fetchWithAuth(`/api/assets?type=${type}`, { cache: "no-store" });
+      const res  = await fetchWithAuth(`/api/assets?type=${type}&limit=200`, { cache: "no-store" });
       const data = await res.json().catch(() => null);
       if (res.ok && Array.isArray(data?.assets)) {
         setPickerGallery(data.assets);
@@ -5947,50 +5947,44 @@ function VideoPageInner() {
                   Device
                 </button>
                 {/* Generated images */}
-                {mediaPicker !== "motionVideo" && (
-                  <button
-                    onClick={async () => { setPickerTab("images"); await loadPickerAssets("image"); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-                    style={{
-                      background: pickerTab === "images" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
-                      border:     `1px solid ${pickerTab === "images" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                      color:      pickerTab === "images" ? selectedModel.family_color : "#a1a1aa",
-                    }}
-                  >
-                    <ImageIcon size={11} />
-                    Generated Images
-                  </button>
-                )}
+                <button
+                  onClick={async () => { setPickerTab("images"); await loadPickerAssets("image"); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                  style={{
+                    background: pickerTab === "images" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
+                    border:     `1px solid ${pickerTab === "images" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
+                    color:      pickerTab === "images" ? selectedModel.family_color : "#a1a1aa",
+                  }}
+                >
+                  <ImageIcon size={11} />
+                  Generated Images
+                </button>
                 {/* Generated videos */}
-                {(mediaPicker === "motionVideo" || (mediaPicker === "referenceImages" && canPickReferenceVideos)) && (
-                  <button
-                    onClick={async () => { setPickerTab("videos"); await loadPickerAssets("video"); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-                    style={{
-                      background: pickerTab === "videos" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
-                      border:     `1px solid ${pickerTab === "videos" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                      color:      pickerTab === "videos" ? selectedModel.family_color : "#a1a1aa",
-                    }}
-                  >
-                    <Film size={11} />
-                    Generated Videos
-                  </button>
-                )}
+                <button
+                  onClick={async () => { setPickerTab("videos"); await loadPickerAssets("video"); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                  style={{
+                    background: pickerTab === "videos" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
+                    border:     `1px solid ${pickerTab === "videos" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
+                    color:      pickerTab === "videos" ? selectedModel.family_color : "#a1a1aa",
+                  }}
+                >
+                  <Film size={11} />
+                  Generated Videos
+                </button>
                 {/* Generated audio */}
-                {mediaPicker === "referenceImages" && canPickReferenceAudio && (
-                  <button
-                    onClick={async () => { setPickerTab("audio"); await loadPickerAssets("audio"); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-                    style={{
-                      background: pickerTab === "audio" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
-                      border:     `1px solid ${pickerTab === "audio" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                      color:      pickerTab === "audio" ? selectedModel.family_color : "#a1a1aa",
-                    }}
-                  >
-                    <AudioLines size={11} />
-                    Generated Audio
-                  </button>
-                )}
+                <button
+                  onClick={async () => { setPickerTab("audio"); await loadPickerAssets("audio"); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                  style={{
+                    background: pickerTab === "audio" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
+                    border:     `1px solid ${pickerTab === "audio" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
+                    color:      pickerTab === "audio" ? selectedModel.family_color : "#a1a1aa",
+                  }}
+                >
+                  <AudioLines size={11} />
+                  Generated Audio
+                </button>
               </div>
 
               {/* Content area */}
