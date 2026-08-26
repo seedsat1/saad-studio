@@ -4,7 +4,7 @@ import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
 import { SAAD_PLANS } from "@/lib/pricing-models";
 import { sendInvoiceEmail } from "@/lib/email-templates/invoice";
-import { ensureUserRow } from "@/lib/credit-ledger";
+import { ensureUserRow, tryCreateCreditLedgerEntry } from "@/lib/credit-ledger";
 import {
   getNotificationPreferences,
   sendDedupedNotification,
@@ -88,26 +88,6 @@ function preserveExpiryOrFresh(current: Date | null | undefined): Date {
   return new Date(now + THIRTY_DAYS_MS);
 }
 
-async function tryCreateCreditLedgerEntry(
-  tx: any,
-  data: { userId: string; generationId?: string | null; delta: number; reason: string }
-): Promise<void> {
-  try {
-    if (tx.creditLedgerEntry?.create) {
-      await tx.creditLedgerEntry.create({
-        data: {
-          userId: data.userId,
-          generationId: data.generationId ?? null,
-          delta: data.delta,
-          reason: data.reason,
-        },
-      });
-    }
-  } catch {
-    // Best effort logging if table is absent
-  }
-}
-
 const sendApprovalEmail = sendInvoiceEmail;
 
 export async function PATCH(
@@ -141,6 +121,10 @@ export async function PATCH(
           where: { id, paymentStatus: "PENDING" },
           data: {
             paymentStatus: "COMPLETED",
+            operatorUserId: operator.operatorUserId,
+            operatorEmail: operator.operatorEmail,
+            decisionAt: now,
+            decisionReason: body.reason ?? null,
           },
         });
 
@@ -190,6 +174,7 @@ export async function PATCH(
             userId: currentTx.userId,
             delta: safeCredits,
             reason: "topup_grant",
+            operationType: "admin_adjustment",
           });
         } else {
           const plan = SAAD_PLANS.find((p) => p.id === planId);
@@ -214,6 +199,7 @@ export async function PATCH(
               userId: currentTx.userId,
               delta: planCredits,
               reason: "subscription_grant",
+              operationType: "admin_adjustment",
             });
           }
 
@@ -315,6 +301,10 @@ export async function PATCH(
         where: { id, paymentStatus: "PENDING" },
         data: {
           paymentStatus: "FAILED",
+          operatorUserId: operator.operatorUserId,
+          operatorEmail: operator.operatorEmail,
+          decisionAt: new Date(),
+          decisionReason: body.reason ?? null,
         },
       });
 

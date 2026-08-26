@@ -8,7 +8,7 @@ import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 import { KIE_3D_MODELS, resolveThreeDLegacyRoute, THREE_D_ENDPOINTS } from "@/lib/three-d-models";
 import prismadb from "@/lib/prismadb";
-import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
+import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody, idempotencyErrorResponse } from "@/lib/idempotency";
 
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const KIE_BASE = "https://api.kie.ai/api/v1";
@@ -208,7 +208,7 @@ export async function POST(req: Request) {
       route: IDEMPOTENCY_ROUTE,
       key: idempotencyKey,
       generationId,
-    }).catch(() => {});
+    });
 
     const waveKey = process.env.WAVESPEED_API_KEY;
     const kieKey = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
@@ -369,15 +369,18 @@ export async function POST(req: Request) {
       generationId,
       responseStatus: 200,
       responseJson,
-    }).catch(() => {});
+    });
     return NextResponse.json(responseJson);
   } catch (error) {
+    const idemResponse = idempotencyErrorResponse(error);
+    if (idemResponse) return idemResponse;
+
     if (error instanceof UnsafeReferenceImageError) {
       if (chargedCredits > 0 && chargedUserId && generationId) {
         await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
           reason: "generation_refund_provider_failed",
           clearMediaUrl: true,
-        }).catch(() => null);
+        });
       }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
@@ -396,7 +399,7 @@ export async function POST(req: Request) {
           generationId,
           responseStatus: 402,
           responseJson,
-        }).catch(() => {});
+        });
       }
       return NextResponse.json(
         responseJson,
@@ -408,7 +411,7 @@ export async function POST(req: Request) {
       await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
         reason: "generation_refund_provider_failed",
         clearMediaUrl: true,
-      }).catch(() => {});
+      });
     }
 
     console.error("[3D API POST]", error);
@@ -421,7 +424,7 @@ export async function POST(req: Request) {
         generationId,
         responseStatus: 500,
         responseJson: { error: msg },
-      }).catch(() => {});
+      });
     }
     return new NextResponse("Internal Error", { status: 500 });
   }
@@ -506,7 +509,7 @@ export async function GET(req: Request) {
         await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
           reason: "generation_refund_provider_failed",
           clearMediaUrl: true,
-        }).catch(() => {});
+        });
     }
 
     return NextResponse.json({

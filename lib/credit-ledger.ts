@@ -104,24 +104,71 @@ export type CreditLedgerReason =
   | "monthly_credits_expired"
   | (string & {});
 
+export type CreditLedgerOperationType =
+  | "reserve"
+  | "charge"
+  | "reconcile"
+  | "refund"
+  | "reversal"
+  | "admin_adjustment";
+
+export class CreditLedgerUnavailableError extends Error {
+  constructor() {
+    super("Credit ledger infrastructure is unavailable.");
+    this.name = "CreditLedgerUnavailableError";
+  }
+}
+
+function inferLedgerOperationType(reason: CreditLedgerReason, delta: number): CreditLedgerOperationType {
+  const normalized = String(reason).toLowerCase();
+  if (normalized.includes("reversal")) return "reversal";
+  if (normalized.includes("reconcile") || normalized.includes("renewal") || normalized.includes("expired")) return "reconcile";
+  if (normalized.includes("refund")) return "refund";
+  if (normalized.includes("advance") || normalized.includes("grant") || normalized.includes("topup") || normalized.includes("subscription")) {
+    return "admin_adjustment";
+  }
+  if (delta < 0) return "charge";
+  return "admin_adjustment";
+}
+
 export async function tryCreateCreditLedgerEntry(
   tx: any,
-  data: { userId: string; generationId?: string | null; delta: number; reason: CreditLedgerReason },
+  data: {
+    userId: string;
+    generationId?: string | null;
+    projectId?: string | null;
+    jobId?: string | null;
+    idempotencyKey?: string | null;
+    providerUsageRecordId?: string | null;
+    quoteSnapshotId?: string | null;
+    originalEntryId?: string | null;
+    delta: number;
+    reason: CreditLedgerReason;
+    operationType?: CreditLedgerOperationType;
+    status?: string;
+    metadata?: Record<string, unknown> | null;
+  },
 ): Promise<void> {
-  try {
-    if (tx?.creditLedgerEntry?.create) {
-      await tx.creditLedgerEntry.create({
-        data: {
-          userId: data.userId,
-          generationId: data.generationId ?? null,
-          delta: data.delta,
-          reason: data.reason,
-        },
-      });
-    }
-  } catch {
-    // Best-effort: do not break financial flow if table/client is not present
+  if (!tx?.creditLedgerEntry?.create) {
+    throw new CreditLedgerUnavailableError();
   }
+  await tx.creditLedgerEntry.create({
+    data: {
+      userId: data.userId,
+      generationId: data.generationId ?? null,
+      projectId: data.projectId ?? null,
+      jobId: data.jobId ?? null,
+      idempotencyKey: data.idempotencyKey ?? null,
+      providerUsageRecordId: data.providerUsageRecordId ?? null,
+      quoteSnapshotId: data.quoteSnapshotId ?? null,
+      originalEntryId: data.originalEntryId ?? null,
+      delta: data.delta,
+      reason: data.reason,
+      operationType: data.operationType ?? inferLedgerOperationType(data.reason, data.delta),
+      status: data.status ?? "settled",
+      metadata: data.metadata ?? undefined,
+    },
+  });
 }
 
 // ─── Credit Expiry & Renewal ─────────────────────────────────────────────────
@@ -179,23 +226,26 @@ export async function allocateSubscriptionCredits(
   if (planId === "podcast") return;
 
   const now = new Date();
-  await prismadb.user.update({
-    where: { id: userId },
-    data: {
-      creditBalance: plan.credits,
-      monthlyCredits: plan.credits,
-      creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
-      lastCreditRenewal: now,
-      creditAdvanceBalance: 0,
-      creditAdvanceRequestedAt: null,
-      creditAdvanceCycleEnd: null,
-    },
-  });
+  await prismadb.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        creditBalance: plan.credits,
+        monthlyCredits: plan.credits,
+        creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
+        lastCreditRenewal: now,
+        creditAdvanceBalance: 0,
+        creditAdvanceRequestedAt: null,
+        creditAdvanceCycleEnd: null,
+      },
+    });
 
-  await tryCreateCreditLedgerEntry(prismadb, {
-    userId,
-    delta: plan.credits,
-    reason: "subscription_grant",
+    await tryCreateCreditLedgerEntry(tx, {
+      userId,
+      delta: plan.credits,
+      reason: "subscription_grant",
+      operationType: "admin_adjustment",
+    });
   });
 }
 
@@ -325,6 +375,7 @@ export async function requestAnnualCreditAdvance(userId: string, requestedAmount
       userId,
       delta: amount,
       reason: `annual_credit_advance_draw: +${amount} cr`,
+      operationType: "admin_adjustment",
     });
 
     return {
@@ -363,18 +414,21 @@ export async function applyTopupCredits(userId: string, credits: number): Promis
 
   const finalExpiry = preserveExpiryOrFresh(existing?.creditsExpireAt);
 
-  await prismadb.user.update({
-    where: { id: userId },
-    data: {
-      creditBalance: { increment: safeCredits },
-      creditsExpireAt: finalExpiry,
-    },
-  });
+  await prismadb.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        creditBalance: { increment: safeCredits },
+        creditsExpireAt: finalExpiry,
+      },
+    });
 
-  await tryCreateCreditLedgerEntry(prismadb, {
-    userId,
-    delta: safeCredits,
-    reason: "topup_grant",
+    await tryCreateCreditLedgerEntry(tx, {
+      userId,
+      delta: safeCredits,
+      reason: "topup_grant",
+      operationType: "admin_adjustment",
+    });
   });
 }
 
@@ -708,7 +762,7 @@ export async function spendCredits(input: SpendCreditsInput) {
       select: { id: true },
     });
 
-    await tx.providerUsageRecord.create({
+    const providerUsageRecord = await tx.providerUsageRecord.create({
       data: {
         userId: input.userId,
         generationId: generation.id,
@@ -725,6 +779,7 @@ export async function spendCredits(input: SpendCreditsInput) {
         aspectRatio: input.aspectRatio ?? null,
         status: input.mediaUrl && isPublicHttpUrl(input.mediaUrl) ? "completed" : "queued",
       },
+      select: { id: true },
     });
 
     await createRequestSnapshot(tx, generation.id, input.userId, input, resolved, credits);
@@ -732,8 +787,10 @@ export async function spendCredits(input: SpendCreditsInput) {
     await tryCreateCreditLedgerEntry(tx as any, {
       userId: input.userId,
       generationId: generation.id,
+      providerUsageRecordId: providerUsageRecord.id,
       delta: -credits,
       reason: "generation_charge",
+      operationType: "charge",
     });
 
     return { remainingCredits: Math.max(0, updated?.creditBalance ?? 0), generationId: generation.id };
@@ -816,9 +873,17 @@ export async function refundCredits(userId: string, credits: number) {
   const safeCredits = Math.max(0, Math.floor(credits));
   if (safeCredits <= 0) return;
   await ensureUserRow(userId);
-  await prismadb.user.update({
-    where: { id: userId },
-    data: { creditBalance: { increment: safeCredits } },
+  await prismadb.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: { creditBalance: { increment: safeCredits } },
+    });
+    await tryCreateCreditLedgerEntry(tx, {
+      userId,
+      delta: safeCredits,
+      reason: "generation_refund_provider_failed",
+      operationType: "refund",
+    });
   });
 }
 
@@ -841,6 +906,7 @@ export async function refundCreditsWithReason(
       generationId: generationId ?? null,
       delta: safeCredits,
       reason,
+      operationType: "refund",
     });
   });
 }
@@ -892,6 +958,7 @@ export async function refundGenerationCharge(
       generationId,
       delta: safeCredits,
       reason: options.reason,
+      operationType: "refund",
     });
   });
 }
@@ -1079,6 +1146,7 @@ export async function rollbackGenerationCharge(generationId: string, userId: str
       generationId,
       delta: safeCredits,
       reason: "generation_refund_provider_failed",
+      operationType: "refund",
     });
   });
 }

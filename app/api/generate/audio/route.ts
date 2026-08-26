@@ -5,7 +5,7 @@ import { getAudioActionCredits } from "@/lib/credit-pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setActualProviderUsage, setGenerationCompletedWithoutMedia, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
-import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
+import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody, idempotencyErrorResponse } from "@/lib/idempotency";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { normalizeMediaUrl } from "@/lib/storage";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
@@ -1320,7 +1320,7 @@ export async function POST(req: NextRequest) {
       route: IDEMPOTENCY_ROUTE,
       key: idempotencyKey,
       generationId,
-    }).catch(() => {});
+    });
 
     const finalize = async (responseJson: unknown, responseStatus: number) => {
       const wrapped =
@@ -1339,7 +1339,7 @@ export async function POST(req: NextRequest) {
           providerName,
           providerModel: typeof wrapped.model === "string" ? wrapped.model : modelUsedForLedger,
           status: "completed",
-        }).catch(() => {});
+        });
       }
 
       await completeIdempotency({
@@ -1349,7 +1349,7 @@ export async function POST(req: NextRequest) {
         generationId,
         responseStatus,
         responseJson: wrapped,
-      }).catch(() => {});
+      });
       return NextResponse.json(wrapped, { status: responseStatus });
     };
 
@@ -1783,6 +1783,9 @@ export async function POST(req: NextRequest) {
     }
     throw new Error(`Unknown actionType: ${actionType}. Supported: tts | video2audio | music | speech-to-text | audio-isolation | voice-changer | dubbing | lip-sync | voice-cloning.`);
   } catch (error: unknown) {
+    const idemResponse = idempotencyErrorResponse(error);
+    if (idemResponse) return idemResponse;
+
     if (error instanceof ValidationError) {
       const responseJson = { error: error.message };
       if (chargedUserId && requestHash) {
@@ -1793,7 +1796,7 @@ export async function POST(req: NextRequest) {
           generationId,
           responseStatus: 400,
           responseJson,
-        }).catch(() => {});
+        });
       }
       return NextResponse.json(responseJson, { status: 400 });
     }
@@ -1812,7 +1815,7 @@ export async function POST(req: NextRequest) {
           generationId,
           responseStatus: 402,
           responseJson,
-        }).catch(() => {});
+        });
       }
       return NextResponse.json(
         responseJson,
@@ -1824,7 +1827,7 @@ export async function POST(req: NextRequest) {
       await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
         reason: "generation_refund_provider_failed",
         clearMediaUrl: true,
-      }).catch(() => {});
+      });
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";
@@ -1836,7 +1839,7 @@ export async function POST(req: NextRequest) {
         generationId,
         responseStatus: 500,
         responseJson: { error: message },
-      }).catch(() => {});
+      });
     }
     return NextResponse.json({ error: message }, { status: 500 });
   }

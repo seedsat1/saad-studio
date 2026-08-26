@@ -65,6 +65,14 @@ model User {
   cameras       UserCamera[]
   palettes      UserPalette[]
   providerUsageRecords ProviderUsageRecord[]
+  apiIdempotencies     ApiIdempotency[]
+  creditLedgerEntries  CreditLedgerEntry[]
+  voiceAgents          VoiceAgent[]
+  voiceAgentTasks      VoiceAgentTask[]
+  voiceAgentContacts   VoiceAgentContact[]
+  voiceAgentIntegrations VoiceAgentIntegrationConnection[]
+  voiceAgentUsage      VoiceAgentUsage[]
+  voiceAgentAuditLogs  VoiceAgentAuditLog[]
 }
 
 /// Records every AI generation for security monitoring and cost tracking.
@@ -107,6 +115,8 @@ model Generation {
   @@index([posterStatus])
   providerUsageRecords ProviderUsageRecord[]
   generationRequestSnapshot GenerationRequestSnapshot?
+  apiIdempotencies ApiIdempotency[]
+  creditLedgerEntries CreditLedgerEntry[]
 }
 
 model ProviderUsageRecord {
@@ -135,6 +145,72 @@ model ProviderUsageRecord {
   @@index([generationId])
   @@index([providerRequestId])
   @@index([createdAt])
+  creditLedgerEntries CreditLedgerEntry[]
+}
+
+model ApiIdempotency {
+  id                       String      @id @default(cuid())
+  userId                   String
+  user                     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route                    String
+  operationType            String      @default("generation")
+  key                      String
+  requestHash              String
+  status                   String      @default("processing")
+  generationId             String?
+  generation               Generation? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  responseStatus           Int?
+  responseJson             Json?
+  errorCode                String?
+  errorMessage             String?     @db.Text
+  attemptCount             Int         @default(0)
+  processingLeaseExpiresAt DateTime?
+  lastHeartbeatAt          DateTime?
+  providerDispatchedAt     DateTime?
+  completedAt              DateTime?
+  failedAt                 DateTime?
+  expiresAt                DateTime?
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+
+  @@unique([userId, route, operationType, key])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([processingLeaseExpiresAt])
+  @@index([expiresAt])
+  @@index([generationId])
+}
+
+model CreditLedgerEntry {
+  id                    String              @id @default(cuid())
+  userId                String
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationId          String?
+  generation            Generation?          @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  projectId             String?
+  jobId                 String?
+  idempotencyKey        String?
+  providerUsageRecordId String?
+  providerUsageRecord   ProviderUsageRecord? @relation(fields: [providerUsageRecordId], references: [id], onDelete: SetNull)
+  quoteSnapshotId       String?
+  originalEntryId       String?
+  originalEntry         CreditLedgerEntry?   @relation("CreditLedgerReversal", fields: [originalEntryId], references: [id], onDelete: SetNull)
+  reversalEntries       CreditLedgerEntry[]  @relation("CreditLedgerReversal")
+  delta                 Int
+  reason                String
+  operationType         String
+  status                String              @default("settled")
+  metadata              Json?
+  createdAt             DateTime            @default(now())
+
+  @@index([userId, createdAt])
+  @@index([generationId])
+  @@index([projectId])
+  @@index([jobId])
+  @@index([idempotencyKey])
+  @@index([providerUsageRecordId])
+  @@index([quoteSnapshotId])
+  @@index([originalEntryId])
 }
 
 model GenerationRequestSnapshot {
@@ -889,4 +965,229 @@ model MobileTelemetryEvent {
   @@index([feature, deviceClass, createdAt])
   @@index([status, createdAt])
   @@index([userId])
+}
+
+// ——————————————————————————————————————————————————————————
+// SAAD VOICE AGENT — DASHBOARD VOICE TASK ORCHESTRATION
+// ——————————————————————————————————————————————————————————
+
+model VoiceAgent {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String   @default("Saad Voice Agent")
+  companyName        String   @default("Saad Studio")
+  tone               String   @default("calm")
+  language           String   @default("ar-IQ")
+  dialect            String   @default("iraqi")
+  introScript        String   @db.Text
+  approvalPolicy     String   @default("always_ask")
+  phoneNumber        String?
+  recordingAllowed   Boolean  @default(false)
+  isDefault          Boolean  @default(false)
+  metadata           Json     @default("{}")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tasks              VoiceAgentTask[]
+
+  @@index([userId, updatedAt])
+}
+
+model VoiceAgentTask {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId            String?
+  agent              VoiceAgent? @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  goal               String   @db.Text
+  language           String   @default("ar-IQ")
+  dialect            String   @default("iraqi")
+  status             String   @default("draft")
+  resultChannel      String   @default("platform")
+  approvalPolicy     String   @default("always_ask")
+  estimatedCredits   Int      @default(0)
+  actualCredits      Int?
+  costBreakdown      Json     @default("{}")
+  planJson           Json     @default("{}")
+  timelineJson       Json     @default("[]")
+  transcriptJson     Json     @default("[]")
+  finalSummary       String?  @db.Text
+  lastError          String?  @db.Text
+  humanIntervention  Boolean  @default(false)
+  rating             Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  steps              TaskStep[]
+  calls              VoiceAgentCall[]
+  toolExecutions     AgentToolExecution[]
+  approvals          ApprovalRequest[]
+  usage              VoiceAgentUsage[]
+  auditLogs          VoiceAgentAuditLog[]
+
+  @@index([userId, updatedAt])
+  @@index([status, updatedAt])
+}
+
+model TaskStep {
+  id          String   @id @default(cuid())
+  taskId      String
+  task        VoiceAgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  orderIndex  Int      @default(0)
+  title       String
+  toolId      String?
+  status      String   @default("pending")
+  riskLevel   String   @default("low")
+  inputJson   Json     @default("{}")
+  outputJson  Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([taskId, orderIndex])
+}
+
+model VoiceAgentCall {
+  id                 String   @id @default(cuid())
+  taskId             String
+  task               VoiceAgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId             String
+  direction          String   @default("outbound")
+  provider           String   @default("mock")
+  providerCallId     String?
+  fromNumber         String?
+  toNumber           String?
+  status             String   @default("queued")
+  durationSec        Int?
+  recordingUrl       String?
+  recordingAllowed   Boolean  @default(false)
+  metadata           Json     @default("{}")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  transcripts        CallTranscript[]
+
+  @@index([userId, createdAt])
+  @@index([taskId, createdAt])
+  @@index([providerCallId])
+}
+
+model CallTranscript {
+  id          String   @id @default(cuid())
+  callId      String
+  call        VoiceAgentCall @relation(fields: [callId], references: [id], onDelete: Cascade)
+  userId      String
+  speaker     String
+  text        String   @db.Text
+  offsetMs    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([callId, offsetMs])
+  @@index([userId, createdAt])
+}
+
+model AgentToolExecution {
+  id           String   @id @default(cuid())
+  taskId       String
+  task         VoiceAgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId       String
+  toolId       String
+  riskLevel    String   @default("low")
+  status       String   @default("queued")
+  inputJson    Json     @default("{}")
+  outputJson   Json     @default("{}")
+  approvalId   String?
+  error         String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([taskId, createdAt])
+  @@index([userId, createdAt])
+  @@index([toolId])
+}
+
+model ApprovalRequest {
+  id              String   @id @default(cuid())
+  taskId          String
+  task            VoiceAgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId          String
+  actionType      String
+  reason          String   @db.Text
+  summary         String   @db.Text
+  affectedData    Json     @default("{}")
+  status          String   @default("pending")
+  expiresAt       DateTime?
+  decidedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([taskId, status])
+  @@index([userId, createdAt])
+}
+
+model VoiceAgentContact {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  phone       String?
+  email       String?
+  notes       String?  @db.Text
+  preferences Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+  @@index([userId, name])
+}
+
+model VoiceAgentIntegrationConnection {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider    String
+  status      String   @default("mock")
+  scopes      String[] @default([])
+  settings    Json     @default("{}")
+  encryptedSecretRef String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, provider])
+  @@index([userId, updatedAt])
+}
+
+model VoiceAgentUsage {
+  id                 String   @id @default(cuid())
+  taskId             String
+  task               VoiceAgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  estimatedCredits   Int      @default(0)
+  actualCredits      Int      @default(0)
+  telephonyMinutes   Float    @default(0)
+  sttCredits         Int      @default(0)
+  ttsCredits         Int      @default(0)
+  llmCredits         Int      @default(0)
+  providerCostUsd    Float?
+  providerCostSource String   @default("mock")
+  createdAt          DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([taskId])
+}
+
+model VoiceAgentAuditLog {
+  id        String   @id @default(cuid())
+  taskId    String?
+  task      VoiceAgentTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([taskId, createdAt])
+  @@index([eventType])
 }

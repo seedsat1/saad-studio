@@ -143,7 +143,14 @@ describe("credit-ledger policy + refunds", () => {
       data: { cost: 0, mediaUrl: null, outputUrl: null, status: "failed" },
     });
     expect(tx.creditLedgerEntry.create).toHaveBeenCalledWith({
-      data: { userId: "u1", generationId: "g1", delta: 10, reason: "generation_refund_provider_failed" },
+      data: expect.objectContaining({
+        userId: "u1",
+        generationId: "g1",
+        delta: 10,
+        reason: "generation_refund_provider_failed",
+        operationType: "refund",
+        status: "settled",
+      }),
     });
   });
 

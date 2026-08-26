@@ -16,7 +16,7 @@ import { getCentralizedDynamicVideoModels } from "@/lib/model-definition-registr
 import { resolveDynamicVideoSubRoute } from "@/lib/dynamic-model-loader";
 import { getGoogleVideoConstraints, isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
-import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
+import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody, idempotencyErrorResponse } from "@/lib/idempotency";
 import { VIDEO_PROVIDER_BUSY_MESSAGE } from "@/lib/generation-errors";
 import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput, urlToVideoInput, type VeoImageInput, type VeoVideoInput, type VeoOperationHandle, type VeoResolution, type VeoTier } from "@/lib/gemini-veo";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
@@ -2522,8 +2522,7 @@ export async function POST(req: Request) {
         modelRoute === GOOGLE_VEO31_ROUTE ||
         modelRoute === GOOGLE_VEO31_FAST_ROUTE ||
         modelRoute === "google/gemini-omni-flash" ||
-        modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE ||
-        modelRoute === "google/veo-3.1-generate-preview";
+        modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE;
       if (referenceUrls.length > 0 && !supportsGoogleReferenceImages) {
         return NextResponse.json(
           {
@@ -2618,7 +2617,7 @@ export async function POST(req: Request) {
           generationId,
           responseStatus: 503,
           responseJson,
-        }).catch(() => {});
+        });
         return NextResponse.json(responseJson, { status: 503 });
       }
 
@@ -2696,7 +2695,7 @@ export async function POST(req: Request) {
         route: IDEMPOTENCY_ROUTE,
         key: idempotencyKey,
         generationId,
-      }).catch(() => {});
+      });
 
       const createRes = await fetch(BYTEPLUS_CONTENT_TASKS_URL, {
         method: "POST",
@@ -2721,7 +2720,7 @@ export async function POST(req: Request) {
           await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
             reason: "generation_refund_provider_failed",
             clearMediaUrl: true,
-          }).catch(() => {});
+          });
         }
         const failure = classifyArkSubmitFailure(text, createRes.status);
         const providerAudit = buildArkFailureAudit({
@@ -2750,7 +2749,7 @@ export async function POST(req: Request) {
           generationId,
           responseStatus: failure.responseStatus,
           responseJson,
-        }).catch(() => {});
+        });
         return NextResponse.json(responseJson, { status: failure.responseStatus });
       }
 
@@ -2769,7 +2768,7 @@ export async function POST(req: Request) {
           await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
             reason: "generation_refund_provider_failed",
             clearMediaUrl: true,
-          }).catch(() => {});
+          });
         }
         const rawError = providerFailureMessage(createJson, createRes.status);
         const failure = classifyArkSubmitFailure(rawError, createRes.status);
@@ -2800,7 +2799,7 @@ export async function POST(req: Request) {
           generationId,
           responseStatus: failure.responseStatus,
           responseJson,
-        }).catch(() => {});
+        });
         return NextResponse.json(responseJson, { status: failure.responseStatus });
       }
 
@@ -2819,7 +2818,7 @@ export async function POST(req: Request) {
         generationId,
         responseStatus: 200,
         responseJson,
-      }).catch(() => {});
+      });
       return NextResponse.json(responseJson);
     }
 
@@ -2995,7 +2994,7 @@ export async function POST(req: Request) {
         route: IDEMPOTENCY_ROUTE,
         key: idempotencyKey,
         generationId,
-      }).catch(() => {});
+      });
 
       const [image, lastFrame, referenceImages, video] = await Promise.all([
         sourceToGoogleImageInput(resolvedStartImage),
@@ -3033,7 +3032,7 @@ export async function POST(req: Request) {
           await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
             reason: "generation_refund_provider_failed",
             clearMediaUrl: true,
-          }).catch(() => {});
+          });
         }
         const rawError = err instanceof Error ? err.message : "Google Gemini video generation failed";
         let publicError = VIDEO_PROVIDER_BUSY_MESSAGE;
@@ -3057,7 +3056,7 @@ export async function POST(req: Request) {
           generationId,
           responseStatus: 502,
           responseJson,
-        }).catch(() => {});
+        });
         return NextResponse.json(responseJson, { status: 502 });
       }
 
@@ -3076,7 +3075,7 @@ export async function POST(req: Request) {
         generationId,
         responseStatus: 200,
         responseJson,
-      }).catch(() => {});
+      });
       return NextResponse.json(responseJson);
     }
 
@@ -3178,7 +3177,7 @@ export async function POST(req: Request) {
         route: IDEMPOTENCY_ROUTE,
         key: idempotencyKey,
         generationId,
-      }).catch(() => {});
+      });
 
       const wsRes = await fetch(`${WAVESPEED_BASE}/${wavespeedRoute}`, {
         method: "POST",
@@ -3198,7 +3197,7 @@ export async function POST(req: Request) {
           await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
             reason: "generation_refund_provider_failed",
             clearMediaUrl: true,
-          }).catch(() => {});
+          });
         }
         await completeIdempotency({
           userId,
@@ -3207,7 +3206,7 @@ export async function POST(req: Request) {
           generationId,
           responseStatus: 502,
           responseJson: { generationId, error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
-        }).catch(() => {});
+        });
         return NextResponse.json(
           { generationId, error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
           { status: 502 },
@@ -3225,7 +3224,7 @@ export async function POST(req: Request) {
         generationId,
         responseStatus: 200,
         responseJson,
-      }).catch(() => {});
+      });
       return NextResponse.json(responseJson);
     }
 
@@ -3239,7 +3238,7 @@ export async function POST(req: Request) {
         generationId,
         responseStatus: 503,
         responseJson,
-      }).catch(() => {});
+      });
       return NextResponse.json(responseJson, { status: 503 });
     }
 
@@ -3327,7 +3326,7 @@ export async function POST(req: Request) {
       route: IDEMPOTENCY_ROUTE,
       key: idempotencyKey,
       generationId,
-    }).catch(() => {});
+    });
 
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://example.com"}/api/callback`;
 
@@ -3376,7 +3375,7 @@ export async function POST(req: Request) {
         await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
           reason: "generation_refund_provider_failed",
           clearMediaUrl: true,
-        }).catch(() => {});
+        });
       }
       const responseJson = {
         error: `KIE returned non-JSON (${createRes.status}): ${text.slice(0, 200)}`,
@@ -3393,7 +3392,7 @@ export async function POST(req: Request) {
         generationId,
         responseStatus: 502,
         responseJson,
-      }).catch(() => {});
+      });
       return NextResponse.json(
         responseJson,
         { status: 502 },
@@ -3415,7 +3414,7 @@ export async function POST(req: Request) {
         await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
           reason: "generation_refund_provider_failed",
           clearMediaUrl: true,
-        }).catch(() => {});
+        });
       }
       const rawError = providerFailureMessage(createJson, createRes.status);
       let publicError = `Debug: ${rawError} | Payload: ${JSON.stringify(createBody).slice(0, 300)}`;
@@ -3441,7 +3440,7 @@ export async function POST(req: Request) {
         generationId,
         responseStatus: 502,
         responseJson,
-      }).catch(() => {});
+      });
       return NextResponse.json(
         responseJson,
         { status: 502 },
@@ -3464,9 +3463,12 @@ export async function POST(req: Request) {
       generationId,
       responseStatus: 200,
       responseJson,
-    }).catch(() => {});
+    });
     return NextResponse.json(responseJson);
   } catch (err) {
+    const idemResponse = idempotencyErrorResponse(err);
+    if (idemResponse) return idemResponse;
+
     if (err instanceof ValidationError) {
       const msg = err.message;
       if (chargedUserId && requestHash) {
@@ -3477,7 +3479,7 @@ export async function POST(req: Request) {
           generationId,
           responseStatus: 400,
           responseJson: { error: msg },
-        }).catch(() => {});
+        });
       }
       return NextResponse.json({ error: msg }, { status: 400 });
     }
@@ -3496,7 +3498,7 @@ export async function POST(req: Request) {
           generationId,
           responseStatus: 402,
           responseJson,
-        }).catch(() => {});
+        });
       }
       return NextResponse.json(
         responseJson,
@@ -3508,7 +3510,7 @@ export async function POST(req: Request) {
       await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
         reason: "generation_refund_provider_failed",
         clearMediaUrl: true,
-      }).catch(() => {});
+      });
     }
 
     const msg = err instanceof Error ? err.message : "Internal Error";
@@ -3521,7 +3523,7 @@ export async function POST(req: Request) {
         generationId,
         responseStatus: 500,
         responseJson: { error: msg },
-      }).catch(() => {});
+      });
     }
     return NextResponse.json({ error: msg }, { status: 500 });
   }
@@ -3605,7 +3607,7 @@ export async function GET(req: Request) {
             await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
               reason: "generation_refund_provider_failed",
               clearMediaUrl: true,
-            }).catch(() => {});
+            });
           }
           return NextResponse.json({
             taskId,
@@ -3631,7 +3633,7 @@ export async function GET(req: Request) {
           await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
             reason: "generation_refund_provider_failed",
             clearMediaUrl: true,
-          }).catch(() => {});
+          });
         }
         const debugMsg = poll.rawResponse ? " - RAW: " + JSON.stringify(poll.rawResponse).substring(0, 300) : "";
         return NextResponse.json({ taskId: requestedTaskId, status: "failed", outputs: [], error: "No video returned" + debugMsg });
@@ -3713,7 +3715,7 @@ export async function GET(req: Request) {
           await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
             reason: "generation_refund_provider_failed",
             clearMediaUrl: true,
-          }).catch(() => {});
+          });
         }
       } catch (dbErr) {
         console.error("[api/video GET] non-fatal BytePlus DB sync error", dbErr);
@@ -3725,7 +3727,7 @@ export async function GET(req: Request) {
           await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
             reason: "generation_refund_provider_failed",
             clearMediaUrl: true,
-          }).catch(() => {});
+          });
         }
         return NextResponse.json({ taskId, status: "failed", outputs: [], error: missingOutputError });
       }
@@ -3801,7 +3803,7 @@ export async function GET(req: Request) {
             await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
               reason: "generation_refund_provider_failed",
               clearMediaUrl: true,
-            }).catch(() => {});
+            });
           }
         }
       } catch { /* best-effort */ }
@@ -3909,7 +3911,7 @@ export async function GET(req: Request) {
             await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
               reason: "generation_refund_provider_failed",
               clearMediaUrl: true,
-            }).catch(() => {});
+            });
           }
         }
       } catch { /* best-effort */ }
@@ -3998,7 +4000,7 @@ export async function GET(req: Request) {
         await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
           reason: "generation_refund_provider_failed",
           clearMediaUrl: true,
-        }).catch(() => {});
+        });
       }
     } catch (dbErr) {
       console.error("[api/video GET] non-fatal DB sync error", dbErr);

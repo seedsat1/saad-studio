@@ -3,6 +3,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
 import { WELCOME_SIGNUP_CREDITS } from "@/lib/credits-config";
+import { tryCreateCreditLedgerEntry } from "@/lib/credit-ledger";
 
 export const dynamic = "force-dynamic";
 
@@ -30,26 +31,6 @@ async function ensureUserRow(userId: string) {
     }
     return prismadb.user.findUnique({ where: { id: userId } });
   });
-}
-
-async function tryCreateCreditLedgerEntry(
-  tx: any,
-  data: { userId: string; delta: number; reason: string }
-): Promise<void> {
-  try {
-    if (tx.creditLedgerEntry?.create) {
-      await tx.creditLedgerEntry.create({
-        data: {
-          userId: data.userId,
-          generationId: null,
-          delta: data.delta,
-          reason: data.reason,
-        },
-      });
-    }
-  } catch {
-    // Best-effort if table/model not present
-  }
 }
 
 /**
@@ -275,6 +256,7 @@ export async function PATCH(
           userId: targetUserId,
           delta: parsedAmount,
           reason: ledgerReason,
+          operationType: "admin_adjustment",
         });
 
         return updatedUser;

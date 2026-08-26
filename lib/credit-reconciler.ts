@@ -569,22 +569,21 @@ export async function runCreditReconciliation(options: {
           },
         });
 
-        // Write auditable ledger events if CreditLedgerEntry table exists
+        // Write mandatory auditable ledger events for every balance mutation.
         for (const evt of action.ledgerEvents) {
-          try {
-            if ((tx as any).creditLedgerEntry?.create) {
-              await (tx as any).creditLedgerEntry.create({
-                data: {
-                  userId: user.id,
-                  delta: evt.delta,
-                  reason: evt.reason,
-                  metadata: evt.metadata ? JSON.stringify(evt.metadata) : null,
-                },
-              });
-            }
-          } catch {
-            // Best effort ledger write
+          if (!(tx as any).creditLedgerEntry?.create) {
+            throw new Error("Credit ledger infrastructure is unavailable.");
           }
+          await (tx as any).creditLedgerEntry.create({
+            data: {
+              userId: user.id,
+              delta: evt.delta,
+              reason: evt.reason,
+              operationType: "reconcile",
+              status: "settled",
+              metadata: evt.metadata ?? undefined,
+            },
+          });
         }
       });
     }
