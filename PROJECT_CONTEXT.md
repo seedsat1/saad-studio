@@ -39,7 +39,34 @@
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
 
-#### Latest task: FLUX 3 Unified Video Model Integration (2026-08-27)
+#### Latest task: Seedance Video Extension Tab + Pricing + Full Admin Centrality (2026-08-28)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Added "Video Extension" Tab in `/video` page (data-driven from `video_api_route`).
+  - Added `video_api_route` to Seedance cards (2.5, Standard, Standard Turbo, Fast, Mini).
+  - Extended `DynamicVideoModelPricingConfig` with `extendStickerRates`, `extendBillingMode`, `extendMaxDuration`, `extendSupportsLastImage`, `extendDefaultSourceContextSec`.
+  - Updated `SEEDANCE_INITIAL_PRICING` with UI-measured WaveSpeed rates across all 5 Seedance model families:
+    - 2.5 Extend: `$0.11/$0.22/$0.55/$1.10`, `source_plus_new_segment` billing, 10% off, 4-30s duration, no last_image.
+    - Standard Extend: `$0.12/$0.24/$0.60/$1.20`, `new_segment_only`, 10% off, 4-15s duration, supports last_image.
+    - Standard Turbo Extend: Standard rates, `new_segment_only`, 10% off, 4-15s duration, supports last_image.
+    - Fast Extend: `$0.10/$0.20/$0.50/$1.00`, `new_segment_only`, 20% off, 4-15s duration, supports last_image.
+    - Mini Extend: `$0.06/$0.12/$0.30/$0.60`, `new_segment_only`, 40% off, 4-15s duration, supports last_image.
+  - Dynamic pricing calculation updated in `computeCreditsFromDynamicModel` supporting `isExtend`, `sourceContextSec`, and billing modes.
+  - Admin UI in `/admin/models` extended with full "Video Extend — Pricing & Config" inspector drawer form.
+  - Model registry hardening extended with deep diffing for `pricingConfig`, `capabilities`, and `video_api_route` in audit log.
+  - Guaranteed no-loss platform margin ($\ge 47\%$ margin on Max plan @ \$0.0367/credit with 40 credits/USD).
+- Files affected:
+  - `lib/video-model-registry.ts`
+  - `lib/dynamic-model-loader.ts`
+  - `lib/pricing.ts`
+  - `lib/model-registry-hardening.ts`
+  - `app/admin/models/page.tsx`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `test/models-backend-hardening.test.ts`
+- Verification:
+  - 65/65 tests passed across `test/models-backend-hardening.test.ts`, `test/model-definition-registry.test.ts`, `test/pricing-core.test.ts`.
+
+#### Previous task: FLUX 3 Unified Video Model Integration (2026-08-27)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Added Black Forest Labs `Flux 3` as a unified video model in `/video` studio, routing intelligently behind the scenes without exposing technical sub-route names to subscribers.
