@@ -2740,8 +2740,14 @@ function VideoPageInner() {
               payload.image = explicitStartImage;
               payload.first_frame_url = explicitStartImage;
             }
-            if (isWan30Model && explicitEndImageForReference) {
-              payload.last_image = explicitEndImageForReference;
+            if (isWan30Model) {
+              if (explicitEndImageForReference) {
+                payload.last_image = explicitEndImageForReference;
+                payload.end_image = explicitEndImageForReference;
+              } else if (mergedImageRefs.length >= 2) {
+                payload.last_image = mergedImageRefs[1];
+                payload.end_image = mergedImageRefs[1];
+              }
             }
             payload.reference_image_urls = mergedImageRefs;
           }
@@ -2749,11 +2755,16 @@ function VideoPageInner() {
             payload.reference_video_urls = await Promise.all(refVids.slice(0, Math.max(0, caps.max_reference_videos || 3)).map(f => uploadVideoRequestFile(f, fetchWithAuth)));
           if (refAuds.length > 0)
             payload.reference_audio_urls = await Promise.all(refAuds.slice(0, Math.max(0, caps.max_reference_audios || 3)).map(f => uploadVideoRequestFile(f, fetchWithAuth)));
-          // Also allow end frame alongside Seedance references
-          if (isSeedanceV2 && caps.has_end_frame && (endFrame || linkedEndFrameUrl)) {
+          // Also allow end frame alongside Seedance / Wan references
+          if (caps.has_end_frame && (endFrame || linkedEndFrameUrl)) {
             const explicitEndImage = endFrame ? await uploadVideoRequestFile(endFrame, fetchWithAuth) : linkedEndFrameUrl;
             payload.last_image = explicitEndImage;
             payload.last_frame_url = explicitEndImage;
+            payload.end_image = explicitEndImage;
+          } else if (caps.has_end_frame && mergedImageRefs.length >= 2 && !payload.last_image && !payload.last_frame_url && !payload.end_image) {
+            payload.last_image = mergedImageRefs[1];
+            payload.last_frame_url = mergedImageRefs[1];
+            payload.end_image = mergedImageRefs[1];
           }
         } else {
           const uploadedRefs = await Promise.all(referenceImages.filter((f) => f.type.startsWith("image/")).map(async (f) => {
@@ -2954,13 +2965,22 @@ function VideoPageInner() {
         // but we re-read from state to guarantee no silent data loss.
         const imageUrls: string[] = [];
         const targetKlingRatio = aspectRatio ?? "16:9";
+        const refImageFiles = referenceImages.filter(f => f.type.startsWith("image/"));
         const firstFrameDataUrl = startFrame
           ? await fileToAspectDataURL(startFrame, targetKlingRatio)
           : linkedStartFrameUrl
             ? await imageSourceToAspectDataURL(linkedStartFrameUrl, targetKlingRatio)
-            : null;
+            : refImageFiles[0]
+              ? await fileToAspectDataURL(refImageFiles[0], targetKlingRatio)
+              : null;
         const lastFrameDataUrl =
-          !kling30MultiEnabled && endFrame ? await fileToAspectDataURL(endFrame, targetKlingRatio) : null;
+          !kling30MultiEnabled && endFrame
+            ? await fileToAspectDataURL(endFrame, targetKlingRatio)
+            : !kling30MultiEnabled && linkedEndFrameUrl
+              ? await imageSourceToAspectDataURL(linkedEndFrameUrl, targetKlingRatio)
+              : !kling30MultiEnabled && refImageFiles.length >= 2
+                ? await fileToAspectDataURL(refImageFiles[1], targetKlingRatio)
+                : null;
         if (firstFrameDataUrl) imageUrls.push(firstFrameDataUrl);
         if (lastFrameDataUrl) imageUrls.push(lastFrameDataUrl);
         // Log so we can verify images are included

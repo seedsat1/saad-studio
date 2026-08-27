@@ -588,6 +588,16 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
   if (Array.isArray(payload.audio_urls) && !out.reference_audio_urls) out.reference_audio_urls = payload.audio_urls;
   if (typeof payload.audio_url === "string" && !out.reference_audio_urls) out.reference_audio_urls = [payload.audio_url];
 
+  if (!out.image && Array.isArray(out.reference_image_urls) && typeof out.reference_image_urls[0] === "string") {
+    out.image = out.reference_image_urls[0];
+    out.first_frame_url = out.reference_image_urls[0];
+  }
+  if (!out.end_image && Array.isArray(out.reference_image_urls) && typeof out.reference_image_urls[1] === "string") {
+    out.end_image = out.reference_image_urls[1];
+    out.last_image = out.reference_image_urls[1];
+    out.last_frame_url = out.reference_image_urls[1];
+  }
+
   out.enable_web_search = payload.enable_web_search !== undefined ? !!payload.enable_web_search : false;
 
   const isSeedance25TextTurboRoute = route === "bytedance/seedance-2.5/text-to-video-turbo";
@@ -1423,16 +1433,19 @@ async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<
   if (prompt) content.push({ type: "text", text: prompt });
 
   const imageUrls = Array.isArray(payload.image_urls) ? payload.image_urls : [];
+  const refImagesRaw = Array.isArray(payload.reference_image_urls) ? (payload.reference_image_urls as string[]) : [];
   const firstFrame =
     (await resolveOfficialSeedanceUrl(payload.first_frame_url, userId, "image")) ||
     (await resolveOfficialSeedanceUrl(payload.image_url, userId, "image")) ||
     (await resolveOfficialSeedanceUrl(payload.image, userId, "image")) ||
-    (await resolveOfficialSeedanceUrl(imageUrls[0], userId, "image"));
+    (await resolveOfficialSeedanceUrl(imageUrls[0], userId, "image")) ||
+    (refImagesRaw[0] ? await resolveOfficialSeedanceUrl(refImagesRaw[0], userId, "image") : null);
   const lastFrame =
     (await resolveOfficialSeedanceUrl(payload.last_frame_url, userId, "image")) ||
     (await resolveOfficialSeedanceUrl(payload.end_image, userId, "image")) ||
     (await resolveOfficialSeedanceUrl(payload.last_image, userId, "image")) ||
-    (await resolveOfficialSeedanceUrl(imageUrls[1], userId, "image"));
+    (await resolveOfficialSeedanceUrl(imageUrls[1], userId, "image")) ||
+    (refImagesRaw.length > 1 ? await resolveOfficialSeedanceUrl(refImagesRaw[1], userId, "image") : null);
 
   if (firstFrame) {
     await verifyPublicMediaUrl(firstFrame, "first_frame_url", verifyOptions);
