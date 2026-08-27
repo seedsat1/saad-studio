@@ -813,5 +813,46 @@ describe("Admin Models Backend Hardening Test Suite", () => {
         expect(seedanceExtendCards.length).toBeGreaterThanOrEqual(5);
       });
     });
+
+    describe("Video Extension UI transparency", () => {
+      it("shows source_context in cost breakdown for 2.5 Extend", async () => {
+        const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
+        const cfg = SEEDANCE_INITIAL_PRICING["bytedance-seedance-v25-t2v-turbo"];
+        expect(cfg.extendBillingMode).toBe("source_plus_new_segment");
+        expect(cfg.extendDefaultSourceContextSec).toBe(5);
+      });
+
+      it("hides source_context for Fast/Standard/Mini Extend", async () => {
+        const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
+        expect(SEEDANCE_INITIAL_PRICING["bytedance-seedance-v2-fast"]?.extendBillingMode).toBe("new_segment_only");
+        expect(SEEDANCE_INITIAL_PRICING["bytedance-seedance-v2-t2v"]?.extendBillingMode).toBe("new_segment_only");
+        expect(SEEDANCE_INITIAL_PRICING["bytedance-seedance-v2-t2v-mini"]?.extendBillingMode).toBe("new_segment_only");
+      });
+
+      it("shows SOURCE+NEW badge on 2.5 model card", async () => {
+        const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
+        const model = { pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v25-t2v-turbo"] };
+        const badge = model.pricingConfig?.extendBillingMode === "source_plus_new_segment" ? "SOURCE+NEW" : "NEW ONLY";
+        expect(badge).toBe("SOURCE+NEW");
+      });
+
+      it("shows NEW ONLY badge on other cards", async () => {
+        const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
+        const modelFast = { pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v2-fast"] };
+        const badge = modelFast.pricingConfig?.extendBillingMode === "source_plus_new_segment" ? "SOURCE+NEW" : "NEW ONLY";
+        expect(badge).toBe("NEW ONLY");
+      });
+
+      it("uses admin-editable hint text if provided", async () => {
+        const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
+        const cfg = SEEDANCE_INITIAL_PRICING["bytedance-seedance-v25-t2v-turbo"];
+        expect(cfg.extendUserHintAr).toBeDefined();
+        expect(cfg.extendUserHintEn).toBeDefined();
+        expect(cfg.extendTipAr).toBeDefined();
+        expect(cfg.extendTipEn).toBeDefined();
+        const formatted = cfg.extendUserHintAr?.replace("{sourceSec}", "5");
+        expect(formatted).toContain("5 ثوانٍ");
+      });
+    });
   });
 });

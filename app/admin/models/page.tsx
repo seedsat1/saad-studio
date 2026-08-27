@@ -322,6 +322,10 @@ export default function AdminModelsPage() {
   const [editExtendMaxDuration, setEditExtendMaxDuration] = useState<number>(15);
   const [editExtendSupportsLastImage, setEditExtendSupportsLastImage] = useState<boolean>(true);
   const [editVideoApiRoute, setEditVideoApiRoute] = useState<string>("");
+  const [editExtendUserHintAr, setEditExtendUserHintAr] = useState<string>("");
+  const [editExtendUserHintEn, setEditExtendUserHintEn] = useState<string>("");
+  const [editExtendTipAr, setEditExtendTipAr] = useState<string>("");
+  const [editExtendTipEn, setEditExtendTipEn] = useState<string>("");
 
   // Catalog Sync Modal
   const [showSyncModal, setShowSyncModal] = useState(false);
@@ -1156,6 +1160,10 @@ export default function AdminModelsPage() {
     setEditExtendBillingMode(pCfg?.extendBillingMode ?? "new_segment_only");
     setEditExtendMaxDuration(pCfg?.extendMaxDuration ?? 15);
     setEditExtendSupportsLastImage(pCfg?.extendSupportsLastImage ?? true);
+    setEditExtendUserHintAr(pCfg?.extendUserHintAr ?? "");
+    setEditExtendUserHintEn(pCfg?.extendUserHintEn ?? "");
+    setEditExtendTipAr(pCfg?.extendTipAr ?? "");
+    setEditExtendTipEn(pCfg?.extendTipEn ?? "");
 
     setSaveError(null);
     setConcurrencyConflict(false);
@@ -1241,6 +1249,10 @@ export default function AdminModelsPage() {
           extendMaxDuration: editExtendMaxDuration,
           extendSupportsLastImage: editExtendSupportsLastImage,
           extendDefaultSourceContextSec: 5,
+          extendUserHintAr: editExtendUserHintAr.trim() || undefined,
+          extendUserHintEn: editExtendUserHintEn.trim() || undefined,
+          extendTipAr: editExtendTipAr.trim() || undefined,
+          extendTipEn: editExtendTipEn.trim() || undefined,
           discountMultiplier: editDiscountMultiplier,
           creditsPerUsd: editCreditsPerUsd,
           billingMode: editBillingMode,
@@ -2932,6 +2944,55 @@ export default function AdminModelsPage() {
                             <label htmlFor="extend-last-image-check" className="text-[11px] text-zinc-300 cursor-pointer">
                               Supports last_image frame?
                             </label>
+                          </div>
+                        </div>
+
+                        {/* Educational Hints & Tips for Users (Admin Customizable) */}
+                        <div className="space-y-2 pt-2 border-t border-zinc-800/80">
+                          <span className="text-[11px] font-semibold text-zinc-400 block">
+                            Educational Hints & Warnings for Users (رسائل وتنبيهات الإطالة للمشترك):
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block mb-0.5">User Hint (Arabic)</span>
+                              <textarea
+                                rows={2}
+                                value={editExtendUserHintAr}
+                                onChange={(e) => setEditExtendUserHintAr(e.target.value)}
+                                placeholder="يقرأ الموديل {sourceSec} ثوانٍ من الفيديو الأصلي..."
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block mb-0.5">User Hint (English)</span>
+                              <textarea
+                                rows={2}
+                                value={editExtendUserHintEn}
+                                onChange={(e) => setEditExtendUserHintEn(e.target.value)}
+                                placeholder="The model reads {sourceSec}s from source..."
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block mb-0.5">User Tip (Arabic)</span>
+                              <textarea
+                                rows={2}
+                                value={editExtendTipAr}
+                                onChange={(e) => setEditExtendTipAr(e.target.value)}
+                                placeholder="نصيحة: إذا كنت تريد جيلاً جديداً بنفس الشخصية..."
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block mb-0.5">User Tip (English)</span>
+                              <textarea
+                                rows={2}
+                                value={editExtendTipEn}
+                                onChange={(e) => setEditExtendTipEn(e.target.value)}
+                                placeholder="Tip: If you just want a new generation with same character..."
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
                           </div>
                         </div>
                       </section>

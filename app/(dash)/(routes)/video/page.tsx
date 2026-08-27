@@ -14,7 +14,7 @@ import {
   Play, Download, Trash2, Heart, Copy, MoreHorizontal,
   ExternalLink, RefreshCw, Share2,
   type LucideIcon, Languages, Volume2, Palette, Plus, AudioLines, Shapes,
-  ZoomIn, Music, Minus, MinusCircle, Repeat, SquarePen,
+  ZoomIn, Music, Minus, MinusCircle, Repeat, SquarePen, Info, AlertTriangle,
 } from "lucide-react";
 
 import { useLanguage } from "@/lib/use-language";
@@ -4846,6 +4846,53 @@ function VideoPageInner() {
             </button>
           </div>
 
+          {/* Fix #1: Info Banner ثابت أعلى تبويبة Extend */}
+          {videoMode === "extend" && (
+            <div className="rounded-xl border border-emerald-800/40 bg-emerald-950/30 p-3 mb-2">
+              <div className="flex items-start gap-2">
+                <Info size={14} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 space-y-1">
+                  <p className="text-[11px] font-semibold text-emerald-300">
+                    {lang === "ar" ? "كيف تُحسب تكلفة الإطالة" : "How Extension Cost Is Calculated"}
+                  </p>
+                  <p className="text-[10px] text-zinc-400 leading-relaxed">
+                    {lang === "ar"
+                      ? "معظم الموديلات تحاسبك على الثواني المضافة فقط. Seedance 2.5 استثناء — يحاسب على جزء من الفيديو الأصلي + الجزء الجديد لضمان استمرارية سلسة."
+                      : "Most models charge only for the added seconds. Seedance 2.5 is an exception — it bills for a portion of the source video + the new segment to ensure seamless continuity."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Fix #2: تنبيه ديناميكي خاص لـ Seedance 2.5 */}
+          {videoMode === "extend" && (selectedModel as any).pricingConfig?.extendBillingMode === "source_plus_new_segment" && (
+            <div className="rounded-xl border border-amber-700/40 bg-amber-950/30 p-3 my-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={14} className="text-amber-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <p className="text-[11px] font-semibold text-amber-300">
+                    {lang === "ar" ? "⚡ ملاحظة خاصة — Seedance 2.5" : "⚡ Special note — Seedance 2.5"}
+                  </p>
+                  <p className="text-[10px] text-zinc-300 leading-relaxed">
+                    {lang === "ar"
+                      ? ((selectedModel as any).pricingConfig?.extendUserHintAr
+                          ? (selectedModel as any).pricingConfig.extendUserHintAr.replace("{sourceSec}", String((selectedModel as any).pricingConfig?.extendDefaultSourceContextSec ?? 5))
+                          : `يقرأ الموديل ${(selectedModel as any).pricingConfig?.extendDefaultSourceContextSec ?? 5} ثوانٍ من الفيديو الأصلي لفهم الحركة، ثم يضيف الجزء الجديد. التكلفة = (سياق + إضافة) × السعر.`)
+                      : ((selectedModel as any).pricingConfig?.extendUserHintEn
+                          ? (selectedModel as any).pricingConfig.extendUserHintEn.replace("{sourceSec}", String((selectedModel as any).pricingConfig?.extendDefaultSourceContextSec ?? 5))
+                          : `The model reads ${(selectedModel as any).pricingConfig?.extendDefaultSourceContextSec ?? 5}s from source to understand motion, then generates the new segment. Cost = (source context + new segment) × rate.`)}
+                  </p>
+                  <p className="text-[10px] text-amber-200 leading-relaxed">
+                    💡 {lang === "ar"
+                      ? ((selectedModel as any).pricingConfig?.extendTipAr ?? "نصيحة: إذا كنت تريد جيلاً جديداً بنفس الشخصية فقط، استخدم Seedance 2.5 T2V/I2V مع رفرنس صورة — أرخص وأسرع.")
+                      : ((selectedModel as any).pricingConfig?.extendTipEn ?? "Tip: If you just want a new generation with the same character, use Seedance 2.5 T2V/I2V with an image reference — cheaper and faster.")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* -- AI Model dropdown ------------------------------------------- */}
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
@@ -4862,6 +4909,17 @@ function VideoPageInner() {
                   >
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedModel.family_color }} />
                     <span className="flex-1 truncate text-[13px]" style={{ color: "#e2e8f0" }}>{prettyModelName(selectedModel.name)}</span>
+                    {videoMode === "extend" && (
+                      (selectedModel as any).pricingConfig?.extendBillingMode === "source_plus_new_segment" ? (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-300 font-mono">
+                          SOURCE+NEW
+                        </span>
+                      ) : (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300 font-mono">
+                          NEW ONLY
+                        </span>
+                      )
+                    )}
                     {bStyle && (
                       <span
                         className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
@@ -4916,6 +4974,17 @@ function VideoPageInner() {
                                 >
                                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
                                   <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
+                                  {videoMode === "extend" && (
+                                    m.pricingConfig?.extendBillingMode === "source_plus_new_segment" ? (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-300 font-mono">
+                                        SOURCE+NEW
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300 font-mono">
+                                        NEW ONLY
+                                      </span>
+                                    )
+                                  )}
                                   {bs && (
                                     <span
                                       className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
@@ -6177,6 +6246,51 @@ function VideoPageInner() {
 
           </>)} {/* end !isKling30Video generic controls */}
           </>)}
+
+          {/* Fix #3: Cost Breakdown Widget (تفصيل التكلفة الحية) */}
+          {videoMode === "extend" && (
+            <div className="rounded-xl bg-zinc-950/60 border border-zinc-800/60 p-3 my-2 space-y-2">
+              <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
+                {lang === "ar" ? "تفصيل التكلفة" : "Cost Breakdown"}
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">{lang === "ar" ? "الجزء الجديد" : "New segment"}</span>
+                  <span className="font-mono text-zinc-300">{duration ?? 5}s</span>
+                </div>
+                {(selectedModel as any).pricingConfig?.extendBillingMode === "source_plus_new_segment" && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">{lang === "ar" ? "سياق المصدر" : "Source context"}</span>
+                    <span className="font-mono text-amber-400">
+                      {(selectedModel as any).pricingConfig?.extendDefaultSourceContextSec ?? 5}s
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">{lang === "ar" ? "الدقة" : "Resolution"}</span>
+                  <span className="font-mono text-zinc-300">{resolution ?? "720p"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">{lang === "ar" ? "السعر/ثانية" : "Rate/s"}</span>
+                  <span className="font-mono text-zinc-300">
+                    ${((selectedModel as any).pricingConfig?.extendStickerRates?.[resolution ?? "720p"] ?? 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">{lang === "ar" ? "خصم المزود" : "Provider discount"}</span>
+                  <span className="font-mono text-emerald-400">
+                    {Math.round((1 - ((selectedModel as any).pricingConfig?.discountMultiplier ?? 0.9)) * 100)}%
+                  </span>
+                </div>
+                <div className="flex justify-between col-span-2 pt-1.5 border-t border-zinc-800/60">
+                  <span className="text-zinc-400 font-semibold">{lang === "ar" ? "المجموع" : "Total"}</span>
+                  <span className="font-mono font-bold text-emerald-300">
+                    {estimatedCredits} credits
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* -- Generate button (always visible) ----------------------------- */}
           <button

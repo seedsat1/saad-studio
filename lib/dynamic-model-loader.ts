@@ -35,6 +35,10 @@ export interface DynamicVideoModelPricingConfig {
   extendMaxDuration?: number;
   extendSupportsLastImage?: boolean;
   extendDefaultSourceContextSec?: number;
+  extendUserHintAr?: string;
+  extendUserHintEn?: string;
+  extendTipAr?: string;
+  extendTipEn?: string;
   discountMultiplier?: number;
   creditsPerUsd?: number;
   billingMode?: "flat_output" | "input_plus_output" | "new_segment_only" | "base_plus_surcharge";
@@ -50,6 +54,10 @@ export const SEEDANCE_INITIAL_PRICING: Record<string, DynamicVideoModelPricingCo
     extendMaxDuration: 30,
     extendSupportsLastImage: false, // ⚠️ 2.5 unique
     extendDefaultSourceContextSec: 5,
+    extendUserHintAr: "يقرأ الموديل {sourceSec} ثوانٍ من الفيديو الأصلي لفهم الحركة، ثم يضيف الجزء الجديد.",
+    extendUserHintEn: "The model reads {sourceSec}s from source to understand motion, then generates the new segment.",
+    extendTipAr: "نصيحة: إذا تريد جيلاً جديداً بنفس الشخصية، استخدم T2V/I2V مع رفرنس صورة — أرخص وأسرع.",
+    extendTipEn: "Tip: For a new generation with same character, use T2V/I2V with image reference — cheaper and faster.",
     discountMultiplier: 0.90,
     creditsPerUsd: 40,
     billingMode: "flat_output",
@@ -63,6 +71,10 @@ export const SEEDANCE_INITIAL_PRICING: Record<string, DynamicVideoModelPricingCo
     extendMaxDuration: 30,
     extendSupportsLastImage: false,
     extendDefaultSourceContextSec: 5,
+    extendUserHintAr: "يقرأ الموديل {sourceSec} ثوانٍ من الفيديو الأصلي لفهم الحركة، ثم يضيف الجزء الجديد.",
+    extendUserHintEn: "The model reads {sourceSec}s from source to understand motion, then generates the new segment.",
+    extendTipAr: "نصيحة: إذا تريد جيلاً جديداً بنفس الشخصية، استخدم T2V/I2V مع رفرنس صورة — أرخص وأسرع.",
+    extendTipEn: "Tip: For a new generation with same character, use T2V/I2V with image reference — cheaper and faster.",
     discountMultiplier: 0.90,
     creditsPerUsd: 40,
     billingMode: "flat_output",
@@ -237,6 +249,10 @@ function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: Dynamic
         extendMaxDuration: existing.pricingConfig.extendMaxDuration ?? defaultPricing?.extendMaxDuration,
         extendSupportsLastImage: existing.pricingConfig.extendSupportsLastImage ?? defaultPricing?.extendSupportsLastImage,
         extendDefaultSourceContextSec: existing.pricingConfig.extendDefaultSourceContextSec ?? defaultPricing?.extendDefaultSourceContextSec,
+        extendUserHintAr: existing.pricingConfig.extendUserHintAr ?? defaultPricing?.extendUserHintAr,
+        extendUserHintEn: existing.pricingConfig.extendUserHintEn ?? defaultPricing?.extendUserHintEn,
+        extendTipAr: existing.pricingConfig.extendTipAr ?? defaultPricing?.extendTipAr,
+        extendTipEn: existing.pricingConfig.extendTipEn ?? defaultPricing?.extendTipEn,
       }
     : ((curated as any).pricingConfig ?? defaultPricing);
 
