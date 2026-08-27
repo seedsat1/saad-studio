@@ -300,9 +300,13 @@ export default function ThreeDStudioPage() {
     setIsGenerating(true);
 
     try {
+      const idempotencyKey = `3d-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const submitRes = await fetch("/api/3d", {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
         body: JSON.stringify({
           modelId: selectedModel,
           mode:    inputMode,

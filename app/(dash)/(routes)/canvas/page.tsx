@@ -2278,9 +2278,13 @@ function AICanvasInner() {
           case "speak": {
             const ttsText = prompt;
             if (!ttsText) throw new Error("Text required. Connect a Text node or set prompt in settings.");
+            const ttsKey = `tts-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
             const res = await fetch("/api/generate/audio", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "Idempotency-Key": ttsKey,
+              },
               body: JSON.stringify({ actionType: "tts", text: ttsText, voice: s.ttsVoice || "Aria", model: "elevenlabs/text-to-speech-multilingual-v2" }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
@@ -2291,9 +2295,13 @@ function AICanvasInner() {
           }
           case "sound-effects": {
             if (!prompt) throw new Error("Prompt required for sound effect generation.");
+            const sfxKey = `sfx-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
             const res = await fetch("/api/generate/audio", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "Idempotency-Key": sfxKey,
+              },
               body: JSON.stringify({ actionType: "music", prompt, model: "elevenlabs/sound-effect-v2", musicDuration: 10 }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
@@ -2304,9 +2312,13 @@ function AICanvasInner() {
           }
           case "music-generator": {
             if (!prompt) throw new Error("Prompt required for music generation.");
+            const musicKey = `music-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
             const res = await fetch("/api/music", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "Idempotency-Key": musicKey,
+              },
               body: JSON.stringify({ prompt, model: "elevenlabs/music", duration: s.duration || 30 }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }

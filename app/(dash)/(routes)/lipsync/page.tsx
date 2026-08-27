@@ -503,9 +503,13 @@ function LipsyncStudioPageInner() {
       // 2. Prepare audio URL (upload or TTS generation)
       let audioUrl = "";
       if (audioTab === "tts") {
+        const ttsIdempotencyKey = `tts-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
         const ttsRes = await fetch("/api/generate/audio", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": ttsIdempotencyKey,
+          },
           body: JSON.stringify({
             actionType: "tts",
             text: ttsText.trim(),
@@ -532,9 +536,13 @@ function LipsyncStudioPageInner() {
       }
 
       // 3. Submit lipsync task
+      const lipsyncIdempotencyKey = `lipsync-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const lipsyncRes = await fetch("/api/generate/audio", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": lipsyncIdempotencyKey,
+        },
         body: JSON.stringify({
           actionType: "lip-sync",
           model: selectedModel.api_route,

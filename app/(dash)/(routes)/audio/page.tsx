@@ -645,10 +645,13 @@ export default function AudioPage() {
         force_instrumental: instrumental,
         output_format: outputFmt === "wav" ? "wav" : "mp3",
         images: imagePayloads,
-        duration: dur
+        duration: dur,
       };
 
-      const res = await axios.post("/api/music", payload);
+      const idempotencyKey = `music-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      const res = await axios.post("/api/music", payload, {
+        headers: { "Idempotency-Key": idempotencyKey },
+      });
 
       clearInterval(simulationInterval);
       clearInterval(stepInterval);

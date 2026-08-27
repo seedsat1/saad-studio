@@ -219,13 +219,20 @@ const MusicPage = () => {
         }));
       } catch {}
 
-      const res = await axios.post("/api/music", {
-        prompt,
-        model: selectedModel.id,
-        duration,
-        style: style || undefined,
-        lyrics: selectedModel.hasLyrics && lyrics.trim() ? lyrics : undefined,
-      });
+      const idempotencyKey = `music-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      const res = await axios.post(
+        "/api/music",
+        {
+          prompt,
+          model: selectedModel.id,
+          duration,
+          style: style || undefined,
+          lyrics: selectedModel.hasLyrics && lyrics.trim() ? lyrics : undefined,
+        },
+        {
+          headers: { "Idempotency-Key": idempotencyKey },
+        },
+      );
 
       setAudioUrl(res.data.audioUrl);
       try { localStorage.removeItem("ff_music_pending_job"); } catch {}

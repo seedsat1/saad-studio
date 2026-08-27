@@ -1052,9 +1052,13 @@ export default function CinemaFlowPage() {
 
     try {
       // Step A: Trigger ElevenLabs TTS Voiceover generation in parallel
+      const ttsIdempotencyKey = `tts-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const ttsPromise = fetch("/api/generate/audio", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": ttsIdempotencyKey,
+        },
         body: JSON.stringify({
           actionType: "tts",
           text: voiceoverText,
@@ -1070,9 +1074,13 @@ export default function CinemaFlowPage() {
       });
 
       // Step B: Trigger Video Generation
+      const videoIdempotencyKey = `video-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const videoRes = await fetch("/api/video", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": videoIdempotencyKey,
+        },
         body: JSON.stringify({
           modelRoute: selectedVideoModel,
           payload: {

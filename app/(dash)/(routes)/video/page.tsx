@@ -2485,9 +2485,13 @@ function VideoPageInner() {
         const audioUrl = audioData.url;
 
         // 3. Submit lipsync task to /api/generate/audio
+        const lipsyncKey = `lipsync-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
         const lipsyncRes = await fetchWithAuth("/api/generate/audio", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": lipsyncKey,
+          },
           body: JSON.stringify({
             actionType: "lip-sync",
             model: selectedModel.api_route || "kling/ai-avatar-pro",
@@ -3131,9 +3135,13 @@ function VideoPageInner() {
         console.log("[video POST] modelRoute sent:", requestModelRoute);
       }
 
+      const idempotencyKey = `video-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const res = await fetchWithAuth("/api/video", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
         body: JSON.stringify({ modelRoute: requestModelRoute, payload }),
       });
 
