@@ -39,25 +39,24 @@
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
 
-#### Latest task: Seedance Video Extension Tab + Pricing + Full Admin Centrality (2026-08-28)
+#### Latest task: Seedance Video Extension Transparency & Start/End Frame Routing Hotfix (2026-08-28)
 - Status: Completed & Verified (PASS).
 - Scope:
-  - Added "Video Extension" Tab in `/video` page (data-driven from `video_api_route`).
-  - Added `video_api_route` to Seedance cards (2.5, Standard, Standard Turbo, Fast, Mini).
-  - Extended `DynamicVideoModelPricingConfig` with `extendStickerRates`, `extendBillingMode`, `extendMaxDuration`, `extendSupportsLastImage`, `extendDefaultSourceContextSec`.
-  - Updated `SEEDANCE_INITIAL_PRICING` with UI-measured WaveSpeed rates across all 5 Seedance model families:
-    - 2.5 Extend: `$0.11/$0.22/$0.55/$1.10`, `source_plus_new_segment` billing, 10% off, 4-30s duration, no last_image.
-    - Standard Extend: `$0.12/$0.24/$0.60/$1.20`, `new_segment_only`, 10% off, 4-15s duration, supports last_image.
-    - Standard Turbo Extend: Standard rates, `new_segment_only`, 10% off, 4-15s duration, supports last_image.
-    - Fast Extend: `$0.10/$0.20/$0.50/$1.00`, `new_segment_only`, 20% off, 4-15s duration, supports last_image.
-    - Mini Extend: `$0.06/$0.12/$0.30/$0.60`, `new_segment_only`, 40% off, 4-15s duration, supports last_image.
-  - Dynamic pricing calculation updated in `computeCreditsFromDynamicModel` supporting `isExtend`, `sourceContextSec`, and billing modes.
-  - Admin UI in `/admin/models` extended with full "Video Extend — Pricing & Config" inspector drawer form.
-  - Model registry hardening extended with deep diffing for `pricingConfig`, `capabilities`, and `video_api_route` in audit log.
-  - Guaranteed no-loss platform margin ($\ge 47\%$ margin on Max plan @ \$0.0367/credit with 40 credits/USD).
+  - Added smart Info Banner in Video Extension tab for billing transparency.
+  - Added dynamic warning banner for Seedance 2.5 (`source_plus_new_segment`) with admin-editable hints (`extendUserHintAr/En`, `extendTipAr/En`).
+  - Added live Cost Breakdown widget before generation button showing new segment, source context, rate/s, discount, and total credits.
+  - Added `SOURCE+NEW` vs `NEW ONLY` badges in the extension model dropdown.
+  - Hotfix #1: Allowed Start/End frame mapping from `reference_image_urls[0..1]` on I2V and Extend routes without being rejected by `validateSeedanceReferences`.
+  - Hotfix #2: Updated `payloadHasImageInput` in `/api/video/route.ts` to recognize `reference_image_urls` and `reference_images`, preventing silent I2V -> T2V rerouting.
+  - Differentiated Fast and Standard sub-routes across all operations.
+  - Full test suite passed (75/75 tests passed).
 - Files affected:
-  - `lib/video-model-registry.ts`
+  - `app/api/video/route.ts`
+  - `lib/seedance-validation.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/admin/models/page.tsx`
   - `lib/dynamic-model-loader.ts`
+  - `test/models-backend-hardening.test.ts`
   - `lib/pricing.ts`
   - `lib/model-registry-hardening.ts`
   - `app/admin/models/page.tsx`
