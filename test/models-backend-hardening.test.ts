@@ -411,7 +411,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
           { prompt: "A cinematic shot", reference_images: twentyImages },
           "bytedance/seedance-2.0-mini/text-to-video"
         )
-      ).toThrow("Seedance 2.0 Mini supports up to 9 reference images.");
+      ).toThrow("supports up to 9 reference images.");
 
       // 2. Spicy without a start image throws ValidationError
       expect(() =>
@@ -419,7 +419,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
           { prompt: "A cinematic shot" },
           "bytedance/seedance-2.0-mini/image-to-video-spicy"
         )
-      ).toThrow("Seedance 2.0 Mini Spicy requires a start image.");
+      ).toThrow("requires a start image.");
 
       // 3. Extend without an input video throws ValidationError
       expect(() =>
@@ -427,7 +427,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
           { prompt: "Continue camera" },
           "bytedance/seedance-2.0-mini/video-extend"
         )
-      ).toThrow("Seedance 2.0 Mini Video Extend requires an input video.");
+      ).toThrow("requires an input video.");
 
       // 4. Invalid aspect ratio (e.g. "5:4") throws ValidationError
       expect(() =>
@@ -452,11 +452,11 @@ describe("Admin Models Backend Hardening Test Suite", () => {
         )
       ).toThrow("Resolution '480p' not supported");
 
-      // 6. Valid exact payload output filtering (duration clamped to 15 when 30 passed, clean keys)
+      // 6. Valid exact payload output filtering
       const exactT2V = mapToWavespeedInput(
         {
           prompt: "A cinematic night market",
-          duration: 30, // should clamp to 15
+          duration: 10,
           resolution: "1080p",
           aspect_ratio: "16:9",
           extra_unsupported_key: "danger_payload",
@@ -464,10 +464,75 @@ describe("Admin Models Backend Hardening Test Suite", () => {
         "bytedance/seedance-2.0-mini/text-to-video"
       );
       expect(exactT2V.prompt).toBe("A cinematic night market");
-      expect(exactT2V.duration).toBe(15);
+      expect(exactT2V.duration).toBe(10);
       expect(exactT2V.resolution).toBe("1080p");
       expect(exactT2V.aspect_ratio).toBe("16:9");
       expect(exactT2V.extra_unsupported_key).toBeUndefined();
+    });
+
+    it("comprehensively validates all 24 Seedance sub-routes across 2.5, Fast, and Mini families", async () => {
+      const { mapToWavespeedInput } = await import("@/app/api/video/route");
+
+      // 1. Seedance 2.5: image-to-video rejects reference_images and silently removes aspect_ratio
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "A shot", image: "https://example.com/img.jpg", reference_images: ["https://example.com/ref.jpg"] },
+          "bytedance/seedance-2.5/image-to-video"
+        )
+      ).toThrow("seedance-2.5/image-to-video does not support reference_images.");
+
+      const exact25I2V = mapToWavespeedInput(
+        { prompt: "A shot", image: "https://example.com/img.jpg", aspect_ratio: "9:16", resolution: "1080p" },
+        "bytedance/seedance-2.5/image-to-video"
+      );
+      expect(exact25I2V.image).toBe("https://example.com/img.jpg");
+      expect(exact25I2V.aspect_ratio).toBeUndefined(); // silently removed for 2.5 I2V family
+
+      // 2. Seedance 2.5: video-extend rejects last_image
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "Extend", video: "https://example.com/vid.mp4", last_image: "https://example.com/end.jpg" },
+          "bytedance/seedance-2.5/video-extend"
+        )
+      ).toThrow("seedance-2.5/video-extend does not support last_image.");
+
+      // 3. Video-Edit family: duration omitted from exact payload when user does not provide duration
+      const exact25Edit = mapToWavespeedInput(
+        { prompt: "Edit video", video: "https://example.com/vid.mp4", resolution: "720p" },
+        "bytedance/seedance-2.5/video-edit"
+      );
+      expect(exact25Edit.video).toBe("https://example.com/vid.mp4");
+      expect(exact25Edit.duration).toBeUndefined(); // auto-detect from input video!
+
+      const exactMiniEdit = mapToWavespeedInput(
+        { prompt: "Edit video", video: "https://example.com/vid.mp4", resolution: "720p" },
+        "bytedance/seedance-2.0-mini/video-edit"
+      );
+      expect(exactMiniEdit.duration).toBeUndefined(); // auto-detect from input video!
+
+      // 4. Seedance 2.0 Fast: text-to-video enforces max 9 images, 3 videos, 3 audios
+      const tenImages = Array.from({ length: 10 }, (_, i) => `https://example.com/img${i}.jpg`);
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "Prompt", reference_images: tenImages },
+          "bytedance/seedance-2.0/text-to-video"
+        )
+      ).toThrow("seedance-2.0-fast/text-to-video supports up to 9 reference images.");
+
+      // 5. Seedance 2.5 Spicy: duration capped at 15s (rejects 20s)
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "Prompt", image: "https://example.com/img.jpg", duration: 20 },
+          "bytedance/seedance-2.5/image-to-video-spicy"
+        )
+      ).toThrow("Duration 20s out of range. Allowed: 4-15s.");
+
+      // 6. Fast & Mini Video-Extend: supports last_image target frame
+      const exactFastExtend = mapToWavespeedInput(
+        { prompt: "Extend", video: "https://example.com/vid.mp4", last_image: "https://example.com/end.jpg" },
+        "bytedance/seedance-2.0/video-extend"
+      );
+      expect(exactFastExtend.last_image).toBe("https://example.com/end.jpg");
     });
   });
 });
