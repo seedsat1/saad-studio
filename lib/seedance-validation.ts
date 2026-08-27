@@ -148,10 +148,42 @@ export const SEEDANCE_ASPECT_MODE: Record<string, "allowlist" | "reject" | "adap
   "seedance-2.0-mini/video-extend":         "reject",
 };
 
+export const SEEDANCE_SUPPORTS_WEB_SEARCH: Record<string, boolean> = {
+  // 2.5 — ALL false
+  "seedance-2.5/image-to-video":       false,
+  "seedance-2.5/image-to-video-spicy": false,
+  "seedance-2.5/image-to-video-turbo": false,
+  "seedance-2.5/text-to-video":        false,
+  "seedance-2.5/text-to-video-turbo":  false,
+  "seedance-2.5/video-edit":           false,
+  "seedance-2.5/video-edit-turbo":     false,
+  "seedance-2.5/video-extend":         false,
+
+  // Fast — Spicy false, rest true
+  "seedance-2.0-fast/image-to-video":       true,
+  "seedance-2.0-fast/image-to-video-spicy": false, // ⚠️
+  "seedance-2.0-fast/image-to-video-turbo": true,
+  "seedance-2.0-fast/text-to-video":        true,
+  "seedance-2.0-fast/text-to-video-turbo":  true,
+  "seedance-2.0-fast/video-edit":           true,
+  "seedance-2.0-fast/video-edit-turbo":     true,
+  "seedance-2.0-fast/video-extend":         true,
+
+  // Mini — Spicy false, rest true
+  "seedance-2.0-mini/image-to-video":       true,
+  "seedance-2.0-mini/image-to-video-spicy": false, // ⚠️
+  "seedance-2.0-mini/image-to-video-turbo": true,
+  "seedance-2.0-mini/text-to-video":        true,
+  "seedance-2.0-mini/text-to-video-turbo":  true,
+  "seedance-2.0-mini/video-edit":           true,
+  "seedance-2.0-mini/video-edit-turbo":     true,
+  "seedance-2.0-mini/video-extend":         true,
+};
+
 /**
  * Normalizes any incoming Seedance route alias into canonical family key
  * e.g. "bytedance/seedance-2.5/image-to-video" -> "seedance-2.5/image-to-video"
- *      "bytedance/seedance-2.0/text-to-video"  -> "seedance-2.0-fast/text-to-video"
+ *      "bytedance/seedance-2.0-fast/text-to-video"  -> "seedance-2.0-fast/text-to-video"
  */
 export function normalizeSeedanceRouteKey(route: string): string {
   let cleaned = (route || "").trim().toLowerCase();
@@ -159,18 +191,24 @@ export function normalizeSeedanceRouteKey(route: string): string {
   if (cleaned.startsWith("seedance-v2/")) cleaned = cleaned.replace("seedance-v2/", "seedance-2.0-fast/");
   if (cleaned.startsWith("seedance-2-mini/")) cleaned = cleaned.replace("seedance-2-mini/", "seedance-2.0-mini/");
   if (cleaned === "seedance-2-mini") cleaned = "seedance-2.0-mini/text-to-video";
-  if (cleaned === "seedance-2-fast" || cleaned === "seedance-2") cleaned = "seedance-2.0-fast/text-to-video";
+  if (cleaned === "seedance-2-fast") cleaned = "seedance-2.0-fast/text-to-video";
 
-  if (cleaned.startsWith("seedance-2.0/")) {
-    cleaned = cleaned.replace("seedance-2.0/", "seedance-2.0-fast/");
+  if (
+    cleaned.startsWith("seedance-2.0/") &&
+    !cleaned.startsWith("seedance-2.0-fast/") &&
+    !cleaned.startsWith("seedance-2.0-mini/")
+  ) {
+    throw new SeedanceValidationError(
+      "Seedance 2.0 Standard tier is not registered in this validator. Route explicitly, or use seedance-2.0-fast / seedance-2.0-mini."
+    );
   }
 
   return cleaned;
 }
 
 export function isSeedanceRoute(route: string): boolean {
-  const norm = normalizeSeedanceRouteKey(route);
-  return norm.startsWith("seedance-2.5/") || norm.startsWith("seedance-2.0-fast/") || norm.startsWith("seedance-2.0-mini/");
+  const norm = (route || "").trim().toLowerCase();
+  return norm.includes("seedance-2.5") || norm.includes("seedance-2.0-fast") || norm.includes("seedance-2.0-mini") || norm.includes("seedance-2-mini") || norm.includes("seedance-2-fast") || norm.includes("seedance-v2");
 }
 
 /**
@@ -201,15 +239,21 @@ export function validateSeedanceReferences(
     ? (payload.reference_audios as string[]).filter((v) => typeof v === "string" && v.trim().length > 0)
     : [];
 
-  // Reject check
+  // Reject check with clear messages
   if (limits.img === 0 && refImages.length > 0) {
-    throw new SeedanceValidationError(`${routeKey} does not support reference_images.`);
+    throw new SeedanceValidationError(
+      `${routeKey} does not accept any reference_images. Use a text-to-video or video-edit sub-route if you need references.`
+    );
   }
   if (limits.vid === 0 && refVideos.length > 0) {
-    throw new SeedanceValidationError(`${routeKey} does not support reference_videos.`);
+    throw new SeedanceValidationError(
+      `${routeKey} does not accept any reference_videos. Use a text-to-video sub-route if you need video references.`
+    );
   }
   if (limits.aud === 0 && refAudios.length > 0) {
-    throw new SeedanceValidationError(`${routeKey} does not support reference_audios.`);
+    throw new SeedanceValidationError(
+      `${routeKey} does not accept any reference_audios. Use a text-to-video or video-edit sub-route if you need audio references.`
+    );
   }
 
   // Count limit check
@@ -223,20 +267,8 @@ export function validateSeedanceReferences(
     throw new SeedanceValidationError(`${routeKey} supports up to ${limits.aud} reference audios.`);
   }
 
-  // Duration cap check if durations provided
-  if (limits.vidTotalSec > 0 && Array.isArray(payload.reference_video_durations)) {
-    const totalVidSec = (payload.reference_video_durations as number[]).reduce((sum, d) => sum + (Number.isFinite(d) ? Math.max(2, d) : 2), 0);
-    if (totalVidSec > limits.vidTotalSec) {
-      throw new SeedanceValidationError(`Combined reference_videos duration exceeds ${limits.vidTotalSec}s.`);
-    }
-  }
-
-  if (limits.audTotalSec > 0 && Array.isArray(payload.reference_audio_durations)) {
-    const totalAudSec = (payload.reference_audio_durations as number[]).reduce((sum, d) => sum + (Number.isFinite(d) ? d : 0), 0);
-    if (totalAudSec > limits.audTotalSec) {
-      throw new SeedanceValidationError(`Combined reference_audios duration exceeds ${limits.audTotalSec}s.`);
-    }
-  }
+  // Note: reference_video / audio duration caps are enforced by WaveSpeed provider,
+  // not by this server. Client-supplied durations are not part of the API contract.
 
   return { refImages, refVideos, refAudios };
 }
@@ -289,8 +321,10 @@ export function validateSeedanceStartEnd(
     if (rawLastImage) {
       throw new SeedanceValidationError(`${routeKey} does not support last_image.`);
     }
-    if (rawImage && !isEditFamily && refImages.length === 0) {
-      throw new SeedanceValidationError(`${routeKey} does not support start image.`);
+    if (rawImage && !isEditFamily) {
+      throw new SeedanceValidationError(
+        `${routeKey} does not support 'image' field. Use 'reference_images' array instead.`
+      );
     }
     return;
   }
@@ -473,7 +507,7 @@ export function validateAndBuildSeedanceExactPayload(
     const videoUrl =
       (typeof payload.video === "string" && payload.video.trim() ? payload.video.trim() : null) ||
       (typeof out.video_url === "string" && out.video_url.trim() ? out.video_url.trim() : null) ||
-      (typeof out.video === "string" && out.video.trim() ? out.video.trim() : null) ||
+      (typeof out.video === "string" && out.video_url.trim() ? out.video_url.trim() : null) ||
       refVideos[0] ||
       null;
     if (!videoUrl) {
@@ -494,7 +528,12 @@ export function validateAndBuildSeedanceExactPayload(
   }
 
   exact.generate_audio = out.generate_audio !== false && payload.generate_audio !== false;
-  exact.enable_web_search = !!out.enable_web_search || !!payload.enable_web_search;
+
+  if (SEEDANCE_SUPPORTS_WEB_SEARCH[routeKey]) {
+    exact.enable_web_search = !!out.enable_web_search || !!payload.enable_web_search;
+  } else if (payload.enable_web_search || out.enable_web_search) {
+    console.warn(`[SeedanceValidation] enable_web_search ignored for ${routeKey} (not supported).`);
+  }
 
   return exact;
 }

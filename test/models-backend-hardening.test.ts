@@ -479,7 +479,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
           { prompt: "A shot", image: "https://example.com/img.jpg", reference_images: ["https://example.com/ref.jpg"] },
           "bytedance/seedance-2.5/image-to-video"
         )
-      ).toThrow("seedance-2.5/image-to-video does not support reference_images.");
+      ).toThrow("does not accept any reference_images");
 
       const exact25I2V = mapToWavespeedInput(
         { prompt: "A shot", image: "https://example.com/img.jpg", aspect_ratio: "9:16", resolution: "1080p" },
@@ -515,7 +515,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(() =>
         mapToWavespeedInput(
           { prompt: "Prompt", reference_images: tenImages },
-          "bytedance/seedance-2.0/text-to-video"
+          "bytedance/seedance-2.0-fast/text-to-video"
         )
       ).toThrow("seedance-2.0-fast/text-to-video supports up to 9 reference images.");
 
@@ -530,9 +530,73 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       // 6. Fast & Mini Video-Extend: supports last_image target frame
       const exactFastExtend = mapToWavespeedInput(
         { prompt: "Extend", video: "https://example.com/vid.mp4", last_image: "https://example.com/end.jpg" },
-        "bytedance/seedance-2.0/video-extend"
+        "bytedance/seedance-2.0-fast/video-extend"
       );
       expect(exactFastExtend.last_image).toBe("https://example.com/end.jpg");
+    });
+
+    it("strictly verifies the 5 critical bugfixes for Seedance server-side validation", async () => {
+      const { mapToWavespeedInput } = await import("@/app/api/video/route");
+
+      // Bug #1: Request to bytedance/seedance-2.0/image-to-video throws Standard tier not registered error
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "A shot", image: "https://example.com/img.jpg" },
+          "bytedance/seedance-2.0/image-to-video"
+        )
+      ).toThrow("Seedance 2.0 Standard tier is not registered in this validator");
+
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "A shot", image: "https://example.com/img.jpg" },
+          "bytedance/seedance-2.0/image-to-video-spicy"
+        )
+      ).toThrow("Seedance 2.0 Standard tier is not registered in this validator");
+
+      // Bug #2: Seedance 2.5 does NOT support enable_web_search -> omitted from exact payload
+      const exact25Web = mapToWavespeedInput(
+        { prompt: "A prompt", enable_web_search: true },
+        "bytedance/seedance-2.5/text-to-video"
+      );
+      expect(exact25Web.enable_web_search).toBeUndefined();
+
+      // Bug #2: Mini Spicy does NOT support enable_web_search -> omitted
+      const exactMiniSpicyWeb = mapToWavespeedInput(
+        { prompt: "A prompt", image: "https://example.com/img.jpg", enable_web_search: true },
+        "bytedance/seedance-2.0-mini/image-to-video-spicy"
+      );
+      expect(exactMiniSpicyWeb.enable_web_search).toBeUndefined();
+
+      // Bug #2: Fast I2V supports enable_web_search -> exact payload has enable_web_search: true
+      const exactFastI2VWeb = mapToWavespeedInput(
+        { prompt: "A prompt", image: "https://example.com/img.jpg", enable_web_search: true },
+        "bytedance/seedance-2.0-fast/image-to-video"
+      );
+      expect(exactFastI2VWeb.enable_web_search).toBe(true);
+
+      // Bug #4: T2V with 'image' field alongside reference_images throws error (unconditional rejection of 'image' field)
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "Prompt", image: "https://example.com/img.jpg", reference_images: ["https://example.com/ref.jpg"] },
+          "bytedance/seedance-2.0-fast/text-to-video"
+        )
+      ).toThrow("does not support 'image' field. Use 'reference_images' array instead.");
+
+      // Bug #4: 2.5 T2V with 'image' field without refs throws error
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "Prompt", image: "https://example.com/img.jpg" },
+          "bytedance/seedance-2.5/text-to-video"
+        )
+      ).toThrow("does not support 'image' field. Use 'reference_images' array instead.");
+
+      // Bug #5: Clarified reject messages for references on unsupported routes
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "Prompt", image: "https://example.com/img.jpg", reference_images: ["https://example.com/ref.jpg"] },
+          "bytedance/seedance-2.5/image-to-video"
+        )
+      ).toThrow("does not accept any reference_images. Use a text-to-video or video-edit sub-route if you need references.");
     });
   });
 });
