@@ -452,14 +452,13 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
       modality: "video",
       provider: "byteplus",
       group: "Seedance",
-      familyColor: "#10b981",
-      aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
-      durations: [5, 10, 12],
-      resolutions: ["720p", "1080p", "4K"],
-      maxRefImages: 4,
+      aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
+      durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      resolutions: ["480p", "720p", "1080p", "4K"],
+      maxRefImages: 9,
       textRoute,
       imageRoute,
-      creditCost: 3.0,
+      creditCost: isMini ? 2.5 : 3.0,
     };
   }
 

@@ -315,6 +315,17 @@ export const WAVESPEED_PROVENANCE_REGISTRY: Record<string, Omit<TariffProvenance
     capturedAt: "2026-08-27T20:25:00+03:00",
     verificationStatus: "VERIFIED_CURRENT",
   },
+  "bytedance/seedance-2.0-mini": {
+    provider: "WaveSpeed",
+    providerRoute: "bytedance/seedance-2.0-mini",
+    rateUsd: 0.12, // 720p I2V: 0.12/s, 1080p: 0.30/s, 480p: 0.06/s, 4k: 0.60/s, T2V: 0.075/s
+    billingUnit: "USD/sec",
+    sourceType: "official_docs",
+    sourceReference: "WaveSpeed ByteDance Seedance 2.0 Mini API Documentation supplied by owner",
+    effectiveDate: "2026-08-27",
+    capturedAt: "2026-08-27T21:20:00+03:00",
+    verificationStatus: "VERIFIED_CURRENT",
+  },
   "image-upscaler": {
     provider: "WaveSpeed",
     providerRoute: "wavespeed-ai/image-upscaler",
@@ -450,6 +461,45 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
           : "text-to-video";
     const provMeta = WAVESPEED_PROVENANCE_REGISTRY["black-forest-labs/flux-3"];
     const tariffKey = `wavespeed:video:flux-3:${routeKey}:${resKey}`;
+    return {
+      usd: parseFloat((rateUsd * duration * units).toFixed(4)),
+      source: "estimated",
+      tariffKey,
+      providerName: "WaveSpeed",
+      unit: "USD/sec",
+      provenance: {
+        ...provMeta,
+        tariffKey,
+        providerRoute: input.providerRoute || modelLower,
+        rateUsd,
+        resolution: resKey,
+        verificationStatus: checkTariffStaleness(provMeta.capturedAt),
+      },
+    };
+  }
+
+  // ByteDance Seedance 2.0 Mini via WaveSpeed
+  if (modelLower.startsWith("bytedance/seedance-2.0-mini") || modelLower.startsWith("bytedance/seedance-v2/text-to-video-mini") || modelLower.includes("seedance2mini")) {
+    const is4k = q.includes("4k");
+    const is1080 = q.includes("1080");
+    const is480 = q.includes("480");
+    const isTurbo = modelLower.includes("turbo");
+    const isTextOrEdit = modelLower.includes("text-to-video") || modelLower.includes("video-edit");
+
+    let rateUsd = 0.12;
+    if (isTurbo) {
+      rateUsd = is1080 ? 0.09 : 0.08;
+    } else if (isTextOrEdit) {
+      rateUsd = is4k ? 0.375 : is1080 ? 0.1875 : is480 ? 0.0375 : 0.075;
+    } else {
+      // image-to-video, image-to-video-spicy, video-extend
+      rateUsd = is4k ? 0.60 : is1080 ? 0.30 : is480 ? 0.06 : 0.12;
+    }
+
+    const resKey = is4k ? "4k" : is1080 ? "1080p" : is480 ? "480p" : "720p";
+    const routeKey = modelLower.split("/").pop() || "seedance-2.0-mini";
+    const provMeta = WAVESPEED_PROVENANCE_REGISTRY["bytedance/seedance-2.0-mini"];
+    const tariffKey = `wavespeed:video:seedance-2.0-mini:${routeKey}:${resKey}`;
     return {
       usd: parseFloat((rateUsd * duration * units).toFixed(4)),
       source: "estimated",
