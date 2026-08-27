@@ -1160,6 +1160,8 @@ export function computeCreditsFromDynamicModel(
     inputSec?: number;
     refVideoSecTotal?: number;
     isTurbo?: boolean;
+    isExtend?: boolean;
+    sourceContextSec?: number;
   }
 ): number {
   const cfg = model.pricingConfig;
@@ -1167,21 +1169,36 @@ export function computeCreditsFromDynamicModel(
     return getGenerationCostSync(model.api_route ?? model.id, params.outputSec, 1, params.resolution);
   }
 
-  const rates = params.isTurbo ? cfg.turboStickerRates : cfg.stickerRates;
+  let rates: Record<string, number | undefined> | undefined;
+  let mode: string = cfg.billingMode ?? "flat_output";
+
+  if (params.isExtend && cfg.extendStickerRates) {
+    rates = cfg.extendStickerRates;
+    mode = cfg.extendBillingMode ?? "new_segment_only";
+  } else if (params.isTurbo && cfg.turboStickerRates) {
+    rates = cfg.turboStickerRates;
+  } else {
+    rates = cfg.stickerRates;
+  }
+
   if (!rates || !rates[params.resolution]) {
-    throw new Error(`Missing sticker rate for ${params.resolution} on ${model.id}`);
+    throw new Error(`Missing rate for ${params.resolution} on ${model.id}`);
   }
 
   const stickerRate = rates[params.resolution]!;
   const discount = cfg.discountMultiplier ?? 0.90;
   const creditsPerUsd = cfg.creditsPerUsd ?? 40;
 
-  // Calculate billable seconds based on billingMode
   let billableSec = params.outputSec;
-  if (cfg.billingMode === "input_plus_output") {
+  if (mode === "source_plus_new_segment") {
+    // 2.5 Extend: source_context clamped 2-30s + new_segment
+    const source = params.sourceContextSec ?? cfg.extendDefaultSourceContextSec ?? 5;
+    const clampedSource = Math.min(30, Math.max(2, source));
+    billableSec = clampedSource + params.outputSec;
+  } else if (mode === "input_plus_output") {
     const clampedInput = Math.min(15, Math.max(2, params.inputSec ?? params.outputSec));
     billableSec = clampedInput + params.outputSec;
-  } else if (cfg.billingMode === "new_segment_only") {
+  } else if (mode === "new_segment_only") {
     billableSec = params.outputSec;
   }
 

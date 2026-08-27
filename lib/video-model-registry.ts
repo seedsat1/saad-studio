@@ -866,6 +866,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     badge: "NEW",
     description: "Bytedance Seedance 2.5 Turbo - 480p/720p/1080p, 4-30s, up to 30 images + 10 videos + 10 audios on text/reference generation.",
     api_route: "bytedance/seedance-2.5/text-to-video-turbo",
+    video_api_route: "bytedance/seedance-2.5/video-extend",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
@@ -933,6 +934,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     badge: "TURBO",
     description: "Bytedance Seedance 2.0 Turbo — HD image-to-video with optional last frame and native audio.",
     api_route: "bytedance/seedance-2.0/text-to-video-turbo",
+    video_api_route: "bytedance/seedance-2.0/video-extend",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
@@ -1069,6 +1071,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     badge: "NEW",
     description: "Bytedance Seedance 2.0 — cinematic image-to-video with optional last frame and native audio.",
     api_route: "bytedance/seedance-2.0/text-to-video",
+    video_api_route: "bytedance/seedance-2.0/video-extend",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,

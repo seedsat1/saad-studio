@@ -32,7 +32,7 @@ import {
   isGoogleVideoRoute,
   normalizeGoogleVideoOptions,
 } from "@/lib/video-model-registry";
-import { getGenerationCostSync } from "@/lib/pricing";
+import { getGenerationCostSync, computeCreditsFromDynamicModel } from "@/lib/pricing";
 import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { getFallbackUrls } from "@/lib/utils";
@@ -1265,6 +1265,37 @@ function VideoPageInner() {
     return allModels[0] || DEFAULT_MODEL;
   }, [allModels]);
 
+  const [videoMode, setVideoMode] = useState<"generate" | "extend">("generate");
+  const [extendSourceVideo, setExtendSourceVideo] = useState<File | null>(null);
+  const [linkedExtendSourceUrl, setLinkedExtendSourceUrl] = useState<string>("");
+
+  const extendCapableModels = useMemo(() => {
+    return allModels.filter((m: any) =>
+      typeof m.video_api_route === "string" &&
+      m.video_api_route.includes("video-extend") &&
+      m.isActive !== false
+    );
+  }, [allModels]);
+
+  const displayModelGroups = useMemo(() => {
+    if (videoMode !== "extend") return dynamicModelGroups;
+    const map = new Map<string, any>();
+    for (const m of extendCapableModels) {
+      const groupName = (m.group || m.family_label || m.family || "Other").trim();
+      const groupKey = groupName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      if (!map.has(groupKey)) {
+        map.set(groupKey, {
+          family: groupKey,
+          family_label: groupName,
+          family_color: m.family_color || (m as any).color || "#06b6d4",
+          models: [],
+        });
+      }
+      map.get(groupKey)!.models.push(m);
+    }
+    return Array.from(map.values());
+  }, [videoMode, dynamicModelGroups, extendCapableModels]);
+
   const [selectedModel, setSelectedModel] = useState<WaveSpeedVideoModel>(DEFAULT_MODEL);
   const [modelOpen,     setModelOpen]     = useState(false);
   const [mobileModelOpen, setMobileModelOpen] = useState(false);
@@ -2362,7 +2393,19 @@ function VideoPageInner() {
     const pricingDuration = isMotionControl
       ? (motionVideoDuration ? Math.round(motionVideoDuration) : 5)
       : (isVeo31FixedEightSecond ? 8 : (duration ?? (selectedModel.api_route === "google/gemini-omni-flash" ? 5 : isGoogleVeoModel ? 8 : 5)));
-    // NOTE: capturedDuration below also defaults to 8 if duration is null.
+    if ((selectedModel as any).pricingConfig) {
+      try {
+        const res = (resolution as any) || "720p";
+        return computeCreditsFromDynamicModel(selectedModel as any, {
+          resolution: res === "480p" || res === "720p" || res === "1080p" || res === "4k" ? res : "720p",
+          outputSec: pricingDuration,
+          isExtend: videoMode === "extend",
+          sourceContextSec: videoMode === "extend" ? 5 : undefined,
+          isTurbo: (selectedModel as any).badge === "TURBO" || (selectedModel as any).badge === "FAST",
+        });
+      } catch {}
+    }
+
     if (selectedModel.api_route.startsWith("bytedance/seedance-2.5")) {
       const seedance25HasImage = Boolean(startFrame || linkedStartFrameUrl);
       const seedance25Route = resolveSeedance25Route(selectedModel.api_route, seedance25HasImage, resolution);
@@ -3095,7 +3138,9 @@ function VideoPageInner() {
         (Array.isArray(payload.image_urls) && payload.image_urls.some((value) => typeof value === "string" && value.trim()))
       );
       let requestModelRoute = selectedModel.api_route;
-      if (requestModelRoute.startsWith("bytedance/seedance-2.5")) {
+      if (videoMode === "extend") {
+        requestModelRoute = (selectedModel as any).video_api_route || selectedModel.api_route;
+      } else if (requestModelRoute.startsWith("bytedance/seedance-2.5")) {
         requestModelRoute = resolveSeedance25Route(requestModelRoute, payloadHasImageInput, resolution);
       } else if (requestModelRoute.startsWith("alibaba/wan-3.0")) {
         const payloadHasWanReferenceInput = (
@@ -4616,11 +4661,48 @@ function VideoPageInner() {
                     : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
               </p>
             </div>
-          )}          {/* -- AI Model dropdown ------------------------------------------- */}
+          )}          {/* Mode Switcher: Generate Video vs Video Extension */}
+          <div className="flex gap-1.5 p-1 rounded-xl bg-zinc-950/80 border border-zinc-800/80 mb-1">
+            <button
+              type="button"
+              onClick={() => {
+                setVideoMode("generate");
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                videoMode === "generate"
+                  ? "text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 shadow-sm"
+                  : "text-zinc-400 hover:text-zinc-200 bg-transparent"
+              }`}
+            >
+              <Clapperboard size={13} />
+              <span>{lang === "ar" ? "توليد فيديو" : "Generate Video"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setVideoMode("extend");
+                if (extendCapableModels.length > 0 && !extendCapableModels.some(m => m.id === selectedModel.id)) {
+                  selectModel(extendCapableModels[0]);
+                }
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                videoMode === "extend"
+                  ? "text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 shadow-sm"
+                  : "text-zinc-400 hover:text-zinc-200 bg-transparent"
+              }`}
+            >
+              <Play size={13} />
+              <span>{lang === "ar" ? "إطالة فيديو" : "Video Extension"}</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300">
+                {extendCapableModels.length}
+              </span>
+            </button>
+          </div>
+
           {/* -- AI Model dropdown ------------------------------------------- */}
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
-              AI Model
+              {videoMode === "extend" ? (lang === "ar" ? "نموذج الإطالة (Extension Model)" : "Extension Model") : "AI Model"}
             </label>
             {(activeTool as string) !== "lipsync" ? (
               // Regular video models
@@ -4666,7 +4748,7 @@ function VideoPageInner() {
                           maxHeight: 320,
                         }}
                       >
-                        {dynamicModelGroups.map((g, gIdx) => (
+                        {displayModelGroups.map((g, gIdx) => (
                           <div key={g.family} className={gIdx === 0 ? "pt-1.5" : ""}>
                             {gIdx > 0 && (
                               <div className="mx-3 my-1.5 border-t border-slate-800/80" />

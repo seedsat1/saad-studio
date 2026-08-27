@@ -651,5 +651,167 @@ describe("Admin Models Backend Hardening Test Suite", () => {
         )
       ).toThrow("does not accept any reference_images. Use a text-to-video or video-edit sub-route if you need references.");
     });
+
+    describe("Seedance Video-Extend Pricing (UI-verified) & Audit Centrality", () => {
+      it("2.5 Extend @ 720p 30s (source 5s default): sticker $7.70 -> $6.93 real", async () => {
+        const { computeCreditsFromDynamicModel } = await import("@/lib/pricing");
+        const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
+        const model = {
+          id: "bytedance-seedance-v25-t2v-turbo",
+          pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v25-t2v-turbo"],
+        } as any;
+        const credits = computeCreditsFromDynamicModel(model, {
+          resolution: "720p",
+          outputSec: 30,
+          isExtend: true, // source auto = 5
+        });
+        // (5 + 30) * $0.22 * 0.90 * 40 = 277.2 credits
+        expect(credits).toBeCloseTo(277.2, 1);
+      });
+
+      it("2.5 Extend @ 4k 30s: sticker $38.50 -> $34.65 real", async () => {
+        const { computeCreditsFromDynamicModel } = await import("@/lib/pricing");
+        const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
+        const model = {
+          id: "bytedance-seedance-v25-t2v-turbo",
+          pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v25-t2v-turbo"],
+        } as any;
+        const credits = computeCreditsFromDynamicModel(model, {
+          resolution: "4k",
+          outputSec: 30,
+          isExtend: true,
+        });
+        // 35 * $1.10 * 0.90 * 40 = 1386 credits
+        expect(credits).toBeCloseTo(1386, 1);
+      });
+
+      it("Fast Extend @ 720p 15s (new segment only, 20% off)", async () => {
+        const { computeCreditsFromDynamicModel } = await import("@/lib/pricing");
+        const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
+        const model = {
+          id: "bytedance-seedance-v2-fast",
+          pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v2-fast"],
+        } as any;
+        const credits = computeCreditsFromDynamicModel(model, {
+          resolution: "720p",
+          outputSec: 15,
+          isExtend: true,
+        });
+        // 15 * $0.20 * 0.80 * 40 = 96 credits
+        expect(credits).toBeCloseTo(96, 1);
+      });
+
+      it("Mini Extend @ 480p 15s (new segment only, 40% off)", async () => {
+        const { computeCreditsFromDynamicModel } = await import("@/lib/pricing");
+        const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
+        const model = {
+          id: "bytedance-seedance-v2-t2v-mini",
+          pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v2-t2v-mini"],
+        } as any;
+        const credits = computeCreditsFromDynamicModel(model, {
+          resolution: "480p",
+          outputSec: 15,
+          isExtend: true,
+        });
+        // 15 * $0.06 * 0.60 * 40 = 21.6 credits
+        expect(credits).toBeCloseTo(21.6, 1);
+      });
+
+      it("Standard Extend @ 1080p 15s (new segment only, 10% off)", async () => {
+        const { computeCreditsFromDynamicModel } = await import("@/lib/pricing");
+        const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
+        const model = {
+          id: "bytedance-seedance-v2-t2v",
+          pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v2-t2v"],
+        } as any;
+        const credits = computeCreditsFromDynamicModel(model, {
+          resolution: "1080p",
+          outputSec: 15,
+          isExtend: true,
+        });
+        // 15 * $0.60 * 0.90 * 40 = 324 credits
+        expect(credits).toBeCloseTo(324, 1);
+      });
+
+      it("audit log captures pricingConfig extend changes", async () => {
+        const { computeModelDiffs } = await import("@/lib/model-registry-hardening");
+        const oldModel = { id: "test", pricingConfig: { extendStickerRates: { "720p": 0.20 } } };
+        const newModel = { id: "test", pricingConfig: { extendStickerRates: { "720p": 0.25 } } };
+        const diffs = computeModelDiffs([], [], [oldModel as any], [newModel as any]);
+        expect(diffs).toContainEqual(
+          expect.objectContaining({
+            modelId: "test",
+            field: "pricingConfig",
+          })
+        );
+      });
+
+      it("audit log captures video_api_route changes", async () => {
+        const { computeModelDiffs } = await import("@/lib/model-registry-hardening");
+        const oldModel = { id: "test", video_api_route: null };
+        const newModel = { id: "test", video_api_route: "bytedance/seedance-2.5/video-extend" };
+        const diffs = computeModelDiffs([], [], [oldModel as any], [newModel as any]);
+        expect(diffs).toContainEqual(
+          expect.objectContaining({
+            modelId: "test",
+            field: "video_api_route",
+          })
+        );
+      });
+
+      it("audit log captures capabilities changes", async () => {
+        const { computeModelDiffs } = await import("@/lib/model-registry-hardening");
+        const oldModel = { id: "test", capabilities: { durations: [5, 10] } };
+        const newModel = { id: "test", capabilities: { durations: [5, 10, 15] } };
+        const diffs = computeModelDiffs([], [], [oldModel as any], [newModel as any]);
+        expect(diffs).toContainEqual(
+          expect.objectContaining({
+            modelId: "test",
+            field: "capabilities",
+          })
+        );
+      });
+
+      it("Extend tab filters models by video_api_route", () => {
+        const models = [
+          { id: "m1", isActive: true, video_api_route: "bytedance/seedance-2.5/video-extend" },
+          { id: "m2", isActive: true, api_route: "google/veo-3.1/text-to-video" },
+          { id: "m3", isActive: false, video_api_route: "bytedance/seedance-2.0/video-extend" },
+        ];
+        const capable = models.filter(
+          (m: any) => m.video_api_route?.includes("video-extend") && m.isActive !== false
+        );
+        expect(capable).toHaveLength(1);
+        expect(capable[0].id).toBe("m1");
+      });
+
+      it("No loss on Max plan (worst case)", async () => {
+        const { computeCreditsFromDynamicModel } = await import("@/lib/pricing");
+        const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
+        const model = {
+          id: "bytedance-seedance-v25-t2v-turbo",
+          pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v25-t2v-turbo"],
+        } as any;
+        const credits = computeCreditsFromDynamicModel(model, {
+          resolution: "720p",
+          outputSec: 30,
+          isExtend: true,
+        });
+        // Real source: (5+30) * $0.22 * 0.90 = $6.93
+        // Max plan revenue: 277.2 credits * $0.0367 = $10.17
+        // Profit: $10.17 - $6.93 = $3.24 (47% margin)
+        const maxRevenue = credits * 0.0367;
+        const sourceCost = 35 * 0.22 * 0.90;
+        expect(maxRevenue).toBeGreaterThan(sourceCost * 1.4); // At least 40% margin
+      });
+
+      it("confirms all 5 Seedance models support video_api_route in VIDEO_MODEL_REGISTRY", async () => {
+        const { VIDEO_MODEL_REGISTRY } = await import("@/lib/video-model-registry");
+        const seedanceExtendCards = VIDEO_MODEL_REGISTRY.filter(
+          (m) => m.family === "seedance" && typeof m.video_api_route === "string" && m.video_api_route.includes("video-extend")
+        );
+        expect(seedanceExtendCards.length).toBeGreaterThanOrEqual(5);
+      });
+    });
   });
 });

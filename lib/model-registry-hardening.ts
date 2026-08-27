@@ -120,7 +120,7 @@ export function validateModelConfigurations(
   return { ok: errors.length === 0, errors };
 }
 
-function computeModelDiffs(
+export function computeModelDiffs(
   oldImageModels: DynamicImageModel[],
   newImageModels: DynamicImageModel[],
   oldVideoModels: DynamicVideoModel[],
@@ -149,11 +149,52 @@ function computeModelDiffs(
     if (!oldM) {
       changes.push({ modelId: newM.id, modality: "video", field: "added", oldValue: null, newValue: true });
     } else {
-      if (oldM.isActive !== newM.isActive) {
-        changes.push({ modelId: newM.id, modality: "video", field: "isActive", oldValue: oldM.isActive, newValue: newM.isActive });
+      const trackedFields: (keyof DynamicVideoModel)[] = [
+        "isActive",
+        "creditCost",
+        "isDeleted",
+        "text_api_route",
+        "image_api_route",
+        "video_api_route",
+        "reference_api_route",
+        "start_end_api_route",
+      ];
+      for (const field of trackedFields) {
+        if (oldM[field] !== newM[field]) {
+          changes.push({
+            modelId: newM.id,
+            modality: "video",
+            field: field as string,
+            oldValue: oldM[field] ?? null,
+            newValue: newM[field] ?? null,
+          });
+        }
       }
-      if (oldM.creditCost !== newM.creditCost) {
-        changes.push({ modelId: newM.id, modality: "video", field: "creditCost", oldValue: oldM.creditCost, newValue: newM.creditCost });
+
+      // Deep diff for pricingConfig (includes extend fields)
+      const oldPricing = JSON.stringify(oldM.pricingConfig ?? {});
+      const newPricing = JSON.stringify(newM.pricingConfig ?? {});
+      if (oldPricing !== newPricing) {
+        changes.push({
+          modelId: newM.id,
+          modality: "video",
+          field: "pricingConfig",
+          oldValue: oldM.pricingConfig ?? null,
+          newValue: newM.pricingConfig ?? null,
+        });
+      }
+
+      // Deep diff for capabilities
+      const oldCaps = JSON.stringify(oldM.capabilities ?? {});
+      const newCaps = JSON.stringify(newM.capabilities ?? {});
+      if (oldCaps !== newCaps) {
+        changes.push({
+          modelId: newM.id,
+          modality: "video",
+          field: "capabilities",
+          oldValue: oldM.capabilities ?? null,
+          newValue: newM.capabilities ?? null,
+        });
       }
     }
   }

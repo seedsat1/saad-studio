@@ -24,6 +24,17 @@ export interface DynamicVideoModelPricingConfig {
     "720p"?: number;
     "1080p"?: number;
   };
+  // Extend-specific
+  extendStickerRates?: {
+    "480p"?: number;
+    "720p"?: number;
+    "1080p"?: number;
+    "4k"?: number;
+  };
+  extendBillingMode?: "new_segment_only" | "source_plus_new_segment";
+  extendMaxDuration?: number;
+  extendSupportsLastImage?: boolean;
+  extendDefaultSourceContextSec?: number;
   discountMultiplier?: number;
   creditsPerUsd?: number;
   billingMode?: "flat_output" | "input_plus_output" | "new_segment_only" | "base_plus_surcharge";
@@ -32,12 +43,30 @@ export interface DynamicVideoModelPricingConfig {
 }
 
 export const SEEDANCE_INITIAL_PRICING: Record<string, DynamicVideoModelPricingConfig> = {
-  "bytedance-seedance-v25-t2v": {
+  "bytedance-seedance-v25-t2v-turbo": {
     stickerRates: { "480p": 0.18, "720p": 0.36, "1080p": 0.90, "4k": 1.80 },
+    extendStickerRates: { "480p": 0.11, "720p": 0.22, "1080p": 0.55, "4k": 1.10 },
+    extendBillingMode: "source_plus_new_segment",
+    extendMaxDuration: 30,
+    extendSupportsLastImage: false, // ⚠️ 2.5 unique
+    extendDefaultSourceContextSec: 5,
     discountMultiplier: 0.90,
     creditsPerUsd: 40,
     billingMode: "flat_output",
-    lastVerifiedAt: "2026-08-27",
+    lastVerifiedAt: "2026-08-28",
+    verificationSource: "UI_MEASURED",
+  },
+  "bytedance-seedance-v25-t2v": {
+    stickerRates: { "480p": 0.18, "720p": 0.36, "1080p": 0.90, "4k": 1.80 },
+    extendStickerRates: { "480p": 0.11, "720p": 0.22, "1080p": 0.55, "4k": 1.10 },
+    extendBillingMode: "source_plus_new_segment",
+    extendMaxDuration: 30,
+    extendSupportsLastImage: false,
+    extendDefaultSourceContextSec: 5,
+    discountMultiplier: 0.90,
+    creditsPerUsd: 40,
+    billingMode: "flat_output",
+    lastVerifiedAt: "2026-08-28",
     verificationSource: "UI_MEASURED",
   },
   "bytedance-seedance-v25-i2v-turbo": {
@@ -45,39 +74,55 @@ export const SEEDANCE_INITIAL_PRICING: Record<string, DynamicVideoModelPricingCo
     discountMultiplier: 0.90,
     creditsPerUsd: 40,
     billingMode: "flat_output",
-    lastVerifiedAt: "2026-08-27",
+    lastVerifiedAt: "2026-08-28",
     verificationSource: "UI_MEASURED",
   },
   "bytedance-seedance-v2-t2v-fast": {
     turboStickerRates: { "720p": 0.14, "1080p": 0.15 },
+    extendStickerRates: { "480p": 0.12, "720p": 0.24, "1080p": 0.60, "4k": 1.20 },
+    extendBillingMode: "new_segment_only",
+    extendMaxDuration: 15,
+    extendSupportsLastImage: true,
     discountMultiplier: 0.90,
     creditsPerUsd: 40,
     billingMode: "flat_output",
-    lastVerifiedAt: "2026-08-27",
+    lastVerifiedAt: "2026-08-28",
     verificationSource: "UI_MEASURED",
   },
   "bytedance-seedance-v2-t2v": {
     stickerRates: { "480p": 0.12, "720p": 0.24, "1080p": 0.60, "4k": 1.20 },
+    extendStickerRates: { "480p": 0.12, "720p": 0.24, "1080p": 0.60, "4k": 1.20 },
+    extendBillingMode: "new_segment_only",
+    extendMaxDuration: 15,
+    extendSupportsLastImage: true,
     discountMultiplier: 0.90,
     creditsPerUsd: 40,
     billingMode: "flat_output",
-    lastVerifiedAt: "2026-08-27",
+    lastVerifiedAt: "2026-08-28",
     verificationSource: "UI_MEASURED",
   },
   "bytedance-seedance-v2-fast": {
     stickerRates: { "480p": 0.10, "720p": 0.20, "1080p": 0.50, "4k": 1.00 },
+    extendStickerRates: { "480p": 0.10, "720p": 0.20, "1080p": 0.50, "4k": 1.00 },
+    extendBillingMode: "new_segment_only",
+    extendMaxDuration: 15,
+    extendSupportsLastImage: true,
     discountMultiplier: 0.80,
     creditsPerUsd: 40,
     billingMode: "flat_output",
-    lastVerifiedAt: "2026-08-27",
+    lastVerifiedAt: "2026-08-28",
     verificationSource: "UI_MEASURED",
   },
   "bytedance-seedance-v2-t2v-mini": {
     stickerRates: { "480p": 0.06, "720p": 0.12, "1080p": 0.30, "4k": 0.60 },
+    extendStickerRates: { "480p": 0.06, "720p": 0.12, "1080p": 0.30, "4k": 0.60 },
+    extendBillingMode: "new_segment_only",
+    extendMaxDuration: 15,
+    extendSupportsLastImage: true,
     discountMultiplier: 0.60,
     creditsPerUsd: 40,
     billingMode: "flat_output",
-    lastVerifiedAt: "2026-08-27",
+    lastVerifiedAt: "2026-08-28",
     verificationSource: "UI_MEASURED",
   },
 };

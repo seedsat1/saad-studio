@@ -313,6 +313,16 @@ export default function AdminModelsPage() {
   const [editCreditsPerUsd, setEditCreditsPerUsd] = useState<number>(40);
   const [editBillingMode, setEditBillingMode] = useState<"flat_output" | "input_plus_output" | "new_segment_only" | "base_plus_surcharge">("flat_output");
 
+  // Video Extend Specific Config
+  const [editExtend480p, setEditExtend480p] = useState<number>(0);
+  const [editExtend720p, setEditExtend720p] = useState<number>(0);
+  const [editExtend1080p, setEditExtend1080p] = useState<number>(0);
+  const [editExtend4k, setEditExtend4k] = useState<number>(0);
+  const [editExtendBillingMode, setEditExtendBillingMode] = useState<"new_segment_only" | "source_plus_new_segment">("new_segment_only");
+  const [editExtendMaxDuration, setEditExtendMaxDuration] = useState<number>(15);
+  const [editExtendSupportsLastImage, setEditExtendSupportsLastImage] = useState<boolean>(true);
+  const [editVideoApiRoute, setEditVideoApiRoute] = useState<string>("");
+
   // Catalog Sync Modal
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -1128,6 +1138,7 @@ export default function AdminModelsPage() {
     
     // Load pricing config
     const pCfg = row.rawVideoModel?.pricingConfig;
+    setEditVideoApiRoute((row.rawVideoModel as any)?.video_api_route || "");
     setEditSticker480p(pCfg?.stickerRates?.["480p"] ?? 0);
     setEditSticker720p(pCfg?.stickerRates?.["720p"] ?? 0);
     setEditSticker1080p(pCfg?.stickerRates?.["1080p"] ?? 0);
@@ -1137,6 +1148,14 @@ export default function AdminModelsPage() {
     setEditDiscountMultiplier(pCfg?.discountMultiplier ?? 0.90);
     setEditCreditsPerUsd(pCfg?.creditsPerUsd ?? 40);
     setEditBillingMode(pCfg?.billingMode ?? "flat_output");
+
+    setEditExtend480p(pCfg?.extendStickerRates?.["480p"] ?? 0);
+    setEditExtend720p(pCfg?.extendStickerRates?.["720p"] ?? 0);
+    setEditExtend1080p(pCfg?.extendStickerRates?.["1080p"] ?? 0);
+    setEditExtend4k(pCfg?.extendStickerRates?.["4k"] ?? 0);
+    setEditExtendBillingMode(pCfg?.extendBillingMode ?? "new_segment_only");
+    setEditExtendMaxDuration(pCfg?.extendMaxDuration ?? 15);
+    setEditExtendSupportsLastImage(pCfg?.extendSupportsLastImage ?? true);
 
     setSaveError(null);
     setConcurrencyConflict(false);
@@ -1212,6 +1231,16 @@ export default function AdminModelsPage() {
             "720p": editTurbo720p || undefined,
             "1080p": editTurbo1080p || undefined,
           },
+          extendStickerRates: {
+            "480p": editExtend480p || undefined,
+            "720p": editExtend720p || undefined,
+            "1080p": editExtend1080p || undefined,
+            "4k": editExtend4k || undefined,
+          },
+          extendBillingMode: editExtendBillingMode,
+          extendMaxDuration: editExtendMaxDuration,
+          extendSupportsLastImage: editExtendSupportsLastImage,
+          extendDefaultSourceContextSec: 5,
           discountMultiplier: editDiscountMultiplier,
           creditsPerUsd: editCreditsPerUsd,
           billingMode: editBillingMode,
@@ -1240,6 +1269,7 @@ export default function AdminModelsPage() {
                 },
                 text_api_route: editTextRoute.trim() || (m as any).text_api_route || m.api_route || m.id,
                 image_api_route: editImageRoute.trim() || undefined,
+                video_api_route: editVideoApiRoute.trim() || (m as any).video_api_route || undefined,
                 api_route: editTextRoute.trim() || m.api_route || m.id,
                 pricingConfig,
               }
@@ -2788,6 +2818,123 @@ export default function AdminModelsPage() {
                           Recommended margin: 40 credits/USD (47% min margin on Max plan, 100% on Beginner).
                         </p>
                       </div>
+                    )}
+
+                    {/* 7. VIDEO EXTEND PRICING & CONFIGURATION */}
+                    {selectedModel.modality === "video" && (
+                      <section className="p-3.5 rounded-xl bg-zinc-950 border border-emerald-900/60 space-y-3">
+                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center justify-between">
+                          <span>Video Extend — Pricing & Config (إعدادات وتسعير إطالة الفيديو)</span>
+                          <span className="text-[10px] text-zinc-500 font-mono">Extension Tab Ready</span>
+                        </span>
+
+                        <div>
+                          <label className="text-[11px] text-zinc-400 block mb-1">
+                            Video Extension API Route (video_api_route):
+                          </label>
+                          <input
+                            type="text"
+                            value={editVideoApiRoute}
+                            onChange={(e) => setEditVideoApiRoute(e.target.value)}
+                            placeholder="e.g. bytedance/seedance-2.5/video-extend"
+                            className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                          />
+                          <p className="text-[10px] text-zinc-500 mt-1">
+                            💡 لو أضفت هذا المسار، الموديل يظهر تلقائياً في تبويبة &quot;Video Extension&quot; في صفحة الفيديو.
+                          </p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[11px] text-zinc-400 block font-semibold">
+                            Extend Sticker Rates ($/sec):
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block">480p ($/s)</span>
+                              <input
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                value={editExtend480p}
+                                onChange={(e) => setEditExtend480p(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block">720p ($/s)</span>
+                              <input
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                value={editExtend720p}
+                                onChange={(e) => setEditExtend720p(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block">1080p ($/s)</span>
+                              <input
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                value={editExtend1080p}
+                                onChange={(e) => setEditExtend1080p(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block">4K ($/s)</span>
+                              <input
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                value={editExtend4k}
+                                onChange={(e) => setEditExtend4k(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 items-end">
+                          <div>
+                            <label className="text-[10px] text-zinc-400 block mb-1">Extend Billing Mode</label>
+                            <select
+                              value={editExtendBillingMode}
+                              onChange={(e) => setEditExtendBillingMode(e.target.value as any)}
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-emerald-500"
+                            >
+                              <option value="new_segment_only">New segment only (Fast / Standard / Mini)</option>
+                              <option value="source_plus_new_segment">Source + new segment (Seedance 2.5)</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] text-zinc-400 block mb-1">Max Duration (s)</label>
+                            <input
+                              type="number"
+                              min="4"
+                              max="60"
+                              value={editExtendMaxDuration}
+                              onChange={(e) => setEditExtendMaxDuration(parseInt(e.target.value) || 15)}
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-900 border border-zinc-800">
+                            <input
+                              type="checkbox"
+                              id="extend-last-image-check"
+                              checked={editExtendSupportsLastImage}
+                              onChange={(e) => setEditExtendSupportsLastImage(e.target.checked)}
+                              className="w-4 h-4 text-emerald-600 rounded bg-zinc-950 border-zinc-700 cursor-pointer"
+                            />
+                            <label htmlFor="extend-last-image-check" className="text-[11px] text-zinc-300 cursor-pointer">
+                              Supports last_image frame?
+                            </label>
+                          </div>
+                        </div>
+                      </section>
                     )}
 
                     {/* Credit Cost & Active Checkbox */}
