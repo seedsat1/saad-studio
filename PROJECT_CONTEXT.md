@@ -39,19 +39,18 @@
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
 
-#### Latest task: Seedance Multi-modal Reference vs Start/End Frame Routing & Sub-route Precision (2026-08-28)
+#### Latest task: Seedance Full Dynamic Pricing + T2V Payload Adaptation (2026-08-28)
 - Status: Completed & Verified (PASS).
 - Scope:
-  - Fixed Seedance Reference Images vs Start Frame routing:
-    - Text-to-Video models (2.5, 2.0 Turbo, 2.0 Fast, 2.0 Mini, 2.0 Standard) receiving reference images remain on text-to-video / reference routes with `reference_images` array without improperly setting `payload.image`.
-    - Only explicit Start Frame (`startFrame` / `image` / `first_frame_url`) routes to `image-to-video` (and optionally sets `last_image` from End Frame).
-  - Fixed `resolveSeedance25Route` to check `hasExplicitStartImage` instead of general reference inputs.
-  - Fixed `mapToWavespeedInput` to isolate Start/End frame extraction to I2V / Extend target routes.
-  - Fixed frontend `handleGenerate` sub-route resolution for Fast, Mini, Turbo, and Spicy models.
-  - Verified with 77/77 Vitest pass + Next.js 14 production build (253 static pages compiled, 0 errors).
+  - Fixed credit pricing for all Seedance sub-routes (2.5, Fast, Mini, Standard) in `lib/credit-pricing.ts` and `app/api/video/route.ts` via `getVideoCreditsByRouteAsync`.
+  - Added seamless auto-adaptation in `validateSeedanceStartEnd` to convert any `image` field into `reference_images` on Text-to-Video routes without throwing 500 errors.
+  - Prioritized direct image input for `image_api_route` in dynamic sub-route resolution.
+  - All unit tests passing (77/77 PASS).
 - Files affected:
   - `app/api/video/route.ts`
-  - `app/(dash)/(routes)/video/page.tsx`
+  - `lib/credit-pricing.ts`
+  - `lib/seedance-validation.ts`
+  - `lib/dynamic-model-loader.ts`
   - `test/models-backend-hardening.test.ts`
 - Verification:
   - 65/65 tests passed across `test/models-backend-hardening.test.ts`, `test/model-definition-registry.test.ts`, `test/pricing-core.test.ts`.
