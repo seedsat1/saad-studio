@@ -225,6 +225,21 @@ function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: Dynamic
     ? mergeWan30AdminCapabilities(curated.capabilities, existing?.capabilities)
     : curated.capabilities;
 
+  const defaultPricing = SEEDANCE_INITIAL_PRICING[curated.id];
+  const mergedPricing = existing?.pricingConfig
+    ? {
+        ...defaultPricing,
+        ...existing.pricingConfig,
+        stickerRates: { ...defaultPricing?.stickerRates, ...existing.pricingConfig.stickerRates },
+        turboStickerRates: { ...defaultPricing?.turboStickerRates, ...existing.pricingConfig.turboStickerRates },
+        extendStickerRates: { ...defaultPricing?.extendStickerRates, ...existing.pricingConfig.extendStickerRates },
+        extendBillingMode: existing.pricingConfig.extendBillingMode ?? defaultPricing?.extendBillingMode,
+        extendMaxDuration: existing.pricingConfig.extendMaxDuration ?? defaultPricing?.extendMaxDuration,
+        extendSupportsLastImage: existing.pricingConfig.extendSupportsLastImage ?? defaultPricing?.extendSupportsLastImage,
+        extendDefaultSourceContextSec: existing.pricingConfig.extendDefaultSourceContextSec ?? defaultPricing?.extendDefaultSourceContextSec,
+      }
+    : ((curated as any).pricingConfig ?? defaultPricing);
+
   return {
     ...curated,
     name,
@@ -236,7 +251,8 @@ function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: Dynamic
     isDeleted: existing?.isDeleted ?? false,
     creditCost: existing?.creditCost ?? (curated as DynamicVideoModel).creditCost,
     capabilities,
-    pricingConfig: existing?.pricingConfig ?? (curated as any).pricingConfig ?? SEEDANCE_INITIAL_PRICING[curated.id],
+    video_api_route: existing?.video_api_route ?? (curated as any).video_api_route,
+    pricingConfig: mergedPricing,
   };
 }
 
