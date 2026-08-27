@@ -67,7 +67,7 @@ const parityCases: PricingCase[] = [
     modelRef: "bytedance/seedance-2-mini",
     durationSec: 15,
     quality: "720p",
-    expected: 64,
+    expected: 63,
   },
   {
     name: "Seedance 2.0",

@@ -165,13 +165,19 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "bytedance/seedance-2.0/text-to-video":         "seedance2",
   "bytedance/seedance-2.0/image-to-video":        "seedance2",
   "bytedance/seedance-2-fast":                    "seedance2f",
-  "bytedance/seedance-2-mini":                    "seedance2mini",
+  "bytedance/seedance-2-mini":                    "seedance2mini_t2v",
   "bytedance/seedance-2.0/text-to-video-turbo":   "seedance2f",
   "bytedance/seedance-2.0/image-to-video-turbo":  "seedance2f",
-  "bytedance/seedance-2.0-mini/text-to-video":    "seedance2mini",
-  "bytedance/seedance-2.0-mini/image-to-video":   "seedance2mini",
+  "bytedance/seedance-2.0-mini/text-to-video":    "seedance2mini_t2v",
+  "bytedance/seedance-2.0-mini/video-edit":       "seedance2mini_t2v",
+  "bytedance/seedance-2.0-mini/image-to-video":   "seedance2mini_i2v",
+  "bytedance/seedance-2.0-mini/image-to-video-spicy": "seedance2mini_i2v",
+  "bytedance/seedance-2.0-mini/video-extend":     "seedance2mini_i2v",
+  "bytedance/seedance-2.0-mini/text-to-video-turbo": "seedance2mini_turbo",
+  "bytedance/seedance-2.0-mini/image-to-video-turbo": "seedance2mini_turbo",
+  "bytedance/seedance-2.0-mini/video-edit-turbo": "seedance2mini_turbo",
   "bytedance/seedance-v2/text-to-video-fast":     "seedance2f",
-  "bytedance/seedance-v2/text-to-video-mini":     "seedance2mini",
+  "bytedance/seedance-v2/text-to-video-mini":     "seedance2mini_t2v",
   "bytedance/seedance-v2/text-to-video":          "seedance2",
   "bytedance/seedance-1.5-pro":                   "seedance2f",
   "bytedance/v1-pro-fast-image-to-video":         "seedance2f",
@@ -525,6 +531,97 @@ const FLUX_3_USD_PER_SECOND = {
   "1080p": 0.29,
   "draft": 0.06,
 } as const;
+const SEEDANCE_20_MINI_CREDITS_PER_USD = 40;
+const SEEDANCE_20_MINI_MARGIN_MULTIPLIER = 1.4;
+const SEEDANCE_20_MINI_I2V_USD_PER_SECOND = {
+  "480p": 0.06,
+  "720p": 0.12,
+  "1080p": 0.30,
+  "4k": 0.60,
+} as const;
+const SEEDANCE_20_MINI_T2V_USD_PER_SECOND = {
+  "480p": 0.0375,
+  "720p": 0.075,
+  "1080p": 0.1875,
+  "4k": 0.375,
+} as const;
+const SEEDANCE_20_MINI_TURBO_USD_PER_SECOND = {
+  "720p": 0.08,
+  "1080p": 0.09,
+} as const;
+
+function getSeedance20MiniProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
+  const route = (modelRef || "").toLowerCase();
+  if (
+    !route.startsWith("bytedance/seedance-2.0-mini") &&
+    !route.startsWith("bytedance/seedance-v2/text-to-video-mini") &&
+    route !== "bytedance/seedance-2-mini" &&
+    route !== "seedance2mini" &&
+    route !== "seedance2mini_t2v" &&
+    route !== "seedance2mini_i2v" &&
+    route !== "seedance2mini_turbo" &&
+    route !== "bytedance-seedance-v2-t2v-mini" &&
+    route !== "bytedance-seedance-v2-mini-turbo" &&
+    route !== "bytedance-seedance-v2-mini-spicy"
+  ) {
+    return null;
+  }
+
+  const duration = Math.max(1, Number.isFinite(durationSec) ? durationSec : 5);
+  const q = (quality || "720p").trim().toLowerCase();
+
+  const isTurbo = route.includes("turbo") || route === "seedance2mini_turbo" || route === "bytedance-seedance-v2-mini-turbo";
+  if (isTurbo) {
+    if (q.includes("480") || q.includes("4k")) {
+      throw new Error("Seedance 2.0 Mini Turbo only supports 720p or 1080p resolution.");
+    }
+    const usdPerSec = q.includes("1080")
+      ? SEEDANCE_20_MINI_TURBO_USD_PER_SECOND["1080p"]
+      : SEEDANCE_20_MINI_TURBO_USD_PER_SECOND["720p"];
+    return parseFloat((usdPerSec * duration).toFixed(4));
+  }
+
+  const isI2V =
+    route.includes("image-to-video") ||
+    route.includes("video-extend") ||
+    route.includes("spicy") ||
+    route === "seedance2mini_i2v" ||
+    route === "bytedance-seedance-v2-mini-spicy";
+
+  const rateTable = isI2V
+    ? SEEDANCE_20_MINI_I2V_USD_PER_SECOND
+    : SEEDANCE_20_MINI_T2V_USD_PER_SECOND;
+
+  const resKey: "480p" | "720p" | "1080p" | "4k" = q.includes("4k")
+    ? "4k"
+    : q.includes("1080")
+    ? "1080p"
+    : q.includes("480")
+    ? "480p"
+    : "720p";
+
+  const usdPerSecond = rateTable[resKey] ?? rateTable["720p"];
+  return parseFloat((usdPerSecond * duration).toFixed(4));
+}
+
+function getSeedance20MiniDefaultCredits(
+  modelRef: string,
+  durationSec: number,
+  numUnits: number,
+  quality?: string | null,
+): number | null {
+  const usd = getSeedance20MiniProviderUsd(modelRef, durationSec, quality);
+  if (usd === null) return null;
+  return parseFloat(
+    Math.max(
+      1,
+      usd *
+        SEEDANCE_20_MINI_MARGIN_MULTIPLIER *
+        SEEDANCE_20_MINI_CREDITS_PER_USD *
+        numUnits,
+    ).toFixed(2),
+  );
+}
 
 function getFlux3ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
   const route = (modelRef || "").toLowerCase();
@@ -720,6 +817,9 @@ function resolveSpecialUserCharge(
   const seedance25Credits = getSeedance25DefaultCredits(modelRef, durationSec, numUnits, quality);
   if (seedance25Credits !== null) return seedance25Credits;
 
+  const seedance20MiniCredits = getSeedance20MiniDefaultCredits(modelRef, durationSec, numUnits, quality);
+  if (seedance20MiniCredits !== null) return seedance20MiniCredits;
+
   const minimaxH3Credits = getMinimaxH3DefaultCredits(modelRef, durationSec, numUnits, quality);
   if (minimaxH3Credits !== null) return minimaxH3Credits;
 
@@ -757,15 +857,28 @@ function resolveModelUserCharge(
     return parseFloat((usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
   }
 
-  if (constitutionId === "seedance2mini") {
+  if (constitutionId === "seedance2mini_i2v") {
     const q = quality?.trim().toLowerCase() ?? "720p";
-    const perSec15 = ({
-      "480p": 32 / 15,
-      "720p": 64 / 15,
-      "1080p": 151.2 / 15,
-      "4k": 300 / 15,
-    } as Record<string, number>)[q] ?? 64 / 15;
-    return parseFloat((perSec15 * durationSec * numUnits).toFixed(2));
+    const mappedQ = q.includes("4k") ? "4k" : q.includes("1080") ? "1080p" : q.includes("480") ? "480p" : "720p";
+    const usdPerSec = SEEDANCE_20_MINI_I2V_USD_PER_SECOND[mappedQ] ?? SEEDANCE_20_MINI_I2V_USD_PER_SECOND["720p"];
+    return parseFloat((usdPerSec * SEEDANCE_20_MINI_MARGIN_MULTIPLIER * SEEDANCE_20_MINI_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "seedance2mini_t2v" || constitutionId === "seedance2mini") {
+    const q = quality?.trim().toLowerCase() ?? "720p";
+    const mappedQ = q.includes("4k") ? "4k" : q.includes("1080") ? "1080p" : q.includes("480") ? "480p" : "720p";
+    const usdPerSec = SEEDANCE_20_MINI_T2V_USD_PER_SECOND[mappedQ] ?? SEEDANCE_20_MINI_T2V_USD_PER_SECOND["720p"];
+    return parseFloat((usdPerSec * SEEDANCE_20_MINI_MARGIN_MULTIPLIER * SEEDANCE_20_MINI_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "seedance2mini_turbo") {
+    const q = quality?.trim().toLowerCase() ?? "720p";
+    if (q.includes("480") || q.includes("4k")) {
+      throw new Error("Seedance 2.0 Mini Turbo only supports 720p or 1080p resolution.");
+    }
+    const mappedQ = q.includes("1080") ? "1080p" : "720p";
+    const usdPerSec = SEEDANCE_20_MINI_TURBO_USD_PER_SECOND[mappedQ] ?? SEEDANCE_20_MINI_TURBO_USD_PER_SECOND["720p"];
+    return parseFloat((usdPerSec * SEEDANCE_20_MINI_MARGIN_MULTIPLIER * SEEDANCE_20_MINI_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
   }
 
   if (constitutionId === "seedance2f") {

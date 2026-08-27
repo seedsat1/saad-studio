@@ -47,6 +47,24 @@ const FLUX_3_USD_PER_SECOND = {
   "1080p": 0.29,
   "draft": 0.06,
 } as const;
+const SEEDANCE_20_MINI_CREDITS_PER_USD = 40;
+const SEEDANCE_20_MINI_MARGIN_MULTIPLIER = 1.4;
+const SEEDANCE_20_MINI_I2V_USD_PER_SECOND = {
+  "480p": 0.06,
+  "720p": 0.12,
+  "1080p": 0.30,
+  "4k": 0.60,
+} as const;
+const SEEDANCE_20_MINI_T2V_USD_PER_SECOND = {
+  "480p": 0.0375,
+  "720p": 0.075,
+  "1080p": 0.1875,
+  "4k": 0.375,
+} as const;
+const SEEDANCE_20_MINI_TURBO_USD_PER_SECOND = {
+  "720p": 0.08,
+  "1080p": 0.09,
+} as const;
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["black-forest-labs/flux-3/text-to-video", 47.6],
@@ -273,6 +291,34 @@ function getSeedance25SpicyCredits(payload?: VideoPayload): number {
   return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_MARGIN_MULTIPLIER * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }
 
+function getSeedance20MiniCredits(modelRoute: string, payload?: VideoPayload): number {
+  const duration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const route = (modelRoute || "").toLowerCase();
+  const isTurbo = route.includes("turbo");
+  const isI2V = route.includes("image-to-video") || route.includes("video-extend") || route.includes("spicy");
+
+  if (isTurbo) {
+    if (quality.includes("480") || quality.includes("4k")) {
+      throw new Error("Seedance 2.0 Mini Turbo only supports 720p or 1080p resolution.");
+    }
+    const q = quality.includes("1080") ? "1080p" : "720p";
+    const usdPerSecond = SEEDANCE_20_MINI_TURBO_USD_PER_SECOND[q];
+    return parseFloat((usdPerSecond * duration * SEEDANCE_20_MINI_MARGIN_MULTIPLIER * SEEDANCE_20_MINI_CREDITS_PER_USD).toFixed(2));
+  }
+
+  const q: "480p" | "720p" | "1080p" | "4k" = quality.includes("4k")
+    ? "4k"
+    : quality.includes("1080")
+    ? "1080p"
+    : quality.includes("480")
+    ? "480p"
+    : "720p";
+  const rateTable = isI2V ? SEEDANCE_20_MINI_I2V_USD_PER_SECOND : SEEDANCE_20_MINI_T2V_USD_PER_SECOND;
+  const usdPerSecond = rateTable[q] ?? rateTable["720p"];
+  return parseFloat((usdPerSecond * duration * SEEDANCE_20_MINI_MARGIN_MULTIPLIER * SEEDANCE_20_MINI_CREDITS_PER_USD).toFixed(2));
+}
+
 function getWan30Credits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
@@ -406,6 +452,14 @@ function getVideoCreditsByModelIdFallback(modelId: string, payload?: VideoPayloa
   if (modelId === "bytedance/seedance-2-fast") return getSeedance2Credits(payload, "fast");
   if (modelId === "bytedance/seedance-2.5/text-to-video-turbo" || modelId === "bytedance/seedance-2.5/image-to-video-turbo") return getSeedance25TurboCredits(payload);
   if (modelId === "bytedance/seedance-2.5/image-to-video-spicy") return getSeedance25SpicyCredits(payload);
+  if (
+    modelId === "bytedance-seedance-v2-t2v-mini" ||
+    modelId === "bytedance-seedance-v2-mini-turbo" ||
+    modelId === "bytedance-seedance-v2-mini-spicy" ||
+    modelId.startsWith("bytedance/seedance-2.0-mini")
+  ) {
+    return getSeedance20MiniCredits(modelId, payload);
+  }
   if (modelId === "google/gemini-omni-flash" || modelId === "google/gemini-omni-video") {
     return applySoundMultiplier(getGeminiOmniFlashCredits(payload), payload);
   }
@@ -511,6 +565,13 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
   }
   if (modelRoute === "bytedance/seedance-2.5/image-to-video-spicy") {
     return getSeedance25SpicyCredits(payload);
+  }
+  if (
+    modelRoute.startsWith("bytedance/seedance-2.0-mini") ||
+    modelRoute.startsWith("bytedance/seedance-v2/text-to-video-mini") ||
+    modelRoute === "bytedance/seedance-2-mini"
+  ) {
+    return getSeedance20MiniCredits(modelRoute, payload);
   }
   if (modelRoute.startsWith("alibaba/wan-3.0")) {
     return getWan30Credits(modelRoute, payload);

@@ -366,5 +366,39 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       });
       expect(edit1080.usd).toBe(0.9375); // 5 * 0.1875
     });
+
+    it("strictly applies the 2.8x platform standard margin on retail user credits", async () => {
+      const { getVideoCreditsByRoute } = await import("@/lib/credit-pricing");
+      const { getGenerationCostSync } = await import("@/lib/pricing");
+
+      // 1. I2V 720p (5s): source $0.12 * 5 * 1.4 * 40 = 33.6 credits ($1.68 retail)
+      expect(getVideoCreditsByRoute("bytedance/seedance-2.0-mini/image-to-video", { duration: 5, resolution: "720p" })).toBe(33.6);
+      expect(getGenerationCostSync("bytedance/seedance-2.0-mini/image-to-video", 5, 1, "720p")).toBe(33.6);
+
+      // 2. T2V 720p (5s): source $0.075 * 5 * 1.4 * 40 = 21.0 credits ($1.05 retail)
+      expect(getVideoCreditsByRoute("bytedance/seedance-2.0-mini/text-to-video", { duration: 5, resolution: "720p" })).toBe(21.0);
+      expect(getGenerationCostSync("bytedance/seedance-2.0-mini/text-to-video", 5, 1, "720p")).toBe(21.0);
+
+      // 3. T2V Turbo 720p (5s): source $0.08 * 5 * 1.4 * 40 = 22.4 credits ($1.12 retail)
+      expect(getVideoCreditsByRoute("bytedance/seedance-2.0-mini/text-to-video-turbo", { duration: 5, resolution: "720p" })).toBe(22.4);
+      expect(getGenerationCostSync("bytedance/seedance-2.0-mini/text-to-video-turbo", 5, 1, "720p")).toBe(22.4);
+
+      // 4. I2V Turbo 1080p (5s): source $0.09 * 5 * 1.4 * 40 = 25.2 credits ($1.26 retail)
+      expect(getVideoCreditsByRoute("bytedance/seedance-2.0-mini/image-to-video-turbo", { duration: 5, resolution: "1080p" })).toBe(25.2);
+      expect(getGenerationCostSync("bytedance/seedance-2.0-mini/image-to-video-turbo", 5, 1, "1080p")).toBe(25.2);
+
+      // 5. Spicy 1080p (5s): source $0.30 * 5 * 1.4 * 40 = 84.0 credits ($4.20 retail)
+      expect(getVideoCreditsByRoute("bytedance/seedance-2.0-mini/image-to-video-spicy", { duration: 5, resolution: "1080p" })).toBe(84.0);
+
+      // 6. Extend 4k (5s): source $0.60 * 5 * 1.4 * 40 = 168.0 credits ($8.40 retail)
+      expect(getVideoCreditsByRoute("bytedance/seedance-2.0-mini/video-extend", { duration: 5, resolution: "4k" })).toBe(168.0);
+
+      // 7. Video-Edit 1080p (5s): source $0.1875 * 5 * 1.4 * 40 = 52.5 credits ($2.625 retail)
+      expect(getVideoCreditsByRoute("bytedance/seedance-2.0-mini/video-edit", { duration: 5, resolution: "1080p" })).toBe(52.5);
+
+      // 8. Turbo Guard: 480p or 4k on Turbo throws an Error
+      expect(() => getVideoCreditsByRoute("bytedance/seedance-2.0-mini/text-to-video-turbo", { duration: 5, resolution: "480p" })).toThrow();
+      expect(() => getGenerationCostSync("bytedance/seedance-2.0-mini/text-to-video-turbo", 5, 1, "480p")).toThrow();
+    });
   });
 });
