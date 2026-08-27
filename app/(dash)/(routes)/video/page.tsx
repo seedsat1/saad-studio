@@ -3375,7 +3375,9 @@ function VideoPageInner() {
     !caps.requires_image || !!startFrame || !!linkedStartFrameUrl || referenceImages.length > 0 || Boolean(selectedCharacter?.referenceUrls?.length);
   const hasRequiredVideoInput = !caps.requires_video || !!motionVideo;
   const canGenerate = (
-    activeTool === "lipsync"
+    videoMode === "extend"
+      ? Boolean(motionVideo || extendSourceVideo || linkedExtendSourceUrl)
+      : activeTool === "lipsync"
       ? Boolean((startFrame || linkedStartFrameUrl) && lipsyncAudioFile)
       : isKling30Video
       ? (
@@ -3991,7 +3993,7 @@ function VideoPageInner() {
 
 
           {/* 1. Reference Media Box (Always visible Status Bar with conditional thumbnails) */}
-          {(showReferenceImages || showSimpleKlingRefs) && (
+          {(showReferenceImages || showSimpleKlingRefs) && videoMode !== "extend" && (
             <div className="flex flex-col gap-2">
               {/* The Status Bar Row - Clickable as a single unified button with drag and drop */}
               <button
@@ -4172,8 +4174,153 @@ function VideoPageInner() {
             </div>
           )}
 
+          {/* 1.5. Dedicated Video Extension inputs (Source Video + Optional End Frame) */}
+          {videoMode === "extend" && (
+            <div className="flex flex-col gap-2 p-2 rounded-xl bg-emerald-950/20 border border-emerald-800/40 mb-1">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">
+                  {lang === "ar" ? "فيديو المصدر وإطار النهاية" : "Source Video & Target Frame"}
+                </span>
+                <span className="text-[10px] text-zinc-400 font-mono">
+                  max {selectedModel.pricingConfig?.extendMaxDuration ?? 15}s
+                </span>
+              </div>
+              <div className="flex gap-2">
+                {/* Source Video Dropzone */}
+                <button
+                  type="button"
+                  onClick={() => openMediaPicker("motionVideo")}
+                  onDragOver={allowDrop}
+                  onDragEnter={(event) => markDropZone(event, "motionVideo")}
+                  onDragLeave={(event) => clearDropZone(event, "motionVideo")}
+                  onDrop={(event) => handleDropSingleVideo(event, setMotionVideo)}
+                  className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
+                  style={{
+                    height: 105,
+                    borderColor: motionVideo ? "#10b981" : "rgba(16, 185, 129, 0.4)",
+                    background:  motionVideo ? "rgba(16, 185, 129, 0.1)" : "rgba(16, 185, 129, 0.03)",
+                  }}
+                >
+                  <input
+                    ref={motionVideoRef}
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    onChange={e => setMotionVideo(e.target.files?.[0] ?? null)}
+                  />
+                  {motionVideo ? (
+                    <>
+                      {motionVideoPreview && (
+                        <video
+                          src={motionVideoPreview}
+                          className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                          muted
+                          playsInline
+                          autoPlay
+                          loop
+                        />
+                      )}
+                      <button
+                        type="button"
+                        className="absolute top-2 left-2 z-10 rounded-full p-1"
+                        style={{ background: "rgba(0,0,0,0.75)" }}
+                        onClick={e => { e.stopPropagation(); setMotionVideo(null); }}
+                      >
+                        <X size={11} style={{ color: "#fff" }} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(16, 185, 129, 0.15)" }}>
+                        <Film size={16} className="text-emerald-400" />
+                      </div>
+                      <span className="text-[10px] font-semibold text-emerald-300">
+                        {lang === "ar" ? "فيديو المصدر *" : "Source Video *"}
+                      </span>
+                      <span className="text-[9px] text-zinc-400">
+                        {lang === "ar" ? "ارفع الفيديو المراد إطالته" : "Upload source video"}
+                      </span>
+                    </>
+                  )}
+                  {activeDropZone === "motionVideo" && (
+                    <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-emerald-500/20 text-[12px] font-semibold text-emerald-300">
+                      {lang === "ar" ? "أفلت الفيديو هنا" : "Drop video here"}
+                    </span>
+                  )}
+                </button>
+
+                {/* Target End Frame Dropzone (Conditional per model) */}
+                {selectedModel.pricingConfig?.extendSupportsLastImage !== false && (
+                  <button
+                    type="button"
+                    onClick={() => openMediaPicker("endFrame")}
+                    onDragOver={allowDrop}
+                    onDragEnter={(event) => markDropZone(event, "endFrame")}
+                    onDragLeave={(event) => clearDropZone(event, "endFrame")}
+                    onDrop={(event) => handleDropSingleImage(event, setEndFrame)}
+                    className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
+                    style={{
+                      height: 105,
+                      borderColor: (endFrame || linkedEndFrameUrl || endFramePreview) ? "#06b6d4" : "rgba(255,255,255,0.1)",
+                      background:  (endFrame || linkedEndFrameUrl || endFramePreview) ? "rgba(6, 182, 212, 0.08)" : "rgba(255,255,255,0.02)",
+                    }}
+                  >
+                    <input
+                      ref={endFrameRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => setEndFrame(e.target.files?.[0] ?? null)}
+                    />
+                    {(endFrame || linkedEndFrameUrl || endFramePreview) ? (
+                      <>
+                        {endFramePreview && (
+                          <img
+                            src={endFramePreview}
+                            alt="End frame preview"
+                            className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          className="absolute top-2 left-2 z-10 rounded-full p-1"
+                          style={{ background: "rgba(0,0,0,0.75)" }}
+                          onClick={e => {
+                            e.stopPropagation();
+                            setEndFrame(null);
+                            setLinkedEndFrameUrl(null);
+                            setEndFramePreview(null);
+                          }}
+                        >
+                          <X size={11} style={{ color: "#fff" }} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
+                          <ImageIcon size={14} style={{ color: "#94a3b8" }} />
+                        </div>
+                        <span className="text-[10px] text-zinc-300">
+                          {lang === "ar" ? "إطار النهاية (اختياري)" : "Target End Frame"}
+                        </span>
+                        <span className="text-[9px] text-zinc-500">
+                          {lang === "ar" ? "انتقال إلى صورة" : "Optional frame"}
+                        </span>
+                      </>
+                    )}
+                    {activeDropZone === "endFrame" && (
+                      <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[12px] font-semibold text-cyan-300">
+                        {lang === "ar" ? "أفلت الصورة هنا" : "Drop image here"}
+                      </span>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* 2. Motion Control inputs (video + character) */}
-          {showVideoInput && (
+          {showVideoInput && videoMode !== "extend" && (
             <div className="flex gap-2">
               {/* Motion reference video */}
               <button
@@ -4487,7 +4634,7 @@ function VideoPageInner() {
           )}
 
           {/* 4. Image inputs (Start / End frame) (non-Omni / non-Motion Control) */}
-          {!showVideoInput && !showOmniTabs && !isKling30Video && (showImageInput || showEndFrame) && (
+          {!showVideoInput && !showOmniTabs && !isKling30Video && videoMode !== "extend" && (showImageInput || showEndFrame) && (
             <div className="flex gap-2">
               {showImageInput && (
                 <button
@@ -6054,7 +6201,7 @@ function VideoPageInner() {
               <>
                 <Film size={15} />
                 <span>
-                  {activeTool === "lipsync" ? "Generate Lipsync" : "Generate Video"} ·{" "}
+                  {videoMode === "extend" ? (lang === "ar" ? "إطالة الفيديو" : "Extend Video") : activeTool === "lipsync" ? "Generate Lipsync" : (lang === "ar" ? "توليد الفيديو" : "Generate Video")} ·{" "}
                   <span
                     style={{
                       color: isSubmitting || !canGenerate ? "#a1a1aa" : "#fbb11f",
