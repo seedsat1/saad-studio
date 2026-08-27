@@ -2435,12 +2435,15 @@ export async function POST(req: Request) {
         hasNonEmptyStringList(payload.referenceVideoUrls) ||
         hasNonEmptyStringList(payload.reference_audio_urls) ||
         hasNonEmptyStringList(payload.referenceAudioUrls);
-      const dynamicHasImageOrReferenceInput =
-        hasImage ||
-        dynamicHasReferenceInput;
+      const dynamicHasDirectStartImage =
+        hasNonEmptyString(payload.first_frame_url) ||
+        hasNonEmptyString(payload.image_url) ||
+        hasNonEmptyString(payload.imageUrl) ||
+        hasNonEmptyString(payload.image) ||
+        hasNonEmptyString(payload.start_frame);
       modelRoute = resolveDynamicVideoSubRoute(
         dynamicVideoModel,
-        dynamicHasImageOrReferenceInput,
+        dynamicHasDirectStartImage,
         dynamicHasReferenceInput,
         dynamicHasVideoInput,
         dynamicHasStartEndInput

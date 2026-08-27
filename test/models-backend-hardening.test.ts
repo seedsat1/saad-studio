@@ -635,13 +635,13 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       );
       expect(exactFastI2VWeb.enable_web_search).toBe(true);
 
-      // 5. T2V with 'image' field alongside reference_images throws error
-      expect(() =>
-        mapToWavespeedInput(
-          { prompt: "Prompt", image: "https://example.com/img.jpg", reference_images: ["https://example.com/ref.jpg"] },
-          "bytedance/seedance-2.0-fast/text-to-video"
-        )
-      ).toThrow("does not support 'image' field. Use 'reference_images' array instead.");
+      // 5. T2V with 'image' field gracefully adapts image into reference_images
+      const adapted = mapToWavespeedInput(
+        { prompt: "Prompt", image: "https://example.com/img.jpg", reference_images: ["https://example.com/ref.jpg"] },
+        "bytedance/seedance-2.0-fast/text-to-video"
+      );
+      expect(adapted.image).toBeUndefined();
+      expect(adapted.reference_images).toEqual(["https://example.com/img.jpg", "https://example.com/ref.jpg"]);
 
       // 6. Clarified reject messages for references on unsupported routes
       expect(() =>

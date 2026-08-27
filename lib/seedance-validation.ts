@@ -400,13 +400,19 @@ export function validateSeedanceStartEnd(
   }
 
   if (isT2VFamily || isEditFamily) {
-    if (rawLastImage) {
-      throw new SeedanceValidationError(`${routeKey} does not support last_image.`);
-    }
     if (rawImage && !isEditFamily) {
-      throw new SeedanceValidationError(
-        `${routeKey} does not support 'image' field. Use 'reference_images' array instead.`
-      );
+      const currentRefs = (exact.reference_images as string[]) || [];
+      if (!currentRefs.includes(rawImage)) {
+        exact.reference_images = [rawImage, ...currentRefs];
+      }
+      delete exact.image;
+    }
+    if (rawLastImage && !isEditFamily) {
+      const currentRefs = (exact.reference_images as string[]) || [];
+      if (!currentRefs.includes(rawLastImage)) {
+        exact.reference_images = [...currentRefs, rawLastImage];
+      }
+      delete exact.last_image;
     }
     return;
   }
