@@ -273,22 +273,56 @@ export function validateSeedanceReferences(
     ? out.reference_image_urls.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
     : Array.isArray(payload.reference_images)
     ? (payload.reference_images as string[]).filter((v) => typeof v === "string" && v.trim().length > 0)
+    : Array.isArray(payload.reference_image_urls)
+    ? (payload.reference_image_urls as string[]).filter((v) => typeof v === "string" && v.trim().length > 0)
     : [];
 
   const refVideos = Array.isArray(out.reference_video_urls)
     ? out.reference_video_urls.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
     : Array.isArray(payload.reference_videos)
     ? (payload.reference_videos as string[]).filter((v) => typeof v === "string" && v.trim().length > 0)
+    : Array.isArray(payload.reference_video_urls)
+    ? (payload.reference_video_urls as string[]).filter((v) => typeof v === "string" && v.trim().length > 0)
     : [];
 
   const refAudios = Array.isArray(out.reference_audio_urls)
     ? out.reference_audio_urls.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
     : Array.isArray(payload.reference_audios)
     ? (payload.reference_audios as string[]).filter((v) => typeof v === "string" && v.trim().length > 0)
+    : Array.isArray(payload.reference_audio_urls)
+    ? (payload.reference_audio_urls as string[]).filter((v) => typeof v === "string" && v.trim().length > 0)
     : [];
 
+  const is25 = routeKey.startsWith("seedance-2.5/");
+  const isI2V = routeKey.includes("/image-to-video");
+  const isExtend = routeKey.includes("/video-extend");
+
+  const rawImage =
+    (typeof out.image === "string" && out.image.trim() ? out.image.trim() : null) ||
+    (typeof out.image_url === "string" && out.image_url.trim() ? out.image_url.trim() : null) ||
+    (typeof payload.image === "string" && payload.image.trim() ? payload.image.trim() : null) ||
+    (typeof payload.first_frame_url === "string" && payload.first_frame_url.trim() ? payload.first_frame_url.trim() : null);
+
+  const rawLastImage =
+    (typeof out.last_image === "string" && out.last_image.trim() ? out.last_image.trim() : null) ||
+    (typeof out.end_image === "string" && out.end_image.trim() ? out.end_image.trim() : null) ||
+    (typeof out.last_frame_url === "string" && out.last_frame_url.trim() ? out.last_frame_url.trim() : null) ||
+    (typeof payload.last_image === "string" && payload.last_image.trim() ? payload.last_image.trim() : null) ||
+    (typeof payload.end_image === "string" && payload.end_image.trim() ? payload.end_image.trim() : null) ||
+    (typeof payload.last_frame_url === "string" && payload.last_frame_url.trim() ? payload.last_frame_url.trim() : null);
+
+  let skipImgReject = false;
+  if (is25 && isI2V) {
+    skipImgReject = !rawImage && refImages.length === 1;
+  } else if (!is25 && isI2V) {
+    const availableSlots = (rawImage ? 0 : 1) + (rawLastImage ? 0 : 1);
+    skipImgReject = refImages.length > 0 && refImages.length <= availableSlots;
+  } else if (!is25 && isExtend) {
+    skipImgReject = !rawLastImage && refImages.length === 1;
+  }
+
   // Reject check with clear messages
-  if (limits.img === 0 && refImages.length > 0) {
+  if (limits.img === 0 && refImages.length > 0 && !skipImgReject) {
     throw new SeedanceValidationError(
       `${routeKey} does not accept any reference_images. Use a text-to-video or video-edit sub-route if you need references.`
     );
@@ -305,13 +339,13 @@ export function validateSeedanceReferences(
   }
 
   // Count limit check
-  if (refImages.length > limits.img) {
+  if (limits.img > 0 && refImages.length > limits.img) {
     throw new SeedanceValidationError(`${routeKey} supports up to ${limits.img} reference images.`);
   }
-  if (refVideos.length > limits.vid) {
+  if (limits.vid > 0 && refVideos.length > limits.vid) {
     throw new SeedanceValidationError(`${routeKey} supports up to ${limits.vid} reference videos.`);
   }
-  if (refAudios.length > limits.aud) {
+  if (limits.aud > 0 && refAudios.length > limits.aud) {
     throw new SeedanceValidationError(`${routeKey} supports up to ${limits.aud} reference audios.`);
   }
 
@@ -378,11 +412,12 @@ export function validateSeedanceStartEnd(
   }
 
   if (isExtendFamily) {
-    if (is25Extend && rawLastImage) {
+    const endImg = rawLastImage || (refImages.length > 0 ? refImages[0] : null);
+    if (is25Extend && endImg) {
       throw new SeedanceValidationError(`${routeKey} does not support last_image.`);
     }
-    if (!is25Extend && rawLastImage) {
-      exact.last_image = rawLastImage;
+    if (!is25Extend && endImg) {
+      exact.last_image = endImg;
     }
     return;
   }
@@ -502,7 +537,10 @@ export function validateAndBuildSeedanceExactPayload(
 
   // 1. References
   const { refImages, refVideos, refAudios } = validateSeedanceReferences(routeKey, payload, out);
-  if (refImages.length > 0) exact.reference_images = refImages;
+  const isI2VFamily = routeKey.includes("/image-to-video");
+  const isExtendFamily = routeKey.includes("/video-extend");
+
+  if (refImages.length > 0 && !isI2VFamily && !isExtendFamily) exact.reference_images = refImages;
   if (refVideos.length > 0) exact.reference_videos = refVideos;
   if (refAudios.length > 0) exact.reference_audios = refAudios;
 
@@ -519,10 +557,8 @@ export function validateAndBuildSeedanceExactPayload(
   validateSeedanceDuration(routeKey, payload, out, exact);
 
   // Sub-route required inputs check
-  const isI2VFamily = routeKey.includes("/image-to-video");
   const isT2VFamily = routeKey.includes("/text-to-video");
   const isEditFamily = routeKey.includes("/video-edit");
-  const isExtendFamily = routeKey.includes("/video-extend");
   const isSpicy = routeKey.includes("-spicy");
 
   if (typeof out.prompt === "string" && out.prompt.trim()) {

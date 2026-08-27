@@ -854,5 +854,73 @@ describe("Admin Models Backend Hardening Test Suite", () => {
         expect(formatted).toContain("5 ثوانٍ");
       });
     });
+
+    describe("Seedance Start/End Frame Mapping & Auto-routing Hardening", () => {
+      it("I2V accepts 2 refImages (start + end) — no reject and maps correctly", async () => {
+        const { validateAndBuildSeedanceExactPayload } = await import("@/lib/seedance-validation");
+        const result = validateAndBuildSeedanceExactPayload(
+          "bytedance/seedance-2.0/image-to-video-turbo",
+          {},
+          { reference_image_urls: ["https://start.jpg", "https://end.jpg"] }
+        );
+        expect(result.image).toBe("https://start.jpg");
+        expect(result.last_image).toBe("https://end.jpg");
+        expect(result.reference_images).toBeUndefined();
+      });
+
+      it("I2V accepts 1 refImage (start only) — no reject", async () => {
+        const { validateAndBuildSeedanceExactPayload } = await import("@/lib/seedance-validation");
+        const result = validateAndBuildSeedanceExactPayload(
+          "bytedance/seedance-2.0-mini/image-to-video",
+          {},
+          { reference_image_urls: ["https://start.jpg"] }
+        );
+        expect(result.image).toBe("https://start.jpg");
+        expect(result.last_image).toBeUndefined();
+        expect(result.reference_images).toBeUndefined();
+      });
+
+      it("I2V rejects 3+ refImages", async () => {
+        const { validateAndBuildSeedanceExactPayload } = await import("@/lib/seedance-validation");
+        expect(() =>
+          validateAndBuildSeedanceExactPayload(
+            "bytedance/seedance-2.0/image-to-video",
+            {},
+            { reference_image_urls: ["https://1.jpg", "https://2.jpg", "https://3.jpg"] }
+          )
+        ).toThrow(/does not accept/);
+      });
+
+      it("Video-Extend accepts last_image via refImages[0] or rawLastImage for Fast/Standard/Mini", async () => {
+        const { validateAndBuildSeedanceExactPayload } = await import("@/lib/seedance-validation");
+        const result = validateAndBuildSeedanceExactPayload(
+          "bytedance/seedance-2.0-fast/video-extend",
+          { video: "https://video.mp4", prompt: "continue zooming" },
+          { reference_image_urls: ["https://target-end.jpg"] }
+        );
+        expect(result.video).toBe("https://video.mp4");
+        expect(result.last_image).toBe("https://target-end.jpg");
+        expect(result.reference_images).toBeUndefined();
+      });
+
+      it("Video-Extend on 2.5 rejects last_image", async () => {
+        const { validateAndBuildSeedanceExactPayload } = await import("@/lib/seedance-validation");
+        expect(() =>
+          validateAndBuildSeedanceExactPayload(
+            "bytedance/seedance-2.5/video-extend",
+            { video: "https://video.mp4", prompt: "continue" },
+            { reference_image_urls: ["https://target-end.jpg"] }
+          )
+        ).toThrow(/does not accept any reference_images/);
+
+        expect(() =>
+          validateAndBuildSeedanceExactPayload(
+            "bytedance/seedance-2.5/video-extend",
+            { video: "https://video.mp4", prompt: "continue", last_image: "https://target-end.jpg" },
+            {}
+          )
+        ).toThrow(/does not support last_image/);
+      });
+    });
   });
 });

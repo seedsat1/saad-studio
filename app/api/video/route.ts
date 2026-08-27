@@ -118,7 +118,9 @@ function payloadHasImageInput(payload: Record<string, unknown>): boolean {
     hasNonEmptyString(payload.last_image) ||
     hasNonEmptyString(payload.end_image) ||
     hasNonEmptyStringList(payload.image_urls) ||
-    hasNonEmptyStringList(payload.imageUrls)
+    hasNonEmptyStringList(payload.imageUrls) ||
+    hasNonEmptyStringList(payload.reference_image_urls) ||
+    hasNonEmptyStringList(payload.reference_images)
   );
 }
 
@@ -2246,10 +2248,40 @@ export async function POST(req: Request) {
         } else {
           modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0-mini/image-to-video" : "bytedance/seedance-2.0-mini/text-to-video";
         }
-      } else if (modelRoute.includes("fast") || modelRoute.includes("turbo")) {
-        modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0/image-to-video-turbo" : "bytedance/seedance-2.0/text-to-video-turbo";
+      } else if (modelRoute.includes("fast")) {
+        const isTurbo = modelRoute.includes("turbo");
+        const isSpicy = modelRoute.includes("spicy");
+        const isExtend = modelRoute.includes("extend") || (typeof payload.video === "string" && payload.video.trim().length > 0 && !modelRoute.includes("edit"));
+        const isEdit = modelRoute.includes("edit");
+
+        if (isTurbo) {
+          modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0-fast/image-to-video-turbo" : "bytedance/seedance-2.0-fast/text-to-video-turbo";
+        } else if (isSpicy) {
+          modelRoute = "bytedance/seedance-2.0-fast/image-to-video-spicy";
+        } else if (isExtend) {
+          modelRoute = "bytedance/seedance-2.0-fast/video-extend";
+        } else if (isEdit) {
+          modelRoute = isTurbo ? "bytedance/seedance-2.0-fast/video-edit-turbo" : "bytedance/seedance-2.0-fast/video-edit";
+        } else {
+          modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0-fast/image-to-video" : "bytedance/seedance-2.0-fast/text-to-video";
+        }
       } else {
-        modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0/image-to-video" : "bytedance/seedance-2.0/text-to-video";
+        const isTurbo = modelRoute.includes("turbo");
+        const isSpicy = modelRoute.includes("spicy");
+        const isExtend = modelRoute.includes("extend") || (typeof payload.video === "string" && payload.video.trim().length > 0 && !modelRoute.includes("edit"));
+        const isEdit = modelRoute.includes("edit");
+
+        if (isTurbo) {
+          modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0/image-to-video-turbo" : "bytedance/seedance-2.0/text-to-video-turbo";
+        } else if (isSpicy) {
+          modelRoute = "bytedance/seedance-2.0/image-to-video-spicy";
+        } else if (isExtend) {
+          modelRoute = "bytedance/seedance-2.0/video-extend";
+        } else if (isEdit) {
+          modelRoute = isTurbo ? "bytedance/seedance-2.0/video-edit-turbo" : "bytedance/seedance-2.0/video-edit";
+        } else {
+          modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0/image-to-video" : "bytedance/seedance-2.0/text-to-video";
+        }
       }
     } else if (modelRoute.includes("kling")) {
       const requestedKlingTier = typeof payload?.quality === "string"
