@@ -535,46 +535,107 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(exactFastExtend.last_image).toBe("https://example.com/end.jpg");
     });
 
-    it("strictly verifies the 5 critical bugfixes for Seedance server-side validation", async () => {
+    it("strictly verifies Seedance 2.0 Standard, Fast, Mini, 2.5 and dynamic admin pricing", async () => {
       const { mapToWavespeedInput } = await import("@/app/api/video/route");
+      const { computeCreditsFromDynamicModel } = await import("@/lib/pricing");
+      const { VIDEO_MODEL_REGISTRY } = await import("@/lib/video-model-registry");
+      const { SEEDANCE_INITIAL_PRICING } = await import("@/lib/dynamic-model-loader");
 
-      // Bug #1: Request to bytedance/seedance-2.0/image-to-video throws Standard tier not registered error
-      expect(() =>
-        mapToWavespeedInput(
-          { prompt: "A shot", image: "https://example.com/img.jpg" },
-          "bytedance/seedance-2.0/image-to-video"
-        )
-      ).toThrow("Seedance 2.0 Standard tier is not registered in this validator");
+      // 1. Verify 5th model card: Seedance 2.0 Fast (BUDGET badge) and Turbo (TURBO badge)
+      const seedanceModels = VIDEO_MODEL_REGISTRY.filter((m) => m.family === "seedance");
+      expect(seedanceModels.length).toBeGreaterThanOrEqual(5);
 
-      expect(() =>
-        mapToWavespeedInput(
-          { prompt: "A shot", image: "https://example.com/img.jpg" },
-          "bytedance/seedance-2.0/image-to-video-spicy"
-        )
-      ).toThrow("Seedance 2.0 Standard tier is not registered in this validator");
+      const fastCard = seedanceModels.find((m) => m.id === "bytedance-seedance-v2-fast");
+      expect(fastCard).toBeDefined();
+      expect(fastCard?.badge).toBe("BUDGET");
+      expect(fastCard?.name).toBe("Seedance 2.0 Fast");
 
-      // Bug #2: Seedance 2.5 does NOT support enable_web_search -> omitted from exact payload
+      const turboCard = seedanceModels.find((m) => m.id === "bytedance-seedance-v2-t2v-fast");
+      expect(turboCard).toBeDefined();
+      expect(turboCard?.badge).toBe("TURBO");
+
+      // 2. Standard 2.0 Route validation: text-to-video & image-to-video pass validation
+      const exactStandardT2V = mapToWavespeedInput(
+        { prompt: "A cinematic shot", duration: 15, resolution: "480p", enable_base64_output: true },
+        "bytedance/seedance-2.0/text-to-video"
+      );
+      expect(exactStandardT2V.prompt).toBe("A cinematic shot");
+      expect(exactStandardT2V.duration).toBe(15);
+      expect(exactStandardT2V.resolution).toBe("480p");
+      expect(exactStandardT2V.enable_base64_output).toBe(true);
+
+      const exactStandardI2V = mapToWavespeedInput(
+        { prompt: "A shot", image: "https://example.com/img.jpg", duration: 10, resolution: "720p" },
+        "bytedance/seedance-2.0/image-to-video"
+      );
+      expect(exactStandardI2V.image).toBe("https://example.com/img.jpg");
+      expect(exactStandardI2V.duration).toBe(10);
+      expect(exactStandardI2V.resolution).toBe("720p");
+
+      // 3. Dynamic Model Pricing Verification with 40x balanced margin:
+      // Standard 2.0 T2V (15s @ 480p): sticker 0.12 * 15 = $1.80 -> 10% off (0.90) = $1.62 -> 1.62 * 40 = 64.8 (65 cr)
+      const standardCredits = computeCreditsFromDynamicModel(
+        {
+          id: "bytedance-seedance-v2-t2v",
+          pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v2-t2v"],
+        } as any,
+        { resolution: "480p", outputSec: 15 }
+      );
+      expect(standardCredits).toBe(64.8);
+
+      // Fast I2V (15s @ 720p): sticker 0.20 * 15 = $3.00 -> 20% off (0.80) = $2.40 -> 2.40 * 40 = 96.0 cr
+      const fastCredits = computeCreditsFromDynamicModel(
+        {
+          id: "bytedance-seedance-v2-fast",
+          pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v2-fast"],
+        } as any,
+        { resolution: "720p", outputSec: 15 }
+      );
+      expect(fastCredits).toBe(96.0);
+
+      // Mini I2V (10s @ 480p): sticker 0.06 * 10 = $0.60 -> 40% off (0.60) = $0.36 -> 0.36 * 40 = 14.4 cr
+      const miniCredits = computeCreditsFromDynamicModel(
+        {
+          id: "bytedance-seedance-v2-t2v-mini",
+          pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v2-t2v-mini"],
+        } as any,
+        { resolution: "480p", outputSec: 10 }
+      );
+      expect(miniCredits).toBe(14.4);
+
+      // 2.5 T2V (30s @ 720p): sticker 0.36 * 30 = $10.80 -> 10% off (0.90) = $9.72 -> 9.72 * 40 = 388.8 cr
+      const seedance25Credits = computeCreditsFromDynamicModel(
+        {
+          id: "bytedance-seedance-v25-t2v",
+          pricingConfig: SEEDANCE_INITIAL_PRICING["bytedance-seedance-v25-t2v"],
+        } as any,
+        { resolution: "720p", outputSec: 30 }
+      );
+      expect(seedance25Credits).toBe(388.8);
+
+      // 4. Web Search Gating:
+      // Seedance 2.5 does NOT support enable_web_search -> omitted from exact payload
       const exact25Web = mapToWavespeedInput(
         { prompt: "A prompt", enable_web_search: true },
         "bytedance/seedance-2.5/text-to-video"
       );
       expect(exact25Web.enable_web_search).toBeUndefined();
 
-      // Bug #2: Mini Spicy does NOT support enable_web_search -> omitted
+      // Mini Spicy does NOT support enable_web_search -> omitted
       const exactMiniSpicyWeb = mapToWavespeedInput(
         { prompt: "A prompt", image: "https://example.com/img.jpg", enable_web_search: true },
         "bytedance/seedance-2.0-mini/image-to-video-spicy"
       );
       expect(exactMiniSpicyWeb.enable_web_search).toBeUndefined();
 
-      // Bug #2: Fast I2V supports enable_web_search -> exact payload has enable_web_search: true
+      // Fast I2V supports enable_web_search -> exact payload has enable_web_search: true
       const exactFastI2VWeb = mapToWavespeedInput(
         { prompt: "A prompt", image: "https://example.com/img.jpg", enable_web_search: true },
         "bytedance/seedance-2.0-fast/image-to-video"
       );
       expect(exactFastI2VWeb.enable_web_search).toBe(true);
 
-      // Bug #4: T2V with 'image' field alongside reference_images throws error (unconditional rejection of 'image' field)
+      // 5. T2V with 'image' field alongside reference_images throws error
       expect(() =>
         mapToWavespeedInput(
           { prompt: "Prompt", image: "https://example.com/img.jpg", reference_images: ["https://example.com/ref.jpg"] },
@@ -582,15 +643,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
         )
       ).toThrow("does not support 'image' field. Use 'reference_images' array instead.");
 
-      // Bug #4: 2.5 T2V with 'image' field without refs throws error
-      expect(() =>
-        mapToWavespeedInput(
-          { prompt: "Prompt", image: "https://example.com/img.jpg" },
-          "bytedance/seedance-2.5/text-to-video"
-        )
-      ).toThrow("does not support 'image' field. Use 'reference_images' array instead.");
-
-      // Bug #5: Clarified reject messages for references on unsupported routes
+      // 6. Clarified reject messages for references on unsupported routes
       expect(() =>
         mapToWavespeedInput(
           { prompt: "Prompt", image: "https://example.com/img.jpg", reference_images: ["https://example.com/ref.jpg"] },

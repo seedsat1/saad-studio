@@ -13,6 +13,7 @@ import { DEFAULT_MODELS, KIE_PACKAGES, applyPricingFloor, calcUserCredits, type 
 import prismadb from "@/lib/prismadb";
 import { isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 import { resolveCanonicalProviderTariff, type ProviderCostEstimateInput, type TariffProvenanceRecord } from "@/lib/provider-tariff-registry";
+import type { DynamicVideoModel } from "@/lib/dynamic-model-loader";
 
 // â”€â”€â”€ In-memory cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -1146,4 +1147,47 @@ export function calculateMusicCredits(durationSec?: number | null): number {
 export function calculateSfxCredits(durationSec?: number | null): number {
   const dur = Number.isFinite(Number(durationSec)) && Number(durationSec) > 0 ? Number(durationSec) : 5;
   return Math.max(2, Math.ceil(2 + dur * 0.25));
+}
+
+/**
+ * Compute video generation credits dynamically from model's pricingConfig (administered from Admin dashboard)
+ */
+export function computeCreditsFromDynamicModel(
+  model: DynamicVideoModel,
+  params: {
+    resolution: "480p" | "720p" | "1080p" | "4k";
+    outputSec: number;
+    inputSec?: number;
+    refVideoSecTotal?: number;
+    isTurbo?: boolean;
+  }
+): number {
+  const cfg = model.pricingConfig;
+  if (!cfg) {
+    return getGenerationCostSync(model.api_route ?? model.id, params.outputSec, 1, params.resolution);
+  }
+
+  const rates = params.isTurbo ? cfg.turboStickerRates : cfg.stickerRates;
+  if (!rates || !rates[params.resolution]) {
+    throw new Error(`Missing sticker rate for ${params.resolution} on ${model.id}`);
+  }
+
+  const stickerRate = rates[params.resolution]!;
+  const discount = cfg.discountMultiplier ?? 0.90;
+  const creditsPerUsd = cfg.creditsPerUsd ?? 40;
+
+  // Calculate billable seconds based on billingMode
+  let billableSec = params.outputSec;
+  if (cfg.billingMode === "input_plus_output") {
+    const clampedInput = Math.min(15, Math.max(2, params.inputSec ?? params.outputSec));
+    billableSec = clampedInput + params.outputSec;
+  } else if (cfg.billingMode === "new_segment_only") {
+    billableSec = params.outputSec;
+  }
+
+  const stickerUsd = stickerRate * billableSec;
+  const realSourceUsd = stickerUsd * discount;
+  const credits = realSourceUsd * creditsPerUsd;
+
+  return Math.max(1, parseFloat(credits.toFixed(2)));
 }

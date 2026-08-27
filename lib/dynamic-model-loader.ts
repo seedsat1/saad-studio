@@ -13,6 +13,75 @@ export interface DynamicImageModel extends ImageModel {
   reference_api_route?: string;
 }
 
+export interface DynamicVideoModelPricingConfig {
+  stickerRates?: {
+    "480p"?: number;
+    "720p"?: number;
+    "1080p"?: number;
+    "4k"?: number;
+  };
+  turboStickerRates?: {
+    "720p"?: number;
+    "1080p"?: number;
+  };
+  discountMultiplier?: number;
+  creditsPerUsd?: number;
+  billingMode?: "flat_output" | "input_plus_output" | "new_segment_only" | "base_plus_surcharge";
+  lastVerifiedAt?: string;
+  verificationSource?: "UI_MEASURED" | "INVOICE_MEASURED" | "DOCS_INFERRED";
+}
+
+export const SEEDANCE_INITIAL_PRICING: Record<string, DynamicVideoModelPricingConfig> = {
+  "bytedance-seedance-v25-t2v": {
+    stickerRates: { "480p": 0.18, "720p": 0.36, "1080p": 0.90, "4k": 1.80 },
+    discountMultiplier: 0.90,
+    creditsPerUsd: 40,
+    billingMode: "flat_output",
+    lastVerifiedAt: "2026-08-27",
+    verificationSource: "UI_MEASURED",
+  },
+  "bytedance-seedance-v25-i2v-turbo": {
+    turboStickerRates: { "720p": 0.20, "1080p": 0.21 },
+    discountMultiplier: 0.90,
+    creditsPerUsd: 40,
+    billingMode: "flat_output",
+    lastVerifiedAt: "2026-08-27",
+    verificationSource: "UI_MEASURED",
+  },
+  "bytedance-seedance-v2-t2v-fast": {
+    turboStickerRates: { "720p": 0.14, "1080p": 0.15 },
+    discountMultiplier: 0.90,
+    creditsPerUsd: 40,
+    billingMode: "flat_output",
+    lastVerifiedAt: "2026-08-27",
+    verificationSource: "UI_MEASURED",
+  },
+  "bytedance-seedance-v2-t2v": {
+    stickerRates: { "480p": 0.12, "720p": 0.24, "1080p": 0.60, "4k": 1.20 },
+    discountMultiplier: 0.90,
+    creditsPerUsd: 40,
+    billingMode: "flat_output",
+    lastVerifiedAt: "2026-08-27",
+    verificationSource: "UI_MEASURED",
+  },
+  "bytedance-seedance-v2-fast": {
+    stickerRates: { "480p": 0.10, "720p": 0.20, "1080p": 0.50, "4k": 1.00 },
+    discountMultiplier: 0.80,
+    creditsPerUsd: 40,
+    billingMode: "flat_output",
+    lastVerifiedAt: "2026-08-27",
+    verificationSource: "UI_MEASURED",
+  },
+  "bytedance-seedance-v2-t2v-mini": {
+    stickerRates: { "480p": 0.06, "720p": 0.12, "1080p": 0.30, "4k": 0.60 },
+    discountMultiplier: 0.60,
+    creditsPerUsd: 40,
+    billingMode: "flat_output",
+    lastVerifiedAt: "2026-08-27",
+    verificationSource: "UI_MEASURED",
+  },
+};
+
 export interface DynamicVideoModel extends WaveSpeedVideoModel {
   isActive?: boolean;
   creditCost?: number;
@@ -23,6 +92,7 @@ export interface DynamicVideoModel extends WaveSpeedVideoModel {
   text_api_route?: string;
   image_api_route?: string;
   reference_api_route?: string;
+  pricingConfig?: DynamicVideoModelPricingConfig;
 }
 
 const BLOCKED_DYNAMIC_IMAGE_IDS = new Set([
@@ -121,6 +191,7 @@ function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: Dynamic
     isDeleted: existing?.isDeleted ?? false,
     creditCost: existing?.creditCost ?? (curated as DynamicVideoModel).creditCost,
     capabilities,
+    pricingConfig: existing?.pricingConfig ?? (curated as any).pricingConfig ?? SEEDANCE_INITIAL_PRICING[curated.id],
   };
 }
 

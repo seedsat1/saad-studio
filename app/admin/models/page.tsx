@@ -302,6 +302,17 @@ export default function AdminModelsPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [concurrencyConflict, setConcurrencyConflict] = useState(false);
 
+  // Video Dynamic Pricing Config
+  const [editSticker480p, setEditSticker480p] = useState<number>(0);
+  const [editSticker720p, setEditSticker720p] = useState<number>(0);
+  const [editSticker1080p, setEditSticker1080p] = useState<number>(0);
+  const [editSticker4k, setEditSticker4k] = useState<number>(0);
+  const [editTurbo720p, setEditTurbo720p] = useState<number>(0);
+  const [editTurbo1080p, setEditTurbo1080p] = useState<number>(0);
+  const [editDiscountMultiplier, setEditDiscountMultiplier] = useState<number>(0.90);
+  const [editCreditsPerUsd, setEditCreditsPerUsd] = useState<number>(40);
+  const [editBillingMode, setEditBillingMode] = useState<"flat_output" | "input_plus_output" | "new_segment_only" | "base_plus_surcharge">("flat_output");
+
   // Catalog Sync Modal
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -1114,6 +1125,19 @@ export default function AdminModelsPage() {
     setEditTextRoute(row.sourceModelId || row.id);
     setEditImageRoute((row.rawImageModel?.image_api_route || (row.rawVideoModel as any)?.image_api_route) || "");
     setEditKnowledgeDraftId("");
+    
+    // Load pricing config
+    const pCfg = row.rawVideoModel?.pricingConfig;
+    setEditSticker480p(pCfg?.stickerRates?.["480p"] ?? 0);
+    setEditSticker720p(pCfg?.stickerRates?.["720p"] ?? 0);
+    setEditSticker1080p(pCfg?.stickerRates?.["1080p"] ?? 0);
+    setEditSticker4k(pCfg?.stickerRates?.["4k"] ?? 0);
+    setEditTurbo720p(pCfg?.turboStickerRates?.["720p"] ?? 0);
+    setEditTurbo1080p(pCfg?.turboStickerRates?.["1080p"] ?? 0);
+    setEditDiscountMultiplier(pCfg?.discountMultiplier ?? 0.90);
+    setEditCreditsPerUsd(pCfg?.creditsPerUsd ?? 40);
+    setEditBillingMode(pCfg?.billingMode ?? "flat_output");
+
     setSaveError(null);
     setConcurrencyConflict(false);
     setDrawerOpen(true);
@@ -1177,6 +1201,24 @@ export default function AdminModelsPage() {
             : m
         );
       } else if (selectedModel.modality === "video") {
+        const pricingConfig = {
+          stickerRates: {
+            "480p": editSticker480p || undefined,
+            "720p": editSticker720p || undefined,
+            "1080p": editSticker1080p || undefined,
+            "4k": editSticker4k || undefined,
+          },
+          turboStickerRates: {
+            "720p": editTurbo720p || undefined,
+            "1080p": editTurbo1080p || undefined,
+          },
+          discountMultiplier: editDiscountMultiplier,
+          creditsPerUsd: editCreditsPerUsd,
+          billingMode: editBillingMode,
+          lastVerifiedAt: new Date().toISOString().split("T")[0],
+          verificationSource: "UI_MEASURED" as const,
+        };
+
         updatedVideoModels = updatedVideoModels.map((m) =>
           m.id === selectedModel.id
             ? {
@@ -1199,6 +1241,7 @@ export default function AdminModelsPage() {
                 text_api_route: editTextRoute.trim() || (m as any).text_api_route || m.api_route || m.id,
                 image_api_route: editImageRoute.trim() || undefined,
                 api_route: editTextRoute.trim() || m.api_route || m.id,
+                pricingConfig,
               }
             : m
         );
@@ -2639,6 +2682,113 @@ export default function AdminModelsPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* 6. DYNAMIC PRICING CONFIGURATION (for Video models) */}
+                    {selectedModel.modality === "video" && (
+                      <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
+                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center justify-between">
+                          <span>Dynamic Pricing & Tariffs (التسعير المباشر والهوامش)</span>
+                          <span className="text-[10px] text-zinc-500 font-mono">40x Balanced Margin</span>
+                        </span>
+
+                        <div className="space-y-2">
+                          <label className="text-[11px] text-zinc-400 block font-semibold">
+                            WaveSpeed Source Sticker Rates ($/sec):
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block">480p ($/s)</span>
+                              <input
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                value={editSticker480p}
+                                onChange={(e) => setEditSticker480p(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block">720p ($/s)</span>
+                              <input
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                value={editSticker720p}
+                                onChange={(e) => setEditSticker720p(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block">1080p ($/s)</span>
+                              <input
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                value={editSticker1080p}
+                                onChange={(e) => setEditSticker1080p(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-zinc-500 block">4K ($/s)</span>
+                              <input
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                value={editSticker4k}
+                                onChange={(e) => setEditSticker4k(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                          <div>
+                            <label className="text-[10px] text-zinc-400 block mb-1">WaveSpeed Discount</label>
+                            <select
+                              value={editDiscountMultiplier}
+                              onChange={(e) => setEditDiscountMultiplier(parseFloat(e.target.value))}
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-emerald-500"
+                            >
+                              <option value="1.00">No discount (100%)</option>
+                              <option value="0.90">10% off (0.90)</option>
+                              <option value="0.80">20% off (0.80)</option>
+                              <option value="0.60">40% off (0.60)</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] text-zinc-400 block mb-1">Platform Margin (cr/USD)</label>
+                            <input
+                              type="number"
+                              min="20"
+                              max="100"
+                              value={editCreditsPerUsd}
+                              onChange={(e) => setEditCreditsPerUsd(parseFloat(e.target.value) || 40)}
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] text-zinc-400 block mb-1">Billing Mode</label>
+                            <select
+                              value={editBillingMode}
+                              onChange={(e) => setEditBillingMode(e.target.value as any)}
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-emerald-500"
+                            >
+                              <option value="flat_output">Flat on output</option>
+                              <option value="input_plus_output">Input + output (Edit)</option>
+                              <option value="new_segment_only">New segment only (Extend)</option>
+                              <option value="base_plus_surcharge">Base + surcharge</option>
+                            </select>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-zinc-500 leading-relaxed">
+                          Recommended margin: 40 credits/USD (47% min margin on Max plan, 100% on Beginner).
+                        </p>
+                      </div>
+                    )}
 
                     {/* Credit Cost & Active Checkbox */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">

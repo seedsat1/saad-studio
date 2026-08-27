@@ -31,7 +31,17 @@ export const SEEDANCE_REF_LIMITS: Record<string, SeedanceRefLimit> = {
   "seedance-2.5/video-edit-turbo":     { img: 30, vid: 0, aud: 10, vidTotalSec: 0, audTotalSec: 30 },
   "seedance-2.5/video-extend":         { img: 0, vid: 0, aud: 0, vidTotalSec: 0, audTotalSec: 0 },
 
-  // Seedance 2.0 Fast / 2.0 Base
+  // Seedance 2.0 Standard
+  "seedance-2.0/image-to-video":       { img: 0, vid: 0, aud: 0, vidTotalSec: 0, audTotalSec: 0 },
+  "seedance-2.0/image-to-video-spicy": { img: 0, vid: 0, aud: 0, vidTotalSec: 0, audTotalSec: 0 },
+  "seedance-2.0/image-to-video-turbo": { img: 0, vid: 0, aud: 0, vidTotalSec: 0, audTotalSec: 0 },
+  "seedance-2.0/text-to-video":        { img: 9, vid: 3, aud: 3, vidTotalSec: 15, audTotalSec: 15 },
+  "seedance-2.0/text-to-video-turbo":  { img: 9, vid: 3, aud: 3, vidTotalSec: 15, audTotalSec: 15 },
+  "seedance-2.0/video-edit":           { img: 9, vid: 0, aud: 3, vidTotalSec: 0, audTotalSec: 15 },
+  "seedance-2.0/video-edit-turbo":     { img: 9, vid: 0, aud: 3, vidTotalSec: 0, audTotalSec: 15 },
+  "seedance-2.0/video-extend":         { img: 0, vid: 0, aud: 0, vidTotalSec: 0, audTotalSec: 0 },
+
+  // Seedance 2.0 Fast
   "seedance-2.0-fast/image-to-video":       { img: 0, vid: 0, aud: 0, vidTotalSec: 0, audTotalSec: 0 },
   "seedance-2.0-fast/image-to-video-spicy": { img: 0, vid: 0, aud: 0, vidTotalSec: 0, audTotalSec: 0 },
   "seedance-2.0-fast/image-to-video-turbo": { img: 0, vid: 0, aud: 0, vidTotalSec: 0, audTotalSec: 0 },
@@ -62,6 +72,16 @@ export const SEEDANCE_RESOLUTIONS: Record<string, readonly string[]> = {
   "seedance-2.5/video-edit":           ["480p", "720p", "1080p", "4k"],
   "seedance-2.5/video-edit-turbo":     ["720p", "1080p"],
   "seedance-2.5/video-extend":         ["480p", "720p", "1080p", "4k"],
+
+  // Standard 2.0
+  "seedance-2.0/image-to-video":       ["480p", "720p", "1080p", "4k"],
+  "seedance-2.0/image-to-video-spicy": ["480p", "720p", "1080p", "4k"],
+  "seedance-2.0/image-to-video-turbo": ["720p", "1080p"],
+  "seedance-2.0/text-to-video":        ["480p", "720p", "1080p", "4k"],
+  "seedance-2.0/text-to-video-turbo":  ["720p", "1080p"],
+  "seedance-2.0/video-edit":           ["480p", "720p", "1080p", "4k"],
+  "seedance-2.0/video-edit-turbo":     ["720p", "1080p"],
+  "seedance-2.0/video-extend":         ["480p", "720p", "1080p", "4k"],
 
   // Fast
   "seedance-2.0-fast/image-to-video":       ["480p", "720p", "1080p", "4k"],
@@ -95,6 +115,16 @@ export const SEEDANCE_DURATION: Record<string, { min: number; max: number; auto:
   "seedance-2.5/video-edit-turbo":     { min: 4, max: 15, auto: true }, // ⚠️ Turbo edit clamped 15
   "seedance-2.5/video-extend":         { min: 4, max: 30, auto: false },
 
+  // Standard 2.0
+  "seedance-2.0/image-to-video":       { min: 4, max: 15, auto: false },
+  "seedance-2.0/image-to-video-spicy": { min: 4, max: 15, auto: false },
+  "seedance-2.0/image-to-video-turbo": { min: 4, max: 15, auto: false },
+  "seedance-2.0/text-to-video":        { min: 4, max: 15, auto: false },
+  "seedance-2.0/text-to-video-turbo":  { min: 4, max: 15, auto: false },
+  "seedance-2.0/video-edit":           { min: 4, max: 15, auto: true },
+  "seedance-2.0/video-edit-turbo":     { min: 4, max: 15, auto: true },
+  "seedance-2.0/video-extend":         { min: 4, max: 15, auto: false },
+
   // Fast
   "seedance-2.0-fast/image-to-video":       { min: 4, max: 15, auto: false },
   "seedance-2.0-fast/image-to-video-spicy": { min: 4, max: 15, auto: false },
@@ -126,6 +156,16 @@ export const SEEDANCE_ASPECT_MODE: Record<string, "allowlist" | "reject" | "adap
   "seedance-2.5/video-edit":           "reject",
   "seedance-2.5/video-edit-turbo":     "allowlist",
   "seedance-2.5/video-extend":         "reject",
+
+  // Standard 2.0
+  "seedance-2.0/image-to-video":       "adaptive-fallback",
+  "seedance-2.0/image-to-video-spicy": "adaptive-fallback",
+  "seedance-2.0/image-to-video-turbo": "adaptive-fallback",
+  "seedance-2.0/text-to-video":        "allowlist",
+  "seedance-2.0/text-to-video-turbo":  "allowlist",
+  "seedance-2.0/video-edit":           "adaptive-fallback",
+  "seedance-2.0/video-edit-turbo":     "adaptive-fallback",
+  "seedance-2.0/video-extend":         "reject",
 
   // Fast
   "seedance-2.0-fast/image-to-video":       "adaptive-fallback",
@@ -159,6 +199,16 @@ export const SEEDANCE_SUPPORTS_WEB_SEARCH: Record<string, boolean> = {
   "seedance-2.5/video-edit-turbo":     false,
   "seedance-2.5/video-extend":         false,
 
+  // Standard 2.0
+  "seedance-2.0/image-to-video":       true,
+  "seedance-2.0/image-to-video-spicy": false, // ⚠️
+  "seedance-2.0/image-to-video-turbo": true,
+  "seedance-2.0/text-to-video":        true,
+  "seedance-2.0/text-to-video-turbo":  true,
+  "seedance-2.0/video-edit":           true,
+  "seedance-2.0/video-edit-turbo":     true,
+  "seedance-2.0/video-extend":         true,
+
   // Fast — Spicy false, rest true
   "seedance-2.0-fast/image-to-video":       true,
   "seedance-2.0-fast/image-to-video-spicy": false, // ⚠️
@@ -188,27 +238,25 @@ export const SEEDANCE_SUPPORTS_WEB_SEARCH: Record<string, boolean> = {
 export function normalizeSeedanceRouteKey(route: string): string {
   let cleaned = (route || "").trim().toLowerCase();
   if (cleaned.startsWith("bytedance/")) cleaned = cleaned.replace("bytedance/", "");
-  if (cleaned.startsWith("seedance-v2/")) cleaned = cleaned.replace("seedance-v2/", "seedance-2.0-fast/");
+  if (cleaned.startsWith("seedance-v2/")) cleaned = cleaned.replace("seedance-v2/", "seedance-2.0/");
   if (cleaned.startsWith("seedance-2-mini/")) cleaned = cleaned.replace("seedance-2-mini/", "seedance-2.0-mini/");
   if (cleaned === "seedance-2-mini") cleaned = "seedance-2.0-mini/text-to-video";
   if (cleaned === "seedance-2-fast") cleaned = "seedance-2.0-fast/text-to-video";
-
-  if (
-    cleaned.startsWith("seedance-2.0/") &&
-    !cleaned.startsWith("seedance-2.0-fast/") &&
-    !cleaned.startsWith("seedance-2.0-mini/")
-  ) {
-    throw new SeedanceValidationError(
-      "Seedance 2.0 Standard tier is not registered in this validator. Route explicitly, or use seedance-2.0-fast / seedance-2.0-mini."
-    );
-  }
+  if (cleaned === "seedance-2" || cleaned === "seedance-2.0") cleaned = "seedance-2.0/text-to-video";
 
   return cleaned;
 }
 
 export function isSeedanceRoute(route: string): boolean {
   const norm = (route || "").trim().toLowerCase();
-  return norm.includes("seedance-2.5") || norm.includes("seedance-2.0-fast") || norm.includes("seedance-2.0-mini") || norm.includes("seedance-2-mini") || norm.includes("seedance-2-fast") || norm.includes("seedance-v2");
+  return (
+    norm.includes("seedance-2.5") ||
+    norm.includes("seedance-2.0") ||
+    norm.includes("seedance-2-mini") ||
+    norm.includes("seedance-2-fast") ||
+    norm.includes("seedance-v2") ||
+    norm.startsWith("bytedance/seedance-")
+  );
 }
 
 /**
@@ -527,12 +575,14 @@ export function validateAndBuildSeedanceExactPayload(
     exact.negative_prompt = out.negative_prompt.trim();
   }
 
-  exact.generate_audio = out.generate_audio !== false && payload.generate_audio !== false;
-
   if (SEEDANCE_SUPPORTS_WEB_SEARCH[routeKey]) {
     exact.enable_web_search = !!out.enable_web_search || !!payload.enable_web_search;
   } else if (payload.enable_web_search || out.enable_web_search) {
     console.warn(`[SeedanceValidation] enable_web_search ignored for ${routeKey} (not supported).`);
+  }
+
+  if (typeof payload.enable_base64_output === "boolean") {
+    exact.enable_base64_output = payload.enable_base64_output;
   }
 
   return exact;
