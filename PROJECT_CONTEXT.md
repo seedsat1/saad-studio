@@ -39,19 +39,17 @@
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
 
-#### Latest task: Seedance Full Dynamic Pricing + T2V Payload Adaptation (2026-08-28)
+#### Latest task: Seedance Input Isolation & Clean Physical Routing (2026-08-28)
 - Status: Completed & Verified (PASS).
 - Scope:
-  - Fixed credit pricing for all Seedance sub-routes (2.5, Fast, Mini, Standard) in `lib/credit-pricing.ts` and `app/api/video/route.ts` via `getVideoCreditsByRouteAsync`.
-  - Added seamless auto-adaptation in `validateSeedanceStartEnd` to convert any `image` field into `reference_images` on Text-to-Video routes without throwing 500 errors.
-  - Prioritized direct image input for `image_api_route` in dynamic sub-route resolution.
-  - All unit tests passing (77/77 PASS).
+  - Cleaned physical separation of Start frame, End frame, and Reference panel inputs in `app/(dash)/(routes)/video/page.tsx`:
+    - `Start frame` maps strictly to `payload.image` and `payload.first_frame_url`.
+    - `End frame` maps strictly to `payload.last_image`, `payload.end_image`, and `payload.last_frame_url`.
+    - `Add references` maps strictly to `payload.reference_image_urls`, `reference_video_urls`, and `reference_audio_urls`.
+  - Zero cross-contamination between start frame and reference arrays.
+  - Full test suite passed (77/77 PASS).
 - Files affected:
-  - `app/api/video/route.ts`
-  - `lib/credit-pricing.ts`
-  - `lib/seedance-validation.ts`
-  - `lib/dynamic-model-loader.ts`
-  - `test/models-backend-hardening.test.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
 - Verification:
   - 65/65 tests passed across `test/models-backend-hardening.test.ts`, `test/model-definition-registry.test.ts`, `test/pricing-core.test.ts`.
 
