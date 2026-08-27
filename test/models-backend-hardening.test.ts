@@ -400,5 +400,74 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(() => getVideoCreditsByRoute("bytedance/seedance-2.0-mini/text-to-video-turbo", { duration: 5, resolution: "480p" })).toThrow();
       expect(() => getGenerationCostSync("bytedance/seedance-2.0-mini/text-to-video-turbo", 5, 1, "480p")).toThrow();
     });
+
+    it("strictly enforces reference limits, aspect ratios, resolution allowlists, and exact payload cleanup on server route", async () => {
+      const { mapToWavespeedInput } = await import("@/app/api/video/route");
+
+      // 1. T2V with > 9 reference images throws ValidationError
+      const twentyImages = Array.from({ length: 20 }, (_, i) => `https://example.com/img${i}.jpg`);
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "A cinematic shot", reference_images: twentyImages },
+          "bytedance/seedance-2.0-mini/text-to-video"
+        )
+      ).toThrow("Seedance 2.0 Mini supports up to 9 reference images.");
+
+      // 2. Spicy without a start image throws ValidationError
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "A cinematic shot" },
+          "bytedance/seedance-2.0-mini/image-to-video-spicy"
+        )
+      ).toThrow("Seedance 2.0 Mini Spicy requires a start image.");
+
+      // 3. Extend without an input video throws ValidationError
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "Continue camera" },
+          "bytedance/seedance-2.0-mini/video-extend"
+        )
+      ).toThrow("Seedance 2.0 Mini Video Extend requires an input video.");
+
+      // 4. Invalid aspect ratio (e.g. "5:4") throws ValidationError
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "A shot", aspect_ratio: "5:4" },
+          "bytedance/seedance-2.0-mini/text-to-video"
+        )
+      ).toThrow("Aspect ratio '5:4' not supported.");
+
+      // 5. Unsupported resolution (e.g. "540p" or "480p" on Turbo) throws ValidationError
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "A shot", image: "https://example.com/img.jpg", resolution: "540p" },
+          "bytedance/seedance-2.0-mini/image-to-video"
+        )
+      ).toThrow("Resolution '540p' not supported");
+
+      expect(() =>
+        mapToWavespeedInput(
+          { prompt: "A shot", image: "https://example.com/img.jpg", resolution: "480p" },
+          "bytedance/seedance-2.0-mini/image-to-video-turbo"
+        )
+      ).toThrow("Resolution '480p' not supported");
+
+      // 6. Valid exact payload output filtering (duration clamped to 15 when 30 passed, clean keys)
+      const exactT2V = mapToWavespeedInput(
+        {
+          prompt: "A cinematic night market",
+          duration: 30, // should clamp to 15
+          resolution: "1080p",
+          aspect_ratio: "16:9",
+          extra_unsupported_key: "danger_payload",
+        },
+        "bytedance/seedance-2.0-mini/text-to-video"
+      );
+      expect(exactT2V.prompt).toBe("A cinematic night market");
+      expect(exactT2V.duration).toBe(15);
+      expect(exactT2V.resolution).toBe("1080p");
+      expect(exactT2V.aspect_ratio).toBe("16:9");
+      expect(exactT2V.extra_unsupported_key).toBeUndefined();
+    });
   });
 });

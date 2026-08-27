@@ -524,7 +524,7 @@ function resolveGoogleVeoProviderModel(modelRoute: string): string {
   if (modelRoute === "google/gemini-omni-flash" || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE) return "gemini-omni-flash-preview";
   return "veo-3.1-generate-preview";
 }
-function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): Record<string, unknown> {
+export function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (typeof payload.prompt === "string") out.prompt = payload.prompt;
   if (typeof payload.duration === "number") out.duration = payload.duration;
@@ -605,7 +605,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
   if (isSeedanceMiniTurboRoute) {
     const rawRes = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "";
     if (rawRes === "480p" || rawRes === "4k") {
-      throw new ValidationError("Seedance 2.0 Mini Turbo only supports 720p or 1080p resolution.");
+      throw new ValidationError(`Resolution '${rawRes}' not supported for this route. Allowed: 720p, 1080p.`);
     }
   }
 
@@ -1062,7 +1062,11 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     exact.generate_audio = out.generate_audio !== false;
     return exact;
   }
-  if (isSeedanceBaseImageRoute || isSeedanceMiniImageRoute || isSeedanceTurboImageRoute) {
+  if (typeof route === "string" && route.startsWith("bytedance/seedance-2.0-mini/")) {
+    return validateAndBuildSeedanceMiniExactPayload(route, out, payload);
+  }
+
+  if (isSeedanceBaseImageRoute || isSeedanceTurboImageRoute) {
     const referenceImages = Array.isArray(out.reference_image_urls)
       ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       : [];
@@ -1087,11 +1091,220 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     const allowedResolutions = isSeedanceTurboImageRoute
       ? ["720p", "1080p"]
       : ["480p", "720p", "1080p", "4k"];
-    exact.resolution = allowedResolutions.includes(resolution) ? resolution : "720p";
+    if (!allowedResolutions.includes(resolution)) {
+      throw new ValidationError(`Resolution '${resolution}' not supported for this route. Allowed: ${allowedResolutions.join(", ")}.`);
+    }
+    exact.resolution = resolution;
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
     exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(4, duration)) : 5;
     exact.enable_web_search = !!out.enable_web_search;
     exact.generate_audio = out.generate_audio !== false;
+    return exact;
+  }
+
+  return out;
+}
+
+function validateAndBuildSeedanceMiniExactPayload(
+  route: string,
+  out: Record<string, unknown>,
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
+  const isTurbo = route.includes("turbo");
+  const isI2V = route === "bytedance/seedance-2.0-mini/image-to-video";
+  const isI2VTurbo = route === "bytedance/seedance-2.0-mini/image-to-video-turbo";
+  const isSpicy = route === "bytedance/seedance-2.0-mini/image-to-video-spicy";
+  const isT2V = route === "bytedance/seedance-2.0-mini/text-to-video";
+  const isT2VTurbo = route === "bytedance/seedance-2.0-mini/text-to-video-turbo";
+  const isExtend = route === "bytedance/seedance-2.0-mini/video-extend";
+  const isEdit = route === "bytedance/seedance-2.0-mini/video-edit";
+  const isEditTurbo = route === "bytedance/seedance-2.0-mini/video-edit-turbo";
+
+  // 1. Reference limits validation
+  const refImages = Array.isArray(out.reference_image_urls)
+    ? out.reference_image_urls.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    : Array.isArray(payload.reference_images)
+    ? (payload.reference_images as string[]).filter((v) => typeof v === "string" && v.trim().length > 0)
+    : [];
+
+  const refVideos = Array.isArray(out.reference_video_urls)
+    ? out.reference_video_urls.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    : Array.isArray(payload.reference_videos)
+    ? (payload.reference_videos as string[]).filter((v) => typeof v === "string" && v.trim().length > 0)
+    : [];
+
+  const refAudios = Array.isArray(out.reference_audio_urls)
+    ? out.reference_audio_urls.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    : Array.isArray(payload.reference_audios)
+    ? (payload.reference_audios as string[]).filter((v) => typeof v === "string" && v.trim().length > 0)
+    : [];
+
+  if (refImages.length > 9) {
+    throw new ValidationError("Seedance 2.0 Mini supports up to 9 reference images.");
+  }
+  if (refVideos.length > 3) {
+    throw new ValidationError("Seedance 2.0 Mini supports up to 3 reference videos.");
+  }
+  if (refAudios.length > 3) {
+    throw new ValidationError("Seedance 2.0 Mini supports up to 3 reference audios.");
+  }
+
+  // 2. Aspect Ratio Validation (Strict allowlist + explicit adaptive handling)
+  const ALLOWED_ASPECTS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
+  let finalAspect: string | undefined = undefined;
+  if (typeof out.aspect_ratio === "string" && out.aspect_ratio.trim()) {
+    const rawAspect = out.aspect_ratio.trim();
+    if (ALLOWED_ASPECTS.includes(rawAspect)) {
+      finalAspect = rawAspect;
+    } else if (rawAspect === "adaptive" || rawAspect === "auto") {
+      // WaveSpeed auto-adapts to input image/video when omitted for I2V/Extend/Edit, defaults to 16:9 for T2V
+      finalAspect = isT2V || isT2VTurbo ? "16:9" : undefined;
+    } else {
+      throw new ValidationError(`Aspect ratio '${rawAspect}' not supported. Allowed: ${ALLOWED_ASPECTS.join(", ")}.`);
+    }
+  } else if (isT2V || isT2VTurbo) {
+    finalAspect = "16:9";
+  }
+
+  // 3. Resolution Validation (Strict allowlist, no silent fallbacks!)
+  const allowedResolutions = isTurbo ? ["720p", "1080p"] : ["480p", "720p", "1080p", "4k"];
+  const rawResolution = typeof out.resolution === "string" && out.resolution.trim()
+    ? out.resolution.trim().toLowerCase()
+    : "720p";
+  if (!allowedResolutions.includes(rawResolution)) {
+    throw new ValidationError(`Resolution '${rawResolution}' not supported for this route. Allowed: ${allowedResolutions.join(", ")}.`);
+  }
+  const finalResolution = rawResolution;
+
+  // 4. Duration Clamping (4 - 15 seconds)
+  const rawDuration = typeof out.duration === "number"
+    ? out.duration
+    : Number.parseInt(String(out.duration || "5"), 10);
+  const finalDuration = Number.isFinite(rawDuration)
+    ? Math.min(15, Math.max(4, rawDuration))
+    : 5;
+
+  const exact: Record<string, unknown> = {};
+
+  // 5. Route-Specific exact payload construction & validation
+  if (isI2V || isI2VTurbo) {
+    const startImage =
+      (typeof out.image === "string" && out.image.trim() ? out.image.trim() : null) ||
+      (typeof out.image_url === "string" && out.image_url.trim() ? out.image_url.trim() : null) ||
+      refImages[0] ||
+      null;
+    if (!startImage) {
+      throw new ValidationError("Seedance 2.0 Mini Image-to-Video requires a start image.");
+    }
+    const lastImage =
+      (typeof out.last_image === "string" && out.last_image.trim() ? out.last_image.trim() : null) ||
+      (typeof out.end_image === "string" && out.end_image.trim() ? out.end_image.trim() : null) ||
+      (typeof out.last_frame_url === "string" && out.last_frame_url.trim() ? out.last_frame_url.trim() : null) ||
+      (refImages.length > 1 ? refImages[1] : null);
+
+    exact.image = startImage;
+    if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    if (lastImage) exact.last_image = lastImage;
+    if (finalAspect) exact.aspect_ratio = finalAspect;
+    exact.resolution = finalResolution;
+    exact.duration = finalDuration;
+    exact.generate_audio = out.generate_audio !== false;
+    exact.enable_web_search = !!out.enable_web_search;
+    return exact;
+  }
+
+  if (isSpicy) {
+    const startImage =
+      (typeof out.image === "string" && out.image.trim() ? out.image.trim() : null) ||
+      (typeof out.image_url === "string" && out.image_url.trim() ? out.image_url.trim() : null) ||
+      refImages[0] ||
+      null;
+    if (!startImage) {
+      throw new ValidationError("Seedance 2.0 Mini Spicy requires a start image.");
+    }
+    const lastImage =
+      (typeof out.last_image === "string" && out.last_image.trim() ? out.last_image.trim() : null) ||
+      (typeof out.end_image === "string" && out.end_image.trim() ? out.end_image.trim() : null) ||
+      (typeof out.last_frame_url === "string" && out.last_frame_url.trim() ? out.last_frame_url.trim() : null) ||
+      (refImages.length > 1 ? refImages[1] : null);
+
+    exact.image = startImage;
+    if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    if (lastImage) exact.last_image = lastImage;
+    if (finalAspect) exact.aspect_ratio = finalAspect;
+    exact.resolution = finalResolution;
+    exact.duration = finalDuration;
+    exact.seed = typeof payload.seed === "number" && Number.isFinite(payload.seed) ? payload.seed : -1;
+    exact.generate_audio = out.generate_audio !== false;
+    return exact;
+  }
+
+  if (isT2V || isT2VTurbo) {
+    if (typeof out.prompt !== "string" || !out.prompt.trim()) {
+      throw new ValidationError("Seedance 2.0 Mini Text-to-Video requires a prompt.");
+    }
+    exact.prompt = out.prompt.trim();
+    if (refImages.length > 0) exact.reference_images = refImages.slice(0, 9);
+    if (refVideos.length > 0) exact.reference_videos = refVideos.slice(0, 3);
+    if (refAudios.length > 0) exact.reference_audios = refAudios.slice(0, 3);
+    if (finalAspect) exact.aspect_ratio = finalAspect;
+    exact.resolution = finalResolution;
+    exact.duration = finalDuration;
+    exact.generate_audio = out.generate_audio !== false;
+    exact.enable_web_search = !!out.enable_web_search;
+    return exact;
+  }
+
+  if (isExtend) {
+    const videoUrl =
+      (typeof payload.video === "string" && payload.video.trim() ? payload.video.trim() : null) ||
+      (typeof out.video_url === "string" && out.video_url.trim() ? out.video_url.trim() : null) ||
+      (typeof out.video === "string" && out.video.trim() ? out.video.trim() : null) ||
+      refVideos[0] ||
+      null;
+    if (!videoUrl) {
+      throw new ValidationError("Seedance 2.0 Mini Video Extend requires an input video.");
+    }
+    if (typeof out.prompt !== "string" || !out.prompt.trim()) {
+      throw new ValidationError("Seedance 2.0 Mini Video Extend requires a continuation prompt.");
+    }
+    exact.video = videoUrl;
+    exact.prompt = out.prompt.trim();
+    const lastImage =
+      (typeof out.last_image === "string" && out.last_image.trim() ? out.last_image.trim() : null) ||
+      (typeof out.end_image === "string" && out.end_image.trim() ? out.end_image.trim() : null) ||
+      refImages[0] ||
+      null;
+    if (lastImage) exact.last_image = lastImage;
+    exact.resolution = finalResolution;
+    exact.duration = finalDuration;
+    exact.generate_audio = out.generate_audio !== false;
+    exact.enable_web_search = !!out.enable_web_search;
+    return exact;
+  }
+
+  if (isEdit || isEditTurbo) {
+    const videoUrl =
+      (typeof payload.video === "string" && payload.video.trim() ? payload.video.trim() : null) ||
+      (typeof out.video_url === "string" && out.video_url.trim() ? out.video_url.trim() : null) ||
+      (typeof out.video === "string" && out.video.trim() ? out.video.trim() : null) ||
+      refVideos[0] ||
+      null;
+    if (!videoUrl) {
+      throw new ValidationError("Seedance 2.0 Mini Video Edit requires an input video.");
+    }
+    if (typeof out.prompt !== "string" || !out.prompt.trim()) {
+      throw new ValidationError("Seedance 2.0 Mini Video Edit requires an edit prompt.");
+    }
+    exact.video = videoUrl;
+    exact.prompt = out.prompt.trim();
+    if (refImages.length > 0) exact.reference_images = refImages.slice(0, 9);
+    if (refAudios.length > 0) exact.reference_audios = refAudios.slice(0, 3);
+    if (finalAspect) exact.aspect_ratio = finalAspect;
+    exact.resolution = finalResolution;
+    exact.duration = finalDuration;
+    exact.generate_audio = out.generate_audio !== false;
+    exact.enable_web_search = !!out.enable_web_search;
     return exact;
   }
 
