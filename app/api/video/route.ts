@@ -2240,6 +2240,7 @@ export async function POST(req: Request) {
       }
     }
 
+    const hasImage = payloadHasImageInput(payload);
     const hasDirectStartImage =
       hasNonEmptyString(payload.first_frame_url) ||
       hasNonEmptyString(payload.image_url) ||
@@ -2247,12 +2248,15 @@ export async function POST(req: Request) {
       hasNonEmptyString(payload.image) ||
       hasNonEmptyString(payload.start_frame);
 
+    const requestedRes = String(payload.resolution ?? payload.quality ?? payload.mode ?? "").trim().toLowerCase();
+    const isNonTurboRes = requestedRes === "480p" || requestedRes === "4k";
+
     // Canonical Route Normalization & Auto-routing between Text-to-Video and Image-to-Video
     if (modelRoute.startsWith("bytedance/seedance-2.5")) {
       modelRoute = resolveSeedance25Route(modelRoute, payload);
     } else if (modelRoute.includes("seedance")) {
       if (modelRoute.includes("mini")) {
-        const isTurbo = modelRoute.includes("turbo");
+        const isTurbo = modelRoute.includes("turbo") && !isNonTurboRes;
         const isSpicy = modelRoute.includes("spicy");
         const isExtend = modelRoute.includes("extend") || (typeof payload.video === "string" && payload.video.trim().length > 0 && !modelRoute.includes("edit"));
         const isEdit = modelRoute.includes("edit");
@@ -2269,7 +2273,7 @@ export async function POST(req: Request) {
           modelRoute = hasDirectStartImage ? "bytedance/seedance-2.0-mini/image-to-video" : "bytedance/seedance-2.0-mini/text-to-video";
         }
       } else if (modelRoute.includes("fast")) {
-        const isTurbo = modelRoute.includes("turbo");
+        const isTurbo = modelRoute.includes("turbo") && !isNonTurboRes;
         const isSpicy = modelRoute.includes("spicy");
         const isExtend = modelRoute.includes("extend") || (typeof payload.video === "string" && payload.video.trim().length > 0 && !modelRoute.includes("edit"));
         const isEdit = modelRoute.includes("edit");
@@ -2286,7 +2290,7 @@ export async function POST(req: Request) {
           modelRoute = hasDirectStartImage ? "bytedance/seedance-2.0-fast/image-to-video" : "bytedance/seedance-2.0-fast/text-to-video";
         }
       } else {
-        const isTurbo = modelRoute.includes("turbo");
+        const isTurbo = modelRoute.includes("turbo") && !isNonTurboRes;
         const isSpicy = modelRoute.includes("spicy");
         const isExtend = modelRoute.includes("extend") || (typeof payload.video === "string" && payload.video.trim().length > 0 && !modelRoute.includes("edit"));
         const isEdit = modelRoute.includes("edit");

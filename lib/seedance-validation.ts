@@ -483,6 +483,10 @@ export function validateSeedanceResolution(
     "720p";
 
   if (!allowed.includes(rawRes)) {
+    if (routeKey.includes("turbo") && (rawRes === "480p" || rawRes === "4k")) {
+      exact.resolution = "720p";
+      return;
+    }
     throw new SeedanceValidationError(
       `Resolution '${rawRes}' not supported for this route. Allowed: ${allowed.join(", ")}.`,
     );
