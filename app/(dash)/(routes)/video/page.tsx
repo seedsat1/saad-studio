@@ -2776,21 +2776,16 @@ function VideoPageInner() {
             ...(explicitEndImageForReference ? [explicitEndImageForReference] : []),
           ].slice(0, referenceImageLimit);
           if (mergedImageRefs[0]) {
-            if (isSeedanceV2 && !selectedModel.api_route.startsWith("bytedance/seedance-2.5")) {
-              payload.image = mergedImageRefs[0];
-              payload.first_frame_url = mergedImageRefs[0];
-            } else if ((isSeedanceV2 || isWan30Model) && explicitStartImage) {
-              payload.image = explicitStartImage;
-              payload.first_frame_url = explicitStartImage;
+            if (explicitStartImage || caps.requires_image) {
+              const startImg = explicitStartImage || mergedImageRefs[0];
+              payload.image = startImg;
+              payload.first_frame_url = startImg;
             }
-            if (isWan30Model) {
-              if (explicitEndImageForReference) {
-                payload.last_image = explicitEndImageForReference;
-                payload.end_image = explicitEndImageForReference;
-              } else if (mergedImageRefs.length >= 2) {
-                payload.last_image = mergedImageRefs[1];
-                payload.end_image = mergedImageRefs[1];
-              }
+            if (explicitEndImageForReference || (caps.requires_image && mergedImageRefs.length >= 2)) {
+              const endImg = explicitEndImageForReference || mergedImageRefs[1];
+              payload.last_image = endImg;
+              payload.end_image = endImg;
+              payload.last_frame_url = endImg;
             }
             payload.reference_image_urls = mergedImageRefs;
           }
@@ -3165,18 +3160,52 @@ function VideoPageInner() {
         );
         requestModelRoute = resolveFlux3Route(requestModelRoute, payloadHasImageInput, payloadHasStartEndInput, payloadHasVideoInput);
       } else if (requestModelRoute.includes("seedance")) {
+        const hasDirectStart = Boolean(
+          (typeof payload.image === "string" && payload.image.trim()) ||
+          (typeof payload.first_frame_url === "string" && payload.first_frame_url.trim()) ||
+          (typeof payload.image_url === "string" && payload.image_url.trim())
+        );
+        const isTurbo = requestModelRoute.includes("turbo");
+        const isSpicy = requestModelRoute.includes("spicy");
+        const isExtend = videoMode === "extend" || requestModelRoute.includes("extend");
+        const isEdit = requestModelRoute.includes("edit");
+
         if (requestModelRoute.includes("mini")) {
-          requestModelRoute = payloadHasImageInput
-            ? "bytedance/seedance-2.0-mini/image-to-video"
-            : "bytedance/seedance-2.0-mini/text-to-video";
-        } else if (requestModelRoute.includes("fast") || requestModelRoute.includes("turbo")) {
-          requestModelRoute = payloadHasImageInput
-            ? "bytedance/seedance-2.0/image-to-video-turbo"
-            : "bytedance/seedance-2.0/text-to-video-turbo";
+          if (isTurbo) {
+            requestModelRoute = hasDirectStart ? "bytedance/seedance-2.0-mini/image-to-video-turbo" : "bytedance/seedance-2.0-mini/text-to-video-turbo";
+          } else if (isSpicy) {
+            requestModelRoute = "bytedance/seedance-2.0-mini/image-to-video-spicy";
+          } else if (isExtend) {
+            requestModelRoute = "bytedance/seedance-2.0-mini/video-extend";
+          } else if (isEdit) {
+            requestModelRoute = isTurbo ? "bytedance/seedance-2.0-mini/video-edit-turbo" : "bytedance/seedance-2.0-mini/video-edit";
+          } else {
+            requestModelRoute = hasDirectStart ? "bytedance/seedance-2.0-mini/image-to-video" : "bytedance/seedance-2.0-mini/text-to-video";
+          }
+        } else if (requestModelRoute.includes("fast")) {
+          if (isTurbo) {
+            requestModelRoute = hasDirectStart ? "bytedance/seedance-2.0-fast/image-to-video-turbo" : "bytedance/seedance-2.0-fast/text-to-video-turbo";
+          } else if (isSpicy) {
+            requestModelRoute = "bytedance/seedance-2.0-fast/image-to-video-spicy";
+          } else if (isExtend) {
+            requestModelRoute = "bytedance/seedance-2.0-fast/video-extend";
+          } else if (isEdit) {
+            requestModelRoute = isTurbo ? "bytedance/seedance-2.0-fast/video-edit-turbo" : "bytedance/seedance-2.0-fast/video-edit";
+          } else {
+            requestModelRoute = hasDirectStart ? "bytedance/seedance-2.0-fast/image-to-video" : "bytedance/seedance-2.0-fast/text-to-video";
+          }
         } else {
-          requestModelRoute = payloadHasImageInput
-            ? "bytedance/seedance-2.0/image-to-video"
-            : "bytedance/seedance-2.0/text-to-video";
+          if (isTurbo) {
+            requestModelRoute = hasDirectStart ? "bytedance/seedance-2.0/image-to-video-turbo" : "bytedance/seedance-2.0/text-to-video-turbo";
+          } else if (isSpicy) {
+            requestModelRoute = "bytedance/seedance-2.0/image-to-video-spicy";
+          } else if (isExtend) {
+            requestModelRoute = "bytedance/seedance-2.0/video-extend";
+          } else if (isEdit) {
+            requestModelRoute = isTurbo ? "bytedance/seedance-2.0/video-edit-turbo" : "bytedance/seedance-2.0/video-edit";
+          } else {
+            requestModelRoute = hasDirectStart ? "bytedance/seedance-2.0/image-to-video" : "bytedance/seedance-2.0/text-to-video";
+          }
         }
       } else if (isKling30Route(requestModelRoute)) {
         const normalizedKlingQuality = typeof payload.mode === "string"

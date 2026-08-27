@@ -39,27 +39,18 @@
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
 
-#### Latest task: Seedance Video Extension Transparency & Start/End Frame Routing Hotfix (2026-08-28)
+#### Latest task: Seedance Multi-modal Reference vs Start/End Frame Routing & Sub-route Precision (2026-08-28)
 - Status: Completed & Verified (PASS).
 - Scope:
-  - Added smart Info Banner in Video Extension tab for billing transparency.
-  - Added dynamic warning banner for Seedance 2.5 (`source_plus_new_segment`) with admin-editable hints (`extendUserHintAr/En`, `extendTipAr/En`).
-  - Added live Cost Breakdown widget before generation button showing new segment, source context, rate/s, discount, and total credits.
-  - Added `SOURCE+NEW` vs `NEW ONLY` badges in the extension model dropdown.
-  - Hotfix #1: Allowed Start/End frame mapping from `reference_image_urls[0..1]` on I2V and Extend routes without being rejected by `validateSeedanceReferences`.
-  - Hotfix #2: Updated `payloadHasImageInput` in `/api/video/route.ts` to recognize `reference_image_urls` and `reference_images`, preventing silent I2V -> T2V rerouting.
-  - Differentiated Fast and Standard sub-routes across all operations.
-  - Full test suite passed (75/75 tests passed).
+  - Fixed Seedance Reference Images vs Start Frame routing:
+    - Text-to-Video models (2.5, 2.0 Turbo, 2.0 Fast, 2.0 Mini, 2.0 Standard) receiving reference images remain on text-to-video / reference routes with `reference_images` array without improperly setting `payload.image`.
+    - Only explicit Start Frame (`startFrame` / `image` / `first_frame_url`) routes to `image-to-video` (and optionally sets `last_image` from End Frame).
+  - Fixed `resolveSeedance25Route` to check `hasExplicitStartImage` instead of general reference inputs.
+  - Fixed `mapToWavespeedInput` to isolate Start/End frame extraction to I2V / Extend target routes.
+  - Fixed frontend `handleGenerate` sub-route resolution for Fast, Mini, Turbo, and Spicy models.
+  - Verified with 77/77 Vitest pass + Next.js 14 production build (253 static pages compiled, 0 errors).
 - Files affected:
   - `app/api/video/route.ts`
-  - `lib/seedance-validation.ts`
-  - `app/(dash)/(routes)/video/page.tsx`
-  - `app/admin/models/page.tsx`
-  - `lib/dynamic-model-loader.ts`
-  - `test/models-backend-hardening.test.ts`
-  - `lib/pricing.ts`
-  - `lib/model-registry-hardening.ts`
-  - `app/admin/models/page.tsx`
   - `app/(dash)/(routes)/video/page.tsx`
   - `test/models-backend-hardening.test.ts`
 - Verification:

@@ -921,6 +921,36 @@ describe("Admin Models Backend Hardening Test Suite", () => {
           )
         ).toThrow(/does not support last_image/);
       });
+
+      it("Seedance 2.5 Text-to-Video handles reference_image_urls without setting image field", async () => {
+        const { mapToWavespeedInput } = await import("@/app/api/video/route");
+        const exact = mapToWavespeedInput(
+          {
+            prompt: "Cinematic shot",
+            reference_image_urls: ["https://ref1.jpg", "https://ref2.jpg"],
+            duration: 5,
+            resolution: "720p",
+          },
+          "bytedance/seedance-2.5/text-to-video-turbo"
+        );
+        expect(exact.image).toBeUndefined();
+        expect(exact.reference_images).toEqual(["https://ref1.jpg", "https://ref2.jpg"]);
+      });
+
+      it("Seedance 2.0 Fast handles reference_image_urls on text route without setting image", async () => {
+        const { mapToWavespeedInput } = await import("@/app/api/video/route");
+        const exact = mapToWavespeedInput(
+          {
+            prompt: "Fast motion",
+            reference_image_urls: ["https://ref1.jpg"],
+            duration: 5,
+            resolution: "720p",
+          },
+          "bytedance/seedance-2.0-fast/text-to-video"
+        );
+        expect(exact.image).toBeUndefined();
+        expect(exact.reference_images).toEqual(["https://ref1.jpg"]);
+      });
     });
   });
 });
