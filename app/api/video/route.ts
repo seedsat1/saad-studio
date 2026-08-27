@@ -2660,7 +2660,7 @@ export async function POST(req: Request) {
       (typeof payload.resolution === "string" ? payload.resolution : null) ||
       (typeof payload.quality === "string" ? payload.quality : null);
     const soundEnabled = payload.sound === true || payload.generate_audio === true;
-    const baseCost = modelRoute.startsWith("bytedance/seedance-2.5")
+    const baseCost = (modelRoute.startsWith("bytedance/seedance") || modelRoute.includes("seedance"))
       ? await getVideoCreditsByRouteAsync(modelRoute, payload)
       : await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost).catch(() => 0);
     const creditsToCharge = baseCost;

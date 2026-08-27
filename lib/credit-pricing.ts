@@ -551,20 +551,11 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
   if (modelRoute === "kwaivgi/kling-v3.0-pro/motion-control") {
     return applySoundMultiplier(getKlingMotionCredits(payload), payload);
   }
-  if (
-    modelRoute === "bytedance/dreamina-v3.0/text-to-video-720p" ||
-    modelRoute === "bytedance/seedance-v2/text-to-video"
-  ) {
-    return getSeedance2Credits(payload, "hq");
-  }
-  if (modelRoute === "bytedance/seedance-v2/text-to-video-fast") {
-    return getSeedance2Credits(payload, "fast");
-  }
-  if (modelRoute === "bytedance/seedance-2.5/text-to-video-turbo" || modelRoute === "bytedance/seedance-2.5/image-to-video-turbo") {
+  if (modelRoute.startsWith("bytedance/seedance-2.5")) {
+    if (modelRoute.includes("spicy")) {
+      return getSeedance25SpicyCredits(payload);
+    }
     return getSeedance25TurboCredits(payload);
-  }
-  if (modelRoute === "bytedance/seedance-2.5/image-to-video-spicy") {
-    return getSeedance25SpicyCredits(payload);
   }
   if (
     modelRoute.startsWith("bytedance/seedance-2.0-mini") ||
@@ -572,6 +563,20 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
     modelRoute === "bytedance/seedance-2-mini"
   ) {
     return getSeedance20MiniCredits(modelRoute, payload);
+  }
+  if (
+    modelRoute.startsWith("bytedance/seedance-2.0-fast") ||
+    modelRoute === "bytedance/seedance-v2/text-to-video-fast"
+  ) {
+    return getSeedance2Credits(payload, "fast");
+  }
+  if (
+    modelRoute === "bytedance/dreamina-v3.0/text-to-video-720p" ||
+    modelRoute === "bytedance/seedance-v2/text-to-video" ||
+    modelRoute.startsWith("bytedance/seedance-2.0") ||
+    modelRoute.includes("seedance")
+  ) {
+    return getSeedance2Credits(payload, "hq");
   }
   if (modelRoute.startsWith("alibaba/wan-3.0")) {
     return getWan30Credits(modelRoute, payload);
