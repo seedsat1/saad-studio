@@ -600,6 +600,15 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
 
   out.enable_web_search = payload.enable_web_search !== undefined ? !!payload.enable_web_search : false;
 
+  // Guard Turbo resolution: Turbo routes only support 720p or 1080p
+  const isSeedanceMiniTurboRoute = typeof route === "string" && route.includes("seedance-2.0-mini") && route.includes("turbo");
+  if (isSeedanceMiniTurboRoute) {
+    const rawRes = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "";
+    if (rawRes === "480p" || rawRes === "4k") {
+      throw new ValidationError("Seedance 2.0 Mini Turbo only supports 720p or 1080p resolution.");
+    }
+  }
+
   const isSeedance25TextTurboRoute = route === "bytedance/seedance-2.5/text-to-video-turbo";
   const isSeedance25TurboImageRoute = route === "bytedance/seedance-2.5/image-to-video-turbo";
   const isSeedance25SpicyImageRoute = route === "bytedance/seedance-2.5/image-to-video-spicy";
@@ -2314,7 +2323,22 @@ export async function POST(req: Request) {
     } else if (modelRoute.includes("seedance")) {
       const hasSeedanceReferenceMedia = hasImage || hasSeedanceReferenceVideo || hasSeedanceReferenceAudio;
       if (modelRoute.includes("mini")) {
-        modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0-mini/image-to-video" : "bytedance/seedance-2.0-mini/text-to-video";
+        const isTurbo = modelRoute.includes("turbo");
+        const isSpicy = modelRoute.includes("spicy");
+        const isExtend = modelRoute.includes("extend") || (typeof payload.video === "string" && payload.video.trim().length > 0 && !modelRoute.includes("edit"));
+        const isEdit = modelRoute.includes("edit");
+
+        if (isTurbo) {
+          modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0-mini/image-to-video-turbo" : "bytedance/seedance-2.0-mini/text-to-video-turbo";
+        } else if (isSpicy) {
+          modelRoute = "bytedance/seedance-2.0-mini/image-to-video-spicy";
+        } else if (isExtend) {
+          modelRoute = "bytedance/seedance-2.0-mini/video-extend";
+        } else if (isEdit) {
+          modelRoute = isTurbo ? "bytedance/seedance-2.0-mini/video-edit-turbo" : "bytedance/seedance-2.0-mini/video-edit";
+        } else {
+          modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0-mini/image-to-video" : "bytedance/seedance-2.0-mini/text-to-video";
+        }
       } else if (modelRoute.includes("fast") || modelRoute.includes("turbo")) {
         modelRoute = hasSeedanceReferenceMedia ? "bytedance/seedance-2.0/image-to-video-turbo" : "bytedance/seedance-2.0/text-to-video-turbo";
       } else {

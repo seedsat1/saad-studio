@@ -282,4 +282,89 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(tariff1080p.usd).toBe(1.45);
     });
   });
+
+  describe("7. Seedance 2.0 Mini Comprehensive Sub-routes & Tariffs", () => {
+    it("properly resolves Seedance 2.0 Mini tariffs for Turbo, Spicy, Image, Text, Edit, and Extend", async () => {
+      const { resolveCanonicalProviderTariff } = await import("@/lib/provider-tariff-registry");
+      const { getModelById } = await import("@/lib/video-model-registry");
+
+      const mini = getModelById("bytedance-seedance-v2-t2v-mini");
+      expect(mini).toBeDefined();
+      expect(mini?.capabilities.resolutions).toEqual(["480p", "720p", "1080p", "4k"]);
+
+      const turbo = getModelById("bytedance-seedance-v2-mini-turbo");
+      expect(turbo).toBeDefined();
+      expect(turbo?.capabilities.resolutions).toEqual(["720p", "1080p"]);
+
+      const spicy = getModelById("bytedance-seedance-v2-mini-spicy");
+      expect(spicy).toBeDefined();
+
+      // 1. Turbo Tariff (720p: $0.08/s, 1080p: $0.09/s)
+      const turbo720 = resolveCanonicalProviderTariff({
+        providerName: "WaveSpeed",
+        providerRoute: "bytedance/seedance-2.0-mini/text-to-video-turbo",
+        durationSec: 5,
+        resolution: "720p",
+      });
+      expect(turbo720.usd).toBe(0.40); // 5 * 0.08
+
+      const turbo1080 = resolveCanonicalProviderTariff({
+        providerName: "WaveSpeed",
+        providerRoute: "bytedance/seedance-2.0-mini/image-to-video-turbo",
+        durationSec: 5,
+        resolution: "1080p",
+      });
+      expect(turbo1080.usd).toBe(0.45); // 5 * 0.09
+
+      // 2. Spicy & Image-to-Video Tariff (480p: $0.06/s, 720p: $0.12/s, 1080p: $0.30/s, 4k: $0.60/s)
+      const spicy480 = resolveCanonicalProviderTariff({
+        providerName: "WaveSpeed",
+        providerRoute: "bytedance/seedance-2.0-mini/image-to-video-spicy",
+        durationSec: 5,
+        resolution: "480p",
+      });
+      expect(spicy480.usd).toBe(0.30); // 5 * 0.06
+
+      const i2v720 = resolveCanonicalProviderTariff({
+        providerName: "WaveSpeed",
+        providerRoute: "bytedance/seedance-2.0-mini/image-to-video",
+        durationSec: 5,
+        resolution: "720p",
+      });
+      expect(i2v720.usd).toBe(0.60); // 5 * 0.12
+
+      const i2v1080 = resolveCanonicalProviderTariff({
+        providerName: "WaveSpeed",
+        providerRoute: "bytedance/seedance-2.0-mini/image-to-video",
+        durationSec: 5,
+        resolution: "1080p",
+      });
+      expect(i2v1080.usd).toBe(1.50); // 5 * 0.30
+
+      const i2v4k = resolveCanonicalProviderTariff({
+        providerName: "WaveSpeed",
+        providerRoute: "bytedance/seedance-2.0-mini/image-to-video",
+        durationSec: 5,
+        resolution: "4k",
+      });
+      expect(i2v4k.usd).toBe(3.00); // 5 * 0.60
+
+      // 3. Text-to-Video & Video-Edit Tariff (480p: $0.0375/s, 720p: $0.075/s, 1080p: $0.1875/s, 4k: $0.375/s)
+      const t2v720 = resolveCanonicalProviderTariff({
+        providerName: "WaveSpeed",
+        providerRoute: "bytedance/seedance-2.0-mini/text-to-video",
+        durationSec: 5,
+        resolution: "720p",
+      });
+      expect(t2v720.usd).toBe(0.375); // 5 * 0.075
+
+      const edit1080 = resolveCanonicalProviderTariff({
+        providerName: "WaveSpeed",
+        providerRoute: "bytedance/seedance-2.0-mini/video-edit",
+        durationSec: 5,
+        resolution: "1080p",
+      });
+      expect(edit1080.usd).toBe(0.9375); // 5 * 0.1875
+    });
+  });
 });
