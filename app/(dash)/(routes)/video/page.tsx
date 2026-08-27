@@ -2718,129 +2718,87 @@ function VideoPageInner() {
         payload.character_id_list = [selectedCharacter.providerCharacterId];
       }
 
-      if (isKling30StdImage) {
-        const uploadedImageRefs = await Promise.all(
-          referenceImages.filter((f) => f.type.startsWith("image/")).slice(0, 2).map(async (f) => {
-            try { return await uploadVideoRequestFile(f, fetchWithAuth); } catch { return await fileToDataURL(f); }
-          })
-        );
-        if (startFrame) {
-          try {
-            payload.image = await uploadVideoRequestFile(startFrame, fetchWithAuth);
-          } catch {
-            payload.image = await fileToDataURL(startFrame);
-          }
-        } else if (linkedStartFrameUrl) {
-          payload.image = linkedStartFrameUrl;
-        } else if (characterSupport.mode === "image_reference" && characterReferenceUrls[0]) {
-          payload.image = characterReferenceUrls[0];
-        } else if (uploadedImageRefs[0]) {
-          payload.image = uploadedImageRefs[0];
+      // 1. Explicit Start Frame (from Start frame box)
+      let explicitStartUrl: string | null = null;
+      if (startFrame) {
+        try {
+          explicitStartUrl = await uploadVideoRequestFile(startFrame, fetchWithAuth);
+        } catch {
+          explicitStartUrl = await fileToDataURL(startFrame);
         }
+      } else if (linkedStartFrameUrl) {
+        explicitStartUrl = linkedStartFrameUrl;
+      } else if (characterSupport.mode === "image_reference" && characterReferenceUrls[0] && caps.requires_image) {
+        explicitStartUrl = characterReferenceUrls[0];
+      }
+
+      if (explicitStartUrl) {
+        payload.image = explicitStartUrl;
+        payload.first_frame_url = explicitStartUrl;
+      }
+
+      // 2. Explicit End Frame (from End frame box)
+      let explicitEndUrl: string | null = null;
+      if (caps.has_end_frame && (endFrame || linkedEndFrameUrl)) {
         if (endFrame) {
           try {
-            payload.end_image = await uploadVideoRequestFile(endFrame, fetchWithAuth);
+            explicitEndUrl = await uploadVideoRequestFile(endFrame, fetchWithAuth);
           } catch {
-            payload.end_image = await fileToDataURL(endFrame);
+            explicitEndUrl = await fileToDataURL(endFrame);
           }
         } else if (linkedEndFrameUrl) {
-          payload.end_image = linkedEndFrameUrl;
-        } else if (uploadedImageRefs[1]) {
-          payload.end_image = uploadedImageRefs[1];
+          explicitEndUrl = linkedEndFrameUrl;
         }
-      } else if (((isSeedanceV2 || isMinimaxH3 || isWan30Model) && (referenceImages.length > 0 || !!startFrame || !!linkedStartFrameUrl || !!endFrame || !!linkedEndFrameUrl || characterReferenceUrls.length > 0)) || (caps.max_reference_images > 0 && (referenceImages.some((file) => file.type.startsWith("image/")) || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)))) {
-        if (isSeedanceV2 || isMinimaxH3 || isWan30Model) {
-          // Split unified reference media by type and let the API normalize provider field names.
-          const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
-          const refVids  = referenceImages.filter(f => f.type.startsWith("video/"));
-          const refAuds  = referenceImages.filter(f => f.type.startsWith("audio/"));
-          const seedanceImageLimit = Math.max(1, caps.max_reference_images || 9);
-          const referenceImageLimit = isWan30Model
-            ? Math.max(1, Math.min(10, caps.max_reference_images || 10))
-            : isMinimaxH3
-              ? Math.max(1, Math.min(9, caps.max_reference_images || 9))
-              : seedanceImageLimit;
-          const explicitStartImage = startFrame
-            ? await uploadVideoRequestFile(startFrame, fetchWithAuth)
-            : linkedStartFrameUrl
-              ? linkedStartFrameUrl
-              : null;
-          const uploadedImageRefs = await Promise.all(refImgs.slice(0, referenceImageLimit).map(f => uploadVideoRequestFile(f, fetchWithAuth)));
-          const explicitEndImageForReference = (isMinimaxH3 || isWan30Model) && (endFrame || linkedEndFrameUrl)
-            ? (endFrame ? await uploadVideoRequestFile(endFrame, fetchWithAuth) : linkedEndFrameUrl)
-            : null;
-          const mergedImageRefs = [
-            ...(explicitStartImage ? [explicitStartImage] : []),
-            ...characterReferenceUrls,
-            ...uploadedImageRefs,
-            ...(explicitEndImageForReference ? [explicitEndImageForReference] : []),
-          ].slice(0, referenceImageLimit);
-          if (mergedImageRefs[0]) {
-            if (explicitStartImage || caps.requires_image) {
-              const startImg = explicitStartImage || mergedImageRefs[0];
-              payload.image = startImg;
-              payload.first_frame_url = startImg;
-            }
-            if (explicitEndImageForReference || (caps.requires_image && mergedImageRefs.length >= 2)) {
-              const endImg = explicitEndImageForReference || mergedImageRefs[1];
-              payload.last_image = endImg;
-              payload.end_image = endImg;
-              payload.last_frame_url = endImg;
-            }
-            payload.reference_image_urls = mergedImageRefs;
-          }
-          if (refVids.length > 0)
-            payload.reference_video_urls = await Promise.all(refVids.slice(0, Math.max(0, caps.max_reference_videos || 3)).map(f => uploadVideoRequestFile(f, fetchWithAuth)));
-          if (refAuds.length > 0)
-            payload.reference_audio_urls = await Promise.all(refAuds.slice(0, Math.max(0, caps.max_reference_audios || 3)).map(f => uploadVideoRequestFile(f, fetchWithAuth)));
-          // Also allow end frame alongside Seedance / Wan references
-          if (caps.has_end_frame && (endFrame || linkedEndFrameUrl)) {
-            const explicitEndImage = endFrame ? await uploadVideoRequestFile(endFrame, fetchWithAuth) : linkedEndFrameUrl;
-            payload.last_image = explicitEndImage;
-            payload.last_frame_url = explicitEndImage;
-            payload.end_image = explicitEndImage;
-          } else if (caps.has_end_frame && mergedImageRefs.length >= 2 && !payload.last_image && !payload.last_frame_url && !payload.end_image) {
-            payload.last_image = mergedImageRefs[1];
-            payload.last_frame_url = mergedImageRefs[1];
-            payload.end_image = mergedImageRefs[1];
-          }
-        } else {
-          const uploadedRefs = await Promise.all(referenceImages.filter((f) => f.type.startsWith("image/")).map(async (f) => {
-            try { return await uploadVideoRequestFile(f, fetchWithAuth); } catch { return await fileToDataURL(f); }
-          }));
-          payload.reference_image_urls = [...characterReferenceUrls, ...uploadedRefs].slice(0, Math.max(1, caps.max_reference_images || 1));
-        }
-      } else if ((caps.requires_image || caps.optional_image) && (startFrame || linkedStartFrameUrl)) {
-        if (startFrame) {
-          try {
-            payload[isSeedanceV2 ? "first_frame_url" : "image"] = await uploadVideoRequestFile(startFrame, fetchWithAuth);
-          } catch {
-            payload[isSeedanceV2 ? "first_frame_url" : "image"] = await fileToDataURL(startFrame);
-          }
-        } else {
-          payload[isSeedanceV2 ? "first_frame_url" : "image"] = linkedStartFrameUrl;
-        }
-      } else if ((caps.requires_image || caps.optional_image) && characterSupport.mode === "image_reference" && characterReferenceUrls[0]) {
-        payload[isSeedanceV2 ? "first_frame_url" : "image"] = characterReferenceUrls[0];
       }
+
+      if (explicitEndUrl) {
+        payload.last_image = explicitEndUrl;
+        payload.end_image = explicitEndUrl;
+        payload.last_frame_url = explicitEndUrl;
+      }
+
+      // 3. Multimodal References (from Add references panel)
+      const refImgs = referenceImages.filter((f) => f.type.startsWith("image/"));
+      const refVids = referenceImages.filter((f) => f.type.startsWith("video/"));
+      const refAuds = referenceImages.filter((f) => f.type.startsWith("audio/"));
+
+      const maxRefImgs = Math.max(1, caps.max_reference_images || 9);
+      const uploadedRefImgs = await Promise.all(
+        refImgs.slice(0, maxRefImgs).map(async (f) => {
+          try { return await uploadVideoRequestFile(f, fetchWithAuth); } catch { return await fileToDataURL(f); }
+        })
+      );
+
+      const allRefImgs = [
+        ...(characterSupport.mode === "image_reference" && !explicitStartUrl ? characterReferenceUrls : []),
+        ...uploadedRefImgs,
+      ].slice(0, maxRefImgs);
+
+      if (allRefImgs.length > 0) {
+        payload.reference_image_urls = allRefImgs;
+        if (caps.requires_image && !explicitStartUrl) {
+          payload.image = allRefImgs[0];
+          payload.first_frame_url = allRefImgs[0];
+        }
+      }
+
+      if (refVids.length > 0) {
+        const maxVids = Math.max(0, caps.max_reference_videos || 3);
+        payload.reference_video_urls = await Promise.all(
+          refVids.slice(0, maxVids).map((f) => uploadVideoRequestFile(f, fetchWithAuth))
+        );
+      }
+
+      if (refAuds.length > 0) {
+        const maxAuds = Math.max(0, caps.max_reference_audios || 3);
+        payload.reference_audio_urls = await Promise.all(
+          refAuds.slice(0, maxAuds).map((f) => uploadVideoRequestFile(f, fetchWithAuth))
+        );
+      }
+
+      // 4. Motion Video (when applicable)
       if ((caps.requires_video || caps.optional_video) && motionVideo) {
         payload.video = await uploadVideoRequestFile(motionVideo, fetchWithAuth);
-      }
-      if (caps.has_end_frame && (endFrame || linkedEndFrameUrl) && referenceImages.length === 0) {
-        const endKey = isSeedanceV2
-          ? "last_frame_url"
-          : selectedModel.api_route.startsWith("wavespeed-ai/wan") || isWan30Model
-            ? "last_image"
-            : "end_image";
-        if (endFrame) {
-          try {
-            payload[endKey] = await uploadVideoRequestFile(endFrame, fetchWithAuth);
-          } catch {
-            payload[endKey] = await fileToDataURL(endFrame);
-          }
-        } else {
-          payload[endKey] = linkedEndFrameUrl;
-        }
       }
 
       if (isVeo31Model) {
