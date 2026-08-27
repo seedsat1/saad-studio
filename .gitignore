@@ -68,6 +68,12 @@ adobe/New\ folder/*.msi
 *.tmp
 .DS_Store
 
+# Google Cloud service account keys (NEVER commit these)
+google-voice-agent.json
+gen-lang-client-*.json
+**/*-service-account*.json
+**/*-serviceaccount*.json
+
 .claude/
 
 .env*

@@ -40,8 +40,23 @@ const WAN_30_IMAGE_USD_PER_SECOND = {
   "720p": 0.12,
   "1080p": 0.24,
 } as const;
+const FLUX_3_CREDITS_PER_USD = 40;
+const FLUX_3_MARGIN_MULTIPLIER = 1.4;
+const FLUX_3_USD_PER_SECOND = {
+  "720p": 0.17,
+  "1080p": 0.29,
+  "draft": 0.06,
+} as const;
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
+  ["black-forest-labs/flux-3/text-to-video", 47.6],
+  ["black-forest-labs/flux-3/image-to-video", 47.6],
+  ["black-forest-labs/flux-3/start-end-to-video", 47.6],
+  ["black-forest-labs/flux-3/video-extend", 16.8],
+  ["black-forest-labs/flux-3/text-to-video-draft", 16.8],
+  ["black-forest-labs/flux-3/image-to-video-draft", 16.8],
+  ["black-forest-labs/flux-3/start-end-to-video-draft", 16.8],
+  ["black-forest-labs/flux-3/video-extend-draft", 16.8],
   ["minimax/h3/reference-to-video", 28.0],
   ["kwaivgi/kling-v3.0-std/text-to-video", 9.0],
   ["kwaivgi/kling-v3.0-std/image-to-video", 9.0],
@@ -268,6 +283,18 @@ function getWan30Credits(modelRoute: string, payload?: VideoPayload): number {
   const usdPerSecond = rateTable[q] ?? rateTable["720p"];
   return parseFloat(Math.max(1, usdPerSecond * duration * WAN_30_MARGIN_MULTIPLIER * WAN_30_CREDITS_PER_USD).toFixed(2));
 }
+
+function getFlux3Credits(modelRoute: string, payload?: VideoPayload): number {
+  const duration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const isDraft = modelRoute.includes("draft") || modelRoute.includes("extend");
+  const usdPerSecond = isDraft
+    ? FLUX_3_USD_PER_SECOND["draft"]
+    : quality.includes("1080")
+    ? FLUX_3_USD_PER_SECOND["1080p"]
+    : FLUX_3_USD_PER_SECOND["720p"];
+  return parseFloat(Math.max(1, usdPerSecond * duration * FLUX_3_MARGIN_MULTIPLIER * FLUX_3_CREDITS_PER_USD).toFixed(2));
+}
 function getSora2Credits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 4);
   const isPro = modelRoute.includes("text-to-video-pro") || modelRoute.includes("sora-2-pro");
@@ -487,6 +514,9 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
   }
   if (modelRoute.startsWith("alibaba/wan-3.0")) {
     return getWan30Credits(modelRoute, payload);
+  }
+  if (modelRoute.startsWith("black-forest-labs/flux-3") || modelRoute.startsWith("black-forest-labs-flux-3")) {
+    return getFlux3Credits(modelRoute, payload);
   }
   if (
     modelRoute === "google/veo3.1-lite-text-to-video" ||

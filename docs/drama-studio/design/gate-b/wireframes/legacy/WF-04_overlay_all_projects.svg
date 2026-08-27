@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#070A11; font-family:'Segoe UI', system-ui, sans-serif;">
+  <!-- Backdrop / Full Screen Overlay (MDL-07) -->
+  <rect width="1440" height="900" fill="#070A11"/>
+
+  <!-- Top Modal Header -->
+  <rect x="0" y="0" width="1440" height="60" fill="#0E1626" stroke="#1E293B"/>
+  <text x="40" y="38" fill="#F8FAFC" font-size="18" font-weight="bold">مشاريع استوديو الدراما (All Drama Studio Projects)</text>
+  <rect x="1220" y="14" width="180" height="34" rx="6" fill="#06B6D4"/>
+  <text x="1245" y="36" fill="#FFFFFF" font-size="12" font-weight="bold">+ مشروع جديد (New)</text>
+  <text x="1400" y="36" fill="#64748B" font-size="16" cursor="pointer">✕</text>
+
+  <!-- Filter & Search Toolbar -->
+  <rect x="40" y="80" width="1360" height="60" rx="8" fill="#0B111E" stroke="#1E293B"/>
+  <!-- Search Input -->
+  <rect x="55" y="92" width="340" height="36" rx="6" fill="#070A11" stroke="#334155"/>
+  <text x="75" y="115" fill="#64748B" font-size="12">🔍 ابحث عن اسم المشروع أو الوصف...</text>
+
+  <!-- Filter Tabs -->
+  <rect x="415" y="92" width="90" height="36" rx="6" fill="#06B6D4" fill-opacity="0.2" stroke="#06B6D4"/>
+  <text x="430" y="115" fill="#38BDF8" font-size="11" font-weight="bold">الكل (8)</text>
+
+  <rect x="515" y="92" width="120" height="36" rx="6" fill="#1E293B"/>
+  <text x="530" y="115" fill="#94A3B8" font-size="11">قيد الإنتاج (3)</text>
+
+  <rect x="645" y="92" width="110" height="36" rx="6" fill="#1E293B"/>
+  <text x="660" y="115" fill="#94A3B8" font-size="11">مكتملة (4)</text>
+
+  <rect x="765" y="92" width="110" height="36" rx="6" fill="#1E293B"/>
+  <text x="780" y="115" fill="#94A3B8" font-size="11">المؤرشفة (1)</text>
+
+  <rect x="885" y="92" width="140" height="36" rx="6" fill="#1E293B"/>
+  <text x="900" y="115" fill="#EF4444" font-size="11">سلة المحذوفات (0)</text>
+
+  <!-- Sort Dropdown & View Toggle -->
+  <text x="1050" y="115" fill="#94A3B8" font-size="11">ترتيب حسب: [ آخر تعديل (Last Modified) ▼ ]</text>
+  <rect x="1310" y="92" width="40" height="36" rx="6" fill="#152033" stroke="#06B6D4"/>
+  <text x="1323" y="115" fill="#38BDF8" font-size="14">⊞</text>
+  <rect x="1355" y="92" width="40" height="36" rx="6" fill="#1E293B"/>
+  <text x="1368" y="115" fill="#64748B" font-size="14">≡</text>
+
+  <!-- Projects Grid (3 Columns) -->
+  <!-- Card 1 (Active Job) -->
+  <rect x="40" y="160" width="430" height="200" rx="8" fill="#0E1626" stroke="#06B6D4"/>
+  <rect x="40" y="160" width="430" height="40" rx="8" fill="#152033"/>
+  <text x="55" y="185" fill="#F8FAFC" font-size="13" font-weight="bold">صقور الصحراء (Desert Hawks)</text>
+  <rect x="360" y="170" width="95" height="20" rx="4" fill="#06B6D4" fill-opacity="0.2"/>
+  <text x="370" y="184" fill="#38BDF8" font-size="10" font-weight="bold">● In Production</text>
+  <text x="55" y="225" fill="#94A3B8" font-size="11">Series • Ep 1 • 3 Scenes • 8 Shots • Target: 3m</text>
+  <text x="55" y="250" fill="#A78BFA" font-size="11">⚡ Background Job: Generating Block 1.3 Take 2 (45%)</text>
+  <text x="55" y="275" fill="#64748B" font-size="11">Spent: 42 Cr • Reserved: 12 Cr • Last Modified: منذ 10 دقائق</text>
+  <rect x="55" y="300" width="130" height="32" rx="4" fill="#06B6D4"/>
+  <text x="80" y="321" fill="#FFFFFF" font-size="11" font-weight="bold">فتح مساحة العمل</text>
+  <text x="440" y="321" fill="#94A3B8" font-size="14" cursor="pointer">⋮</text>
+
+  <!-- Card 2 (Planning) -->
+  <rect x="505" y="160" width="430" height="200" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <rect x="505" y="160" width="430" height="40" rx="8" fill="#111827"/>
+  <text x="520" y="185" fill="#F8FAFC" font-size="13" font-weight="bold">مهمة سرية (Secret Mission)</text>
+  <rect x="835" y="170" width="80" height="20" rx="4" fill="#334155" fill-opacity="0.3"/>
+  <text x="855" y="184" fill="#94A3B8" font-size="10">Planning</text>
+  <text x="520" y="225" fill="#94A3B8" font-size="11">Single Short • 5 Scenes • Target: 1m</text>
+  <text x="520" y="250" fill="#10B981" font-size="11">✓ Settings Snapshot Approved • Ready for Script Split</text>
+  <text x="520" y="275" fill="#64748B" font-size="11">Spent: 0 Cr • Reserved: 0 Cr • Last Modified: أمس 09:30 PM</text>
+  <rect x="520" y="300" width="130" height="32" rx="4" fill="#1E293B" stroke="#334155"/>
+  <text x="545" y="321" fill="#E2E8F0" font-size="11">متابعة التخطيط</text>
+  <text x="905" y="321" fill="#94A3B8" font-size="14" cursor="pointer">⋮</text>
+
+  <!-- Card 3 (Completed) -->
+  <rect x="970" y="160" width="430" height="200" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <rect x="970" y="160" width="430" height="40" rx="8" fill="#152033"/>
+  <text x="985" y="185" fill="#F8FAFC" font-size="13" font-weight="bold">خيوط الظلام (Shadow Threads)</text>
+  <rect x="1295" y="170" width="90" height="20" rx="4" fill="#10B981" fill-opacity="0.2"/>
+  <text x="1310" y="184" fill="#10B981" font-size="10">✓ Completed</text>
+  <text x="985" y="225" fill="#94A3B8" font-size="11">Series • Ep 1 • Final Duration: 2m 45s</text>
+  <text x="985" y="250" fill="#94A3B8" font-size="11">Exported Master 4K • 14 Approved Takes</text>
+  <text x="985" y="275" fill="#64748B" font-size="11">Total Cost: 180 Cr • Last Modified: منذ 3 أيام</text>
+  <rect x="985" y="300" width="130" height="32" rx="4" fill="#1E293B" stroke="#334155"/>
+  <text x="1010" y="321" fill="#E2E8F0" font-size="11">معاينة وتصدير</text>
+  <text x="1370" y="321" fill="#94A3B8" font-size="14" cursor="pointer">⋮</text>
+
+  <!-- Second Row -->
+  <!-- Card 4 (Archived) -->
+  <rect x="40" y="380" width="430" height="200" rx="8" fill="#090D16" stroke="#1E293B" opacity="0.7"/>
+  <rect x="40" y="380" width="430" height="40" rx="8" fill="#111827"/>
+  <text x="55" y="405" fill="#94A3B8" font-size="13" font-weight="bold">مشروع تجريبي قديم (Archived Draft)</text>
+  <rect x="365" y="390" width="85" height="20" rx="4" fill="#334155"/>
+  <text x="385" y="404" fill="#94A3B8" font-size="10">Archived</text>
+  <text x="55" y="445" fill="#64748B" font-size="11">Archived on: 2026-08-10 • Read Only</text>
+  <rect x="55" y="520" width="110" height="32" rx="4" fill="#1E293B" stroke="#334155"/>
+  <text x="75" y="541" fill="#94A3B8" font-size="11">استعادة (Restore)</text>
+
+  <!-- Pagination / Progressive Load Footer -->
+  <rect x="40" y="820" width="1360" height="50" rx="8" fill="#0B111E" stroke="#1E293B"/>
+  <text x="60" y="850" fill="#94A3B8" font-size="11">عرض 1-4 من أصل 8 مشاريع مسجلة</text>
+  <rect x="660" y="830" width="120" height="30" rx="4" fill="#1E293B" stroke="#334155"/>
+  <text x="680" y="850" fill="#E2E8F0" font-size="11">تحميل المزيد ↓</text>
+</svg>

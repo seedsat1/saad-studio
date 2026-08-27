@@ -119,6 +119,10 @@ export interface WaveSpeedVideoModel {
   image_api_route?: string;
   /** Optional unified public model sub-route for multimodal reference requests. */
   reference_api_route?: string;
+  /** Optional unified public model sub-route for start-and-end frame requests. */
+  start_end_api_route?: string;
+  /** Optional unified public model sub-route for video extension / continuation requests. */
+  video_api_route?: string;
   capabilities: VideoModelCapabilities;
   /** Whether the API route has been verified against official docs curl examples */
   route_confirmed: boolean;
@@ -766,6 +770,46 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
   },
 
   // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ Black Forest Labs Flux 3 Unified Video
+  // ║ Confirmed from official WaveSpeed API documentation:
+  // ║ - Text-to-Video & Image-to-Video: 720p $0.17/s, 1080p $0.29/s
+  // ║ - Draft / Extend: $0.06/s
+  // ║ - Aspect ratios: 21:9, 2:1, 16:9, 4:3, 1:1, 3:4, 9:16
+  // ║ - Durations: 5-20s (default 5s)
+  // ║ - Reference frames up to 10, Video extend up to 1 video
+  // ║ - Synchronized audio: generate_audio default true
+  // ╚══════════════════════════════════════════════════════════════════════════
+  {
+    id: "black-forest-labs-flux-3-video",
+    name: "Flux 3",
+    family: "flux",
+    family_label: "Flux",
+    family_color: "#ec4899",
+    badge: "NEW",
+    description: "Black Forest Labs FLUX 3 unified video model. 5-20s, 720p/1080p, synchronized audio, supporting text, image/frame references, start/end frames, and video extend.",
+    api_route: "black-forest-labs/flux-3/text-to-video",
+    text_api_route: "black-forest-labs/flux-3/text-to-video",
+    image_api_route: "black-forest-labs/flux-3/image-to-video",
+    reference_api_route: "black-forest-labs/flux-3/image-to-video",
+    start_end_api_route: "black-forest-labs/flux-3/start-end-to-video",
+    video_api_route: "black-forest-labs/flux-3/video-extend",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      optional_video: true,
+      has_end_frame: true,
+      aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "2:1"],
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+      resolutions: ["720p", "1080p"],
+      max_reference_images: 10,
+      max_reference_videos: 1,
+      has_seed: true,
+      has_sound: true,
+      sound_param: "generate_audio",
+    }),
+  },
+
+  // ╔══════════════════════════════════════════════════════════════════════════
   // ║ WaveSpeed Alibaba Wan 3.0 Unified Video
   // ║ Owner-supplied official WaveSpeed docs:
   // ║ - T2V/Reference: 480p $0.07/s, 720p $0.13/s, 1080p $0.28/s
@@ -1048,6 +1092,7 @@ export function getVideoModelDisplayPriority(model: Pick<WaveSpeedVideoModel, "i
   if (id === "bytedance-seedance-v25-i2v-turbo" || route === "bytedance/seedance-2.5/image-to-video-turbo") return 1;
   if (id === "bytedance-seedance-v25-i2v-spicy" || route === "bytedance/seedance-2.5/image-to-video-spicy") return 2;
   if (id === "alibaba-wan-3.0-video" || route.startsWith("alibaba/wan-3.0")) return 3;
+  if (id === "black-forest-labs-flux-3-video" || route.startsWith("black-forest-labs/flux-3")) return 4;
   return 100;
 }
 

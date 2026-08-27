@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <defs>
+    <style>
+      :root {
+        --ss-bg: #070A11;
+        --ss-card: #0E1626;
+        --ss-card-hover: #152033;
+        --ss-cyan: #06B6D4;
+        --ss-cyan-light: #38BDF8;
+        --ss-violet: #8B5CF6;
+        --ss-violet-light: #A78BFA;
+        --ss-amber: #D97706;
+        --ss-amber-light: #F59E0B;
+        --ss-emerald: #10B981;
+        --ss-rose: #EF4444;
+        --ss-border: #1E293B;
+        --ss-border-light: #334155;
+        --ss-text-main: #F8FAFC;
+        --ss-text-muted: #94A3B8;
+        --ss-text-dim: #64748B;
+      }
+      .bg-main { fill: var(--ss-bg); }
+      .bg-card { fill: var(--ss-card); }
+      .bg-card-hover { fill: var(--ss-card-hover); }
+      .bg-cyan { fill: var(--ss-cyan); }
+      .bg-violet { fill: var(--ss-violet); }
+      .bg-amber { fill: var(--ss-amber); }
+      .stroke-border { stroke: var(--ss-border); }
+      .stroke-border-light { stroke: var(--ss-border-light); }
+      .stroke-cyan { stroke: var(--ss-cyan); }
+      .stroke-violet { stroke: var(--ss-violet); }
+      .stroke-amber { stroke: var(--ss-amber); }
+      .text-main { fill: var(--ss-text-main); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-muted { fill: var(--ss-text-muted); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-dim { fill: var(--ss-text-dim); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-cyan { fill: var(--ss-cyan-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-violet { fill: var(--ss-violet-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-amber { fill: var(--ss-amber-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-emerald { fill: var(--ss-emerald); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-rose { fill: var(--ss-rose); font-family: 'Segoe UI', system-ui, sans-serif; }
+    </style>
+  </defs>
+  <!-- Background Canvas -->
+  <rect width="1440" height="900" class="bg-main"/>
+  
+  <rect x="40" y="30" width="1360" height="50" rx="8" class="bg-card stroke-border"/>
+  <text x="70" y="62" class="text-main" font-size="16" font-weight="bold">CMP-01: PROJECT CARD STATES SPECIFICATION (8 EDGE-CASE STATES)</text>
+  <rect x="40" y="105" width="310" height="340" rx="10" class="bg-card stroke-border"/>
+  <text x="60" y="165" class="text-dim" font-size="12">1. Draft (Fallback Brand Monogram)</text>
+  <rect x="390" y="105" width="310" height="340" rx="10" class="bg-card stroke-border"/>
+  <text x="410" y="165" class="text-cyan" font-size="12">2. Planning (Auto Poster)</text>
+  <rect x="740" y="105" width="310" height="340" rx="10" class="bg-card stroke-cyan" stroke-width="2"/>
+  <text x="760" y="165" class="text-violet" font-size="12">3. Production (Active Job ⚡)</text>
+  <rect x="1090" y="105" width="310" height="340" rx="10" class="bg-card stroke-amber"/>
+  <text x="1110" y="165" class="text-amber" font-size="12">4. Review (Failed Block &amp; Refunded)</text>
+  <rect x="40" y="480" width="310" height="360" rx="10" class="bg-card stroke-emerald"/>
+  <text x="60" y="540" class="text-emerald" font-size="12">5. Completed Master (Final Duration)</text>
+  <rect x="390" y="480" width="310" height="360" rx="10" class="bg-card stroke-border"/>
+  <text x="410" y="540" class="text-cyan" font-size="12">6. Autosaving Sync (Creating v1.4)</text>
+  <rect x="740" y="480" width="310" height="360" rx="10" class="bg-card stroke-amber" stroke-width="2"/>
+  <text x="760" y="540" class="text-amber" font-size="12">7. Concurrent Edit Conflict</text>
+  <rect x="1090" y="480" width="310" height="360" rx="10" class="bg-card stroke-border" opacity="0.6"/>
+  <text x="1110" y="540" class="text-dim" font-size="12">8. Archived Project (Read-Only)</text>
+
+</svg>

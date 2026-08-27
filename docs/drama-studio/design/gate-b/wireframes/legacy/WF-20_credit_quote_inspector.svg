@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#070A11; font-family:'Segoe UI', system-ui, sans-serif;">
+  <!-- Backdrop -->
+  <rect width="1440" height="900" fill="#000000" fill-opacity="0.8"/>
+
+  <!-- Modal Container (MDL-03) -->
+  <rect x="370" y="80" width="700" height="740" rx="16" fill="#0E1626" stroke="#06B6D4" stroke-width="2"/>
+  
+  <!-- Header -->
+  <path d="M 370 96 Q 370 80 386 80 L 1054 80 Q 1070 80 1070 96 L 1070 140 L 370 140 Z" fill="#152033"/>
+  <text x="400" y="118" fill="#F8FAFC" font-size="16" font-weight="bold">MDL-03: تأكيد التوليد وحجز الرصيد (Credit Quote &amp; Confirmation)</text>
+  <text x="1030" y="118" fill="#64748B" font-size="16" cursor="pointer">✕</text>
+
+  <!-- User Account & Project Budget Balance Strip -->
+  <rect x="400" y="155" width="640" height="50" rx="8" fill="#070A11" stroke="#1E293B"/>
+  <text x="415" y="185" fill="#94A3B8" font-size="11">رصيد الحساب: <tspan fill="#38BDF8" font-weight="bold">450 Cr</tspan>  |  سقف المشروع: <tspan fill="#A78BFA" font-weight="bold">500 Cr</tspan>  |  المصروف: <tspan fill="#E2E8F0">42 Cr</tspan>  |  المحجوز: <tspan fill="#F59E0B">12 Cr</tspan></text>
+
+  <!-- Target Scope & Configuration Info -->
+  <rect x="400" y="215" width="640" height="85" rx="8" fill="#0F172A" stroke="#1E293B"/>
+  <text x="415" y="240" fill="#38BDF8" font-size="12" font-weight="bold">نطاق التوليد (Target Scope): Episode 01 > Scene 01 > Beat 1.2 > Shot 03</text>
+  <text x="415" y="265" fill="#E2E8F0" font-size="11">الموديل المختار: [ Kling 3.0 Video Pro (From Central Registry) ]  |  الدقة: 1080p HD</text>
+  <text x="415" y="285" fill="#94A3B8" font-size="11">المدة: 5 ثوانٍ  |  عدد المحاولات: 2 Takes  |  بصمة الصوت: @Zaid_Voice (Active)</text>
+
+  <!-- Itemized Cost Breakdown (15 Detailed Categories Supported) -->
+  <text x="400" y="325" fill="#F8FAFC" font-size="13" font-weight="bold">تفاصيل تسعير العملية الحالية (Itemized Cost Breakdown):</text>
+  
+  <rect x="400" y="340" width="640" height="240" rx="8" fill="#070A11" stroke="#1E293B"/>
+  
+  <!-- Row 1: Video Generation -->
+  <text x="420" y="370" fill="#E2E8F0" font-size="12">1. توليد الفيديو الأساسي (Video Generation — 5s @ 1080p):</text>
+  <text x="960" y="370" fill="#38BDF8" font-size="12" font-weight="bold">10 Credits</text>
+
+  <!-- Row 2: Additional Takes -->
+  <text x="420" y="405" fill="#E2E8F0" font-size="12">2. توليد المحاولة الإضافية (Additional Take 2):</text>
+  <text x="960" y="405" fill="#38BDF8" font-size="12" font-weight="bold">+ 8 Credits</text>
+
+  <!-- Row 3: Dialogue & Character Voice Synthesis -->
+  <text x="420" y="440" fill="#E2E8F0" font-size="12">3. تركيب الحوار وبصمة الصوت (Character Voice ID — 2.8s Dialogue):</text>
+  <text x="960" y="440" fill="#A78BFA" font-size="12" font-weight="bold">+ 2 Credits</text>
+
+  <!-- Row 4: Storyboard Keyframe Reference -->
+  <text x="420" y="475" fill="#64748B" font-size="12">4. إطار الستوريبورد المفتاحي (Keyframe 01 Reference):</text>
+  <text x="960" y="475" fill="#64748B" font-size="12">0 Cr (Existing)</text>
+
+  <!-- Row 5: Practical SFX & Ambient Audio -->
+  <text x="420" y="510" fill="#E2E8F0" font-size="12">5. المؤثرات الصوتية المحيطية (Rain Ambient + SFX Mix):</text>
+  <text x="960" y="510" fill="#38BDF8" font-size="12" font-weight="bold">+ 1 Credit</text>
+
+  <!-- Divider -->
+  <line x1="415" y1="530" x2="1025" y2="530" stroke="#1E293B"/>
+
+  <!-- Total Summary -->
+  <text x="420" y="560" fill="#F8FAFC" font-size="14" font-weight="bold">إجمالي الكريدت المطلوب حجزه (Total Estimated Quote):</text>
+  <text x="950" y="560" fill="#06B6D4" font-size="16" font-weight="bold">21 Credits</text>
+
+  <!-- Lifecycle Explainer Strip -->
+  <rect x="400" y="590" width="640" height="60" rx="8" fill="#152033" stroke="#1E293B"/>
+  <text x="415" y="615" fill="#38BDF8" font-size="11" font-weight="bold">دورة الكريدت (Financial Lifecycle):</text>
+  <text x="415" y="635" fill="#94A3B8" font-size="10">Quote → Confirm &amp; Reserve (21 Cr) → Generate → Reconcile Actual Units → Charge Ledger</text>
+  <text x="415" y="650" fill="#10B981" font-size="10">في حال فشل أي Block يتم استرداد الرصيد المحجوز فوراً دون خصم (Auto-Reversal ✓).</text>
+
+  <!-- Footer Actions -->
+  <rect x="400" y="740" width="140" height="44" rx="8" fill="#1E293B" stroke="#334155"/>
+  <text x="445" y="767" fill="#94A3B8" font-size="13">إلغاء (Cancel)</text>
+
+  <rect x="790" y="740" width="250" height="44" rx="8" fill="#06B6D4"/>
+  <text x="815" y="767" fill="#FFFFFF" font-size="13" font-weight="bold">تأكيد وحجز 21 نقطة وبدء التوليد ←</text>
+</svg>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <style>
+    :root {
+      --ss-bg: #060c18;
+      --ss-card: #0f1a35;
+      --ss-card-hover: #162447;
+      --ss-border: #1f305c;
+      --ss-cyan: #06b6d4;
+      --ss-cyan-glow: rgba(6, 182, 212, 0.15);
+      --ss-violet: #8b5cf6;
+      --ss-violet-glow: rgba(139, 92, 246, 0.15);
+      --ss-pink: #ec4899;
+      --ss-text: #e2e8f0;
+      --ss-muted: #94a3b8;
+      --ss-amber: #f59e0b;
+      --ss-amber-glow: rgba(245, 158, 11, 0.15);
+      --ss-green: #10b981;
+      --ss-green-glow: rgba(16, 185, 129, 0.15);
+      --ss-red: #ef4444;
+      --ss-red-glow: rgba(239, 68, 68, 0.15);
+    }
+    .bg { fill: var(--ss-bg); }
+    .card { fill: var(--ss-card); stroke: var(--ss-border); stroke-width: 1; }
+    .card-hover { fill: var(--ss-card-hover); stroke: var(--ss-cyan); stroke-width: 1.5; }
+    .card-active { fill: var(--ss-card); stroke: var(--ss-cyan); stroke-width: 2; }
+    .card-violet { fill: var(--ss-card); stroke: var(--ss-violet); stroke-width: 1.5; }
+    .card-amber { fill: var(--ss-card); stroke: var(--ss-amber); stroke-width: 1.5; }
+    .card-green { fill: var(--ss-card); stroke: var(--ss-green); stroke-width: 1.5; }
+    .card-red { fill: var(--ss-card); stroke: var(--ss-red); stroke-width: 1.5; }
+    .header-bar { fill: var(--ss-card); stroke: var(--ss-border); stroke-width: 1; }
+    .text-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 16px; font-weight: 700; fill: var(--ss-text); }
+    .text-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; fill: var(--ss-text); }
+    .text-secondary { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: var(--ss-muted); }
+    .text-muted { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; fill: var(--ss-muted); }
+    .text-cyan { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 600; fill: var(--ss-cyan); }
+    .text-violet { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 600; fill: var(--ss-violet); }
+    .text-amber { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 600; fill: var(--ss-amber); }
+    .text-green { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 600; fill: var(--ss-green); }
+    .text-red { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 600; fill: var(--ss-red); }
+    .btn-cyan { fill: var(--ss-cyan); rx: 6; }
+    .btn-cyan-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 700; fill: var(--ss-bg); }
+    .btn-outline { fill: transparent; stroke: var(--ss-border); stroke-width: 1; rx: 6; }
+    .btn-outline-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 600; fill: var(--ss-text); }
+    .badge-cyan { fill: var(--ss-cyan-glow); stroke: var(--ss-cyan); stroke-width: 1; rx: 4; }
+    .badge-violet { fill: var(--ss-violet-glow); stroke: var(--ss-violet); stroke-width: 1; rx: 4; }
+    .badge-amber { fill: var(--ss-amber-glow); stroke: var(--ss-amber); stroke-width: 1; rx: 4; }
+    .badge-green { fill: var(--ss-green-glow); stroke: var(--ss-green); stroke-width: 1; rx: 4; }
+    .badge-red { fill: var(--ss-red-glow); stroke: var(--ss-red); stroke-width: 1; rx: 4; }
+  </style>
+  <rect width="1440" height="900" class="bg" />
+  
+      <rect x="0" y="0" width="1440" height="54" class="header-bar" />
+      <text x="24" y="32" class="text-cyan">🎬 Workbench / Settings Tab</text>
+      <rect x="620" y="64" width="804" height="820" class="card" rx="8" />
+      <text x="650" y="110" class="text-title">Project &amp; Creative Positioning Settings</text>
+      <text x="650" y="140" class="text-secondary">Narrative Treatment Mode: [ Faithful | Balanced (Active) | Creative ]</text>
+      <text x="650" y="180" class="text-title">16 Cinematic Visual Styles Gallery</text>
+      <rect x="650" y="210" width="170" height="110" class="card-hover" rx="6" /><text x="665" y="270" class="text-cyan">Cyberpunk Noir</text>
+      <rect x="840" y="210" width="170" height="110" class="card" rx="6" /><text x="855" y="270" class="text-secondary">Desert Realism</text>
+      <rect x="1030" y="210" width="170" height="110" class="card" rx="6" /><text x="1045" y="270" class="text-secondary">Historical Epic</text>
+      <rect x="1220" y="210" width="170" height="110" class="card" rx="6" /><text x="1235" y="270" class="text-secondary">Anime Cinematic</text>
+    
+</svg>

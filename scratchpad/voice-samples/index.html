@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>عينات أصوات جوجل العربية — Voice Agent</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0f17;
+      --card: #131a26;
+      --border: #202b3d;
+      --text: #e6ecf5;
+      --muted: #8592a8;
+      --accent: #6ea8ff;
+      --female: #ff6ea8;
+      --male: #6eafff;
+      --pick: #10b981;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, "Segoe UI", "Tajawal", Roboto, sans-serif;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 24px;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 8px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .tab.active {
+      background: var(--accent);
+      color: #04111f;
+      border-color: var(--accent);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .name {
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+    .badge.female { background: rgba(255, 110, 168, 0.15); color: var(--female); }
+    .badge.male { background: rgba(110, 175, 255, 0.15); color: var(--male); }
+    .badge.group { background: rgba(255,255,255,0.06); color: var(--muted); }
+    audio {
+      width: 100%;
+      height: 36px;
+    }
+    .row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .pick-btn {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .pick-btn:hover {
+      border-color: var(--pick);
+      color: var(--pick);
+    }
+    .pick-btn.picked {
+      background: var(--pick);
+      color: #04111f;
+      border-color: var(--pick);
+    }
+    .selected-bar {
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      padding: 12px 0;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+    .selected-bar strong {
+      color: var(--pick);
+    }
+    code {
+      background: rgba(255,255,255,0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .filename {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: "Consolas", monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎙️ عينات أصوات Google العربية</h1>
+  <div class="sub">38 صوت متاح · اضغط ▶️ للاستماع، ثم "اختر هذا" لحفظ اسم الصوت</div>
+
+  <div class="selected-bar">
+    الاختيار الحالي: <strong id="picked">لا شيء بعد</strong>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-filter="all">الكل (38)</button>
+    <button class="tab" data-filter="female">أنثوي فقط (18)</button>
+    <button class="tab" data-filter="male">ذكوري فقط (20)</button>
+    <button class="tab" data-filter="chirp3-hd">Chirp3-HD (الأحدث)</button>
+    <button class="tab" data-filter="wavenet">Wavenet</button>
+    <button class="tab" data-filter="standard">Standard</button>
+  </div>
+
+  <div id="grid" class="grid"></div>
+
+  <script>
+    // Embedded manifest — no fetch needed so it works via file:// too
+    const manifest = [
+      { voice: "ar-XA-Chirp3-HD-Achernar", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Achernar.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Achird", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Achird.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Algenib", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Algenib.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Algieba", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Algieba.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Alnilam", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Alnilam.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Aoede", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Aoede.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Autonoe", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Autonoe.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Callirrhoe", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Callirrhoe.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Charon", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Charon.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Despina", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Despina.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Enceladus", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Enceladus.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Erinome", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Erinome.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Fenrir", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Fenrir.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Gacrux", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Gacrux.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Iapetus", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Iapetus.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Kore", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Kore.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Laomedeia", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Laomedeia.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Leda", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Leda.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Orus", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Orus.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Puck", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Puck.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Pulcherrima", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Pulcherrima.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Rasalgethi", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Rasalgethi.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Sadachbia", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Sadachbia.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Sadaltager", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Sadaltager.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Schedar", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Schedar.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Sulafat", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Sulafat.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Umbriel", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Umbriel.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Vindemiatrix", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Vindemiatrix.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Zephyr", gender: "female", group: "chirp3-hd", file: "female_chirp3-hd_ar-XA-Chirp3-HD-Zephyr.mp3" },
+      { voice: "ar-XA-Chirp3-HD-Zubenelgenubi", gender: "male", group: "chirp3-hd", file: "male_chirp3-hd_ar-XA-Chirp3-HD-Zubenelgenubi.mp3" },
+      { voice: "ar-XA-Standard-A", gender: "female", group: "standard", file: "female_standard_ar-XA-Standard-A.mp3" },
+      { voice: "ar-XA-Standard-B", gender: "male", group: "standard", file: "male_standard_ar-XA-Standard-B.mp3" },
+      { voice: "ar-XA-Standard-C", gender: "male", group: "standard", file: "male_standard_ar-XA-Standard-C.mp3" },
+      { voice: "ar-XA-Standard-D", gender: "female", group: "standard", file: "female_standard_ar-XA-Standard-D.mp3" },
+      { voice: "ar-XA-Wavenet-A", gender: "female", group: "wavenet", file: "female_wavenet_ar-XA-Wavenet-A.mp3" },
+      { voice: "ar-XA-Wavenet-B", gender: "male", group: "wavenet", file: "male_wavenet_ar-XA-Wavenet-B.mp3" },
+      { voice: "ar-XA-Wavenet-C", gender: "male", group: "wavenet", file: "male_wavenet_ar-XA-Wavenet-C.mp3" },
+      { voice: "ar-XA-Wavenet-D", gender: "female", group: "wavenet", file: "female_wavenet_ar-XA-Wavenet-D.mp3" }
+    ];
+
+    const grid = document.getElementById("grid");
+    const pickedEl = document.getElementById("picked");
+    let currentFilter = "all";
+    let pickedVoice = null;
+
+    function load() {
+      render();
+    }
+
+    function render() {
+      grid.innerHTML = "";
+      const filtered = manifest.filter((m) => {
+        if (currentFilter === "all") return true;
+        if (currentFilter === "female" || currentFilter === "male") return m.gender === currentFilter;
+        return m.group === currentFilter;
+      });
+      for (const item of filtered) {
+        const card = document.createElement("div");
+        card.className = "card";
+        const encodedFile = encodeURIComponent(item.file);
+        card.innerHTML = `
+          <div class="name">
+            <span>${item.voice.replace("ar-XA-", "")}</span>
+            <span>
+              <span class="badge ${item.gender}">${item.gender === "female" ? "أنثى ♀" : "ذكر ♂"}</span>
+              <span class="badge group">${item.group}</span>
+            </span>
+          </div>
+          <div class="filename">${item.voice}</div>
+          <audio controls preload="none" src="${encodedFile}"></audio>
+          <div class="row">
+            <button class="pick-btn" data-voice="${item.voice}">اختر هذا الصوت</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      }
+      document.querySelectorAll(".pick-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          pickedVoice = btn.dataset.voice;
+          document.querySelectorAll(".pick-btn").forEach((b) => b.classList.remove("picked"));
+          btn.classList.add("picked");
+          pickedEl.innerHTML = `<code>${pickedVoice}</code> — انسخ هذا الاسم وأرسله للمساعد`;
+        });
+      });
+    }
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        currentFilter = tab.dataset.filter;
+        render();
+      });
+    });
+
+    load();
+  </script>
+</body>
+</html>

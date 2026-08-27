@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 700" width="580" height="700">
+  <defs>
+    <style>
+      :root {
+        --ss-bg: #070A11;
+        --ss-card: #0E1626;
+        --ss-card-hover: #152033;
+        --ss-cyan: #06B6D4;
+        --ss-cyan-light: #38BDF8;
+        --ss-violet: #8B5CF6;
+        --ss-violet-light: #A78BFA;
+        --ss-amber: #D97706;
+        --ss-amber-light: #F59E0B;
+        --ss-emerald: #10B981;
+        --ss-rose: #EF4444;
+        --ss-border: #1E293B;
+        --ss-border-light: #334155;
+        --ss-text-main: #F8FAFC;
+        --ss-text-muted: #94A3B8;
+        --ss-text-dim: #64748B;
+      }
+      .bg-main { fill: var(--ss-bg); }
+      .bg-card { fill: var(--ss-card); }
+      .bg-card-hover { fill: var(--ss-card-hover); }
+      .bg-cyan { fill: var(--ss-cyan); }
+      .bg-violet { fill: var(--ss-violet); }
+      .bg-amber { fill: var(--ss-amber); }
+      .stroke-border { stroke: var(--ss-border); }
+      .stroke-border-light { stroke: var(--ss-border-light); }
+      .stroke-cyan { stroke: var(--ss-cyan); }
+      .stroke-violet { stroke: var(--ss-violet); }
+      .stroke-amber { stroke: var(--ss-amber); }
+      .text-main { fill: var(--ss-text-main); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-muted { fill: var(--ss-text-muted); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-dim { fill: var(--ss-text-dim); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-cyan { fill: var(--ss-cyan-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-violet { fill: var(--ss-violet-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-amber { fill: var(--ss-amber-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-emerald { fill: var(--ss-emerald); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-rose { fill: var(--ss-rose); font-family: 'Segoe UI', system-ui, sans-serif; }
+    </style>
+  </defs>
+  <!-- Background Canvas -->
+  <rect width="580" height="700" class="bg-main"/>
+  
+  <rect width="580" height="700" rx="14" class="bg-card stroke-emerald" stroke-width="2"/>
+  <path d="M 0 14 Q 0 0 14 0 L 566 0 Q 580 0 580 14 L 580 50 L 0 50 Z" class="bg-card-hover"/>
+  <text x="30" y="32" class="text-emerald" font-size="15" font-weight="bold">MDL-11: إيصال اكتمال التوليد وتحديث الرصيد</text>
+  <text x="30" y="80" class="text-emerald" font-size="13" font-weight="bold">✓ اكتمل التوليد بنجاح وتمت التسوية المالية (Charged)</text>
+  <text x="30" y="110" class="text-dim" font-size="10">Operation ID: op_99182a • Gen ID: gen_7721 • Timestamp: 2026-08-26</text>
+  <rect x="30" y="130" width="520" height="150" rx="8" class="bg-main stroke-border"/>
+  <text x="50" y="160" class="text-main" font-size="11">• الرصيد المحجوز: 21 Credits</text>
+  <text x="50" y="190" class="text-cyan" font-size="11" font-weight="bold">• التكلفة الفعلية المحسوبة: 19 Credits</text>
+  <text x="50" y="220" class="text-emerald" font-size="11" font-weight="bold">• المبلغ المسترد: + 2 Credits (Auto-Reversal ✓)</text>
+  <text x="50" y="250" class="text-main" font-size="12" font-weight="bold">• الخصم النهائي: 19 Credits</text>
+
+</svg>

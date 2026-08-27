@@ -485,8 +485,26 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
     };
   }
 
-  // 5. FLUX.2 Image
+  // 5. FLUX.2 Image & FLUX 3 Video
   if (text.includes("flux")) {
+    if (text.includes("flux-3") || text.includes("flux 3") || (text.includes("flux") && (text.includes("video") || text.includes("t2v") || text.includes("i2v") || text.includes("extend")))) {
+      return {
+        cleanName: "Flux 3",
+        cleanId: "black-forest-labs-flux-3-video",
+        modality: "video",
+        provider: "wavespeed",
+        group: "Flux",
+        familyColor: "#ec4899",
+        aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "2:1"],
+        durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        resolutions: ["720p", "1080p"],
+        maxRefImages: 10,
+        textRoute: "black-forest-labs/flux-3/text-to-video",
+        imageRoute: "black-forest-labs/flux-3/image-to-video",
+        referenceRoute: "black-forest-labs/flux-3/image-to-video",
+        creditCost: 9.52,
+      };
+    }
     const isFlex = text.includes("flex");
     const tier = isFlex ? "flex" : "pro";
     return {
@@ -583,10 +601,23 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
 }
 
 export function resolveDynamicVideoSubRoute(
-  model: Pick<DynamicVideoModel, "api_route" | "text_api_route" | "image_api_route" | "reference_api_route">,
+  model: Pick<DynamicVideoModel, "api_route" | "text_api_route" | "image_api_route" | "reference_api_route"> & {
+    video_api_route?: string;
+    start_end_api_route?: string;
+  },
   hasImageOrReferenceInput: boolean,
-  hasReferenceInput = false
+  hasReferenceInput = false,
+  hasVideoInput = false,
+  hasStartEndInput = false
 ): string {
+  if (hasVideoInput && model.video_api_route?.trim()) {
+    return model.video_api_route.trim();
+  }
+
+  if (hasStartEndInput && model.start_end_api_route?.trim()) {
+    return model.start_end_api_route.trim();
+  }
+
   if (hasReferenceInput && model.reference_api_route?.trim()) {
     return model.reference_api_route.trim();
   }
@@ -595,9 +626,9 @@ export function resolveDynamicVideoSubRoute(
     return model.image_api_route.trim();
   }
 
-  if (!hasImageOrReferenceInput && model.text_api_route?.trim()) {
+  if (!hasImageOrReferenceInput && !hasVideoInput && model.text_api_route?.trim()) {
     return model.text_api_route.trim();
   }
 
-  return model.api_route?.trim() || model.text_api_route?.trim() || model.image_api_route?.trim() || model.reference_api_route?.trim() || "";
+  return model.api_route?.trim() || model.text_api_route?.trim() || model.image_api_route?.trim() || model.reference_api_route?.trim() || model.video_api_route?.trim() || "";
 }

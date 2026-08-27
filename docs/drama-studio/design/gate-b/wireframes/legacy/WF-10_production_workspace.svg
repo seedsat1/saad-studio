@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#070A11; font-family:'Segoe UI', system-ui, sans-serif;">
+  <!-- Top Navigation Header -->
+  <rect x="0" y="0" width="1440" height="48" fill="#0E1626" stroke="#1E293B"/>
+  <text x="24" y="30" fill="#06B6D4" font-size="12" font-weight="bold">← Back to Workbench</text>
+  <text x="200" y="30" fill="#F8FAFC" font-size="13" font-weight="bold">SCR-03: PRODUCTION STUDIO • Ep 01 > Scene 01 > Beat 1.2 > Shot 03</text>
+  <text x="1120" y="30" fill="#A78BFA" font-size="12">Model: [Registry Model ▼] | Cap Rem.: 280 Cr</text>
+
+  <!-- Creative Tools Rail (PNL-03: 9 Tools) -->
+  <rect x="0" y="48" width="56" height="852" fill="#090D16" stroke="#1E293B"/>
+  <circle cx="28" cy="75" r="16" fill="#152033" stroke="#06B6D4"/>
+  <text x="22" y="80" fill="#38BDF8" font-size="12">🎨</text>
+  
+  <circle cx="28" cy="115" r="16" fill="#152033" stroke="#06B6D4"/>
+  <text x="22" y="120" fill="#38BDF8" font-size="12">👤</text>
+
+  <circle cx="28" cy="155" r="16" fill="#152033" stroke="#334155"/>
+  <text x="22" y="160" fill="#94A3B8" font-size="12">📦</text>
+
+  <circle cx="28" cy="195" r="16" fill="#152033" stroke="#334155"/>
+  <text x="22" y="200" fill="#94A3B8" font-size="12">🏛️</text>
+
+  <circle cx="28" cy="235" r="16" fill="#152033" stroke="#334155"/>
+  <text x="22" y="240" fill="#94A3B8" font-size="12">🌈</text>
+
+  <circle cx="28" cy="275" r="16" fill="#152033" stroke="#334155"/>
+  <text x="22" y="280" fill="#94A3B8" font-size="12">✨</text>
+
+  <circle cx="28" cy="315" r="16" fill="#152033" stroke="#334155"/>
+  <text x="22" y="320" fill="#94A3B8" font-size="12">🎥</text>
+
+  <circle cx="28" cy="355" r="16" fill="#152033" stroke="#334155"/>
+  <text x="22" y="360" fill="#94A3B8" font-size="12">✏️</text>
+
+  <circle cx="28" cy="395" r="16" fill="#152033" stroke="#334155"/>
+  <text x="22" y="400" fill="#94A3B8" font-size="12">🎬</text>
+
+  <!-- Main Stage: Left 55% (Script & Prompt Editor) -->
+  <rect x="56" y="48" width="750" height="480" fill="#070A11" stroke="#1E293B"/>
+  <text x="80" y="80" fill="#38BDF8" font-size="13" font-weight="bold">Shot 03 Prompt &amp; Script Editor (Scope: Beat 1.2 / Shot 03)</text>
+  
+  <text x="80" y="110" fill="#94A3B8" font-size="11">Dialogue (Timing: 2.8s measured): "لن تتمكن من إيقاف هذا الآن..."</text>
+  <rect x="80" y="125" width="700" height="110" rx="6" fill="#0E1626" stroke="#334155"/>
+  <text x="95" y="150" fill="#06B6D4" font-size="11">Prompt Format: [ Professional Storyboard ▼ ] (Switch Prompt Format MDL-02)</text>
+  <text x="95" y="175" fill="#E2E8F0" font-size="12">"Cinematic close-up on @Character_01 in dark neon rain, camera slowly pushes in,</text>
+  <text x="95" y="195" fill="#E2E8F0" font-size="12">lighting reflects off damp jacket. Depth of field f/1.8, 4k master."</text>
+
+  <!-- Referenced Assets Tray -->
+  <text x="80" y="260" fill="#94A3B8" font-size="11" font-weight="bold">Referenced Assets (Inherited &amp; Pinned):</text>
+  <rect x="80" y="275" width="160" height="40" rx="6" fill="#152033" stroke="#06B6D4"/>
+  <text x="95" y="300" fill="#38BDF8" font-size="11">👤 @Zaid_Character (Pin)</text>
+  <rect x="250" y="275" width="160" height="40" rx="6" fill="#152033" stroke="#334155"/>
+  <text x="265" y="300" fill="#94A3B8" font-size="11">🏛️ @Cyber_Alley (Inherit)</text>
+  <rect x="420" y="275" width="160" height="40" rx="6" fill="#152033" stroke="#334155"/>
+  <text x="435" y="300" fill="#94A3B8" font-size="11">📦 @Golden_Key (Prop)</text>
+
+  <!-- Flyout Continuity Warning -->
+  <rect x="80" y="330" width="700" height="70" rx="6" fill="#1A150B" stroke="#D97706"/>
+  <text x="95" y="355" fill="#F59E0B" font-size="12" font-weight="bold">⚠️ Continuity Warning (Character): Jacket color mismatch with Shot 02 (Dark Blue vs Black)</text>
+  <text x="95" y="380" fill="#94A3B8" font-size="11">Suggested Correction: Auto-apply @Zaid_Look_01 to prompt  |  [ Accept ]   [ Dismiss ]   [ 📌 Pin Inspector ]</text>
+
+  <!-- Keyframes Strip -->
+  <rect x="80" y="415" width="700" height="100" rx="6" fill="#0E1626" stroke="#1E293B"/>
+  <text x="95" y="435" fill="#38BDF8" font-size="11" font-weight="bold">PNL-05: Storyboard Keyframes (Keyframes Only Mode - Collapsible Strip):</text>
+  <rect x="95" y="445" width="100" height="60" rx="4" fill="#152033"/>
+  <text x="110" y="480" fill="#94A3B8" font-size="10">Frame 1 (00:00)</text>
+  <rect x="205" y="445" width="100" height="60" rx="4" fill="#152033"/>
+  <text x="220" y="480" fill="#94A3B8" font-size="10">Frame 2 (00:03)</text>
+  <rect x="315" y="445" width="110" height="60" rx="4" fill="#070A11" stroke="#334155" stroke-dasharray="4,4"/>
+  <text x="330" y="480" fill="#06B6D4" font-size="10">+ Add Keyframe</text>
+
+  <!-- Main Stage: Right 45% (Preview Player & Quote) -->
+  <rect x="806" y="48" width="634" height="480" fill="#090D16" stroke="#1E293B"/>
+  <!-- Video Canvas -->
+  <rect x="830" y="70" width="585" height="280" rx="8" fill="#000000" stroke="#334155"/>
+  <text x="1060" y="215" fill="#64748B" font-size="14">[ Video Preview Canvas 16:9 ]</text>
+  
+  <!-- Takes Selector -->
+  <rect x="830" y="360" width="585" height="45" rx="6" fill="#0E1626" stroke="#1E293B"/>
+  <text x="845" y="387" fill="#E2E8F0" font-size="11">Takes: [ Take 1 (Approved ✓) ]  [ Take 2 (Active) ]  [ Take 3 ]   |   [ Rate: ★★★★★ ]</text>
+
+  <!-- Quote & Generate Card (MDL-03) -->
+  <rect x="830" y="415" width="585" height="105" rx="6" fill="#152033" stroke="#06B6D4"/>
+  <text x="845" y="435" fill="#38BDF8" font-size="12" font-weight="bold">Live Quote: 12 Credits (Video 10 Cr • Voice 2 Cr)</text>
+  <text x="845" y="455" fill="#94A3B8" font-size="11">Project Cap Check: 280 Remaining [PASS] • Idempotency Key: Active</text>
+  <rect x="1220" y="430" width="180" height="40" rx="6" fill="#06B6D4"/>
+  <text x="1245" y="455" fill="#FFFFFF" font-size="12" font-weight="bold">🎬 Generate Take (12 Cr)</text>
+
+  <!-- Bottom Timeline & 7 Audio Tracks (PNL-06) -->
+  <rect x="56" y="528" width="1384" height="372" fill="#0E1626" stroke="#1E293B"/>
+  <!-- Timeline Ruler -->
+  <rect x="56" y="528" width="1384" height="30" fill="#152033" stroke="#1E293B"/>
+  <text x="75" y="548" fill="#94A3B8" font-size="11" font-family="monospace">Ruler (LTR): 00:00 ─────── 00:05 ─────── 00:10 ─────── 00:15 ─────── 00:20 ─────── 00:25 ─────── 00:30</text>
+  
+  <!-- Shots Track -->
+  <rect x="56" y="558" width="1384" height="40" fill="#0E1626" stroke="#1E293B"/>
+  <text x="70" y="582" fill="#38BDF8" font-size="11" font-weight="bold">Shots:</text>
+  <rect x="140" y="563" width="160" height="30" rx="4" fill="#152033" stroke="#334155"/>
+  <text x="150" y="582" fill="#E2E8F0" font-size="10">Shot 01 (Est. 4s) [Take 1 ✓]</text>
+  <rect x="305" y="563" width="130" height="30" rx="4" fill="#152033" stroke="#334155"/>
+  <text x="315" y="582" fill="#E2E8F0" font-size="10">Shot 02 (3s) [Take 1 ✓]</text>
+  <rect x="440" y="563" width="220" height="30" rx="4" fill="#06B6D4" fill-opacity="0.2" stroke="#06B6D4"/>
+  <text x="450" y="582" fill="#38BDF8" font-size="10" font-weight="bold">Shot 03 (5s) [Active Take 2]</text>
+  <rect x="665" y="563" width="250" height="30" rx="4" fill="#2A1215" stroke="#EF4444"/>
+  <text x="675" y="582" fill="#F87171" font-size="10">Shot 04 (Failed Block 1.4 ⚠️) [Retry]</text>
+
+  <!-- 7 Audio Tracks -->
+  <rect x="56" y="598" width="1384" height="25" fill="#090D16" stroke="#1E293B"/>
+  <text x="70" y="615" fill="#94A3B8" font-size="10">Audio 1 (Dialogue): "لن تتمكن من إيقاف هذا..." ────────────────────────────────────────</text>
+  
+  <rect x="56" y="623" width="1384" height="25" fill="#070A11" stroke="#1E293B"/>
+  <text x="70" y="640" fill="#64748B" font-size="10">Audio 2 (Voice Over): (None)</text>
+
+  <rect x="56" y="648" width="1384" height="25" fill="#090D16" stroke="#1E293B"/>
+  <text x="70" y="665" fill="#A78BFA" font-size="10">Audio 3 (Voice ID Ref): @Zaid_Voice_Ref_01 (100% Match)</text>
+
+  <rect x="56" y="673" width="1384" height="25" fill="#070A11" stroke="#1E293B"/>
+  <text x="70" y="690" fill="#94A3B8" font-size="10">Audio 4 (Ambient): Night City Rain Loop ────────────────────────────────────────────────────────</text>
+
+  <rect x="56" y="698" width="1384" height="25" fill="#090D16" stroke="#1E293B"/>
+  <text x="70" y="715" fill="#94A3B8" font-size="10">Audio 5 (SFX): [Footstep 00:02] ──── [Laser Hum 00:04] ──── [Door Open 00:08]</text>
+
+  <rect x="56" y="723" width="1384" height="25" fill="#070A11" stroke="#1E293B"/>
+  <text x="70" y="740" fill="#94A3B8" font-size="10">Audio 6 (Music): Tension Synthesizer Soundbed ──────────────────────────────────────────────────</text>
+
+  <rect x="56" y="748" width="1384" height="25" fill="#090D16" stroke="#1E293B"/>
+  <text x="70" y="765" fill="#38BDF8" font-size="10">Audio 7 (Captions): [AR Subtitles: "لن تتمكن من إيقاف هذا الآن"] ─────────────────────────────</text>
+
+  <!-- Footer Durations & Assembly Entry -->
+  <rect x="56" y="850" width="1384" height="50" fill="#152033" stroke="#1E293B"/>
+  <text x="70" y="880" fill="#E2E8F0" font-size="11">5 Durations: Target: 60s | Planned: 65s | Generated: 48s | Approved: 38s | Final Duration: --</text>
+  <rect x="1180" y="855" width="240" height="40" rx="6" fill="#8B5CF6"/>
+  <text x="1195" y="880" fill="#FFFFFF" font-size="11" font-weight="bold">Assemble &amp; Enter Export (SUB-01) →</text>
+</svg>

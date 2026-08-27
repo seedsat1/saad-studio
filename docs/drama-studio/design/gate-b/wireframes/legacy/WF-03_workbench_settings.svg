@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#070A11; font-family:'Segoe UI', system-ui, sans-serif;">
+  <!-- Top Navigation Bar -->
+  <rect x="0" y="0" width="1440" height="48" fill="#0E1626" stroke="#1E293B"/>
+  <text x="24" y="30" fill="#F8FAFC" font-size="14" font-weight="bold">SAAD STUDIO</text>
+  <text x="140" y="30" fill="#94A3B8" font-size="12">Explore</text>
+  <text x="210" y="30" fill="#06B6D4" font-size="12" font-weight="bold">Video (Drama Studio)</text>
+  <rect x="345" y="16" width="36" height="18" rx="4" fill="#06B6D4" fill-opacity="0.2"/>
+  <text x="350" y="29" fill="#06B6D4" font-size="9" font-weight="bold">NEW</text>
+  <text x="400" y="30" fill="#94A3B8" font-size="12">Audio</text>
+  <text x="460" y="30" fill="#94A3B8" font-size="12">Image</text>
+  <text x="1280" y="30" fill="#E2E8F0" font-size="12">Credits: 450</text>
+
+  <!-- Workbench Grid: Left 42% (600px) / Right 58% (840px) -->
+  
+  <!-- Left Column: Agent Panel -->
+  <rect x="0" y="48" width="600" height="852" fill="#090D16" stroke="#1E293B"/>
+  <!-- Agent Header -->
+  <rect x="0" y="48" width="600" height="48" fill="#0E1626" stroke="#1E293B"/>
+  <circle cx="24" cy="72" r="5" fill="#10B981"/>
+  <text x="38" y="76" fill="#F8FAFC" font-size="13" font-weight="bold">مخرج سعد ستوديو (Director Agent)</text>
+  <rect x="420" y="58" width="160" height="28" rx="6" fill="#1E293B"/>
+  <text x="430" y="76" fill="#A78BFA" font-size="11">🧠 9-Layer Memory (3)</text>
+
+  <!-- Agent Message Stream -->
+  <rect x="20" y="115" width="560" height="110" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="35" y="140" fill="#38BDF8" font-size="12" font-weight="bold">Director Agent:</text>
+  <text x="35" y="165" fill="#E2E8F0" font-size="12">"قمت بتهيئة النمط الافتراضي. يمكنك تعديل الأسلوب البصري والتصنيف</text>
+  <text x="35" y="185" fill="#E2E8F0" font-size="12">الفني من اللوحة اليمنى قبل اعتماد مسودة المخطط."</text>
+  <text x="35" y="210" fill="#64748B" font-size="10">10:45 AM • Project Brief Initialized</text>
+
+  <!-- Sticky Bottom Composer -->
+  <rect x="0" y="810" width="600" height="90" fill="#0E1626" stroke="#1E293B"/>
+  <rect x="20" y="825" width="560" height="46" rx="8" fill="#070A11" stroke="#334155"/>
+  <text x="40" y="853" fill="#64748B" font-size="12">اكتب رسالتك للمخرج... اسأل عن القصة أو اطلب تعديلاً</text>
+  <circle cx="550" cy="848" r="14" fill="#06B6D4"/>
+  <text x="546" y="853" fill="#FFFFFF" font-size="14">↑</text>
+
+  <!-- Right Column: Management Workspace -->
+  <rect x="600" y="48" width="840" height="852" fill="#070A11"/>
+  <!-- Tabs Header: 5 Full Names -->
+  <rect x="600" y="48" width="840" height="48" fill="#0E1626" stroke="#1E293B"/>
+  <!-- Tab 1: Settings (Active) -->
+  <rect x="610" y="56" width="100" height="32" rx="6" fill="#06B6D4" fill-opacity="0.15" stroke="#06B6D4"/>
+  <text x="635" y="76" fill="#38BDF8" font-size="12" font-weight="bold">1. Settings</text>
+  <!-- Tab 2 -->
+  <text x="730" y="76" fill="#94A3B8" font-size="12">2. Outline &amp; Script</text>
+  <!-- Tab 3 -->
+  <text x="860" y="76" fill="#94A3B8" font-size="12">3. Characters</text>
+  <!-- Tab 4 -->
+  <text x="965" y="76" fill="#94A3B8" font-size="12">4. Locations &amp; Environments</text>
+  <!-- Tab 5 -->
+  <text x="1160" y="76" fill="#94A3B8" font-size="12">5. Elements &amp; Props</text>
+
+  <!-- Tab 1 Content: Settings & Creative Positioning -->
+  <text x="630" y="130" fill="#F8FAFC" font-size="16" font-weight="bold">إعدادات المشروع والتموضع الإبداعي (Settings &amp; Positioning)</text>
+
+  <!-- Card 1: Adaptation Mode (3 Options) -->
+  <rect x="630" y="150" width="780" height="90" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="650" y="175" fill="#E2E8F0" font-size="13" font-weight="bold">نمط المعالجة السردية (Adaptation Mode)</text>
+  <rect x="650" y="190" width="220" height="36" rx="6" fill="#1E293B" stroke="#334155"/>
+  <text x="665" y="213" fill="#94A3B8" font-size="12">1. Faithful (حرفي صارم)</text>
+  <rect x="880" y="190" width="240" height="36" rx="6" fill="#06B6D4" fill-opacity="0.2" stroke="#06B6D4"/>
+  <text x="895" y="213" fill="#38BDF8" font-size="12" font-weight="bold">2. Balanced (متوازن - موصى به)</text>
+  <rect x="1130" y="190" width="220" height="36" rx="6" fill="#1E293B" stroke="#334155"/>
+  <text x="1145" y="213" fill="#94A3B8" font-size="12">3. Creative (إبداعي موسع)</text>
+
+  <!-- Card 2: Storyboard Mode (3 Options) -->
+  <rect x="630" y="255" width="780" height="90" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="650" y="280" fill="#E2E8F0" font-size="13" font-weight="bold">وضع الستوريبورد (Storyboard Mode - Optional)</text>
+  <rect x="650" y="295" width="220" height="36" rx="6" fill="#06B6D4" fill-opacity="0.2" stroke="#06B6D4"/>
+  <text x="665" y="318" fill="#38BDF8" font-size="12" font-weight="bold">1. No Storyboard (مباشر)</text>
+  <rect x="880" y="295" width="240" height="36" rx="6" fill="#1E293B" stroke="#334155"/>
+  <text x="895" y="318" fill="#94A3B8" font-size="12">2. Keyframes Only (شريط مدمج)</text>
+  <rect x="1130" y="295" width="220" height="36" rx="6" fill="#1E293B" stroke="#334155"/>
+  <text x="1145" y="318" fill="#94A3B8" font-size="12">3. Full Storyboard (مساحة موسعة)</text>
+
+  <!-- Card 3: Visual Style Grid (16 Styles) -->
+  <rect x="630" y="360" width="780" height="230" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="650" y="385" fill="#E2E8F0" font-size="13" font-weight="bold">النمط البصري (Art Style Profile — 16 Photography Profiles)</text>
+  <rect x="650" y="400" width="170" height="75" rx="6" fill="#152033" stroke="#06B6D4"/>
+  <text x="660" y="425" fill="#38BDF8" font-size="11" font-weight="bold">Theatrical Cinema</text>
+  <text x="660" y="445" fill="#64748B" font-size="10">سينما روائية ملحمية</text>
+  <rect x="830" y="400" width="170" height="75" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="840" y="425" fill="#E2E8F0" font-size="11">Nordic Noir</text>
+  <text x="840" y="445" fill="#64748B" font-size="10">تشويق مظلم بارد</text>
+  <rect x="1010" y="400" width="170" height="75" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="1020" y="425" fill="#E2E8F0" font-size="11">Prestige Corporate</text>
+  <text x="1020" y="445" fill="#64748B" font-size="10">دراما شركات ونفوذ</text>
+  <rect x="1190" y="400" width="170" height="75" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="1200" y="425" fill="#E2E8F0" font-size="11">Monumental Dune</text>
+  <text x="1200" y="445" fill="#64748B" font-size="10">ملحمة سينمائية</text>
+
+  <!-- Production Specs Bar -->
+  <rect x="630" y="605" width="780" height="100" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="650" y="630" fill="#E2E8F0" font-size="13" font-weight="bold">مواصفات الإنتاج الأساسية (Production Specs)</text>
+  <text x="650" y="660" fill="#94A3B8" font-size="11">Ratio: [ 16:9 Landscape ▼ ]   Duration: [ 3 Minutes ▼ ]   Language: [ Arabic (العربية) ▼ ]   Safety: [ General ▼ ]</text>
+  <text x="650" y="685" fill="#06B6D4" font-size="11">Auto Review &amp; Optimize: [ ON (مفعل) ]</text>
+
+  <!-- Bottom Action Bar -->
+  <rect x="630" y="720" width="780" height="70" rx="8" fill="#152033" stroke="#06B6D4"/>
+  <text x="650" y="750" fill="#F8FAFC" font-size="13" font-weight="bold">Project Brief Status: Draft Ready</text>
+  <text x="650" y="770" fill="#94A3B8" font-size="11">اعتماد الإعدادات سينشئ لقطة Snapshot للمشروع ويبدأ التخطيط المشهدي</text>
+  <rect x="1180" y="735" width="210" height="40" rx="6" fill="#06B6D4"/>
+  <text x="1200" y="760" fill="#FFFFFF" font-size="12" font-weight="bold">تأكيد وبدء التخطيط ←</text>
+</svg>

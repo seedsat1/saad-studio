@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <defs>
+    <style>
+      :root {
+        --ss-bg: #070A11;
+        --ss-card: #0E1626;
+        --ss-card-hover: #152033;
+        --ss-cyan: #06B6D4;
+        --ss-cyan-light: #38BDF8;
+        --ss-violet: #8B5CF6;
+        --ss-violet-light: #A78BFA;
+        --ss-amber: #D97706;
+        --ss-amber-light: #F59E0B;
+        --ss-emerald: #10B981;
+        --ss-rose: #EF4444;
+        --ss-border: #1E293B;
+        --ss-border-light: #334155;
+        --ss-text-main: #F8FAFC;
+        --ss-text-muted: #94A3B8;
+        --ss-text-dim: #64748B;
+      }
+      .bg-main { fill: var(--ss-bg); }
+      .bg-card { fill: var(--ss-card); }
+      .bg-card-hover { fill: var(--ss-card-hover); }
+      .bg-cyan { fill: var(--ss-cyan); }
+      .bg-violet { fill: var(--ss-violet); }
+      .bg-amber { fill: var(--ss-amber); }
+      .stroke-border { stroke: var(--ss-border); }
+      .stroke-border-light { stroke: var(--ss-border-light); }
+      .stroke-cyan { stroke: var(--ss-cyan); }
+      .stroke-violet { stroke: var(--ss-violet); }
+      .stroke-amber { stroke: var(--ss-amber); }
+      .text-main { fill: var(--ss-text-main); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-muted { fill: var(--ss-text-muted); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-dim { fill: var(--ss-text-dim); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-cyan { fill: var(--ss-cyan-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-violet { fill: var(--ss-violet-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-amber { fill: var(--ss-amber-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-emerald { fill: var(--ss-emerald); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-rose { fill: var(--ss-rose); font-family: 'Segoe UI', system-ui, sans-serif; }
+    </style>
+  </defs>
+  <!-- Background Canvas -->
+  <rect width="1440" height="900" class="bg-main"/>
+  
+  <rect x="0" y="0" width="1440" height="48" class="bg-card stroke-border"/>
+  <text x="24" y="30" class="text-main" font-size="14" font-weight="bold">SAAD STUDIO — WORKBENCH SETTINGS</text>
+  <rect x="0" y="48" width="600" height="852" class="bg-card stroke-border"/>
+  <text x="24" y="80" class="text-main" font-size="13" font-weight="bold">Director Agent Panel</text>
+  <rect x="600" y="48" width="840" height="852" class="bg-main"/>
+  <rect x="600" y="48" width="840" height="48" class="bg-card stroke-border"/>
+  <rect x="610" y="56" width="100" height="32" rx="6" class="bg-main stroke-cyan"/>
+  <text x="635" y="76" class="text-cyan" font-size="12" font-weight="bold">1. Settings</text>
+  <text x="730" y="76" class="text-muted" font-size="12">2. Outline &amp; Script</text>
+  <text x="860" y="76" class="text-muted" font-size="12">3. Characters</text>
+  <text x="965" y="76" class="text-muted" font-size="12">4. Locations &amp; Environments</text>
+  <text x="1160" y="76" class="text-muted" font-size="12">5. Elements &amp; Props</text>
+  <text x="630" y="130" class="text-main" font-size="16" font-weight="bold">إعدادات المشروع والتموضع الإبداعي (Settings &amp; Positioning)</text>
+  <rect x="630" y="150" width="780" height="90" rx="8" class="bg-card stroke-border"/>
+  <text x="650" y="175" class="text-main" font-size="13" font-weight="bold">نمط المعالجة السردية (Adaptation Mode)</text>
+  <rect x="650" y="190" width="220" height="36" rx="6" class="bg-card stroke-border-light"/>
+  <text x="665" y="213" class="text-muted" font-size="12">1. Faithful (حرفي صارم)</text>
+  <rect x="880" y="190" width="240" height="36" rx="6" class="bg-main stroke-cyan"/>
+  <text x="895" y="213" class="text-cyan" font-size="12" font-weight="bold">2. Balanced (متوازن - موصى به)</text>
+  <rect x="1130" y="190" width="220" height="36" rx="6" class="bg-card stroke-border-light"/>
+  <text x="1145" y="213" class="text-muted" font-size="12">3. Creative (إبداعي موسع)</text>
+  <rect x="630" y="255" width="780" height="230" rx="8" class="bg-card stroke-border"/>
+  <text x="650" y="280" class="text-main" font-size="13" font-weight="bold">النمط البصري (Art Style Profile — 16 Photography Profiles)</text>
+  <rect x="650" y="295" width="170" height="75" rx="6" class="bg-card-hover stroke-cyan"/>
+  <text x="660" y="320" class="text-cyan" font-size="11" font-weight="bold">Theatrical Cinema</text>
+  <text x="660" y="340" class="text-dim" font-size="10">سينما روائية ملحمية</text>
+  <rect x="830" y="295" width="170" height="75" rx="6" class="bg-main stroke-border"/>
+  <text x="840" y="320" class="text-main" font-size="11">Nordic Noir</text>
+  <text x="840" y="340" class="text-dim" font-size="10">تشويق مظلم بارد</text>
+  <rect x="1010" y="295" width="170" height="75" rx="6" class="bg-main stroke-border"/>
+  <text x="1020" y="320" class="text-main" font-size="11">Prestige Corporate</text>
+  <text x="1020" y="340" class="text-dim" font-size="10">دراما شركات ونفوذ</text>
+  <rect x="1190" y="295" width="170" height="75" rx="6" class="bg-main stroke-border"/>
+  <text x="1200" y="320" class="text-main" font-size="11">Monumental Dune</text>
+  <text x="1200" y="340" class="text-dim" font-size="10">ملحمة سينمائية</text>
+  <rect x="630" y="500" width="780" height="70" rx="8" class="bg-card-hover stroke-cyan"/>
+  <text x="650" y="530" class="text-main" font-size="13" font-weight="bold">Project Brief Status: Draft Ready</text>
+  <rect x="1180" y="515" width="210" height="40" rx="6" class="bg-cyan"/>
+  <text x="1200" y="540" class="text-main" font-size="12" font-weight="bold">تأكيد وبدء التخطيط ←</text>
+
+</svg>

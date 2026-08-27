@@ -39,6 +39,82 @@
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
 
+#### Latest task: FLUX 3 Unified Video Model Integration (2026-08-27)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Added Black Forest Labs `Flux 3` as a unified video model in `/video` studio, routing intelligently behind the scenes without exposing technical sub-route names to subscribers.
+  - Implemented automatic server-side and client-side sub-route dispatch:
+    - Text-to-Video: `black-forest-labs/flux-3/text-to-video`
+    - Image / Frame references (up to 10 frames): `black-forest-labs/flux-3/image-to-video`
+    - Start / End frames: `black-forest-labs/flux-3/start-end-to-video`
+    - Video Extend / Continuation (1 MP4 video <= 50MB, <= 15s): `black-forest-labs/flux-3/video-extend`
+  - Registered official parameters from WaveSpeed documentation:
+    - Durations: `[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]` (5-20s).
+    - Aspect ratios: `["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "2:1"]`.
+    - Resolutions: `["720p", "1080p"]`.
+    - Synchronized audio: `generate_audio: true` (default true, included without additional fee).
+  - Registered customer credit pricing and WaveSpeed provider operating tariffs:
+    - 720p: `$0.17/s` source $\rightarrow$ `9.52 cr/s` (5s = 48 credits).
+    - 1080p: `$0.29/s` source $\rightarrow$ `16.24 cr/s` (5s = 81 credits).
+    - Draft / Extend: `$0.06/s` source $\rightarrow$ `3.36 cr/s` (5s = 17 credits).
+  - Source mapped `black-forest-labs/` to `WaveSpeed`.
+- Files affected:
+  - `lib/video-model-registry.ts`
+  - `lib/model-source-map.ts`
+  - `lib/dynamic-model-loader.ts`
+  - `lib/pricing.ts`
+  - `lib/credit-pricing.ts`
+  - `lib/provider-tariff-registry.ts`
+  - `app/api/video/route.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `test/models-backend-hardening.test.ts`
+- Verification:
+  - Vitest test suite pass (49/49 tests passed): `test/models-backend-hardening.test.ts`, `test/model-definition-registry.test.ts`, `test/pricing-core.test.ts`.
+
+#### Previous task: Drama Studio — Suggested Styles Contextual Reference Filtering & Project Pinning (2026-08-27)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Disconnected generic browse mode from clicking specific suggested style preset cards in `Settings` tab.
+  - Clicking any suggested style preset (e.g. Cyberpunk Noir, Desert Realism, Historical Epic, Anime Cinematic) now sets `selectedPresetStyle` and passes real metadata (id, name, tags, description, keywords, prompt).
+  - Renders a **Featured Selected Style Hero Banner** at top of workspace with photo, tags, description, Selected/Pinned status, `تثبيت هذا النمط في المشروع` button, `إزالة التحديد`, `عرض جميع الأنماط (Browse All)`, and `العودة للتبويبات (Overview)`.
+  - Contextually filters reference studio cards dynamically using preset keywords mapped against `HOOK_STYLES`.
+  - Clicking `فتح استوديو مراجع الأنماط بالكامل (Browse All)` opens the full unfiltered general library.
+  - Pinning style persists into `content.pinnedReferences`, updates Style tool badge counter, AI Director memory bar, and survives page refresh.
+- Files affected:
+  - `components/drama-studio/constants.ts`
+  - `components/drama-studio/EmbeddedReferenceEngine.tsx`
+  - `components/drama-studio/Workbench.tsx`
+- Verification:
+  - Automated headless browser acceptance tests executed on live `http://localhost:3001` with 6 real captured screenshots:
+    1. Cyberpunk Noir: Filtered to neon/noir references (`3 matching`).
+    2. Desert Realism: Filtered to desert/sand references (`7 matching`).
+    3. Historical Epic: Filtered to oil painting/classic references (`6 matching`).
+    4. Anime Cinematic: Filtered to anime/watercolor/shinkai references (`18 matching`).
+    5. Pinning: Updated to `✓ مُثبّت بالمشروع` and autosaved (`v2`).
+    6. Browse All: Returned to full unfiltered reference library.
+  - Vitest passed 100%: `test/drama-studio-project-core.test.ts (3 passed)`.
+
+#### Latest task: Platform Integrity P0-C/P0-D Controlled Production Migration (2026-08-26)
+- Status: Completed for controlled production schema migration and verification; stopped before push, merge, deploy, or Drama Studio backend.
+- Scope:
+  - Owner explicitly cancelled Neon Branch/Shadow DB/Docker/.env.shadow and approved the repository-policy path: Controlled Production Migration -> Verification -> Review.
+  - Created local commit `960c70a fix(platform): enforce idempotency and financial audit integrity` containing only P0-C files.
+  - Applied `prisma/migrations/manual/2026-08-26-platform-financial-integrity-p0c.sql` to the configured Neon database in one transaction using the repository's installed `pg` client, `lock_timeout=5s`, and `statement_timeout=60s`.
+  - Verified production schema now contains `ApiIdempotency`, `CreditLedgerEntry`, and nullable `AdminTransaction` fields: `operatorUserId`, `operatorEmail`, `decisionAt`, `decisionReason`.
+  - Kept `lib/storage/supabase.ts` untouched; it has no content diff and remains separate technical debt.
+  - Added `docs/drama-studio/phase-2/platform_integrity_production_migration_verification.md`.
+- Verification:
+  - Preflight read-only Neon metadata showed no partial P0-C objects or active schema operation.
+  - Existing row counts were unchanged before/after migration: `Generation=1157`, `ProviderUsageRecord=723`, `GenerationRequestSnapshot=536`, `AdminTransaction=16`.
+  - Rollback-only synthetic insert/read test succeeded and left zero synthetic rows.
+  - `npx.cmd prisma validate` passed.
+  - `npx.cmd prisma generate` passed.
+  - P0-C/P0-D Vitest set passed: 13 files, 128 tests.
+  - Scoped `git diff --check` passed.
+  - `npx.cmd tsc --noEmit --pretty false` failed only on pre-existing out-of-scope `lib/storage/supabase.ts(115,38)`.
+- Remaining step:
+  - Owner review of the production migration report, then separate explicit decision for fixing Supabase baseline debt and/or merging/deploying P0-C.
+
 #### Latest task: Generated Media Picker Only Showing One Asset (2026-08-25)
 - Status: Completed & Verified (PASS).
 - Issue:

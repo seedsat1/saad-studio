@@ -6,6 +6,7 @@ const {
   mockUserUpdateMany,
   mockUserSubscriptionFindUnique,
   mockGenerationUpdate,
+  mockGenerationUpdateMany,
   mockCreditLedgerEntryCreate,
 } = vi.hoisted(() => {
   return {
@@ -14,6 +15,7 @@ const {
     mockUserUpdateMany: vi.fn(async () => ({ count: 1 })),
     mockUserSubscriptionFindUnique: vi.fn(async () => null),
     mockGenerationUpdate: vi.fn(async () => ({})),
+    mockGenerationUpdateMany: vi.fn(async () => ({ count: 1 })),
     mockCreditLedgerEntryCreate: vi.fn(async () => ({})),
   };
 });
@@ -32,6 +34,7 @@ const tx = {
   generation: {
     findUnique: vi.fn(async () => ({ id: "g1", cost: 10, isFlagged: false })),
     update: mockGenerationUpdate,
+    updateMany: mockGenerationUpdateMany,
   },
   creditLedgerEntry: {
     create: mockCreditLedgerEntryCreate,
@@ -125,12 +128,12 @@ describe("credit-ledger policy + refunds", () => {
       clearMediaUrl: true,
     });
     expect(tx.user.update).not.toHaveBeenCalled();
-    expect(tx.generation.update).not.toHaveBeenCalled();
+    expect(tx.generation.updateMany).not.toHaveBeenCalled();
   });
 
-  it("refundGenerationCharge refunds exact credits and writes a ledger entry", async () => {
+  it("refundGenerationCharge refunds stored generation cost and writes a ledger entry", async () => {
     tx.generation.findUnique.mockResolvedValueOnce({ id: "g1", cost: 10, isFlagged: false });
-    await refundGenerationCharge("g1", "u1", 10, {
+    await refundGenerationCharge("g1", "u1", 99, {
       reason: "generation_refund_provider_failed",
       clearMediaUrl: true,
     });
@@ -138,8 +141,8 @@ describe("credit-ledger policy + refunds", () => {
       where: { id: "u1" },
       data: { creditBalance: { increment: 10 } },
     });
-    expect(tx.generation.update).toHaveBeenCalledWith({
-      where: { id: "g1" },
+    expect(tx.generation.updateMany).toHaveBeenCalledWith({
+      where: { id: "g1", userId: "u1", cost: 10 },
       data: { cost: 0, mediaUrl: null, outputUrl: null, status: "failed" },
     });
     expect(tx.creditLedgerEntry.create).toHaveBeenCalledWith({
@@ -150,8 +153,25 @@ describe("credit-ledger policy + refunds", () => {
         reason: "generation_refund_provider_failed",
         operationType: "refund",
         status: "settled",
+        metadata: {
+          requestedCredits: 99,
+          refundedCredits: 10,
+        },
       }),
     });
+  });
+
+  it("refundGenerationCharge is concurrency-safe when another refund already claimed the generation", async () => {
+    tx.generation.findUnique.mockResolvedValueOnce({ id: "g1", cost: 10, isFlagged: false });
+    tx.generation.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await refundGenerationCharge("g1", "u1", 10, {
+      reason: "generation_refund_provider_failed",
+      clearMediaUrl: true,
+    });
+
+    expect(tx.user.update).not.toHaveBeenCalled();
+    expect(tx.creditLedgerEntry.create).not.toHaveBeenCalled();
   });
 
   it("setActualProviderUsage records the provider that actually executed", async () => {

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#070A11; font-family:'Segoe UI', system-ui, sans-serif;">
+  <!-- Workbench Master Header Bar -->
+  <rect x="0" y="0" width="1440" height="56" fill="#0E1626" stroke="#1E293B"/>
+  
+  <!-- Left Brand & Project Switcher Dropdown (PNL-07 Trigger) -->
+  <text x="24" y="34" fill="#F8FAFC" font-size="14" font-weight="bold">SAAD STUDIO</text>
+  <text x="135" y="34" fill="#64748B" font-size="16">/</text>
+
+  <!-- Project Switcher Button (Active Project) -->
+  <rect x="155" y="10" width="310" height="36" rx="6" fill="#152033" stroke="#06B6D4"/>
+  <circle cx="175" cy="28" r="4" fill="#10B981"/>
+  <text x="188" y="32" fill="#F8FAFC" font-size="12" font-weight="bold">صقور الصحراء (Desert Hawks)</text>
+  <rect x="380" y="16" width="55" height="24" rx="4" fill="#06B6D4" fill-opacity="0.2"/>
+  <text x="390" y="32" fill="#38BDF8" font-size="10">Active</text>
+  <text x="445" y="33" fill="#94A3B8" font-size="12">▼</text>
+
+  <!-- Middle: Autosave Status & Project Memory Breadcrumbs -->
+  <rect x="490" y="14" width="130" height="28" rx="4" fill="#070A11" stroke="#1E293B"/>
+  <text x="502" y="32" fill="#10B981" font-size="11">💾 Saved (Autosave)</text>
+
+  <text x="640" y="34" fill="#94A3B8" font-size="12">Ep 01 > Scene 01 > Beat 1.2 > Shot 03</text>
+
+  <!-- Right: Durations, Credit Ledger & Board Entry -->
+  <rect x="910" y="12" width="220" height="32" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="920" y="32" fill="#38BDF8" font-size="11">Target: 3m | Planned: 3m 15s</text>
+
+  <rect x="1145" y="12" width="165" height="32" rx="6" fill="#152033" stroke="#8B5CF6"/>
+  <text x="1155" y="32" fill="#A78BFA" font-size="11">⚡ Cap: 280 / 500 Cr</text>
+
+  <rect x="1320" y="12" width="100" height="32" rx="6" fill="#1E293B" stroke="#334155"/>
+  <text x="1335" y="32" fill="#E2E8F0" font-size="11">🎨 Board</text>
+
+  <!-- PNL-07: Project Switcher Dropdown Menu (Open State) -->
+  <rect x="155" y="52" width="420" height="490" rx="10" fill="#0E1626" stroke="#06B6D4" stroke-width="1.5"/>
+  
+  <!-- Search in Switcher -->
+  <rect x="175" y="68" width="380" height="34" rx="6" fill="#070A11" stroke="#334155"/>
+  <text x="190" y="90" fill="#64748B" font-size="11">🔍 ابحث في مشاريعك...</text>
+
+  <text x="175" y="125" fill="#94A3B8" font-size="11" font-weight="bold">المشاريع الحديثة (Recent Projects):</text>
+
+  <!-- Project 1 (Current) -->
+  <rect x="175" y="138" width="380" height="65" rx="6" fill="#152033" stroke="#06B6D4"/>
+  <text x="190" y="162" fill="#38BDF8" font-size="12" font-weight="bold">صقور الصحراء (Current Project)</text>
+  <text x="190" y="182" fill="#94A3B8" font-size="10">Series • In Production • 42 Cr Spent • 15m ago</text>
+  <text x="510" y="172" fill="#10B981" font-size="12">✓</text>
+
+  <!-- Project 2 (With Background Job Alert) -->
+  <rect x="175" y="210" width="380" height="65" rx="6" fill="#070A11" stroke="#8B5CF6"/>
+  <text x="190" y="234" fill="#F8FAFC" font-size="12" font-weight="bold">خيوط الظلام (Shadow Threads)</text>
+  <text x="190" y="254" fill="#A78BFA" font-size="10">⚡ Background Job: Rendering Preview (68%)</text>
+  <rect x="495" y="222" width="45" height="20" rx="4" fill="#8B5CF6"/>
+  <text x="502" y="236" fill="#FFFFFF" font-size="9">RUN</text>
+
+  <!-- Project 3 (Draft) -->
+  <rect x="175" y="282" width="380" height="65" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="190" y="306" fill="#E2E8F0" font-size="12">مهمة سرية (Secret Mission)</text>
+  <text x="190" y="326" fill="#64748B" font-size="10">Single Short • Planning • 0 Cr Spent • Yesterday</text>
+
+  <!-- Divider -->
+  <line x1="175" y1="360" x2="555" y2="360" stroke="#1E293B"/>
+
+  <!-- Switcher Actions -->
+  <rect x="175" y="375" width="380" height="36" rx="6" fill="#06B6D4" fill-opacity="0.15" stroke="#06B6D4"/>
+  <text x="280" y="398" fill="#38BDF8" font-size="11" font-weight="bold">+ إنشاء مشروع جديد (New Project)</text>
+
+  <rect x="175" y="420" width="380" height="36" rx="6" fill="#1E293B"/>
+  <text x="270" y="443" fill="#E2E8F0" font-size="11">🗂️ عرض كل المشاريع (All Projects Overlay)</text>
+
+  <rect x="175" y="465" width="380" height="36" rx="6" fill="#152033"/>
+  <text x="260" y="488" fill="#94A3B8" font-size="11">💾 حفظ نسخة باسم... (Save a Copy As)</text>
+
+  <!-- Bottom Workspace Body (Background dimmed) -->
+  <rect x="600" y="70" width="800" height="800" fill="#070A11" opacity="0.3"/>
+</svg>

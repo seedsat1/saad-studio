@@ -45,6 +45,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     href: "/video",
     subItems: [
       { label: "Create Video", href: "/video", description: "Text-to-video generation" },
+      { label: "Drama Studio", href: "/drama-studio", description: "Create AI microdrama series and screenplays", badge: "NEW" },
       { label: "Shots Studio", href: "/shots", description: "Professional cinematic shot packs", badge: "TOP" },
       { label: "Mixed Media", href: "/video", description: "Combine multiple visual styles" },
       { label: "Edit Video", href: "/edit", description: "Advanced AI timeline editing" },

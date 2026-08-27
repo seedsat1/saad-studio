@@ -5,7 +5,7 @@ import { getAudioActionCredits } from "@/lib/credit-pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setActualProviderUsage, setGenerationCompletedWithoutMedia, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
-import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody, idempotencyErrorResponse } from "@/lib/idempotency";
+import { beginIdempotency, completeIdempotency, failIdempotency, getIdempotencyKey, hashRequestBody, idempotencyErrorResponse, markIdempotencyProviderDispatched } from "@/lib/idempotency";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { normalizeMediaUrl } from "@/lib/storage";
 import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
@@ -1010,6 +1010,9 @@ export async function POST(req: NextRequest) {
   let generationId: string | null = null;
   const idempotencyKey = getIdempotencyKey(req.headers);
   let requestHash: string | null = null;
+  let idempotencyClaimed = false;
+  let providerDispatched = false;
+  let idempotencyUserId: string | null = null;
 
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
@@ -1301,6 +1304,8 @@ export async function POST(req: NextRequest) {
       if (idem.kind === "in_progress") {
         return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
       }
+      idempotencyClaimed = true;
+      idempotencyUserId = userId;
     }
 
     const charge = await spendCredits({
@@ -1311,16 +1316,14 @@ export async function POST(req: NextRequest) {
       modelUsed: modelUsedForLedger,
       duration: durationSec,
       requestPayload: generationRequestPayload,
+      idempotency: {
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+      },
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
-    await attachIdempotencyGeneration({
-      userId,
-      route: IDEMPOTENCY_ROUTE,
-      key: idempotencyKey,
-      generationId,
-    });
 
     const finalize = async (responseJson: unknown, responseStatus: number) => {
       const wrapped =
@@ -1353,16 +1356,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(wrapped, { status: responseStatus });
     };
 
+    const markProviderDispatched = async () => {
+      if (providerDispatched) return;
+      await markIdempotencyProviderDispatched({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+      });
+      providerDispatched = true;
+    };
+
     if (actionType === "tts") {
       const { text, voice = "Aria" } = body;
       const safeText = sanitizePrompt(text ?? "", 5000);
       if (isGeminiTtsModelSupported(body.model)) {
         if (!googleKey) {
-          return NextResponse.json(
-            { error: "Gemini audio provider is not configured.", code: "google_key_missing" },
-            { status: 503 },
-          );
+          const responseJson = { error: "Gemini audio provider is not configured.", code: "google_key_missing" };
+          if (chargedCredits > 0 && chargedUserId && generationId) {
+            await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+              reason: "generation_refund_provider_not_configured",
+              clearMediaUrl: true,
+            });
+          }
+          await completeIdempotency({
+            userId,
+            route: IDEMPOTENCY_ROUTE,
+            key: idempotencyKey,
+            generationId,
+            responseStatus: 503,
+            responseJson,
+          });
+          return NextResponse.json(responseJson, { status: 503 });
         }
+        await markProviderDispatched();
         const audioUrl = await runGeminiTts({ body, apiKey: googleKey, userId, generationId });
         if (generationId) {
           await setGenerationMediaUrl(generationId, audioUrl);
@@ -1387,8 +1414,8 @@ export async function POST(req: NextRequest) {
         try {
           const audioUrl =
             provider === "kie"
-              ? await runKieAudio(body, kieKey!)
-              : await runWaveSpeed(
+              ? (await markProviderDispatched(), await runKieAudio(body, kieKey!))
+              : (await markProviderDispatched(), await runWaveSpeed(
                   wsModel,
                   {
                     text: safeText,
@@ -1399,7 +1426,7 @@ export async function POST(req: NextRequest) {
                     output_format: body.output_format || body.outputFormat || "mp3_44100_128",
                   },
                   wavespeedKey!,
-                );
+                ));
 
           const canonicalAudioUrl = await ensureCanonicalMp3Url({
             rawUrlOrBuffer: audioUrl,
@@ -1413,6 +1440,7 @@ export async function POST(req: NextRequest) {
           return await finalize({ audioUrl: canonicalAudioUrl, provider, chargedCredits: creditsToCharge }, 200);
         } catch (error) {
           lastError = error instanceof Error ? error.message : "Unknown provider error.";
+          if (providerDispatched) throw error;
         }
       }
 
@@ -1424,6 +1452,7 @@ export async function POST(req: NextRequest) {
       if (!hasActiveWaveSpeedFallback(wavespeedKey)) {
         throw new Error("WaveSpeed API key is required for video2audio.");
       }
+      await markProviderDispatched();
       const audioUrl = await runWaveSpeed(
         WS_VIDEO2AUDIO_MODEL,
         { video_url: videoUrl, prompt: sanitizePrompt(prompt, 500), steps: 25 },
@@ -1464,6 +1493,7 @@ export async function POST(req: NextRequest) {
         let kieError: string | null = null;
         if (hasActiveKie(kieKey)) {
           try {
+            await markProviderDispatched();
             const audioUrl = await runKieSoundEffect(body, kieKey!);
             if (generationId) {
               await setGenerationMediaUrl(generationId, audioUrl);
@@ -1471,6 +1501,7 @@ export async function POST(req: NextRequest) {
             return await finalize({ audioUrl, provider: "kie", chargedCredits: creditsToCharge }, 200);
           } catch (error) {
             kieError = error instanceof Error ? error.message : "KIE sound effect failed.";
+            if (providerDispatched) throw error;
           }
         }
 
@@ -1478,6 +1509,7 @@ export async function POST(req: NextRequest) {
           throw new Error(kieError || "KIE sound effect failed and WaveSpeed is unavailable.");
         }
 
+        await markProviderDispatched();
         const fallbackAudioUrl = await runWaveSpeed(
           WS_MUSIC_MODEL,
           {
@@ -1505,6 +1537,7 @@ export async function POST(req: NextRequest) {
           ? (image.startsWith("data:") ? await uploadDataUrlToWaveSpeed(image, wavespeedKey!) : image)
           : undefined;
 
+        await markProviderDispatched();
         audioUrl = await runWaveSpeed(
           wsMusicModel,
           {
@@ -1518,6 +1551,7 @@ export async function POST(req: NextRequest) {
           ? Math.max(5000, Math.min(300000, Number(music_length_ms)))
           : Math.max(5000, Math.min(300000, Math.round(Number(musicDuration || 60) * 1000)));
 
+        await markProviderDispatched();
         audioUrl = await runWaveSpeed(
           wsMusicModel,
           {
@@ -1534,8 +1568,9 @@ export async function POST(req: NextRequest) {
       }
       return await finalize({ audioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, 200);
     }
-    if (actionType === "speech-to-text") {
+      if (actionType === "speech-to-text") {
       if (!kieKey) throw new Error("KIE API key is required for speech-to-text.");
+      await markProviderDispatched();
       const transcript = await runKieSpeechToText(body, kieKey);
       if (generationId) {
         await setGenerationCompletedWithoutMedia(generationId);
@@ -1544,6 +1579,7 @@ export async function POST(req: NextRequest) {
     }
     if (actionType === "audio-isolation") {
       if (!kieKey) throw new Error("KIE API key is required for audio-isolation.");
+      await markProviderDispatched();
       const audioUrl = await runKieAudioIsolation(body, kieKey);
       if (generationId) {
         await setGenerationMediaUrl(generationId, audioUrl);
@@ -1560,6 +1596,7 @@ export async function POST(req: NextRequest) {
         ? await uploadDataUrlToWaveSpeed(body.audioUrl!, wavespeedKey!)
         : body.audioUrl!;
 
+      await markProviderDispatched();
       const audioUrl = await runWaveSpeed(
         WS_VOICE_CHANGER_MODEL,
         {
@@ -1590,6 +1627,7 @@ export async function POST(req: NextRequest) {
       const sourceLang = (body.sourceLang || "Auto").replace("Auto-detect", "Auto");
       const targetLang = body.targetLang || "Arabic";
 
+      await markProviderDispatched();
       const outputUrl = await runWaveSpeed(
         WS_DUBBING_MODEL,
         {
@@ -1628,6 +1666,7 @@ export async function POST(req: NextRequest) {
           ? await uploadDataUrlToKie(body.audioUrl!, "avatar-audio")
           : body.audioUrl!;
 
+        await markProviderDispatched();
         const taskId = await submitKieTask(
           lipSyncModel,
           {
@@ -1665,6 +1704,7 @@ export async function POST(req: NextRequest) {
         ? (body.imageUrl.startsWith("data:") ? await uploadDataUrlToKie(body.imageUrl, "seedance-image") : body.imageUrl)
         : null;
 
+      await markProviderDispatched();
       const taskId = await submitKieTask(
         lipSyncModel === KIE_SEEDANCE_2_FAST_MODEL ? KIE_SEEDANCE_2_FAST_MODEL : KIE_SEEDANCE_2_MODEL,
         {
@@ -1715,6 +1755,7 @@ export async function POST(req: NextRequest) {
       // --- Try KIE first ---
       if (hasActiveKie(kieKey)) {
         try {
+          await markProviderDispatched();
           const audioUrl = await runKieVoiceClone(bodyWithUrls, kieKey!);
           if (generationId) {
             await setGenerationMediaUrl(generationId, audioUrl);
@@ -1731,6 +1772,7 @@ export async function POST(req: NextRequest) {
           );
         } catch (kieErr) {
           console.warn("[voice-cloning] KIE failed, falling back to WaveSpeed:", kieErr instanceof Error ? kieErr.message : kieErr);
+          if (providerDispatched) throw kieErr;
         }
       }
 
@@ -1747,6 +1789,7 @@ export async function POST(req: NextRequest) {
       const referenceAudio = samples[0];
       const seedText = sanitizePrompt(body.text || body.prompt || "Hello from SAAD Studio voice cloning.", 5000);
 
+      await markProviderDispatched();
       const audioUrl = await runWaveSpeed(
         WS_VOICE_CLONING_MODEL,
         {
@@ -1788,9 +1831,9 @@ export async function POST(req: NextRequest) {
 
     if (error instanceof ValidationError) {
       const responseJson = { error: error.message };
-      if (chargedUserId && requestHash) {
+      if (idempotencyClaimed && idempotencyUserId && requestHash) {
         await completeIdempotency({
-          userId: chargedUserId,
+          userId: idempotencyUserId,
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
@@ -1807,9 +1850,9 @@ export async function POST(req: NextRequest) {
         requiredCredits: error.requiredCredits,
         currentBalance: error.currentBalance,
       };
-      if (chargedUserId && requestHash) {
+      if (idempotencyClaimed && idempotencyUserId && requestHash) {
         await completeIdempotency({
-          userId: chargedUserId,
+          userId: idempotencyUserId,
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
@@ -1823,7 +1866,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (chargedCredits > 0 && chargedUserId && generationId) {
+    if (!providerDispatched && chargedCredits > 0 && chargedUserId && generationId) {
       await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
         reason: "generation_refund_provider_failed",
         clearMediaUrl: true,
@@ -1831,15 +1874,18 @@ export async function POST(req: NextRequest) {
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";
-    if (chargedUserId && requestHash) {
-      await completeIdempotency({
-        userId: chargedUserId,
+    if (idempotencyClaimed && idempotencyUserId && requestHash) {
+      const status = await failIdempotency({
+        userId: idempotencyUserId,
         route: IDEMPOTENCY_ROUTE,
         key: idempotencyKey,
         generationId,
-        responseStatus: 500,
-        responseJson: { error: message },
+        errorMessage: message,
+        providerDispatched,
       });
+      if (status === "review_required") {
+        return NextResponse.json({ generationId, status, error: message }, { status: 409 });
+      }
     }
     return NextResponse.json({ error: message }, { status: 500 });
   }

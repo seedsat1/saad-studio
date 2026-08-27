@@ -21,7 +21,7 @@ export type ApiIdempotencyStatus =
 export type IdempotencyBeginResult =
   | { kind: "replay"; responseStatus: number; responseJson: unknown; generationId: string | null }
   | { kind: "in_progress"; generationId: string | null; status: ApiIdempotencyStatus }
-  | { kind: "created"; key: string; requestHash: string };
+  | { kind: "created"; key: string; requestHash: string; attemptCount: number };
 
 class IdempotencyError extends Error {
   constructor(
@@ -78,6 +78,12 @@ function finalExpiresAt(now = Date.now()): Date {
 
 function isFinalStatus(status: ApiIdempotencyStatus): boolean {
   return ["completed", "failed_terminal", "expired"].includes(status);
+}
+
+function retryReadyAt(failedAt: Date | string | null | undefined, attemptCount: number): Date {
+  const backoffIndex = Math.max(0, Math.min(IDEMPOTENCY_RETRY_BACKOFF_MS.length - 1, attemptCount - 1));
+  const base = failedAt ? new Date(failedAt).getTime() : 0;
+  return new Date(base + IDEMPOTENCY_RETRY_BACKOFF_MS[backoffIndex]);
 }
 
 export function getIdempotencyKey(headers: Headers): string | null {
@@ -152,6 +158,9 @@ export async function beginIdempotency(input: {
       responseJson: true,
       status: true,
       providerDispatchedAt: true,
+      processingLeaseExpiresAt: true,
+      attemptCount: true,
+      failedAt: true,
     },
   });
 
@@ -159,18 +168,7 @@ export async function beginIdempotency(input: {
     if (existing.requestHash !== input.requestHash) {
       throw new IdempotencyConflictError();
     }
-    if (existing.status === "review_required" || existing.providerDispatchedAt) {
-      if (existing.responseStatus != null && existing.responseJson != null) {
-        return {
-          kind: "replay",
-          responseStatus: existing.responseStatus,
-          responseJson: existing.responseJson,
-          generationId: existing.generationId ?? null,
-        };
-      }
-      throw new IdempotencyReviewRequiredError();
-    }
-    if (existing.responseStatus != null && existing.responseJson != null) {
+    if (existing.responseStatus != null && existing.responseJson != null && existing.status === "completed") {
       return {
         kind: "replay",
         responseStatus: existing.responseStatus,
@@ -178,10 +176,130 @@ export async function beginIdempotency(input: {
         generationId: existing.generationId ?? null,
       };
     }
+
+    if (existing.status === "review_required" || existing.providerDispatchedAt) {
+      if (existing.status !== "review_required") {
+        await client.update({
+          where: {
+            userId_route_operationType_key: {
+              userId: input.userId,
+              route: input.route,
+              operationType,
+              key: input.key,
+            },
+          },
+          data: {
+            status: "review_required",
+            errorCode: "provider_state_unknown",
+            errorMessage: "Provider dispatch state is uncertain and requires manual review.",
+            processingLeaseExpiresAt: null,
+            failedAt: new Date(),
+          },
+        });
+      }
+      throw new IdempotencyReviewRequiredError();
+    }
+
+    const now = new Date();
+    const currentAttemptCount = Math.max(0, Number(existing.attemptCount ?? 0));
+    const status = (existing.status ?? "processing") as ApiIdempotencyStatus;
+
+    if (status === "failed_retryable") {
+      if (currentAttemptCount >= IDEMPOTENCY_MAX_AUTO_ATTEMPTS) {
+        await client.update({
+          where: {
+            userId_route_operationType_key: {
+              userId: input.userId,
+              route: input.route,
+              operationType,
+              key: input.key,
+            },
+          },
+          data: {
+            status: "failed_terminal",
+            processingLeaseExpiresAt: null,
+            expiresAt: finalExpiresAt(),
+          },
+        });
+        return {
+          kind: "in_progress",
+          generationId: existing.generationId ?? null,
+          status: "failed_terminal",
+        };
+      }
+
+      if (retryReadyAt(existing.failedAt, currentAttemptCount) > now) {
+        return {
+          kind: "in_progress",
+          generationId: existing.generationId ?? null,
+          status,
+        };
+      }
+
+      const reclaimed = await client.updateMany({
+        where: {
+          userId: input.userId,
+          route: input.route,
+          operationType,
+          key: input.key,
+          requestHash: input.requestHash,
+          status: "failed_retryable",
+          providerDispatchedAt: null,
+          attemptCount: currentAttemptCount,
+        },
+        data: {
+          status: "processing",
+          attemptCount: { increment: 1 },
+          processingLeaseExpiresAt: leaseExpiresAt(),
+          lastHeartbeatAt: now,
+          failedAt: null,
+          errorCode: null,
+          errorMessage: null,
+        },
+      });
+      if ((reclaimed.count ?? 0) === 1) {
+        return { kind: "created", key: input.key, requestHash: input.requestHash, attemptCount: currentAttemptCount + 1 };
+      }
+      return {
+        kind: "in_progress",
+        generationId: existing.generationId ?? null,
+        status,
+      };
+    }
+
+    if (status === "processing") {
+      const leaseExpired = !existing.processingLeaseExpiresAt || new Date(existing.processingLeaseExpiresAt) <= now;
+      if (leaseExpired) {
+        const reclaimed = await client.updateMany({
+          where: {
+            userId: input.userId,
+            route: input.route,
+            operationType,
+            key: input.key,
+            requestHash: input.requestHash,
+            status: "processing",
+            providerDispatchedAt: null,
+            OR: [
+              { processingLeaseExpiresAt: { lte: now } },
+              { processingLeaseExpiresAt: null },
+            ],
+          },
+          data: {
+            attemptCount: { increment: 1 },
+            processingLeaseExpiresAt: leaseExpiresAt(),
+            lastHeartbeatAt: now,
+          },
+        });
+        if ((reclaimed.count ?? 0) === 1) {
+          return { kind: "created", key: input.key, requestHash: input.requestHash, attemptCount: currentAttemptCount + 1 };
+        }
+      }
+    }
+
     return {
       kind: "in_progress",
       generationId: existing.generationId ?? null,
-      status: (existing.status ?? "processing") as ApiIdempotencyStatus,
+      status,
     };
   }
 
@@ -199,7 +317,7 @@ export async function beginIdempotency(input: {
         lastHeartbeatAt: new Date(),
       },
     });
-    return { kind: "created", key: input.key, requestHash: input.requestHash };
+    return { kind: "created", key: input.key, requestHash: input.requestHash, attemptCount: 1 };
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       const raced = await client.findUnique({
@@ -217,16 +335,20 @@ export async function beginIdempotency(input: {
           responseStatus: true,
           responseJson: true,
           status: true,
+          providerDispatchedAt: true,
         },
       });
       if (raced && raced.requestHash === input.requestHash) {
-        if (raced.responseStatus != null && raced.responseJson != null) {
+        if (raced.responseStatus != null && raced.responseJson != null && raced.status === "completed") {
           return {
             kind: "replay",
             responseStatus: raced.responseStatus,
             responseJson: raced.responseJson,
             generationId: raced.generationId ?? null,
           };
+        }
+        if (raced.status === "review_required" || raced.providerDispatchedAt) {
+          throw new IdempotencyReviewRequiredError();
         }
         return {
           kind: "in_progress",
@@ -324,11 +446,7 @@ export async function completeIdempotency(input: {
 }): Promise<void> {
   if (!input.key) throw new IdempotencyRequiredError();
   const client = idempotencyClient();
-  const finalStatus: ApiIdempotencyStatus = input.responseStatus >= 500 || input.responseStatus === 429
-    ? "failed_retryable"
-    : input.responseStatus >= 400
-      ? "failed_terminal"
-      : "completed";
+  const finalStatus: ApiIdempotencyStatus = input.responseStatus >= 400 ? "failed_terminal" : "completed";
 
   await client.update({
     where: {
@@ -344,7 +462,7 @@ export async function completeIdempotency(input: {
       generationId: input.generationId ?? undefined,
       responseStatus: input.responseStatus,
       responseJson: input.responseJson as Prisma.InputJsonValue,
-      completedAt: finalStatus === "completed" ? new Date() : undefined,
+      completedAt: finalStatus === "completed" ? new Date() : null,
       failedAt: finalStatus !== "completed" ? new Date() : undefined,
       processingLeaseExpiresAt: null,
       expiresAt: isFinalStatus(finalStatus) ? finalExpiresAt() : undefined,
@@ -357,7 +475,8 @@ export async function failIdempotency(input: {
   route: string;
   key: string | null;
   generationId: string | null;
-  error: unknown;
+  error?: unknown;
+  errorMessage?: string;
   providerDispatched?: boolean;
   operationType?: string;
 }): Promise<ApiIdempotencyStatus> {
@@ -367,9 +486,9 @@ export async function failIdempotency(input: {
     ? {
         status: "review_required" as const,
         code: "provider_state_unknown",
-        message: input.error instanceof Error ? input.error.message : "Provider state unknown",
+        message: input.errorMessage ?? (input.error instanceof Error ? input.error.message : "Provider state unknown"),
       }
-    : classifyIdempotencyFailure(input.error);
+    : classifyIdempotencyFailure(input.errorMessage ?? input.error);
 
   await client.update({
     where: {

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#070A11; font-family:'Segoe UI', system-ui, sans-serif;">
+  <!-- Backdrop -->
+  <rect width="1440" height="900" fill="#000000" fill-opacity="0.8"/>
+
+  <!-- Modal Container (MDL-06) -->
+  <rect x="420" y="140" width="600" height="620" rx="16" fill="#0E1626" stroke="#1E293B" stroke-width="2"/>
+  
+  <!-- Header -->
+  <path d="M 420 156 Q 420 140 436 140 L 1004 140 Q 1020 140 1020 156 L 1020 200 L 420 200 Z" fill="#152033"/>
+  <text x="450" y="178" fill="#F8FAFC" font-size="16" font-weight="bold">MDL-06: إنشـاء مشـروع جـديد (New Project Modal)</text>
+  <text x="980" y="178" fill="#64748B" font-size="16" cursor="pointer">✕</text>
+
+  <!-- Body -->
+  <!-- Field 1: Project Name (Mandatory) -->
+  <text x="450" y="240" fill="#E2E8F0" font-size="13" font-weight="bold">اسم المشروع (Project Title) *</text>
+  <rect x="450" y="255" width="540" height="42" rx="8" fill="#070A11" stroke="#06B6D4"/>
+  <text x="465" y="282" fill="#F8FAFC" font-size="13">صقور الصحراء (Desert Hawks)</text>
+  <text x="450" y="312" fill="#10B981" font-size="10">✓ اسم المشروع صالح ومتاح للإنشاء</text>
+
+  <!-- Field 2: Initial Idea / Logline (Optional) -->
+  <text x="450" y="345" fill="#E2E8F0" font-size="13" font-weight="bold">الفكرة الدرامية أو السيناريو الأولي (Optional Idea / Logline)</text>
+  <rect x="450" y="360" width="540" height="75" rx="8" fill="#070A11" stroke="#334155"/>
+  <text x="465" y="385" fill="#94A3B8" font-size="12">فريق نخبة في مهمة استطلاع ليلية بالصحراء يكتشف إشارة غامضة...</text>
+
+  <!-- Field 3: Project Format -->
+  <text x="450" y="465" fill="#E2E8F0" font-size="13" font-weight="bold">نوع المشروع (Project Structure)</text>
+  <rect x="450" y="480" width="260" height="38" rx="6" fill="#1E293B" stroke="#334155"/>
+  <text x="475" y="504" fill="#94A3B8" font-size="12">حلقة مفردة (Single Episode / Short)</text>
+  
+  <rect x="730" y="480" width="260" height="38" rx="6" fill="#06B6D4" fill-opacity="0.2" stroke="#06B6D4"/>
+  <text x="755" y="504" fill="#38BDF8" font-size="12" font-weight="bold">مسلسل متتابع (Microdrama Series)</text>
+
+  <!-- Field 4: Aspect Ratio & Language -->
+  <text x="450" y="545" fill="#E2E8F0" font-size="13" font-weight="bold">نسبة العرض واللغة الأساسية</text>
+  <rect x="450" y="560" width="260" height="38" rx="6" fill="#070A11" stroke="#334155"/>
+  <text x="470" y="584" fill="#E2E8F0" font-size="12">النسبة: [ 16:9 Landscape ▼ ]</text>
+
+  <rect x="730" y="560" width="260" height="38" rx="6" fill="#070A11" stroke="#334155"/>
+  <text x="750" y="584" fill="#E2E8F0" font-size="12">اللغة: [ Arabic (العربية) ▼ ]</text>
+
+  <!-- Info Box: Post-Creation Binding -->
+  <rect x="450" y="615" width="540" height="60" rx="8" fill="#152033" stroke="#1E293B"/>
+  <text x="465" y="638" fill="#A78BFA" font-size="11" font-weight="bold">🔒 الربط السيادي للمشروع (Project Sovereignty):</text>
+  <text x="465" y="658" fill="#94A3B8" font-size="10">سيتم إنشاء projectId فريد، وربط كافة المشاهد واللقطات وذاكرة الوكيل وسجل الكريدت به حصرياً.</text>
+
+  <!-- Footer Actions -->
+  <rect x="450" y="695" width="140" height="42" rx="8" fill="#1E293B" stroke="#334155"/>
+  <text x="495" y="722" fill="#94A3B8" font-size="13">إلغاء (Cancel)</text>
+
+  <rect x="790" y="695" width="200" height="42" rx="8" fill="#06B6D4"/>
+  <text x="820" y="722" fill="#FFFFFF" font-size="13" font-weight="bold">تأكيد وإنشاء المشروع ←</text>
+</svg>

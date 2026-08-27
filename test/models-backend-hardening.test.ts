@@ -209,6 +209,77 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(wan30Specs.aspectRatios).toEqual(["16:9", "9:16", "1:1", "4:3", "3:4"]);
       expect(wan30Specs.resolutions).toEqual(["480p", "720p", "1080p"]);
       expect(wan30Specs.durations).toContain(30);
+
+      const flux3Specs = inferModelCapabilitiesAndSpecs("Black Forest Labs Flux 3 Text To Video API Documentation");
+      expect(flux3Specs.cleanName).toBe("Flux 3");
+      expect(flux3Specs.modality).toBe("video");
+      expect(flux3Specs.textRoute).toBe("black-forest-labs/flux-3/text-to-video");
+      expect(flux3Specs.imageRoute).toBe("black-forest-labs/flux-3/image-to-video");
+      expect(flux3Specs.aspectRatios).toEqual(["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "2:1"]);
+      expect(flux3Specs.resolutions).toEqual(["720p", "1080p"]);
+      expect(flux3Specs.durations).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
+    });
+  });
+
+  describe("6. FLUX 3 Unified Video Integration & Pricing", () => {
+    it("properly resolves Flux 3 source, sub-routes, tariffs, and user credits", async () => {
+      const { resolveVideoModelSource } = await import("@/lib/model-source-map");
+      const { resolveDynamicVideoSubRoute } = await import("@/lib/dynamic-model-loader");
+      const { getVideoCreditsByRoute } = await import("@/lib/credit-pricing");
+      const { resolveCanonicalProviderTariff } = await import("@/lib/provider-tariff-registry");
+      const { getModelById } = await import("@/lib/video-model-registry");
+
+      const flux3 = getModelById("black-forest-labs-flux-3-video");
+      expect(flux3).toBeDefined();
+      expect(flux3?.name).toBe("Flux 3");
+      expect(flux3?.family).toBe("flux");
+
+      // Source routing
+      const textSource = resolveVideoModelSource({ id: "black-forest-labs-flux-3-video", api_route: "black-forest-labs/flux-3/text-to-video" });
+      expect(textSource.runtimeSource).toBe("wavespeed");
+      expect(textSource.pricingProvider).toBe("wavespeed");
+
+      const extendSource = resolveVideoModelSource({ id: "black-forest-labs-flux-3-video", api_route: "black-forest-labs/flux-3/video-extend" });
+      expect(extendSource.runtimeSource).toBe("wavespeed");
+      expect(extendSource.pricingProvider).toBe("wavespeed");
+
+      // Sub-route dynamic dispatch
+      const model = {
+        api_route: "black-forest-labs/flux-3/text-to-video",
+        text_api_route: "black-forest-labs/flux-3/text-to-video",
+        image_api_route: "black-forest-labs/flux-3/image-to-video",
+        reference_api_route: "black-forest-labs/flux-3/image-to-video",
+        video_api_route: "black-forest-labs/flux-3/video-extend",
+        start_end_api_route: "black-forest-labs/flux-3/start-end-to-video",
+      };
+      expect(resolveDynamicVideoSubRoute(model, false, false, false, false)).toBe("black-forest-labs/flux-3/text-to-video");
+      expect(resolveDynamicVideoSubRoute(model, true, false, false, false)).toBe("black-forest-labs/flux-3/image-to-video");
+      expect(resolveDynamicVideoSubRoute(model, true, false, false, true)).toBe("black-forest-labs/flux-3/start-end-to-video");
+      expect(resolveDynamicVideoSubRoute(model, false, false, true, false)).toBe("black-forest-labs/flux-3/video-extend");
+
+      // Customer pricing: 720p $0.17/s * 56 = 9.52 cr/s -> 5s = 47.6 cr
+      expect(getVideoCreditsByRoute("black-forest-labs/flux-3/text-to-video", { duration: 5, resolution: "720p" })).toBe(47.6);
+      // 1080p: $0.29/s * 56 = 16.24 cr/s -> 5s = 81.2 cr
+      expect(getVideoCreditsByRoute("black-forest-labs/flux-3/text-to-video", { duration: 5, resolution: "1080p" })).toBe(81.2);
+      // Draft / Extend: $0.06/s * 56 = 3.36 cr/s -> 5s = 16.8 cr
+      expect(getVideoCreditsByRoute("black-forest-labs/flux-3/video-extend", { duration: 5 })).toBe(16.8);
+
+      // Provider tariff
+      const tariff720p = resolveCanonicalProviderTariff({
+        providerName: "WaveSpeed",
+        providerRoute: "black-forest-labs/flux-3/text-to-video",
+        durationSec: 5,
+        resolution: "720p",
+      });
+      expect(tariff720p.usd).toBe(0.85);
+
+      const tariff1080p = resolveCanonicalProviderTariff({
+        providerName: "WaveSpeed",
+        providerRoute: "black-forest-labs/flux-3/text-to-video",
+        durationSec: 5,
+        resolution: "1080p",
+      });
+      expect(tariff1080p.usd).toBe(1.45);
     });
   });
 });

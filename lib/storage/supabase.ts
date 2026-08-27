@@ -112,7 +112,7 @@ export class SupabaseStorageProvider implements StorageProvider {
     const { bucket, path } = this.resolveBucketAndPath(params.bucket, params.path);
     const { data, error } = await this.client.storage
       .from(bucket)
-      .createSignedUploadUrl(path, { expiresIn: params.expiresIn || 3600 });
+      .createSignedUploadUrl(path, { upsert: true });
     if (error || !data) throw new Error(error?.message || "Failed to create signed URL");
     return {
       signedUrl: data.signedUrl,

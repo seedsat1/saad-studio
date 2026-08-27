@@ -100,6 +100,8 @@ const getTranslation = (key: string, lang: "en" | "ar") => {
     "Storyboard": "القصة المصورة",
     "Storyboard Studio": "استوديو القصة المصورة",
     "Hook Studio": "استوديو الهوكات",
+    "Drama Studio": "استوديو الميكرودراما",
+    "Create AI microdrama series and screenplays": "إنشاء مسلسلات ميكرودراما وسيناريوهات بالذكاء الاصطناعي",
     "Shots Studio": "استوديو اللقطات",
     "Open Shots Studio": "افتح استوديو اللقطات",
     "Credit Balance": "رصيد النقاط",
@@ -192,6 +194,7 @@ const IMAGE_MODEL_GROUPS = [
 ];
 
 const VIDEO_FEATURES = [
+  { label: "Drama Studio",        href: "/drama-studio",    icon: Film,         color: "text-amber-400",   description: "Create AI microdrama series and screenplays", badge: "NEW" },
   { label: "Hook Studio",         href: "/hook-studio",     icon: Clapperboard, color: "text-pink-400",    description: "Create viral scripts, hooks, and AI short-form videos", badge: "NEW" },
   { label: "Agent Studio",        href: "/agent-studio",    icon: Bot,          color: "text-violet-400",  description: "AI agent orchestrator & custom skills workflow", badge: "NEW" },
   { label: "Cinema Flow",         href: "/cinema-flow",     icon: Bot,          color: "text-orange-400",  description: "AI Creative Agent workspace",          badge: "NEW" },

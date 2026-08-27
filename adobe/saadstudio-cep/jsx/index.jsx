@@ -301,6 +301,50 @@
         });
     };
 
+    host.saadstudio.getSequenceStats = function () {
+        return safe(function () {
+            if (!IS_PPRO) return null;
+            var seq = getActiveOrFirstSequence();
+            if (!seq) return null;
+            
+            var videoClips = 0;
+            var audioClips = 0;
+            var activeAudioTracks = 0;
+            
+            if (seq.videoTracks) {
+                for (var t = 0; t < seq.videoTracks.numTracks; t++) {
+                    var track = seq.videoTracks[t];
+                    if (track && track.clips) {
+                        videoClips += track.clips.numItems;
+                    }
+                }
+            }
+            
+            if (seq.audioTracks) {
+                for (var a = 0; a < seq.audioTracks.numTracks; a++) {
+                    var aTrack = seq.audioTracks[a];
+                    if (aTrack && aTrack.clips) {
+                        var trackClips = aTrack.clips.numItems;
+                        if (trackClips > 0) {
+                            audioClips += trackClips;
+                            activeAudioTracks++;
+                        }
+                    }
+                }
+            }
+            
+            var totalShots = videoClips;
+            var speakersCount = activeAudioTracks > 0 ? activeAudioTracks : 1;
+            
+            return {
+                shots: totalShots,
+                speakers: speakersCount,
+                audioFiles: activeAudioTracks,
+                videoFiles: videoClips
+            };
+        });
+    };
+
     host.saadstudio.getActiveSequenceContext = function () {
         return safe(function () {
             if (IS_PPRO) return pproTimelineContext();

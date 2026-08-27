@@ -182,11 +182,19 @@ export async function PATCH(
           const isPodcast = planId === "podcast";
 
           if (!isPodcast && plan) {
+            const existingUserBalance = await tx.user.findUnique({
+              where: { id: currentTx.userId },
+              select: { creditBalance: true },
+            });
+            const oldBalance = Math.floor(existingUserBalance?.creditBalance ?? 0);
+            const newBalance = Math.max(0, Math.floor(planCredits));
+            const ledgerDelta = newBalance - oldBalance;
+
             await tx.user.update({
               where: { id: currentTx.userId },
               data: {
-                creditBalance: planCredits,
-                monthlyCredits: planCredits,
+                creditBalance: newBalance,
+                monthlyCredits: newBalance,
                 creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
                 lastCreditRenewal: now,
                 creditAdvanceBalance: 0,
@@ -197,9 +205,15 @@ export async function PATCH(
 
             await tryCreateCreditLedgerEntry(tx, {
               userId: currentTx.userId,
-              delta: planCredits,
+              delta: ledgerDelta,
               reason: "subscription_grant",
               operationType: "admin_adjustment",
+              metadata: {
+                transactionId: currentTx.id,
+                oldBalance,
+                newBalance,
+                planCredits,
+              },
             });
           }
 

@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#070A11; font-family:'Segoe UI', system-ui, sans-serif;">
+  <!-- Header -->
+  <rect x="40" y="30" width="1360" height="50" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="70" y="62" fill="#F8FAFC" font-size="16" font-weight="bold">SAAD STUDIO — RESPONSIVE BREAKPOINT SPECIFICATION (GATE B)</text>
+  <text x="1150" y="62" fill="#06B6D4" font-size="13">Desktop-First Strategy</text>
+
+  <!-- Box 1: 1280px Compact Desktop -->
+  <rect x="40" y="105" width="420" height="660" rx="10" fill="#090D16" stroke="#334155"/>
+  <rect x="40" y="105" width="420" height="35" rx="10" fill="#1E293B"/>
+  <text x="55" y="128" fill="#38BDF8" font-size="13" font-weight="bold">1. COMPACT DESKTOP (1280px)</text>
+
+  <rect x="55" y="155" width="160" height="420" rx="6" fill="#0E1626" stroke="#1E293B"/>
+  <text x="65" y="175" fill="#8B5CF6" font-size="11" font-weight="bold">Agent Panel (40%)</text>
+  <text x="65" y="195" fill="#64748B" font-size="9">Width: 512px</text>
+  <text x="65" y="215" fill="#64748B" font-size="9">Compact Message Bubbles</text>
+  <text x="65" y="235" fill="#64748B" font-size="9">Collapsible Memory Drawer</text>
+
+  <rect x="225" y="155" width="220" height="420" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="235" y="175" fill="#06B6D4" font-size="11" font-weight="bold">Workspace (60%)</text>
+  <text x="235" y="195" fill="#64748B" font-size="9">Width: 768px</text>
+  <text x="235" y="215" fill="#64748B" font-size="9">5 Tab Headers with Compact Spacing</text>
+  <text x="235" y="235" fill="#64748B" font-size="9">Creative Rail: Compact Icons only</text>
+  <text x="235" y="255" fill="#64748B" font-size="9">Timeline: Horizontal Scroll enabled</text>
+
+  <rect x="55" y="590" width="390" height="155" rx="6" fill="#152033"/>
+  <text x="65" y="615" fill="#F8FAFC" font-size="11" font-weight="bold">Behavior &amp; Guardrails (1280px):</text>
+  <text x="65" y="635" fill="#94A3B8" font-size="10">• Agent remains strictly fixed on LEFT (40%).</text>
+  <text x="65" y="655" fill="#94A3B8" font-size="10">• No column flipping in Arabic (LTR spatial layout).</text>
+  <text x="65" y="675" fill="#94A3B8" font-size="10">• Continuity Inspector opens as overlay drawer.</text>
+  <text x="65" y="695" fill="#94A3B8" font-size="10">• Timeline ruler LTR preserved.</text>
+
+  <!-- Box 2: 1440px Standard Desktop (Primary Target) -->
+  <rect x="490" y="105" width="460" height="660" rx="10" fill="#090D16" stroke="#06B6D4" stroke-width="2"/>
+  <rect x="490" y="105" width="460" height="35" rx="10" fill="#152033"/>
+  <text x="505" y="128" fill="#38BDF8" font-size="13" font-weight="bold">2. STANDARD DESKTOP (1440px — PRIMARY)</text>
+
+  <rect x="505" y="155" width="185" height="420" rx="6" fill="#0E1626" stroke="#1E293B"/>
+  <text x="515" y="175" fill="#8B5CF6" font-size="11" font-weight="bold">Agent Panel (42%)</text>
+  <text x="515" y="195" fill="#64748B" font-size="9">Width: 600px</text>
+  <text x="515" y="215" fill="#64748B" font-size="9">Full Proposal Diff Cards</text>
+  <text x="515" y="235" fill="#64748B" font-size="9">Inline Memory Drawer (9 Layers)</text>
+
+  <rect x="700" y="155" width="235" height="420" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="710" y="175" fill="#06B6D4" font-size="11" font-weight="bold">Workspace (58%)</text>
+  <text x="710" y="195" fill="#64748B" font-size="9">Width: 840px</text>
+  <text x="710" y="215" fill="#64748B" font-size="9">5 Full Named Tabs</text>
+  <text x="710" y="235" fill="#64748B" font-size="9">Creative Rail: Icons + Scope Badge</text>
+  <text x="710" y="255" fill="#64748B" font-size="9">7 Audio Tracks Full Visibility</text>
+
+  <rect x="505" y="590" width="430" height="155" rx="6" fill="#152033"/>
+  <text x="515" y="615" fill="#F8FAFC" font-size="11" font-weight="bold">Behavior &amp; Guardrails (1440px):</text>
+  <text x="515" y="635" fill="#94A3B8" font-size="10">• Optimal density for director workstation.</text>
+  <text x="515" y="655" fill="#94A3B8" font-size="10">• Script Editor &amp; Preview Player fit side-by-side.</text>
+  <text x="515" y="675" fill="#94A3B8" font-size="10">• Storyboard Keyframes visible over Timeline.</text>
+  <text x="515" y="695" fill="#94A3B8" font-size="10">• 5 Separated Durations fully legible.</text>
+
+  <!-- Box 3: 1920px Ultra-Wide Desktop -->
+  <rect x="980" y="105" width="420" height="660" rx="10" fill="#090D16" stroke="#334155"/>
+  <rect x="980" y="105" width="420" height="35" rx="10" fill="#1E293B"/>
+  <text x="995" y="128" fill="#38BDF8" font-size="13" font-weight="bold">3. ULTRA-WIDE (1920px)</text>
+
+  <rect x="995" y="155" width="160" height="420" rx="6" fill="#0E1626" stroke="#1E293B"/>
+  <text x="1005" y="175" fill="#8B5CF6" font-size="11" font-weight="bold">Agent Panel (40%)</text>
+  <text x="1005" y="195" fill="#64748B" font-size="9">Width: 768px</text>
+  <text x="1005" y="215" fill="#64748B" font-size="9">Expanded Memory View</text>
+  <text x="1005" y="235" fill="#64748B" font-size="9">Extended Message History</text>
+
+  <rect x="1165" y="155" width="220" height="420" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="1175" y="175" fill="#06B6D4" font-size="11" font-weight="bold">Workspace (60%)</text>
+  <text x="1175" y="195" fill="#64748B" font-size="9">Width: 1152px</text>
+  <text x="1175" y="215" fill="#64748B" font-size="9">Continuity Inspector permanently Pinned</text>
+  <text x="1175" y="235" fill="#64748B" font-size="9">Full Storyboard side-by-side with Player</text>
+  <text x="1175" y="255" fill="#64748B" font-size="9">Extended Multi-track Timeline view</text>
+
+  <rect x="995" y="590" width="390" height="155" rx="6" fill="#152033"/>
+  <text x="1005" y="615" fill="#F8FAFC" font-size="11" font-weight="bold">Behavior &amp; Guardrails (1920px):</text>
+  <text x="1005" y="635" fill="#94A3B8" font-size="10">• Maximum cinematic screen real-estate.</text>
+  <text x="1005" y="655" fill="#94A3B8" font-size="10">• 3-column layout inside stage if Inspector is pinned.</text>
+  <text x="1005" y="675" fill="#94A3B8" font-size="10">• High-definition video canvas at 1080p preview.</text>
+  <text x="1005" y="695" fill="#94A3B8" font-size="10">• Mobile view: DEFERRED (Not in Gate B).</text>
+
+  <!-- Footer -->
+  <rect x="40" y="785" width="1360" height="75" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="60" y="815" fill="#38BDF8" font-size="12" font-weight="bold">Responsive Policy:</text>
+  <text x="60" y="838" fill="#94A3B8" font-size="11">Spatial grid proportions (40-42% / 58-60%) and LTR timeline remain uncompromised across all desktop resolutions. Mobile is deferred.</text>
+</svg>

@@ -304,6 +304,17 @@ export const WAVESPEED_PROVENANCE_REGISTRY: Record<string, Omit<TariffProvenance
     capturedAt: "2026-08-25T00:00:00+03:00",
     verificationStatus: "VERIFIED_CURRENT",
   },
+  "black-forest-labs/flux-3": {
+    provider: "WaveSpeed",
+    providerRoute: "black-forest-labs/flux-3",
+    rateUsd: 0.17, // 720p: 0.17/s, 1080p: 0.29/s, draft: 0.06/s
+    billingUnit: "USD/sec",
+    sourceType: "official_docs",
+    sourceReference: "WaveSpeed Black Forest Labs Flux 3 API Documentation supplied by owner",
+    effectiveDate: "2026-08-27",
+    capturedAt: "2026-08-27T20:25:00+03:00",
+    verificationStatus: "VERIFIED_CURRENT",
+  },
   "image-upscaler": {
     provider: "WaveSpeed",
     providerRoute: "wavespeed-ai/image-upscaler",
@@ -407,6 +418,38 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
         : "text-to-video";
     const provMeta = WAVESPEED_PROVENANCE_REGISTRY["alibaba/wan-3.0"];
     const tariffKey = `wavespeed:video:alibaba-wan-3.0:${routeKey}:${resKey}`;
+    return {
+      usd: parseFloat((rateUsd * duration * units).toFixed(4)),
+      source: "estimated",
+      tariffKey,
+      providerName: "WaveSpeed",
+      unit: "USD/sec",
+      provenance: {
+        ...provMeta,
+        tariffKey,
+        providerRoute: input.providerRoute || modelLower,
+        rateUsd,
+        resolution: resKey,
+        verificationStatus: checkTariffStaleness(provMeta.capturedAt),
+      },
+    };
+  }
+
+  // Black Forest Labs Flux 3 Video via WaveSpeed
+  if (modelLower.startsWith("black-forest-labs/flux-3") || modelLower.startsWith("black-forest-labs-flux-3") || modelLower.includes("flux3_video")) {
+    const is1080 = q.includes("1080");
+    const isDraft = modelLower.includes("draft") || modelLower.includes("extend");
+    const rateUsd = isDraft ? 0.06 : is1080 ? 0.29 : 0.17;
+    const resKey = isDraft ? "draft" : is1080 ? "1080p" : "720p";
+    const routeKey = modelLower.includes("extend")
+      ? "video-extend"
+      : modelLower.includes("start-end")
+        ? "start-end-to-video"
+        : modelLower.includes("image-to-video")
+          ? "image-to-video"
+          : "text-to-video";
+    const provMeta = WAVESPEED_PROVENANCE_REGISTRY["black-forest-labs/flux-3"];
+    const tariffKey = `wavespeed:video:flux-3:${routeKey}:${resKey}`;
     return {
       usd: parseFloat((rateUsd * duration * units).toFixed(4)),
       source: "estimated",

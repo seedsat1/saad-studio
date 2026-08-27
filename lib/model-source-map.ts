@@ -105,6 +105,7 @@ export function resolveVideoModelSource(model: VideoSourceInput): ModelSourceMet
     sourceRef.startsWith("kwaivgi/") ||
     sourceRef.startsWith("hailuo/") ||
     sourceRef.startsWith("alibaba/") ||
+    sourceRef.startsWith("black-forest-labs/") ||
     sourceRef.startsWith("x-ai/") ||
     sourceRef.startsWith("wavespeed-ai/")
   ) {

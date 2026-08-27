@@ -16,7 +16,7 @@ import { getCentralizedDynamicVideoModels } from "@/lib/model-definition-registr
 import { resolveDynamicVideoSubRoute } from "@/lib/dynamic-model-loader";
 import { getGoogleVideoConstraints, isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
-import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody, idempotencyErrorResponse } from "@/lib/idempotency";
+import { beginIdempotency, completeIdempotency, failIdempotency, getIdempotencyKey, hashRequestBody, idempotencyErrorResponse, markIdempotencyProviderDispatched } from "@/lib/idempotency";
 import { VIDEO_PROVIDER_BUSY_MESSAGE } from "@/lib/generation-errors";
 import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput, urlToVideoInput, type VeoImageInput, type VeoVideoInput, type VeoOperationHandle, type VeoResolution, type VeoTier } from "@/lib/gemini-veo";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
@@ -599,6 +599,10 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
   const isWan30TextRoute = route === "alibaba/wan-3.0/text-to-video";
   const isWan30ImageRoute = route === "alibaba/wan-3.0/image-to-video";
   const isWan30ReferenceRoute = route === "alibaba/wan-3.0/reference-to-video";
+  const isFlux3Route = typeof route === "string" && (route.startsWith("black-forest-labs/flux-3") || route.startsWith("black-forest-labs-flux-3"));
+  const isFlux3ExtendRoute = isFlux3Route && route.includes("extend");
+  const isFlux3StartEndRoute = isFlux3Route && route.includes("start-end");
+  const isFlux3ImageRoute = isFlux3Route && route.includes("image-to-video");
   const isKling30ImageRoute =
     route === "kwaivgi/kling-v3.0-std/image-to-video" ||
     route === "kwaivgi/kling-v3.0-pro/image-to-video";
@@ -608,7 +612,7 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     route === "kwaivgi/kling-v3-turbo-pro/image-to-video";
   const isKlingO3Route = typeof route === "string" && route.startsWith("kwaivgi/kling-video-o3-");
   const isKling26Route = typeof route === "string" && route.startsWith("kwaivgi/kling-v2.6-");
-  const hasAudio = isSeedance25TextTurboRoute || isSeedance25TurboImageRoute || isSeedance25SpicyImageRoute || isSeedanceBaseImageRoute || route?.includes("seedance-2.0-mini") || isSeedanceTurboImageRoute || isWan30TextRoute || isWan30ImageRoute || isWan30ReferenceRoute
+  const hasAudio = isSeedance25TextTurboRoute || isSeedance25TurboImageRoute || isSeedance25SpicyImageRoute || isSeedanceBaseImageRoute || route?.includes("seedance-2.0-mini") || isSeedanceTurboImageRoute || isWan30TextRoute || isWan30ImageRoute || isWan30ReferenceRoute || isFlux3Route
     ? payload.generate_audio !== false
     : payload.sound === true || payload.generate_audio === true;
   out.generate_audio = hasAudio;
@@ -720,6 +724,54 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     exact.duration = Number.isFinite(duration) ? Math.min(30, Math.max(2, duration)) : 5;
     if (typeof out.thinking_mode === "boolean") exact.thinking_mode = out.thinking_mode;
     exact.enable_audio = out.generate_audio !== false;
+    if (typeof payload.seed === "number" && Number.isFinite(payload.seed)) exact.seed = payload.seed;
+    return exact;
+  }
+
+  if (isFlux3Route) {
+    const exact: Record<string, unknown> = {};
+    if (typeof out.prompt === "string" && out.prompt.trim()) {
+      exact.prompt = out.prompt.trim();
+    } else {
+      throw new ValidationError("Flux 3 requires a prompt.");
+    }
+
+    if (isFlux3ExtendRoute) {
+      const video = typeof payload.video === "string" && payload.video.trim()
+        ? payload.video.trim()
+        : Array.isArray(out.reference_video_urls) && out.reference_video_urls[0]
+          ? out.reference_video_urls[0]
+          : null;
+      if (!video) {
+        throw new ValidationError("Flux 3 Video Extend requires a source video.");
+      }
+      exact.video = video;
+    } else if (isFlux3StartEndRoute) {
+      const startImage = (typeof out.image === "string" ? out.image : null) || (typeof payload.start_image === "string" ? payload.start_image : null) || (Array.isArray(payload.image_urls) ? payload.image_urls[0] : null);
+      const endImage = (typeof out.last_image === "string" ? out.last_image : null) || (typeof payload.end_image === "string" ? payload.end_image : null) || (Array.isArray(payload.image_urls) ? payload.image_urls[1] : null);
+      if (!startImage || !endImage) {
+        throw new ValidationError("Flux 3 Start-End-to-Video requires both start_image and end_image.");
+      }
+      exact.start_image = startImage;
+      exact.end_image = endImage;
+    } else if (isFlux3ImageRoute) {
+      const image = (typeof out.image === "string" ? out.image : null) || (typeof out.image_url === "string" ? out.image_url : null) || (Array.isArray(payload.image_urls) ? payload.image_urls[0] : null) || (Array.isArray(out.reference_image_urls) ? out.reference_image_urls[0] : null);
+      if (!image) {
+        throw new ValidationError("Flux 3 Image-to-Video requires an input image.");
+      }
+      exact.image = image;
+    }
+
+    if (typeof out.aspect_ratio === "string" && ["21:9", "2:1", "16:9", "4:3", "1:1", "3:4", "9:16"].includes(out.aspect_ratio)) {
+      exact.aspect_ratio = out.aspect_ratio;
+    }
+    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "720p";
+    if (!route.includes("draft")) {
+      exact.resolution = resolution === "1080p" ? "1080p" : "720p";
+    }
+    const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
+    exact.duration = Number.isFinite(duration) ? Math.min(20, Math.max(5, duration)) : 5;
+    exact.generate_audio = out.generate_audio !== false;
     if (typeof payload.seed === "number" && Number.isFinite(payload.seed)) exact.seed = payload.seed;
     return exact;
   }
@@ -2183,6 +2235,9 @@ export async function POST(req: Request) {
   let generationId: string | null = null;
   const idempotencyKey = getIdempotencyKey(req.headers);
   let requestHash: string | null = null;
+  let idempotencyClaimed = false;
+  let providerDispatched = false;
+  let idempotencyUserId: string | null = null;
 
   try {
     await syncKieModelCatalog(false).catch(() => null);
@@ -2353,17 +2408,26 @@ export async function POST(req: Request) {
       modelRoute.startsWith("kling/v3-turbo") ||
       modelRoute.startsWith("kling/v2-5-turbo") ||
       modelRoute.startsWith("alibaba/wan-3.0") ||
+      modelRoute.startsWith("black-forest-labs/") ||
+      modelRoute.startsWith("black-forest-labs-flux-3") ||
       modelRoute.startsWith("x-ai/") ||
       modelRoute === "bytedance/seedream-v5.0-pro/edit" ||
       modelRoute === "gpt-image-2-text-to-image";
 
     const dynamicVideoModels = await getCentralizedDynamicVideoModels();
     let dynamicVideoModel = dynamicVideoModels.find(
-      (m) => (m.api_route === modelRoute || m.id === modelRoute || m.text_api_route === modelRoute || m.image_api_route === modelRoute || m.reference_api_route === modelRoute) && m.isActive !== false
+      (m) => (m.api_route === modelRoute || m.id === modelRoute || m.text_api_route === modelRoute || m.image_api_route === modelRoute || m.reference_api_route === modelRoute || (m as any).video_api_route === modelRoute || (m as any).start_end_api_route === modelRoute) && m.isActive !== false
     );
 
     // Intelligent background sub-route dispatch for unified dynamic models
     if (dynamicVideoModel) {
+      const dynamicHasVideoInput =
+        (typeof payload.video === "string" && payload.video.trim().length > 0) ||
+        hasNonEmptyStringList(payload.reference_video_urls) ||
+        hasNonEmptyStringList(payload.referenceVideoUrls);
+      const dynamicHasStartEndInput =
+        (Boolean(payload.start_image) && Boolean(payload.end_image)) ||
+        (Array.isArray(payload.image_urls) && payload.image_urls.length >= 2 && Boolean(payload.has_end_frame));
       const dynamicHasReferenceInput =
         hasNonEmptyStringList(payload.reference_image_urls) ||
         hasNonEmptyStringList(payload.referenceImageUrls) ||
@@ -2374,7 +2438,13 @@ export async function POST(req: Request) {
       const dynamicHasImageOrReferenceInput =
         hasImage ||
         dynamicHasReferenceInput;
-      modelRoute = resolveDynamicVideoSubRoute(dynamicVideoModel, dynamicHasImageOrReferenceInput, dynamicHasReferenceInput) || modelRoute;
+      modelRoute = resolveDynamicVideoSubRoute(
+        dynamicVideoModel,
+        dynamicHasImageOrReferenceInput,
+        dynamicHasReferenceInput,
+        dynamicHasVideoInput,
+        dynamicHasStartEndInput
+      ) || modelRoute;
     } else if (modelRoute.startsWith("alibaba/wan-3.0")) {
       const hasWanReferenceInput =
         hasNonEmptyStringList(payload.reference_image_urls) ||
@@ -2392,6 +2462,27 @@ export async function POST(req: Request) {
         : hasWanImageInput
           ? "alibaba/wan-3.0/image-to-video"
           : "alibaba/wan-3.0/text-to-video";
+    } else if (modelRoute.startsWith("black-forest-labs/flux-3") || modelRoute === "black-forest-labs-flux-3-video") {
+      const hasFluxVideoInput =
+        (typeof payload.video === "string" && payload.video.trim().length > 0) ||
+        hasNonEmptyStringList(payload.reference_video_urls) ||
+        hasNonEmptyStringList(payload.referenceVideoUrls);
+      const hasFluxStartEndInput =
+        (Boolean(payload.start_image) && Boolean(payload.end_image)) ||
+        (Array.isArray(payload.image_urls) && payload.image_urls.length >= 2 && Boolean(payload.has_end_frame));
+      const hasFluxImageInput =
+        hasImage ||
+        hasNonEmptyStringList(payload.image_urls) ||
+        hasNonEmptyStringList(payload.imageUrls) ||
+        hasNonEmptyStringList(payload.reference_image_urls) ||
+        hasNonEmptyStringList(payload.referenceImageUrls);
+      modelRoute = hasFluxVideoInput
+        ? "black-forest-labs/flux-3/video-extend"
+        : hasFluxStartEndInput
+          ? "black-forest-labs/flux-3/start-end-to-video"
+          : hasFluxImageInput
+            ? "black-forest-labs/flux-3/image-to-video"
+            : "black-forest-labs/flux-3/text-to-video";
     }
 
     let kieModel = (isDirectGoogleVeo31Route || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);
@@ -2405,9 +2496,13 @@ export async function POST(req: Request) {
         dynamicVideoModel.family === "hailuo" ||
         dynamicVideoModel.family === "seedance" ||
         dynamicVideoModel.family === "wan" ||
+        dynamicVideoModel.family === "flux" ||
         dynamicVideoModel.api_route?.startsWith("alibaba/") ||
         dynamicVideoModel.text_api_route?.startsWith("alibaba/") ||
         dynamicVideoModel.image_api_route?.startsWith("alibaba/") ||
+        dynamicVideoModel.api_route?.startsWith("black-forest-labs/") ||
+        dynamicVideoModel.text_api_route?.startsWith("black-forest-labs/") ||
+        dynamicVideoModel.image_api_route?.startsWith("black-forest-labs/") ||
         dynamicVideoModel.isCustom;
       if (isWaveSpeed) {
         wavespeedRoute = modelRoute;
@@ -2602,7 +2697,20 @@ export async function POST(req: Request) {
       if (idem.kind === "in_progress") {
         return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
       }
+      idempotencyClaimed = true;
+      idempotencyUserId = userId;
     }
+
+    const markProviderDispatched = async () => {
+      if (providerDispatched) return;
+      await markIdempotencyProviderDispatched({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+      });
+      providerDispatched = true;
+    };
 
     // Official Seedance 2.0 path (BytePlus ModelArk, no KIE)
     const hasImageOrAvatar = payloadHasImageInput(payload);
@@ -2623,14 +2731,20 @@ export async function POST(req: Request) {
 
       const arkKey = getArkApiKeyFromEnv();
       if (!arkKey) {
-        return NextResponse.json(
-          {
-            error: "BytePlus ModelArk provider is not configured. Add ARK_API_KEY.",
-            code: "ark_key_missing",
-            modelRoute,
-          },
-          { status: 503 },
-        );
+        const responseJson = {
+          error: "BytePlus ModelArk provider is not configured. Add ARK_API_KEY.",
+          code: "ark_key_missing",
+          modelRoute,
+        };
+        await completeIdempotency({
+          userId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 503,
+          responseJson,
+        });
+        return NextResponse.json(responseJson, { status: 503 });
       }
 
       const prompt = typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 5000) : "Seedance 2.0 video generation";
@@ -2674,6 +2788,10 @@ export async function POST(req: Request) {
           ...payload,
           routing: routingMetadata(routingDecision),
         },
+        idempotency: {
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+        },
       });
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
@@ -2690,13 +2808,7 @@ export async function POST(req: Request) {
       console.log(`[Provider Payload Audit] Sanitized Payload:`, JSON.stringify(sanitizedArkPayload, null, 2));
       console.log(`[Provider Payload Audit] ---`);
 
-      await attachIdempotencyGeneration({
-        userId,
-        route: IDEMPOTENCY_ROUTE,
-        key: idempotencyKey,
-        generationId,
-      });
-
+      await markProviderDispatched();
       const createRes = await fetch(BYTEPLUS_CONTENT_TASKS_URL, {
         method: "POST",
         headers: arkHeaders(),
@@ -2716,7 +2828,7 @@ export async function POST(req: Request) {
           imageReferences: arkImageAuditDetails,
           rawResponseText: text.slice(0, 1000),
         }));
-        if (chargedCredits > 0 && chargedUserId && generationId) {
+        if (!providerDispatched && chargedCredits > 0 && chargedUserId && generationId) {
           await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
             reason: "generation_refund_provider_failed",
             clearMediaUrl: true,
@@ -2742,14 +2854,17 @@ export async function POST(req: Request) {
           modelRoute,
           providerAudit,
         };
-        await completeIdempotency({
+        const status = await failIdempotency({
           userId,
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
-          responseStatus: failure.responseStatus,
-          responseJson,
+          errorMessage: responseJson.error,
+          providerDispatched,
         });
+        if (status === "review_required") {
+          return NextResponse.json({ ...responseJson, status }, { status: 409 });
+        }
         return NextResponse.json(responseJson, { status: failure.responseStatus });
       }
 
@@ -2764,7 +2879,7 @@ export async function POST(req: Request) {
           imageReferences: arkImageAuditDetails,
           rawResponse: createJson,
         }));
-        if (chargedCredits > 0 && chargedUserId && generationId) {
+        if (!providerDispatched && chargedCredits > 0 && chargedUserId && generationId) {
           await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
             reason: "generation_refund_provider_failed",
             clearMediaUrl: true,
@@ -2792,14 +2907,17 @@ export async function POST(req: Request) {
           modelRoute,
           providerAudit,
         };
-        await completeIdempotency({
+        const status = await failIdempotency({
           userId,
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
-          responseStatus: failure.responseStatus,
-          responseJson,
+          errorMessage: rawError,
+          providerDispatched,
         });
+        if (status === "review_required") {
+          return NextResponse.json({ ...responseJson, status }, { status: 409 });
+        }
         return NextResponse.json(responseJson, { status: failure.responseStatus });
       }
 
@@ -2826,7 +2944,9 @@ export async function POST(req: Request) {
     if (isGoogleVideoRoute(modelRoute)) {
       const prompt = typeof payload.prompt === "string" ? sanitizePrompt(stripPromptReferenceTags(payload.prompt), 5000) : "";
       if (!prompt) {
-        return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+        const responseJson = { error: "Prompt is required" };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
+        return NextResponse.json(responseJson, { status: 400 });
       }
 
       const startImage =
@@ -2890,13 +3010,12 @@ export async function POST(req: Request) {
         isGoogleVeo31ExtensionRoute;
 
       if (resolvedStartVideo && !supportsGoogleVideoInput) {
-        return NextResponse.json(
-          {
-            error: "This Google video model does not support video input. Use Gemini Omni Flash for video edit or Veo 3.1 Fast/Pro for video extension.",
-            publicError: "This model does not support video input.",
-          },
-          { status: 400 },
-        );
+        const responseJson = {
+          error: "This Google video model does not support video input. Use Gemini Omni Flash for video edit or Veo 3.1 Fast/Pro for video extension.",
+          publicError: "This model does not support video input.",
+        };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
+        return NextResponse.json(responseJson, { status: 400 });
       }
 
       const hasGoogleForcedEightSecondInput =
@@ -2919,17 +3038,18 @@ export async function POST(req: Request) {
       const resolution = normalizedGoogle.resolution;
       const durationSeconds = normalizedGoogle.duration;
       if (resolvedStartVideo && isGoogleVeo31ExtensionRoute && resolution !== "720p") {
-        return NextResponse.json(
-          {
-            error: "Google Veo 3.1 video extension supports 720p only. Choose 720p or remove the input video.",
-            publicError: "Video Extend on Veo 3.1 supports 720p only.",
-          },
-          { status: 400 },
-        );
+        const responseJson = {
+          error: "Google Veo 3.1 video extension supports 720p only. Choose 720p or remove the input video.",
+          publicError: "Video Extend on Veo 3.1 supports 720p only.",
+        };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
+        return NextResponse.json(responseJson, { status: 400 });
       }
       const googleCreditsToCharge = await getGenerationCost(modelRoute, durationSeconds, 1, resolution);
       if (googleCreditsToCharge <= 0) {
-        return NextResponse.json({ error: "Invalid model cost configuration" }, { status: 400 });
+        const responseJson = { error: "Invalid model cost configuration" };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
+        return NextResponse.json(responseJson, { status: 400 });
       }
       const negativePrompt =
         typeof payload.negative_prompt === "string" && payload.negative_prompt.trim()
@@ -2985,17 +3105,14 @@ export async function POST(req: Request) {
         providerCostUsd: googleCostEst.usd,
         providerCostSource: googleCostEst.source,
         requestPayload: googleAuditPayload,
+        idempotency: {
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+        },
       });
       generationId = charge.generationId;
       chargedCredits = googleCreditsToCharge;
       chargedUserId = userId;
-      await attachIdempotencyGeneration({
-        userId,
-        route: IDEMPOTENCY_ROUTE,
-        key: idempotencyKey,
-        generationId,
-      });
-
       const [image, lastFrame, referenceImages, video] = await Promise.all([
         sourceToGoogleImageInput(resolvedStartImage),
         sourceToGoogleImageInput(resolvedEndImage),
@@ -3014,6 +3131,7 @@ export async function POST(req: Request) {
       let opHandle: VeoOperationHandle;
       try {
         const tier = resolveGoogleVeoTier(modelRoute);
+        await markProviderDispatched();
         opHandle = await startVeoGeneration({
           tier,
           prompt,
@@ -3028,7 +3146,7 @@ export async function POST(req: Request) {
           video,
         });
       } catch (err) {
-        if (generationId && chargedUserId && chargedCredits > 0) {
+        if (!providerDispatched && generationId && chargedUserId && chargedCredits > 0) {
           await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
             reason: "generation_refund_provider_failed",
             clearMediaUrl: true,
@@ -3049,14 +3167,17 @@ export async function POST(req: Request) {
           providerModel: resolveGoogleVeoProviderModel(modelRoute),
           modelRoute,
         };
-        await completeIdempotency({
+        const status = await failIdempotency({
           userId,
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
-          responseStatus: 502,
-          responseJson,
+          errorMessage: rawError,
+          providerDispatched,
         });
+        if (status === "review_required") {
+          return NextResponse.json({ ...responseJson, status }, { status: 409 });
+        }
         return NextResponse.json(responseJson, { status: 502 });
       }
 
@@ -3083,27 +3204,36 @@ export async function POST(req: Request) {
     if (wavespeedRoute && !kieModel) {
       const wavespeedKey = process.env.WAVESPEED_API_KEY;
       if (!wavespeedKey) {
-        return NextResponse.json(
-          { error: "WaveSpeed provider is not configured.", code: "wavespeed_key_missing" },
-          { status: 503 },
-        );
+        const responseJson = { error: "WaveSpeed provider is not configured.", code: "wavespeed_key_missing" };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 503, responseJson });
+        return NextResponse.json(responseJson, { status: 503 });
       }
       const wsInput = mapToWavespeedInput(payload, wavespeedRoute);
       wsInput.enable_base64_output = false;
       if ((wavespeedRoute === "kwaivgi/kling-v3.0-std/image-to-video" || wavespeedRoute === "kwaivgi/kling-v3.0-pro/image-to-video") && typeof wsInput.image !== "string") {
-        return NextResponse.json({ error: "Kling 3.0 Image-to-Video requires an image reference." }, { status: 400 });
+        const responseJson = { error: "Kling 3.0 Image-to-Video requires an image reference." };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
+        return NextResponse.json(responseJson, { status: 400 });
       }
       if ((wavespeedRoute === "kwaivgi/kling-v3-turbo-std/image-to-video" || wavespeedRoute === "kwaivgi/kling-v3-turbo-pro/image-to-video") && typeof wsInput.image !== "string") {
-        return NextResponse.json({ error: "Kling V3 Turbo Image-to-Video requires an image reference." }, { status: 400 });
+        const responseJson = { error: "Kling V3 Turbo Image-to-Video requires an image reference." };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
+        return NextResponse.json(responseJson, { status: 400 });
       }
       if (wavespeedRoute?.startsWith("kwaivgi/kling-video-o3-") && wavespeedRoute.endsWith("/image-to-video") && typeof wsInput.image !== "string") {
-        return NextResponse.json({ error: "Kling O3 Image-to-Video requires an image reference." }, { status: 400 });
+        const responseJson = { error: "Kling O3 Image-to-Video requires an image reference." };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
+        return NextResponse.json(responseJson, { status: 400 });
       }
       if ((wavespeedRoute === "bytedance/seedance-2.5/image-to-video-turbo" || wavespeedRoute === "bytedance/seedance-2.5/image-to-video-spicy") && typeof wsInput.image !== "string") {
-        return NextResponse.json({ error: "Seedance 2.5 Image-to-Video requires an image reference." }, { status: 400 });
+        const responseJson = { error: "Seedance 2.5 Image-to-Video requires an image reference." };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
+        return NextResponse.json(responseJson, { status: 400 });
       }
       if (wavespeedRoute?.startsWith("kwaivgi/kling-v2.6-") && wavespeedRoute.endsWith("/image-to-video") && typeof wsInput.image !== "string") {
-        return NextResponse.json({ error: "Kling 2.6 Image-to-Video requires an image reference." }, { status: 400 });
+        const responseJson = { error: "Kling 2.6 Image-to-Video requires an image reference." };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
+        return NextResponse.json(responseJson, { status: 400 });
       }
       
       // Resolve single images/videos/audios
@@ -3168,17 +3298,15 @@ export async function POST(req: Request) {
           ...payload,
           routing: routingMetadata(routingDecision),
         },
+        idempotency: {
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+        },
       });
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
       chargedUserId = userId;
-      await attachIdempotencyGeneration({
-        userId,
-        route: IDEMPOTENCY_ROUTE,
-        key: idempotencyKey,
-        generationId,
-      });
-
+      await markProviderDispatched();
       const wsRes = await fetch(`${WAVESPEED_BASE}/${wavespeedRoute}`, {
         method: "POST",
         headers: {
@@ -3193,22 +3321,26 @@ export async function POST(req: Request) {
       const wsPredictionId = (wsJson?.data as Record<string, unknown>)?.id ?? wsJson?.id;
 
       if (!wsRes.ok || !wsPredictionId) {
-        if (chargedCredits > 0 && chargedUserId && generationId) {
+        if (!providerDispatched && chargedCredits > 0 && chargedUserId && generationId) {
           await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
             reason: "generation_refund_provider_failed",
             clearMediaUrl: true,
           });
         }
-        await completeIdempotency({
+        const errorMessage = String((wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})`);
+        const status = await failIdempotency({
           userId,
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
-          responseStatus: 502,
-          responseJson: { generationId, error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
+          errorMessage,
+          providerDispatched,
         });
+        if (status === "review_required") {
+          return NextResponse.json({ generationId, status, error: errorMessage }, { status: 409 });
+        }
         return NextResponse.json(
-          { generationId, error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
+          { generationId, error: errorMessage },
           { status: 502 },
         );
       }
@@ -3244,10 +3376,9 @@ export async function POST(req: Request) {
 
     const kieKey = getKieKeyFromEnv();
     if (!kieKey) {
-      return NextResponse.json(
-        { error: "KIE provider is not configured.", code: "kie_key_missing" },
-        { status: 503 },
-      );
+      const responseJson = { error: "KIE provider is not configured.", code: "kie_key_missing" };
+      await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 503, responseJson });
+      return NextResponse.json(responseJson, { status: 503 });
     }
 
     const normalizedInput = normalizeInputForKie(payload);
@@ -3292,7 +3423,9 @@ export async function POST(req: Request) {
     if (kieModel === "kling-3.0/video") {
       const klingError = validateKling30Payload(kieInput);
       if (klingError) {
-        return NextResponse.json({ error: klingError }, { status: 400 });
+        const responseJson = { error: klingError };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
+        return NextResponse.json(responseJson, { status: 400 });
       }
     }
 
@@ -3317,17 +3450,14 @@ export async function POST(req: Request) {
         ...payload,
         routing: routingMetadata(routingDecision),
       },
+      idempotency: {
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+      },
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
-    await attachIdempotencyGeneration({
-      userId,
-      route: IDEMPOTENCY_ROUTE,
-      key: idempotencyKey,
-      generationId,
-    });
-
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://example.com"}/api/callback`;
 
     // Veo 3.1 uses a dedicated endpoint with a flat top-level body.
@@ -3356,6 +3486,7 @@ export async function POST(req: Request) {
       console.error("Failed to write debug log", err);
     }
 
+    await markProviderDispatched();
     const createRes = await fetch(createEndpoint, {
       method: "POST",
       headers: {
@@ -3371,7 +3502,7 @@ export async function POST(req: Request) {
     } catch {
       const text = await createRes.text().catch(() => "");
       console.error("[api/video POST] KIE non-JSON response", createRes.status, text.slice(0, 300));
-      if (chargedCredits > 0 && chargedUserId && generationId) {
+      if (!providerDispatched && chargedCredits > 0 && chargedUserId && generationId) {
         await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
           reason: "generation_refund_provider_failed",
           clearMediaUrl: true,
@@ -3385,14 +3516,17 @@ export async function POST(req: Request) {
         providerModel: kieModel,
         modelRoute,
       };
-      await completeIdempotency({
+      const status = await failIdempotency({
         userId,
         route: IDEMPOTENCY_ROUTE,
         key: idempotencyKey,
         generationId,
-        responseStatus: 502,
-        responseJson,
+        errorMessage: responseJson.error,
+        providerDispatched,
       });
+      if (status === "review_required") {
+        return NextResponse.json({ ...responseJson, status }, { status: 409 });
+      }
       return NextResponse.json(
         responseJson,
         { status: 502 },
@@ -3410,7 +3544,7 @@ export async function POST(req: Request) {
 
     if (!createRes.ok || !taskId) {
       console.error("[api/video POST] KIE createTask failed", createRes.status, JSON.stringify(createJson).slice(0, 500));
-      if (chargedCredits > 0 && chargedUserId && generationId) {
+      if (!providerDispatched && chargedCredits > 0 && chargedUserId && generationId) {
         await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
           reason: "generation_refund_provider_failed",
           clearMediaUrl: true,
@@ -3433,14 +3567,17 @@ export async function POST(req: Request) {
         modelRoute,
         debugRequest: createBody,
       };
-      await completeIdempotency({
+      const status = await failIdempotency({
         userId,
         route: IDEMPOTENCY_ROUTE,
         key: idempotencyKey,
         generationId,
-        responseStatus: 502,
-        responseJson,
+        errorMessage: rawError,
+        providerDispatched,
       });
+      if (status === "review_required") {
+        return NextResponse.json({ ...responseJson, status }, { status: 409 });
+      }
       return NextResponse.json(
         responseJson,
         { status: 502 },
@@ -3471,9 +3608,9 @@ export async function POST(req: Request) {
 
     if (err instanceof ValidationError) {
       const msg = err.message;
-      if (chargedUserId && requestHash) {
+      if (idempotencyClaimed && idempotencyUserId && requestHash) {
         await completeIdempotency({
-          userId: chargedUserId,
+          userId: idempotencyUserId,
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
@@ -3490,9 +3627,9 @@ export async function POST(req: Request) {
         requiredCredits: err.requiredCredits,
         currentBalance: err.currentBalance,
       };
-      if (chargedUserId && requestHash) {
+      if (idempotencyClaimed && idempotencyUserId && requestHash) {
         await completeIdempotency({
-          userId: chargedUserId,
+          userId: idempotencyUserId,
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
@@ -3506,7 +3643,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (chargedCredits > 0 && chargedUserId && generationId) {
+    if (!providerDispatched && chargedCredits > 0 && chargedUserId && generationId) {
       await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
         reason: "generation_refund_provider_failed",
         clearMediaUrl: true,
@@ -3515,15 +3652,18 @@ export async function POST(req: Request) {
 
     const msg = err instanceof Error ? err.message : "Internal Error";
     console.error("[api/video POST]", err);
-    if (chargedUserId && requestHash) {
-      await completeIdempotency({
-        userId: chargedUserId,
+    if (idempotencyClaimed && idempotencyUserId && requestHash) {
+      const status = await failIdempotency({
+        userId: idempotencyUserId,
         route: IDEMPOTENCY_ROUTE,
         key: idempotencyKey,
         generationId,
-        responseStatus: 500,
-        responseJson: { error: msg },
+        errorMessage: msg,
+        providerDispatched,
       });
+      if (status === "review_required") {
+        return NextResponse.json({ generationId, status, error: msg }, { status: 409 });
+      }
     }
     return NextResponse.json({ error: msg }, { status: 500 });
   }

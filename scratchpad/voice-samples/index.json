@@ -1,0 +1,230 @@
+[
+  {
+    "voice": "ar-XA-Chirp3-HD-Achernar",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Achernar.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Achird",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Achird.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Algenib",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Algenib.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Algieba",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Algieba.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Alnilam",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Alnilam.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Aoede",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Aoede.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Autonoe",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Autonoe.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Callirrhoe",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Callirrhoe.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Charon",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Charon.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Despina",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Despina.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Enceladus",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Enceladus.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Erinome",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Erinome.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Fenrir",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Fenrir.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Gacrux",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Gacrux.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Iapetus",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Iapetus.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Kore",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Kore.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Laomedeia",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Laomedeia.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Leda",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Leda.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Orus",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Orus.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Puck",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Puck.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Pulcherrima",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Pulcherrima.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Rasalgethi",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Rasalgethi.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Sadachbia",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Sadachbia.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Sadaltager",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Sadaltager.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Schedar",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Schedar.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Sulafat",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Sulafat.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Umbriel",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Umbriel.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Vindemiatrix",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Vindemiatrix.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Zephyr",
+    "gender": "female",
+    "group": "chirp3-hd",
+    "file": "female_chirp3-hd_ar-XA-Chirp3-HD-Zephyr.mp3"
+  },
+  {
+    "voice": "ar-XA-Chirp3-HD-Zubenelgenubi",
+    "gender": "male",
+    "group": "chirp3-hd",
+    "file": "male_chirp3-hd_ar-XA-Chirp3-HD-Zubenelgenubi.mp3"
+  },
+  {
+    "voice": "ar-XA-Standard-A",
+    "gender": "female",
+    "group": "standard",
+    "file": "female_standard_ar-XA-Standard-A.mp3"
+  },
+  {
+    "voice": "ar-XA-Standard-B",
+    "gender": "male",
+    "group": "standard",
+    "file": "male_standard_ar-XA-Standard-B.mp3"
+  },
+  {
+    "voice": "ar-XA-Standard-C",
+    "gender": "male",
+    "group": "standard",
+    "file": "male_standard_ar-XA-Standard-C.mp3"
+  },
+  {
+    "voice": "ar-XA-Standard-D",
+    "gender": "female",
+    "group": "standard",
+    "file": "female_standard_ar-XA-Standard-D.mp3"
+  },
+  {
+    "voice": "ar-XA-Wavenet-A",
+    "gender": "female",
+    "group": "wavenet",
+    "file": "female_wavenet_ar-XA-Wavenet-A.mp3"
+  },
+  {
+    "voice": "ar-XA-Wavenet-B",
+    "gender": "male",
+    "group": "wavenet",
+    "file": "male_wavenet_ar-XA-Wavenet-B.mp3"
+  },
+  {
+    "voice": "ar-XA-Wavenet-C",
+    "gender": "male",
+    "group": "wavenet",
+    "file": "male_wavenet_ar-XA-Wavenet-C.mp3"
+  },
+  {
+    "voice": "ar-XA-Wavenet-D",
+    "gender": "female",
+    "group": "wavenet",
+    "file": "female_wavenet_ar-XA-Wavenet-D.mp3"
+  }
+]

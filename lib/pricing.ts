@@ -211,6 +211,18 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "x-ai/grok-imagine-video/edit-video":           "grok_vid",
   "x-ai/grok-imagine-video/text-to-video-1-5":    "grok_vid_v15",
   "x-ai/grok-imagine-video/edit-video-1-5":       "grok_vid_v15_i2v",
+  "black-forest-labs/flux-3/text-to-video":        "flux3_video",
+  "black-forest-labs/flux-3/image-to-video":       "flux3_video",
+  "black-forest-labs/flux-3/start-end-to-video":   "flux3_video",
+  "black-forest-labs/flux-3/video-extend":         "flux3_video_extend",
+  "black-forest-labs/flux-3-text-to-video":        "flux3_video",
+  "black-forest-labs/flux-3-image-to-video":       "flux3_video",
+  "black-forest-labs/flux-3-start-end-to-video":   "flux3_video",
+  "black-forest-labs/flux-3-video-extend":         "flux3_video_extend",
+  "black-forest-labs/flux-3/text-to-video-draft":  "flux3_video_draft",
+  "black-forest-labs/flux-3/image-to-video-draft": "flux3_video_draft",
+  "black-forest-labs/flux-3/start-end-to-video-draft": "flux3_video_draft",
+  "black-forest-labs/flux-3/video-extend-draft":   "flux3_video_draft",
 
   // â”€â”€ 3D â€” app/api/3d (endpointKey = modelId.mode) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   "tripo3d-2.5.image":        "tripo25",
@@ -506,6 +518,35 @@ const WAN_30_IMAGE_USD_PER_SECOND = {
   "720p": 0.12,
   "1080p": 0.24,
 } as const;
+const FLUX_3_CREDITS_PER_USD = 40;
+const FLUX_3_MARGIN_MULTIPLIER = 1.4;
+const FLUX_3_USD_PER_SECOND = {
+  "720p": 0.17,
+  "1080p": 0.29,
+  "draft": 0.06,
+} as const;
+
+function getFlux3ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
+  const route = (modelRef || "").toLowerCase();
+  if (!route.startsWith("black-forest-labs/flux-3") && !route.startsWith("black-forest-labs-flux-3") && route !== "flux3_video" && route !== "flux3_video_extend" && route !== "flux3_video_draft") {
+    return null;
+  }
+  const duration = Math.max(1, Number.isFinite(durationSec) ? durationSec : 5);
+  const q = (quality || "720p").trim().toLowerCase();
+  if (route.includes("draft") || route.includes("extend")) {
+    return parseFloat((FLUX_3_USD_PER_SECOND["draft"] * duration).toFixed(4));
+  }
+  const usdPerSecond = q.includes("1080")
+    ? FLUX_3_USD_PER_SECOND["1080p"]
+    : FLUX_3_USD_PER_SECOND["720p"];
+  return parseFloat((usdPerSecond * duration).toFixed(4));
+}
+
+function getFlux3DefaultCredits(modelRef: string, durationSec: number, numUnits: number, quality?: string | null): number | null {
+  const usd = getFlux3ProviderUsd(modelRef, durationSec, quality);
+  if (usd === null) return null;
+  return parseFloat(Math.max(1, usd * FLUX_3_MARGIN_MULTIPLIER * FLUX_3_CREDITS_PER_USD * numUnits).toFixed(2));
+}
 
 function getSeedance25ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
   const route = (modelRef || "").toLowerCase();
@@ -684,6 +725,9 @@ function resolveSpecialUserCharge(
 
   const wan30Credits = getWan30DefaultCredits(modelRef, durationSec, numUnits, quality);
   if (wan30Credits !== null) return wan30Credits;
+
+  const flux3Credits = getFlux3DefaultCredits(modelRef, durationSec, numUnits, quality);
+  if (flux3Credits !== null) return flux3Credits;
 
   return null;
 }

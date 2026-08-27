@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#070A11; font-family:'Segoe UI', system-ui, sans-serif;">
+  <!-- Header -->
+  <rect x="40" y="30" width="1360" height="50" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="70" y="62" fill="#F8FAFC" font-size="16" font-weight="bold">CMP-01: PROJECT CARD STATES SPECIFICATION (8 EDGE-CASE STATES)</text>
+  <text x="1100" y="62" fill="#06B6D4" font-size="13">Progressive Disclosure Architecture</text>
+
+  <!-- State 1: Draft / No Poster -->
+  <rect x="40" y="105" width="310" height="340" rx="10" fill="#0E1626" stroke="#1E293B"/>
+  <rect x="40" y="105" width="310" height="120" rx="10" fill="#111827"/>
+  <text x="60" y="165" fill="#64748B" font-size="12">Fallback Brand Monogram</text>
+  <rect x="235" y="115" width="100" height="22" rx="4" fill="#334155"/>
+  <text x="245" y="130" fill="#94A3B8" font-size="10">Source: Placeholder</text>
+  <text x="60" y="255" fill="#F8FAFC" font-size="14" font-weight="bold">1. New Draft Project</text>
+  <text x="60" y="275" fill="#94A3B8" font-size="11">Logline: [Pending User Input]</text>
+  <text x="60" y="300" fill="#334155" font-size="11">● Draft State • Target: 60s</text>
+  <text x="60" y="330" fill="#64748B" font-size="10">Spent: 0 Cr • Reserved: 0 Cr</text>
+  <text x="60" y="420" fill="#64748B" font-size="10">Last Modified: Just now</text>
+
+  <!-- State 2: Planning / Auto Poster -->
+  <rect x="390" y="105" width="310" height="340" rx="10" fill="#0E1626" stroke="#1E293B"/>
+  <rect x="390" y="105" width="310" height="120" rx="10" fill="#152033"/>
+  <text x="410" y="165" fill="#38BDF8" font-size="12">[ Auto Poster: Style Preset ]</text>
+  <rect x="600" y="115" width="85" height="22" rx="4" fill="#152033" stroke="#06B6D4"/>
+  <text x="615" y="130" fill="#38BDF8" font-size="10">Source: Auto</text>
+  <text x="410" y="255" fill="#F8FAFC" font-size="14" font-weight="bold">2. Story Planning Active</text>
+  <text x="410" y="275" fill="#94A3B8" font-size="11">3 Scenes • 8 Beats • Target: 3m</text>
+  <text x="410" y="300" fill="#10B981" font-size="11">✓ Settings Snapshot Approved</text>
+  <text x="410" y="330" fill="#64748B" font-size="10">Spent: 0 Cr • Budget Cap: 500 Cr</text>
+  <text x="410" y="420" fill="#64748B" font-size="10">Last Modified: 2h ago</text>
+
+  <!-- State 3: Production with Active Background Job -->
+  <rect x="740" y="105" width="310" height="340" rx="10" fill="#0E1626" stroke="#06B6D4" stroke-width="2"/>
+  <rect x="740" y="105" width="310" height="120" rx="10" fill="#152033"/>
+  <text x="760" y="165" fill="#38BDF8" font-size="12">[ Poster: Keyframe 01 ]</text>
+  <rect x="940" y="115" width="95" height="22" rx="4" fill="#06B6D4" fill-opacity="0.2"/>
+  <text x="950" y="130" fill="#38BDF8" font-size="10" font-weight="bold">● In Production</text>
+  <text x="760" y="255" fill="#F8FAFC" font-size="14" font-weight="bold">3. Production (Active Job)</text>
+  <text x="760" y="275" fill="#94A3B8" font-size="11">Shot 3 of 12 • Planned: 3m 15s</text>
+  <rect x="760" y="295" width="270" height="30" rx="4" fill="#0F172A" stroke="#8B5CF6"/>
+  <text x="770" y="315" fill="#A78BFA" font-size="10">⚡ Generating Take 2 (45%)</text>
+  <text x="760" y="345" fill="#64748B" font-size="10">Spent: 42 Cr • Reserved: 12 Cr</text>
+  <text x="760" y="420" fill="#64748B" font-size="10">Last Modified: 5m ago</text>
+
+  <!-- State 4: Review / Partial Failure -->
+  <rect x="1090" y="105" width="310" height="340" rx="10" fill="#0E1626" stroke="#EF4444"/>
+  <rect x="1090" y="105" width="310" height="120" rx="10" fill="#1F1315"/>
+  <text x="1110" y="165" fill="#F87171" font-size="12">[ Poster: Uploaded Poster ]</text>
+  <rect x="1275" y="115" width="110" height="22" rx="4" fill="#EF4444" fill-opacity="0.2"/>
+  <text x="1285" y="130" fill="#F87171" font-size="10">⚠️ 1 Block Failed</text>
+  <text x="1110" y="255" fill="#F8FAFC" font-size="14" font-weight="bold">4. Review (Failed Block)</text>
+  <text x="1110" y="275" fill="#94A3B8" font-size="11">Block 1.4 Provider Timeout</text>
+  <text x="1110" y="300" fill="#EF4444" font-size="11">Refunded: 12 Cr (Reversed ✓)</text>
+  <text x="1110" y="330" fill="#64748B" font-size="10">Spent: 30 Cr • Ready for Retry</text>
+  <text x="1110" y="420" fill="#64748B" font-size="10">Last Modified: 1h ago</text>
+
+  <!-- Second Row (States 5 to 8) -->
+  <!-- State 5: Completed -->
+  <rect x="40" y="480" width="310" height="360" rx="10" fill="#0E1626" stroke="#10B981"/>
+  <rect x="40" y="480" width="310" height="120" rx="10" fill="#152033"/>
+  <text x="60" y="540" fill="#10B981" font-size="12">[ Poster: Master Frame ]</text>
+  <rect x="235" y="490" width="100" height="22" rx="4" fill="#10B981" fill-opacity="0.2"/>
+  <text x="250" y="505" fill="#10B981" font-size="10">✓ Completed</text>
+  <text x="60" y="630" fill="#F8FAFC" font-size="14" font-weight="bold">5. Master Completed</text>
+  <text x="60" y="650" fill="#94A3B8" font-size="11">Final Duration: 2m 45s (4K Export)</text>
+  <text x="60" y="675" fill="#10B981" font-size="11">All 14 Takes Approved</text>
+  <text x="60" y="705" fill="#64748B" font-size="10">Total Spent: 180 Cr</text>
+  <text x="60" y="795" fill="#64748B" font-size="10">Completed on: 2026-08-24</text>
+
+  <!-- State 6: Saving / Autosave Sync -->
+  <rect x="390" y="480" width="310" height="360" rx="10" fill="#0E1626" stroke="#1E293B"/>
+  <rect x="390" y="480" width="310" height="120" rx="10" fill="#111827"/>
+  <text x="410" y="540" fill="#64748B" font-size="12">[ Poster: Current Snapshot ]</text>
+  <rect x="585" y="490" width="100" height="22" rx="4" fill="#1E293B"/>
+  <text x="600" y="505" fill="#38BDF8" font-size="10">💾 Saving...</text>
+  <text x="410" y="630" fill="#F8FAFC" font-size="14" font-weight="bold">6. Syncing Changes</text>
+  <text x="410" y="650" fill="#94A3B8" font-size="11">Autosave Snapshot in progress</text>
+  <text x="410" y="675" fill="#38BDF8" font-size="11">Version Memory: Creating v1.4</text>
+  <text x="410" y="705" fill="#64748B" font-size="10">Syncing to cloud storage...</text>
+
+  <!-- State 7: Multi-Session Conflict -->
+  <rect x="740" y="480" width="310" height="360" rx="10" fill="#0E1626" stroke="#D97706" stroke-width="2"/>
+  <rect x="740" y="480" width="310" height="120" rx="10" fill="#1A150B"/>
+  <text x="760" y="540" fill="#F59E0B" font-size="12">[ Poster: Dual Version ]</text>
+  <rect x="910" y="490" width="125" height="22" rx="4" fill="#D97706" fill-opacity="0.2"/>
+  <text x="920" y="505" fill="#F59E0B" font-size="10">⚠️ Save Conflict</text>
+  <text x="760" y="630" fill="#F8FAFC" font-size="14" font-weight="bold">7. Concurrent Edit Conflict</text>
+  <text x="760" y="650" fill="#94A3B8" font-size="11">Modified from another device</text>
+  <rect x="760" y="670" width="270" height="35" rx="4" fill="#1E293B" stroke="#D97706"/>
+  <text x="775" y="692" fill="#F59E0B" font-size="11">[ Review &amp; Resolve Conflict ]</text>
+  <text x="760" y="795" fill="#64748B" font-size="10">Conflict detected: 2m ago</text>
+
+  <!-- State 8: Archived / Soft-Deleted -->
+  <rect x="1090" y="480" width="310" height="360" rx="10" fill="#090D16" stroke="#334155" opacity="0.6"/>
+  <rect x="1090" y="480" width="310" height="120" rx="10" fill="#0F172A"/>
+  <text x="1110" y="540" fill="#475569" font-size="12">[ Archived Asset ]</text>
+  <rect x="1275" y="490" width="110" height="22" rx="4" fill="#1E293B"/>
+  <text x="1290" y="505" fill="#94A3B8" font-size="10">Archived</text>
+  <text x="1110" y="630" fill="#94A3B8" font-size="14" font-weight="bold">8. Archived Project</text>
+  <text x="1110" y="650" fill="#64748B" font-size="11">Read-Only • Retained by Policy</text>
+  <rect x="1110" y="670" width="130" height="35" rx="4" fill="#1E293B" stroke="#334155"/>
+  <text x="1135" y="692" fill="#94A3B8" font-size="11">استعادة (Restore)</text>
+  <text x="1110" y="795" fill="#64748B" font-size="10">Archived: 2026-08-01</text>
+</svg>

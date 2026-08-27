@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 620" width="600" height="620">
+  <defs>
+    <style>
+      :root {
+        --ss-bg: #070A11;
+        --ss-card: #0E1626;
+        --ss-card-hover: #152033;
+        --ss-cyan: #06B6D4;
+        --ss-cyan-light: #38BDF8;
+        --ss-violet: #8B5CF6;
+        --ss-violet-light: #A78BFA;
+        --ss-amber: #D97706;
+        --ss-amber-light: #F59E0B;
+        --ss-emerald: #10B981;
+        --ss-rose: #EF4444;
+        --ss-border: #1E293B;
+        --ss-border-light: #334155;
+        --ss-text-main: #F8FAFC;
+        --ss-text-muted: #94A3B8;
+        --ss-text-dim: #64748B;
+      }
+      .bg-main { fill: var(--ss-bg); }
+      .bg-card { fill: var(--ss-card); }
+      .bg-card-hover { fill: var(--ss-card-hover); }
+      .bg-cyan { fill: var(--ss-cyan); }
+      .bg-violet { fill: var(--ss-violet); }
+      .bg-amber { fill: var(--ss-amber); }
+      .stroke-border { stroke: var(--ss-border); }
+      .stroke-border-light { stroke: var(--ss-border-light); }
+      .stroke-cyan { stroke: var(--ss-cyan); }
+      .stroke-violet { stroke: var(--ss-violet); }
+      .stroke-amber { stroke: var(--ss-amber); }
+      .text-main { fill: var(--ss-text-main); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-muted { fill: var(--ss-text-muted); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-dim { fill: var(--ss-text-dim); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-cyan { fill: var(--ss-cyan-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-violet { fill: var(--ss-violet-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-amber { fill: var(--ss-amber-light); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-emerald { fill: var(--ss-emerald); font-family: 'Segoe UI', system-ui, sans-serif; }
+      .text-rose { fill: var(--ss-rose); font-family: 'Segoe UI', system-ui, sans-serif; }
+    </style>
+  </defs>
+  <!-- Background Canvas -->
+  <rect width="600" height="620" class="bg-main"/>
+  
+  <rect width="600" height="620" rx="16" class="bg-card stroke-border" stroke-width="2"/>
+  <path d="M 0 16 Q 0 0 16 0 L 584 0 Q 600 0 600 16 L 600 50 L 0 50 Z" class="bg-card-hover"/>
+  <text x="30" y="32" class="text-main" font-size="15" font-weight="bold">MDL-06: إنشـاء مشـروع جـديد (New Project Modal)</text>
+  <text x="30" y="85" class="text-main" font-size="13" font-weight="bold">اسم المشروع (Project Title) *</text>
+  <rect x="30" y="100" width="540" height="42" rx="8" class="bg-main stroke-cyan"/>
+  <text x="45" y="127" class="text-main" font-size="13">صقور الصحراء (Desert Hawks)</text>
+  <text x="30" y="180" class="text-main" font-size="13" font-weight="bold">نوع المشروع (Structure)</text>
+  <rect x="30" y="195" width="260" height="38" rx="6" class="bg-card stroke-border-light"/>
+  <text x="50" y="218" class="text-muted" font-size="11">حلقة مفردة (Single Episode)</text>
+  <rect x="310" y="195" width="260" height="38" rx="6" class="bg-main stroke-cyan"/>
+  <text x="330" y="218" class="text-cyan" font-size="11" font-weight="bold">مسلسل متتابع (Microdrama Series)</text>
+  <rect x="370" y="540" width="200" height="42" rx="8" class="bg-cyan"/>
+  <text x="400" y="567" class="text-main" font-size="13" font-weight="bold">تأكيد وإنشاء المشروع ←</text>
+
+</svg>

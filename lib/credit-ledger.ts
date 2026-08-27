@@ -457,6 +457,11 @@ type SpendCreditsInput = {
   inputType?: string | null;
   requestPayload?: any;
   estimatedProviderCostUsd?: number | null;
+  idempotency?: {
+    route: string;
+    key: string | null;
+    operationType?: string;
+  };
 };
 
 
@@ -788,10 +793,25 @@ export async function spendCredits(input: SpendCreditsInput) {
       userId: input.userId,
       generationId: generation.id,
       providerUsageRecordId: providerUsageRecord.id,
+      idempotencyKey: input.idempotency?.key ?? null,
       delta: -credits,
       reason: "generation_charge",
       operationType: "charge",
     });
+
+    if (input.idempotency?.key) {
+      await (tx as any).apiIdempotency.update({
+        where: {
+          userId_route_operationType_key: {
+            userId: input.userId,
+            route: input.idempotency.route,
+            operationType: input.idempotency.operationType ?? "generation",
+            key: input.idempotency.key,
+          },
+        },
+        data: { generationId: generation.id },
+      });
+    }
 
     return { remainingCredits: Math.max(0, updated?.creditBalance ?? 0), generationId: generation.id };
   });
@@ -924,8 +944,7 @@ export async function refundGenerationCharge(
   credits: number,
   options: RefundGenerationChargeOptions,
 ): Promise<void> {
-  const safeCredits = Math.max(0, Math.floor(credits));
-  if (!generationId || !userId || safeCredits <= 0) return;
+  if (!generationId || !userId) return;
 
   const clearMediaUrl = options.clearMediaUrl !== false;
   const flagGeneration = options.flagGeneration === true;
@@ -937,14 +956,11 @@ export async function refundGenerationCharge(
     });
 
     if (!generation || generation.cost <= 0) return;
+    const refundCredits = Math.max(0, Math.floor(generation.cost));
+    if (refundCredits <= 0) return;
 
-    await tx.user.update({
-      where: { id: userId },
-      data: { creditBalance: { increment: safeCredits } },
-    });
-
-    await tx.generation.update({
-      where: { id: generationId },
+    const claim = await tx.generation.updateMany({
+      where: { id: generationId, userId, cost: generation.cost },
       data: {
         cost: 0,
         ...(clearMediaUrl ? { mediaUrl: null, outputUrl: null } : {}),
@@ -952,13 +968,23 @@ export async function refundGenerationCharge(
         ...(flagGeneration && !generation.isFlagged ? { isFlagged: true } : {}),
       },
     });
+    if ((claim.count ?? 0) !== 1) return;
+
+    await tx.user.update({
+      where: { id: userId },
+      data: { creditBalance: { increment: refundCredits } },
+    });
 
     await tryCreateCreditLedgerEntry(tx as any, {
       userId,
       generationId,
-      delta: safeCredits,
+      delta: refundCredits,
       reason: options.reason,
       operationType: "refund",
+      metadata: {
+        requestedCredits: credits,
+        refundedCredits: refundCredits,
+      },
     });
   });
 }
@@ -1113,8 +1139,7 @@ export async function setActualProviderUsage(
 }
 
 export async function rollbackGenerationCharge(generationId: string, userId: string, credits: number) {
-  const safeCredits = Math.max(0, Math.floor(credits));
-  if (!generationId || !userId || safeCredits <= 0) return;
+  if (!generationId || !userId) return;
 
   await prismadb.$transaction(async (tx) => {
     const generation = await tx.generation.findUnique({
@@ -1124,14 +1149,11 @@ export async function rollbackGenerationCharge(generationId: string, userId: str
 
     // Already rolled back or missing.
     if (!generation || generation.cost <= 0) return;
+    const refundCredits = Math.max(0, Math.floor(generation.cost));
+    if (refundCredits <= 0) return;
 
-    await tx.user.update({
-      where: { id: userId },
-      data: { creditBalance: { increment: safeCredits } },
-    });
-
-    await tx.generation.update({
-      where: { id: generationId },
+    const claim = await tx.generation.updateMany({
+      where: { id: generationId, userId, cost: generation.cost },
       data: {
         cost: 0,
         mediaUrl: null,
@@ -1140,13 +1162,23 @@ export async function rollbackGenerationCharge(generationId: string, userId: str
         isFlagged: true,
       },
     });
+    if ((claim.count ?? 0) !== 1) return;
+
+    await tx.user.update({
+      where: { id: userId },
+      data: { creditBalance: { increment: refundCredits } },
+    });
 
     await tryCreateCreditLedgerEntry(tx as any, {
       userId,
       generationId,
-      delta: safeCredits,
+      delta: refundCredits,
       reason: "generation_refund_provider_failed",
       operationType: "refund",
+      metadata: {
+        requestedCredits: credits,
+        refundedCredits: refundCredits,
+      },
     });
   });
 }

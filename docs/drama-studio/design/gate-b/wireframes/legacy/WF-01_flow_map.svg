@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#070A11; font-family:'Segoe UI', system-ui, sans-serif;">
+  <defs>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0EA5E9" stop-opacity="0.8"/>
+    </linearGradient>
+    <linearGradient id="violetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#6366F1" stop-opacity="0.8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Title Header -->
+  <rect x="40" y="30" width="1360" height="60" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="70" y="67" fill="#F8FAFC" font-size="20" font-weight="bold">SAAD STUDIO — DRAMA STUDIO UX FLOW MAP (GATE B)</text>
+  <text x="1100" y="67" fill="#06B6D4" font-size="14" font-family="monospace">Cinematic Director Workspace</text>
+
+  <!-- Node 1: Hero (Locked) -->
+  <rect x="60" y="150" width="280" height="340" rx="12" fill="#0B111E" stroke="#334155" stroke-width="2"/>
+  <rect x="60" y="150" width="280" height="40" rx="12" fill="#1E293B"/>
+  <text x="80" y="175" fill="#F8FAFC" font-size="14" font-weight="bold">SCR-01: ENTRY HERO</text>
+  <rect x="230" y="160" width="90" height="20" rx="4" fill="#E2E8F0" fill-opacity="0.1"/>
+  <text x="240" y="174" fill="#94A3B8" font-size="10">LOCKED</text>
+  
+  <rect x="80" y="210" width="240" height="80" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="95" y="240" fill="#64748B" font-size="11">Cinematic Backdrop + Gateway Glow</text>
+  <text x="95" y="260" fill="#94A3B8" font-size="12" font-weight="bold">Title &amp; Luxury Composer</text>
+
+  <rect x="80" y="305" width="240" height="110" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="95" y="330" fill="#64748B" font-size="11">Featured Series Gallery (Posters)</text>
+  <text x="95" y="350" fill="#06B6D4" font-size="11">Format / Adaptation / Model Select</text>
+  <rect x="95" y="370" width="210" height="30" rx="6" fill="url(#cyanGrad)"/>
+  <text x="140" y="390" fill="#FFFFFF" font-size="12" font-weight="bold">Start Project (Create Draft)</text>
+
+  <!-- Arrow 1 to 2 -->
+  <path d="M 340 320 L 410 320" stroke="#06B6D4" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text x="350" y="310" fill="#06B6D4" font-size="11">Submit</text>
+
+  <!-- Node 2: Transient State (STA-01) -->
+  <rect x="410" y="220" width="220" height="200" rx="12" fill="#0F172A" stroke="#06B6D4" stroke-width="1.5"/>
+  <rect x="410" y="220" width="220" height="35" rx="12" fill="#1E293B"/>
+  <text x="425" y="243" fill="#38BDF8" font-size="12" font-weight="bold">STA-01: PREPARING STATE</text>
+  <text x="425" y="280" fill="#94A3B8" font-size="11">• Ingesting Narrative Idea</text>
+  <text x="425" y="305" fill="#94A3B8" font-size="11">• Calibrating Art &amp; Style</text>
+  <text x="425" y="330" fill="#94A3B8" font-size="11">• Generating Draft Plan</text>
+  <rect x="425" y="350" width="190" height="6" rx="3" fill="#1E293B"/>
+  <rect x="425" y="350" width="120" height="6" rx="3" fill="#06B6D4"/>
+  <text x="425" y="380" fill="#64748B" font-size="10">Transient Modal — No 4th Route</text>
+
+  <!-- Arrow 2 to 3 -->
+  <path d="M 630 320 L 700 320" stroke="#06B6D4" stroke-width="2"/>
+  <text x="640" y="310" fill="#06B6D4" font-size="11">Plan Ready</text>
+
+  <!-- Node 3: Drama Workbench (SCR-02) -->
+  <rect x="700" y="150" width="340" height="520" rx="12" fill="#0B111E" stroke="#334155" stroke-width="2"/>
+  <rect x="700" y="150" width="340" height="40" rx="12" fill="#1E293B"/>
+  <text x="720" y="175" fill="#F8FAFC" font-size="14" font-weight="bold">SCR-02: DRAMA WORKBENCH</text>
+  <text x="940" y="175" fill="#94A3B8" font-size="11" font-family="monospace">/drama-studio/[id]</text>
+
+  <!-- Columns Inside Workbench -->
+  <rect x="715" y="205" width="135" height="445" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="725" y="225" fill="#8B5CF6" font-size="11" font-weight="bold">Agent Panel (42%)</text>
+  <text x="725" y="245" fill="#64748B" font-size="10">• Live Director Stream</text>
+  <text x="725" y="265" fill="#64748B" font-size="10">• 9-Layer Memory Drawer</text>
+  <text x="725" y="285" fill="#64748B" font-size="10">• Proposal Cards (Diff)</text>
+  <text x="725" y="305" fill="#64748B" font-size="10">• Continuity Warnings</text>
+  <text x="725" y="620" fill="#94A3B8" font-size="10">Sticky Prompt Bar</text>
+
+  <rect x="860" y="205" width="165" height="445" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="870" y="225" fill="#06B6D4" font-size="11" font-weight="bold">Management (58%)</text>
+  <rect x="870" y="235" width="145" height="25" rx="4" fill="#1E293B"/>
+  <text x="875" y="252" fill="#F8FAFC" font-size="10">1. Settings</text>
+  <rect x="870" y="265" width="145" height="25" rx="4" fill="#1E293B"/>
+  <text x="875" y="282" fill="#F8FAFC" font-size="10">2. Outline &amp; Script</text>
+  <rect x="870" y="295" width="145" height="25" rx="4" fill="#1E293B"/>
+  <text x="875" y="312" fill="#F8FAFC" font-size="10">3. Characters</text>
+  <rect x="870" y="325" width="145" height="25" rx="4" fill="#1E293B"/>
+  <text x="875" y="342" fill="#F8FAFC" font-size="10">4. Locations &amp; Env.</text>
+  <rect x="870" y="355" width="145" height="25" rx="4" fill="#1E293B"/>
+  <text x="875" y="372" fill="#F8FAFC" font-size="10">5. Elements &amp; Props</text>
+
+  <rect x="870" y="595" width="145" height="40" rx="6" fill="url(#cyanGrad)"/>
+  <text x="885" y="620" fill="#FFFFFF" font-size="11" font-weight="bold">Enter Production →</text>
+
+  <!-- Arrow 3 to 4 -->
+  <path d="M 1040 320 L 1100 320" stroke="#06B6D4" stroke-width="2"/>
+
+  <!-- Node 4: Production Studio (SCR-03) -->
+  <rect x="1100" y="150" width="280" height="520" rx="12" fill="#0B111E" stroke="#334155" stroke-width="2"/>
+  <rect x="1100" y="150" width="280" height="40" rx="12" fill="#1E293B"/>
+  <text x="1115" y="175" fill="#F8FAFC" font-size="13" font-weight="bold">SCR-03: PRODUCTION STUDIO</text>
+  <text x="1115" y="210" fill="#06B6D4" font-size="11" font-weight="bold">Rail: 9 Creative Tools (Scope/Pin)</text>
+
+  <rect x="1115" y="225" width="250" height="120" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="1125" y="245" fill="#94A3B8" font-size="10">Script &amp; Prompt Editor + Preview Player</text>
+  <text x="1125" y="265" fill="#64748B" font-size="10">• Takes &amp; Versions (Approve/Reject)</text>
+  <text x="1125" y="285" fill="#64748B" font-size="10">• Flyout Continuity Inspector (7 Tracks)</text>
+  <text x="1125" y="305" fill="#64748B" font-size="10">• Storyboard Workspace (3 Modes)</text>
+  <text x="1125" y="325" fill="#64748B" font-size="10">• Model Selector &amp; Live Quote Card</text>
+
+  <rect x="1115" y="360" width="250" height="140" rx="6" fill="#070A11" stroke="#1E293B"/>
+  <text x="1125" y="380" fill="#38BDF8" font-size="10" font-weight="bold">Hierarchical Timeline (LTR)</text>
+  <text x="1125" y="400" fill="#64748B" font-size="10">Beats / Shots / Generation Blocks / Takes</text>
+  <text x="1125" y="420" fill="#64748B" font-size="10">7 Audio Tracks (Dialogue, FX, Music...)</text>
+  <text x="1125" y="440" fill="#64748B" font-size="10">5 Separated Durations (Target→Final)</text>
+
+  <rect x="1115" y="515" width="250" height="135" rx="6" fill="#0F172A" stroke="#8B5CF6"/>
+  <text x="1125" y="535" fill="#A78BFA" font-size="11" font-weight="bold">SUB-01: Assembly &amp; Export Stage</text>
+  <text x="1125" y="555" fill="#94A3B8" font-size="10">• 7-Step Pipeline (Normalize→Trim→Mix)</text>
+  <text x="1125" y="575" fill="#94A3B8" font-size="10">• Preview Render Check</text>
+  <text x="1125" y="595" fill="#94A3B8" font-size="10">• Final Master Render &amp; Deliverable</text>
+  <text x="1125" y="630" fill="#64748B" font-size="9">Internal Subview — No 4th Route</text>
+
+  <!-- Node 5: Shared Project Board (SCR-04) -->
+  <rect x="410" y="480" width="220" height="190" rx="12" fill="#0B111E" stroke="#475569" stroke-width="1.5" stroke-dasharray="4,4"/>
+  <rect x="410" y="480" width="220" height="35" rx="12" fill="#1E293B"/>
+  <text x="425" y="503" fill="#E2E8F0" font-size="12" font-weight="bold">SCR-04: PROJECT BOARD</text>
+  <text x="425" y="535" fill="#94A3B8" font-size="10">• Shared Platform Canvas</text>
+  <text x="425" y="555" fill="#94A3B8" font-size="10">• Linked via projectId</text>
+  <text x="425" y="575" fill="#94A3B8" font-size="10">• Characters / Props / Boards</text>
+  <text x="425" y="595" fill="#94A3B8" font-size="10">• Visual Asset Workspace</text>
+  <text x="425" y="640" fill="#64748B" font-size="9">Shared Space — Not a Drama Route</text>
+
+  <!-- Links to Board -->
+  <path d="M 700 480 L 630 520" stroke="#64748B" stroke-width="1.5" stroke-dasharray="4,4"/>
+  <path d="M 1100 520 L 630 580" stroke="#64748B" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+  <!-- Footer Legend -->
+  <rect x="40" y="720" width="1360" height="140" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="60" y="745" fill="#F8FAFC" font-size="13" font-weight="bold">DESIGN CONSTITUTION &amp; BOUNDARIES (GATE B):</text>
+  <text x="60" y="775" fill="#94A3B8" font-size="11">1. Exact 3 Drama Routes: /drama-studio (Hero), /drama-studio/[id] (Workbench), /drama-studio/[id]/episodes/[id]/production (Production Studio).</text>
+  <text x="60" y="800" fill="#94A3B8" font-size="11">2. Layout: Left Column (40-42%) &amp; Right Column (58-60%) fixed in Arabic &amp; English. Timeline LTR always. Text direction changes internally only.</text>
+  <text x="60" y="825" fill="#94A3B8" font-size="11">3. Color Tokens: --ss-bg (#070A11), --ss-card (#0E1626), --ss-cyan (#06B6D4 for Primary Action), --ss-violet (#8B5CF6 for Agent/AI), Amber for Warnings only.</text>
+  <text x="60" y="850" fill="#06B6D4" font-size="11">4. 5 Durations: Target, Planned, Generated, Approved, Final Duration. (Assembly is a production stage, not a duration).</text>
+</svg>

@@ -8,7 +8,7 @@ import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 import { KIE_3D_MODELS, resolveThreeDLegacyRoute, THREE_D_ENDPOINTS } from "@/lib/three-d-models";
 import prismadb from "@/lib/prismadb";
-import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody, idempotencyErrorResponse } from "@/lib/idempotency";
+import { beginIdempotency, completeIdempotency, failIdempotency, getIdempotencyKey, hashRequestBody, idempotencyErrorResponse, markIdempotencyProviderDispatched } from "@/lib/idempotency";
 
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const KIE_BASE = "https://api.kie.ai/api/v1";
@@ -78,6 +78,9 @@ export async function POST(req: Request) {
   let generationId: string | null = null;
   const idempotencyKey = getIdempotencyKey(req.headers);
   let requestHash: string | null = null;
+  let idempotencyClaimed = false;
+  let providerDispatched = false;
+  let idempotencyUserId: string | null = null;
 
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
@@ -167,6 +170,8 @@ export async function POST(req: Request) {
       if (idem.kind === "in_progress") {
         return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
       }
+      idempotencyClaimed = true;
+      idempotencyUserId = userId;
     }
 
     const legacyRoute = resolveThreeDLegacyRoute(modelId, endpoint);
@@ -199,16 +204,14 @@ export async function POST(req: Request) {
       requestPayload: {
         routing: routingMetadata(runtimeRoutingDecision),
       },
+      idempotency: {
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+      },
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
-    await attachIdempotencyGeneration({
-      userId,
-      route: IDEMPOTENCY_ROUTE,
-      key: idempotencyKey,
-      generationId,
-    });
 
     const waveKey = process.env.WAVESPEED_API_KEY;
     const kieKey = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
@@ -319,6 +322,14 @@ export async function POST(req: Request) {
       requestBody = textOrImageBody;
     }
 
+    await markIdempotencyProviderDispatched({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      generationId,
+    });
+    providerDispatched = true;
+
     const response = provider === "kie"
       ? await fetch(`${KIE_BASE}/jobs/createTask`, {
           method: "POST",
@@ -351,12 +362,36 @@ export async function POST(req: Request) {
     if (!response.ok) {
       const errText = await response.text();
       console.error("[3D API] WaveSpeed error:", errText);
+      const status = await failIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        errorMessage: `WaveSpeed API error: ${errText}`,
+        providerDispatched,
+      });
+      if (status === "review_required") {
+        return NextResponse.json({ generationId, status, error: "Provider state is uncertain and requires manual review." }, { status: 409 });
+      }
       return new NextResponse(`WaveSpeed API error: ${errText}`, { status: response.status });
     }
 
     const data = await response.json();
     const taskId: string = data?.data?.id ?? data?.data?.taskId;
-    if (!taskId) return new NextResponse("No task ID returned from WaveSpeed", { status: 502 });
+    if (!taskId) {
+      const status = await failIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        errorMessage: "No task ID returned from WaveSpeed",
+        providerDispatched,
+      });
+      if (status === "review_required") {
+        return NextResponse.json({ generationId, status, error: "Provider state is uncertain and requires manual review." }, { status: 409 });
+      }
+      return new NextResponse("No task ID returned from WaveSpeed", { status: 502 });
+    }
     if (generationId) {
       await setGenerationTaskMarker(generationId, taskId);
     }
@@ -382,6 +417,16 @@ export async function POST(req: Request) {
           clearMediaUrl: true,
         });
       }
+      if (idempotencyClaimed && idempotencyUserId) {
+        await completeIdempotency({
+          userId: idempotencyUserId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 400,
+          responseJson: { error: error.message },
+        });
+      }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
@@ -391,9 +436,9 @@ export async function POST(req: Request) {
         requiredCredits: error.requiredCredits,
         currentBalance: error.currentBalance,
       };
-      if (chargedUserId && requestHash) {
+      if (idempotencyClaimed && idempotencyUserId) {
         await completeIdempotency({
-          userId: chargedUserId,
+          userId: idempotencyUserId,
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
@@ -407,7 +452,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (chargedCredits > 0 && chargedUserId && generationId) {
+    if (!providerDispatched && chargedCredits > 0 && chargedUserId && generationId) {
       await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
         reason: "generation_refund_provider_failed",
         clearMediaUrl: true,
@@ -416,15 +461,21 @@ export async function POST(req: Request) {
 
     console.error("[3D API POST]", error);
     const msg = error instanceof Error ? error.message : "Internal Error";
-    if (chargedUserId && requestHash) {
-      await completeIdempotency({
-        userId: chargedUserId,
+    if (idempotencyClaimed && idempotencyUserId) {
+      const status = await failIdempotency({
+        userId: idempotencyUserId,
         route: IDEMPOTENCY_ROUTE,
         key: idempotencyKey,
         generationId,
-        responseStatus: 500,
-        responseJson: { error: msg },
+        error,
+        providerDispatched,
       });
+      if (status === "review_required") {
+        return NextResponse.json(
+          { error: "Provider state is uncertain and requires manual review.", code: "idempotency_review_required", generationId },
+          { status: 409 },
+        );
+      }
     }
     return new NextResponse("Internal Error", { status: 500 });
   }

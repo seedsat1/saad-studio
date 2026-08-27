@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900" style="background:#070A11; font-family:'Segoe UI', system-ui, sans-serif;">
+  <!-- Header -->
+  <rect x="0" y="0" width="1440" height="48" fill="#0E1626" stroke="#1E293B"/>
+  <text x="24" y="30" fill="#F8FAFC" font-size="14" font-weight="bold">SAAD STUDIO — DRAMA WORKBENCH</text>
+  <text x="1150" y="30" fill="#38BDF8" font-size="12">5 Durations: Target: 3m | Planned: 3m 15s | Final: --</text>
+
+  <!-- Left 42% Agent -->
+  <rect x="0" y="48" width="600" height="852" fill="#090D16" stroke="#1E293B"/>
+  <rect x="0" y="48" width="600" height="48" fill="#0E1626" stroke="#1E293B"/>
+  <text x="24" y="76" fill="#F8FAFC" font-size="13" font-weight="bold">مخرج سعد ستوديو • اقتراح المخطط المشهدي</text>
+
+  <rect x="20" y="115" width="560" height="280" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="35" y="140" fill="#A78BFA" font-size="12" font-weight="bold">MDL-01: PROPOSED CHANGE (Scope: Episode 01 / Scene 02)</text>
+  <text x="35" y="165" fill="#94A3B8" font-size="11">Reason: Dramatic tension escalation in Bank Vault scene</text>
+  
+  <!-- Diff Box -->
+  <rect x="35" y="180" width="530" height="45" rx="4" fill="#070A11" stroke="#EF4444" stroke-opacity="0.4"/>
+  <text x="45" y="205" fill="#F87171" font-size="11">- Before: Scene 02 planned as 4 static security guard shots (35s)</text>
+  
+  <rect x="35" y="235" width="530" height="45" rx="4" fill="#070A11" stroke="#10B981" stroke-opacity="0.4"/>
+  <text x="45" y="260" fill="#34D399" font-size="11">+ After: Split into 2 dynamic Beats: Laser grid bypass &amp; Vault opening (25s)</text>
+
+  <text x="35" y="305" fill="#38BDF8" font-size="11">Impact: Continuity [PASS] | Duration [-10s] | Cost [0 Cr] | Beats [2 Beats Added]</text>
+
+  <!-- Approve / Reject -->
+  <rect x="35" y="325" width="160" height="35" rx="6" fill="#06B6D4"/>
+  <text x="55" y="347" fill="#FFFFFF" font-size="11" font-weight="bold">اعتماد وتطبيق التعديل</text>
+  <rect x="210" y="325" width="100" height="35" rx="6" fill="#1E293B" stroke="#334155"/>
+  <text x="245" y="347" fill="#94A3B8" font-size="11">رفض</text>
+
+  <!-- Right 58% Outline & Script Workspace -->
+  <rect x="600" y="48" width="840" height="852" fill="#070A11"/>
+  <!-- Tabs -->
+  <rect x="600" y="48" width="840" height="48" fill="#0E1626" stroke="#1E293B"/>
+  <text x="630" y="76" fill="#94A3B8" font-size="12">1. Settings</text>
+  <rect x="715" y="56" width="130" height="32" rx="6" fill="#06B6D4" fill-opacity="0.15" stroke="#06B6D4"/>
+  <text x="725" y="76" fill="#38BDF8" font-size="12" font-weight="bold">2. Outline &amp; Script</text>
+  <text x="860" y="76" fill="#94A3B8" font-size="12">3. Characters</text>
+  <text x="965" y="76" fill="#94A3B8" font-size="12">4. Locations &amp; Environments</text>
+  <text x="1160" y="76" fill="#94A3B8" font-size="12">5. Elements &amp; Props</text>
+
+  <!-- Episode Card with 8 Fields -->
+  <rect x="630" y="115" width="780" height="150" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="650" y="145" fill="#38BDF8" font-size="15" font-weight="bold">1. EPISODE 01: The Midnight Breach (الحلقة الأولى)</text>
+  <text x="650" y="170" fill="#94A3B8" font-size="11">3. Synopsis: A lone operative infiltrates a high-security vault in downtown Dubai to recover stolen code.</text>
+  
+  <text x="650" y="200" fill="#E2E8F0" font-size="11">4. Target Duration: 60s   |   5. Planned Duration: 65s   |   6. Counts: 3 Scenes • 5 Beats • 12 Shots • 14 Blocks</text>
+  <text x="650" y="225" fill="#10B981" font-size="11">7. Script Status: Approved ✓   |   8. Production Status: Ready for Production   |   Active Version: v1.3</text>
+  <rect x="1230" y="130" width="160" height="36" rx="6" fill="#8B5CF6"/>
+  <text x="1245" y="153" fill="#FFFFFF" font-size="11" font-weight="bold">🎬 Enter Production Studio</text>
+
+  <!-- Hierarchy: Scene 1 -->
+  <rect x="630" y="280" width="780" height="170" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="650" y="305" fill="#F8FAFC" font-size="13" font-weight="bold">SCENE 01: Ext. Alleyway - Rain (الشارع الخلفي)</text>
+  <text x="650" y="325" fill="#64748B" font-size="10">Target: 20s | Planned: 22s | Continuity: [PASS] | References: @Zaid_Character, @Cyber_Alley</text>
+  
+  <!-- Beats Inside Scene 1 -->
+  <rect x="650" y="340" width="740" height="45" rx="6" fill="#152033" stroke="#334155"/>
+  <text x="665" y="367" fill="#E2E8F0" font-size="11">Beat 1.1: Arrival &amp; Surveillance (Shot 01: Establishing 8s, Shot 02: Close-up 4s) [Target: 12s]</text>
+
+  <rect x="650" y="395" width="740" height="45" rx="6" fill="#152033" stroke="#334155"/>
+  <text x="665" y="422" fill="#E2E8F0" font-size="11">Beat 1.2: The Security Breach (Shot 03: Action Run 5s, Shot 04: Lock Cut 5s) [Target: 10s]</text>
+
+  <!-- Hierarchy: Scene 2 -->
+  <rect x="630" y="465" width="780" height="170" rx="8" fill="#0E1626" stroke="#1E293B"/>
+  <text x="650" y="490" fill="#F8FAFC" font-size="13" font-weight="bold">SCENE 02: Int. Bank Vault - Laser Grid (غرفة الخزنة)</text>
+  <text x="650" y="510" fill="#64748B" font-size="10">Target: 25s | Planned: 25s | Continuity: [PASS] | References: @Zaid_Character, @Bank_Vault, @Laser_Grid</text>
+
+  <rect x="650" y="525" width="740" height="45" rx="6" fill="#152033" stroke="#334155"/>
+  <text x="665" y="552" fill="#E2E8F0" font-size="11">Beat 2.1: Laser Grid Bypass (Shot 05: Tension Crawl 7s, Shot 06: Sensor Hack 6s) [Target: 13s]</text>
+
+  <rect x="650" y="580" width="740" height="45" rx="6" fill="#152033" stroke="#334155"/>
+  <text x="665" y="607" fill="#E2E8F0" font-size="11">Beat 2.2: Terminal Decryption (Shot 07: Close Screen 6s, Shot 08: Door Open 6s) [Target: 12s]</text>
+
+  <!-- Bottom Bar Actions -->
+  <rect x="630" y="650" width="780" height="60" rx="8" fill="#070A11" stroke="#1E293B"/>
+  <rect x="650" y="662" width="130" height="36" rx="6" fill="#1E293B" stroke="#334155"/>
+  <text x="670" y="685" fill="#94A3B8" font-size="11">+ إضافة مشهد جديد</text>
+  <rect x="790" y="662" width="130" height="36" rx="6" fill="#1E293B" stroke="#334155"/>
+  <text x="815" y="685" fill="#94A3B8" font-size="11">+ إضافة Beat جديد</text>
+  <rect x="1250" y="662" width="140" height="36" rx="6" fill="#06B6D4"/>
+  <text x="1265" y="685" fill="#FFFFFF" font-size="11" font-weight="bold">الانتقال للشخصيات ←</text>
+</svg>

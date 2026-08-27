@@ -1045,6 +1045,14 @@ function resolveWan30Route(baseRoute: string, hasImageInput: boolean, hasReferen
   if (hasReferenceInput) return "alibaba/wan-3.0/reference-to-video";
   return hasImageInput ? "alibaba/wan-3.0/image-to-video" : "alibaba/wan-3.0/text-to-video";
 }
+
+function resolveFlux3Route(baseRoute: string, hasImageInput: boolean, hasStartEndInput: boolean, hasVideoInput: boolean): string {
+  if (!baseRoute.startsWith("black-forest-labs/flux-3") && !baseRoute.startsWith("black-forest-labs-flux-3")) return baseRoute;
+  if (hasVideoInput) return "black-forest-labs/flux-3/video-extend";
+  if (hasStartEndInput) return "black-forest-labs/flux-3/start-end-to-video";
+  if (hasImageInput) return "black-forest-labs/flux-3/image-to-video";
+  return "black-forest-labs/flux-3/text-to-video";
+}
 const MODEL_GROUPS = getModelGroups()
   .map((group) => ({
     ...group,
@@ -1115,6 +1123,16 @@ function getVideoCharacterSupport(model: WaveSpeedVideoModel): CharacterSupport 
       minImages: 1,
       maxImages: Math.max(1, model.capabilities.max_reference_images || 10),
       note: "Wan 3.0 accepts saved character images as visual identity references.",
+    };
+  }
+
+  if (model.id === "black-forest-labs-flux-3-video" || route.startsWith("black-forest-labs/flux-3") || model.family === "flux") {
+    return {
+      mode: "image_reference",
+      label: "Reference frames",
+      minImages: 1,
+      maxImages: Math.max(1, model.capabilities.max_reference_images || 10),
+      note: "Flux 3 accepts up to 10 reference images or frames for visual identity.",
     };
   }
 
@@ -3067,6 +3085,16 @@ function VideoPageInner() {
           payload.reference_audio_urls.some((value) => typeof value === "string" && value.trim())
         );
         requestModelRoute = resolveWan30Route(requestModelRoute, payloadHasImageInput, payloadHasWanReferenceInput);
+      } else if (requestModelRoute.startsWith("black-forest-labs/flux-3") || requestModelRoute === "black-forest-labs-flux-3-video") {
+        const payloadHasVideoInput = Boolean(
+          (typeof payload.video === "string" && payload.video.trim()) ||
+          (Array.isArray(payload.reference_video_urls) && payload.reference_video_urls.some((value) => typeof value === "string" && value.trim()))
+        );
+        const payloadHasStartEndInput = Boolean(
+          ((typeof payload.start_image === "string" && payload.start_image.trim()) || (Array.isArray(payload.image_urls) && payload.image_urls[0])) &&
+          ((typeof payload.end_image === "string" && payload.end_image.trim()) || (typeof payload.last_image === "string" && payload.last_image.trim()) || (Array.isArray(payload.image_urls) && payload.image_urls[1]))
+        );
+        requestModelRoute = resolveFlux3Route(requestModelRoute, payloadHasImageInput, payloadHasStartEndInput, payloadHasVideoInput);
       } else if (requestModelRoute.includes("seedance")) {
         if (requestModelRoute.includes("mini")) {
           requestModelRoute = payloadHasImageInput

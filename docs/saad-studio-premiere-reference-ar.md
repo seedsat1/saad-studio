@@ -1,3 +1,23 @@
+## الوكيل الصوتي داخل داشبورد الأدمن في Saad Studio (2026-08-25)
+
+- تم اعتماد `Saad Voice Agent` كسطح داخل داشبورد الأدمن الحالي، وليس داشبورد المشتركين، وليس تطبيقاً مستقلاً أو landing page.
+- المسار الأساسي هو `/admin/voice-agent` مع صفحات فرعية:
+  - `/admin/voice-agent/tasks/[id]`
+  - `/admin/voice-agent/agents`
+  - `/admin/voice-agent/integrations`
+  - `/admin/voice-agent/settings`
+- يجب أن يظهر رابط الميزة من `AdminSidebar` وداخل `AdminShell`. لا يوضع رابطها في `TopNavbar` أو `components/sidebar.tsx` الخاصين بسطح المشتركين.
+- المعمارية الحالية مقسمة إلى:
+  - `lib/voice-agent/types.ts` لحالات المهمة والعقود العامة.
+  - `lib/voice-agent/schemas.ts` للتحقق بـZod.
+  - `lib/voice-agent/approval.ts` لسياسات الموافقة.
+  - `lib/voice-agent/tools.ts` لسجل الأدوات المصرح بها.
+  - `lib/voice-agent/telephony.ts` وفيه `MockTelephonyProvider` فقط حالياً.
+  - `lib/voice-agent/service.ts` لتنسيق إنشاء المهمة، الخطة، الموافقات، التنفيذ الوهمي، التفريغ، والاستهلاك.
+- لا يوجد اتصال حقيقي أو إرسال رسائل حقيقي في هذه المرحلة. أي نتيجة اتصال مسجلة من المزود الحالي يجب أن تكون موسومة بوضوح كـ`mock`.
+- يجب أن يبدأ أي مزود اتصال حقيقي لاحقاً بعبارة تعريف صريحة بأن المتصل مساعد صوتي بالذكاء الاصطناعي يتصل نيابة عن المستخدم/الشركة.
+- لا يتم خصم رصيد المستخدم في مسار `MockTelephonyProvider`; يتم فقط التحقق من كفاية الرصيد قبل إنشاء المهمة وتسجيل `VoiceAgentUsage` للعرض والتدقيق. تفعيل الخصم الحقيقي يحتاج قرار إنتاج منفصل حتى لا يتضرر ledger المالي.
+
 ## تحكم الأدمن في خيارات Wan 3.0 (2026-08-25)
 
 - القيم الافتراضية المثبتة حالياً لنسب Wan 3.0 من لقطة المزود وصفحة WaveSpeed هي: `16:9`, `9:16`, `1:1`, `4:3`, `3:4`.
@@ -4471,3 +4491,29 @@
 - القرار:
   - `BATCH 1 MODEL CONSUMER MIGRATION READY = YES`
   - `ALL PRODUCT MODEL CONFIG CENTRALIZED = NO`
+
+## Platform Financial Integrity P0-C/P0-D Production Migration (2026-08-26)
+
+- تم اعتماد مسار المستودع الفعلي لهذه المرحلة: Controlled Production Migration -> Verification -> Review، بدون Neon Branch أو Shadow DB أو Docker أو `.env.shadow`.
+- تم إنشاء commit محلي فقط على الفرع `codex/phase-2-platform-integrity-p0a`:
+  - `960c70a fix(platform): enforce idempotency and financial audit integrity`
+- تم تطبيق migration اليدوية:
+  - `prisma/migrations/manual/2026-08-26-platform-financial-integrity-p0c.sql`
+- التنفيذ كان على Neon الحالي داخل transaction واحدة مع `lock_timeout=5s` و`statement_timeout=60s`، وبدون طباعة أسرار.
+- Production schema أصبحت تحتوي:
+  - `ApiIdempotency`
+  - `CreditLedgerEntry`
+  - حقول `AdminTransaction` nullable: `operatorUserId`, `operatorEmail`, `decisionAt`, `decisionReason`
+- لم يحدث Backfill، ولم تنخفض عدادات الجداول القديمة:
+  - `Generation=1157`
+  - `ProviderUsageRecord=723`
+  - `GenerationRequestSnapshot=536`
+  - `AdminTransaction=16`
+- اختبار insert/read داخل transaction منفصلة انتهى بـROLLBACK وترك صفر صفوف synthetic.
+- نتائج التحقق:
+  - `npx.cmd prisma validate` نجح.
+  - `npx.cmd prisma generate` نجح.
+  - اختبارات P0-C/P0-D نجحت: 13 ملفات، 128 اختباراً.
+  - scoped `git diff --check` نجح.
+  - `tsc --noEmit` ما زال يفشل فقط بسبب `lib/storage/supabase.ts(115,38)`، وهو دين تقني منفصل خارج P0-C.
+- لم يتم Push أو Merge أو Deploy، ولم يبدأ Drama Studio Backend.
