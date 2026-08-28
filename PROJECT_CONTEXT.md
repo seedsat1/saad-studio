@@ -39,16 +39,15 @@
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
 
-#### Latest task: Auto-mapping 2 Reference Images to Start & End Frames (2026-08-28)
+#### Latest task: Video History Seeking Scrubber & Backblaze CORS Elimination (2026-08-28)
 - Status: Completed & Verified (PASS).
 - Scope:
-  - When users upload 2 images into the media/reference bar without explicit Start/End boxes:
-    - Image 1 is automatically mapped to `payload.image` / `payload.first_frame_url` (Start Frame).
-    - Image 2 is automatically mapped to `payload.last_image` / `payload.end_image` / `payload.last_frame_url` (End Frame).
-  - Automatically dispatches to Image-to-Video routes and passes `image` + `last_image` to provider.
+  - Added interactive scrubbing bar (timeline slider, current time, total duration, click-to-seek) to `VideoHistoryPreview` cards in `components/video/VideoHistoryList.tsx`, allowing full manual seeking, fast-forwarding, and rewinding.
+  - Eliminated browser console CORS errors for Backblaze B2 URLs in `lib/client-download.ts`.
   - All 77 unit tests passing.
 - Files affected:
-  - `app/(dash)/(routes)/video/page.tsx`
+  - `components/video/VideoHistoryList.tsx`
+  - `lib/client-download.ts`
 - Verification:
   - 65/65 tests passed across `test/models-backend-hardening.test.ts`, `test/model-definition-registry.test.ts`, `test/pricing-core.test.ts`.
 
