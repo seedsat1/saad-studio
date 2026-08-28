@@ -39,15 +39,14 @@
 
 ## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
 
-#### Latest task: Seedance Input Isolation & Clean Physical Routing (2026-08-28)
+#### Latest task: Auto-mapping 2 Reference Images to Start & End Frames (2026-08-28)
 - Status: Completed & Verified (PASS).
 - Scope:
-  - Cleaned physical separation of Start frame, End frame, and Reference panel inputs in `app/(dash)/(routes)/video/page.tsx`:
-    - `Start frame` maps strictly to `payload.image` and `payload.first_frame_url`.
-    - `End frame` maps strictly to `payload.last_image`, `payload.end_image`, and `payload.last_frame_url`.
-    - `Add references` maps strictly to `payload.reference_image_urls`, `reference_video_urls`, and `reference_audio_urls`.
-  - Zero cross-contamination between start frame and reference arrays.
-  - Full test suite passed (77/77 PASS).
+  - When users upload 2 images into the media/reference bar without explicit Start/End boxes:
+    - Image 1 is automatically mapped to `payload.image` / `payload.first_frame_url` (Start Frame).
+    - Image 2 is automatically mapped to `payload.last_image` / `payload.end_image` / `payload.last_frame_url` (End Frame).
+  - Automatically dispatches to Image-to-Video routes and passes `image` + `last_image` to provider.
+  - All 77 unit tests passing.
 - Files affected:
   - `app/(dash)/(routes)/video/page.tsx`
 - Verification:
