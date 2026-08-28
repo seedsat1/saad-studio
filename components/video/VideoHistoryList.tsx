@@ -373,6 +373,8 @@ function VideoHistoryPreview({
   const posterUrl = isImagePoster ? rawPoster : undefined;
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   // Append `#t=0.001` so that HTML5 video players seek to and render the first frame immediately!
   const videoSrc = item.src && !item.src.includes("#") ? `${item.src}#t=0.001` : item.src;
@@ -387,6 +389,22 @@ function VideoHistoryPreview({
       vid.pause();
       setIsPlaying(false);
     }
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const vid = videoRef.current;
+    if (!vid || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    vid.currentTime = pos * duration;
+    setCurrentTime(pos * duration);
+  };
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
   return (
@@ -405,9 +423,13 @@ function VideoHistoryPreview({
             preload="auto"
             onLoadedMetadata={(e) => {
               const vid = e.currentTarget;
+              setDuration(vid.duration || 0);
               if (vid.currentTime === 0) {
                 vid.currentTime = 0.001;
               }
+            }}
+            onTimeUpdate={(e) => {
+              setCurrentTime(e.currentTarget.currentTime);
             }}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
@@ -424,6 +446,26 @@ function VideoHistoryPreview({
               </div>
             </div>
           )}
+
+          {/* Interactive Scrubbing Bar on Hover */}
+          <div
+            className="absolute bottom-0 left-0 right-0 z-30 px-3 py-2 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1 pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="relative h-2 w-full bg-white/20 hover:h-3 rounded-full cursor-pointer transition-all overflow-hidden"
+              onClick={handleSeek}
+            >
+              <div
+                className="absolute top-0 bottom-0 left-0 bg-cyan-400 rounded-full transition-all"
+                style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+              />
+            </div>
+            <div className="flex justify-between items-center text-[10px] font-mono text-zinc-300 px-0.5">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+          </div>
         </>
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-zinc-500">

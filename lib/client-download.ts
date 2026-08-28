@@ -85,11 +85,14 @@ export async function downloadMediaFile(
     }
 
     if (!blob) {
-      try {
-        const directRes = await fetch(url, { mode: "cors" });
-        if (directRes.ok) blob = await directRes.blob();
-      } catch {
-        // Fallback to internal proxy/download route if CORS blocks direct CDN fetch
+      const isBackblaze = url.includes("backblazeb2.com") || url.includes("saadstudio-storage");
+      if (!isBackblaze) {
+        try {
+          const directRes = await fetch(url, { mode: "cors" });
+          if (directRes.ok) blob = await directRes.blob();
+        } catch {
+          // Fallback to internal proxy/download route if CORS blocks direct CDN fetch
+        }
       }
     }
 
