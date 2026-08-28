@@ -2774,12 +2774,22 @@ function VideoPageInner() {
         ...uploadedRefImgs,
       ].slice(0, maxRefImgs);
 
+      // If user uploaded 1 or 2 images and did not explicitly use separate start/end boxes:
+      // Image 1 is Start Frame, and Image 2 is End Frame!
+      if (!explicitStartUrl && allRefImgs.length >= 1 && refVids.length === 0 && refAuds.length === 0) {
+        explicitStartUrl = allRefImgs[0];
+        payload.image = explicitStartUrl;
+        payload.first_frame_url = explicitStartUrl;
+      }
+      if (!explicitEndUrl && allRefImgs.length >= 2 && refVids.length === 0 && refAuds.length === 0) {
+        explicitEndUrl = allRefImgs[1];
+        payload.last_image = explicitEndUrl;
+        payload.end_image = explicitEndUrl;
+        payload.last_frame_url = explicitEndUrl;
+      }
+
       if (allRefImgs.length > 0) {
         payload.reference_image_urls = allRefImgs;
-        if (caps.requires_image && !explicitStartUrl) {
-          payload.image = allRefImgs[0];
-          payload.first_frame_url = allRefImgs[0];
-        }
       }
 
       if (refVids.length > 0) {
