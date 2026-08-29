@@ -2128,14 +2128,16 @@ export default function ImageWorkspacePage() {
     if (activeTool === "inpaint") return <InpaintWorkspace source={inpaintFile} setSource={setInpaintFile} brushSize={brushSize} setBrushSize={setBrushSize} maskVersion={maskVersion} setMaskVersion={setMaskVersion} registerMaskExporter={(fn) => { maskExporterRef.current = fn; }} />;
     if (compare) return <CompareSlider before={compare.before} after={compare.after} onInspect={(url) => setInspectorAsset({ type: "image", url, title: activeTool.toUpperCase() })} />;
     if (activeTool === "enhance") {
-      return <div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 text-zinc-400">
-        <Zap className="h-10 w-10 text-amber-400/60" />
-        <div className="text-center">
-          <p className="text-sm font-semibold text-amber-300">{t("ENHANCE — Photo Restoration")}</p>
-          <p className="mt-1 text-xs text-zinc-500">{t("Upload a photo in the settings panel → click Enhance Photo")}</p>
-          <p className="mt-1 text-xs text-zinc-600">{t("Uses true image-to-image AI to preserve identity while improving quality")}</p>
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 text-zinc-400">
+          <Zap className="h-10 w-10 text-amber-400/60" />
+          <div className="text-center">
+            <p className="text-sm font-semibold text-amber-300">{t("ENHANCE — Photo Restoration")}</p>
+            <p className="mt-1 text-xs text-zinc-500">{t("Upload a photo in the settings panel → click Enhance Photo")}</p>
+            <p className="mt-1 text-xs text-zinc-600">{t("Uses true image-to-image AI to preserve identity while improving quality")}</p>
+          </div>
         </div>
-      </div>;
+      );
     }
     return <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-zinc-500">{activeTool === "relight" ? t("Upload image and relight") : activeTool === "upscale" ? t("Upload media and upscale") : t("Upload source and target images")}</div>;
   };

@@ -30,6 +30,8 @@ import {
   Search,
   Loader2,
   X,
+  Camera,
+  Film,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
@@ -37,8 +39,8 @@ import { usePromoContent, promoText } from "@/hooks/use-promo-content";
 import { DEFAULT_EXPLORE_MODULES, type ExploreMedia, type ExploreModule } from "@/lib/explore-cms";
 import { useLanguage } from "@/lib/use-language";
 import Footer from "@/components/Footer";
-import { CameraMovementsSection } from "@/components/explore/CameraMovementsSection";
-import { SeedancePromptsSection } from "@/components/explore/SeedancePromptsSection";
+import { getCameraMovements } from "@/lib/camera-movements-library";
+import { SEEDANCE_PROMPTS } from "@/lib/seedance-prompts-library";
 
 // ─── Types and Constants ───
 
@@ -112,6 +114,137 @@ const TRANSITIONS_SHOTS = [
   "/transitions/1%20(8).webp",
   "/transitions/1%20(9).webp",
 ] as const;
+
+const INITIAL_STUDIO_CREATIONS: ShowcaseItem[] = [
+  {
+    id: "flower-shop-robot",
+    title: "The Flower Shop Arrival",
+    slug: "flower-shop-arrival",
+    model: "SEEDANCE 2.0",
+    provider: "Saad Studio",
+    video_url: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/flying-carpet.webp",
+    thumbnail_url: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/flying-carpet.webp",
+    prompt: "A cute small white ceramic delivery robot with digital eyes arrives at a glowing flower shop.",
+    tags: ["Seedance", "Cinematic"],
+    featured: true,
+    views: 262000,
+    likes: 4800,
+    created_at: "2026-08-03T12:00:00.000Z",
+    aspect_ratio: "16:9",
+  },
+  {
+    id: "vintage-engraved-portrait",
+    title: "Vintage Engraved Portrait Illustration",
+    slug: "vintage-engraved-portrait",
+    model: "NANO BANANA",
+    provider: "Saad Studio",
+    video_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&fit=crop&q=80",
+    thumbnail_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&fit=crop&q=80",
+    prompt: "Ultra realistic 4K vintage engraved style portrait illustration of an elegant woman.",
+    tags: ["Portrait", "Engraving"],
+    featured: true,
+    views: 185000,
+    likes: 3400,
+    created_at: "2026-08-05T12:00:00.000Z",
+    aspect_ratio: "16:9",
+  },
+  {
+    id: "corporate-building-transform",
+    title: "Corporate Building Transformation",
+    slug: "corporate-building-transformation",
+    model: "3D RENDER",
+    provider: "Saad Studio",
+    video_url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&fit=crop&q=80",
+    thumbnail_url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&fit=crop&q=80",
+    prompt: "Clean minimal corporate 3D architectural visual render.",
+    tags: ["Architecture", "3D"],
+    featured: true,
+    views: 210000,
+    likes: 5200,
+    created_at: "2026-08-05T12:00:00.000Z",
+    aspect_ratio: "16:9",
+  },
+  {
+    id: "sumerian-egyptian-civilization",
+    title: "Sumerian & Egyptian Civilizations | Cinematic AI",
+    slug: "sumerian-egyptian-civilizations",
+    model: "GEMINI OMNI",
+    provider: "Saad Studio",
+    video_url: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=600&fit=crop&q=80",
+    thumbnail_url: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=600&fit=crop&q=80",
+    prompt: "Monumental ancient guardian statue with glowing runes against cinematic sunlit clouds.",
+    tags: ["History", "Cinematic"],
+    featured: true,
+    views: 620000,
+    likes: 12800,
+    created_at: "2026-08-05T12:00:00.000Z",
+    aspect_ratio: "16:9",
+  },
+  {
+    id: "character-pose-grid",
+    title: "Character Pose Reference Grid",
+    slug: "character-pose-grid",
+    model: "SEEDREAM 5",
+    provider: "Saad Studio",
+    video_url: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&fit=crop&q=80",
+    thumbnail_url: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&fit=crop&q=80",
+    prompt: "Consistent character multi-pose studio reference set.",
+    tags: ["Character", "Studio"],
+    featured: true,
+    views: 195000,
+    likes: 4100,
+    created_at: "2026-08-03T12:00:00.000Z",
+    aspect_ratio: "16:9",
+  },
+  {
+    id: "sketch-to-video",
+    title: "Sketch to Realistic Video",
+    slug: "sketch-to-video",
+    model: "GEMINI OMNI",
+    provider: "Saad Studio",
+    video_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&fit=crop&q=80",
+    thumbnail_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&fit=crop&q=80",
+    prompt: "Hand-drawn line sketch transforming into live-action footage.",
+    tags: ["Animation", "Realism"],
+    featured: true,
+    views: 312000,
+    likes: 7600,
+    created_at: "2026-08-01T12:00:00.000Z",
+    aspect_ratio: "16:9",
+  },
+  {
+    id: "vr-match-cut-polar",
+    title: "VR Match Cut — Polar Bear to Home",
+    slug: "vr-match-cut-polar",
+    model: "CINEMATIC",
+    provider: "Saad Studio",
+    video_url: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/vr-match-cut.webp",
+    thumbnail_url: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/vr-match-cut.webp",
+    prompt: "Cinematic VR match cut transition from icy arctic landscape to cozy modern living room.",
+    tags: ["VR", "Transition"],
+    featured: true,
+    views: 175000,
+    likes: 9500,
+    created_at: "2026-08-04T12:00:00.000Z",
+    aspect_ratio: "16:9",
+  },
+  {
+    id: "cyberpunk-360-showcase",
+    title: "Cyberpunk Character 360° Showcase",
+    slug: "cyberpunk-360-showcase",
+    model: "CHARACTER",
+    provider: "Saad Studio",
+    video_url: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&fit=crop&q=80",
+    thumbnail_url: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&fit=crop&q=80",
+    prompt: "Futuristic neon city hologram platform full 360 camera orbit around hero in high-tech suit.",
+    tags: ["Cyberpunk", "360"],
+    featured: true,
+    views: 540000,
+    likes: 11200,
+    created_at: "2026-08-02T12:00:00.000Z",
+    aspect_ratio: "16:9",
+  },
+];
 
 const KLING_3_HERO = "/Kling%203.0/Hero.webp";
 const KLING_3_SHOTS = [
@@ -293,72 +426,73 @@ function GptImage2ModelAd() {
   const subtitle = promoText(content, slotId, "subtitle", "4K images with near-perfect text rendering");
   const cta = promoText(content, slotId, "cta", "Try Model");
   const badge = promoText(content, slotId, "badge", "NEW MODEL");
-  const galleryLayout = [
-    "col-span-6 row-span-6",
-    "col-span-6 row-span-2",
-    "col-span-3 row-span-4",
-    "col-span-3 row-span-4",
-    "col-span-3 row-span-2",
-    "col-span-3 row-span-2",
-    "col-span-3 row-span-4",
-    "col-span-3 row-span-4",
-  ];
 
   return (
-    <section className="w-full px-5 py-8 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
+    <section className="w-full px-4 md:px-8 py-6 max-w-[1600px] mx-auto">
       <Link
         href={href}
-        className="group relative mx-auto block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block overflow-hidden rounded-3xl border border-white/10 bg-[#080b11] shadow-2xl transition-all duration-300 hover:border-cyan-400/30"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_50%,rgba(255,255,255,0.12),transparent_26%),linear-gradient(90deg,#070707_0%,#090b10_32%,#030405_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/75 to-transparent" />
-
-        <div className="relative grid min-h-[520px] gap-0 lg:grid-cols-[24rem_1fr] xl:grid-cols-[30rem_1fr]">
-          <div className="relative flex min-h-[430px] flex-col items-center justify-start overflow-hidden border-b border-white/10 px-6 py-9 text-center lg:border-b-0 lg:border-r">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_78%,rgba(255,255,255,0.14),transparent_23%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.48))]" />
-            <div className="relative z-10">
-              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/45">{t(badge)}</div>
-              <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
-              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{t(title)}</h2>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-400">{t(subtitle)}</p>
-              <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
-                <Sparkles className="h-4 w-4" />
-                {t(cta)}
-              </span>
-            </div>
+        <div className="relative grid min-h-[480px] gap-0 lg:grid-cols-[22rem_1fr] xl:grid-cols-[26rem_1fr]">
+          {/* Left Hero Card */}
+          <div className="relative flex min-h-[420px] flex-col items-center justify-center overflow-hidden border-b border-white/10 p-8 text-center lg:border-b-0 lg:border-r border-white/10">
+            {/* Background Image */}
             <img
               src={heroShot}
               alt="GPT Image 2 hero"
-              className="absolute inset-x-0 bottom-0 mx-auto h-[62%] w-full object-cover object-bottom opacity-95 transition duration-700 group-hover:scale-[1.03]"
+              className="absolute inset-0 h-full w-full object-cover object-center opacity-90 transition duration-700 group-hover:scale-105"
               loading="eager"
             />
-            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/70" />
+
+            {/* Hero Text Content */}
+            <div className="relative z-10 flex flex-col items-center max-w-xs">
+              <span className="rounded-full bg-white/10 border border-white/15 px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-widest text-zinc-300 backdrop-blur-md">
+                {t(badge)}
+              </span>
+              <h2 className="mt-4 text-2xl sm:text-3xl font-black leading-tight text-white drop-shadow-md">
+                {t(title)}
+              </h2>
+              <p className="mt-2 text-xs sm:text-sm text-zinc-300 leading-relaxed drop-shadow">
+                {t(subtitle)}
+              </p>
+              <span className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-xs font-black text-black shadow-lg transition duration-200 group-hover:scale-105">
+                <Play className="h-3.5 w-3.5 fill-black" />
+                {t(cta)}
+              </span>
+            </div>
           </div>
 
-          <div className="relative min-h-[520px] overflow-hidden p-4">
-            <div className="grid h-full min-h-[500px] grid-cols-12 grid-rows-8 gap-3">
-              {galleryShots.map((shot, index) => (
-                <div
-                  key={shot}
-                  className={cn(
-                    "relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] shadow-xl shadow-black/30",
-                    galleryLayout[index],
-                  )}
-                >
-                  <img
-                    src={shot}
-                    alt={`GPT Image 2 showcase ${index + 1}`}
-                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
-                    loading={index < 3 ? "eager" : "lazy"}
-                  />
-                  <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/5" />
-                </div>
-              ))}
+          {/* Right Gallery Bento Grid */}
+          <div className="relative min-h-[440px] overflow-hidden p-4 bg-black/40">
+            <div className="grid h-full min-h-[400px] grid-cols-2 sm:grid-cols-4 gap-3">
+              {galleryShots.slice(0, 8).map((shot, index) => {
+                const isWide = index === 0 || index === 7;
+                return (
+                  <div
+                    key={shot}
+                    className={cn(
+                      "relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] shadow-md",
+                      isWide ? "col-span-2 aspect-video" : "col-span-1 aspect-square sm:aspect-auto"
+                    )}
+                  >
+                    <img
+                      src={shot}
+                      alt={`GPT Image 2 showcase ${index + 1}`}
+                      className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                      loading={index < 3 ? "eager" : "lazy"}
+                    />
+                    <div className="absolute inset-0 bg-black/10 transition group-hover:bg-transparent" />
+                  </div>
+                );
+              })}
             </div>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/45 to-transparent" />
-            <div className="absolute bottom-7 left-1/2 -translate-x-1/2">
-              <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
-                View all of GPT Image 2
+
+            {/* Bottom floating CTA button */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2">
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/95 backdrop-blur-md px-5 py-2.5 text-xs font-extrabold text-black shadow-2xl transition duration-200 group-hover:scale-105 group-hover:bg-white">
+                <span>{t(cta)}</span>
                 <ArrowUpRight className="h-4 w-4" />
               </span>
             </div>
@@ -752,6 +886,500 @@ function Kling3ModelAd() {
           </div>
         </div>
       </Link>
+    </section>
+  );
+}
+
+function CameraMovementsAd() {
+  const { t } = useExploreTranslation();
+  const movements = useMemo(() => getCameraMovements().slice(0, 8), []);
+
+  return (
+    <section className="w-full px-4 md:px-8 py-10 max-w-[1600px] mx-auto border-b border-white/5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[10px] bg-amber-500/15 border border-amber-500/30 rounded-full px-2.5 py-0.5 font-bold text-amber-300 uppercase tracking-wider">
+              {t("CAMERA LIBRARY")}
+            </span>
+            <span className="text-xs text-zinc-500 font-medium">62 {t("Presets")}</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            {t("62 Cinematic Camera Movements")}
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl mt-1">
+            {t("Dolly, zoom, orbit, drone, tracking, and crane camera moves with instant ready-to-copy prompts for any AI video model.")}
+          </p>
+        </div>
+
+        <Link
+          href="/camera-movements"
+          className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black px-5 py-2.5 text-xs font-black shadow-lg transition duration-200 hover:scale-105 self-start sm:self-center shrink-0"
+        >
+          <Camera className="w-4 h-4" />
+          <span>{t("Explore Camera Moves")}</span>
+          <ArrowUpRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {/* Large 4-Column Grid of Cinematic Camera Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {movements.slice(0, 8).map((m) => (
+          <Link
+            key={m.id}
+            href="/camera-movements"
+            className="group relative flex flex-col rounded-2xl overflow-hidden border border-white/10 bg-[#070a12] shadow-xl hover:border-amber-500/40 hover:scale-[1.02] transition-all duration-300"
+          >
+            <div className="relative aspect-video w-full overflow-hidden bg-black">
+              <img
+                src={m.imageUrl}
+                alt={m.name}
+                className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
+              <div className="absolute top-2.5 left-2.5">
+                <span className="bg-black/70 backdrop-blur-md border border-white/10 text-[9px] font-black text-amber-300 px-2 py-0.5 rounded-md uppercase">
+                  {m.tag}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 flex items-center justify-between border-t border-white/5 bg-[#080c16]">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                  <Camera className="w-2.5 h-2.5 text-amber-400" />
+                </div>
+                <span className="text-xs font-bold text-white truncate group-hover:text-amber-300 transition-colors">
+                  {m.name}
+                </span>
+              </div>
+              <span className="text-[9px] font-bold text-zinc-500 bg-white/5 px-2 py-0.5 rounded uppercase tracking-wider shrink-0">
+                Public
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      <div className="mt-8 flex justify-center">
+        <Link
+          href="/camera-movements"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-6 py-3 text-xs font-black text-white shadow-xl transition hover:scale-105 backdrop-blur-md"
+        >
+          <span>{t("Explore all 62 camera moves")}</span>
+          <ArrowUpRight className="w-4 h-4 text-amber-400" />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function PromptsLibraryAd() {
+  const { t } = useExploreTranslation();
+  const prompts = useMemo(() => SEEDANCE_PROMPTS.slice(0, 8), []);
+
+  return (
+    <section className="w-full px-4 md:px-8 py-10 max-w-[1600px] mx-auto border-b border-white/5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[10px] bg-fuchsia-500/15 border border-fuchsia-500/30 rounded-full px-2.5 py-0.5 font-bold text-fuchsia-300 uppercase tracking-wider">
+              {t("PROMPTS REPOSITORY")}
+            </span>
+            <span className="text-xs text-zinc-500 font-medium">16 {t("Curated Prompts")}</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            {t("Cinematic Video Prompts Library")}
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl mt-1">
+            {t("Curated, battle-tested AI video prompts for cinematic stories, high-end ads, animations, and FPV shots.")}
+          </p>
+        </div>
+
+        <Link
+          href="/prompt"
+          className="inline-flex items-center gap-2 rounded-xl bg-fuchsia-500 hover:bg-fuchsia-400 text-black px-5 py-2.5 text-xs font-black shadow-lg transition duration-200 hover:scale-105 self-start sm:self-center shrink-0"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>{t("Browse Prompts")}</span>
+          <ArrowUpRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {/* Large 4-Column Grid of Cinematic Prompt Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {prompts.map((p) => (
+          <Link
+            key={p.id}
+            href="/prompt"
+            className="group relative flex flex-col rounded-2xl overflow-hidden border border-white/10 bg-[#070a12] shadow-xl hover:border-fuchsia-500/40 hover:scale-[1.02] transition-all duration-300"
+          >
+            <div className="relative aspect-video w-full overflow-hidden bg-black">
+              <img
+                src={p.thumbnailUrl}
+                alt={p.title}
+                className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
+              <div className="absolute top-2.5 left-2.5">
+                <span className="bg-black/70 backdrop-blur-md border border-white/10 text-[9px] font-black text-fuchsia-300 px-2 py-0.5 rounded-md uppercase">
+                  {p.category}
+                </span>
+              </div>
+              <div className="absolute bottom-2 right-2.5">
+                <span className="text-[10px] font-bold text-zinc-300 bg-black/60 px-1.5 py-0.5 rounded">
+                  {p.views} views
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 flex items-center justify-between border-t border-white/5 bg-[#080c16]">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/30 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-2.5 h-2.5 text-fuchsia-400" />
+                </div>
+                <span className="text-xs font-bold text-white truncate group-hover:text-fuchsia-300 transition-colors">
+                  {p.title}
+                </span>
+              </div>
+              <span className="text-[9px] font-bold text-zinc-500 bg-white/5 px-2 py-0.5 rounded uppercase tracking-wider shrink-0">
+                Public
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      <div className="mt-8 flex justify-center">
+        <Link
+          href="/prompt"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-6 py-3 text-xs font-black text-white shadow-xl transition hover:scale-105 backdrop-blur-md"
+        >
+          <span>{t("Explore all cinematic prompts")}</span>
+          <ArrowUpRight className="w-4 h-4 text-fuchsia-400" />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function ImageEditToolsAd() {
+  const { t } = useExploreTranslation();
+
+  const editTools = [
+    {
+      title: "AI 4K Upscaler",
+      titleAr: "رفع الدقة إلى 4K",
+      desc: "Restore details & enhance sharpness",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&fit=crop&q=80",
+      tag: "4K UHD",
+      tool: "upscale",
+    },
+    {
+      title: "Smart Inpaint & Object Eraser",
+      titleAr: "إزالة وتعديل العناصر",
+      desc: "Remove unwanted objects or replace items",
+      image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&fit=crop&q=80",
+      tag: "INPAINT",
+      tool: "inpaint",
+    },
+    {
+      title: "Face Swap Pro",
+      titleAr: "استبدال الوجوه الاحترافي",
+      desc: "Seamless face blending with skin matching",
+      image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&fit=crop&q=80",
+      tag: "PRO",
+      tool: "faceswap",
+    },
+    {
+      title: "Dynamic AI Relighting",
+      titleAr: "إعادة توزيع الإضاءة",
+      desc: "Studio lighting control and color grading",
+      image: "https://images.unsplash.com/photo-1557683316-973673baf926?w=600&fit=crop&q=80",
+      tag: "LIGHTING",
+      tool: "relight",
+    },
+  ];
+
+  return (
+    <section className="w-full px-4 md:px-8 py-10 max-w-[1600px] mx-auto border-b border-white/5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[10px] bg-cyan-500/15 border border-cyan-500/30 rounded-full px-2.5 py-0.5 font-bold text-cyan-300 uppercase tracking-wider">
+              {t("AI RETOUCH SUITE")}
+            </span>
+            <span className="text-xs text-zinc-500 font-medium">{t("Professional Editing")}</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            {t("AI Image Studio & Retouch Tools")}
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl mt-1">
+            {t("4K AI Upscaler, Smart Object Inpaint & Eraser, Face Swap Pro, and dynamic AI Relighting in one place.")}
+          </p>
+        </div>
+
+        <Link
+          href="/edit"
+          className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black px-5 py-2.5 text-xs font-black shadow-lg transition duration-200 hover:scale-105 self-start sm:self-center shrink-0"
+        >
+          <Wand2 className="w-4 h-4" />
+          <span>{t("Launch Image Editor")}</span>
+          <ArrowUpRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {/* 4-Card Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {editTools.map((tool) => (
+          <Link
+            key={tool.tool}
+            href={`/edit?tool=${tool.tool}`}
+            className="group relative flex flex-col rounded-2xl overflow-hidden border border-white/10 bg-[#070a12] shadow-xl hover:border-cyan-500/40 hover:scale-[1.02] transition-all duration-300"
+          >
+            <div className="relative aspect-video w-full overflow-hidden bg-black">
+              <img
+                src={tool.image}
+                alt={tool.title}
+                className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
+              <div className="absolute top-2.5 left-2.5">
+                <span className="bg-black/70 backdrop-blur-md border border-white/10 text-[9px] font-black text-cyan-300 px-2 py-0.5 rounded-md uppercase">
+                  {tool.tag}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 flex items-center justify-between border-t border-white/5 bg-[#080c16]">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                  <Wand2 className="w-2.5 h-2.5 text-cyan-400" />
+                </div>
+                <span className="text-xs font-bold text-white truncate group-hover:text-cyan-300 transition-colors">
+                  {tool.title}
+                </span>
+              </div>
+              <span className="text-[9px] font-bold text-zinc-500 bg-white/5 px-2 py-0.5 rounded uppercase tracking-wider shrink-0">
+                Tool
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function StoryboardStudioAd() {
+  const { t } = useExploreTranslation();
+
+  const storyboardCards = [
+    {
+      title: "Storyboard Production",
+      titleAr: "إنتاج القصة المصورة",
+      desc: "Multi-panel cinematic sequences",
+      image: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=600&fit=crop&q=80",
+      tag: "PRODUCTION",
+    },
+    {
+      title: "Short Drama Studio",
+      titleAr: "مسلسلات الدراما القصيرة",
+      desc: "Episode storytelling & continuity",
+      image: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=600&fit=crop&q=80",
+      tag: "SHORT DRAMA",
+    },
+    {
+      title: "Comic & Manga Drama",
+      titleAr: "الكوميكس والقصص المصورة",
+      desc: "Stylized comic panels with bubbles",
+      image: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&fit=crop&q=80",
+      tag: "COMIC DRAMA",
+    },
+    {
+      title: "Multi-Character Consistency",
+      titleAr: "ثبات وتوحيد الشخصيات",
+      desc: "Lock identity across all story panels",
+      image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&fit=crop&q=80",
+      tag: "CONSISTENCY",
+    },
+  ];
+
+  return (
+    <section className="w-full px-4 md:px-8 py-10 max-w-[1600px] mx-auto border-b border-white/5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[10px] bg-rose-500/15 border border-rose-500/30 rounded-full px-2.5 py-0.5 font-bold text-rose-300 uppercase tracking-wider">
+              {t("STORYBOARD & DRAMA")}
+            </span>
+            <span className="text-xs text-zinc-500 font-medium">{t("Multi-Panel Production")}</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            {t("Storyboard & Short Drama Studio")}
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl mt-1">
+            {t("Create multi-panel storyboards, cinematic short dramas, and comics with character consistency and up to 4K quality.")}
+          </p>
+        </div>
+
+        <Link
+          href="/storyboard"
+          className="inline-flex items-center gap-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-black px-5 py-2.5 text-xs font-black shadow-lg transition duration-200 hover:scale-105 self-start sm:self-center shrink-0"
+        >
+          <Film className="w-4 h-4" />
+          <span>{t("Open Storyboard Studio")}</span>
+          <ArrowUpRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {/* 4-Card Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {storyboardCards.map((card, idx) => (
+          <Link
+            key={idx}
+            href="/storyboard"
+            className="group relative flex flex-col rounded-2xl overflow-hidden border border-white/10 bg-[#070a12] shadow-xl hover:border-rose-500/40 hover:scale-[1.02] transition-all duration-300"
+          >
+            <div className="relative aspect-video w-full overflow-hidden bg-black">
+              <img
+                src={card.image}
+                alt={card.title}
+                className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
+              <div className="absolute top-2.5 left-2.5">
+                <span className="bg-black/70 backdrop-blur-md border border-white/10 text-[9px] font-black text-rose-300 px-2 py-0.5 rounded-md uppercase">
+                  {card.tag}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 flex items-center justify-between border-t border-white/5 bg-[#080c16]">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center shrink-0">
+                  <Film className="w-2.5 h-2.5 text-rose-400" />
+                </div>
+                <span className="text-xs font-bold text-white truncate group-hover:text-rose-300 transition-colors">
+                  {card.title}
+                </span>
+              </div>
+              <span className="text-[9px] font-bold text-zinc-500 bg-white/5 px-2 py-0.5 rounded uppercase tracking-wider shrink-0">
+                Drama
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function StudioCreationsAd() {
+  const { t } = useExploreTranslation();
+
+  const previewCards = [
+    {
+      title: "The Flower Shop Arrival",
+      desc: "Seedance 2.0 Mini cinematic video",
+      image: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/flying-carpet.webp",
+      tag: "SEEDANCE 2.0",
+      model: "Seedance 2.0 Mini",
+    },
+    {
+      title: "Vintage Engraved Portrait",
+      desc: "Nano Banana Pro vintage line illustration",
+      image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&fit=crop&q=80",
+      tag: "NANO BANANA",
+      model: "Nano Banana Pro",
+    },
+    {
+      title: "Corporate Building Transformation",
+      desc: "Nano Banana Pro 3D architectural render",
+      image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&fit=crop&q=80",
+      tag: "3D RENDER",
+      model: "Nano Banana Pro",
+    },
+    {
+      title: "Sumerian & Egyptian Civilizations",
+      desc: "Google Gemini Omni Cinematic Masterpiece",
+      image: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=600&fit=crop&q=80",
+      tag: "GEMINI OMNI",
+      model: "Google Gemini Omni",
+    },
+  ];
+
+  return (
+    <section className="w-full px-4 md:px-8 py-10 max-w-[1600px] mx-auto border-b border-white/5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[10px] bg-cyan-500/15 border border-cyan-500/30 rounded-full px-2.5 py-0.5 font-bold text-cyan-300 uppercase tracking-wider">
+              {t("STUDIO SHOWCASE")}
+            </span>
+            <span className="text-xs text-zinc-500 font-medium">{t("Live Community Feed")}</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            {t("Studio Creations & Live Showcase")}
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl mt-1">
+            {t("Browse real creations generated across Saad Studio models, copy prompts, and discover state-of-the-art AI video and image models.")}
+          </p>
+        </div>
+
+        <Link
+          href="/creations"
+          className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black px-5 py-2.5 text-xs font-black shadow-lg transition duration-200 hover:scale-105 self-start sm:self-center shrink-0"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>{t("View All Creations")}</span>
+          <ArrowUpRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {/* 4-Card Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {previewCards.map((card, idx) => (
+          <Link
+            key={idx}
+            href="/creations"
+            className="group relative flex flex-col rounded-2xl overflow-hidden border border-white/10 bg-[#070a12] shadow-xl hover:border-cyan-500/40 hover:scale-[1.02] transition-all duration-300"
+          >
+            <div className="relative aspect-video w-full overflow-hidden bg-black">
+              <img
+                src={card.image}
+                alt={card.title}
+                className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
+              <div className="absolute top-2.5 left-2.5">
+                <span className="bg-black/70 backdrop-blur-md border border-white/10 text-[9px] font-black text-cyan-300 px-2 py-0.5 rounded-md uppercase">
+                  {card.tag}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 flex items-center justify-between border-t border-white/5 bg-[#080c16]">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-2.5 h-2.5 text-cyan-400" />
+                </div>
+                <span className="text-xs font-bold text-white truncate group-hover:text-cyan-300 transition-colors">
+                  {card.title}
+                </span>
+              </div>
+              <span className="text-[9px] font-bold text-zinc-500 bg-white/5 px-2 py-0.5 rounded uppercase tracking-wider shrink-0">
+                Live
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
     </section>
   );
 }
@@ -1367,8 +1995,30 @@ function useExploreTranslation() {
       "Upscaler": "محسن الدقة",
       "Draw": "رسم",
       "Hot": "شائع",
-      "New": "جديد",
       "MODEL": "نموذج",
+      "CAMERA LIBRARY": "مكتبة الكاميرا",
+      "62 Cinematic Camera Movements": "62 حركة كاميرا سينمائية",
+      "Dolly, zoom, orbit, drone, tracking, and crane camera moves with instant ready-to-copy prompts for any AI video model.": "حركات دولّي، زوم، أوربت، درون، رافعة، وتتبع مع برومبتات جاهزة للنسخ والاستخدام في أي موديل فيديو.",
+      "Explore Camera Moves": "استكشف حركات الكاميرا",
+      "PROMPTS REPOSITORY": "مكتبة البرومبتات",
+      "Cinematic Video Prompts Library": "مكتبة برومبتات الفيديو السينمائية",
+      "Curated, battle-tested AI video prompts for cinematic stories, high-end ads, animations, and FPV shots.": "برومبتات فيديو سينمائية منسقة ومختبرة للقصص السينمائية، الإعلانات الفاخرة، الأنيمشن، ولقطات FPV.",
+      "Browse Prompts": "تصفح البرومبتات",
+      "AI RETOUCH SUITE": "أدوات التعديل والمعالجة",
+      "AI Image Studio & Retouch Tools": "استوديو تعديل ومعالجة الصور بالذكاء الاصطناعي",
+      "4K AI Upscaler, Smart Object Inpaint & Eraser, Face Swap Pro, and dynamic AI Relighting in one place.": "تكبير الدقة حتى 4K، إزالة وتعديل العناصر، استبدال الوجوه، وإعادة توزيع الإضاءة الذكية في مكان واحد.",
+      "Launch Image Editor": "فتح محرر الصور",
+      "STORYBOARD & DRAMA": "القصة المصورة والدراما",
+      "Storyboard & Short Drama Studio": "استوديو القصة المصورة والدراما القصيرة",
+      "Create multi-panel storyboards, cinematic short dramas, and comics with character consistency and up to 4K quality.": "إنتاج القصص المصورة المتتالية، مسلسلات الدراما القصيرة، والكوميكس مع ثبات الشخصيات بدقة حتى 4K.",
+      "Open Storyboard Studio": "فتح القصة المصورة",
+      "Multi-Panel Production": "إنتاج اللوحات المتتالية",
+      "STUDIO SHOWCASE": "معرض إبداعات الاستوديو",
+      "Studio Creations & Live Showcase": "معرض إبداعات ونماذج الاستوديو الحية",
+      "View All Creations": "تصفح كافة إبداعات الاستوديو",
+      "View All": "عرض الكل",
+      "Explore all Studio Creations": "استكشف كافة أعمال الاستوديو",
+      "views": "مشاهدة",
       "هيرو للموديل + مصغرات لأعماله + مواد تعليمية وإعدادات موصى بها.": "نموذج البطل + مصغرات الأعمال + الشروحات والإعدادات الموصى بها."
     }
   };
@@ -1388,15 +2038,15 @@ export default function ExplorePage() {
 
   // CMS & API States
   const [cmsModules, setCmsModules] = useState<ExploreModule[]>(DEFAULT_EXPLORE_MODULES);
-  const [items, setItems] = useState<ShowcaseItem[]>([]);
+  const [items, setItems] = useState<ShowcaseItem[]>(INITIAL_STUDIO_CREATIONS);
   const [itemsCursor, setItemsCursor] = useState<string | null>(null);
-  const [featured, setFeatured] = useState<ShowcaseItem[]>([]);
+  const [featured, setFeatured] = useState<ShowcaseItem[]>(INITIAL_STUDIO_CREATIONS);
   const [featuredCursor, setFeaturedCursor] = useState<string | null>(null);
-  const [trending, setTrending] = useState<ShowcaseItem[]>([]);
+  const [trending, setTrending] = useState<ShowcaseItem[]>(INITIAL_STUDIO_CREATIONS);
   const [trendingCursor, setTrendingCursor] = useState<string | null>(null);
   const [autoplayKey, setAutoplayKey] = useState<string | null>(null);
   const [activeFeed, setActiveFeed] = useState<"latest" | "featured" | "trending">("latest");
-  const [loadingCreations, setLoadingCreations] = useState(true);
+  const [loadingCreations, setLoadingCreations] = useState(false);
   const [activeMediaItem, setActiveMediaItem] = useState<ShowcaseItem | null>(null);
 
   // Prompt Generator states
@@ -1504,7 +2154,6 @@ export default function ExplorePage() {
 
   // Fetch showcase items
   const loadInitial = useCallback(async () => {
-    setLoadingCreations(true);
     try {
       const [latestRes, featuredRes, trendingRes] = await Promise.all([
         fetch("/api/showcase?take=30", { cache: "no-store" }),
@@ -1516,16 +2165,22 @@ export default function ExplorePage() {
       const featuredJson = featuredRes.ok ? ((await featuredRes.json()) as FeedResponse) : { items: [] };
       const trendingJson = trendingRes.ok ? ((await trendingRes.json()) as FeedResponse) : { items: [] };
 
-      setItems(latestJson.items ?? []);
+      if (latestJson.items && latestJson.items.length > 0) {
+        setItems(latestJson.items);
+      }
       setItemsCursor(latestJson.nextCursor ?? null);
-      setFeatured(featuredJson.items ?? []);
+
+      if (featuredJson.items && featuredJson.items.length > 0) {
+        setFeatured(featuredJson.items);
+      }
       setFeaturedCursor((featuredJson as any).nextCursor ?? null);
-      setTrending(trendingJson.items ?? []);
+
+      if (trendingJson.items && trendingJson.items.length > 0) {
+        setTrending(trendingJson.items);
+      }
       setTrendingCursor((trendingJson as any).nextCursor ?? null);
     } catch (err) {
       console.error("Failed to load creations:", err);
-    } finally {
-      setLoadingCreations(false);
     }
   }, []);
 
@@ -1648,45 +2303,6 @@ export default function ExplorePage() {
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
-
-  // Compile Dynamic Model Showcases Section (قسم الموديلات وقسم الانتاج)
-  const modelShowcaseSections = useMemo(() => {
-    const source = activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items;
-    const byModel = new Map<string, ShowcaseItem[]>();
-    for (const item of source) {
-      const key = String(item.model || "Unknown model");
-      const list = byModel.get(key) ?? [];
-      list.push(item);
-      byModel.set(key, list);
-    }
-
-    const models = Array.from(byModel.entries())
-      .sort((a, b) => b[1].length - a[1].length)
-      .slice(0, 8);
-
-    return models.map(([modelName, modelItems], idx) => {
-      const accent = [
-        "bg-[linear-gradient(135deg,rgba(34,211,238,0.14),rgba(236,72,153,0.10),rgba(0,0,0,0.25))]",
-        "bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(0,0,0,0.25))]",
-        "bg-[linear-gradient(135deg,rgba(236,72,153,0.12),rgba(34,211,238,0.08),rgba(0,0,0,0.25))]",
-        "bg-[linear-gradient(135deg,rgba(167,139,250,0.12),rgba(34,211,238,0.06),rgba(0,0,0,0.25))]",
-        "bg-[linear-gradient(135deg,rgba(34,197,94,0.10),rgba(236,72,153,0.08),rgba(0,0,0,0.25))]",
-        "bg-[linear-gradient(135deg,rgba(251,191,36,0.10),rgba(34,211,238,0.06),rgba(0,0,0,0.25))]",
-      ];
-
-      const media = modelItems.map(toMediaCardItemFromShowcase);
-      const provider = modelItems[0]?.provider ? ` / ${modelItems[0].provider}` : "";
-
-      return {
-        kicker: "MODEL",
-        title: `${modelName}${provider}`,
-        subtitle: "هيرو للموديل + مصغرات لأعماله + مواد تعليمية وإعدادات موصى بها.",
-        ctaLabel: "Try this model",
-        accentClassName: accent[idx % accent.length],
-        items: media,
-      };
-    });
-  }, [activeFeed, featured, items, trending]);
 
   // Filtered Iraq grid items
   const filteredIraqImages = useMemo(() => {
@@ -1988,8 +2604,9 @@ export default function ExplorePage() {
             {[
               { label: "Image Gen", icon: Wand2, badge: "", href: "/image" },
               { label: "Video Gen", icon: Video, badge: "", href: "/video" },
+              { label: "Camera Moves", icon: Camera, badge: "NEW", href: "/camera-movements" },
+              { label: "Prompts", icon: Sparkles, badge: "NEW", href: "/prompt" },
               { label: "3D Gen", icon: Box, badge: "", href: "/3d" },
-              { label: "Blueprints", icon: Layers, badge: "NEW", href: "/explore" },
               { label: "Realtime", icon: Monitor, badge: "NEW", href: "/canvas" },
               { label: "Flow", icon: TrendingUp, badge: "", href: "/video" },
               { label: "Upscaler", icon: Aperture, badge: "NEW", href: "/edit?tool=upscale" },
@@ -2015,31 +2632,32 @@ export default function ExplorePage() {
       </section>
 
       {/* ════════════════════════════════════════════════
-          CAMERA MOVEMENTS LIBRARY (62 cinematic motion presets)
-          Placed at the TOP right after the hero — first thing users see.
-          Data source: lib/camera-movements-library.ts
-          Section UI:  components/explore/CameraMovementsSection.tsx
+          FEATURED AD BANNERS (New Tools: Camera Moves, Prompts, Image Edit, Storyboard, Studio Creations)
       ════════════════════════════════════════════════ */}
-      <CameraMovementsSection />
+      <CameraMovementsAd />
+      <PromptsLibraryAd />
+      <ImageEditToolsAd />
+      <StoryboardStudioAd />
+      <StudioCreationsAd />
 
       {/* ════════════════════════════════════════════════
-          VIRAL SEEDANCE 2 PROMPTS (curated from X.com creators)
-          Data source: lib/seedance-prompts-library.ts
-          Section UI:  components/explore/SeedancePromptsSection.tsx
-      ════════════════════════════════════════════════ */}
-      <SeedancePromptsSection />
-
-      {/* ════════════════════════════════════════════════
-          STUDIO CREATIONS FEED (معرض أعمال الاستوديو)
+          STUDIO CREATIONS FEED (معرض أعمال الاستوديو والأعمال الجديدة)
       ════════════════════════════════════════════════ */}
       <section className="w-full px-4 md:px-8 py-10 max-w-[1600px] mx-auto border-b border-white/5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
             <h2 className="text-xl font-bold tracking-tight text-white">{t("Studio Creations")}</h2>
             <span className="text-[10px] bg-cyan-400/10 border border-cyan-400/20 rounded-full px-2.5 py-0.5 font-bold text-cyan-200 uppercase tracking-wider">
               {t("Live Feed")}
             </span>
+            <Link
+              href="/creations"
+              className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition flex items-center gap-1 ml-2"
+            >
+              <span>{t("View All")}</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
           <div className="flex bg-white/5 rounded-xl p-1 border border-white/5 self-end sm:self-auto">
             {(["latest", "featured", "trending"] as const).map((feed) => (
@@ -2057,139 +2675,97 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {loadingCreations ? (
-          <div className="w-full py-16 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">
-            <SaadLoader toolLabel={t("Loading creations")} />
-          </div>
-        ) : (activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items).length === 0 ? (
-          <div className="w-full py-16 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">
-            <p className="text-sm text-zinc-400 font-medium">{t("No creations published yet.")}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {columnsData.map((columnItems, colIndex) => (
-              <div key={colIndex} className="flex flex-col gap-6">
-                {columnItems.map((item) => {
-                  const isVideo = item.video_url && 
-                    !item.video_url.endsWith(".png") && 
-                    !item.video_url.endsWith(".jpg") && 
-                    !item.video_url.endsWith(".jpeg") && 
-                    !item.video_url.endsWith(".webp") &&
-                    !item.video_url.endsWith(".gif");
-                  
-                  const aspectMap: Record<string, string> = {
-                    "16:9": "aspect-[16/9]",
-                    "9:16": "aspect-[9/16]",
-                    "1:1": "aspect-[1/1]",
-                    "4:3": "aspect-[4/3]",
-                    "3:4": "aspect-[3/4]",
-                  };
-                  const aspectClass = aspectMap[(item as any).aspect_ratio || "16:9"] || "aspect-[16/9]";
+        {/* 4-Card 2-Row Clean Grid matching Image 2 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {(activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items).slice(0, 8).map((item) => {
+            const isVideo = item.video_url && 
+              !item.video_url.endsWith(".png") && 
+              !item.video_url.endsWith(".jpg") && 
+              !item.video_url.endsWith(".jpeg") && 
+              !item.video_url.endsWith(".webp") &&
+              !item.video_url.endsWith(".gif");
 
-                  return (
-                    <motion.article
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4 }}
-                      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#080b11] shadow-xl hover:border-cyan-400/30 transition-all duration-300 flex flex-col"
-                    >
-                      {/* Media Container */}
-                      <div className={cn("relative w-full overflow-hidden bg-slate-950", aspectClass)}>
-                        {isVideo ? (
-                          <PreviewVideo
-                            videoUrl={item.video_url}
-                            posterUrl={item.thumbnail_url}
-                            title={item.title}
-                            shouldPlay={autoplayKey === `creations:${item.id}`}
-                          />
-                        ) : (
-                          <img
-                            src={item.thumbnail_url}
-                            alt={item.title}
-                            className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
-                            loading="lazy"
-                          />
-                        )}
-                        {/* Dark gradient overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#02050e] via-transparent to-transparent opacity-90" />
-                        
-                        {/* Hover activation & Click preview trigger */}
-                        <div 
-                          className="absolute inset-0 z-10 cursor-pointer"
-                          onMouseEnter={() => setAutoplayKey(`creations:${item.id}`)}
-                          onMouseLeave={() => setAutoplayKey(null)}
-                          onClick={() => setActiveMediaItem(item)}
-                        />
+            return (
+              <div
+                key={item.id}
+                onClick={() => setActiveMediaItem(item)}
+                onMouseEnter={() => setAutoplayKey(`creations:${item.id}`)}
+                onMouseLeave={() => setAutoplayKey(null)}
+                className="group relative flex flex-col rounded-2xl overflow-hidden border border-white/10 bg-[#070a12] shadow-xl hover:border-cyan-500/40 hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+              >
+                {/* 16:9 Media Container */}
+                <div className="relative aspect-video w-full overflow-hidden bg-black">
+                  {isVideo ? (
+                    <PreviewVideo
+                      videoUrl={item.video_url}
+                      posterUrl={item.thumbnail_url}
+                      title={item.title}
+                      shouldPlay={autoplayKey === `creations:${item.id}`}
+                    />
+                  ) : (
+                    <img
+                      src={item.thumbnail_url}
+                      alt={item.title}
+                      className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  )}
 
-                        {/* Tags / Model badge */}
-                        <div className="absolute left-3 top-3 z-20 flex flex-wrap gap-1.5 pointer-events-none">
-                          <span className="bg-black/60 border border-white/10 text-[9px] font-black text-cyan-200 px-2 py-0.5 rounded-md uppercase tracking-wider backdrop-blur-md">
-                            {item.model}
-                          </span>
-                        </div>
+                  {/* Dark gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
 
-                        {isVideo && (
-                          <div className="absolute right-3 top-3 z-20 w-8 h-8 rounded-full border border-white/20 bg-black/40 backdrop-blur flex items-center justify-center text-white pointer-events-none">
-                            <Video className="w-3.5 h-3.5" />
-                          </div>
-                        )}
-                      </div>
+                  {/* Top-Left Category/Model Tag Badge */}
+                  <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none">
+                    <span className="bg-black/70 backdrop-blur-md border border-white/10 text-[9px] font-black text-cyan-300 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      {item.model || "STUDIO"}
+                    </span>
+                  </div>
 
-                      {/* Card Info & Prompt Copy */}
-                      <div className="p-4 flex flex-col flex-1 justify-between gap-3 bg-[#080b11]">
-                        <div>
-                          <div className="flex items-center justify-between text-[10px] text-zinc-400 font-bold tracking-wider">
-                            <span>{item.provider}</span>
-                            <span>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                          </div>
-                          <h3 className="mt-1 text-base font-extrabold text-white leading-tight group-hover:text-cyan-400 transition-colors">
-                            {item.title}
-                          </h3>
-                          <p className="mt-2 line-clamp-2 text-xs text-zinc-400 bg-white/[0.02] border border-white/5 rounded-lg p-2 font-mono text-right select-all">
-                            {item.prompt}
-                          </p>
-                        </div>
+                  {/* Top-Right Video indicator */}
+                  {isVideo && (
+                    <div className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full border border-white/20 bg-black/50 backdrop-blur flex items-center justify-center text-white pointer-events-none">
+                      <Video className="w-3 h-3" />
+                    </div>
+                  )}
 
-                        <div className="flex items-center justify-between pt-2.5 border-t border-white/5">
-                          <div className="flex items-center gap-3 text-[11px] text-zinc-400">
-                            <span className="inline-flex items-center gap-1">
-                              <Eye className="w-3.5 h-3.5" />
-                              {item.views}
-                            </span>
-                            <span className="inline-flex items-center gap-1">
-                              <Heart className="w-3.5 h-3.5" />
-                              {item.likes}
-                            </span>
-                          </div>
-                          
-                          <button
-                            type="button"
-                            onClick={() => handleCopyPrompt(item.id, item.prompt)}
-                            className="flex items-center gap-1 text-[11px] font-extrabold text-cyan-400 hover:text-cyan-300 transition"
-                          >
-                            {copiedId === item.id ? (
-                              <>
-                                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                <span className="text-emerald-400">{t("Copied!")}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="w-3.5 h-3.5" />
-                                <span>{t("Copy Prompt")}</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </motion.article>
-                  );
-                })}
+                  {/* Bottom-Right Views Count */}
+                  <div className="absolute bottom-2.5 right-2.5 z-10 pointer-events-none">
+                    <span className="text-[9px] font-bold text-zinc-300 bg-black/60 backdrop-blur-md border border-white/10 px-2 py-0.5 rounded">
+                      {compactNumber(item.views || 1000)} {t("views")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom Bar: Icon + Title + PUBLIC Tag */}
+                <div className="p-3.5 flex items-center justify-between border-t border-white/5 bg-[#080c16]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-2.5 h-2.5 text-cyan-400" />
+                    </div>
+                    <span className="text-xs font-bold text-white truncate group-hover:text-cyan-300 transition-colors">
+                      {item.title}
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-bold text-zinc-500 bg-white/5 px-2 py-0.5 rounded uppercase tracking-wider shrink-0">
+                    PUBLIC
+                  </span>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
+
+        {/* Explore All Link Button */}
+        <div className="mt-8 flex justify-center">
+          <Link
+            href="/creations"
+            className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black px-6 py-3 text-xs font-black shadow-lg shadow-cyan-500/20 transition duration-200 hover:scale-105"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>{t("Explore all Studio Creations")}</span>
+            <ArrowUpRight className="w-4 h-4" />
+          </Link>
+        </div>
 
         {/* ── Fullscreen Lightbox Modal ── */}
         <AnimatePresence>
@@ -2299,6 +2875,12 @@ export default function ExplorePage() {
       </section>
 
       {/* ════════════════════════════════════════════════
+          FEATURED MODEL SHOWCASES (Image & Video Models - Bottom)
+      ════════════════════════════════════════════════ */}
+      <GptImage2ModelAd />
+      <Seedance2ModelAd />
+
+      {/* ════════════════════════════════════════════════
           FEATURED BLUEPRINTS (Horizontal Cards Row)
       ════════════════════════════════════════════════ */}
       <section className="w-full px-4 md:px-8 py-10 max-w-[1600px] mx-auto">
@@ -2360,32 +2942,6 @@ export default function ExplorePage() {
 
       </section>
 
-      {/* ════════════════════════════════════════════════
-          OFFICIAL SHOWCASES & BANNER ADS (الموديلات والانتاج)
-      ════════════════════════════════════════════════ */}
-      <section className="py-4 border-t border-b border-white/5 my-6">
-
-        {/* Dynamic explore CMS banners */}
-        {cmsModules.map((module) => (
-          <DynamicExploreModule key={module.id} module={module} />
-        ))}
-
-        {/* Dynamic model showcases sections */}
-        {modelShowcaseSections.map((section) => (
-          <DiscoverSection
-            key={section.title}
-            kicker={section.kicker}
-            title={section.title}
-            subtitle={section.subtitle}
-            ctaLabel={section.ctaLabel}
-            items={section.items}
-            accentClassName={section.accentClassName}
-            autoplayKey={autoplayKey}
-            onAutoplayRequest={requestAutoplay}
-          />
-        ))}
-
-      </section>
 
       {/* ════════════════════════════════════════════════
           COMMUNITY CREATIONS (Iraq Masonry & Filters)

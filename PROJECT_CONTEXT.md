@@ -37,9 +37,175 @@
 17. **Adobe CEP Ecosystem & Admin Control Plane**: `/admin/plugin` + `/api/plugin/version` + `/saadstudio-version.json` (Dynamic PostgreSQL `PlatformConfig` source of truth, HMAC token revocation denylist, version 3.0.0 bundle alignment).
 18. **Final Production Release**: Full Vitest pass, TypeScript 0 errors, production build pass, clean git diff, deployed to `main`.
 
-## 3. CORRECTED ENGINEERING ROADMAP (ACTIVE PRODUCTION FIRST)
+#### Latest task: Aligned Studio Creations Feed to 16:9 Cinematic Cards & Removed Loading Spinner (2026-08-30)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - عُدّل تصميم قسم **Studio Creations (Live Feed)** في صفحة استكشف ليطابق تماماً نمط البطاقات السينمائية الأنيقة بنسبة 16:9 و 4 أعمدة منتظمة، مع وسوم التصنيف العلوية وعداد المشاهدات وشريط المعلومات السفلي ووسم PUBLIC.
+  - أُلغي مؤشر التحميل (Loading Spinner) بالكامل من خلال توفير بيانات افتراضية فورية (`INITIAL_STUDIO_CREATIONS`) ليتم عرض البطاقات فوراً في 0 ثانية دون أي انتظار أو وميض.
+  - وُضع زر بارز أسفل الشبكة: **استكشف كافة أعمال الاستوديو (80+ عمل) ↗** يوجه إلى صفحة `/creations`.
+- Verification:
+  - Vitest test suite passed: `test/pricing-core.test.ts` (25/25 passed).
+  - HTTP 200 OK verified on `http://localhost:3000/explore` and `http://localhost:3000/creations`.
 
-#### Latest task: Video History Seeking Scrubber & Backblaze CORS Elimination (2026-08-28)
+#### Previous task: Removed Duplicate & Random Model Cards from Explore Page (2026-08-30)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - تم حذف قسم كروت النماذج العشوائية والمكررة (`modelShowcaseSections` و `DiscoverSection`) التي كانت تظهر أسفل صفحة استكشف ("هيرو للموديل + مصغرات لأعماله").
+  - أصبحت صفحة استكشف فائقة الأناقة والوضوح والنظافة:
+    1. شريط توليد البرومبت والوصول السريع.
+    2. بطاقات الأدوات والمكتبات الجديدة (حركات الكاميرا + مكتبة البرومبتات + تعديل الصور + القصة المصورة + استوديو الإبداعات).
+    3. البث الحي لإبداعات الاستوديو (`Studio Creations - Live Feed`).
+    4. بطاقات الموديلات الكبيرة (GPT Image 2 + Seedance 2.0).
+    5. المخططات وقسم إبداعات المجتمع.
+- Verification:
+  - Vitest test suite passed: `test/pricing-core.test.ts` (25/25 passed).
+  - HTTP 200 OK verified on `http://localhost:3000/explore`.
+
+#### Previous task: Dedicated Studio Creations Page & Explore Showcase Ad (2026-08-30)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Created standalone **Studio Creations (`/creations` & `/studio-creations`)** page featuring full live feed, video/image media filters, model selector pills, instant prompt copying, and fullscreen interactive lightbox with metadata.
+  - Added **`StudioCreationsAd`** showcase banner to `/explore` with large preview cards and direct link to `/creations`.
+  - Added `explore/ad/studio-creations` CMS slot in Admin CMS (`app/admin/cms/explore/page.tsx`).
+- Verification:
+  - Vitest test suite passed: `test/pricing-core.test.ts` (25/25 passed).
+  - HTTP 200 OK verified across `/creations` and `/explore`.
+
+#### Previous task: Positioned New Feature Cards Above Studio Creations & Model Banners at Bottom (2026-08-29)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - رُتّبت الصفحة بدقة تامة:
+    1. **شريط توليد البرومبت وأيقونات الوصول السريع** في الأعلى.
+    2. **بطاقات الأدوات والمكتبات الجديدة (حركات الكاميرا + مكتبة البرومبتات + تعديل الصور + القصة المصورة)** مباشرة فوق معرض الأعمال.
+    3. **معرض أعمال الاستوديو (`Studio Creations - Live Feed`)**.
+    4. **بطاقات الموديلات الكبيرة (GPT Image 2 + Seedance 2.0)** في الأسفل تحت معرض الأعمال.
+- Verification:
+  - Vitest test suite passed: `test/pricing-core.test.ts` (25/25 passed).
+  - HTTP 200 OK verified on `http://localhost:3000/explore`.
+
+#### Previous task: Reordered Explore Page (Camera & Prompts on Top, Model Banners on Bottom) (2026-08-29)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - عُدّل الترتيب بدقة: وضعت سكاشن **حركات الكاميرا والبرومبتات والقصة المصورة وتعديل الصور (الصورة الثانية)** في **الأعلى**.
+  - نُقلت بانرات الموديلات الكبيرة **GPT Image 2 و Seedance 2.0 (الصورة الأولى)** لتكون في **الأسفل**.
+- Verification:
+  - Vitest test suite passed: `test/pricing-core.test.ts` (25/25 passed).
+  - HTTP 200 OK verified on `http://localhost:3000/explore`.
+
+#### Previous task: Reordered Explore Page Sections (Creations Feed on Top, Showcases on Bottom) (2026-08-29)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Moved **معرض أعمال الاستوديو والأعمال الجديدة (Studio Creations / Live Feed)** مباشرة تحت مربع البرومبت وأدوات الوصول السريع في أعلى صفحة استكشف.
+  - نُقلت كافة بطاقات النماذج والإعلانات الترويجية (GPT Image 2, Seedance 2.0, Camera Movements, Prompts, Image Edit, Storyboard) إلى **الأسفل** تحت معرض الأعمال كما طلب المستخدم بالضبط.
+- Verification:
+  - Vitest test suite passed: `test/pricing-core.test.ts` (25/25 passed).
+  - HTTP 200 OK verified on `http://localhost:3000/explore`.
+
+#### Previous task: Removed Unwanted video-edit & Replaced with Storyboard Studio (2026-08-29)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Completely deleted the unrequested `/video-edit` directory and references.
+  - Replaced the video edit showcase on `/explore` with the real **القصة المصورة (`/storyboard`)** — Storyboard & Short Drama Studio.
+  - Rendered 4 large cinematic cards for Storyboard Production, Short Drama Studio, Comic & Manga Drama, and Multi-Character Consistency with direct CTA link to `/storyboard`.
+  - Registered `explore/ad/storyboard` in Admin CMS (`app/admin/cms/explore/page.tsx`) so all visuals, text, and settings can be managed dynamically.
+- Verification:
+  - Vitest test suite passed: `test/pricing-core.test.ts` (25/25 passed).
+  - HTTP 200 OK verified across `/explore` and `/storyboard`.
+
+#### Previous task: Explore Page Cinematic Grids & Admin CMS Integration (2026-08-29)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Replaced small cramped ad boxes on `/explore` with large, high-fidelity cinematic 16:9 media grids matching the user's reference image design.
+  - Added working thumbnails and full metadata (creator tags, titles, badges, public status, view counts) for all 4 main features on `/explore`:
+    1. **62 Cinematic Camera Movements (`/camera-movements`)**: 8 large cards grid + entry CTA.
+    2. **Cinematic Video Prompts Library (`/prompt`)**: 8 large cards grid + entry CTA.
+    3. **AI Image Studio & Retouch Tools (`/edit`)**: 4 large feature cards (Upscale, Inpaint, Face Swap, Relight) + entry CTA.
+    4. **Interactive AI Video Editing Studio (`/video-edit`)**: 4 large feature cards (Sequential, Modify, Transitions, Fast Engine) + entry CTA.
+  - Linked all 4 ad slots directly into the Admin CMS at `app/admin/cms/explore/page.tsx` (`explore/ad/camera-movements`, `explore/ad/prompts-library`, `explore/ad/image-edit`, `explore/ad/video-edit`), allowing the admin to upload new media, change fallback heroes, edit text titles/subtitles/CTAs, and customize all cards dynamically.
+  - Verified no extra or imaginary pages exist; the workspace tools remain clean and dedicated.
+- Verification:
+  - Vitest test suite passed: `test/pricing-core.test.ts` (25/25 passed).
+  - HTTP 200 OK verified across `/explore` and `/admin/cms/explore`.
+
+#### Previous task: Centralized Explore Page Promotional Ads Showcase (2026-08-29)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Centralized all 6 promotional ads and model showcases directly inside the **Explore Page (`/explore`)**, linking out cleanly to their respective production studios:
+    1. **إعلان صفحة توليد الصور (`/image`)**: Featured GPT Image 2 (4K Model + Bento Grid) banner.
+    2. **إعلان صفحة توليد الفيديو (`/video`)**: Featured Seedance 2.0 & Wan 3.0 Pro showcase banner.
+    3. **إعلان صفحة حركات الكاميرا (`/camera-movements`)**: `CameraMovementsAd` with 62 camera moves preview cards and CTA.
+    4. **إعلان صفحة البرومبتات (`/prompt`)**: `PromptsLibraryAd` with ready-to-copy cinematic prompts preview.
+    5. **إعلان صفحة التعديل الصوري (`/edit`)**: `ImageEditToolsAd` (4K AI Upscaler, Inpaint, Face Swap Pro, Relighting).
+    6. **إعلان صفحة التعديل الفيديوي (`/video-edit`)**: `VideoEditStudioAd` (Sequential shot editing & Gemini Omni Flash).
+  - Kept internal tool studios clean and focused solely on creative work.
+- Files affected:
+  - `app/(dash)/(routes)/explore/page.tsx`
+  - `app/(dash)/(routes)/camera-movements/page.tsx`
+  - `app/prompt/page.tsx`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `components/ToolShowcase.tsx`
+  - `app/(dash)/(routes)/video-edit/page.tsx`
+- Verification:
+  - Vitest test suite passed: `test/pricing-core.test.ts` (25/25 passed).
+  - Dev server HTTP 200 OK verified across `/explore`.
+
+#### Previous task: Dedicated Camera Movements & Cinematic Prompts Library Overhaul (2026-08-29)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Designed, implemented, and verified tailor-made promotional showcase banners and ads across all 6 core creative pages:
+    1. **صفحة حركات الكاميرا (`/camera-movements`)**: Added cinematic showcase banner for Seedance 2.0 & Kling 3.0 with quick launch CTA to Video Studio.
+    2. **صفحة البرومبتات (`/prompt`)**: Added showcase banner for Drama Studio & Hook Studio with screenplay, shot packs, and consistent character building CTAs.
+    3. **صفحة توليد الفيديو (`/video`)**: Added cinematic models showcase banner for Wan 3.0 & Seedance 2.0 Turbo in the workspace canvas.
+    4. **صفحة توليد الصور (`/image`)**: Added 4K Image Generation showcase banner for GPT Image 2, Nano Banana Pro, and Seedream 5 Pro.
+    5. **صفحة التعديل الصوري (`/edit`)**: Added AI Image Studio Suite promotional header banner (Upscale 4K, Object Eraser, Face Swap Pro, Relight) in `ToolShowcase.tsx`.
+    6. **صفحة التعديل الفيديوي (`/video-edit`)**: Added Interactive Video Editing & Sequential Storytelling showcase banner in `VideoEditPage`.
+- Files affected:
+  - `app/(dash)/(routes)/camera-movements/page.tsx`
+  - `app/prompt/page.tsx`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `components/ToolShowcase.tsx`
+  - `app/(dash)/(routes)/video-edit/page.tsx`
+  - `app/(dash)/(routes)/explore/page.tsx`
+- Verification:
+  - Vitest test suite passed: `test/pricing-core.test.ts` (25/25 passed).
+  - Dev server HTTP 200 OK verified across all routes.
+
+#### Previous task: Dedicated Camera Movements & Cinematic Prompts Library Overhaul (2026-08-29)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Created standalone dedicated Camera Movements page at `app/(dash)/(routes)/camera-movements/page.tsx` containing all 62 cinematic camera moves, live animated looping previews, search, category filters, quick copy prompt buttons with visual feedback, and link to Video Studio.
+  - Rebuilt the Prompts Library page at `app/prompt/page.tsx`, removing legacy `StudioImgPageV2` and designing a modern Cinematic Video Prompts Library with search, category filtering, detailed inspection modal, quick copy buttons, views stats, author credits with X links, and Video Studio integration.
+  - Cleaned `app/(dash)/(routes)/explore/page.tsx` by removing inline camera movements and viral prompts sections so it transitions smoothly from the Quick Tools grid straight to `Studio Creations` Live Feed.
+  - Added "Camera Moves" and "Prompts" entries to `TopNavbar.tsx` and the explore page quick tools row.
+- Files affected:
+  - `app/(dash)/(routes)/camera-movements/page.tsx`
+  - `app/prompt/page.tsx`
+  - `app/(dash)/(routes)/explore/page.tsx`
+  - `components/TopNavbar.tsx`
+- Verification:
+  - Vitest test pass: `test/pricing-core.test.ts` (25/25 passed).
+  - Next.js Dev Server running on `http://localhost:3000`.
+  - HTTP 200 OK verified across `/camera-movements`, `/prompt`, and `/explore`.
+
+#### Previous task: Drama Studio — Hook Reference Tools Native Integration (2026-08-28)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Directly bound and integrated all 9 real reference tools (`HOOK_STYLES`, `HOOK_CHARACTERS`, `HOOK_ELEMENTS`, `HOOK_LOCATIONS`, `HOOK_CAMERAS`, `HOOK_EFFECTS`, `HOOK_SKETCHES`) from `lib/hook-studio-config.ts` into Drama Studio's `NativeToolPanel.tsx`.
+  - Preserved the authentic Drama Studio page layout, high-contrast dark theme, cyan accents, 5-tab structure, and 9-tool pill rail without adopting the separate ReferenceStudio modal design.
+  - Implemented atomic state persistence across rapid tool switching and full-page refreshes via `contentRef` and synchronized save queueing.
+  - Protected backend/API files kept 100% byte-identical.
+- Files affected:
+  - `components/drama-studio/NativeToolPanel.tsx`
+  - `components/drama-studio/DramaStudioApp.tsx`
+  - `components/drama-studio/Workbench.tsx`
+- Verification:
+  - Vitest project core suite: `test/drama-studio-project-core.test.ts` (7/7 passed).
+  - API E2E suite: `test/drama-studio-api-e2e.mjs` (100% green pass).
+  - Browser E2E suite: `test/drama-studio-browser-e2e.mjs` (100% green pass, 18 screenshots captured).
+
+#### Previous task: Video History Seeking Scrubber & Backblaze CORS Elimination (2026-08-28)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Added interactive scrubbing bar (timeline slider, current time, total duration, click-to-seek) to `VideoHistoryPreview` cards in `components/video/VideoHistoryList.tsx`, allowing full manual seeking, fast-forwarding, and rewinding.

@@ -187,6 +187,66 @@ const EXPLORE_ADS: ExploreAdCms[] = [
       ctaHref: "/video?tool=create-video&model=kling-v3.0-pro-t2v",
     },
   },
+  {
+    slotId: "explore/ad/camera-movements",
+    name: "Camera Movements (حركات الكاميرا)",
+    fallbackHero: "/transitions/Hero.webp",
+    defaults: {
+      badge: "CAMERA LIBRARY",
+      title: "62 Cinematic Camera Movements",
+      subtitle: "Dolly, zoom, orbit, drone, tracking, and crane camera moves with instant ready-to-copy prompts for any AI video model.",
+      cta: "Explore Camera Moves",
+      ctaHref: "/camera-movements",
+    },
+  },
+  {
+    slotId: "explore/ad/prompts-library",
+    name: "Prompts Library (مكتبة البرومبتات)",
+    fallbackHero: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/flying-carpet.webp",
+    defaults: {
+      badge: "PROMPTS REPOSITORY",
+      title: "Cinematic Video Prompts Library",
+      subtitle: "Curated, battle-tested AI video prompts for cinematic stories, high-end ads, animations, and FPV shots.",
+      cta: "Browse Prompts",
+      ctaHref: "/prompt",
+    },
+  },
+  {
+    slotId: "explore/ad/image-edit",
+    name: "Image Edit Tools (تعديل الصور)",
+    fallbackHero: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&fit=crop&q=80",
+    defaults: {
+      badge: "AI RETOUCH SUITE",
+      title: "AI Image Studio & Retouch Tools",
+      subtitle: "4K AI Upscaler, Smart Object Inpaint & Eraser, Face Swap Pro, and dynamic AI Relighting in one place.",
+      cta: "Launch Image Editor",
+      ctaHref: "/edit",
+    },
+  },
+  {
+    slotId: "explore/ad/storyboard",
+    name: "Storyboard & Drama (القصة المصورة)",
+    fallbackHero: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=600&fit=crop&q=80",
+    defaults: {
+      badge: "STORYBOARD & DRAMA",
+      title: "Storyboard & Short Drama Studio",
+      subtitle: "Create multi-panel storyboards, cinematic short dramas, and comics with character consistency and up to 4K quality.",
+      cta: "Open Storyboard Studio",
+      ctaHref: "/storyboard",
+    },
+  },
+  {
+    slotId: "explore/ad/studio-creations",
+    name: "Studio Creations (معرض الأعمال الحية)",
+    fallbackHero: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/seedance/flying-carpet.webp",
+    defaults: {
+      badge: "STUDIO SHOWCASE",
+      title: "Studio Creations & Live Showcase",
+      subtitle: "Browse real creations generated across Saad Studio models, copy prompts, and discover state-of-the-art AI video and image models.",
+      cta: "View All Creations",
+      ctaHref: "/creations",
+    },
+  },
 ];
 
 async function uploadToSupabase(file: File): Promise<{ publicUrl: string; isVideo: boolean }> {
