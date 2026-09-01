@@ -42,7 +42,7 @@ export const VEO_MODELS = {
   pro:  "veo-3.1-generate-preview",
   legacy_fast: "veo-3.0-fast-generate-001",
   legacy: "veo-3.0-generate-001",
-  omni_flash: "gemini-omni-flash-preview",
+  omni_flash: "gemini-omni-1.1-flash",
 } as const;
 
 export type VeoTier = keyof typeof VEO_MODELS;
@@ -57,9 +57,9 @@ export const PRICING_ID: Record<VeoTier, string> = {
 };
 
 export type VeoAspect = "16:9" | "9:16";
-/** Per Google docs: 720p / 1080p / 4k. Lite supports up to 1080p only.
+/** Per Google docs: 360p / 720p / 1080p / 4k. Lite supports up to 1080p only.
  *  Video extension is 720p only. */
-export type VeoResolution = "720p" | "1080p" | "4k";
+export type VeoResolution = "360p" | "720p" | "1080p" | "4k";
 
 export interface VeoImageInput {
   /** base64 of the image file (no data: prefix) */
@@ -89,6 +89,8 @@ export interface StartVeoParams {
   lastFrame?: VeoImageInput;
   /** Reference images (up to 3) for style/character carry-over */
   referenceImages?: VeoImageInput[];
+  /** Reference videos (up to 3 clips, 3 seconds each per Google docs) */
+  referenceVideos?: VeoVideoInput[];
   /** Extend an existing clip (max 20×) */
   video?: VeoVideoInput;
   /** Stateful video editing: parent interaction ID to edit */
@@ -162,6 +164,19 @@ export async function startVeoGeneration(
       }
     }
 
+    if (params.referenceVideos && params.referenceVideos.length > 0) {
+      for (const refVid of params.referenceVideos.slice(0, 3)) {
+        const videoUri = await uploadVideoToGoogleFiles(
+          Buffer.from(refVid.videoBytes, "base64"),
+          refVid.mimeType
+        );
+        inputList.push({
+          type: "document",
+          uri: videoUri,
+        });
+      }
+    }
+
     // 3. Formulate the prompt text with official Google Gemini Omni Flash tags
     let promptText = params.prompt.trim();
     if (params.negativePrompt && params.negativePrompt.trim()) {
@@ -170,14 +185,25 @@ export async function startVeoGeneration(
 
     const hasStartFrame = Boolean(params.image);
     const refCount = params.referenceImages?.length || 0;
+    const hasSourceVideo = Boolean(params.video && !params.previousInteractionId);
+    const refVideoCount = Math.min(params.referenceVideos?.length || 0, 3);
 
-    let prefixTags = "";
-    let guidingSuffix = "";
+    const sourceTags: string[] = [];
+    const referenceTags: string[] = [];
+    const guidingInstructions: string[] = [];
+
+    if (hasSourceVideo) {
+      sourceTags.push("<VIDEO_0>@Video1");
+      guidingInstructions.push("Use Video1 as the primary source video to edit or modify.");
+      promptText = promptText.replace(/@Video1\b/g, "<VIDEO_0>");
+    }
 
     if (hasStartFrame && refCount > 0) {
       const refTags = Array.from({ length: refCount }, (_, i) => `<IMAGE_REF_${i}>@Image${i + 2}`).join(" ");
-      prefixTags = `[# Sources <FIRST_FRAME>@Image1] [# References ${refTags}]`;
-      guidingSuffix = `\nUse Image1 as the starting frame. Use the given reference image(s) as references for character identity, style, and video generation. Do not use the reference images as literal initial frames.`;
+      sourceTags.push("<FIRST_FRAME>@Image1");
+      referenceTags.push(refTags);
+      guidingInstructions.push("Use Image1 as the starting frame.");
+      guidingInstructions.push("Use the given reference image(s) as references for character identity, style, and video generation. Do not use the reference images as literal initial frames.");
       promptText = promptText
         .replace(/@Image1\b/g, "<FIRST_FRAME>")
         .replace(/@Image(\d+)\b/g, (m, d) => {
@@ -185,19 +211,37 @@ export async function startVeoGeneration(
           return idx >= 0 && idx < refCount ? `<IMAGE_REF_${idx}>` : m;
         });
     } else if (hasStartFrame) {
-      prefixTags = `[# Sources <FIRST_FRAME>@Image1]`;
-      guidingSuffix = `\nUse Image1 as the starting frame.`;
+      sourceTags.push("<FIRST_FRAME>@Image1");
+      guidingInstructions.push("Use Image1 as the starting frame.");
       promptText = promptText.replace(/@Image1\b/g, "<FIRST_FRAME>");
     } else if (refCount > 0) {
       const refTags = Array.from({ length: refCount }, (_, i) => `<IMAGE_REF_${i}>@Image${i + 1}`).join(" ");
-      prefixTags = `[# References ${refTags}]`;
-      guidingSuffix = `\nUse the given image(s) as references for video generation. The images should not be used as literal initial frames.`;
+      referenceTags.push(refTags);
+      guidingInstructions.push("Use the given image(s) as references for video generation. The images should not be used as literal initial frames.");
       promptText = promptText.replace(/@Image(\d+)\b/g, (m, d) => {
         const idx = parseInt(d, 10) - 1;
         return idx >= 0 && idx < refCount ? `<IMAGE_REF_${idx}>` : m;
       });
     }
 
+    if (refVideoCount > 0) {
+      const videoOffset = hasSourceVideo ? 2 : 1;
+      const refVideoTags = Array.from({ length: refVideoCount }, (_, i) => `<VIDEO_REF_${i}>@Video${i + videoOffset}`).join(" ");
+      referenceTags.push(refVideoTags);
+      guidingInstructions.push("Use the given video(s) as references. Do not use them as a source for video editing.");
+      promptText = promptText.replace(/@Video(\d+)\b/g, (m, d) => {
+        const num = parseInt(d, 10);
+        if (hasSourceVideo && num === 1) return "<VIDEO_0>";
+        const idx = num - videoOffset;
+        return idx >= 0 && idx < refVideoCount ? `<VIDEO_REF_${idx}>` : m;
+      });
+    }
+
+    const prefixTags = [
+      sourceTags.length ? `[# Sources ${sourceTags.join(" ")}]` : "",
+      referenceTags.length ? `[# References ${referenceTags.join(" ")}]` : "",
+    ].filter(Boolean).join(" ");
+    const guidingSuffix = guidingInstructions.length ? `\n${guidingInstructions.join(" ")}` : "";
     const finalPrompt = prefixTags ? `${prefixTags} ${promptText}${guidingSuffix}` : `${promptText}${guidingSuffix}`;
 
     inputList.push({
@@ -212,13 +256,13 @@ export async function startVeoGeneration(
         task = "edit";
       } else if (params.image) {
         task = "image_to_video";
-      } else if (params.referenceImages && params.referenceImages.length > 0) {
+      } else if ((params.referenceImages && params.referenceImages.length > 0) || refVideoCount > 0) {
         task = "reference_to_video";
       }
     }
 
     const payload: any = {
-      model: "gemini-omni-flash-preview",
+      model,
       input: inputList,
       background: true,
       response_format: {
@@ -237,6 +281,12 @@ export async function startVeoGeneration(
 
     if (params.aspectRatio) {
       payload.response_format.aspect_ratio = params.aspectRatio;
+    }
+    if (params.resolution) {
+      payload.response_format.resolution = params.resolution;
+    }
+    if (params.durationSeconds) {
+      payload.generation_config.video_config.duration_seconds = params.durationSeconds;
     }
 
     const response = await fetch(url, {
@@ -262,7 +312,7 @@ export async function startVeoGeneration(
       throw new Error("Google Interactions API returned no interaction ID.");
     }
     
-    return { name: data.id as string, model: "gemini-omni-flash-preview" };
+    return { name: data.id as string, model };
   }
 
   // Build the config block (only set what the user picked)
@@ -301,7 +351,7 @@ export async function startVeoGeneration(
 export async function pollVeoOperation(
   handle: VeoOperationHandle,
 ): Promise<VeoPollResult> {
-  if (handle.model === "gemini-omni-flash-preview") {
+  if (handle.model === "gemini-omni-1.1-flash" || handle.model === "gemini-omni-flash-preview") {
     const interactionId = handle.name.startsWith("interactions/")
       ? handle.name.replace("interactions/", "")
       : handle.name;

@@ -159,6 +159,9 @@ const THREE_D_COST_MAP = new Map<string, number>([
 
 function shouldApplySound(modelRef: string): boolean {
   const ref = modelRef.toLowerCase();
+  if (ref.includes("gemini-omni")) {
+    return false;
+  }
   if (ref.includes("seedance") || ref.includes("dreamina") || ref.includes("minimax/h3") || ref.includes("minimax_h3")) {
     return false;
   }
@@ -392,7 +395,15 @@ function getVeo31Credits(modelRoute: string, payload?: VideoPayload): number {
 
 function getGeminiOmniFlashCredits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 10);
-  return parseFloat((duration * 2.8).toFixed(2));
+  const quality = readQuality(payload);
+  const perSecond = quality.includes("360")
+    ? 1
+    : quality.includes("1080")
+    ? 4.5
+    : quality.includes("4k")
+    ? 9
+    : 3;
+  return parseFloat(Math.max(1, duration * perSecond).toFixed(2));
 }
 
 function applyGenericRouteDynamics(modelRoute: string, baseCost: number, payload?: VideoPayload): number {
@@ -584,12 +595,14 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
   if (modelRoute.startsWith("black-forest-labs/flux-3") || modelRoute.startsWith("black-forest-labs-flux-3")) {
     return getFlux3Credits(modelRoute, payload);
   }
+  if (modelRoute === "google/gemini-omni-flash" || modelRoute === "google/gemini-omni-video") {
+    return getGeminiOmniFlashCredits(payload);
+  }
   if (
     modelRoute === "google/veo3.1-lite-text-to-video" ||
     modelRoute === "google/veo3.1-fast-text-to-video" ||
     modelRoute === "google/veo3.1-text-to-video" ||
     modelRoute === "google/veo-3.1-generate-preview" ||
-    modelRoute === "google/gemini-omni-video" ||
     modelRoute === "google/veo3-fast-text-to-video" ||
     modelRoute === "google/veo3-text-to-video"
   ) {
@@ -612,10 +625,6 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
   if (modelRoute === "wavespeed-ai/cinematic-video-generator") {
     const duration = readDuration(payload, 5);
     return applySoundMultiplier(parseFloat(Math.max(1, duration * 1.6).toFixed(2)), payload);
-  }
-
-  if (modelRoute === "google/gemini-omni-flash" || modelRoute === "google/gemini-omni-video") {
-    return applySoundMultiplier(getGeminiOmniFlashCredits(payload), payload);
   }
 
   const base = VIDEO_ROUTE_COST_MAP.get(modelRoute) ?? 20;

@@ -433,11 +433,11 @@
 ## Google Official Video Pricing And Mode Contract (2026-08-07)
 
 - Google official documentation is the authority for Gemini Omni Flash and Veo video generation. KIE catalog data must not define prices for direct Google video routes.
-- Gemini Omni Flash (`gemini-omni-flash-preview`) is the default Google video/editing engine for multimodal text, image, reference, and video-edit workflows. It supports `text_to_video`, `image_to_video`, `reference_to_video`, and `edit` task labels through the Interactions API.
+- Gemini Omni Flash (`gemini-omni-1.1-flash`) is the GA Google video/editing engine for multimodal text, image, reference, video-edit, and extension workflows. It supports `text_to_video`, `image_to_video`, `reference_to_video`, `edit`, and `extend` task labels through the Interactions API. The legacy preview id `gemini-omni-flash-preview` is accepted only for existing stored handles/polling compatibility.
 - Veo 3.1 remains the Google path for scene/video extension, last-frame control, reference images, 4/6/8 second generation, and 720p/1080p/4K output according to tier support.
-- User credit conversion for Google video uses official provider USD cost * 1.4 margin / 0.05 USD per user credit.
+- User credit conversion for Google video uses official provider USD cost * 1.4 margin / 0.05 USD per user credit, except Gemini Omni Flash user-facing sale credits, which intentionally follow the owner-approved Higgsfield benchmark schedule.
 - Current official Google video user-credit floors:
-  - Gemini Omni Flash: 2.8 credits/sec at effective 0.10 USD/sec 720p.
+  - Gemini Omni Flash: customer-facing credits are benchmark-aligned to Higgsfield screenshots by owner decision: `360p` = 1 credit/sec, `720p` = 3 credits/sec, `1080p` = 4.5 credits/sec, `4k` = 9 credits/sec. This is sale pricing, not a Google official per-resolution provider-cost table. Provider cost estimation remains the reviewed Google effective baseline of about `$0.10/sec` at `720p` until Google publishes a separate Omni resolution table.
   - Veo 3.1 Lite: 1.4 credits/sec 720p, 2.24 credits/sec 1080p; no 4K in UI.
   - Veo 3.1 Fast and Veo 3 Fast: 2.8 credits/sec 720p, 3.36 credits/sec 1080p, 8.4 credits/sec 4K.
   - Veo 3.1 and Veo 3: 11.2 credits/sec 720p/1080p, 16.8 credits/sec 4K for Veo 3.1.
@@ -550,8 +550,8 @@
 - lib/video-model-registry.ts is the source of truth for model capabilities: aspect ratios, durations, resolutions/quality, reference image/video support, character/reference limits, sound flags, and provider route.
 - Google Veo/Gemini routes that start with google/ remain handled by the dedicated Google/Veo generation path in /api/video, including google/gemini-omni-flash; non-Google provider routes continue through their documented provider mappings.
 - Do not duplicate registry blocks for speed/pro/lite variants. Add a distinct model only when it has a unique id, real provider route, and exact documented capability metadata.
-- Seedance 2.0 models are the only /video models documented to support prompt-addressable media tags: `@Image1..@Image9`, `@Video1..@Video3`, and `@Audio1..@Audio3`. Audio references require at least one image or video reference and cannot be used as text+audio/audio-only. Google Veo accepts image references only; Gemini Omni may accept a video input for editing/continuation, but Google models do not use the Seedance prompt-tag media system.
-- Multi-reference support does not automatically mean prompt-tag support. In /video, non-Seedance models may show `Image 1`, `Image 2`, etc. as reference-order labels only; they must not insert or advertise `@ImageN` prompt tags unless the provider docs explicitly support that syntax. Stale `@ImageN`/`@imgN` tags should be stripped from Google/Veo prompts before provider submission.
+- Seedance 2.0 models support prompt-addressable media tags: `@Image1..@Image9`, `@Video1..@Video3`, and `@Audio1..@Audio3`. Audio references require at least one image or video reference and cannot be used as text+audio/audio-only. Gemini Omni 1.1 Flash also has documented prompt media-role tags, but only for Google roles such as `<FIRST_FRAME>`, `<LAST_FRAME>`, `<IMAGE_REF_N>`, and `<VIDEO_REF_N>`; the UI may expose `@ImageN`/`@VideoN` labels and translate them to the Google role tags before submission. Google audio references remain unsupported.
+- Multi-reference support does not automatically mean prompt-tag support. In /video, non-Seedance/non-Omni models may show `Image 1`, `Image 2`, etc. as reference-order labels only; they must not insert or advertise `@ImageN` prompt tags unless the provider docs explicitly support that syntax. Stale `@ImageN`/`@imgN` tags should be stripped from Google/Veo prompts before provider submission except for Gemini Omni's documented role-binding conversion.
 - Kling 3.0 is intentionally one /video dropdown model, not four duplicated rows. The app routes it internally by input and quality: text+Standard -> `kwaivgi/kling-v3.0-std/text-to-video`, text+Pro -> `kwaivgi/kling-v3.0-pro/text-to-video`, image+Standard -> `kwaivgi/kling-v3.0-std/image-to-video`, image+Pro -> `kwaivgi/kling-v3.0-pro/image-to-video`. Motion-control must remain on `kwaivgi/kling-v3.0-pro/motion-control` and must not be caught by generic Kling fallback.
 
 ## سلوك اكتمال الصور والـ Thumbnail غير الحاجز (2026-08-02)
@@ -3388,7 +3388,7 @@
   - `Google Veo 3.1`: 4/6/8s, `16:9` or `9:16`, `720p`/`1080p`/`4k`, up to 3 reference images, one video input for extension only. Extension forces 8s and 720p.
   - `Google Veo 3 Fast`: fixed 8s, `16:9` or `9:16`, `720p`/`1080p`, image/last-frame input, no generic reference images, no video input. In this catalog, 1080p is constrained to `16:9`.
   - `Google Veo 3`: fixed 8s, `16:9` or `9:16`, `720p`/`1080p`, image/last-frame input, no generic reference images, no video input. In this catalog, 1080p is constrained to `16:9`.
-  - `Gemini Omni Flash`: 3-10s, `16:9` or `9:16`, `720p`, up to 3 reference images, one video input for edit.
+  - `Gemini Omni Flash`: GA provider model `gemini-omni-1.1-flash`; 3-10s output, `16:9` or `9:16`, `360p`/`720p` default/`1080p` upscaled/`4k` upscaled, up to 3 reference images, up to 3 video references at 3s each, start+last frame interpolation, one uploaded video input for edit/extension. Audio references are not supported.
 - Google direct video cost must be charged after final normalized duration/resolution so forced 8s extension requests are not billed as shorter requests.
 
 ## Google Video Cross-Page Enforcement (2026-08-07)
@@ -3407,7 +3407,7 @@
   - Veo 3.1 Lite: `16:9`/`9:16`, 4/6/8s, `720p`/`1080p`, image/last-frame only, no generic reference images, no video input/extension, output count 1.
   - Veo 3.1 Fast and Veo 3.1: `16:9`/`9:16`, 4/6/8s, `720p`/`1080p`/`4k`, up to 3 reference images, one video input for extension, output count 1. Reference/video/high-resolution requests normalize to 8s; extension normalizes to 720p.
   - Veo 3 Fast and Veo 3: fixed 8s, `16:9`/`9:16`, `720p`/`1080p`, image/last-frame only, no generic reference images or extension, output count 1.
-  - Gemini Omni Flash: `16:9`/`9:16`, 3-10s, `720p`, up to 3 reference images, one video input for editing, output count 1.
+  - Gemini Omni Flash: `16:9`/`9:16`, 3-10s, `360p`/`720p` default/`1080p` upscaled/`4k` upscaled, up to 3 reference images, up to 3 video references at 3s each, start+last frame interpolation, one uploaded video input for editing/extension, output count 1.
 - KIE fallback maps must not include direct Google video routes by default. Google direct routes should go through the official Google adapter or fail clearly if Google credentials are unavailable.
 ## Bytedance Seedance 2.5 Video Contract (2026-08-07)
 

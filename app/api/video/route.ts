@@ -454,7 +454,7 @@ async function resolveGeminiInteractionHandleFromTask(
   if (decoded) return decoded;
 
   if (previousTaskId.startsWith("interactions/") || previousTaskId.startsWith("v1_")) {
-    return { name: previousTaskId, model: "gemini-omni-flash-preview" };
+    return { name: previousTaskId, model: "gemini-omni-1.1-flash" };
   }
 
   return null;
@@ -508,6 +508,7 @@ function normalizeGeminiResolution(value: unknown): VeoResolution {
   const raw = typeof value === "string" ? value.toLowerCase() : "";
   if (raw === "4k") return "4k";
   if (raw === "1080p" || raw === "pro") return "1080p";
+  if (raw === "360p") return "360p";
   return "720p";
 }
 
@@ -535,7 +536,7 @@ function resolveGoogleVeoProviderModel(modelRoute: string): string {
   if (modelRoute === GOOGLE_VEO31_LITE_ROUTE) return "veo-3.1-lite-generate-preview";
   if (modelRoute === GOOGLE_VEO3_FAST_ROUTE) return "veo-3.0-fast-generate-001";
   if (modelRoute === GOOGLE_VEO3_ROUTE) return "veo-3.0-generate-001";
-  if (modelRoute === "google/gemini-omni-flash" || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE) return "gemini-omni-flash-preview";
+  if (modelRoute === "google/gemini-omni-flash" || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE) return "gemini-omni-1.1-flash";
   return "veo-3.1-generate-preview";
 }
 export function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): Record<string, unknown> {
@@ -2967,6 +2968,14 @@ export async function POST(req: Request) {
       const referenceSources = Array.isArray(payload.reference_image_urls)
         ? payload.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0).slice(0, 3)
         : [];
+      const referenceVideoSources = [
+        ...(Array.isArray(payload.reference_video_urls)
+          ? payload.reference_video_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+          : []),
+        ...(Array.isArray(payload.referenceVideoUrls)
+          ? payload.referenceVideoUrls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+          : []),
+      ].slice(0, 3);
 
       // Resolve and verify accessibility of all media inputs before spending credits
       const resolvedStartImage = (typeof startImage === "string" && startImage.trim())
@@ -2986,6 +2995,13 @@ export async function POST(req: Request) {
           resolvedReferenceSources.push(resolved);
         }
       }
+      const resolvedReferenceVideoSources: string[] = [];
+      for (const source of referenceVideoSources) {
+        if (typeof source === "string" && source.trim()) {
+          const resolved = await resolveProviderMediaUrl(source, { userId, assetType: "video" });
+          resolvedReferenceVideoSources.push(resolved);
+        }
+      }
 
       if (resolvedStartImage) {
         await verifyPublicMediaUrl(resolvedStartImage, "google_start_image");
@@ -3003,19 +3019,36 @@ export async function POST(req: Request) {
           console.warn(`[Google Veo] Skipping unreachable reference image: ${url}`, err);
         }
       }
+      for (const url of resolvedReferenceVideoSources) {
+        try {
+          await verifyPublicMediaUrl(url, "google_reference_video");
+        } catch (err) {
+          console.warn(`[Google Veo] Skipping unreachable reference video: ${url}`, err);
+        }
+      }
 
       const isGoogleVeo31ExtensionRoute =
         modelRoute === GOOGLE_VEO31_FAST_ROUTE ||
         modelRoute === GOOGLE_VEO31_ROUTE ||
         modelRoute === GOOGLE_VEO31_PRO_ROUTE;
+      const isOmniDirectModel = modelRoute === "google/gemini-omni-flash" || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE;
       const supportsGoogleVideoInput =
-        (modelRoute === "google/gemini-omni-flash" || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE) ||
+        isOmniDirectModel ||
         isGoogleVeo31ExtensionRoute;
 
       if (resolvedStartVideo && !supportsGoogleVideoInput) {
         const responseJson = {
           error: "This Google video model does not support video input. Use Gemini Omni Flash for video edit or Veo 3.1 Fast/Pro for video extension.",
           publicError: "This model does not support video input.",
+        };
+        await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
+        return NextResponse.json(responseJson, { status: 400 });
+      }
+
+      if (resolvedReferenceVideoSources.length > 0 && !isOmniDirectModel) {
+        const responseJson = {
+          error: "This Google video model does not support reference videos. Use Gemini Omni Flash for video references.",
+          publicError: "This model does not support reference videos.",
         };
         await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
         return NextResponse.json(responseJson, { status: 400 });
@@ -3032,6 +3065,7 @@ export async function POST(req: Request) {
         resolution: typeof payload.resolution === "string" ? payload.resolution : typeof payload.quality === "string" ? payload.quality : typeof payload.mode === "string" ? payload.mode : undefined,
         aspectRatio: typeof payload.aspect_ratio === "string" ? payload.aspect_ratio : typeof payload.aspectRatio === "string" ? payload.aspectRatio : undefined,
         referenceImageCount: resolvedReferenceSources.length,
+        referenceVideoCount: resolvedReferenceVideoSources.length,
         hasVideoInput: Boolean(resolvedStartVideo),
         hasStartImage: Boolean(resolvedStartImage),
         hasEndImage: Boolean(resolvedEndImage),
@@ -3087,6 +3121,7 @@ export async function POST(req: Request) {
         startImage: resolvedStartImage,
         endImage: resolvedEndImage,
         referenceSources: resolvedReferenceSources,
+        referenceVideoSources: resolvedReferenceVideoSources,
         mode: googleVideoModeLabel,
       }, null, 2));
       console.log(`[Provider Payload Audit] ---`);
@@ -3116,11 +3151,14 @@ export async function POST(req: Request) {
       generationId = charge.generationId;
       chargedCredits = googleCreditsToCharge;
       chargedUserId = userId;
-      const [image, lastFrame, referenceImages, video] = await Promise.all([
+      const [image, lastFrame, referenceImages, referenceVideos, video] = await Promise.all([
         sourceToGoogleImageInput(resolvedStartImage),
         sourceToGoogleImageInput(resolvedEndImage),
         resolvedReferenceSources.length
           ? Promise.all(resolvedReferenceSources.map((source) => sourceToGoogleImageInput(source))).then((items) => items.filter((item): item is VeoImageInput => Boolean(item)))
+          : Promise.resolve([]),
+        resolvedReferenceVideoSources.length
+          ? Promise.all(resolvedReferenceVideoSources.map((source) => sourceToGoogleVideoInput(source))).then((items) => items.filter((item): item is VeoVideoInput => Boolean(item)))
           : Promise.resolve([]),
         sourceToGoogleVideoInput(resolvedStartVideo),
       ]);
@@ -3145,6 +3183,7 @@ export async function POST(req: Request) {
           image,
           lastFrame: image ? lastFrame : undefined,
           referenceImages: referenceImages.length ? referenceImages : undefined,
+          referenceVideos: referenceVideos.length ? referenceVideos : undefined,
           previousInteractionId,
           video,
         });

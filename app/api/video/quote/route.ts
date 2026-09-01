@@ -47,9 +47,10 @@ export async function POST(req: NextRequest) {
     const hasVideoInput =
       [payload.video_url, payload.videoUrl, payload.source_video_url, payload.sourceVideoUrl].some(hasText) ||
       listLength(payload.video_urls) > 0 ||
-      listLength(payload.videoUrls) > 0 ||
-      listLength(payload.reference_video_urls) > 0 ||
-      listLength(payload.referenceVideoUrls) > 0;
+      listLength(payload.videoUrls) > 0;
+    const referenceVideoCount =
+      listLength(payload.reference_video_urls) +
+      listLength(payload.referenceVideoUrls);
 
     const normalizedGoogle = isGoogle
       ? normalizeGoogleVideoOptions(modelRoute, {
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
           resolution: rawQuality,
           aspectRatio: typeof payload.aspect_ratio === "string" ? payload.aspect_ratio : typeof payload.aspectRatio === "string" ? payload.aspectRatio : undefined,
           referenceImageCount,
+          referenceVideoCount,
           hasVideoInput,
           hasStartImage: referenceImageCount > 0,
           hasEndImage: hasText(payload.last_frame_url) || hasText(payload.end_image),

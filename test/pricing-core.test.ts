@@ -244,6 +244,26 @@ describe("pricing core user charge parity", () => {
     );
   });
 
+  it("prices Gemini Omni Flash user credits by the Higgsfield quality schedule", async () => {
+    invalidatePricingCache();
+
+    const expectedByQuality = [
+      ["360p", 10],
+      ["720p", 30],
+      ["1080p", 45],
+      ["4k", 90],
+    ] as const;
+
+    for (const [quality, expected] of expectedByQuality) {
+      await expect(getGenerationCost("google/gemini-omni-flash", 10, 1, quality)).resolves.toBe(expected);
+      expect(getGenerationCostSync("google/gemini-omni-flash", 10, 1, quality)).toBe(expected);
+      expect(getVideoCreditsByRoute("google/gemini-omni-flash", { duration: 10, resolution: quality, sound: true })).toBe(expected);
+      expect(getVideoCreditsByModelId("google/gemini-omni-flash", { duration: 10, resolution: quality, sound: true })).toBe(expected);
+    }
+
+    expect(estimateProviderCostSync("google/gemini-omni-flash", 10, "720p", 1).usd).toBe(1);
+  });
+
   it("keeps Hook Studio legacy fallback charge while using the async resolver entrypoint", async () => {
     invalidatePricingCache();
 

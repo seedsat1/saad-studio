@@ -738,7 +738,12 @@ function isKling30Route(route: string): boolean {
 }
 
 function supportsPromptReferenceTags(model: WaveSpeedVideoModel): boolean {
-  return model.id.startsWith("bytedance-seedance-v2") || model.id.startsWith("bytedance-seedance-v25");
+  return (
+    model.id.startsWith("bytedance-seedance-v2") ||
+    model.id.startsWith("bytedance-seedance-v25") ||
+    model.api_route === "google/gemini-omni-flash" ||
+    model.api_route === "google/gemini-omni-video"
+  );
 }
 
 function getReferenceFileLimits(model: WaveSpeedVideoModel) {
@@ -3135,7 +3140,7 @@ function VideoPageInner() {
         );
         const isTurbo = requestModelRoute.includes("turbo");
         const isSpicy = requestModelRoute.includes("spicy");
-        const isExtend = videoMode === "extend" || requestModelRoute.includes("extend");
+        const isExtend = requestModelRoute.includes("extend");
         const isEdit = requestModelRoute.includes("edit");
 
         if (requestModelRoute.includes("mini")) {

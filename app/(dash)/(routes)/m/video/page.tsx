@@ -25,7 +25,7 @@ interface VideoModelConfig {
 const VIDEO_MODELS: VideoModelConfig[] = [
   {
     id: "google-gemini-omni",
-    name: "Gemini Omni",
+    name: "Gemini Omni 1.1",
     provider: "GOOGLE",
     note: "توليد سريع وثبات عالٍ",
     description: "محرك Google الرسمي للفيديو مع التزام فائق بالوصف ودعم المدخلات المتعددة.",
@@ -33,7 +33,7 @@ const VIDEO_MODELS: VideoModelConfig[] = [
     apiRoute: "google/gemini-omni-flash",
     durations: [3, 4, 5, 6, 7, 8, 9, 10],
     aspectRatios: ["9:16", "16:9"],
-    resolutions: ["720p"],
+    resolutions: ["720p", "360p", "1080p", "4k"],
     maxImages: 3,
     hasAudio: true,
   },
@@ -52,6 +52,14 @@ const VIDEO_MODELS: VideoModelConfig[] = [
     hasAudio: true,
   },
 ];
+
+function getGeminiOmniRatePerSecond(resolution: string): number {
+  const q = resolution.trim().toLowerCase();
+  if (q.includes("360")) return 1;
+  if (q.includes("1080")) return 4.5;
+  if (q.includes("4k")) return 9;
+  return 3;
+}
 
 export default function MobileVideoPage() {
   const [selectedModel, setSelectedModel] = useState<VideoModelConfig>(VIDEO_MODELS[0]);
@@ -84,7 +92,9 @@ export default function MobileVideoPage() {
   }, [selectedModel]);
 
   const resolutionMultiplier = resolution === "1080p" ? 1.5 : resolution === "4k" ? 2.4 : 1.0;
-  const estimatedCost = Math.round(selectedModel.ratePerSec * duration * (selectedModel.id === "google-gemini-omni" ? 1 : resolutionMultiplier));
+  const estimatedCost = Math.round(
+    duration * (selectedModel.id === "google-gemini-omni" ? getGeminiOmniRatePerSecond(resolution) : selectedModel.ratePerSec * resolutionMultiplier),
+  );
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -558,7 +568,7 @@ export default function MobileVideoPage() {
               >
                 {res.toUpperCase()}
                 <i className="block not-italic text-[10px] font-mono text-slate-400 mt-0.5">
-                  {res === "720p" ? "معاينة قياسية" : "عالية الدقة"}
+                  {res === "360p" ? "اقتصادية" : res === "720p" ? "معاينة قياسية" : "عالية الدقة"}
                 </i>
               </button>
             ))}

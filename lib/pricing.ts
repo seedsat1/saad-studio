@@ -372,11 +372,13 @@ const QUALITY_MULTIPLIER: Record<string, number> = {
 const USER_CREDIT_USD = 0.05;
 const GOOGLE_VIDEO_MARGIN = 1.4;
 type GoogleVideoBillingKey = "veo31_lite" | "veo31_fast" | "veo31" | "veo3_fast" | "veo3" | "omni_flash";
+type GoogleVideoQuality = "360p" | "720p" | "1080p" | "4k";
 
-function normalizeGoogleVideoQuality(quality: string | null | undefined): "720p" | "1080p" | "4k" {
+function normalizeGoogleVideoQuality(quality: string | null | undefined): GoogleVideoQuality {
   const q = quality?.trim().toLowerCase() ?? "";
   if (q.includes("4k")) return "4k";
   if (q.includes("1080")) return "1080p";
+  if (q.includes("360")) return "360p";
   return "720p";
 }
 
@@ -408,16 +410,32 @@ function getGoogleVideoUsdPerSecond(modelRef: string, quality: string | null | u
   return null;
 }
 
+function getGeminiOmniUserCreditsPerSecond(quality: string | null | undefined): number {
+  const q = normalizeGoogleVideoQuality(quality);
+  if (q === "360p") return 1;
+  if (q === "1080p") return 4.5;
+  if (q === "4k") return 9;
+  return 3;
+}
+
 function getGoogleVideoCredits(modelRef: string, durationSec: number, numUnits: number, quality: string | null | undefined): number | null {
   const route = isGoogleVideoRoute(modelRef) ? modelRef : null;
   const normalized = route
     ? normalizeGoogleVideoOptions(route, { duration: durationSec, resolution: quality })
     : null;
   const billingQuality = normalized?.resolution ?? quality;
-  const usdPerSecond = getGoogleVideoUsdPerSecond(modelRef, billingQuality);
-  if (usdPerSecond === null) return null;
+  const billingKey = resolveGoogleVideoBillingKey(modelRef);
+  if (!billingKey) return null;
   const safeDuration = normalized?.duration ?? Math.max(1, Number.isFinite(durationSec) ? durationSec : 8);
   const safeUnits = Math.max(1, Math.floor(Number.isFinite(numUnits) ? numUnits : 1));
+
+  if (billingKey === "omni_flash") {
+    const credits = getGeminiOmniUserCreditsPerSecond(billingQuality) * safeDuration * safeUnits;
+    return parseFloat(Math.max(1, credits).toFixed(2));
+  }
+
+  const usdPerSecond = getGoogleVideoUsdPerSecond(modelRef, billingQuality);
+  if (usdPerSecond === null) return null;
   const credits = (usdPerSecond * safeDuration * safeUnits * GOOGLE_VIDEO_MARGIN) / USER_CREDIT_USD;
   return parseFloat(Math.max(1, credits).toFixed(2));
 }

@@ -159,7 +159,7 @@ export interface GoogleVideoConstraints {
   providerModel: string;
   aspectRatios: Array<"16:9" | "9:16">;
   durations: number[];
-  resolutions: Array<"720p" | "1080p" | "4k">;
+  resolutions: Array<"360p" | "720p" | "1080p" | "4k">;
   maxReferenceImages: number;
   maxReferenceVideos: number;
   supportsStartImage: boolean;
@@ -174,6 +174,7 @@ export interface NormalizeGoogleVideoInput {
   resolution?: string | null;
   aspectRatio?: string | null;
   referenceImageCount?: number;
+  referenceVideoCount?: number;
   hasVideoInput?: boolean;
   hasStartImage?: boolean;
   hasEndImage?: boolean;
@@ -186,7 +187,7 @@ export interface NormalizedGoogleVideoOptions {
   providerModel: string;
   mode: GoogleVideoMode;
   duration: number;
-  resolution: "720p" | "1080p" | "4k";
+  resolution: "360p" | "720p" | "1080p" | "4k";
   aspectRatio: "16:9" | "9:16";
   maxReferenceImages: number;
   maxReferenceVideos: number;
@@ -288,31 +289,31 @@ export const GOOGLE_VIDEO_CONSTRAINTS: Record<GoogleVideoRoute, GoogleVideoConst
   "google/gemini-omni-flash": {
     route: "google/gemini-omni-flash",
     tier: "omni_flash",
-    providerModel: "gemini-omni-flash-preview",
+    providerModel: "gemini-omni-1.1-flash",
     aspectRatios: ["16:9", "9:16"],
     durations: [3, 4, 5, 6, 7, 8, 9, 10],
-    resolutions: ["720p"],
+    resolutions: ["720p", "360p", "1080p", "4k"],
     maxReferenceImages: 3,
-    maxReferenceVideos: 1,
+    maxReferenceVideos: 3,
     supportsStartImage: true,
     supportsEndFrame: true,
     supportsVideoInput: true,
-    extensionCapable: false,
+    extensionCapable: true,
     outputCount: 1,
   },
   "google/gemini-omni-video": {
     route: "google/gemini-omni-video",
     tier: "omni_flash",
-    providerModel: "gemini-omni-flash-preview",
+    providerModel: "gemini-omni-1.1-flash",
     aspectRatios: ["16:9", "9:16"],
     durations: [3, 4, 5, 6, 7, 8, 9, 10],
-    resolutions: ["720p"],
+    resolutions: ["720p", "360p", "1080p", "4k"],
     maxReferenceImages: 3,
-    maxReferenceVideos: 1,
+    maxReferenceVideos: 3,
     supportsStartImage: true,
     supportsEndFrame: true,
     supportsVideoInput: true,
-    extensionCapable: false,
+    extensionCapable: true,
     outputCount: 1,
   },
 };
@@ -328,15 +329,17 @@ export function getGoogleVideoConstraints(route: string): GoogleVideoConstraints
 export function normalizeGoogleVideoOptions(route: GoogleVideoRoute, input: NormalizeGoogleVideoInput = {}): NormalizedGoogleVideoOptions {
   const constraints = GOOGLE_VIDEO_CONSTRAINTS[route];
   const referenceImageCount = Math.max(0, Math.floor(Number(input.referenceImageCount ?? 0)));
+  const referenceVideoCount = Math.max(0, Math.floor(Number(input.referenceVideoCount ?? 0)));
   const hasVideoInput = input.hasVideoInput === true;
   const rawAspect = typeof input.aspectRatio === "string" ? input.aspectRatio : "";
   const aspectRatio = constraints.aspectRatios.includes(rawAspect as "16:9" | "9:16")
     ? rawAspect as "16:9" | "9:16"
     : "16:9";
   const rawResolution = typeof input.resolution === "string" ? input.resolution.toLowerCase() : "";
-  let resolution: "720p" | "1080p" | "4k" =
+  let resolution: "360p" | "720p" | "1080p" | "4k" =
     rawResolution === "4k" ? "4k" :
     rawResolution === "1080p" || rawResolution === "pro" ? "1080p" :
+    rawResolution === "360p" ? "360p" :
     "720p";
   if (!constraints.resolutions.includes(resolution)) {
     resolution = constraints.resolutions[0];
@@ -345,7 +348,10 @@ export function normalizeGoogleVideoOptions(route: GoogleVideoRoute, input: Norm
   let mode: GoogleVideoMode = "text_to_video";
   if (hasVideoInput) {
     mode = constraints.tier === "omni_flash" || input.previousInteractionId ? "video_edit" : "video_extend";
-  } else if (referenceImageCount > 0 && constraints.maxReferenceImages > 0) {
+  } else if (
+    (referenceImageCount > 0 && constraints.maxReferenceImages > 0) ||
+    (referenceVideoCount > 0 && constraints.maxReferenceVideos > 0)
+  ) {
     mode = "reference_to_video";
   } else if (input.hasStartImage || input.hasEndImage) {
     mode = "image_to_video";
@@ -764,8 +770,11 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16"],
       durations:     [3, 4, 5, 6, 7, 8, 9, 10],
-      resolutions:   ["720p"],
+      resolutions:   ["720p", "360p", "1080p", "4k"],
       max_reference_images: 3,
+      max_reference_videos: 3,
+      max_reference_video_total_seconds: 9,
+      max_prompt_characters: 2500,
     }),
   },
 

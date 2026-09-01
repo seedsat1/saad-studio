@@ -1,3 +1,64 @@
+# Latest task: Gemini Omni Higgsfield-Aligned User Pricing (2026-09-01)
+- Status: Completed with scoped verification.
+- Owner decision:
+  - User explicitly approved matching the Higgsfield screenshots for Gemini Omni 1.1 Flash 10s prices: `360p` = 10 credits, `720p` = 30 credits, `1080p` = 45 credits, `4k` = 90 credits.
+- Changes made:
+  - Updated central Google video user-charge calculation so `google/gemini-omni-flash` and `gemini_omni_flash` use per-resolution user-credit rates: `360p` 1 credit/sec, `720p` 3 credits/sec, `1080p` 4.5 credits/sec, `4k` 9 credits/sec.
+  - Kept Google provider USD estimation for Gemini Omni separate at the reviewed official effective baseline (`$0.10/sec` 720p) because Google has not published a separate Omni per-resolution provider-cost table in the reviewed docs.
+  - Updated legacy/fallback video credit helpers so Gemini Omni does not receive an extra sound multiplier and legacy `google/gemini-omni-video` also follows the same sale schedule.
+  - Updated the mobile video page estimate so the Generate button displays the same Higgsfield-aligned quality schedule.
+  - Updated `lib/pricing-models.ts` notes/rate metadata to record the 720p 3 credits/sec sale baseline.
+  - Added pricing parity tests for the four Gemini Omni quality prices and a provider-cost separation assertion.
+- Files affected:
+  - `lib/pricing.ts`
+  - `lib/credit-pricing.ts`
+  - `lib/pricing-models.ts`
+  - `app/(dash)/(routes)/m/video/page.tsx`
+  - `test/pricing-core.test.ts`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `.\node_modules\.bin\vitest.cmd run test/pricing-core.test.ts --pool=threads --fileParallelism=false --reporter=dot` passed: 26/26 tests.
+  - `git diff --check` passed with only Git warnings about unreadable global ignore and LF-to-CRLF normalization.
+  - `.\node_modules\.bin\tsc.cmd --noEmit --pretty false --incremental false` still fails only on the known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig` typing, dynamic loader `familyColor`, Seedance `unknown` output type, and existing badge type mismatches in `lib/video-model-registry.ts`.
+- Decisions:
+  - Treat Higgsfield screenshots as a user-facing benchmark pricing decision, not as Google official cost evidence.
+  - Keep the current Google official provider-cost baseline isolated from sale credits to avoid false cost reporting.
+- Remaining step:
+  - Clean unrelated TypeScript debt if a full green `tsc --noEmit` gate is required before deploy.
+
+# Latest task: Google Gemini Omni 1.1 Flash GA Capability Update (2026-09-01)
+- Status: Completed with scoped verification.
+- Source evidence:
+  - Official Google Omni docs last updated 2026-08-30 UTC.
+  - Gemini release notes dated 2026-08-27 announce GA `gemini-omni-1.1-flash` and preview deprecation on 2026-09-30.
+- Changes made:
+  - Updated direct Google Gemini Omni provider model from `gemini-omni-flash-preview` to GA `gemini-omni-1.1-flash`, while keeping polling compatibility for old stored preview handles.
+  - Updated `/video` and mobile video model capabilities to official ratios `16:9`/`9:16`, duration range 3-10s, and resolutions `360p`, `720p` default, `1080p`, `4k`.
+  - Wired Gemini Omni Interactions payloads to send selected `response_format.resolution` and existing `video_config.duration_seconds`.
+  - Added Gemini Omni prompt role-tag support in `/video` for documented Google roles: `<FIRST_FRAME>`, `<LAST_FRAME>`, `<IMAGE_REF_N>`, and `<VIDEO_REF_N>`.
+  - Added direct Google handling for up to 3 Gemini Omni video references; audio references remain disabled because official docs say audio references are unsupported.
+- Files affected:
+  - `lib/video-model-registry.ts`
+  - `lib/gemini-veo.ts`
+  - `app/api/video/route.ts`
+  - `app/api/video/quote/route.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/m/video/page.tsx`
+  - `lib/video-models.ts`
+  - `app/api/smart-cli/mcp/route.ts`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `.\node_modules\.bin\vitest.cmd run test/pricing-core.test.ts --pool=threads --fileParallelism=false --reporter=dot` passed: 25/25 tests.
+  - Initial Vitest with default forks failed before tests due `[vitest-pool-runner]: Timeout waiting for worker to respond`; rerun with threads passed.
+  - `.\node_modules\.bin\tsc.cmd --noEmit --pretty false --incremental false` still fails only on pre-existing unrelated project errors after the local `videoMode` narrowing error was fixed. Remaining errors include stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig` typing, dynamic loader `familyColor`, Seedance unknown type, and existing badge type mismatches in `lib/video-model-registry.ts`.
+- Decisions:
+  - Do not invent separate Gemini Omni 1080p/4k pricing multipliers. Official pricing gives an effective 720p token-rate baseline of about `$0.10/sec`; higher resolutions are documented as upscaled outputs without a separate public Omni price table in the reviewed Google docs.
+  - Keep Google audio references disabled for Omni despite native multimodality because the official limitations section says uploading audio references is unsupported in the current API.
+- Remaining step:
+  - Clean the unrelated TypeScript debt if a full green `tsc --noEmit` gate is required before deploy.
+
 # SAAD STUDIO — MASTER CONSTITUTION & ROADMAP LOCK
 
 ## 1. OWNER PRIORITIES & OPERATIONAL REALITY (PERMANENT)

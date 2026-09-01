@@ -56,11 +56,11 @@ export const VIDEO_MODELS: VideoModel[] = [
     accepts: ["start-frame", "end-frame", "reference-image"],
     aspectRatios: ["16:9", "9:16"],
     durations: [3, 4, 5, 6, 7, 8, 9, 10],
-    resolutions: ["720p"],
+    resolutions: ["720p", "360p", "1080p", "4k"],
     badge: "NEW",
     creditCost: 30.0,
     maxDuration: 10,
-    description: "Ultra-fast direct Google video generation & editing",
+    description: "Direct Google Gemini Omni 1.1 Flash video generation, editing, upscaling, and interpolation",
   },
   // â”€â”€ KLING â”€â”€
   {

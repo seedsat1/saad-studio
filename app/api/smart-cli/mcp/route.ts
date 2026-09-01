@@ -164,7 +164,7 @@ const AVAILABLE_MODELS = [
   { id: "google/veo3.1-text-to-video", kind: "video", label: "Google Veo 3.1", notes: "Google flagship video, native audio.", badges: ["new"] },
   { id: "google/veo3-fast-text-to-video", kind: "video", label: "Google Veo 3 Fast", notes: "Legacy Veo 3 Fast. Fixed 8s, 720p/1080p.", badges: ["fast"] },
   { id: "google/veo3-text-to-video", kind: "video", label: "Google Veo 3", notes: "Legacy Veo 3. Fixed 8s, 720p/1080p.", badges: [] },
-  { id: "google/gemini-omni-flash", kind: "video", label: "Google Gemini Omni", notes: "Gemini Omni video generation/editing. 720p, 3-10s.", badges: ["new"] },
+  { id: "google/gemini-omni-flash", kind: "video", label: "Google Gemini Omni", notes: "Gemini Omni 1.1 video generation/editing. 360p/720p/1080p/4k, 3-10s.", badges: ["new"] },
   { id: "bytedance/seedance-2.5/text-to-video-turbo", kind: "video", label: "Seedance 2.5", notes: "480p/720p, 4-30s, up to 30 image + 10 video + 10 audio references.", badges: ["new"] },
   { id: "bytedance/seedance-2.5/image-to-video-turbo", kind: "video", label: "Seedance 2.5 I2V Turbo", notes: "Image-to-video, optional last image, 480p/720p, 4-30s.", badges: ["fast"] },
   { id: "bytedance/seedance-2.5/image-to-video-spicy", kind: "video", label: "Seedance 2.5 Spicy", notes: "Image-to-video, 480p/720p, 4-30s.", badges: ["pro"] },
