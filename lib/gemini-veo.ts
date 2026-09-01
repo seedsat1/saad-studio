@@ -93,6 +93,8 @@ export interface StartVeoParams {
   referenceVideos?: VeoVideoInput[];
   /** Extend an existing clip (max 20×) */
   video?: VeoVideoInput;
+  /** Explicit task for video input when the caller distinguishes edit vs extension. */
+  videoTask?: "edit" | "extend";
   /** Stateful video editing: parent interaction ID to edit */
   previousInteractionId?: string;
 }
@@ -253,7 +255,7 @@ export async function startVeoGeneration(
     let task = params.previousInteractionId ? "edit" : "text_to_video";
     if (!params.previousInteractionId) {
       if (params.video) {
-        task = "edit";
+        task = params.videoTask === "extend" ? "extend" : "edit";
       } else if (params.image) {
         task = "image_to_video";
       } else if ((params.referenceImages && params.referenceImages.length > 0) || refVideoCount > 0) {

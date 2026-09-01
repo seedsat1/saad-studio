@@ -675,10 +675,12 @@ function getActiveVideoModeLabel(model: WaveSpeedVideoModel, input: {
   hasEndFrame: boolean;
   hasMotionVideo: boolean;
   referenceImageCount: number;
+  isExtendMode: boolean;
 }): VideoModeLabel {
   const route = model.api_route;
   const isGoogle = route.startsWith("google/");
   if (input.hasMotionVideo) {
+    if (input.isExtendMode && getGoogleVideoConstraints(route)?.extensionCapable) return "Video Extend";
     if (route === "google/gemini-omni-flash") return "Video Edit";
     if (isGoogle && (route.includes("veo3.1") || route.includes("veo-3.1"))) return "Video Extend";
     return "Video To Video";
@@ -1276,8 +1278,10 @@ function VideoPageInner() {
 
   const extendCapableModels = useMemo(() => {
     return allModels.filter((m: any) =>
-      typeof m.video_api_route === "string" &&
-      m.video_api_route.includes("video-extend") &&
+      (
+        (typeof m.video_api_route === "string" && m.video_api_route.includes("video-extend")) ||
+        Boolean(getGoogleVideoConstraints(m.api_route)?.extensionCapable)
+      ) &&
       m.isActive !== false
     );
   }, [allModels]);
@@ -1922,6 +1926,7 @@ function VideoPageInner() {
         hasVideoInput: Boolean(motionVideo),
         hasStartImage: Boolean(startFrame || linkedStartFrameUrl),
         hasEndImage: Boolean(endFrame),
+        requestedMode: videoMode === "extend" ? "video_extend" : undefined,
       })
     : null;
   const isVeo31LiteModel = selectedModel.api_route === "google/veo3.1-lite-text-to-video";
@@ -2388,6 +2393,7 @@ function VideoPageInner() {
     hasEndFrame: Boolean(endFrame),
     hasMotionVideo: Boolean(motionVideo),
     referenceImageCount: referenceImages.filter((file) => file.type.startsWith("image/")).length,
+    isExtendMode: videoMode === "extend",
   });
 
   const estimatedCredits = (() => {
@@ -2830,6 +2836,10 @@ function VideoPageInner() {
             : "TEXT_2_VIDEO";
       }
       payload.video_mode_label = activeVideoModeLabel;
+      if (videoMode === "extend") {
+        payload.google_video_mode = "Video Extend";
+        payload.video_task = "extend";
+      }
 
       // Size / Aspect ratio
       if (caps.sizes.length > 0 && size) {
@@ -3314,7 +3324,7 @@ function VideoPageInner() {
       setIsSubmitting(false);
     }
   }, [
-    activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isWan30Model, isVeo31Model, isGoogleVeoModel, isVeo31FastModel, isVeo31FixedEightSecond,
+    activeTool, videoMode, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isWan30Model, isVeo31Model, isGoogleVeoModel, isVeo31FastModel, isVeo31FixedEightSecond,
     startFrame, linkedStartFrameUrl, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId, selectedPalette, startPolling,

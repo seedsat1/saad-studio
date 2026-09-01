@@ -33,7 +33,7 @@ const VIDEO_MODELS: VideoModelConfig[] = [
     apiRoute: "google/gemini-omni-flash",
     durations: [3, 4, 5, 6, 7, 8, 9, 10],
     aspectRatios: ["9:16", "16:9"],
-    resolutions: ["720p", "360p", "1080p", "4k"],
+    resolutions: ["360p", "720p", "1080p", "4k"],
     maxImages: 3,
     hasAudio: true,
   },

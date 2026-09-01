@@ -179,6 +179,7 @@ export interface NormalizeGoogleVideoInput {
   hasStartImage?: boolean;
   hasEndImage?: boolean;
   previousInteractionId?: string | null;
+  requestedMode?: GoogleVideoMode | string | null;
 }
 
 export interface NormalizedGoogleVideoOptions {
@@ -292,7 +293,7 @@ export const GOOGLE_VIDEO_CONSTRAINTS: Record<GoogleVideoRoute, GoogleVideoConst
     providerModel: "gemini-omni-1.1-flash",
     aspectRatios: ["16:9", "9:16"],
     durations: [3, 4, 5, 6, 7, 8, 9, 10],
-    resolutions: ["720p", "360p", "1080p", "4k"],
+    resolutions: ["360p", "720p", "1080p", "4k"],
     maxReferenceImages: 3,
     maxReferenceVideos: 3,
     supportsStartImage: true,
@@ -307,7 +308,7 @@ export const GOOGLE_VIDEO_CONSTRAINTS: Record<GoogleVideoRoute, GoogleVideoConst
     providerModel: "gemini-omni-1.1-flash",
     aspectRatios: ["16:9", "9:16"],
     durations: [3, 4, 5, 6, 7, 8, 9, 10],
-    resolutions: ["720p", "360p", "1080p", "4k"],
+    resolutions: ["360p", "720p", "1080p", "4k"],
     maxReferenceImages: 3,
     maxReferenceVideos: 3,
     supportsStartImage: true,
@@ -347,7 +348,12 @@ export function normalizeGoogleVideoOptions(route: GoogleVideoRoute, input: Norm
 
   let mode: GoogleVideoMode = "text_to_video";
   if (hasVideoInput) {
-    mode = constraints.tier === "omni_flash" || input.previousInteractionId ? "video_edit" : "video_extend";
+    const requestedExtend = input.requestedMode === "video_extend" || input.requestedMode === "Video Extend" || input.requestedMode === "extend";
+    mode = requestedExtend && constraints.extensionCapable
+      ? "video_extend"
+      : constraints.tier === "omni_flash" || input.previousInteractionId
+      ? "video_edit"
+      : "video_extend";
   } else if (
     (referenceImageCount > 0 && constraints.maxReferenceImages > 0) ||
     (referenceVideoCount > 0 && constraints.maxReferenceVideos > 0)
@@ -357,7 +363,7 @@ export function normalizeGoogleVideoOptions(route: GoogleVideoRoute, input: Norm
     mode = "image_to_video";
   }
 
-  if (mode === "video_extend") {
+  if (mode === "video_extend" && constraints.tier !== "omni_flash") {
     resolution = "720p";
   }
 
@@ -770,7 +776,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16"],
       durations:     [3, 4, 5, 6, 7, 8, 9, 10],
-      resolutions:   ["720p", "360p", "1080p", "4k"],
+      resolutions:   ["360p", "720p", "1080p", "4k"],
       max_reference_images: 3,
       max_reference_videos: 3,
       max_reference_video_total_seconds: 9,

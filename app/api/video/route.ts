@@ -92,8 +92,10 @@ function resolveGoogleVideoModeLabel(input: {
   hasEndImage: boolean;
   referenceCount: number;
   hasPreviousInteraction: boolean;
+  requestedMode?: unknown;
 }): GoogleVideoModeLabel {
   if (input.hasVideo) {
+    if (input.requestedMode === "Video Extend" || input.requestedMode === "video_extend" || input.requestedMode === "extend") return "Video Extend";
     return (input.modelRoute === "google/gemini-omni-flash" || input.modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE || input.hasPreviousInteraction) ? "Video Edit" : "Video Extend";
   }
   if (input.referenceCount > 0) return "Reference To Video";
@@ -3059,6 +3061,14 @@ export async function POST(req: Request) {
         Boolean(resolvedEndImage) ||
         resolvedReferenceSources.length > 0 ||
         (Boolean(resolvedStartVideo) && modelRoute !== "google/gemini-omni-flash" && modelRoute !== LEGACY_GEMINI_OMNI_VIDEO_ROUTE);
+      const requestedGoogleVideoMode =
+        typeof payload.google_video_mode === "string"
+          ? payload.google_video_mode
+          : typeof payload.video_mode_label === "string"
+          ? payload.video_mode_label
+          : typeof payload.video_task === "string"
+          ? payload.video_task
+          : undefined;
 
       const normalizedGoogle = normalizeGoogleVideoOptions(modelRoute, {
         duration: payload.duration as number | string | undefined,
@@ -3070,6 +3080,7 @@ export async function POST(req: Request) {
         hasStartImage: Boolean(resolvedStartImage),
         hasEndImage: Boolean(resolvedEndImage),
         previousInteractionId: typeof payload.previousTaskId === "string" ? payload.previousTaskId : undefined,
+        requestedMode: requestedGoogleVideoMode,
       });
       const aspectRatio = normalizedGoogle.aspectRatio;
       const resolution = normalizedGoogle.resolution;
@@ -3100,6 +3111,7 @@ export async function POST(req: Request) {
         hasEndImage: Boolean(resolvedEndImage),
         referenceCount: resolvedReferenceSources.length,
         hasPreviousInteraction: Boolean(previousTaskId),
+        requestedMode: requestedGoogleVideoMode,
       });
       const googleAuditPayload = {
         ...payload,
@@ -3186,6 +3198,7 @@ export async function POST(req: Request) {
           referenceVideos: referenceVideos.length ? referenceVideos : undefined,
           previousInteractionId,
           video,
+          videoTask: googleVideoModeLabel === "Video Extend" ? "extend" : undefined,
         });
       } catch (err) {
         if (!providerDispatched && generationId && chargedUserId && chargedCredits > 0) {

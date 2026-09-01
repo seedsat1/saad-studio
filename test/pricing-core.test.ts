@@ -30,6 +30,7 @@ import {
   getVideoCreditsByRoute,
   getVideoCreditsByRouteAsync,
 } from "@/lib/credit-pricing";
+import { normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 
 type PricingCase = {
   name: string;
@@ -262,6 +263,26 @@ describe("pricing core user charge parity", () => {
     }
 
     expect(estimateProviderCostSync("google/gemini-omni-flash", 10, "720p", 1).usd).toBe(1);
+  });
+
+  it("routes Gemini Omni video input as extension when explicitly requested", () => {
+    const omni = normalizeGoogleVideoOptions("google/gemini-omni-flash", {
+      duration: 10,
+      resolution: "4k",
+      hasVideoInput: true,
+      requestedMode: "video_extend",
+    });
+    const veo = normalizeGoogleVideoOptions("google/veo3.1-fast-text-to-video", {
+      duration: 8,
+      resolution: "4k",
+      hasVideoInput: true,
+      requestedMode: "video_extend",
+    });
+
+    expect(omni.mode).toBe("video_extend");
+    expect(omni.resolution).toBe("4k");
+    expect(veo.mode).toBe("video_extend");
+    expect(veo.resolution).toBe("720p");
   });
 
   it("keeps Hook Studio legacy fallback charge while using the async resolver entrypoint", async () => {

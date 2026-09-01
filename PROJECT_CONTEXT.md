@@ -1,3 +1,52 @@
+# Latest task: Bind Gemini Omni To Video Extension Tab (2026-09-01)
+- Status: Completed with scoped verification.
+- User request:
+  - Confirmed the `Video Extension` tab was not fully connected to Gemini Omni and asked to bind it.
+- Changes made:
+  - Updated `/video` extension model filtering so Google models with `extensionCapable: true` appear in the Video Extension tab, including `google/gemini-omni-flash`.
+  - When the user is in Video Extension mode, `/video` now sends `google_video_mode: "Video Extend"` and `video_task: "extend"` in the request payload.
+  - Extended the Google API route mode resolver to honor explicit extend requests for video input.
+  - Added `videoTask?: "edit" | "extend"` to `startVeoGeneration`; Gemini Omni source-video requests now send Google Interactions `generation_config.video_config.task = "extend"` when the caller requested extension.
+  - Updated `normalizeGoogleVideoOptions` so requested Gemini Omni extension normalizes to `video_extend` without forcing resolution down to `720p`; the 720p force remains for Veo extension routes.
+  - Added a focused regression test for Gemini Omni extension mode and Veo extension 720p normalization.
+- Files affected:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/api/video/route.ts`
+  - `lib/gemini-veo.ts`
+  - `lib/video-model-registry.ts`
+  - `test/pricing-core.test.ts`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `.\node_modules\.bin\vitest.cmd run test/pricing-core.test.ts --pool=threads --fileParallelism=false --reporter=dot` passed: 27/27 tests.
+  - `git diff --check` passed with only Git warnings about unreadable global ignore and LF-to-CRLF normalization.
+  - First `tsc --noEmit` run caught a new `requestedMode` unknown-type error in `app/api/video/route.ts`; fixed by normalizing the requested mode into a string/undefined before passing it onward.
+  - Final `.\node_modules\.bin\tsc.cmd --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig` typing, dynamic loader `familyColor`, Seedance `unknown` output type, and existing badge type mismatches in `lib/video-model-registry.ts`.
+- Decisions:
+  - Do not create a fake Gemini Omni `video_api_route`; use the same real route with explicit `video_task` intent because Google Omni uses one Interactions model for edit/extend tasks.
+  - Keep Veo extension behavior unchanged: extension forces `720p`.
+- Remaining step:
+  - Commit/push the uncommitted ordering and extension-binding changes if approved.
+
+# Latest task: Gemini Omni Resolution Dropdown Ordering (2026-09-01)
+- Status: Completed with scoped verification.
+- User report:
+  - Resolution dropdown showed Gemini Omni order as `720p`, `360p`, `1080p`, `4k`, which looked random compared with the Higgsfield benchmark sequence.
+- Changes made:
+  - Reordered Gemini Omni resolution arrays to `360p`, `720p`, `1080p`, `4k` in the dashboard/mobile-facing registries.
+  - Kept `720p` as the default selected value because it remains the Google documented default; only the visible option order changed.
+- Files affected:
+  - `app/(dash)/(routes)/m/video/page.tsx`
+  - `lib/video-models.ts`
+  - `lib/video-model-registry.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `rg --fixed-strings '"720p", "360p", "1080p", "4k"' app lib docs PROJECT_CONTEXT.md` returned no matches.
+- Decisions:
+  - Use quality order from low to high for display: 360p, 720p, 1080p, 4K.
+- Remaining step:
+  - Run focused diff/whitespace checks before commit if requested.
+
 # Latest task: Gemini Omni Higgsfield-Aligned User Pricing (2026-09-01)
 - Status: Completed with scoped verification.
 - Owner decision:
