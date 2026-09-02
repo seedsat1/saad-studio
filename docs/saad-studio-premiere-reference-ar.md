@@ -1,3 +1,21 @@
+## نشر جميع منصات السوشيال من لوحة الأدمن (2026-09-03)
+
+- صفحة `/admin/social-media` تحتوي زر `نشر الجميع` في مسار الوكيل الذكي ومسار `Storyboard Studio`.
+- الزر يستدعي `/api/admin/social-media` مع `action: "publish"` و`platform: "all"`.
+- مسار Buffer يستخدم GraphQL الرسمي على `https://api.buffer.com`، ويستدعي `createPost` مرة منفصلة لكل قناة Buffer مطابقة بدلاً من إرسال نص واحد مشترك لكل القنوات.
+- كل قناة تحصل على نصها وهاشتاغاتها من `post.platforms[platform]`:
+  - Facebook من `post.platforms.facebook`.
+  - Instagram من `post.platforms.instagram`.
+  - X/Twitter من `post.platforms.twitter`.
+  - LinkedIn من `post.platforms.linkedin`.
+  - TikTok من `post.platforms.tiktok`.
+- الوسائط ترسل إلى Buffer عبر `assets` برابط عام مطلق: صورة عند وجود `imageUrl`، أو فيديو عند وجود `videoUrl`.
+- إعدادات النشر تدعم اختيارياً `bufferProfileIds` لكل منصة؛ إذا تُركت فارغة يحاول السيرفر اكتشاف قنوات Buffer من المنظمة المرتبطة بالمفتاح.
+- الحقل القديم `bufferProfileId` باقٍ كـfallback للنشر الفردي فقط حتى لا تنكسر إعدادات محفوظة قديمة.
+- تيليجرام يدعم الآن `sendVideo` عند وجود فيديو، و`sendPhoto` عند وجود صورة، و`sendMessage` للنص فقط.
+- نتيجة النشر ترجع `results` و`errors` حتى تعرض الواجهة المنصات التي نجحت أو فشلت بشكل منفصل.
+- لا يوجد حالياً حقل منشور خاص بـYouTube داخل `SocialMediaPostRecord`، لذلك لم تتم إضافته لمسار `نشر الجميع`.
+
 ## الوكيل الصوتي داخل داشبورد الأدمن في Saad Studio (2026-08-25)
 
 - تم اعتماد `Saad Voice Agent` كسطح داخل داشبورد الأدمن الحالي، وليس داشبورد المشتركين، وليس تطبيقاً مستقلاً أو landing page.

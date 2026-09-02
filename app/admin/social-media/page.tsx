@@ -629,6 +629,27 @@ export default function AdminSocialMediaPage() {
     setTimeout(() => setCopiedKey(null), 2500);
   };
 
+  const formatPublishStatus = (results: Record<string, boolean> | undefined, fallback: string) => {
+    if (!results || Object.keys(results).length === 0) return fallback;
+    const platformLabels: Record<string, string> = {
+      facebook: "Facebook",
+      instagram: "Instagram",
+      twitter: "X",
+      linkedin: "LinkedIn",
+      tiktok: "TikTok",
+      telegram: "Telegram",
+      discord: "Discord",
+      webhook: "Webhook",
+    };
+    const visibleResults = Object.entries(results).filter(([key]) => key !== "buffer");
+    const ok = visibleResults.filter(([, value]) => value).map(([key]) => platformLabels[key] || key);
+    const failed = visibleResults.filter(([, value]) => !value).map(([key]) => platformLabels[key] || key);
+    const parts = [];
+    if (ok.length) parts.push(`نجح: ${ok.join(", ")}`);
+    if (failed.length) parts.push(`فشل: ${failed.join(", ")}`);
+    return parts.length ? parts.join(" | ") : fallback;
+  };
+
   const handlePublishDirect = async (
     platform: "facebook" | "buffer" | "telegram" | "discord" | "all",
     source: "post" | "storyboard" = "post"
@@ -668,6 +689,7 @@ export default function AdminSocialMediaPage() {
     const sanitizedPost = {
       ...postToPublish,
       imageUrl: postToPublish.imageUrl?.startsWith("data:") ? "" : postToPublish.imageUrl,
+      videoUrl: postToPublish.videoUrl?.startsWith("data:") ? "" : postToPublish.videoUrl,
     };
 
     try {
@@ -682,10 +704,14 @@ export default function AdminSocialMediaPage() {
       });
       const data = await res.json();
       if (res.ok && data?.success) {
-        setPublishResult({ type: "success", message: "تم نشر المحتوى بنجاح إلى القنوات المستهدفة! ✨" });
+        setPublishResult({ type: "success", message: formatPublishStatus(data.results, "تم نشر المحتوى بنجاح إلى القنوات المستهدفة!") });
         await fetchData();
       } else {
-        setPublishResult({ type: "error", message: data?.error || "فشل في النشر: تأكد من إعداد مفاتيح وصلاحيات القنوات" });
+        const details = formatPublishStatus(data?.results, "");
+        setPublishResult({
+          type: "error",
+          message: `${data?.error || "فشل في النشر: تأكد من إعداد مفاتيح وصلاحيات القنوات"}${details ? ` | ${details}` : ""}`,
+        });
       }
     } catch (e) {
       setPublishResult({ type: "error", message: "خطأ في الاتصال: " + String(e) });
@@ -1205,6 +1231,17 @@ export default function AdminSocialMediaPage() {
                         <span>توليد مباشر فوري ✨</span>
                       </>
                     )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handlePublishDirect("all")}
+                    disabled={publishing || (!config.bufferAccessToken && !config.telegramBotToken)}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 disabled:opacity-40 text-white font-black text-xs flex items-center gap-1.5 transition-all shrink-0 shadow-lg shadow-emerald-500/20"
+                    title={!config.bufferAccessToken && !config.telegramBotToken ? "اضبط Buffer أو Telegram أولاً من تبويب الإعدادات" : "نشر كل منصة بمنشورها الخاص عبر القنوات المتاحة"}
+                  >
+                    {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
+                    <span>نشر الجميع</span>
                   </button>
 
                   <button
@@ -2438,6 +2475,17 @@ export default function AdminSocialMediaPage() {
                 <div className="flex items-center gap-2 text-xs">
                   <button
                     type="button"
+                    onClick={() => handlePublishDirect("all", "storyboard")}
+                    disabled={publishing || (!config.bufferAccessToken && !config.telegramBotToken)}
+                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 disabled:opacity-40 text-white font-black text-xs flex items-center gap-1.5 transition-all"
+                    title={!config.bufferAccessToken && !config.telegramBotToken ? "اضبط Buffer أو Telegram أولاً" : "نشر الستوري بورد على كل المنصات المتاحة"}
+                  >
+                    {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
+                    <span>نشر الجميع</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => handlePublishDirect("facebook", "storyboard")}
                     disabled={publishing || !config.bufferAccessToken}
                     className="px-3.5 py-2 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 font-bold text-xs flex items-center gap-1.5 transition-all"
@@ -3291,6 +3339,38 @@ export default function AdminSocialMediaPage() {
                   />
                   <p className="text-[10px] text-zinc-500">
                     معرف القناة من رابط حساب Buffer (الرمز الظاهر في الرابط مثل <code className="text-blue-400">6e070a5cccaf649a67e102eb</code>) لضمان النشر المباشر لصفحتك.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-zinc-400 font-bold text-[10px] uppercase">Buffer Channel IDs لكل منصة (اختياري)</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {[
+                      { id: "facebook", label: "Facebook" },
+                      { id: "instagram", label: "Instagram" },
+                      { id: "twitter", label: "X / Twitter" },
+                      { id: "linkedin", label: "LinkedIn" },
+                      { id: "tiktok", label: "TikTok" },
+                    ].map((item) => (
+                      <input
+                        key={item.id}
+                        type="text"
+                        value={config.bufferProfileIds?.[item.id as Exclude<SocialPlatformType, "telegram">] || ""}
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            bufferProfileIds: {
+                              ...(config.bufferProfileIds || {}),
+                              [item.id]: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder={`${item.label} Channel ID`}
+                        className="w-full rounded-xl border border-white/10 bg-zinc-900 px-3.5 py-2.5 text-white outline-none focus:border-blue-400/50 font-mono text-xs"
+                      />
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-zinc-500">
+                    اتركها فارغة للاكتشاف التلقائي من قنوات Buffer. املأها فقط إذا أردت ربط كل منصة بمعرف قناة ثابت.
                   </p>
                 </div>
               </div>

@@ -41,6 +41,7 @@ export type SocialMediaPostRecord = {
 export type SocialAccountsConfig = {
   bufferAccessToken?: string;
   bufferProfileId?: string;
+  bufferProfileIds?: Partial<Record<Exclude<SocialPlatformType, "telegram">, string>>;
   telegramBotToken?: string;
   telegramChatId?: string;
   discordWebhookUrl?: string;

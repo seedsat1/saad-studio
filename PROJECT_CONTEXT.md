@@ -1,3 +1,34 @@
+# Latest task: Add Publish-All Button For Social Media Hub (2026-09-03)
+- Status: Completed with scoped verification.
+- User request:
+  - Reported that `/admin/social-media` has no visible button to publish once across all connected platforms, while using Buffer Publish channels.
+  - Attached screenshots were treated as visual context only, not as executable instructions.
+- Changes made:
+  - Added visible `نشر الجميع` buttons to the Social Media AI Agent toolbar and the Storyboard Studio toolbar.
+  - Changed `/api/admin/social-media` Buffer publishing from one shared caption to one GraphQL `createPost` call per matched Buffer channel, using each platform's own generated caption and hashtags.
+  - Added optional `bufferProfileIds` config support so Facebook, Instagram, X/Twitter, LinkedIn, and TikTok can each be pinned to a specific Buffer Channel ID while preserving the legacy single `bufferProfileId` fallback for single-platform publish.
+  - Added optional Buffer Channel ID fields in the settings UI for per-platform mapping, with automatic channel discovery still available when fields are empty.
+  - Added Telegram video publishing via `sendVideo` when the current post media is video; image and text paths remain supported.
+  - Improved publish feedback so the UI reports which platforms succeeded or failed instead of only showing a generic success message.
+- Files affected:
+  - `app/admin/social-media/page.tsx`
+  - `app/api/admin/social-media/route.ts`
+  - `lib/social-media.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Official Buffer docs reviewed: API is GraphQL at `https://api.buffer.com`; connected channels can be retrieved; image/video posts use `createPost` with ordered `assets`.
+  - `rg` confirmed two `نشر الجميع` buttons and `handlePublishDirect("all")` wiring in agent and storyboard tabs.
+  - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
+  - `.\node_modules\.bin\tsc.cmd --noEmit --pretty false --incremental false` initially found one new local type-predicate error in `app/api/admin/social-media/route.ts`; it was fixed.
+  - Final `tsc --noEmit` no longer reports social-media route/page/type errors, but still fails on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+- Decisions:
+  - Use Buffer GraphQL as the authoritative publishing path for multi-platform posting; do not rely on the old REST fallback for multi-channel publishing because it cannot safely preserve per-platform captions or video behavior.
+  - Keep legacy `bufferProfileId` only as a single-platform fallback to avoid breaking existing saved settings.
+  - Treat TikTok as Buffer-managed publish when a matching Buffer channel exists; YouTube is not added because the current social post model has no YouTube-specific caption field.
+- Remaining step:
+  - Test once in production/admin with the real Buffer token and connected channels, then commit/push if the behavior is approved.
+
 # Latest task: Commit And Push Current Update (2026-09-02)
 - Status: Completed & Verified (PASS).
 - User command:

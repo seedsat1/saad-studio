@@ -11,6 +11,7 @@ import {
   deleteStoryboard,
   SocialMediaPostRecord,
   PlatformContentItem,
+  SocialPlatformType,
   StoryboardShowcaseRecord,
   StoryboardThemeType,
   StoryboardTemplateType,
@@ -21,6 +22,49 @@ export const maxDuration = 120;
 export const dynamic = "force-dynamic";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app";
+
+type BufferPlatform = Exclude<SocialPlatformType, "telegram">;
+
+const BUFFER_PLATFORM_SERVICES: Record<BufferPlatform, string[]> = {
+  facebook: ["facebook", "facebookPage", "facebook_page", "facebookGroup"],
+  instagram: ["instagram", "instagramBusiness", "instagram_business"],
+  twitter: ["twitter", "x"],
+  linkedin: ["linkedin", "linkedinCompany", "linkedinPage", "linkedin_company", "linkedin_page"],
+  tiktok: ["tiktok"],
+};
+
+const BUFFER_SERVICE_TO_PLATFORM: Array<{ platform: BufferPlatform; services: string[] }> = Object.entries(BUFFER_PLATFORM_SERVICES).map(
+  ([platform, services]) => ({ platform: platform as BufferPlatform, services })
+);
+
+function normalizePublicUrl(url?: string): string {
+  const value = (url || "").trim();
+  if (!value || value.startsWith("data:")) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  return `${SITE_URL}${value.startsWith("/") ? "" : "/"}${value}`;
+}
+
+function formatPlatformText(post: SocialMediaPostRecord, platform: SocialPlatformType): string {
+  const platformItem = post.platforms?.[platform] || post.platforms.facebook || post.platforms.twitter;
+  if (!platformItem?.content) return "";
+  const hashtags = Array.isArray(platformItem.hashtags) && platformItem.hashtags.length > 0
+    ? `\n\n${platformItem.hashtags.join(" ")}`
+    : "";
+  return `${platformItem.content}${hashtags}`;
+}
+
+function resolveBufferPlatform(service?: string): BufferPlatform | null {
+  const normalized = String(service || "").trim();
+  if (!normalized) return null;
+  const match = BUFFER_SERVICE_TO_PLATFORM.find((entry) => entry.services.includes(normalized));
+  return match?.platform || null;
+}
+
+function buildBufferMetadata(platform: BufferPlatform): Record<string, unknown> | undefined {
+  if (platform === "facebook") return { facebook: { type: "post" } };
+  if (platform === "instagram") return { instagram: { type: "post", shouldShareToFeed: true } };
+  return undefined;
+}
 
 export async function GET(req: NextRequest) {
   if (!(await isAdmin())) {
@@ -679,33 +723,35 @@ Return ONLY a valid JSON object matching:
 
       const config = await getSocialAccountsConfig();
       const results: Record<string, boolean> = {};
+      const errors: Record<string, string> = {};
+      const fullImageUrl = normalizePublicUrl(post.imageUrl);
+      const fullVideoUrl = normalizePublicUrl(post.videoUrl);
 
-      // Buffer API Broadcast (Facebook, Instagram, X, LinkedIn) - Supports new Buffer GraphQL API & REST Fallback
+      // Buffer API Broadcast: one GraphQL createPost per connected channel,
+      // using that channel's own platform-specific caption.
       let lastBufferError = "";
-      if (targetPlatform === "facebook" || targetPlatform === "buffer" || targetPlatform === "all" || targetPlatform === "twitter" || targetPlatform === "instagram" || targetPlatform === "linkedin") {
+      const bufferTargets = new Set<BufferPlatform>(["facebook", "instagram", "twitter", "linkedin", "tiktok"]);
+      const wantsBuffer =
+        targetPlatform === "buffer" ||
+        targetPlatform === "all" ||
+        bufferTargets.has(targetPlatform as BufferPlatform);
+
+      if (wantsBuffer) {
         if (config.bufferAccessToken) {
           try {
             const apiKey = config.bufferAccessToken.trim();
-            const platformItem = (post.platforms as any)?.[targetPlatform] || post.platforms.facebook || post.platforms.twitter;
-            const textToPublish = platformItem?.content
-              ? `${platformItem.content}${platformItem.hashtags?.length ? `\n\n${platformItem.hashtags.join(" ")}` : ""}`
-              : `${post.platforms.facebook?.content || post.platforms.twitter?.content || ""}`;
-            // Resolve either image or video URL to a Buffer-fetchable absolute URL.
-            // Relative paths get prefixed with SITE_URL so Buffer's servers can pull them.
-            const rawMediaUrl = post.imageUrl || post.videoUrl || "";
-            const fullImageUrl = post.imageUrl
-              ? (post.imageUrl.startsWith("http") ? post.imageUrl : `${SITE_URL}${post.imageUrl.startsWith("/") ? "" : "/"}${post.imageUrl}`)
-              : "";
-            const fullVideoUrl = post.videoUrl
-              ? (post.videoUrl.startsWith("http") ? post.videoUrl : `${SITE_URL}${post.videoUrl.startsWith("/") ? "" : "/"}${post.videoUrl}`)
-              : "";
-            console.log("[Buffer publish] media URL to send:", { rawMediaUrl, fullImageUrl, fullVideoUrl });
+            const requestedPlatforms: BufferPlatform[] =
+              targetPlatform === "all" || targetPlatform === "buffer"
+                ? ["facebook", "instagram", "twitter", "linkedin", "tiktok"]
+                : [targetPlatform as BufferPlatform];
+            const configuredIds = config.bufferProfileIds || {};
+            const configuredTargets: Array<{ channelId: string; platform: BufferPlatform; service: string }> = requestedPlatforms.flatMap((platform) => {
+              const channelId = configuredIds[platform]?.trim();
+              return channelId ? [{ channelId, platform, service: platform }] : [];
+            });
 
-            // 1. Try modern Buffer GraphQL API (https://api.buffer.com)
-            let graphqlSuccess = false;
-            try {
-              // Fetch user organizations and channels
-              // 1. Fetch organization ID from account
+            let channels: Array<{ id: string; service?: string; name?: string; displayName?: string }> = [];
+            if (configuredTargets.length < requestedPlatforms.length) {
               const orgsRes = await fetch("https://api.buffer.com", {
                 method: "POST",
                 headers: {
@@ -716,218 +762,143 @@ Return ONLY a valid JSON object matching:
                   query: `query GetOrganizations { account { organizations { id } } }`,
                 }),
               });
-
-              let channelIds: string[] = [];
-              // Track each channel's Buffer service ("facebook", "facebookPage", "twitter", …)
-              // so per-channel required metadata (e.g. Facebook `type`) can be attached.
-              const channelServices = new Map<string, string>();
-
-              if (config.bufferProfileId && config.bufferProfileId.trim()) {
-                channelIds.push(config.bufferProfileId.trim());
-              } else if (orgsRes.ok) {
-                const orgsData = await orgsRes.json().catch(() => ({}));
-                const orgId = orgsData?.data?.account?.organizations?.[0]?.id;
-
-                if (orgId) {
-                  // 2. Fetch channels for this organization
-                  const chRes = await fetch("https://api.buffer.com", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${apiKey}`,
-                    },
-                    body: JSON.stringify({
-                      query: `query GetChannels($input: ChannelsInput!) {
-                        channels(input: $input) {
-                          id
-                          name
-                          displayName
-                          service
-                        }
-                      }`,
-                      variables: { input: { organizationId: orgId } },
-                    }),
-                  });
-
-                  if (chRes.ok) {
-                    const chData = await chRes.json().catch(() => ({}));
-                    const channels = chData?.data?.channels || [];
-                    // Map every target platform to the Buffer service names it may appear under.
-                    const PLATFORM_SERVICES: Record<string, string[]> = {
-                      facebook:  ["facebook", "facebookPage", "facebook_page", "facebookGroup"],
-                      instagram: ["instagram", "instagramBusiness", "instagram_business"],
-                      twitter:   ["twitter", "x"],
-                      linkedin:  ["linkedin", "linkedinCompany", "linkedinPage", "linkedin_company", "linkedin_page"],
-                      tiktok:    ["tiktok"],
-                      threads:   ["threads"],
-                      pinterest: ["pinterest"],
-                      youtube:   ["youtube", "youtubeChannel"],
-                      mastodon:  ["mastodon"],
-                      bluesky:   ["bluesky"],
-                    };
-                    const allowedServices = PLATFORM_SERVICES[targetPlatform] ?? null;
-                    for (const ch of channels) {
-                      if (allowedServices && !allowedServices.includes(String(ch.service))) continue;
-                      channelIds.push(ch.id);
-                      channelServices.set(ch.id, ch.service);
-                    }
-
-                    if (channelIds.length === 0 && channels.length > 0 && (targetPlatform === "all" || targetPlatform === "buffer")) {
-                      channelIds = channels.map((c: any) => c.id);
-                      for (const c of channels) channelServices.set(c.id, c.service);
-                    }
-                  }
-                }
-              }
-
-              // Fallback to active Saad Studio channel if not discovered.
-              // This id is the Saad Studio Facebook Page channel, so mark it as such
-              // to satisfy Buffer's required Facebook `metadata.facebook.type` field.
-              if (channelIds.length === 0) {
-                const fallbackId = "6e070a5cccaf649a67e102eb";
-                channelIds.push(fallbackId);
-                if (targetPlatform === "facebook") channelServices.set(fallbackId, "facebook");
-              }
-
-              if (channelIds.length > 0) {
-                const createPostMutation = `
-                  mutation CreatePost($input: CreatePostInput!) {
-                    createPost(input: $input) {
-                      ... on PostActionSuccess {
-                        post {
-                          id
-                          text
-                          dueAt
-                        }
+              const orgsData = await orgsRes.json().catch(() => ({}));
+              const orgId = orgsData?.data?.account?.organizations?.[0]?.id;
+              if (orgId) {
+                const chRes = await fetch("https://api.buffer.com", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
+                  },
+                  body: JSON.stringify({
+                    query: `query GetChannels($input: ChannelsInput!) {
+                      channels(input: $input) {
+                        id
+                        name
+                        displayName
+                        service
                       }
-                      ... on MutationError {
-                        message
-                      }
-                    }
-                  }
-                `;
-
-                for (const chId of channelIds) {
-                  const postInput: any = {
-                    channelId: chId,
-                    text: textToPublish,
-                    schedulingType: "automatic",
-                    mode: "addToQueue",
-                  };
-
-                  // Attach media asset — image takes precedence; fall back to video.
-                  // Schema: AssetInput { image?: ImageAssetInput, video?: VideoAssetInput, … }
-                  if (fullImageUrl) {
-                    postInput.assets = [{ image: { url: fullImageUrl } }];
-                  } else if (fullVideoUrl) {
-                    postInput.assets = [{ video: { url: fullVideoUrl } }];
-                  }
-
-                  // Attach per-platform metadata as Buffer's schema requires.
-                  //   FacebookPostMetadataInput  { type: PostTypeFacebook! }   → "post" | "story" | "reel"
-                  //   InstagramPostMetadataInput { type: PostTypeInstagram!, shouldShareToFeed: Boolean! }
-                  //   TwitterPostMetadataInput, LinkedInPostMetadataInput, TikTokPostMetadataInput — no required metadata.
-                  const svc = channelServices.get(chId) || (targetPlatform === "facebook" ? "facebook" : targetPlatform === "instagram" ? "instagram" : "");
-                  const metadata: Record<string, unknown> = { ...(postInput.metadata || {}) };
-                  if (svc === "facebook" || svc === "facebookPage" || svc === "facebook_page" || svc === "facebookGroup") {
-                    metadata.facebook = { type: "post" };
-                  }
-                  if (svc === "instagram" || svc === "instagramBusiness" || svc === "instagram_business") {
-                    metadata.instagram = { type: "post", shouldShareToFeed: true };
-                  }
-                  if (Object.keys(metadata).length > 0) {
-                    postInput.metadata = metadata;
-                  }
-
-                  const publishRes = await fetch("https://api.buffer.com", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${apiKey}`,
-                    },
-                    body: JSON.stringify({
-                      query: createPostMutation,
-                      variables: { input: postInput },
-                    }),
-                  });
-
-                  const pubData = await publishRes.json().catch(() => ({}));
-                  if (pubData?.data?.createPost?.post?.id) {
-                    graphqlSuccess = true;
-                  } else {
-                    const errMsg = pubData?.data?.createPost?.message || pubData?.errors?.[0]?.message;
-                    if (errMsg) lastBufferError = errMsg;
-                    console.error("[Buffer GraphQL Publish Error]:", errMsg, pubData);
-                  }
-                }
+                    }`,
+                    variables: { input: { organizationId: orgId } },
+                  }),
+                });
+                const chData = await chRes.json().catch(() => ({}));
+                channels = Array.isArray(chData?.data?.channels) ? chData.data.channels : [];
               } else {
-                lastBufferError = "لم يتم العثور على أي قنوات مربوطة في حساب Buffer الخاص بك";
+                lastBufferError = orgsData?.errors?.[0]?.message || "تعذر قراءة منظمة Buffer المرتبطة بالمفتاح";
               }
-            } catch (gqlErr: any) {
-              console.warn("Buffer GraphQL failed, trying REST fallback:", gqlErr);
-              lastBufferError = gqlErr?.message || "GraphQL Connection Error";
             }
 
-            // 2. If GraphQL succeeded, record result
-            if (graphqlSuccess) {
-              results.buffer = true;
-              results.facebook = true;
-            } else {
-              // REST fallback (api.bufferapp.com/1/...)
-              let targetProfileIds: string[] = [];
-              if (config.bufferProfileId) {
-                targetProfileIds = [config.bufferProfileId];
-              } else {
-                const profRes = await fetch(`https://api.bufferapp.com/1/profiles.json?access_token=${encodeURIComponent(apiKey)}`);
-                if (profRes.ok) {
-                  const profiles = await profRes.json();
-                  if (Array.isArray(profiles)) {
-                    if (targetPlatform === "facebook") {
-                      const fbProfs = profiles.filter((p: any) => p.service === "facebook" || p.service_type === "page");
-                      targetProfileIds = fbProfs.length ? fbProfs.map((p: any) => p.id) : profiles.map((p: any) => p.id);
-                    } else {
-                      targetProfileIds = profiles.map((p: any) => p.id);
+            const discoveredTargets = channels
+              .map((channel) => {
+                const platform = resolveBufferPlatform(channel.service);
+                if (!platform || !requestedPlatforms.includes(platform)) return null;
+                if (configuredTargets.some((target) => target.platform === platform)) return null;
+                return { channelId: channel.id, platform, service: String(channel.service || platform) };
+              })
+              .filter((target): target is { channelId: string; platform: BufferPlatform; service: string } => Boolean(target));
+
+            const publishTargets = [...configuredTargets, ...discoveredTargets];
+            if (
+              publishTargets.length === 0 &&
+              targetPlatform !== "all" &&
+              targetPlatform !== "buffer" &&
+              config.bufferProfileId?.trim()
+            ) {
+              publishTargets.push({
+                channelId: config.bufferProfileId.trim(),
+                platform: targetPlatform as BufferPlatform,
+                service: targetPlatform,
+              });
+            }
+
+            if (publishTargets.length > 0) {
+              const createPostMutation = `
+                mutation CreatePost($input: CreatePostInput!) {
+                  createPost(input: $input) {
+                    ... on PostActionSuccess {
+                      post {
+                        id
+                        text
+                        dueAt
+                      }
+                    }
+                    ... on MutationError {
+                      message
                     }
                   }
                 }
-              }
+              `;
 
-              if (targetProfileIds.length > 0) {
-                const params = new URLSearchParams();
-                params.append("access_token", apiKey);
-                params.append("text", textToPublish);
-                params.append("now", "true");
-                targetProfileIds.forEach((pid) => params.append("profile_ids[]", pid));
+              for (const target of publishTargets) {
+                const text = formatPlatformText(post, target.platform);
+                if (!text.trim()) {
+                  results[target.platform] = false;
+                  errors[target.platform] = "لا يوجد نص منشور لهذه المنصة";
+                  continue;
+                }
+
+                const postInput: any = {
+                  channelId: target.channelId,
+                  text,
+                  schedulingType: "automatic",
+                  mode: "addToQueue",
+                };
 
                 if (fullImageUrl) {
-                  params.append("media[photo]", fullImageUrl);
+                  postInput.assets = [{ image: { url: fullImageUrl } }];
+                } else if (fullVideoUrl) {
+                  postInput.assets = [{ video: { url: fullVideoUrl } }];
                 }
 
-                const bufferRes = await fetch("https://api.bufferapp.com/1/updates/create.json", {
+                const metadata = buildBufferMetadata(target.platform);
+                if (metadata) postInput.metadata = metadata;
+
+                const publishRes = await fetch("https://api.buffer.com", {
                   method: "POST",
-                  headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                  body: params.toString(),
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
+                  },
+                  body: JSON.stringify({
+                    query: createPostMutation,
+                    variables: { input: postInput },
+                  }),
                 });
 
-                const restJson = await bufferRes.json().catch(() => ({}));
-                results.buffer = Boolean(bufferRes.ok && restJson?.success !== false);
-                results.facebook = results.buffer;
-                if (!results.buffer) {
-                  lastBufferError = restJson?.message || `Buffer REST Error (${bufferRes.status})`;
+                const pubData = await publishRes.json().catch(() => ({}));
+                const ok = Boolean(publishRes.ok && pubData?.data?.createPost?.post?.id);
+                results[target.platform] = ok;
+                if (!ok) {
+                  const errMsg =
+                    pubData?.data?.createPost?.message ||
+                    pubData?.errors?.[0]?.message ||
+                    `Buffer GraphQL Error (${publishRes.status})`;
+                  errors[target.platform] = errMsg;
+                  lastBufferError = errMsg;
+                  console.error("[Buffer GraphQL Publish Error]:", target.platform, errMsg, pubData);
                 }
-              } else if (!lastBufferError) {
-                lastBufferError = "لم يتم العثور على بروفايل أو قناة في حساب Buffer";
               }
+              for (const platform of requestedPlatforms) {
+                const hasTarget = publishTargets.some((target) => target.platform === platform);
+                if (!hasTarget) {
+                  results[platform] = false;
+                  errors[platform] = "لا توجد قناة Buffer مربوطة لهذه المنصة";
+                }
+              }
+              results.buffer = publishTargets.some((target) => results[target.platform]);
+            } else {
+              lastBufferError = "لم يتم العثور على قنوات Buffer مطابقة للمنصات المطلوبة";
+              results.buffer = false;
             }
           } catch (e: any) {
             console.error("Buffer publish error:", e);
             results.buffer = false;
-            results.facebook = false;
             lastBufferError = e?.message || "Internal Buffer Handler Error";
           }
         } else {
           results.buffer = false;
-          results.facebook = false;
           lastBufferError = "لم يتم ضبط Buffer Access Token في تبويب الإعدادات";
         }
       }
@@ -936,13 +907,17 @@ Return ONLY a valid JSON object matching:
       if (targetPlatform === "telegram" || targetPlatform === "all") {
         if (config.telegramBotToken && config.telegramChatId) {
           try {
-            const teleText = `${post.platforms.telegram?.content || post.platforms.twitter?.content || ""}\n\n${(post.platforms.telegram?.hashtags || []).join(" ")}`;
-            const teleUrl = post.imageUrl
+            const teleText = formatPlatformText(post, "telegram");
+            const teleUrl = fullVideoUrl
+              ? `https://api.telegram.org/bot${config.telegramBotToken}/sendVideo`
+              : fullImageUrl
               ? `https://api.telegram.org/bot${config.telegramBotToken}/sendPhoto`
               : `https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`;
 
-            const payload = post.imageUrl
-              ? { chat_id: config.telegramChatId, photo: post.imageUrl, caption: teleText, parse_mode: "Markdown" }
+            const payload = fullVideoUrl
+              ? { chat_id: config.telegramChatId, video: fullVideoUrl, caption: teleText, parse_mode: "Markdown" }
+              : fullImageUrl
+              ? { chat_id: config.telegramChatId, photo: fullImageUrl, caption: teleText, parse_mode: "Markdown" }
               : { chat_id: config.telegramChatId, text: teleText, parse_mode: "Markdown" };
 
             const teleRes = await fetch(teleUrl, {
@@ -961,10 +936,10 @@ Return ONLY a valid JSON object matching:
       if (targetPlatform === "discord" || targetPlatform === "all") {
         if (config.discordWebhookUrl) {
           try {
-            const discordText = `**📢 Saad Studio Announcement**\n\n${post.platforms.twitter?.content || post.platforms.linkedin?.content || ""}\n\n${(post.platforms.twitter?.hashtags || []).join(" ")}`;
+            const discordText = `**Saad Studio Announcement**\n\n${formatPlatformText(post, "linkedin") || formatPlatformText(post, "twitter")}`;
             const discPayload: any = { content: discordText };
-            if (post.imageUrl) {
-              discPayload.embeds = [{ image: { url: post.imageUrl } }];
+            if (fullImageUrl) {
+              discPayload.embeds = [{ image: { url: fullImageUrl } }];
             }
             const discRes = await fetch(config.discordWebhookUrl, {
               method: "POST",
@@ -984,7 +959,7 @@ Return ONLY a valid JSON object matching:
           const whRes = await fetch(config.customWebhookUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ post, platform: targetPlatform }),
+            body: JSON.stringify({ post, platform: targetPlatform, results }),
           });
           results.webhook = whRes.ok;
         } catch {
@@ -1004,6 +979,7 @@ Return ONLY a valid JSON object matching:
         return NextResponse.json({
           success: true,
           results,
+          errors,
           mediaUrlSent: post.imageUrl || post.videoUrl || null,
         });
       } else {
@@ -1014,6 +990,7 @@ Return ONLY a valid JSON object matching:
           success: false,
           error: errorDetail,
           results,
+          errors,
           mediaUrlSent: post.imageUrl || post.videoUrl || null,
         }, { status: 400 });
       }
