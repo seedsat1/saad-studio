@@ -56,6 +56,19 @@ export const GOOGLE_IMAGE_UPSTREAM_MODEL_MAP: Record<string, string> = {
   "google/imagen4-fast": "imagen-4.0-fast-generate-001",
 };
 
+const GOOGLE_IMAGE_PIXEL_DIMENSIONS = new Set([
+  "1080x1080",
+  "1920x1080",
+  "1080x1920",
+  "1440x1080",
+  "1080x1440",
+  "2048x2048",
+  "2048x1152",
+  "1152x2048",
+  "2048x1536",
+  "1536x2048",
+]);
+
 const GEMINI_UPSTREAM_SPECS: Record<string, { aspectRatios: string[]; qualityParam: string[]; maxRefImages: number }> = {
   "gemini-3.1-flash-image": {
     aspectRatios: GEMINI_FLASH_IMAGE_ASPECT_RATIOS,
@@ -110,6 +123,7 @@ export function normalizeGoogleImageSize(modelId: string, requested?: string | n
   if (upstream === "gemini-3.1-flash-lite-image") return "1K";
 
   const raw = String(requested ?? "1K").trim();
+  if (GOOGLE_IMAGE_PIXEL_DIMENSIONS.has(raw.toLowerCase())) return raw.toLowerCase();
   const upper = raw.toUpperCase();
   if (upstream === "gemini-3.1-flash-image" && upper === "512PX") return "512px";
   if (["1K", "2K", "4K"].includes(upper)) return upper;

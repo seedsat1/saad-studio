@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatGoogleImagePrompt } from "@/lib/google-image-model-specs";
+import { formatGoogleImagePrompt, normalizeGoogleImageSize } from "@/lib/google-image-model-specs";
 
 describe("Google Image Generation Root Cause & Parity Verification", () => {
   describe("1. Prompt Framing & Directive Injection", () => {
@@ -37,6 +37,11 @@ describe("Google Image Generation Root Cause & Parity Verification", () => {
     it("handles empty or whitespace prompts safely", () => {
       expect(formatGoogleImagePrompt("")).toBe("Generate a high quality visual image.");
       expect(formatGoogleImagePrompt("   ")).toBe("Generate a high quality visual image.");
+    });
+
+    it("preserves MCP 16:9 pixel dimensions for Nano Banana Pro", () => {
+      expect(normalizeGoogleImageSize("gemini-3-pro-image", "1920x1080")).toBe("1920x1080");
+      expect(normalizeGoogleImageSize("gemini-3-pro-image", "2048x1152")).toBe("2048x1152");
     });
   });
 

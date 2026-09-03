@@ -560,6 +560,29 @@ function asNumber(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+const MCP_IMAGE_DIMENSIONS: Record<string, Record<string, string>> = {
+  "16:9": { "1K": "1920x1080", "2K": "2048x1152" },
+  "9:16": { "1K": "1080x1920", "2K": "1152x2048" },
+  "1:1": { "1K": "1080x1080", "2K": "2048x2048" },
+  "4:3": { "1K": "1440x1080", "2K": "2048x1536" },
+  "3:4": { "1K": "1080x1440", "2K": "1536x2048" },
+};
+
+function normalizeMcpImageRequest(aspectRatio: string, resolution: string): { aspectRatio: string; resolution: string } | { error: string } {
+  const cleanAspectRatio = aspectRatio.trim();
+  const cleanResolution = resolution.trim().toUpperCase();
+  const dimensions = MCP_IMAGE_DIMENSIONS[cleanAspectRatio]?.[cleanResolution];
+  if (!dimensions) {
+    const supported = Object.entries(MCP_IMAGE_DIMENSIONS)
+      .flatMap(([aspect, resolutions]) => Object.keys(resolutions).map((res) => `${aspect} + ${res}`))
+      .join(", ");
+    return {
+      error: `Unsupported image dimensions: aspectRatio=${cleanAspectRatio || "(empty)"}, resolution=${cleanResolution || "(empty)"}. Supported pairs: ${supported}.`,
+    };
+  }
+  return { aspectRatio: cleanAspectRatio, resolution: dimensions };
+}
+
 async function panelFetch(
   request: Request,
   path: string,
@@ -585,11 +608,19 @@ async function callGenerateImage(
   const prompt = asString(args.prompt).trim();
   if (!prompt) return toolResult({ error: "Missing prompt." }, true);
 
+  const normalizedImageRequest = normalizeMcpImageRequest(
+    asString(args.aspectRatio, "1:1"),
+    asString(args.resolution, "1K"),
+  );
+  if ("error" in normalizedImageRequest) {
+    return toolResult({ error: normalizedImageRequest.error }, true);
+  }
+
   const body = {
     prompt,
     modelId: asString(args.modelId, DEFAULT_IMAGE_MODEL),
-    aspectRatio: asString(args.aspectRatio, "1:1"),
-    resolution: asString(args.resolution, "1K"),
+    aspectRatio: normalizedImageRequest.aspectRatio,
+    resolution: normalizedImageRequest.resolution,
     numImages: asNumber(args.numImages, 1),
     negativePrompt: asString(args.negativePrompt) || undefined,
     imageUrl: asString(args.imageUrl) || undefined,
@@ -649,7 +680,11 @@ async function callGenerateStoryboard(
 
   const requested = asNumber(args.numConcepts, 4);
   const numConcepts = Math.max(1, Math.min(4, Math.floor(requested)));
-  const aspectRatio = asString(args.aspectRatio, "16:9");
+  const normalizedImageRequest = normalizeMcpImageRequest(asString(args.aspectRatio, "16:9"), "1K");
+  if ("error" in normalizedImageRequest) {
+    return toolResult({ error: normalizedImageRequest.error }, true);
+  }
+  const aspectRatio = normalizedImageRequest.aspectRatio;
   const style = asString(args.style).trim();
 
   const styleClause = style ? `, ${style} style` : "";
@@ -662,7 +697,7 @@ async function callGenerateStoryboard(
       prompt: fullPrompt,
       modelId: DEFAULT_IMAGE_MODEL,
       aspectRatio,
-      resolution: "1K",
+      resolution: normalizedImageRequest.resolution,
       numImages: numConcepts,
     }),
   }, token);

@@ -1,3 +1,52 @@
+# Latest task: Commit And Push Smart CLI MCP Dimension Fix (2026-09-04)
+- Status: In progress.
+- User command:
+  - `git add .`
+  - `git commit -m "update"`
+  - `git push`
+- Scope:
+  - Commit and push the Smart CLI MCP image dimension forwarding fix from `main` to `origin/main`.
+- Files expected in commit:
+  - `PROJECT_CONTEXT.md`
+  - `app/api/smart-cli/mcp/route.ts`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `lib/google-image-model-specs.ts`
+  - `test/google-image-generation-root-cause.test.ts`
+- Verification before commit:
+  - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
+  - Focused Vitest passed: `test/google-image-generation-root-cause.test.ts` 11/11 with `--pool=forks`.
+  - Full `tsc --noEmit` still fails only on known unrelated TypeScript debt documented in the previous task note.
+- Decisions:
+  - Preserve the user-requested commit message exactly as `update`.
+- Remaining step:
+  - Run git add/commit/push and record the resulting commit/push status.
+
+# Latest task: Fix Smart CLI MCP Image Dimension Forwarding (2026-09-04)
+- Status: Completed with scoped verification.
+- User report:
+  - MCP image generation ignored requested `aspectRatio` and `resolution`, causing Nano Banana Pro/Seedream calls such as `16:9 + 2K` or `resolution: 1920x1080` to return square defaults.
+- Changes made:
+  - Added strict MCP image dimension normalization in `/api/smart-cli/mcp`: supported `aspectRatio + resolution` pairs are converted to explicit pixel dimensions before calling `/api/panel/generate/image`.
+  - Required mapping now includes `16:9 + 1K -> 1920x1080` and `16:9 + 2K -> 2048x1152`.
+  - Unsupported MCP image dimension pairs now return an error instead of silently falling back.
+  - Updated Google image size normalization so Nano Banana Pro preserves allowed pixel dimensions such as `1920x1080` and `2048x1152` instead of collapsing them to `1K`.
+- Files affected:
+  - `app/api/smart-cli/mcp/route.ts`
+  - `lib/google-image-model-specs.ts`
+  - `test/google-image-generation-root-cause.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
+  - `.\node_modules\.bin\vitest.cmd run test/google-image-generation-root-cause.test.ts --pool=forks --fileParallelism=false --reporter=dot` passed: 11/11 tests.
+  - First Vitest run with `--pool=threads` failed before executing tests due `[vitest-pool-runner]: Timeout waiting for worker to respond`; rerun with forks passed.
+  - `.\node_modules\.bin\tsc.cmd --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+- Decisions:
+  - Normalize at the MCP boundary so external clients get fail-fast semantics and cannot accidentally trigger provider defaults.
+  - Preserve pixel dimensions in Google adapter only for an explicit allowlist to avoid accepting arbitrary unsupported sizes.
+- Remaining step:
+  - Deploy the change, then run one live MCP generation with `aspectRatio: "16:9"` and `resolution: "1K"` to confirm provider output is 1920x1080 before launching the full 48-image batch.
+
 # Latest task: Commit And Push Publish-All Update (2026-09-03)
 - Status: Completed & Verified (PASS).
 - User command:
