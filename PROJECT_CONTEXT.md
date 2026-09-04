@@ -1,5 +1,5 @@
 # Latest task: Remove Watermark From Upscale Outputs (2026-09-04)
-- Status: Completed & Verified (PASS) pending git push.
+- Status: Completed & Verified (PASS).
 - User report:
   - `/edit?tool=upscale` adds the Saad Studio logo to the upscaled image output, which is unacceptable because the tool is modifying user-supplied media.
 - Root cause:
@@ -19,10 +19,12 @@
   - `.\node_modules\.bin\vitest.cmd run test\generate-inline-routes.test.ts --pool=forks --fileParallelism=false --reporter=dot --testTimeout=30000` passed: 2/2 tests.
   - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
   - `.\node_modules\.bin\tsc.cmd --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+  - `git commit -m "update"` created commit `3a4b162`.
+  - `git push` succeeded to `origin/main` (`75414af..3a4b162`).
 - Decisions:
   - Treat upscale as transformation of user media, not platform-generated branded output, so no Saad Studio watermark is applied.
 - Remaining step:
-  - Commit and push.
+  - Deploy, then run one production upscale image and confirm the returned result has no Saad Studio logo.
 
 # Latest task: Fix Gemini Image Generation Config Snake Case (2026-09-04)
 - Status: Completed & Verified (PASS).
