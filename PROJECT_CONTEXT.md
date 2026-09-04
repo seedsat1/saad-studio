@@ -1,3 +1,31 @@
+# Latest task: Fix Audio Page 428 Idempotency Failure (2026-09-04)
+- Status: Completed & Verified (PASS) pending git push.
+- User report:
+  - Production `/audio` / `sound.html?embed=1&lang=en` fails on `POST /api/generate/audio` with `428 Precondition Required` when generating voice/audio.
+- Root cause:
+  - `/api/generate/audio` requires `Idempotency-Key` for paid generation requests, but the static `sound.html` POST calls sent only `Content-Type: application/json`.
+- Changes made:
+  - Added `makeAudioIdempotencyKey()` and `postAudioGeneration(body)` to `public/stude/sound.html`.
+  - Routed all static audio POST calls through the helper so TTS, voice cloning, music, SFX, speech-to-text, and audio isolation include `Idempotency-Key`.
+  - Mirrored the same change in `stude/sound.html` to keep the source/static copies aligned.
+  - Added a focused regression test proving both sound HTML copies send the idempotency header and have only the helper as the direct audio POST caller.
+  - Updated Arabic reference docs with the audio idempotency contract.
+- Files affected:
+  - `public/stude/sound.html`
+  - `stude/sound.html`
+  - `test/sound-page-idempotency-contract.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `.\node_modules\.bin\vitest.cmd run test\sound-page-idempotency-contract.test.ts --pool=forks --fileParallelism=false --reporter=dot` passed: 2/2 tests.
+  - `rg` confirmed all static `POST /api/generate/audio` calls now route through `postAudioGeneration(...)` with `Idempotency-Key`.
+  - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
+  - `.\node_modules\.bin\tsc.cmd --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+- Decisions:
+  - Fix the client contract instead of relaxing server idempotency, because the server guard protects paid audio requests from duplicate credit charges.
+- Remaining step:
+  - Commit and push, then deploy and test one production `/audio` generation.
+
 # Latest task: Remove Watermark From Upscale Outputs (2026-09-04)
 - Status: Completed & Verified (PASS).
 - User report:

@@ -2691,6 +2691,8 @@ async function resumeActiveAudioJob(){
 function getSelectedVoiceId(){const c=(document.getElementById('customVoiceId')?.value||'').trim();if(c&&!c.startsWith('sample_')&&!c.startsWith('custom_'))return c;return _vmSelectedId||'21m00Tcm4TlvDq8ikWAM';}
 function getSelectedLangCode(){const v=VOICE_CATALOG.find(x=>x.id===_vmSelectedId);if(v&&v.lang==='AR')return'ar';const btn=document.getElementById('optLang');const t=btn?.childNodes[1]?.textContent?.trim()||'Auto';if(t==='Arabic')return'ar';if(t==='English')return'en';return'';}
 function isGeminiVoiceId(id){return String(id||'').startsWith('gemini:');}
+function makeAudioIdempotencyKey(actionType){const uuid=(window.crypto&&typeof window.crypto.randomUUID==='function')?window.crypto.randomUUID():`${Date.now()}-${Math.random().toString(36).slice(2)}`;return `sound-${actionType||'audio'}-${uuid}`;}
+function postAudioGeneration(body){return fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':makeAudioIdempotencyKey(body&&body.actionType)},body:JSON.stringify(body)});}
 async function handleGenerate(){const text=(document.getElementById('promptInput')?.value||'').trim();if(!text){setStatus('Please enter a description or text.','warn');return;}if(currentMode==='voice')await generateVoice(text);else if(currentMode==='music')await generateMusic(text);else await generateSfx(text);}
 async function generateVoice(text){
   const speedBtn=document.getElementById('optSpeed');const speedTxt=speedBtn?.childNodes[1]?.textContent?.trim()||'1.0x';const speed=parseFloat(speedTxt)||1.0;
@@ -2712,7 +2714,7 @@ async function generateVoice(text){
       const samplePublicUrl=studioProviderMediaUrl(publicUrl);
       setStatus('Cloning voice...','info');
       const cloneName=window._cloneNameForJob||'Custom Voice';
-      const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[samplePublicUrl],cloneName})});
+      const res=await postAudioGeneration({actionType:'voice-cloning',text,sampleAudioUrls:[samplePublicUrl],cloneName});
       const json=await res.json();
       if(!res.ok)throw new Error(json?.error||json?.message||`Clone error (${res.status})`);
       applyGenerationCharge(json);
@@ -2723,7 +2725,7 @@ async function generateVoice(text){
       const sampleUrl=studioProviderMediaUrl(entry?.sampleUrl||'');
       if(!sampleUrl)throw new Error('Voice sample not found. Please re-clone.');
       setStatus('Cloning voice...','info');
-      const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[sampleUrl],cloneName:entry?.name||'Custom Voice'})});
+      const res=await postAudioGeneration({actionType:'voice-cloning',text,sampleAudioUrls:[sampleUrl],cloneName:entry?.name||'Custom Voice'});
       const json=await res.json();
       if(!res.ok)throw new Error(json?.error||json?.message||`Clone error (${res.status})`);
       applyGenerationCharge(json);
@@ -2737,7 +2739,7 @@ async function generateVoice(text){
         ? {actionType:'tts',model:getGeminiTtsModel(),text,voice:voiceId.replace(/^gemini:/,''),speed:Math.max(0.7,Math.min(1.5,speed)),style:voiceStyle,language_code:lc||'ar'}
         : {actionType:'tts',model:'elevenlabs/text-to-speech-multilingual-v2',text,voice:voiceId,speed:Math.max(0.7,Math.min(1.5,speed)),style:voiceStyle,stability:0.5,clarity:75,use_speaker_boost:true};
       if(lc)body.language_code=lc;
-      const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const res=await postAudioGeneration(body);
       const json=await res.json();
       if(!res.ok)throw new Error(json?.error||json?.message||`Voice API error (${res.status})`);
       applyGenerationCharge(json);
@@ -2760,7 +2762,7 @@ async function generateMusic(text){
   setButtonLoading(true);
   setStatus('Submitting Music generation...','info');
   try{
-    const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'music',prompt,model:'elevenlabs/music',musicDuration:30,force_instrumental:true,output_format:'mp3_high_quality'})});
+    const res=await postAudioGeneration({actionType:'music',prompt,model:'elevenlabs/music',musicDuration:30,force_instrumental:true,output_format:'mp3_high_quality'});
     const json=await res.json();
     if(!res.ok)throw new Error(json?.error||json?.message||`Music API error (${res.status})`);
     applyGenerationCharge(json);
@@ -2778,7 +2780,7 @@ async function generateSfx(text){
   setButtonLoading(true);
   setStatus('Submitting SFX generation...','info');
   try{
-    const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'music',prompt:text,model:'elevenlabs/sound-effect-v2',musicDuration:5,force_instrumental:false})});
+    const res=await postAudioGeneration({actionType:'music',prompt:text,model:'elevenlabs/sound-effect-v2',musicDuration:5,force_instrumental:false});
     const json=await res.json();
     if(!res.ok)throw new Error(json?.error||json?.message||`SFX API error (${res.status})`);
     applyGenerationCharge(json);
@@ -2799,7 +2801,7 @@ async function transcribeAudio(){
   if(!url){setStatus('Please upload an audio file first.','warn');return;}
   setStatus('Transcribing...','info');
   try{
-    const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'speech-to-text',audioUrl:url})});
+    const res=await postAudioGeneration({actionType:'speech-to-text',audioUrl:url});
     const json=await res.json();
     if(!res.ok)throw new Error(json?.error||json?.message||`Transcription error (${res.status})`);
     const text=json?.transcript||json?.text||'No text returned';
@@ -2812,7 +2814,7 @@ async function isolateAudio(){
   if(!url){setStatus('Please upload an audio file first.','warn');return;}
   setStatus('Isolating audio...','info');
   try{
-    const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'audio-isolation',audioUrl:url})});
+    const res=await postAudioGeneration({actionType:'audio-isolation',audioUrl:url});
     const json=await res.json();
     if(!res.ok)throw new Error(json?.error||json?.message||`Isolation error (${res.status})`);
     const outUrl=studioMediaUrl(json?.audioUrl||json?.url||'');

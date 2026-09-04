@@ -1,3 +1,11 @@
+## عقد Idempotency لصفحة الصوت (2026-09-04)
+
+- صفحة `/audio` تعرض واجهة `public/stude/sound.html` عند استخدام تجربة الاستوديو المضمنة.
+- كل طلب `POST` إلى `/api/generate/audio` يجب أن يرسل هيدر `Idempotency-Key` لأن الراوت يحمي طلبات التوليد المدفوعة عبر `beginIdempotency`.
+- غياب الهيدر يسبب `428 Precondition Required` برسالة `Idempotency-Key header is required for paid generation requests`.
+- `sound.html` يستخدم دالة موحدة `postAudioGeneration(body)` لكل توليد صوت/موسيقى/SFX/استنساخ صوت/تفريغ/عزل، وتضيف الهيدر تلقائياً بمفتاح جديد لكل عملية.
+- لا يتم تعطيل حماية idempotency في السيرفر لأنها تمنع خصم الرصيد مرتين عند إعادة إرسال الطلب.
+
 ## عقد العلامة المائية لأداة Upscale (2026-09-04)
 
 - صفحة `/edit?tool=upscale` تستدعي `/api/generate/upscale` لترقية دقة صورة أو فيديو يرفعه المستخدم.
