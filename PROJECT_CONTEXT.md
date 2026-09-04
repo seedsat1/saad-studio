@@ -1,5 +1,5 @@
 # Latest task: Fix Gemini Image Generation Config Snake Case (2026-09-04)
-- Status: Completed with scoped verification; pending commit/push in this turn.
+- Status: Completed & Verified (PASS).
 - User report:
   - Production Google request failed with `Unknown parameter 'generationConfig'. Did you mean 'generation_config'?`, proving Google Interactions expects snake_case for the compatibility config payload.
 - Changes made:
@@ -18,11 +18,13 @@
   - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
   - `rg` confirmed no stale `generationConfig`/`imageConfig` payload keys remain in the edited Google request paths.
   - `npx tsc --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+  - `git commit -m "update"` created commit `f4f8fc4`.
+  - `git push` succeeded to `origin/main` (`06dafff..f4f8fc4`).
 - Decisions:
   - Preserve UI/MCP camelCase input names such as `aspectRatio`; only provider payload keys are snake_case.
   - Keep `response_format.aspect_ratio` in place and add the snake_case `generation_config.image_config.aspect_ratio` compatibility path.
 - Remaining step:
-  - Commit/push, deploy, then run one production MCP request and inspect `GOOGLE_BODY.generation_config.image_config.aspect_ratio`.
+  - Deploy, then run one production MCP request and inspect `GOOGLE_BODY.generation_config.image_config.aspect_ratio`.
 
 # Latest task: Add Gemini Image GenerationConfig Aspect Ratio Fallback (2026-09-04)
 - Status: Completed & Verified (PASS).
