@@ -424,7 +424,7 @@ async function generateGoogleImage(params: {
       model: params.googleModel,
       input,
       response_format: responseFormat,
-      generationConfig: buildGoogleImageGenerationConfig(params.googleModel, params.aspectRatio),
+      generation_config: buildGoogleImageGenerationConfig(params.googleModel, params.aspectRatio),
     };
     console.log("GOOGLE_BODY", JSON.stringify(redactGoogleImageBodyForLog(googleBody), null, 2));
 

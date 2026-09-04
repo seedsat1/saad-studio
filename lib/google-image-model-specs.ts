@@ -135,10 +135,10 @@ export function buildGoogleImageResponseFormat(
 export function buildGoogleImageGenerationConfig(
   modelId: string,
   requestedAspectRatio?: string | null,
-): { imageConfig: { aspectRatio: string } } {
+): { image_config: { aspect_ratio: string } } {
   return {
-    imageConfig: {
-      aspectRatio: normalizeGoogleImageAspectRatio(modelId, requestedAspectRatio),
+    image_config: {
+      aspect_ratio: normalizeGoogleImageAspectRatio(modelId, requestedAspectRatio),
     },
   };
 }

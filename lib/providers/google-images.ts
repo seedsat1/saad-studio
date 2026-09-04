@@ -81,7 +81,7 @@ async function nanoBananaGenerateOnce(model: string, input: ImageGenInput): Prom
     model,
     input: blocks,
     response_format: responseFormat,
-    generationConfig: buildGoogleImageGenerationConfig(model, input.aspectRatio),
+    generation_config: buildGoogleImageGenerationConfig(model, input.aspectRatio),
   };
   console.log("GOOGLE_BODY", JSON.stringify(redactGoogleImageBodyForLog(googleBody), null, 2));
 

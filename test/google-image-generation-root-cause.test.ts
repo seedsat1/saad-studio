@@ -62,8 +62,8 @@ describe("Google Image Generation Root Cause & Parity Verification", () => {
 
     it("builds the Gemini image generationConfig aspectRatio fallback", () => {
       expect(buildGoogleImageGenerationConfig("gemini-3-pro-image", "16:9")).toEqual({
-        imageConfig: {
-          aspectRatio: "16:9",
+        image_config: {
+          aspect_ratio: "16:9",
         },
       });
     });

@@ -1,3 +1,29 @@
+# Latest task: Fix Gemini Image Generation Config Snake Case (2026-09-04)
+- Status: Completed with scoped verification; pending commit/push in this turn.
+- User report:
+  - Production Google request failed with `Unknown parameter 'generationConfig'. Did you mean 'generation_config'?`, proving Google Interactions expects snake_case for the compatibility config payload.
+- Changes made:
+  - Changed the Gemini image compatibility field from `generationConfig` to `generation_config`.
+  - Changed nested keys from `imageConfig.aspectRatio` to `image_config.aspect_ratio`.
+  - Updated the focused regression test and Arabic reference docs to match the provider-accepted snake_case payload.
+- Files affected:
+  - `lib/google-image-model-specs.ts`
+  - `lib/providers/google-images.ts`
+  - `app/api/generate/image/route.ts`
+  - `test/google-image-generation-root-cause.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx vitest run test/google-image-generation-root-cause.test.ts --pool=forks --fileParallelism=false --reporter=dot` passed: 14/14 tests.
+  - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
+  - `rg` confirmed no stale `generationConfig`/`imageConfig` payload keys remain in the edited Google request paths.
+  - `npx tsc --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+- Decisions:
+  - Preserve UI/MCP camelCase input names such as `aspectRatio`; only provider payload keys are snake_case.
+  - Keep `response_format.aspect_ratio` in place and add the snake_case `generation_config.image_config.aspect_ratio` compatibility path.
+- Remaining step:
+  - Commit/push, deploy, then run one production MCP request and inspect `GOOGLE_BODY.generation_config.image_config.aspect_ratio`.
+
 # Latest task: Add Gemini Image GenerationConfig Aspect Ratio Fallback (2026-09-04)
 - Status: Completed & Verified (PASS).
 - User report:
