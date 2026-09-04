@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildGoogleImageGenerationConfig,
   buildGoogleImageResponseFormat,
   formatGoogleImagePrompt,
   normalizeGoogleImageSize,
@@ -56,6 +57,14 @@ describe("Google Image Generation Root Cause & Parity Verification", () => {
         mime_type: "image/jpeg",
         aspect_ratio: "16:9",
         image_size: "2K",
+      });
+    });
+
+    it("builds the Gemini image generationConfig aspectRatio fallback", () => {
+      expect(buildGoogleImageGenerationConfig("gemini-3-pro-image", "16:9")).toEqual({
+        imageConfig: {
+          aspectRatio: "16:9",
+        },
       });
     });
 

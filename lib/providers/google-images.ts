@@ -12,6 +12,7 @@ import { GoogleGenAI } from "@google/genai";
 import type { ImageGenInput, ProviderResult } from "./types";
 import { ProviderError } from "./types";
 import {
+  buildGoogleImageGenerationConfig,
   buildGoogleImageResponseFormat,
   formatGoogleImagePrompt,
   getGoogleImageUpstreamModel,
@@ -80,6 +81,7 @@ async function nanoBananaGenerateOnce(model: string, input: ImageGenInput): Prom
     model,
     input: blocks,
     response_format: responseFormat,
+    generationConfig: buildGoogleImageGenerationConfig(model, input.aspectRatio),
   };
   console.log("GOOGLE_BODY", JSON.stringify(redactGoogleImageBodyForLog(googleBody), null, 2));
 

@@ -16,6 +16,7 @@ import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "
 import { buildWaveSpeedImageInput, resolveWaveSpeedImageModelRoute, normalizeWaveSpeedModelEndpoint, type WaveSpeedImageRouteConfig } from "@/lib/wavespeed-image-routing";
 import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
 import {
+  buildGoogleImageGenerationConfig,
   buildGoogleImageResponseFormat,
   formatGoogleImagePrompt,
   getGoogleImageUpstreamModel,
@@ -423,6 +424,7 @@ async function generateGoogleImage(params: {
       model: params.googleModel,
       input,
       response_format: responseFormat,
+      generationConfig: buildGoogleImageGenerationConfig(params.googleModel, params.aspectRatio),
     };
     console.log("GOOGLE_BODY", JSON.stringify(redactGoogleImageBodyForLog(googleBody), null, 2));
 

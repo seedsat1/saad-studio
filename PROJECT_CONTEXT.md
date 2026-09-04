@@ -1,3 +1,27 @@
+# Latest task: Add Gemini Image GenerationConfig Aspect Ratio Fallback (2026-09-04)
+- Status: Completed with scoped verification; pending commit/push in this turn.
+- User report:
+  - Production still returns `2048x2048`; all other checks pass, so the only remaining issue is that Google is not honoring the requested `16:9` aspect through `response_format.aspect_ratio` alone.
+- Changes made:
+  - Added `buildGoogleImageGenerationConfig()` to produce the compatibility payload `generationConfig: { imageConfig: { aspectRatio: "16:9" } }`.
+  - Added `generationConfig.imageConfig.aspectRatio` to both Google Interactions image callers while preserving the existing `response_format.aspect_ratio` and `response_format.image_size`.
+  - Added a focused regression test for the new Gemini image generationConfig fallback.
+- Files affected:
+  - `lib/google-image-model-specs.ts`
+  - `lib/providers/google-images.ts`
+  - `app/api/generate/image/route.ts`
+  - `test/google-image-generation-root-cause.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx vitest run test/google-image-generation-root-cause.test.ts --pool=forks --fileParallelism=false --reporter=dot` passed: 14/14 tests.
+  - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
+- Decisions:
+  - Keep `response_format` as the primary documented Google image output contract, but add `generationConfig.imageConfig.aspectRatio` as a compatibility/fallback field because production behavior still ignored the documented aspect field.
+  - Do not change watermark/storage, because watermarking preserves original image dimensions.
+- Remaining step:
+  - Commit/push, deploy, then run one production MCP request and inspect `GOOGLE_BODY.generationConfig.imageConfig.aspectRatio`.
+
 # Latest task: Add Google Interactions Body Log And Api Revision (2026-09-04)
 - Status: Completed & Verified (PASS).
 - User report:

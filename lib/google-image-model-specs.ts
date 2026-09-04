@@ -132,6 +132,17 @@ export function buildGoogleImageResponseFormat(
   return responseFormat;
 }
 
+export function buildGoogleImageGenerationConfig(
+  modelId: string,
+  requestedAspectRatio?: string | null,
+): { imageConfig: { aspectRatio: string } } {
+  return {
+    imageConfig: {
+      aspectRatio: normalizeGoogleImageAspectRatio(modelId, requestedAspectRatio),
+    },
+  };
+}
+
 export function normalizeGoogleImageModelConfig(model: ImageModel): ImageModel {
   const upstream = getGoogleImageUpstreamModel(model.upstreamModelId ?? model.id);
   if (!upstream || !isGeminiImageUpstreamModel(upstream)) return model;
