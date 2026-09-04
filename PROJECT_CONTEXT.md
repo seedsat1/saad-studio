@@ -1,5 +1,5 @@
 # Latest task: Fix Audio Page 428 Idempotency Failure (2026-09-04)
-- Status: Completed & Verified (PASS) pending git push.
+- Status: Completed & Verified (PASS).
 - User report:
   - Production `/audio` / `sound.html?embed=1&lang=en` fails on `POST /api/generate/audio` with `428 Precondition Required` when generating voice/audio.
 - Root cause:
@@ -21,10 +21,12 @@
   - `rg` confirmed all static `POST /api/generate/audio` calls now route through `postAudioGeneration(...)` with `Idempotency-Key`.
   - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
   - `.\node_modules\.bin\tsc.cmd --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+  - `git commit -m "update"` created commit `f5d3b35`.
+  - `git push` succeeded to `origin/main` (`a17d452..f5d3b35`).
 - Decisions:
   - Fix the client contract instead of relaxing server idempotency, because the server guard protects paid audio requests from duplicate credit charges.
 - Remaining step:
-  - Commit and push, then deploy and test one production `/audio` generation.
+  - Deploy and test one production `/audio` generation.
 
 # Latest task: Remove Watermark From Upscale Outputs (2026-09-04)
 - Status: Completed & Verified (PASS).
