@@ -116,6 +116,22 @@ export function normalizeGoogleImageSize(modelId: string, requested?: string | n
   return "1K";
 }
 
+export function buildGoogleImageResponseFormat(
+  modelId: string,
+  requestedAspectRatio?: string | null,
+  requestedImageSize?: string | null,
+): Record<string, string> {
+  const aspectRatio = normalizeGoogleImageAspectRatio(modelId, requestedAspectRatio);
+  const imageSize = normalizeGoogleImageSize(modelId, requestedImageSize);
+  const responseFormat: Record<string, string> = {
+    type: "image",
+    mime_type: "image/jpeg",
+    aspect_ratio: aspectRatio,
+  };
+  if (imageSize) responseFormat.image_size = imageSize;
+  return responseFormat;
+}
+
 export function normalizeGoogleImageModelConfig(model: ImageModel): ImageModel {
   const upstream = getGoogleImageUpstreamModel(model.upstreamModelId ?? model.id);
   if (!upstream || !isGeminiImageUpstreamModel(upstream)) return model;
@@ -145,4 +161,18 @@ export function formatGoogleImagePrompt(prompt: string): string {
     return cleaned;
   }
   return `Generate a detailed high quality visual image depicting: ${cleaned}`;
+}
+
+export function withGoogleImageControlHints(
+  prompt: string,
+  aspectRatio?: string | null,
+  resolution?: string | null,
+): string {
+  const hints: string[] = [];
+  const cleanAspectRatio = String(aspectRatio ?? "").trim();
+  const cleanResolution = String(resolution ?? "").trim();
+  if (cleanAspectRatio) hints.push(`aspect ratio ${cleanAspectRatio}`);
+  if (cleanResolution) hints.push(`target quality ${cleanResolution}`);
+  if (!hints.length) return prompt;
+  return `${prompt.trim()}\n\nOutput requirements: ${hints.join(", ")}.`.trim();
 }

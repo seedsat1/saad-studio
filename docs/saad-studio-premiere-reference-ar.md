@@ -4,6 +4,9 @@
 - يتم التحقق من أزواج `aspectRatio + resolution` المدعومة قبل استدعاء `/api/panel/generate/image`.
 - `resolution` يبقى قيمة جودة مدعومة من Google مثل `1K` أو `2K`، ولا يتحول إلى أبعاد pixel داخل `response_format.image_size`.
 - `aspectRatio` يمر منفصلاً إلى `response_format.aspect_ratio` وهو المسؤول عن شكل الناتج مثل `16:9`.
+- بناء `response_format` موحد في `lib/google-image-model-specs.ts` حتى يرسل كل مسار Google نفس الجسم: `image_size` كـ`1K`/`2K` و`aspect_ratio` كحقل منفصل.
+- مسارات Gemini/Nano Banana تضيف تلميحاً نصياً مختصراً داخل prompt النهائي يكرر `aspect ratio` و`target quality` لتقليل رجوع النموذج إلى المربع عندما لا يكفي الحقل المنظم وحده.
+- السيرفر يطبع `response_format` فقط قبل طلب Google Interactions لأغراض التشخيص، بدون مفاتيح API أو نص prompt المستخدم.
 - المثال الصحيح لمخرجات عريضة من Nano Banana Pro هو:
   - `response_format.image_size = "2K"`.
   - `response_format.aspect_ratio = "16:9"`.

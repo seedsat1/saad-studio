@@ -16,10 +16,11 @@ import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "
 import { buildWaveSpeedImageInput, resolveWaveSpeedImageModelRoute, normalizeWaveSpeedModelEndpoint, type WaveSpeedImageRouteConfig } from "@/lib/wavespeed-image-routing";
 import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runtime-routing";
 import {
+  buildGoogleImageResponseFormat,
   formatGoogleImagePrompt,
   getGoogleImageUpstreamModel,
-  normalizeGoogleImageAspectRatio,
   normalizeGoogleImageSize,
+  withGoogleImageControlHints,
 } from "@/lib/google-image-model-specs";
 import { assertMobileCapabilityAllowed, MobileCapabilityDisabledError } from "@/lib/mobile/mobile-control-plane";
 
@@ -403,22 +404,22 @@ async function generateGoogleImage(params: {
   aspectRatio: string;
   quality?: string | null;
 }): Promise<Array<{ buffer: Buffer; mimeType: string }>> {
-  const promptText = formatGoogleImagePrompt(params.prompt);
+  const initialResponseFormat = buildGoogleImageResponseFormat(params.googleModel, params.aspectRatio, params.quality);
+  const promptText = withGoogleImageControlHints(
+    formatGoogleImagePrompt(params.prompt),
+    initialResponseFormat.aspect_ratio,
+    initialResponseFormat.image_size,
+  );
   const input: Array<Record<string, unknown>> = [{ type: "text", text: promptText }];
   for (const ref of params.referenceUrls) {
     const inline = await imageUrlToInlineData(ref);
     input.push({ type: "image", mime_type: inline.mimeType, data: inline.data });
   }
 
-  const aspectRatio = normalizeGoogleImageAspectRatio(params.googleModel, params.aspectRatio);
   const imageSize = normalizeGoogleImageSize(params.googleModel, params.quality);
   const makeRequest = async (requestedImageSize: string | null) => {
-    const responseFormat: Record<string, string> = {
-      type: "image",
-      mime_type: "image/jpeg",
-      aspect_ratio: aspectRatio,
-    };
-    if (requestedImageSize) responseFormat.image_size = requestedImageSize;
+    const responseFormat = buildGoogleImageResponseFormat(params.googleModel, params.aspectRatio, requestedImageSize);
+    console.info("[generateGoogleImage] response_format", JSON.stringify(responseFormat));
 
     const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
       method: "POST",

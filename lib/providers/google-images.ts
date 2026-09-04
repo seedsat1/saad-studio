@@ -12,10 +12,10 @@ import { GoogleGenAI } from "@google/genai";
 import type { ImageGenInput, ProviderResult } from "./types";
 import { ProviderError } from "./types";
 import {
+  buildGoogleImageResponseFormat,
   formatGoogleImagePrompt,
   getGoogleImageUpstreamModel,
-  normalizeGoogleImageAspectRatio,
-  normalizeGoogleImageSize,
+  withGoogleImageControlHints,
 } from "../google-image-model-specs";
 
 const KEY =
@@ -60,7 +60,12 @@ async function nanoBananaGenerate(model: string, input: ImageGenInput): Promise<
 
 async function nanoBananaGenerateOnce(model: string, input: ImageGenInput): Promise<string[]> {
   if (!KEY) throw new ProviderError("google", "config", "GOOGLE_API_KEY not set");
-  const promptText = formatGoogleImagePrompt(input.prompt);
+  const responseFormat = buildGoogleImageResponseFormat(model, input.aspectRatio, input.resolution);
+  const promptText = withGoogleImageControlHints(
+    formatGoogleImagePrompt(input.prompt),
+    responseFormat.aspect_ratio,
+    responseFormat.image_size,
+  );
   const blocks: Array<Record<string, unknown>> = [{ type: "text", text: promptText }];
 
   const refUrls = Array.from(new Set([...(input.imageUrls ?? []), ...(input.imageUrl ? [input.imageUrl] : [])]));
@@ -69,16 +74,9 @@ async function nanoBananaGenerateOnce(model: string, input: ImageGenInput): Prom
     if (ref) blocks.push({ type: "image", mime_type: ref.inlineData.mimeType, data: ref.inlineData.data });
   }
 
-  const aspectRatio = normalizeGoogleImageAspectRatio(model, input.aspectRatio);
-  const imageSize = normalizeGoogleImageSize(model, input.resolution);
   // Google's /v1beta/interactions endpoint currently only accepts image/jpeg
   // for response_format.mime_type — image/png returns "not supported" 400.
-  const responseFormat: Record<string, string> = {
-    type: "image",
-    mime_type: "image/jpeg",
-    aspect_ratio: aspectRatio,
-  };
-  if (imageSize) responseFormat.image_size = imageSize;
+  console.info("[google-images] response_format", JSON.stringify(responseFormat));
 
   const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
@@ -159,7 +157,7 @@ interface ImagenResponseLike {
 
 async function imagenGenerate(model: string, input: ImageGenInput): Promise<ProviderResult> {
   const aspect = normalizeAspect(input.aspectRatio);
-  const hintedPrompt = withImageControlHints(input.prompt, input.aspectRatio, input.resolution);
+  const hintedPrompt = withGoogleImageControlHints(input.prompt, input.aspectRatio, input.resolution);
   let res;
   try {
     res = await client().models.generateImages({
@@ -201,14 +199,6 @@ function normalizeAspect(a: string | undefined): string {
 function clampNum(n: number | undefined, min: number, max: number): number {
   const x = typeof n === "number" ? n : min;
   return Math.max(min, Math.min(max, Math.floor(x)));
-}
-
-function withImageControlHints(prompt: string, aspectRatio?: string, resolution?: string): string {
-  const hints: string[] = [];
-  if (aspectRatio) hints.push(`aspect ratio ${aspectRatio}`);
-  if (resolution) hints.push(`target quality ${resolution}`);
-  if (!hints.length) return prompt;
-  return `${prompt.trim()}\n\nOutput requirements: ${hints.join(", ")}.`.trim();
 }
 
 async function fetchAsInlineImage(url: string): Promise<{ inlineData: { data: string; mimeType: string } } | null> {

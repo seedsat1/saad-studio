@@ -1,3 +1,30 @@
+# Latest task: Force Smart CLI MCP Google Aspect Ratio Payload (2026-09-04)
+- Status: Completed with scoped verification; not committed/pushed in this turn.
+- User report:
+  - After the previous deploy, Google no longer rejected `image_size`; it now receives `2K`, but Nano Banana Pro still returns square `2048x2048` output for a requested `16:9` image.
+- Changes made:
+  - Added a shared Google image response-format builder so Gemini image requests consistently send `response_format.image_size` as provider labels (`1K`/`2K`/`4K`) and `response_format.aspect_ratio` as a separate field.
+  - Updated both Google Interactions callers (`lib/providers/google-images.ts` and `/api/generate/image`) to use the shared builder.
+  - Added explicit prompt-side output hints for Gemini/Nano Banana image generation, e.g. `aspect ratio 16:9, target quality 2K`, to prevent square defaults when the API layer is permissive but the model needs reinforcement.
+  - Added safe server logging of only `response_format` immediately before the Google `fetch`; it does not log API keys or full user prompts.
+  - Added regression tests for the combined `response_format` payload and prompt control hints.
+- Files affected:
+  - `lib/google-image-model-specs.ts`
+  - `lib/providers/google-images.ts`
+  - `app/api/generate/image/route.ts`
+  - `test/google-image-generation-root-cause.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx vitest run test/google-image-generation-root-cause.test.ts --pool=forks --fileParallelism=false --reporter=dot` passed: 13/13 tests.
+  - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
+  - `npx tsc --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+- Decisions:
+  - Keep the external MCP contract as `aspectRatio`/`resolution`, but convert to provider-specific snake_case only inside the Google request body.
+  - Do not send pixel dimensions as Google `image_size`; use labels only and rely on `aspect_ratio` plus prompt hint to produce `16:9` output.
+- Remaining step:
+  - Commit/push when explicitly requested, then run one live MCP generation with `aspectRatio: "16:9"` and `resolution: "2K"` and inspect the logged `response_format`.
+
 # Latest task: Commit And Push Smart CLI MCP Dimension Fix (2026-09-04)
 - Status: Completed & Verified (PASS).
 - User command:

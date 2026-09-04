@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatGoogleImagePrompt, normalizeGoogleImageSize } from "@/lib/google-image-model-specs";
+import {
+  buildGoogleImageResponseFormat,
+  formatGoogleImagePrompt,
+  normalizeGoogleImageSize,
+  withGoogleImageControlHints,
+} from "@/lib/google-image-model-specs";
 
 describe("Google Image Generation Root Cause & Parity Verification", () => {
   describe("1. Prompt Framing & Directive Injection", () => {
@@ -43,6 +48,20 @@ describe("Google Image Generation Root Cause & Parity Verification", () => {
       expect(normalizeGoogleImageSize("gemini-3-pro-image", "1K")).toBe("1K");
       expect(normalizeGoogleImageSize("gemini-3-pro-image", "2K")).toBe("2K");
       expect(normalizeGoogleImageSize("gemini-3-pro-image", "1920x1080")).toBe("1K");
+    });
+
+    it("builds Google response_format with aspect_ratio separate from image_size", () => {
+      expect(buildGoogleImageResponseFormat("gemini-3-pro-image", "16:9", "2K")).toEqual({
+        type: "image",
+        mime_type: "image/jpeg",
+        aspect_ratio: "16:9",
+        image_size: "2K",
+      });
+    });
+
+    it("adds explicit image control hints to the prompt sent to Gemini image models", () => {
+      const prompt = withGoogleImageControlHints("Generate a city view.", "16:9", "2K");
+      expect(prompt).toContain("Output requirements: aspect ratio 16:9, target quality 2K.");
     });
   });
 
