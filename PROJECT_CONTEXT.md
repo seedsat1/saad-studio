@@ -1,5 +1,5 @@
-# Latest task: Force Smart CLI MCP Google Aspect Ratio Payload (2026-09-04)
-- Status: Completed with scoped verification; not committed/pushed in this turn.
+# Latest task: Commit And Push Smart CLI MCP Google Aspect Ratio Payload (2026-09-04)
+- Status: Completed & Verified (PASS).
 - User report:
   - After the previous deploy, Google no longer rejected `image_size`; it now receives `2K`, but Nano Banana Pro still returns square `2048x2048` output for a requested `16:9` image.
 - Changes made:
@@ -19,11 +19,13 @@
   - `npx vitest run test/google-image-generation-root-cause.test.ts --pool=forks --fileParallelism=false --reporter=dot` passed: 13/13 tests.
   - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
   - `npx tsc --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+  - `git commit -m "update"` created commit `497ed16`.
+  - `git push` succeeded to `origin/main` (`06d0c7e..497ed16`).
 - Decisions:
   - Keep the external MCP contract as `aspectRatio`/`resolution`, but convert to provider-specific snake_case only inside the Google request body.
   - Do not send pixel dimensions as Google `image_size`; use labels only and rely on `aspect_ratio` plus prompt hint to produce `16:9` output.
 - Remaining step:
-  - Commit/push when explicitly requested, then run one live MCP generation with `aspectRatio: "16:9"` and `resolution: "2K"` and inspect the logged `response_format`.
+  - Run one live MCP generation with `aspectRatio: "16:9"` and `resolution: "2K"` after deployment and inspect the logged `response_format`.
 
 # Latest task: Commit And Push Smart CLI MCP Dimension Fix (2026-09-04)
 - Status: Completed & Verified (PASS).
