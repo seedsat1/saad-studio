@@ -1,3 +1,29 @@
+# Latest task: Remove Watermark From Upscale Outputs (2026-09-04)
+- Status: Completed & Verified (PASS) pending git push.
+- User report:
+  - `/edit?tool=upscale` adds the Saad Studio logo to the upscaled image output, which is unacceptable because the tool is modifying user-supplied media.
+- Root cause:
+  - `/api/generate/upscale` passed image upscale results through `applyImageWatermark(...)` before returning `imageUrl`/`mediaUrl`.
+- Changes made:
+  - Removed the image watermark import and post-processing call from `/api/generate/upscale`.
+  - Upscale now returns the WaveSpeed provider output URL directly for images and videos.
+  - Added a focused regression contract test that forbids `applyImageWatermark` inside the upscale route.
+  - Updated Arabic reference docs with the upscale watermark contract.
+- Files affected:
+  - `app/api/generate/upscale/route.ts`
+  - `test/upscale-watermark-contract.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `.\node_modules\.bin\vitest.cmd run test\upscale-watermark-contract.test.ts --pool=forks --fileParallelism=false --reporter=dot` passed: 1/1 test.
+  - `.\node_modules\.bin\vitest.cmd run test\generate-inline-routes.test.ts --pool=forks --fileParallelism=false --reporter=dot --testTimeout=30000` passed: 2/2 tests.
+  - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
+  - `.\node_modules\.bin\tsc.cmd --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+- Decisions:
+  - Treat upscale as transformation of user media, not platform-generated branded output, so no Saad Studio watermark is applied.
+- Remaining step:
+  - Commit and push.
+
 # Latest task: Fix Gemini Image Generation Config Snake Case (2026-09-04)
 - Status: Completed & Verified (PASS).
 - User report:
