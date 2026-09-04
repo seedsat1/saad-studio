@@ -419,19 +419,21 @@ async function generateGoogleImage(params: {
   const imageSize = normalizeGoogleImageSize(params.googleModel, params.quality);
   const makeRequest = async (requestedImageSize: string | null) => {
     const responseFormat = buildGoogleImageResponseFormat(params.googleModel, params.aspectRatio, requestedImageSize);
-    console.info("[generateGoogleImage] response_format", JSON.stringify(responseFormat));
+    const googleBody = {
+      model: params.googleModel,
+      input,
+      response_format: responseFormat,
+    };
+    console.log("GOOGLE_BODY", JSON.stringify(redactGoogleImageBodyForLog(googleBody), null, 2));
 
     const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
       method: "POST",
       headers: {
         "x-goog-api-key": params.apiKey,
         "Content-Type": "application/json",
+        "Api-Revision": "2026-05-20",
       },
-      body: JSON.stringify({
-        model: params.googleModel,
-        input,
-        response_format: responseFormat,
-      }),
+      body: JSON.stringify(googleBody),
       signal: AbortSignal.timeout(180_000),
     });
 
@@ -473,6 +475,26 @@ async function generateGoogleImage(params: {
     throw new Error(`Google completed but returned no image artifact.`);
   }
   return images.map((image) => ({ buffer: Buffer.from(image.data, "base64"), mimeType: image.mimeType }));
+}
+
+function redactGoogleImageBodyForLog(body: { model: string; input: Array<Record<string, unknown>>; response_format: Record<string, string> }) {
+  return {
+    model: body.model,
+    input: body.input.map((block) => {
+      if (block.type === "text") {
+        return {
+          type: "text",
+          textLength: typeof block.text === "string" ? block.text.length : 0,
+        };
+      }
+      return {
+        type: block.type,
+        mime_type: block.mime_type,
+        dataLength: typeof block.data === "string" ? block.data.length : 0,
+      };
+    }),
+    response_format: body.response_format,
+  };
 }
 
 async function pollWaveSpeedImageTask(taskId: string, apiKey: string, maxAttempts = 150): Promise<string[]> {

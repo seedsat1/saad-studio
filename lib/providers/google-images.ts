@@ -76,19 +76,21 @@ async function nanoBananaGenerateOnce(model: string, input: ImageGenInput): Prom
 
   // Google's /v1beta/interactions endpoint currently only accepts image/jpeg
   // for response_format.mime_type — image/png returns "not supported" 400.
-  console.info("[google-images] response_format", JSON.stringify(responseFormat));
+  const googleBody = {
+    model,
+    input: blocks,
+    response_format: responseFormat,
+  };
+  console.log("GOOGLE_BODY", JSON.stringify(redactGoogleImageBodyForLog(googleBody), null, 2));
 
   const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
     headers: {
       "x-goog-api-key": KEY,
       "Content-Type": "application/json",
+      "Api-Revision": "2026-05-20",
     },
-    body: JSON.stringify({
-      model,
-      input: blocks,
-      response_format: responseFormat,
-    }),
+    body: JSON.stringify(googleBody),
     signal: AbortSignal.timeout(180_000),
   });
 
@@ -199,6 +201,26 @@ function normalizeAspect(a: string | undefined): string {
 function clampNum(n: number | undefined, min: number, max: number): number {
   const x = typeof n === "number" ? n : min;
   return Math.max(min, Math.min(max, Math.floor(x)));
+}
+
+function redactGoogleImageBodyForLog(body: { model: string; input: Array<Record<string, unknown>>; response_format: Record<string, string> }) {
+  return {
+    model: body.model,
+    input: body.input.map((block) => {
+      if (block.type === "text") {
+        return {
+          type: "text",
+          textLength: typeof block.text === "string" ? block.text.length : 0,
+        };
+      }
+      return {
+        type: block.type,
+        mime_type: block.mime_type,
+        dataLength: typeof block.data === "string" ? block.data.length : 0,
+      };
+    }),
+    response_format: body.response_format,
+  };
 }
 
 async function fetchAsInlineImage(url: string): Promise<{ inlineData: { data: string; mimeType: string } } | null> {
