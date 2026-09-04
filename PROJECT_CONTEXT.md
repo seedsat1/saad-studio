@@ -1,5 +1,5 @@
 # Latest task: Add Google Interactions Body Log And Api Revision (2026-09-04)
-- Status: Completed with scoped verification; pending commit/push in this turn.
+- Status: Completed & Verified (PASS).
 - User report:
   - Production still returns `2048x2048`, which means `image_size` reaches Google as `2K` but `aspect_ratio` still does not affect the generated image.
 - Evidence checked:
@@ -18,11 +18,13 @@
   - `npx vitest run test/google-image-generation-root-cause.test.ts --pool=forks --fileParallelism=false --reporter=dot` passed: 13/13 tests.
   - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
   - `npx tsc --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+  - `git commit -m "update"` created commit `81ae07a`.
+  - `git push` succeeded to `origin/main` (`782a634..81ae07a`).
 - Decisions:
   - Do not move aspect ratio to legacy `generation_config.image_config` because current Google docs say that field was removed in favor of `response_format`.
   - Use a redacted body log instead of dumping prompts/base64 into production logs.
 - Remaining step:
-  - Commit/push, deploy, then run one production MCP request and inspect the `GOOGLE_BODY.response_format` log.
+  - Deploy, then run one production MCP request and inspect the `GOOGLE_BODY.response_format` log.
 
 # Latest task: Commit And Push Smart CLI MCP Google Aspect Ratio Payload (2026-09-04)
 - Status: Completed & Verified (PASS).
