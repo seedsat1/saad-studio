@@ -39,9 +39,10 @@ describe("Google Image Generation Root Cause & Parity Verification", () => {
       expect(formatGoogleImagePrompt("   ")).toBe("Generate a high quality visual image.");
     });
 
-    it("preserves MCP 16:9 pixel dimensions for Nano Banana Pro", () => {
-      expect(normalizeGoogleImageSize("gemini-3-pro-image", "1920x1080")).toBe("1920x1080");
-      expect(normalizeGoogleImageSize("gemini-3-pro-image", "2048x1152")).toBe("2048x1152");
+    it("keeps Google image_size on provider-supported quality labels", () => {
+      expect(normalizeGoogleImageSize("gemini-3-pro-image", "1K")).toBe("1K");
+      expect(normalizeGoogleImageSize("gemini-3-pro-image", "2K")).toBe("2K");
+      expect(normalizeGoogleImageSize("gemini-3-pro-image", "1920x1080")).toBe("1K");
     });
   });
 

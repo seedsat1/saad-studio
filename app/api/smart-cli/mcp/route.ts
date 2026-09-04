@@ -560,27 +560,27 @@ function asNumber(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
-const MCP_IMAGE_DIMENSIONS: Record<string, Record<string, string>> = {
-  "16:9": { "1K": "1920x1080", "2K": "2048x1152" },
-  "9:16": { "1K": "1080x1920", "2K": "1152x2048" },
-  "1:1": { "1K": "1080x1080", "2K": "2048x2048" },
-  "4:3": { "1K": "1440x1080", "2K": "2048x1536" },
-  "3:4": { "1K": "1080x1440", "2K": "1536x2048" },
+const MCP_IMAGE_DIMENSION_LABELS: Record<string, readonly string[]> = {
+  "16:9": ["1K", "2K"],
+  "9:16": ["1K", "2K"],
+  "1:1": ["1K", "2K"],
+  "4:3": ["1K", "2K"],
+  "3:4": ["1K", "2K"],
 };
 
 function normalizeMcpImageRequest(aspectRatio: string, resolution: string): { aspectRatio: string; resolution: string } | { error: string } {
   const cleanAspectRatio = aspectRatio.trim();
   const cleanResolution = resolution.trim().toUpperCase();
-  const dimensions = MCP_IMAGE_DIMENSIONS[cleanAspectRatio]?.[cleanResolution];
-  if (!dimensions) {
-    const supported = Object.entries(MCP_IMAGE_DIMENSIONS)
-      .flatMap(([aspect, resolutions]) => Object.keys(resolutions).map((res) => `${aspect} + ${res}`))
+  const supportedResolutions = MCP_IMAGE_DIMENSION_LABELS[cleanAspectRatio];
+  if (!supportedResolutions?.includes(cleanResolution)) {
+    const supported = Object.entries(MCP_IMAGE_DIMENSION_LABELS)
+      .flatMap(([aspect, resolutions]) => resolutions.map((res) => `${aspect} + ${res}`))
       .join(", ");
     return {
       error: `Unsupported image dimensions: aspectRatio=${cleanAspectRatio || "(empty)"}, resolution=${cleanResolution || "(empty)"}. Supported pairs: ${supported}.`,
     };
   }
-  return { aspectRatio: cleanAspectRatio, resolution: dimensions };
+  return { aspectRatio: cleanAspectRatio, resolution: cleanResolution };
 }
 
 async function panelFetch(

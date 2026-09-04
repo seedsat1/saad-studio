@@ -26,6 +26,32 @@
 - Remaining step:
   - None.
 
+# Latest task: Correct Smart CLI MCP Google Image Size Semantics (2026-09-04)
+- Status: Completed with scoped verification.
+- User report:
+  - Production MCP image generation failed because Google rejected `response_format.image_size = "1080x1080"`.
+  - Google supports image size labels only: `512`, `1K`, `2K`, `4K`; aspect ratio must be passed separately.
+- Changes made:
+  - Reworked MCP image normalization so it validates supported `aspectRatio + resolution` pairs but forwards `resolution` as `1K`/`2K`, not pixel dimensions.
+  - Removed Google image normalization support for pixel dimensions to prevent invalid `response_format.image_size` payloads.
+  - Updated the focused Google image regression test to assert that pixel dimensions fall back instead of being forwarded.
+  - Updated Arabic reference docs to describe `image_size` and `aspect_ratio` as separate provider fields.
+- Files affected:
+  - `app/api/smart-cli/mcp/route.ts`
+  - `lib/google-image-model-specs.ts`
+  - `test/google-image-generation-root-cause.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `.\node_modules\.bin\vitest.cmd run test/google-image-generation-root-cause.test.ts --pool=forks --fileParallelism=false --reporter=dot` passed: 11/11 tests.
+  - `git diff --check` passed with only existing Git warnings about unreadable global ignore and LF-to-CRLF normalization.
+  - `.\node_modules\.bin\tsc.cmd --noEmit --pretty false --incremental false` still fails only on known unrelated TypeScript debt: stale `.next` `video-edit` type, `CameraMovementEntry.name`, `pricingConfig`, dynamic loader `familyColor`, Seedance `unknown`, and existing `ModelBadge`/registry mismatches.
+- Decisions:
+  - Treat exact pixel dimensions as UI/display expectations, not as Google `image_size` API values.
+  - Fail fast on unsupported MCP pairs while preserving provider-legal payload values.
+- Remaining step:
+  - Commit and push the fix so production deployment can pick it up.
+
 # Latest task: Fix Smart CLI MCP Image Dimension Forwarding (2026-09-04)
 - Status: Completed with scoped verification.
 - User report:

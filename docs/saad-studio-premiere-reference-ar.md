@@ -1,20 +1,14 @@
 ## أبعاد صور Smart CLI MCP (2026-09-04)
 
 - مسار `/api/smart-cli/mcp` لا يمرر قيم الصور كـlabels عامة فقط عند استدعاء `generate_image`.
-- يتم تطبيع أزواج `aspectRatio + resolution` المدعومة إلى أبعاد pixel صريحة قبل استدعاء `/api/panel/generate/image`.
-- الخرائط المعتمدة حالياً:
-  - `16:9 + 1K` => `1920x1080`.
-  - `16:9 + 2K` => `2048x1152`.
-  - `9:16 + 1K` => `1080x1920`.
-  - `9:16 + 2K` => `1152x2048`.
-  - `1:1 + 1K` => `1080x1080`.
-  - `1:1 + 2K` => `2048x2048`.
-  - `4:3 + 1K` => `1440x1080`.
-  - `4:3 + 2K` => `2048x1536`.
-  - `3:4 + 1K` => `1080x1440`.
-  - `3:4 + 2K` => `1536x2048`.
+- يتم التحقق من أزواج `aspectRatio + resolution` المدعومة قبل استدعاء `/api/panel/generate/image`.
+- `resolution` يبقى قيمة جودة مدعومة من Google مثل `1K` أو `2K`، ولا يتحول إلى أبعاد pixel داخل `response_format.image_size`.
+- `aspectRatio` يمر منفصلاً إلى `response_format.aspect_ratio` وهو المسؤول عن شكل الناتج مثل `16:9`.
+- المثال الصحيح لمخرجات عريضة من Nano Banana Pro هو:
+  - `response_format.image_size = "2K"`.
+  - `response_format.aspect_ratio = "16:9"`.
 - أي زوج غير مدعوم من MCP يرجع خطأ صريحاً بدلاً من الرجوع إلى `1:1`.
-- `normalizeGoogleImageSize()` يحافظ على هذه الأبعاد عند موديلات Gemini/Nano Banana التي تمر عبر Google Interactions حتى لا تتحول `1920x1080` أو `2048x1152` إلى `1K`.
+- `normalizeGoogleImageSize()` لا يمرر قيماً مثل `1920x1080` إلى Google لأن Google Interactions يرفضها في `image_size`.
 
 ## نشر جميع منصات السوشيال من لوحة الأدمن (2026-09-03)
 
