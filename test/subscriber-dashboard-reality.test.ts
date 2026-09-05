@@ -76,7 +76,7 @@ describe("Subscriber Dashboard Reality & Audio Route Verification", () => {
 
   it("proves Pricing Constitution rates are deterministic and decoupled from provider checkpoint", () => {
     const kling30 = DEFAULT_MODELS.find((m) => m.id === "kling30");
-    expect(kling30?.userCreditsRate).toBe(3.0);
+    expect(kling30?.userCreditsRate).toBe(4.47);
 
     const sora2 = DEFAULT_MODELS.find((m) => m.id === "sora2");
     expect(sora2?.userCreditsRate).toBe(3.41);

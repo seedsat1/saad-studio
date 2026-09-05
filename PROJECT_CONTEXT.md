@@ -1,4 +1,48 @@
-# Latest task: Minimax Fleet Reorganization & Purge of Fake/Stale Models (2026-09-05)
+# Latest task: Kling 3.0 & Turbo Pricing Correction & WaveSpeed Tariff Realignment (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Reviewed user live execution invoice screenshot from WaveSpeed (`kwaivgi/kling-v3.0-std/image-to-video`, Prediction `7249c8262e704eea898f42ae9d97fca3`, billed $0.399).
+  - Identified major revenue-loss flaw: codebase was charging only 9 credits for 5s video ($0.16 USD revenue), causing an operational loss of ~$0.24 per Kling generation.
+  - Calculated exact customer credit rates using platform margin formula:
+    `Customer Credits = Source USD * 40 * 1.4 = Source USD * 56`.
+  - Re-aligned entire Kling family pricing across all registries and DB:
+    1. Kling 3.0 Standard: WaveSpeed $0.0798/s ($0.399/5s) -> 4.47 cr/s (5s = 22.35 or 22.4 cr, 10s = 44.7 cr).
+    2. Kling 3.0 Pro: WaveSpeed $0.1064/s ($0.532/5s) -> 5.96 cr/s (5s = 29.8 cr, 10s = 59.6 cr).
+    3. Kling 3.0 4K: WaveSpeed $0.399/s ($1.995/5s) -> 22.344 cr/s (5s = 111.75 cr).
+    4. Kling 3.0 Motion Control: WaveSpeed Pro $0.1596/s -> 8.94 cr/s (5s = 44.7 cr); Std $0.1197/s -> 6.70 cr/s (5s = 33.5 cr).
+    5. Kling V3 Turbo: WaveSpeed Std $0.02128/s -> 1.19 cr/s (5s = 5.95 or 6.0 cr); Pro $0.0266/s -> 1.49 cr/s (5s = 7.45 cr).
+  - Updated `WAVESPEED_PROVENANCE_REGISTRY` and `resolveWaveSpeedTariff` in `lib/provider-tariff-registry.ts` with official API provenance for Kling 3.0 and Turbo.
+  - Locked `kling30`, `kling30_mc`, `kling_v3_turbo` in `CODE_LOCKED_MODEL_IDS` (`lib/pricing-models.ts`) to prevent DB undercut.
+  - Purged redundant `kwaivgi/kling-v3.0-pro/text-to-video` (which carried stale 10 cr price) from Neon DB `platformConfig` (`dynamic_video_models`) and blocked in `BLOCKED_DYNAMIC_VIDEO_IDS`. Count reduced from 35 to 34.
+  - Added full test suite `test/kling-pricing-reality.test.ts` ensuring 100% price integrity and test coverage.
+- Files affected:
+  - `lib/provider-tariff-registry.ts`
+  - `lib/pricing-models.ts`
+  - `lib/pricing.ts`
+  - `lib/credit-pricing.ts`
+  - `lib/video-models.ts`
+  - `lib/dynamic-model-loader.ts`
+  - `test/provider-cost-attribution-remediation.test.ts`
+  - `test/provider-cost-audit.test.ts`
+  - `test/provider-cost-capture-and-reconciliation.test.ts`
+  - `test/subscriber-dashboard-reality.test.ts`
+  - `test/kling-pricing-reality.test.ts`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Vitest `test/kling-pricing-reality.test.ts`: 7/7 tests PASS.
+  - Vitest `test/hailuo-contract.test.ts`: 6/6 tests PASS.
+  - Vitest `test/pricing-core.test.ts`: 27/27 tests PASS.
+  - Vitest `test/generation-capability-and-pricing-proof.test.ts`: 8/8 tests PASS.
+  - Vitest `test/provider-cost-attribution-remediation.test.ts`: 14/14 tests PASS.
+  - Vitest `test/provider-cost-audit.test.ts`: 9/9 tests PASS.
+  - Vitest `test/provider-cost-capture-and-reconciliation.test.ts`: 17/17 tests PASS.
+  - Vitest `test/subscriber-dashboard-reality.test.ts`: 7/7 tests PASS.
+  - Total pricing/contract suite: 95/95 tests PASS.
+- Remaining step:
+  - None.
+
+# Previous task: Minimax Fleet Reorganization & Purge of Fake/Stale Models (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Based on official WaveSpeed production specifications and user confirmation, eliminated 3 fake/unverified models (`minimax-h3-max`, `minimax-h3-max-turbo`, `minimax-live-illustrations`).

@@ -811,14 +811,21 @@ const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "bytedance/seedance-v2/text-to-video":        { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
   "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
   "seedance2":                                  { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
-  "kwaivgi/kling-v3.0-std/text-to-video":        { "pro": 1.6, "std": 1.0 },
-  "kwaivgi/kling-v3.0-pro/text-to-video":        { "pro": 1.6, "std": 1.0 },
-  "kwaivgi/kling-v3.0-pro/motion-control":       { "pro": 1.6, "std": 1.0 },
-  "kling-3.0/video":                            { "pro": 1.6, "std": 1.0 },
-  "kwaivgi/kling-v3.0-pro/image-to-video":      { "pro": 1.6, "std": 1.0 },
-  "kwaivgi/kling-v3.0-std/image-to-video":      { "pro": 1.6, "std": 1.0 },
-  "kwaivgi/kling-v3.0-pro/video-to-video":      { "pro": 1.6, "std": 1.0 },
-  "kwaivgi/kling-v3.0-std/video-to-video":      { "pro": 1.6, "std": 1.0 },
+  "kwaivgi/kling-v3.0-std/text-to-video":        { "4k": 5.0, "pro": 4/3, "std": 1.0 },
+  "kwaivgi/kling-v3.0-pro/text-to-video":        { "4k": 5.0, "pro": 4/3, "std": 1.0 },
+  "kwaivgi/kling-v3.0-pro/motion-control":       { "pro": 1.0, "std": 0.75 },
+  "kling-3.0/motion-control":                   { "pro": 1.0, "std": 0.75 },
+  "kling30_mc":                                 { "pro": 1.0, "std": 0.75 },
+  "kling-3.0/video":                            { "4k": 5.0, "pro": 4/3, "std": 1.0 },
+  "kwaivgi/kling-v3.0-pro/image-to-video":      { "4k": 5.0, "pro": 4/3, "std": 1.0 },
+  "kwaivgi/kling-v3.0-std/image-to-video":      { "4k": 5.0, "pro": 4/3, "std": 1.0 },
+  "kwaivgi/kling-v3.0-pro/video-to-video":      { "4k": 5.0, "pro": 4/3, "std": 1.0 },
+  "kwaivgi/kling-v3.0-std/video-to-video":      { "4k": 5.0, "pro": 4/3, "std": 1.0 },
+  "kwaivgi/kling-video-o3-std/text-to-video":     { "4k": 5.0, "pro": 4/3, "std": 1.0 },
+  "kwaivgi/kling-video-o3-std/image-to-video":    { "4k": 5.0, "pro": 4/3, "std": 1.0 },
+  "kwaivgi/kling-video-o3-pro/text-to-video":     { "4k": 5.0, "pro": 4/3, "std": 1.0 },
+  "kwaivgi/kling-video-o3-pro/image-to-video":    { "4k": 5.0, "pro": 4/3, "std": 1.0 },
+  "kling-video-o3":                             { "4k": 5.0, "pro": 4/3, "std": 1.0 },
   "kling-2.6/video":                            { "pro": 1.6, "std": 1.0 },
   "kling-2.6/image-to-video":                   { "pro": 1.6, "std": 1.0 },
   "kwaivgi/kling-v2.6-pro/text-to-video":       { "pro": 1.6, "std": 1.0 },
@@ -886,6 +893,26 @@ function resolveModelUserCharge(
     const q = quality?.trim().toLowerCase() ?? "1k";
     const baseRate = q === "4k" ? 4.0 : 2.0;
     return baseRate * numUnits;
+  }
+
+  if (constitutionId === "kling30") {
+    const qLower = (quality || "").toLowerCase();
+    const is4k = modelRef.includes("-4k") || qLower.includes("4k");
+    const isPro = modelRef.includes("-pro") || qLower.includes("pro");
+    const rate = is4k ? 22.35 : isPro ? 5.96 : 4.47;
+    return parseFloat((rate * durationSec * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "kling30_mc") {
+    const isStd = (quality || "").toLowerCase().includes("std") || modelRef.includes("-std");
+    const rate = isStd ? 6.70 : 8.94;
+    return parseFloat((rate * durationSec * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "kling_v3_turbo") {
+    const isPro = modelRef.includes("-pro") || (quality || "").toLowerCase().includes("pro");
+    const rate = isPro ? 1.49 : 1.19;
+    return parseFloat((rate * durationSec * numUnits).toFixed(2));
   }
 
   if (constitutionId === "minimax_h3") {

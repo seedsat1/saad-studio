@@ -480,6 +480,28 @@ export const WAVESPEED_PROVENANCE_REGISTRY: Record<string, Omit<TariffProvenance
     capturedAt: "2026-08-16T20:08:39+03:00",
     verificationStatus: "VERIFIED_CURRENT",
   },
+  "kwaivgi/kling-v3.0": {
+    provider: "WaveSpeed",
+    providerRoute: "kwaivgi/kling-v3.0-std/image-to-video",
+    rateUsd: 0.0798, // Silver tier: Std $0.0798/s ($0.399/5s), Pro $0.1064/s ($0.532/5s), 4K $0.399/s ($1.995/5s)
+    billingUnit: "USD/sec",
+    sourceType: "official_api",
+    sourceReference: "WaveSpeed Kling V3.0 Live Execution & API Model Catalog",
+    effectiveDate: "2026-09-05",
+    capturedAt: "2026-09-05T19:20:00+03:00",
+    verificationStatus: "VERIFIED_CURRENT",
+  },
+  "kwaivgi/kling-v3-turbo": {
+    provider: "WaveSpeed",
+    providerRoute: "kwaivgi/kling-v3-turbo-std/image-to-video",
+    rateUsd: 0.02128, // Silver tier: Std $0.02128/s ($0.1064/5s), Pro $0.0266/s ($0.133/5s)
+    billingUnit: "USD/sec",
+    sourceType: "official_api",
+    sourceReference: "WaveSpeed Kling V3 Turbo API Model Catalog",
+    effectiveDate: "2026-09-05",
+    capturedAt: "2026-09-05T19:20:00+03:00",
+    verificationStatus: "VERIFIED_CURRENT",
+  },
 };
 
 export function checkTariffStaleness(capturedAtIso: string, maxAgeDays = 90): TariffVerificationStatus {
@@ -570,6 +592,64 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
       provenance: {
         ...provMeta,
         tariffKey,
+        rateUsd,
+        verificationStatus: checkTariffStaleness(provMeta.capturedAt),
+      },
+    };
+  }
+
+  // Kling 3.0 via WaveSpeed
+  if (
+    modelLower.includes("kling-v3.0") ||
+    modelLower.includes("kling-3.0") ||
+    modelLower.includes("kling30") ||
+    modelLower.includes("kling-video-o3")
+  ) {
+    const isMotion = modelLower.includes("motion");
+    const isPro = q.includes("pro") || modelLower.includes("-pro");
+    const is4k = q.includes("4k") || modelLower.includes("-4k");
+    let rateUsd = 0.0798;
+    if (isMotion) {
+      rateUsd = isPro ? 0.1596 : 0.1197;
+    } else if (is4k) {
+      rateUsd = 0.399;
+    } else if (isPro) {
+      rateUsd = 0.1064;
+    }
+    const tariffKey = `wavespeed:video:kling-3.0:${isMotion ? "motion" : is4k ? "4k" : isPro ? "pro" : "std"}`;
+    const provMeta = WAVESPEED_PROVENANCE_REGISTRY["kwaivgi/kling-v3.0"];
+    return {
+      usd: parseFloat((rateUsd * duration * units).toFixed(4)),
+      source: "estimated",
+      tariffKey,
+      providerName: "WaveSpeed",
+      unit: "USD/sec",
+      provenance: {
+        ...provMeta,
+        tariffKey,
+        providerRoute: input.providerRoute || modelLower,
+        rateUsd,
+        verificationStatus: checkTariffStaleness(provMeta.capturedAt),
+      },
+    };
+  }
+
+  // Kling V3 Turbo via WaveSpeed
+  if (modelLower.includes("kling-v3-turbo") || modelLower.includes("kling_v3_turbo") || modelLower.includes("kling/v3-turbo")) {
+    const isPro = q.includes("pro") || modelLower.includes("-pro");
+    const rateUsd = isPro ? 0.0266 : 0.02128;
+    const tariffKey = `wavespeed:video:kling-v3-turbo:${isPro ? "pro" : "std"}`;
+    const provMeta = WAVESPEED_PROVENANCE_REGISTRY["kwaivgi/kling-v3-turbo"];
+    return {
+      usd: parseFloat((rateUsd * duration * units).toFixed(4)),
+      source: "estimated",
+      tariffKey,
+      providerName: "WaveSpeed",
+      unit: "USD/sec",
+      provenance: {
+        ...provMeta,
+        tariffKey,
+        providerRoute: input.providerRoute || modelLower,
         rateUsd,
         verificationStatus: checkTariffStaleness(provMeta.capturedAt),
       },

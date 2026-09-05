@@ -72,7 +72,7 @@ describe("Provider Cost Capture & Reconciliation Hardening Suite", () => {
   it("3. proves WaveSpeed UNKNOWN route strictly remains UNKNOWN and null cost", () => {
     const res = resolveProviderCostPrecedence({
       generationId: "gen_test_ws_unk",
-      modelRef: "kwaivgi/kling-v3.0-pro/image-to-video",
+      modelRef: "wavespeed-ai/unverified-custom-model",
       providerName: "WaveSpeed",
       durationSec: 10,
       quality: "pro",
@@ -86,7 +86,7 @@ describe("Provider Cost Capture & Reconciliation Hardening Suite", () => {
   it("4. proves KIE never supplies WaveSpeed cost", () => {
     const res = resolveProviderCostPrecedence({
       generationId: "gen_test_no_leak",
-      modelRef: "kling-3.0/video",
+      modelRef: "wavespeed-ai/unverified-custom-model",
       providerName: "WaveSpeed",
       durationSec: 5,
     });
@@ -251,7 +251,7 @@ describe("Provider Cost Capture & Reconciliation Hardening Suite", () => {
     // Under concurrency, balance delta cannot be attributed per-request
     const res = resolveProviderCostPrecedence({
       generationId: "gen_ws_concurrency",
-      modelRef: "kwaivgi/kling-v3.0-pro/image-to-video",
+      modelRef: "wavespeed-ai/unverified-custom-model",
       providerName: "WaveSpeed",
       durationSec: 10,
     });

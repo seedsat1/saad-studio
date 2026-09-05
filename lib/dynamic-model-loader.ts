@@ -172,6 +172,7 @@ const BLOCKED_DYNAMIC_VIDEO_IDS = new Set([
   "minimax-hailuo-2.3-i2v-pro",
   "minimax-hailuo-02",
   "minimax-hailuo-2.3",
+  "kwaivgi/kling-v3.0-pro/text-to-video",
 ]);
 
 function mergeCuratedImageModel(curated: ImageModel, existing?: DynamicImageModel): DynamicImageModel {
@@ -603,12 +604,12 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
       group: "Kling",
       familyColor: "#8b5cf6",
       aspectRatios: ["16:9", "9:16", "1:1"],
-      durations: [5, 10, 15],
-      resolutions: ["720p", "1080p", "4K"],
+      durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      resolutions: ["Standard", "Pro", "4K"],
       maxRefImages: 4,
       textRoute,
       imageRoute,
-      creditCost: 3.5,
+      creditCost: isTurbo ? 6.0 : 22.4,
     };
   }
 

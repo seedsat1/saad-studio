@@ -25,9 +25,10 @@ describe("Provider Cost Attribution Remediation Suite", () => {
     });
 
     // Must NOT be calculated as KIE credits (14.0 * 1.5 * 10 * 0.005 = $1.05)
-    // Since WaveSpeed direct API rate for this specific route is unverified, it returns unknown
-    expect(wsKling.source).toBe("unknown");
-    expect(wsKling.usd).toBeNull();
+    // Uses verified WaveSpeed tariff ($0.1064/s * 10s = $1.064)
+    expect(wsKling.source).toBe("estimated");
+    expect(wsKling.usd).toBe(1.064);
+    expect(wsKling.usd).not.toBe(1.05);
   });
 
   it("2. resolves explicit KIE Standby Kling route using KIE standby credits", () => {
@@ -56,13 +57,13 @@ describe("Provider Cost Attribution Remediation Suite", () => {
     expect(wsMinimax.provenance?.verificationStatus).toBe("VERIFIED_CURRENT");
     expect(wsMinimax.usd).toBe(0.50); // $0.10/s * 5s
 
-    // 2. Kling on WaveSpeed (unknown / unverified direct tariff) vs KIE (standby)
-    const wsKling = estimateProviderCostSync({
-      modelRef: "kling30",
+    // 2. Unverified route on WaveSpeed (unknown / unverified direct tariff)
+    const wsUnverified = estimateProviderCostSync({
+      modelRef: "wavespeed-ai/unverified-custom-model",
       providerName: "WaveSpeed",
       durationSec: 5,
     });
-    expect(wsKling.source).toBe("unknown");
+    expect(wsUnverified.source).toBe("unknown");
 
     const kieKling = estimateProviderCostSync({
       modelRef: "kling30",
@@ -161,7 +162,7 @@ describe("Provider Cost Attribution Remediation Suite", () => {
 
     // Kling user credits
     const klingUserCredits = getGenerationCostSync("kling-3.0/video", 5);
-    expect(klingUserCredits).toBe(15);
+    expect(klingUserCredits).toBe(22.35);
   });
 
   it("9. verifies WaveSpeed tariff provenance metadata is preserved and accurate as ESTIMATED_VERIFIED", () => {

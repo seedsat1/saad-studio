@@ -79,11 +79,11 @@ export const SAAD_PLANS: SaadPlan[] = [
 // competitor pricing — same dollar value, smaller integer).
 export const DEFAULT_MODELS: PricingModel[] = [
   // ── VIDEO — per second via KIE ──────────────────────────────────────────────
-  { id:"kling30",       name:"Kling 3.0",               notes:"std",          type:"video",  provider:"kie",       billing:"per_sec", kieCredits:14.0,  waveUsd:0,     userCreditsRate:3.0, maxDuration:15,   isActive:true  },
+  { id:"kling30",       name:"Kling 3.0",               notes:"WaveSpeed Std $0.0798/s (4.47 cr), Pro $0.1064/s (5.96 cr), 4K $0.399/s (22.34 cr) + 40% margin", type:"video", provider:"wavespeed", billing:"per_sec", kieCredits:14.0, waveUsd:0.0798, userCreditsRate:4.47, maxDuration:15, isActive:true },
   // Kling 3.0 Omni / Omni Edit removed — not provided by KIE (see kie-model-routing.ts).
-  { id:"kling30_mc",    name:"Kling 3.0 Motion Control", notes:"motion",      type:"video",  provider:"kie",       billing:"per_sec", kieCredits:16.4,  waveUsd:0,     userCreditsRate:3.5,  maxDuration:15,   isActive:true  },
+  { id:"kling30_mc",    name:"Kling 3.0 Motion Control", notes:"WaveSpeed MC Std $0.1197/s (6.70 cr), Pro $0.1596/s (8.94 cr) + 40% margin", type:"video", provider:"wavespeed", billing:"per_sec", kieCredits:16.4, waveUsd:0.1596, userCreditsRate:8.94, maxDuration:30, isActive:true },
   { id:"kling25t",      name:"Kling 2.5 Turbo",         notes:"fast",         type:"video",  provider:"kie",       billing:"per_sec", kieCredits:8.4,   waveUsd:0,     userCreditsRate:1.5,  maxDuration:10,   isActive:true  },
-  { id:"kling_v3_turbo", name:"Kling V3 Turbo",         notes:"fast",         type:"video",  provider:"kie",       billing:"per_sec", kieCredits:10.0,  waveUsd:0,     userCreditsRate:4.0,   maxDuration:15,   isActive:true  },
+  { id:"kling_v3_turbo", name:"Kling V3 Turbo",         notes:"WaveSpeed Turbo Std $0.02128/s (1.19 cr), Pro $0.0266/s (1.49 cr) + 40% margin", type:"video", provider:"wavespeed", billing:"per_sec", kieCredits:10.0, waveUsd:0.02128, userCreditsRate:1.19, maxDuration:15, isActive:true },
   { id:"minimax_h3",    name:"Minimax H3",              notes:"768p: $0.10/s (5.6 cr), 2k: $0.14/s (7.84 cr) + 40% margin", type:"video", provider:"wavespeed", billing:"per_sec", kieCredits:0, waveUsd:0.10, userCreditsRate:5.6, maxDuration:15, isActive:true },
   { id:"hailuo02",      name:"MiniMax Hailuo 02 Pro",   notes:"WaveSpeed Pro 6s: $0.49 (27.44 cr)", type:"video", provider:"wavespeed", billing:"flat", kieCredits:0, waveUsd:0.49, userCreditsRate:27.44, maxDuration:6, isActive:true },
   { id:"hailuo02_std",  name:"MiniMax Hailuo 02 Standard", notes:"WaveSpeed 6s: $0.23 (12.88 cr), 10s: $0.56 (31.36 cr)", type:"video", provider:"wavespeed", billing:"flat", kieCredits:0, waveUsd:0.23, userCreditsRate:12.88, maxDuration:10, isActive:true },
@@ -168,12 +168,12 @@ export function calcProviderCost(model: PricingModel, durationSec: number, kieCo
 export function calcUserCredits(model: PricingModel, durationSec: number): number {
   const effectiveDur = model.maxDuration ? Math.min(durationSec, model.maxDuration) : durationSec;
   return model.billing === "per_sec"
-    ? parseFloat((model.userCreditsRate * effectiveDur).toFixed(1))
+    ? parseFloat((model.userCreditsRate * effectiveDur).toFixed(2))
     : model.userCreditsRate;
 }
 
 const DEFAULT_MODEL_BY_ID = new Map(DEFAULT_MODELS.map((model) => [model.id, model]));
-const CODE_LOCKED_MODEL_IDS = new Set(["seedance2", "seedance2f", "seedance2mini", "minimax_h3", "veo31_lite", "veo31_fast", "veo31", "veo31_gem_lite", "veo31_gem_fast", "veo31_gem", "veo3_fast", "veo3", "gemini_omni_video", "gemini_omni_flash", "nano2_lite"]);
+const CODE_LOCKED_MODEL_IDS = new Set(["kling30", "kling30_mc", "kling_v3_turbo", "seedance2", "seedance2f", "seedance2mini", "minimax_h3", "veo31_lite", "veo31_fast", "veo31", "veo31_gem_lite", "veo31_gem_fast", "veo31_gem", "veo3_fast", "veo3", "gemini_omni_video", "gemini_omni_flash", "nano2_lite"]);
 
 /**
  * DB rows may be older than the code reference. Keep admin overrides that raise

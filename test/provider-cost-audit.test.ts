@@ -114,15 +114,15 @@ describe("Provider Cost Pricing & Recency Audit Suite", () => {
   });
 
   it("6. verifies KIE Standby and WaveSpeed standard model costing from PricingConstitution", () => {
-    // Kling 3.0: 14 kieCredits/sec -> 5s = 70 credits * $0.005 = $0.35
-    const kling30 = estimateProviderCostSync({ modelRef: "kling30", providerName: "KIE.ai", durationSec: 5 });
+    // Kling 3.0 on WaveSpeed: $0.0798/sec -> 5s = $0.399
+    const kling30 = estimateProviderCostSync({ modelRef: "kling30", providerName: "WaveSpeed", durationSec: 5 });
     expect(kling30.source).toBe("estimated");
-    expect(kling30.usd).toBe(0.35);
+    expect(kling30.usd).toBe(0.399);
 
-    // Kling 3.0 Motion Control: 16.4 kieCredits/sec -> 5s = 82 credits * $0.005 = $0.41
-    const kling30mc = estimateProviderCostSync({ modelRef: "kling30_mc", providerName: "KIE.ai", durationSec: 5 });
-    expect(kling30mc.source).toBe("estimated");
-    expect(kling30mc.usd).toBe(0.41);
+    // Kling 2.5 Turbo on KIE standby: 8.4 kieCredits/sec -> 5s = 42 credits * $0.005 = $0.21
+    const kling25t = estimateProviderCostSync({ modelRef: "kling25t", providerName: "KIE.ai", durationSec: 5 });
+    expect(kling25t.source).toBe("estimated");
+    expect(kling25t.usd).toBe(0.21);
   });
 
   it("7. verifies strict separation between user credit charge and provider operating cost", () => {

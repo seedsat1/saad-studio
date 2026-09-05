@@ -76,28 +76,32 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["black-forest-labs/flux-3/start-end-to-video-draft", 16.8],
   ["black-forest-labs/flux-3/video-extend-draft", 16.8],
   ["minimax/h3/reference-to-video", 28.0],
-  ["kwaivgi/kling-v3.0-std/text-to-video", 9.0],
-  ["kwaivgi/kling-v3.0-std/image-to-video", 9.0],
-  ["kwaivgi/kling-v3.0-pro/image-to-video", 17.5],
-  ["kwaivgi/kling-v3.0-pro/text-to-video", 17.5],
-  // Kling 3.0 Omni / Omni Edit removed — KIE has no Omni endpoint.
-  ["kwaivgi/kling-v3.0-pro/motion-control", 14],
+  ["kwaivgi/kling-v3.0-std/text-to-video", 22.35],
+  ["kwaivgi/kling-v3.0-std/image-to-video", 22.35],
+  ["kwaivgi/kling-v3.0-pro/image-to-video", 29.8],
+  ["kwaivgi/kling-v3.0-pro/text-to-video", 29.8],
+  ["kwaivgi/kling-v3.0-pro/motion-control", 44.7],
+  ["kwaivgi/kling-v3.0-std/motion-control", 33.5],
   ["kling/v2-5-turbo-text-to-video-pro", 7.15],
   ["kling/v2-5-turbo-image-to-video-pro", 7.15],
-  ["kling/v3-turbo-text-to-video", 9.0],
-  ["kling/v3-turbo-image-to-video", 9.0],
-  ["kling/v3-turbo", 9.0],
-  ["kwaivgi/kling-v3-turbo-std/image-to-video", 12.0],
-  ["kwaivgi/kling-v3-turbo-pro/image-to-video", 15.0],
-  ["kwaivgi/kling-video-o3-std/text-to-video", 9.0],
-  ["kwaivgi/kling-video-o3-std/image-to-video", 9.0],
-  ["kwaivgi/kling-video-o3-std/reference-to-video", 10.5],
-  ["kwaivgi/kling-video-o3-pro/text-to-video", 14.0],
-  ["kwaivgi/kling-video-o3-pro/image-to-video", 14.0],
-  ["kwaivgi/kling-video-o3-pro/reference-to-video", 16.0],
-  ["kwaivgi/kling-video-o3-4k/text-to-video", 25.0],
-  ["kwaivgi/kling-video-o3-4k/image-to-video", 25.0],
-  ["kwaivgi/kling-video-o3-4k/reference-to-video", 30.0],
+  ["kling/v3-turbo-text-to-video", 5.96],
+  ["kling/v3-turbo-image-to-video", 5.96],
+  ["kling/v3-turbo", 5.96],
+  ["kwaivgi/kling-v3-turbo-std/image-to-video", 5.96],
+  ["kwaivgi/kling-v3-turbo-pro/image-to-video", 7.45],
+  ["kwaivgi/kling-v3-turbo-std/text-to-video", 5.96],
+  ["kwaivgi/kling-v3-turbo-pro/text-to-video", 7.45],
+  ["kwaivgi/kling-video-o3-std/text-to-video", 22.35],
+  ["kwaivgi/kling-video-o3-std/image-to-video", 22.35],
+  ["kwaivgi/kling-video-o3-std/reference-to-video", 26.8],
+  ["kwaivgi/kling-video-o3-pro/text-to-video", 29.8],
+  ["kwaivgi/kling-video-o3-pro/image-to-video", 29.8],
+  ["kwaivgi/kling-video-o3-pro/reference-to-video", 35.75],
+  ["kwaivgi/kling-video-o3-4k/text-to-video", 111.75],
+  ["kwaivgi/kling-video-o3-4k/image-to-video", 111.75],
+  ["kwaivgi/kling-video-o3-4k/reference-to-video", 134.1],
+  ["kling-3.0/video", 22.35],
+  ["kling-3.0/motion-control", 44.7],
   ["kwaivgi/kling-v2.6-std/text-to-video", 5.0],
   ["kwaivgi/kling-v2.6-std/image-to-video", 5.0],
   ["kwaivgi/kling-v2.6-pro/text-to-video", 7.0],
@@ -286,26 +290,27 @@ function getKling3Credits(payload?: VideoPayload): number {
   const isPro = quality === "pro" || quality.includes("1080");
 
   if (is4k) {
-    return parseFloat((duration * 2.5 * 3.0).toFixed(2));
+    return parseFloat((duration * 22.344).toFixed(2));
   }
 
   if (isPro) {
-    return parseFloat((duration * 2.5 * 1.6).toFixed(2));
+    return parseFloat((duration * 5.96).toFixed(2));
   }
 
-  return parseFloat((duration * 2.5 * 1.0).toFixed(2));
+  return parseFloat((duration * 4.47).toFixed(2));
 }
 
 function getKling30StdCredits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
-  const base = parseFloat((duration * 1.8).toFixed(2));
-  return hasSoundEnabled(payload) ? parseFloat((base * 1.5).toFixed(2)) : base;
+  return parseFloat((duration * 4.47).toFixed(2));
 }
 
 function getKlingMotionCredits(payload?: VideoPayload): number {
+  const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
-  const is1080 = quality.includes("1080") || quality === "pro";
-  return is1080 ? 21.84 : 16.8;
+  const isStd = quality === "std" || quality.includes("720");
+  const perSec = isStd ? 6.70 : 8.94;
+  return parseFloat((duration * perSec).toFixed(2));
 }
 
 // Kling Omni Edit credit helper removed — endpoint not provided by KIE.
@@ -605,14 +610,19 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
   ) {
     return applySoundMultiplier(getHailuoCredits(modelRoute, payload), payload);
   }
-  if (modelRoute === "kwaivgi/kling-v3-turbo-std/image-to-video" || modelRoute === "kwaivgi/kling-v3-turbo-pro/image-to-video") {
+  if (
+    modelRoute === "kwaivgi/kling-v3-turbo-std/image-to-video" ||
+    modelRoute === "kwaivgi/kling-v3-turbo-pro/image-to-video" ||
+    modelRoute === "kwaivgi/kling-v3-turbo-std/text-to-video" ||
+    modelRoute === "kwaivgi/kling-v3-turbo-pro/text-to-video"
+  ) {
     const duration = readDuration(payload, 5);
-    const perSecond = modelRoute.includes("-pro/") ? 5.0 : 4.0;
+    const perSecond = modelRoute.includes("-pro/") ? 1.49 : 1.19;
     return parseFloat((duration * perSecond).toFixed(2));
   }
-  if (modelRoute.includes("kling/v3-turbo")) {
+  if (modelRoute.includes("kling/v3-turbo") || modelRoute === "kling-v3-turbo") {
     const duration = readDuration(payload, 5);
-    return applySoundMultiplier(parseFloat((duration * 4.0).toFixed(2)), payload);
+    return applySoundMultiplier(parseFloat((duration * 1.19).toFixed(2)), payload);
   }
   if (modelRoute === "kwaivgi/kling-v3.0-std/text-to-video") {
     return getKling30StdCredits(payload);
@@ -623,12 +633,11 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
   if (modelRoute === "kwaivgi/kling-v3.0-pro/image-to-video") {
     return applySoundMultiplier(getKling3Credits(payload), payload);
   }
-  if (modelRoute.startsWith("kwaivgi/kling-video-o3-")) {
+  if (modelRoute.startsWith("kwaivgi/kling-video-o3-") || modelRoute === "kling-video-o3") {
     const duration = readDuration(payload, 5);
-    const tier = modelRoute.includes("-4k/") ? 7.5 : modelRoute.includes("-pro/") ? 4.0 : 3.0;
-    const refMultiplier = modelRoute.includes("/reference-to-video") ? 1.5 : 1;
-    const soundMultiplier = payload?.sound === true || payload?.generate_audio === true ? 1.5 : 1;
-    return parseFloat((duration * tier * refMultiplier * soundMultiplier).toFixed(2));
+    const tier = modelRoute.includes("-4k/") ? 22.344 : modelRoute.includes("-pro/") ? 5.96 : 4.47;
+    const refMultiplier = modelRoute.includes("/reference-to-video") ? 1.2 : 1;
+    return parseFloat((duration * tier * refMultiplier).toFixed(2));
   }
   if (modelRoute.startsWith("kwaivgi/kling-v2.6-")) {
     const duration = readDuration(payload, 5);
