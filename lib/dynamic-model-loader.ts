@@ -170,6 +170,8 @@ const BLOCKED_DYNAMIC_VIDEO_IDS = new Set([
   "minimax-h3-reference-to-video",
   "minimax-hailuo-2.3-i2v-fast",
   "minimax-hailuo-2.3-i2v-pro",
+  "minimax-hailuo-02",
+  "minimax-hailuo-2.3",
 ]);
 
 function mergeCuratedImageModel(curated: ImageModel, existing?: DynamicImageModel): DynamicImageModel {

@@ -1,8 +1,10 @@
-# Latest task: Minimax Fleet Reorganization & Purge of Fake Models (2026-09-05)
+# Latest task: Minimax Fleet Reorganization & Purge of Fake/Stale Models (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Based on official WaveSpeed production specifications and user confirmation, eliminated 3 fake/unverified models (`minimax-h3-max`, `minimax-h3-max-turbo`, `minimax-live-illustrations`).
-  - Purged fake models from Neon database `platformConfig` (`dynamic_video_models`), reducing count from 36 to 33.
+  - Purged obsolete unified models (`minimax-hailuo-02`, `minimax-hailuo-2.3`) from Neon DB `platformConfig` (`dynamic_video_models`) and blocked them in `BLOCKED_DYNAMIC_VIDEO_IDS`, ensuring only the 6 verified models appear in the UI.
+  - Fixed Aspect Ratio UI issue in `app/(dash)/(routes)/video/page.tsx`: when a model specifies `aspect_ratios: []` (such as Hailuo, which derives AR from the image), the Aspect Ratio selector is hidden instead of incorrectly falling back to `["16:9", "9:16", "1:1", "4:3", "3:4"]`.
+  - Fixed credit price calculation for legacy fallback `minimax-hailuo-02` to dynamically scale based on duration (10s -> 31.36 cr) instead of remaining fixed at 27.44 cr.
   - Reorganized the Minimax video fleet into exactly the 6 verified canonical models:
     1. `Minimax H3` (`minimax-h3`): 768p ($0.10/s -> 5.60 cr/s), 2K ($0.14/s -> 7.84 cr/s), durations [4, 5, 6, 10, 15s], start/end frame, multi-reference (9 images, 3 videos, 3 audios).
     2. `MiniMax Hailuo 02 Pro` (`minimax-hailuo-02-pro`): 1080p, 6s ($0.49 -> 27.44 cr), start/end frame.
@@ -11,7 +13,6 @@
     5. `MiniMax Hailuo 2.3 Pro` (`minimax-hailuo-2.3-pro`): 1080p, 5s/6s ($0.49 -> 27.44 cr), start-frame only.
     6. `MiniMax Hailuo 2.3 Fast` (`minimax-hailuo-2.3-fast`): 720p, 6s ($0.19 -> 10.64 cr), 10s ($0.32 -> 17.92 cr), start-frame only.
   - Strictly applied platform margin formula: Credits = Source USD * 40 * 1.4 = Source USD * 56.
-  - Blocked fake models in `BLOCKED_DYNAMIC_VIDEO_IDS` so dynamic loader never re-imports them.
   - Aligned all registries (`video-model-registry.ts`, `video-models.ts`, `credit-pricing.ts`, `pricing.ts`, `pricing-models.ts`, `provider-tariff-registry.ts`).
 - Files affected:
   - `lib/video-model-registry.ts`
@@ -21,6 +22,7 @@
   - `lib/pricing.ts`
   - `lib/pricing-models.ts`
   - `lib/provider-tariff-registry.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
   - `test/hailuo-contract.test.ts`
   - `PROJECT_CONTEXT.md`
   - `docs/saad-studio-premiere-reference-ar.md`

@@ -231,12 +231,17 @@ function getMinimaxH3Credits(payload?: VideoPayload, rateOverride?: number): num
 
 function getHailuoCredits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 6);
+  if (modelRoute === "minimax-hailuo-02") {
+    const q = readQuality(payload);
+    if (q === "512p") return duration >= 10 ? 8.40 : 5.60;
+    if (duration >= 10 || q === "768p") return duration >= 10 ? 31.36 : 12.88;
+    return 27.44;
+  }
   if (
     modelRoute === "minimax-hailuo-02-pro" ||
     modelRoute === "minimax/hailuo-02/pro" ||
     modelRoute === "minimax/hailuo-02/i2v-pro" ||
-    modelRoute === "minimax/hailuo-02/t2v-pro" ||
-    modelRoute === "minimax-hailuo-02"
+    modelRoute === "minimax/hailuo-02/t2v-pro"
   ) {
     if (modelRoute.includes("t2v") || modelRoute.endsWith("/t2v-pro")) return 26.88;
     return 27.44;

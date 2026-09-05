@@ -1352,7 +1352,7 @@ function VideoPageInner() {
         setSelectedModel(matched);
         const c = matched.capabilities;
         setDuration(c.durations[0] ?? null);
-        setAspectRatio(c.aspect_ratios[0] ?? (c.sizes.length > 0 ? null : "16:9"));
+        setAspectRatio(c.aspect_ratios && c.aspect_ratios.length > 0 ? c.aspect_ratios[0] : null);
         setSize(c.sizes[0] ?? null);
         setResolution(c.resolutions[0] ?? null);
       }
@@ -1967,7 +1967,7 @@ function VideoPageInner() {
   const effectiveAspectRatios = sortAspectRatios(
     isLegacyGoogleVeo3Model && resolution?.toLowerCase() === "1080p"
       ? ["16:9"]
-      : caps.aspect_ratios.length > 0
+      : Array.isArray(caps.aspect_ratios)
         ? caps.aspect_ratios
         : caps.sizes.length > 0
           ? []
@@ -2041,7 +2041,7 @@ function VideoPageInner() {
     setModelOpen(false);
     const c = m.capabilities;
     setDuration(c.durations[0] ?? null);
-    setAspectRatio(c.aspect_ratios[0] ?? (c.sizes.length > 0 ? null : "16:9"));
+    setAspectRatio(c.aspect_ratios && c.aspect_ratios.length > 0 ? c.aspect_ratios[0] : null);
     setSize(c.sizes[0] ?? null);
     setResolution(c.resolutions[0] ?? null);
     setStartFrame(null);
