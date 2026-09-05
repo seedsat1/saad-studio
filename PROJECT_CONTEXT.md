@@ -1,4 +1,32 @@
-# Latest task: Whitelist /api/ads in Middleware to Prevent 401 on Public Pages (2026-09-05)
+# Latest task: Resolve 404 RSC Prefetch Errors for /video-edit and /drama-studio (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed console 404 resource errors:
+    - `video-edit?_rsc=1dqxs:1 Failed to load resource: the server responded with a status of 404 ()`
+    - `drama-studio?_rsc=1dqxs:1 Failed to load resource: the server responded with a status of 404 ()`
+  - Root Cause Analysis:
+    1. In Next.js App Router, `<Link>` components rendered by `TopNavbar` trigger automatic React Server Component (`_rsc`) background prefetching on hover / viewport intersection.
+    2. `/video-edit`: Was accidentally deleted in commit `0f2d24a`, leaving navbar and `AssetInspector` links (`/video-edit?previousTaskId=...`) pointing to a non-existent page, causing 404s.
+    3. `/drama-studio`: Had an empty `[projectId]` subfolder without a root `page.tsx` on `main`, causing 404s when prefetched or visited.
+  - Solutions Implemented:
+    1. Restored canonical `app/(dash)/(routes)/video-edit/page.tsx` (Cinema Edit stateful Gemini Omni Flash video editor).
+    2. Created high-aesthetic, production-ready `app/(dash)/(routes)/drama-studio/page.tsx` with microdrama story composer, genre selector, and instant bridges to Storyboard, Video, and Canvas suites.
+    3. Added `app/(dash)/(routes)/drama-studio/[projectId]/page.tsx` redirect fallback.
+    4. Whitelisted `'/video-edit(.*)'` and `'/drama-studio(.*)'` in `middleware.ts` under `isPublicRoute`.
+- Files affected:
+  - `app/(dash)/(routes)/video-edit/page.tsx`
+  - `app/(dash)/(routes)/drama-studio/page.tsx`
+  - `app/(dash)/(routes)/drama-studio/[projectId]/page.tsx`
+  - `middleware.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest: 5/5 test suites passed (34/34 tests PASS).
+  - Clean git diff verified.
+- Remaining step:
+  - Commit and push to repository.
+
+# Previous task: Whitelist /api/ads in Middleware to Prevent 401 on Public Pages (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Addressed console error report: `GET https://www.saadstudio.app/api/ads?page=%2Fexplore&breakpoint=desktop 401 (Unauthorized)` occurring upon user sign-out or navigation to public exploration pages.
