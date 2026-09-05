@@ -101,22 +101,26 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["kwaivgi/kling-v2.6-std/text-to-video", 5.0],
   ["kwaivgi/kling-v2.6-std/image-to-video", 5.0],
   ["kwaivgi/kling-v2.6-pro/text-to-video", 7.0],
-  ["kwaivgi/kling-v2.6-pro/image-to-video", 7.0],
-  ["minimax-h3-max", 39.2],
-  ["minimax-h3-max-turbo", 33.6],
-  ["minimax-h3", 28.0],
-  ["minimax-hailuo-2.3", 27.44],
+  ["minimax-h3", 22.4],
+  ["minimax-hailuo-02-pro", 27.44],
+  ["minimax-hailuo-02-standard", 12.88],
+  ["minimax-hailuo-02-fast", 5.6],
+  ["minimax-hailuo-2.3-pro", 27.44],
   ["minimax-hailuo-2.3-fast", 10.64],
-  ["minimax-hailuo-02", 26.88],
-  ["minimax-live-illustrations", 14.0],
-  ["minimax/hailuo-02/pro", 26.88],
+  // Legacy aliases
+  ["minimax-hailuo-02", 27.44],
+  ["minimax-hailuo-2.3", 27.44],
+  ["minimax/hailuo-02/pro", 27.44],
+  ["minimax/hailuo-02/i2v-pro", 27.44],
+  ["minimax/hailuo-02/t2v-pro", 26.88],
   ["minimax/hailuo-02/standard", 12.88],
+  ["minimax/hailuo-02/i2v-standard", 12.88],
+  ["minimax/hailuo-02/t2v-standard", 12.88],
   ["minimax/hailuo-02/fast", 5.6],
   ["minimax/hailuo-2.3/t2v-pro", 27.44],
   ["minimax/hailuo-2.3/i2v-pro", 27.44],
   ["minimax/hailuo-2.3/fast", 10.64],
   ["minimax/hailuo-2.3/fast-pro", 18.48],
-  ["minimax/live-illustrations", 14.0],
   ["openai/sora-2/text-to-video", 13.64],
   ["openai/sora-2/text-to-video-pro", 20.48],
   ["openai/sora-2-pro/text-to-video", 20.48],
@@ -227,29 +231,43 @@ function getMinimaxH3Credits(payload?: VideoPayload, rateOverride?: number): num
 
 function getHailuoCredits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 6);
-  if (modelRoute === "minimax/hailuo-02/pro" || modelRoute === "minimax/hailuo-02/i2v-pro" || modelRoute === "minimax/hailuo-02/t2v-pro" || modelRoute === "minimax-hailuo-02") {
-    return 26.88;
+  if (
+    modelRoute === "minimax-hailuo-02-pro" ||
+    modelRoute === "minimax/hailuo-02/pro" ||
+    modelRoute === "minimax/hailuo-02/i2v-pro" ||
+    modelRoute === "minimax/hailuo-02/t2v-pro" ||
+    modelRoute === "minimax-hailuo-02"
+  ) {
+    if (modelRoute.includes("t2v") || modelRoute.endsWith("/t2v-pro")) return 26.88;
+    return 27.44;
   }
-  if (modelRoute === "minimax/hailuo-02/standard" || modelRoute === "minimax/hailuo-02/i2v-standard" || modelRoute === "minimax/hailuo-02/t2v-standard") {
+  if (
+    modelRoute === "minimax-hailuo-02-standard" ||
+    modelRoute === "minimax/hailuo-02/standard" ||
+    modelRoute === "minimax/hailuo-02/i2v-standard" ||
+    modelRoute === "minimax/hailuo-02/t2v-standard"
+  ) {
     return duration >= 10 ? 31.36 : 12.88;
   }
-  if (modelRoute === "minimax/hailuo-02/fast") {
+  if (modelRoute === "minimax-hailuo-02-fast" || modelRoute === "minimax/hailuo-02/fast") {
     return duration >= 10 ? 8.40 : 5.60;
   }
-  if (modelRoute === "minimax/hailuo-2.3/t2v-pro" || modelRoute === "minimax/hailuo-2.3/i2v-pro" || modelRoute === "minimax-hailuo-2.3") {
+  if (
+    modelRoute === "minimax-hailuo-2.3-pro" ||
+    modelRoute === "minimax/hailuo-2.3/t2v-pro" ||
+    modelRoute === "minimax/hailuo-2.3/i2v-pro" ||
+    modelRoute === "minimax-hailuo-2.3"
+  ) {
     return 27.44;
   }
   if (modelRoute === "minimax/hailuo-2.3/i2v-standard" || modelRoute === "minimax/hailuo-2.3/t2v-standard") {
     return duration >= 10 ? 31.36 : 15.68;
   }
-  if (modelRoute === "minimax/hailuo-2.3/fast" || modelRoute === "minimax-hailuo-2.3-fast") {
+  if (modelRoute === "minimax-hailuo-2.3-fast" || modelRoute === "minimax/hailuo-2.3/fast") {
     return duration >= 10 ? 17.92 : 10.64;
   }
   if (modelRoute === "minimax/hailuo-2.3/fast-pro") {
     return 18.48;
-  }
-  if (modelRoute === "minimax/live-illustrations" || modelRoute === "minimax-live-illustrations") {
-    return 14.00;
   }
   const isPro = modelRoute.includes("pro");
   return parseFloat(Math.max(1, duration * (isPro ? 4.48 : 2.15)).toFixed(2));
@@ -513,10 +531,16 @@ function getVideoCreditsByModelIdFallback(modelId: string, payload?: VideoPayloa
   if (modelId === "google/gemini-omni-flash" || modelId === "google/gemini-omni-video") {
     return applySoundMultiplier(getGeminiOmniFlashCredits(payload), payload);
   }
-  if (modelId === "minimax-h3-max") return getMinimaxH3Credits(payload, 0.14);
-  if (modelId === "minimax-h3-max-turbo") return getMinimaxH3Credits(payload, 0.12);
   if (modelId === "minimax-h3") return getMinimaxH3Credits(payload);
-  if (modelId === "minimax-hailuo-2.3" || modelId === "minimax-hailuo-2.3-fast" || modelId === "minimax-hailuo-02" || modelId === "minimax-live-illustrations") {
+  if (
+    modelId === "minimax-hailuo-02-pro" ||
+    modelId === "minimax-hailuo-02-standard" ||
+    modelId === "minimax-hailuo-02-fast" ||
+    modelId === "minimax-hailuo-2.3-pro" ||
+    modelId === "minimax-hailuo-2.3-fast" ||
+    modelId === "minimax-hailuo-02" ||
+    modelId === "minimax-hailuo-2.3"
+  ) {
     return applySoundMultiplier(getHailuoCredits(modelId, payload), payload);
   }
 
@@ -566,20 +590,12 @@ export async function getVideoCreditsByRouteAsync(modelRoute: string, payload?: 
 }
 
 function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPayload): number {
-  if (modelRoute === "minimax/h3/reference-to-video" || modelRoute === "minimax-h3") {
+  if (modelRoute.startsWith("minimax/h3") || modelRoute === "minimax-h3") {
     return getMinimaxH3Credits(payload);
-  }
-  if (modelRoute === "minimax-h3-max") {
-    return getMinimaxH3Credits(payload, 0.14);
-  }
-  if (modelRoute === "minimax-h3-max-turbo") {
-    return getMinimaxH3Credits(payload, 0.12);
   }
   if (
     modelRoute.startsWith("minimax/hailuo-") ||
-    modelRoute.startsWith("minimax-hailuo-") ||
-    modelRoute === "minimax/live-illustrations" ||
-    modelRoute === "minimax-live-illustrations"
+    modelRoute.startsWith("minimax-hailuo-")
   ) {
     return applySoundMultiplier(getHailuoCredits(modelRoute, payload), payload);
   }

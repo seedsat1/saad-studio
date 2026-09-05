@@ -1,4 +1,38 @@
-# Latest task: Minimax Hailuo Fleet Deduplication & Database Cleanup (2026-09-05)
+# Latest task: Minimax Fleet Reorganization & Purge of Fake Models (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Based on official WaveSpeed production specifications and user confirmation, eliminated 3 fake/unverified models (`minimax-h3-max`, `minimax-h3-max-turbo`, `minimax-live-illustrations`).
+  - Purged fake models from Neon database `platformConfig` (`dynamic_video_models`), reducing count from 36 to 33.
+  - Reorganized the Minimax video fleet into exactly the 6 verified canonical models:
+    1. `Minimax H3` (`minimax-h3`): 768p ($0.10/s -> 5.60 cr/s), 2K ($0.14/s -> 7.84 cr/s), durations [4, 5, 6, 10, 15s], start/end frame, multi-reference (9 images, 3 videos, 3 audios).
+    2. `MiniMax Hailuo 02 Pro` (`minimax-hailuo-02-pro`): 1080p, 6s ($0.49 -> 27.44 cr), start/end frame.
+    3. `MiniMax Hailuo 02 Standard` (`minimax-hailuo-02-standard`): 768p, 6s ($0.23 -> 12.88 cr), 10s ($0.56 -> 31.36 cr), start/end frame.
+    4. `MiniMax Hailuo 02 Fast` (`minimax-hailuo-02-fast`): 512p, 6s ($0.10 -> 5.60 cr), 10s ($0.15 -> 8.40 cr), start-frame only.
+    5. `MiniMax Hailuo 2.3 Pro` (`minimax-hailuo-2.3-pro`): 1080p, 5s/6s ($0.49 -> 27.44 cr), start-frame only.
+    6. `MiniMax Hailuo 2.3 Fast` (`minimax-hailuo-2.3-fast`): 720p, 6s ($0.19 -> 10.64 cr), 10s ($0.32 -> 17.92 cr), start-frame only.
+  - Strictly applied platform margin formula: Credits = Source USD * 40 * 1.4 = Source USD * 56.
+  - Blocked fake models in `BLOCKED_DYNAMIC_VIDEO_IDS` so dynamic loader never re-imports them.
+  - Aligned all registries (`video-model-registry.ts`, `video-models.ts`, `credit-pricing.ts`, `pricing.ts`, `pricing-models.ts`, `provider-tariff-registry.ts`).
+- Files affected:
+  - `lib/video-model-registry.ts`
+  - `lib/video-models.ts`
+  - `lib/dynamic-model-loader.ts`
+  - `lib/credit-pricing.ts`
+  - `lib/pricing.ts`
+  - `lib/pricing-models.ts`
+  - `lib/provider-tariff-registry.ts`
+  - `test/hailuo-contract.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest `test/hailuo-contract.test.ts`: 6/6 tests PASS.
+  - Vitest `test/pricing-core.test.ts`: 27/27 tests PASS.
+  - Vitest `test/generation-capability-and-pricing-proof.test.ts`: 8/8 tests PASS.
+  - Total vitest runs: 41/41 tests PASS.
+- Remaining step:
+  - None.
+
+# Previous task: Minimax Hailuo Fleet Deduplication & Database Cleanup (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Resolve duplicate model issue where `Minimax H3` and other models appeared twice in the `/video` dropdown.

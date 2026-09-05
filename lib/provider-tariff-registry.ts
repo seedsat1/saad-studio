@@ -315,17 +315,6 @@ export const WAVESPEED_PROVENANCE_REGISTRY: Record<string, Omit<TariffProvenance
     capturedAt: "2026-09-05T00:00:00+03:00",
     verificationStatus: "VERIFIED_CURRENT",
   },
-  "minimax/live-illustrations": {
-    provider: "WaveSpeed",
-    providerRoute: "minimax/live-illustrations",
-    rateUsd: 0.25,
-    billingUnit: "USD/generation",
-    sourceType: "official_docs",
-    sourceReference: "WaveSpeed Official API Docs - Minimax Live Illustrations (https://wavespeed.ai/docs/docs-api)",
-    effectiveDate: "2026-09-05",
-    capturedAt: "2026-09-05T00:00:00+03:00",
-    verificationStatus: "VERIFIED_CURRENT",
-  },
   "alibaba/wan-3.0": {
     provider: "WaveSpeed",
     providerRoute: "alibaba/wan-3.0",
@@ -513,18 +502,9 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
 
   // Minimax H3
   if (modelLower.includes("minimax/h3") || modelLower.includes("minimax_h3") || modelLower.includes("minimax-h3")) {
-    const isTurbo = modelLower.includes("turbo");
-    const isMax = modelLower.includes("max");
-    let rateUsd = 0.10;
-    if (isTurbo) {
-      rateUsd = 0.12;
-    } else if (isMax) {
-      rateUsd = 0.14;
-    } else {
-      rateUsd = q.includes("2k") ? 0.14 : 0.10;
-    }
+    const rateUsd = q.includes("2k") ? 0.14 : 0.10;
     const provMeta = WAVESPEED_PROVENANCE_REGISTRY["minimax/h3"];
-    const tariffKey = `wavespeed:video:minimax-h3:${isTurbo ? "turbo" : isMax ? "max" : q.includes("2k") ? "2k" : "768p"}`;
+    const tariffKey = `wavespeed:video:minimax-h3:${q.includes("2k") ? "2k" : "768p"}`;
     return {
       usd: parseFloat((rateUsd * duration * units).toFixed(4)),
       source: "estimated",
@@ -545,7 +525,7 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
   if (modelLower.includes("hailuo-02") || modelLower.includes("hailuo02")) {
     const isFast = modelLower.includes("fast");
     const isStandard = modelLower.includes("standard");
-    let rateUsd = 0.48;
+    let rateUsd = 0.49;
     if (isFast) {
       rateUsd = duration >= 10 ? 0.15 : 0.10;
     } else if (isStandard) {
@@ -570,36 +550,16 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
 
   // Minimax Hailuo 2.3
   if (modelLower.includes("hailuo-2.3") || modelLower.includes("hailuo23")) {
-    const isFastPro = modelLower.includes("fast-pro");
     const isFast = modelLower.includes("fast");
+    const isStandard = modelLower.includes("standard");
     let rateUsd = 0.49;
-    if (isFastPro) {
-      rateUsd = 0.33;
-    } else if (isFast) {
+    if (isFast) {
+      rateUsd = duration >= 10 ? 0.32 : 0.19;
+    } else if (isStandard) {
       rateUsd = duration >= 10 ? 0.56 : 0.28;
     }
     const provMeta = WAVESPEED_PROVENANCE_REGISTRY["minimax/hailuo-2.3"];
-    const tariffKey = `wavespeed:video:minimax-hailuo-2.3:${isFastPro ? "fast-pro" : isFast ? "fast" : "pro"}`;
-    return {
-      usd: parseFloat((rateUsd * units).toFixed(4)),
-      source: "estimated",
-      tariffKey,
-      providerName: "WaveSpeed",
-      unit: "USD/generation",
-      provenance: {
-        ...provMeta,
-        tariffKey,
-        rateUsd,
-        verificationStatus: checkTariffStaleness(provMeta.capturedAt),
-      },
-    };
-  }
-
-  // Minimax Live Illustrations
-  if (modelLower.includes("live-illustrations") || modelLower.includes("live_illustrations")) {
-    const rateUsd = 0.25;
-    const provMeta = WAVESPEED_PROVENANCE_REGISTRY["minimax/live-illustrations"];
-    const tariffKey = "wavespeed:video:minimax-live-illustrations";
+    const tariffKey = `wavespeed:video:minimax-hailuo-2.3:${isFast ? "fast" : isStandard ? "std" : "pro"}`;
     return {
       usd: parseFloat((rateUsd * units).toFixed(4)),
       source: "estimated",

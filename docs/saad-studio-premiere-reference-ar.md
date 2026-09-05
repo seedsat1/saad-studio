@@ -1,23 +1,29 @@
-## مواصفات وعقد نماذج Minimax Hailuo الفيديو (2026-09-05)
+## مواصفات وعقد نماذج Minimax الرسمية الـ 6 (2026-09-05)
 
-- قائمة الموديلات المعروضة للمشترك في صفحة /video تلتزم بالتسلسل الدقيق التالي بدون شارات ترويجية (تم حذف شارات New و 50% off نهائياً):
-  1. Minimax H3 Max
-  2. Minimax H3 Max Turbo
-  3. Minimax H3
-  4. MiniMax Hailuo 2.3
-  5. MiniMax Hailuo 2.3 Fast
-  6. MiniMax Hailuo 02 (توجيه ديناميكي ذكي يشمل Pro 1080p, Standard 768p, Fast 512p)
-  7. MiniMax Live Illustrations
-- **منع التكرار وتنظيف قاعدة البيانات (Deduplication Guard)**:
-  - تم تطهير وحذف 3 موديلات قديمة مكررة من قاعدة بيانات Neon في جدول `platformConfig` مفتاح `dynamic_video_models` (`minimax-h3-reference-to-video`، `minimax-hailuo-2.3-i2v-fast`، `minimax-hailuo-2.3-i2v-pro`).
-  - تم إضافة حظر لهذه المعرفات في `BLOCKED_DYNAMIC_VIDEO_IDS` بملف `lib/dynamic-model-loader.ts`.
-  - تم تطبيق فلتر لمنع تكرار أي موديل يحمل نفس الاسم في نفس المجموعة (`groupAndNameKey`) في كل من `normalizeDynamicVideoModels` وواجهة `/video`.
-- **عائلة مسارات Hailuo 02 الدقيقة**:
-  - minimax/hailuo-02/i2v-pro: دقة 1080p، يقبل صورة بداية image وإطار نهاية اختياري end_image، تكلفة .48 -> 26.88 كريديت.
-  - minimax/hailuo-02/i2v-standard: دقة 768p، يقبل image و end_image، مدد 6s (.23 -> 12.88 كريديت) و 10s (.56 -> 31.36 كريديت).
-  - minimax/hailuo-02/t2v-pro: دقة 1080p للنصوص فقط، تكلفة .48 -> 26.88 كريديت.
-  - minimax/hailuo-02/t2v-standard: دقة 768p للنصوص، مدد 6s و 10s.
-  - minimax/hailuo-02/fast: دقة 512p، للمسودات، مدد 6s (.10 -> 5.60 كريديت) و 10s (.15 -> 8.40 كريديت).
+- تم تطهير وحذف النماذج غير الحقيقية نهائياً من قاعدة البيانات والسجلات (`minimax-h3-max`, `minimax-h3-max-turbo`, `minimax-live-illustrations`).
+- قائمة نماذج Minimax الـ 6 المعتمدة رسمياً بحسب مزود WaveSpeed مع هامش المنصة (سعر المصدر بالدولار × 40 × 1.4 = سعر المصدر × 56):
+  1. **Minimax H3** (`minimax-h3`):
+     - 768p: $0.10/s -> **5.60 كريديت / ثانية** (4s: 22.40, 5s: 28.00, 6s: 33.60, 10s: 56.00, 15s: 84.00).
+     - 2K: $0.14/s -> **7.84 كريديت / ثانية** (4s: 31.36, 5s: 39.20, 6s: 47.04, 10s: 78.40, 15s: 117.60).
+     - يدعم: Text/Image/Reference، إطار البداية وإطار النهاية، حتى 9 صور مرجعية، 3 فيديوهات، 3 مقاطع صوتية.
+  2. **MiniMax Hailuo 02 Pro** (`minimax-hailuo-02-pro`):
+     - دقة 1080p، مدة 6s، سعر المصدر $0.49 -> **27.44 كريديت** (t2v-pro: $0.48 -> 26.88).
+     - يدعم إطار البداية وإطار النهاية (`has_end_frame: true`).
+  3. **MiniMax Hailuo 02 Standard** (`minimax-hailuo-02-standard`):
+     - دقة 768p، مدة 6s: $0.23 -> **12.88 كريديت** | مدة 10s: $0.56 -> **31.36 كريديت**.
+     - يدعم إطار البداية وإطار النهاية (`has_end_frame: true`).
+  4. **MiniMax Hailuo 02 Fast** (`minimax-hailuo-02-fast`):
+     - دقة 512p، مدة 6s: $0.10 -> **5.60 كريديت** | مدة 10s: $0.15 -> **8.40 كريديت**.
+     - صورة بداية فقط (`has_end_frame: false`).
+  5. **MiniMax Hailuo 2.3 Pro** (`minimax-hailuo-2.3-pro`):
+     - دقة 1080p، مدة 5s/6s، سعر المصدر $0.49 -> **27.44 كريديت**.
+     - صورة بداية فقط (`has_end_frame: false`).
+  6. **MiniMax Hailuo 2.3 Fast** (`minimax-hailuo-2.3-fast`):
+     - دقة 720p، مدة 6s: $0.19 -> **10.64 كريديت** | مدة 10s: $0.32 -> **17.92 كريديت**.
+     - صورة بداية فقط (`has_end_frame: false`).
+- **منع التكرار وحظر النماذج الوهمية**:
+  - تم إدراج المعرفات غير الحقيقية في `BLOCKED_DYNAMIC_VIDEO_IDS` بملف `lib/dynamic-model-loader.ts`.
+  - تم تنظيف جدول `platformConfig` وتقليص عدد الموديلات من 36 إلى 33.
 
 ## عقد Idempotency لصفحة الصوت (2026-09-04)
 
