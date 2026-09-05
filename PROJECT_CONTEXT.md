@@ -1,4 +1,22 @@
-# Latest task: Fix Profile Deletion Dialog Trigger & Cache Synchronization (2026-09-05)
+# Latest task: Whitelist /api/ads in Middleware to Prevent 401 on Public Pages (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed console error report: `GET https://www.saadstudio.app/api/ads?page=%2Fexplore&breakpoint=desktop 401 (Unauthorized)` occurring upon user sign-out or navigation to public exploration pages.
+  - Root Cause Analysis:
+    - In `middleware.ts`, `isPublicRoute` lacked an entry for `'/api/ads(.*)'`.
+    - Although `app/api/ads/route.ts` was designed with guest / unauthenticated fallback mode (`// Unauthenticated / guest mode`) to deliver promotional banners to unauthenticated visitors on `/explore` or landing pages, Clerk middleware intercepted any request to `/api/` not matched by `isPublicRoute`, immediately returning `401 Unauthorized` before reaching the route handler.
+  - Solution:
+    - Added `'/api/ads(.*)'` to `isPublicRoute` in `middleware.ts`, enabling seamless, authorized ad telemetry and resolution for both authenticated and guest users.
+- Files affected:
+  - `middleware.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Vitest: 5/5 test suites passed (34/34 tests PASS).
+  - Git diff clean.
+- Remaining step:
+  - Commit and push to repository.
+
+# Previous task: Fix Profile Deletion Dialog Trigger & Cache Synchronization (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Addressed user report: "لا يعمل حذف البروفايل" (Deleting the profile is not working) accompanied by screenshot of the Profiles Management section.

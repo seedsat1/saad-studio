@@ -61,6 +61,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/proxy-image(.*)',
   '/api/media(.*)',
   '/api/promo(.*)',
+  '/api/ads(.*)',
   '/connect-claude(.*)',
   '/smart-cli(.*)',
   '/api/showcase(.*)',
