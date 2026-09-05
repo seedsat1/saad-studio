@@ -287,9 +287,6 @@ export async function startVeoGeneration(
     if (params.resolution) {
       payload.response_format.resolution = params.resolution;
     }
-    if (params.durationSeconds) {
-      payload.generation_config.video_config.duration_seconds = params.durationSeconds;
-    }
 
     const response = await fetch(url, {
       method: "POST",

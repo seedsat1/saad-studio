@@ -1,4 +1,29 @@
-# Latest task: Fix Start and End Frame Payload Mapping for Kling & Seedance on WaveSpeed (2026-09-05)
+# Latest task: Fix Google Interactions API 400 for Gemini Omni Flash (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed user error report:
+    ```json
+    {
+      "status": 409,
+      "modelRoute": "google/gemini-omni-flash",
+      "error": "Google Interactions API error: 400 {\"error\":{\"message\":\"Unknown parameter 'duration_seconds' at 'generation_config.video_config'.\",\"code\":\"invalid_request\"}}"
+    }
+    ```
+  - Root Cause Analysis:
+    - In `lib/gemini-veo.ts`, `payload.generation_config.video_config.duration_seconds = params.durationSeconds` was being assigned.
+    - Google's official REST schema for `interactions` (`gemini-omni-1.1-flash`) only accepts `task` under `video_config`. The parameter `duration_seconds` is unknown at that path and triggered an immediate HTTP 400 Bad Request error.
+  - Solution:
+    - Removed `duration_seconds` assignment to `video_config` in `lib/gemini-veo.ts`.
+- Files affected:
+  - `lib/gemini-veo.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest: 5/5 test suites passed (93/93 tests PASS).
+- Remaining step:
+  - Commit and push to repository.
+
+# Previous task: Fix Start and End Frame Payload Mapping for Kling & Seedance on WaveSpeed (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Addressed user feedback: "لم يستخدم الاستار و الاند بشكل صحيح وحتى سيدانس" (The Start and End frames were not used correctly, even with Seedance).

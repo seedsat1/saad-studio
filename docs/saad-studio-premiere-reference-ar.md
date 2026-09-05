@@ -1,3 +1,14 @@
+## معالجة خطأ 400 لموديل Gemini Omni Flash في Google Interactions API (2026-09-05)
+
+- **الخلل الذي تم تشخيصه**:
+  - عند محاولة التوليد بنموذج `google/gemini-omni-flash`، ظهر خطأ 409:
+    `Google Interactions API error: 400 {"error":{"message":"Unknown parameter 'duration_seconds' at 'generation_config.video_config'.","code":"invalid_request"}}`
+- **السبب الجذري**:
+  - في [lib/gemini-veo.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/gemini-veo.ts)، تم إسناد `duration_seconds` داخل كائن `generation_config.video_config`. ومواصفات Google الرسمية لواجهة Interactions تقبل فقط حقل `task` داخل هذا الكائن، مما تسبب في رفض الطلب مباشرة برمز 400.
+- **الحل المعتمد**:
+  - حذف تعيين `duration_seconds` داخل `video_config` في `lib/gemini-veo.ts`.
+  - اجتياز كافة الاختبارات الآلية (93/93 اختبار PASS).
+
 ## تصحيح تمرير إطارات البداية والنهاية (Start & End Frames) لنماذج Kling و Seedance عبر WaveSpeed (2026-09-05)
 
 - **الخلل الذي تم رصده وتشخيصه**:
