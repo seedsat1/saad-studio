@@ -502,9 +502,10 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
 
   // Minimax H3
   if (modelLower.includes("minimax/h3") || modelLower.includes("minimax_h3") || modelLower.includes("minimax-h3")) {
-    const rateUsd = q.includes("2k") ? 0.14 : 0.10;
+    const isHighRes = q.includes("2k") || q.includes("1080");
+    const rateUsd = isHighRes ? 0.14 : 0.10;
     const provMeta = WAVESPEED_PROVENANCE_REGISTRY["minimax/h3"];
-    const tariffKey = `wavespeed:video:minimax-h3:${q.includes("2k") ? "2k" : "768p"}`;
+    const tariffKey = `wavespeed:video:minimax-h3:${isHighRes ? "2k" : "768p"}`;
     return {
       usd: parseFloat((rateUsd * duration * units).toFixed(4)),
       source: "estimated",

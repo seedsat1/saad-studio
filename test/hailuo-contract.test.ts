@@ -38,6 +38,9 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     expect(h3).toBeDefined();
     expect(h3?.accepts).toContain("start-frame");
     expect(h3?.accepts).toContain("end-frame");
+    expect(h3?.aspectRatios).toEqual(["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21"]);
+    expect(h3?.durations).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    expect(h3?.resolutions).toEqual(["480p", "540p", "768p", "1080p", "2K"]);
 
     const h02Pro = VIDEO_MODELS.find((m) => m.id === "minimax-hailuo-02-pro");
     expect(h02Pro).toBeDefined();

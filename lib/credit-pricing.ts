@@ -225,7 +225,8 @@ function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number 
 function getMinimaxH3Credits(payload?: VideoPayload, rateOverride?: number): number {
   const duration = readDuration(payload, 5);
   const quality = (readQuality(payload) || "768p").toLowerCase();
-  const usdPerSec = rateOverride !== undefined ? rateOverride : (quality.includes("2k") ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"]);
+  const isHighRes = quality.includes("2k") || quality.includes("1080");
+  const usdPerSec = rateOverride !== undefined ? rateOverride : (isHighRes ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"]);
   return parseFloat(Math.max(1, duration * usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD).toFixed(2));
 }
 

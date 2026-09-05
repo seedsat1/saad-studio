@@ -7,7 +7,7 @@
   - Fixed credit price calculation for legacy fallback `minimax-hailuo-02` to dynamically scale based on duration (10s -> 31.36 cr) instead of remaining fixed at 27.44 cr.
   - Fixed Hailuo 2.3 Pro duration to strictly [6] seconds matching official WaveSpeed fixed 6s generation (eliminating redundant 5s option that had duplicate price).
   - Reorganized the Minimax video fleet into exactly the 6 verified canonical models:
-    1. `Minimax H3` (`minimax-h3`): 768p ($0.10/s -> 5.60 cr/s), 2K ($0.14/s -> 7.84 cr/s), durations [4, 5, 6, 10, 15s], start/end frame, multi-reference (9 images, 3 videos, 3 audios).
+    1. `Minimax H3` (`minimax-h3`): Resolutions [480p, 540p, 768p, 1080p, 2K], Durations [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15s], 7 Aspect Ratios [16:9, 9:16, 1:1, 4:3, 3:4, 21:9, 9:21], start/end frame, multi-reference (9 images, 3 videos, 3 audios). 480p/540p/768p at $0.10/s -> 5.60 cr/s; 1080p/2K at $0.14/s -> 7.84 cr/s.
     2. `MiniMax Hailuo 02 Pro` (`minimax-hailuo-02-pro`): 1080p, 6s ($0.49 -> 27.44 cr), start/end frame.
     3. `MiniMax Hailuo 02 Standard` (`minimax-hailuo-02-standard`): 768p, 6s ($0.23 -> 12.88 cr), 10s ($0.56 -> 31.36 cr), start/end frame.
     4. `MiniMax Hailuo 02 Fast` (`minimax-hailuo-02-fast`): 512p, 6s ($0.10 -> 5.60 cr), 10s ($0.15 -> 8.40 cr), start-frame only.
