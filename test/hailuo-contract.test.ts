@@ -4,6 +4,7 @@ import { VIDEO_MODELS } from "@/lib/video-models";
 import { DEFAULT_MODELS } from "@/lib/pricing-models";
 import { getVideoCreditsByRoute, getVideoCreditsByModelId } from "@/lib/credit-pricing";
 import { resolveCanonicalProviderTariff } from "@/lib/provider-tariff-registry";
+import { normalizeDynamicVideoModels, DynamicVideoModel } from "@/lib/dynamic-model-loader";
 
 describe("Minimax Hailuo Contract and Specification Tests", () => {
   it("should have all 7 models registered under family 'hailuo' in exact dropdown sequence", () => {
@@ -120,5 +121,76 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     });
     expect(tariffLive.usd).toBe(0.25);
     expect(tariffLive.providerName).toBe("WaveSpeed");
+  });
+
+  it("should enforce zero duplicates and filter out legacy blocked IDs in normalizeDynamicVideoModels", () => {
+    // Simulate raw models containing both legacy/stale IDs and canonical IDs with duplicate display names
+    const mockDbModels: Partial<DynamicVideoModel>[] = [
+      {
+        id: "minimax-h3-reference-to-video",
+        name: "Minimax H3",
+        group: "Minimax Hailuo",
+        family_label: "Minimax Hailuo",
+        api_route: "minimax/h3/reference-to-video",
+      },
+      {
+        id: "minimax-h3",
+        name: "Minimax H3",
+        group: "Minimax Hailuo",
+        family_label: "Minimax Hailuo",
+        api_route: "minimax/h3/image-to-video",
+      },
+      {
+        id: "minimax-hailuo-2.3-i2v-fast",
+        name: "MiniMax Hailuo 2.3 Fast",
+        group: "Minimax Hailuo",
+        family_label: "Minimax Hailuo",
+        api_route: "minimax/hailuo-2.3/fast",
+      },
+      {
+        id: "minimax-hailuo-2.3-fast",
+        name: "MiniMax Hailuo 2.3 Fast",
+        group: "Minimax Hailuo",
+        family_label: "Minimax Hailuo",
+        api_route: "minimax/hailuo-2.3/fast",
+      },
+      {
+        id: "minimax-hailuo-2.3-i2v-pro",
+        name: "MiniMax Hailuo 2.3",
+        group: "Minimax Hailuo",
+        family_label: "Minimax Hailuo",
+        api_route: "minimax/hailuo-2.3/pro",
+      },
+      {
+        id: "minimax-hailuo-2.3",
+        name: "MiniMax Hailuo 2.3",
+        group: "Minimax Hailuo",
+        family_label: "Minimax Hailuo",
+        api_route: "minimax/hailuo-2.3/pro",
+      },
+    ];
+
+    const normalized = normalizeDynamicVideoModels(mockDbModels as DynamicVideoModel[]);
+
+    const hailuoFleet = normalized.filter(
+      (m) =>
+        m.group?.toLowerCase().includes("hailuo") ||
+        (m as any).family_label?.toLowerCase().includes("hailuo") ||
+        m.id.startsWith("minimax-")
+    );
+
+    // Assert blocked legacy IDs are completely absent
+    const blockedFound = hailuoFleet.filter((m) =>
+      ["minimax-h3-reference-to-video", "minimax-hailuo-2.3-i2v-fast", "minimax-hailuo-2.3-i2v-pro"].includes(m.id)
+    );
+    expect(blockedFound).toHaveLength(0);
+
+    // Assert every name in the hailuo group is strictly unique (no duplicates)
+    const names = hailuoFleet.map((m) => m.name.trim().toLowerCase());
+    const uniqueNames = new Set(names);
+    expect(names.length).toBe(uniqueNames.size);
+
+    // Assert exactly the 7 canonical Minimax models exist
+    expect(hailuoFleet.length).toBe(7);
   });
 });

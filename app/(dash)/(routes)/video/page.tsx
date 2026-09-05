@@ -1248,15 +1248,21 @@ function VideoPageInner() {
     }
     const map = new Map<string, any>();
     const seenModelIds = new Set<string>();
+    const seenGroupAndNames = new Set<string>();
 
     const activeList = dynamicVideoList.filter((m) => m.isActive !== false && !HIDDEN_VIDEO_PAGE_MODEL_IDS.has(m.id));
 
     for (const m of activeList) {
       if (seenModelIds.has(m.id)) continue;
-      seenModelIds.add(m.id);
 
       const groupName = (m.group || m.family_label || m.family || "Other").trim();
       const groupKey = groupName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const nameKey = `${groupKey}:${(m.name || "").trim().toLowerCase()}`;
+
+      if (seenGroupAndNames.has(nameKey)) continue;
+      seenModelIds.add(m.id);
+      seenGroupAndNames.add(nameKey);
+
       if (!map.has(groupKey)) {
         map.set(groupKey, {
           family: groupKey,

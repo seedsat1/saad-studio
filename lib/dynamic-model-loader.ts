@@ -164,6 +164,9 @@ const BLOCKED_DYNAMIC_VIDEO_IDS = new Set([
   "google/veo-3.1-generate-preview",
   "google/veo-3.1-fast-generate-preview",
   "google/veo-3.1-lite-generate-preview",
+  "minimax-h3-reference-to-video",
+  "minimax-hailuo-2.3-i2v-fast",
+  "minimax-hailuo-2.3-i2v-pro",
 ]);
 
 function mergeCuratedImageModel(curated: ImageModel, existing?: DynamicImageModel): DynamicImageModel {
@@ -317,6 +320,7 @@ export function normalizeDynamicImageModels(models: DynamicImageModel[]): Dynami
 export function normalizeDynamicVideoModels(models: DynamicVideoModel[]): DynamicVideoModel[] {
   const orderedResult: DynamicVideoModel[] = [];
   const processedIds = new Set<string>();
+  const processedGroupAndNames = new Set<string>();
 
   if (Array.isArray(models) && models.length > 0) {
     for (const model of models) {
@@ -324,10 +328,18 @@ export function normalizeDynamicVideoModels(models: DynamicVideoModel[]): Dynami
       if (!id || processedIds.has(id) || model.isDeleted || BLOCKED_DYNAMIC_VIDEO_IDS.has(id)) continue;
 
       const curated = VIDEO_MODEL_REGISTRY.find((c) => c.id.toLowerCase() === id);
-      if (curated) {
-        orderedResult.push(mergeCuratedVideoModel(curated, model));
+      const merged = curated ? mergeCuratedVideoModel(curated, model) : null;
+      const group = merged ? (merged.group || merged.family_label) : (model.group || (model as any).family_label || (model as any).family || "Custom Video Fleet");
+      const modelName = (merged ? merged.name : model.name || "").trim().toLowerCase();
+      const groupAndNameKey = `${group.toLowerCase()}:${modelName}`;
+
+      if (processedGroupAndNames.has(groupAndNameKey)) {
+        continue;
+      }
+
+      if (merged) {
+        orderedResult.push(merged);
       } else {
-        const group = model.group || (model as any).family_label || (model as any).family || "Custom Video Fleet";
         const familySlug = group.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         const familyColor = model.family_color || model.color || "#8b5cf6";
         orderedResult.push({
@@ -339,14 +351,19 @@ export function normalizeDynamicVideoModels(models: DynamicVideoModel[]): Dynami
         });
       }
       processedIds.add(id);
+      processedGroupAndNames.add(groupAndNameKey);
     }
   }
 
   for (const curated of VIDEO_MODEL_REGISTRY) {
     const id = curated.id.toLowerCase();
-    if (!processedIds.has(id) && !BLOCKED_DYNAMIC_VIDEO_IDS.has(id)) {
+    const group = (curated.family_label || curated.family || "").toLowerCase();
+    const modelName = (curated.name || "").trim().toLowerCase();
+    const groupAndNameKey = `${group}:${modelName}`;
+    if (!processedIds.has(id) && !processedGroupAndNames.has(groupAndNameKey) && !BLOCKED_DYNAMIC_VIDEO_IDS.has(id)) {
       orderedResult.push(mergeCuratedVideoModel(curated));
       processedIds.add(id);
+      processedGroupAndNames.add(groupAndNameKey);
     }
   }
 

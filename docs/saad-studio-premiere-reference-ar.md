@@ -1,13 +1,17 @@
 ## مواصفات وعقد نماذج Minimax Hailuo الفيديو (2026-09-05)
 
-- قائمة الموديلات المعروضة للمشترك في صفحة /video تلتزم بالتسلسل الدقيق التالي:
-  1. Minimax H3 Max (شارة: New)
-  2. Minimax H3 Max Turbo (شارة: New)
-  3. Minimax H3 (شارة: 50% off)
+- قائمة الموديلات المعروضة للمشترك في صفحة /video تلتزم بالتسلسل الدقيق التالي بدون شارات ترويجية (تم حذف شارات New و 50% off نهائياً):
+  1. Minimax H3 Max
+  2. Minimax H3 Max Turbo
+  3. Minimax H3
   4. MiniMax Hailuo 2.3
   5. MiniMax Hailuo 2.3 Fast
   6. MiniMax Hailuo 02 (توجيه ديناميكي ذكي يشمل Pro 1080p, Standard 768p, Fast 512p)
   7. MiniMax Live Illustrations
+- **منع التكرار وتنظيف قاعدة البيانات (Deduplication Guard)**:
+  - تم تطهير وحذف 3 موديلات قديمة مكررة من قاعدة بيانات Neon في جدول `platformConfig` مفتاح `dynamic_video_models` (`minimax-h3-reference-to-video`، `minimax-hailuo-2.3-i2v-fast`، `minimax-hailuo-2.3-i2v-pro`).
+  - تم إضافة حظر لهذه المعرفات في `BLOCKED_DYNAMIC_VIDEO_IDS` بملف `lib/dynamic-model-loader.ts`.
+  - تم تطبيق فلتر لمنع تكرار أي موديل يحمل نفس الاسم في نفس المجموعة (`groupAndNameKey`) في كل من `normalizeDynamicVideoModels` وواجهة `/video`.
 - **عائلة مسارات Hailuo 02 الدقيقة**:
   - minimax/hailuo-02/i2v-pro: دقة 1080p، يقبل صورة بداية image وإطار نهاية اختياري end_image، تكلفة .48 -> 26.88 كريديت.
   - minimax/hailuo-02/i2v-standard: دقة 768p، يقبل image و end_image، مدد 6s (.23 -> 12.88 كريديت) و 10s (.56 -> 31.36 كريديت).

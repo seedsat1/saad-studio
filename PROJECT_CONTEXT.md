@@ -1,4 +1,27 @@
-# Latest task: Minimax Hailuo Fleet Contract Alignment & Official WaveSpeed Pricing (2026-09-05)
+# Latest task: Minimax Hailuo Fleet Deduplication & Database Cleanup (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Resolve duplicate model issue where `Minimax H3` and other models appeared twice in the `/video` dropdown.
+  - Purged 3 stale legacy models from Neon DB `platformConfig` (`dynamic_video_models`): `minimax-h3-reference-to-video`, `minimax-hailuo-2.3-i2v-fast`, and `minimax-hailuo-2.3-i2v-pro`. Count reduced from 39 to 36.
+  - Added robust deduplication guards:
+    1. In `lib/dynamic-model-loader.ts`: Added legacy IDs to `BLOCKED_DYNAMIC_VIDEO_IDS` and implemented `processedGroupAndNames` tracking (`${group.toLowerCase()}:${modelName}`) in `normalizeDynamicVideoModels` to guarantee no duplicate display names within any group.
+    2. In `app/(dash)/(routes)/video/page.tsx`: Added `seenGroupAndNames` (`${groupKey}:${name}`) set guard in the dropdown group builder.
+  - Removed badges `New` and `50% off` completely per user request.
+  - Confirmed exact 7 Minimax Hailuo fleet sequence without duplicates.
+- Files affected:
+  - `lib/dynamic-model-loader.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `test/hailuo-contract.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest `test/hailuo-contract.test.ts`: 6/6 tests PASS (including dedup regression test).
+  - Vitest `test/pricing-core.test.ts`: 27/27 tests PASS.
+  - Total vitest suite run: 33/33 tests PASS.
+- Remaining step:
+  - None.
+
+# Previous task: Minimax Hailuo Fleet Contract Alignment & Official WaveSpeed Pricing (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Add and align all 7 Minimax Hailuo models on `/video` and `/admin/models` with 100% strict adherence to official WaveSpeed OpenAPI reality.
