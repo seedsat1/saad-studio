@@ -11,9 +11,9 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     expect(hailuoModels.length).toBe(7);
 
     const expectedOrder = [
-      { id: "minimax-h3-max", name: "Minimax H3 Max", badge: "New" },
-      { id: "minimax-h3-max-turbo", name: "Minimax H3 Max Turbo", badge: "New" },
-      { id: "minimax-h3", name: "Minimax H3", badge: "50% off" },
+      { id: "minimax-h3-max", name: "Minimax H3 Max", badge: null },
+      { id: "minimax-h3-max-turbo", name: "Minimax H3 Max Turbo", badge: null },
+      { id: "minimax-h3", name: "Minimax H3", badge: null },
       { id: "minimax-hailuo-2.3", name: "MiniMax Hailuo 2.3", badge: null },
       { id: "minimax-hailuo-2.3-fast", name: "MiniMax Hailuo 2.3 Fast", badge: null },
       { id: "minimax-hailuo-02", name: "MiniMax Hailuo 02", badge: null },

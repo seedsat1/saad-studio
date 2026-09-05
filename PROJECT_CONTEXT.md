@@ -4,9 +4,9 @@
   - Add and align all 7 Minimax Hailuo models on `/video` and `/admin/models` with 100% strict adherence to official WaveSpeed OpenAPI reality.
   - Zero randomness: exact integer durations (5/6/10/15s), end-frame only where supported (Hailuo 02), empty aspect_ratios array (aspect ratio inherited from image), stripped invalid parameters.
   - Exact dropdown order matching subscriber screenshot:
-    1. Minimax H3 Max (New)
-    2. Minimax H3 Max Turbo (New)
-    3. Minimax H3 (50% off)
+    1. Minimax H3 Max
+    2. Minimax H3 Max Turbo
+    3. Minimax H3
     4. MiniMax Hailuo 2.3
     5. MiniMax Hailuo 2.3 Fast
     6. MiniMax Hailuo 02 (including Fast $0.10/$0.15, Standard $0.23/$0.56, Pro $0.48 routes)
