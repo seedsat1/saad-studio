@@ -1,4 +1,46 @@
-# Latest task: Kling 3.0 & Turbo Pricing Correction & WaveSpeed Tariff Realignment (2026-09-05)
+# Latest task: Multi-Profile Workspace System with Generation Isolation (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Enabled multi-profile capabilities under a single subscriber account.
+  - Same credentials (Email & Password), same subscription plan, and unified credit balance shared across all profiles.
+  - Isolated generation history: Each profile has its own `profileId` on `Generation` records; switching profiles filters `/api/assets`, `/gallery`, `/video`, and `/image` exclusively to the active profile's creations.
+  - Implemented safe backward compatibility: unassigned/legacy creations (`profileId: null`) seamlessly display in the user's default profile.
+  - Added Prisma model `UserProfile` linked to `User` and `Generation`, applied safe migration to Neon DB.
+  - Added backend endpoints: `app/api/profiles/route.ts` (GET, POST with max 10 profile enforcement), `app/api/profiles/[profileId]/route.ts` (PATCH, DELETE with safe migration of assets to default profile).
+  - Built `ProfileProvider` (`lib/profile-context.tsx`) with automatic local/cookie persistence and instant event dispatching.
+  - Integrated `useAuthenticatedFetch` to automatically inject `x-profile-id` header into all API requests.
+  - Added `ProfileSwitcher` dropdown in `components/TopNavbar.tsx` (desktop & mobile drawer).
+  - Added comprehensive `ProfileManagerSection` in `app/(dash)/(routes)/profile/page.tsx` for managing, renaming, creating, and deleting profiles.
+  - Added vitest suite `test/multi-profile-isolation.test.ts` (8/8 PASS).
+- Files affected:
+  - `prisma/schema.prisma`
+  - `app/api/profiles/route.ts`
+  - `app/api/profiles/[profileId]/route.ts`
+  - `app/api/assets/route.ts`
+  - `app/api/video/route.ts`
+  - `app/api/image/generate/route.ts`
+  - `lib/credit-ledger.ts`
+  - `lib/profile-context.tsx`
+  - `hooks/use-authenticated-fetch.ts`
+  - `app/layout.tsx`
+  - `components/ProfileSwitcher.tsx`
+  - `components/ProfileManagerSection.tsx`
+  - `components/TopNavbar.tsx`
+  - `app/(dash)/(routes)/profile/page.tsx`
+  - `app/(dash)/(routes)/gallery/page.tsx`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `test/multi-profile-isolation.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest `test/multi-profile-isolation.test.ts`: 8/8 tests PASS.
+  - Vitest regression suite (`test/assets-route.test.ts`, `test/credit-ledger.test.ts`, `test/kling-pricing-reality.test.ts`, `test/hailuo-contract.test.ts`): 26/26 tests PASS.
+  - Total: 34/34 tests PASS.
+- Remaining step:
+  - None.
+
+# Previous task: Kling 3.0 & Turbo Pricing Correction & WaveSpeed Tariff Realignment (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Reviewed user live execution invoice screenshot from WaveSpeed (`kwaivgi/kling-v3.0-std/image-to-video`, Prediction `7249c8262e704eea898f42ae9d97fca3`, billed $0.399).

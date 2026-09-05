@@ -15,6 +15,11 @@ export function useAuthenticatedFetch() {
         if (token) headers.set("Authorization", `Bearer ${token}`);
       }
 
+      if (typeof window !== "undefined" && !headers.has("x-profile-id")) {
+        const activeProfileId = localStorage.getItem("saad_active_profile_id");
+        if (activeProfileId) headers.set("x-profile-id", activeProfileId);
+      }
+
       return fetch(input, {
         ...init,
         credentials: init.credentials ?? "include",

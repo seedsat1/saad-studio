@@ -109,8 +109,12 @@ export async function POST(req: Request) {
       );
     }
 
+    const profileIdFromHeader = req.headers.get("x-profile-id") || req.cookies.get("saad_active_profile_id")?.value;
+    const profileId = typeof body?.profileId === "string" ? body.profileId : profileIdFromHeader || null;
+
     const chargeInput = {
       userId,
+      profileId,
       prompt: sanitizePrompt(prompt, 5000),
       assetType: "IMAGE",
       modelUsed: model,

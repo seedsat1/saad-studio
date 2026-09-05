@@ -450,6 +450,7 @@ type SpendCreditsInput = {
   providerTokens?: number | null;
   providerCredits?: number | null;
   providerCostSource?: string | null;
+  profileId?: string | null;
 
   // Snapshot fields
   generationType?: string | null;
@@ -744,6 +745,7 @@ export async function spendCredits(input: SpendCreditsInput) {
     const generation = await tx.generation.create({
       data: {
         userId: input.userId,
+        profileId: input.profileId ?? null,
         prompt: input.prompt,
         assetType: input.assetType,
         modelUsed: input.modelUsed,
@@ -842,6 +844,7 @@ export async function recordFreeGeneration(input: Omit<SpendCreditsInput, "credi
   const generation = await prismadb.generation.create({
     data: {
       userId: input.userId,
+      profileId: input.profileId ?? null,
       prompt: input.prompt,
       assetType: input.assetType,
       modelUsed: input.modelUsed,

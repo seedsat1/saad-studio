@@ -1442,6 +1442,14 @@ export default function ImageWorkspacePage() {
     void loadPersistedImages(0, "replace");
   }, [loadPersistedImages]);
 
+  useEffect(() => {
+    const handleProfileSwitch = () => {
+      void loadPersistedImages(0, "replace");
+    };
+    window.addEventListener("saad-profile-switched", handleProfileSwitch);
+    return () => window.removeEventListener("saad-profile-switched", handleProfileSwitch);
+  }, [loadPersistedImages]);
+
   // Recover an in-flight generation that was interrupted by a page refresh.
   // Strategy: if a pending marker exists in localStorage, show placeholders + poll
   // /api/assets every 3s until a new image (createdAt > startedAt) appears, OR until

@@ -389,6 +389,35 @@ export async function GET(req: NextRequest) {
     const page = firstNumberParam(req, "page", 0, 0, 10_000);
     const skip = page * limit;
     const typeWhere = requestedType === "all" ? {} : buildAssetTypeWhere(requestedType);
+
+    // Profile isolation: filter by profileId if requested or active
+    const rawProfileId = req.nextUrl.searchParams.get("profileId") ||
+      req.headers.get("x-profile-id") ||
+      req.cookies.get("saad_active_profile_id")?.value;
+
+    let profileWhere: Record<string, any> = {};
+    if (rawProfileId && rawProfileId !== "all") {
+      const profileDoc = await (prismadb as any).userProfile.findUnique({
+        where: { id: rawProfileId },
+        select: { id: true, userId: true, isDefault: true },
+      }).catch(() => null);
+
+      if (profileDoc && profileDoc.userId === userId) {
+        if (profileDoc.isDefault) {
+          // Default profile includes both tagged generations and legacy/unassigned ones
+          profileWhere = {
+            OR: [
+              { profileId: profileDoc.id },
+              { profileId: null },
+            ],
+          };
+        } else {
+          // Specific non-default profile only includes its own generations
+          profileWhere = { profileId: profileDoc.id };
+        }
+      }
+    }
+
     const baseWhere = validOnly
       ? {
           userId,
@@ -417,15 +446,15 @@ export async function GET(req: NextRequest) {
     });
 
     const [totalForFilter, allCount, imageCount, videoCount, audioCount, threeDCount, textCount, rows] = await Promise.all([
-      prismadb.generation.count({ where: { AND: [baseWhere, typeWhere] } as any }),
-      prismadb.generation.count({ where: baseWhere }),
-      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("image")] } as any }),
-      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("video")] } as any }),
-      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("audio")] } as any }),
-      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("3d")] } as any }),
-      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("text")] } as any }),
+      prismadb.generation.count({ where: { AND: [baseWhere, typeWhere, profileWhere] } as any }),
+      prismadb.generation.count({ where: { AND: [baseWhere, profileWhere] } as any }),
+      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("image"), profileWhere] } as any }),
+      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("video"), profileWhere] } as any }),
+      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("audio"), profileWhere] } as any }),
+      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("3d"), profileWhere] } as any }),
+      prismadb.generation.count({ where: { AND: [baseWhere, buildAssetTypeWhere("text"), profileWhere] } as any }),
       (prismadb.generation as any).findMany({
-        where: { AND: [baseWhere, typeWhere] } as any,
+        where: { AND: [baseWhere, typeWhere, profileWhere] } as any,
         orderBy: { createdAt: "desc" },
         skip,
         take: limit + 1,
@@ -627,16 +656,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { url, filename, mimeType } = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({}));
+    const { url, filename, mimeType } = body;
     if (!url) {
       return NextResponse.json({ error: "url is required" }, { status: 400 });
     }
 
     const type = String(mimeType || "").startsWith("video") ? "video" : "image";
 
+    const profileIdFromHeader = req.headers.get("x-profile-id") || req.cookies.get("saad_active_profile_id")?.value;
+    const profileId = typeof body?.profileId === "string" ? body.profileId : profileIdFromHeader || null;
+
     const record = await prismadb.generation.create({
       data: {
         userId,
+        profileId,
         mediaUrl: url,
         prompt: filename || "Manually Uploaded",
         modelUsed: "Upload",

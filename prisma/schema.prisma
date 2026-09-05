@@ -56,6 +56,7 @@ model User {
   isBanned           Boolean       @default(false)
   createdAt          DateTime      @default(now())
 
+  profiles      UserProfile[]
   generations   Generation[]
   transactions  AdminTransaction[]
   characters    UserCharacter[]
@@ -108,8 +109,11 @@ model Generation {
   posterGeneratedAt DateTime?
   posterError      String?
   providerCostSource String? // 'actual' | 'estimated' | 'unknown'
+  profileId        String?
+  profile          UserProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([userId, profileId])
   @@index([createdAt])
   @@index([isFavorite])
   @@index([posterStatus])
@@ -117,6 +121,23 @@ model Generation {
   generationRequestSnapshot GenerationRequestSnapshot?
   apiIdempotencies ApiIdempotency[]
   creditLedgerEntries CreditLedgerEntry[]
+}
+
+/// Profiles created under a single user account for separating generation workspaces while sharing credits and login.
+model UserProfile {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  avatarPhoto  String?
+  avatarPreset Int          @default(1)
+  isDefault    Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  generations  Generation[]
+
+  @@index([userId])
+  @@index([userId, isDefault])
 }
 
 model ProviderUsageRecord {

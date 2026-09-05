@@ -144,6 +144,16 @@ export default function GalleryPage() {
     void loadAssets(activeFilter, 0, "replace");
   }, [activeFilter, loadAssets]);
 
+  useEffect(() => {
+    const handleProfileSwitch = () => {
+      setPage(0);
+      setHasMore(false);
+      void loadAssets(activeFilter, 0, "replace");
+    };
+    window.addEventListener("saad-profile-switched", handleProfileSwitch);
+    return () => window.removeEventListener("saad-profile-switched", handleProfileSwitch);
+  }, [activeFilter, loadAssets]);
+
   const visibleAssets = useMemo(() => {
     if (!activeAlbumId) return assets;
     const album = albums.find((a) => a.id === activeAlbumId);

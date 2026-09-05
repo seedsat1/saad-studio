@@ -2280,6 +2280,9 @@ export async function POST(req: Request) {
       payload?: Record<string, unknown>;
     };
 
+    const profileIdFromHeader = req.headers.get("x-profile-id") || req.cookies.get("saad_active_profile_id")?.value;
+    const profileId = typeof (body as any)?.profileId === "string" ? (body as any).profileId : profileIdFromHeader || null;
+
     if (!modelRoute || typeof modelRoute !== "string") {
       return NextResponse.json({ error: "modelRoute is required" }, { status: 400 });
     }
@@ -2850,6 +2853,7 @@ export async function POST(req: Request) {
 
       const charge = await spendCredits({
         userId,
+        profileId,
         credits: creditsToCharge,
         prompt,
         assetType: "VIDEO",
@@ -3215,6 +3219,7 @@ export async function POST(req: Request) {
 
       const charge = await spendCredits({
         userId,
+        profileId,
         credits: googleCreditsToCharge,
         prompt,
         assetType: "VIDEO",
@@ -3410,6 +3415,7 @@ export async function POST(req: Request) {
 
       const charge = await spendCredits({
         userId,
+        profileId,
         credits: creditsToCharge,
         prompt: typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 5000) : "Video generation",
         assetType: "VIDEO",
@@ -3561,6 +3567,7 @@ export async function POST(req: Request) {
 
     const charge = await spendCredits({
       userId,
+      profileId,
       credits: creditsToCharge,
       prompt: typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 5000) : "Video generation",
       assetType: "VIDEO",

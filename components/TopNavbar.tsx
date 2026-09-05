@@ -70,6 +70,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ProfileSwitcher } from "@/components/ProfileSwitcher";
 
 const getTranslation = (key: string, lang: "en" | "ar") => {
   if (lang !== "ar") return key;
@@ -974,7 +975,8 @@ const AuthNavButtons = ({ creditBalance, creditCapacity, hydrated }: { creditBal
       <LanguageSwitcher />
       <PricingButton />
       {showAccount ? (
-        <div className="hidden xl:block">
+        <div className="hidden xl:flex items-center gap-2">
+          <ProfileSwitcher />
           <UserProfileDropdown creditBalance={creditBalance} creditCapacity={creditCapacity} />
         </div>
       ) : showGuestButtons ? (
@@ -1579,10 +1581,13 @@ const TopNavbar = () => {
 
               {/* Account Section */}
               {showAccount && (
-                <div className="pt-3 border-t border-white/10 space-y-1 shrink-0">
-                  <p className="px-1 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                    {lang === "ar" ? "الحساب والإعدادات" : "Account & Settings"}
-                  </p>
+                <div className="pt-3 border-t border-white/10 space-y-2 shrink-0">
+                  <div className="px-1 flex items-center justify-between">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                      {lang === "ar" ? "البروفايل والعمل" : "Active Profile"}
+                    </p>
+                    <ProfileSwitcher />
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                     <Link
                       href="/profile"

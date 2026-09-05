@@ -1903,6 +1903,14 @@ function VideoPageInner() {
     void loadPersistedVideos(0, "replace");
   }, [loadPersistedVideos]);
 
+  useEffect(() => {
+    const handleProfileSwitch = () => {
+      void loadPersistedVideos(0, "replace");
+    };
+    window.addEventListener("saad-profile-switched", handleProfileSwitch);
+    return () => window.removeEventListener("saad-profile-switched", handleProfileSwitch);
+  }, [loadPersistedVideos]);
+
   // Capability shorthand
   const caps = selectedModel.capabilities;
   const characterSupport = useMemo(() => getVideoCharacterSupport(selectedModel), [selectedModel]);

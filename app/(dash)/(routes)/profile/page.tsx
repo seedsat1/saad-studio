@@ -11,6 +11,7 @@ import {
   Shield, Bell, CreditCard, Calendar, TrendingUp, Clock,
   Edit3, Camera, Upload, X, Check, AtSign,
 } from "lucide-react";
+import { ProfileManagerSection } from "@/components/ProfileManagerSection";
 
 function useProfileTranslation() {
   const { lang } = useLanguage();
@@ -632,6 +633,8 @@ export default function ProfilePage() {
             </div>
           )}
         </motion.div>
+
+        <ProfileManagerSection />
 
         <section>
           <h2 className="text-lg font-semibold text-slate-100 mb-4">{t("Usage Breakdown")}</h2>
