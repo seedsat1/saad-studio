@@ -447,6 +447,7 @@ export interface InferredModelSpecs {
   textRoute: string;
   imageRoute: string;
   referenceRoute?: string;
+  startEndRoute?: string;
   creditCost: number;
 }
 
@@ -494,6 +495,16 @@ export function cleanModelDisplayName(raw: string): string {
     if (/flex/i.test(raw)) return "FLUX.2 Flex";
     if (/max/i.test(raw)) return "FLUX.2 Max";
     return "FLUX.2";
+  }
+  if (/minimax|hailuo/i.test(raw)) {
+    if (/h3.*turbo|max.*turbo/i.test(raw)) return "Minimax H3 Max Turbo";
+    if (/h3.*max/i.test(raw)) return "Minimax H3 Max";
+    if (/h3/i.test(raw)) return "Minimax H3";
+    if (/live.*illustrat/i.test(raw)) return "MiniMax Live Illustrations";
+    if (/2\.3.*fast|fast-pro/i.test(raw)) return "MiniMax Hailuo 2.3 Fast";
+    if (/2\.3/i.test(raw)) return "MiniMax Hailuo 2.3";
+    if (/02/i.test(raw)) return "MiniMax Hailuo 02";
+    return "MiniMax Hailuo";
   }
 
   // If camelCase or hyphenated, turn into title words
@@ -600,6 +611,7 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
       modality: "video",
       provider: "byteplus",
       group: "Seedance",
+      familyColor: "#10b981",
       aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
       durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions: ["480p", "720p", "1080p", "4K"],
@@ -725,6 +737,99 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
       textRoute: "alibaba/wan-2.5/text-to-video",
       imageRoute: "alibaba/wan-2.5/image-to-video",
       creditCost: 3.0,
+    };
+  }
+
+  // 7. Minimax / Hailuo Video
+  if (text.includes("minimax") || text.includes("hailuo")) {
+    if (text.includes("live-illustrations") || text.includes("live") || text.includes("illustration")) {
+      return {
+        cleanName: "MiniMax Live Illustrations",
+        cleanId: "minimax-live-illustrations",
+        modality: "video",
+        provider: "wavespeed",
+        group: "Minimax Hailuo",
+        familyColor: "#f59e0b",
+        aspectRatios: [],
+        durations: [5, 6, 10],
+        resolutions: ["768p", "1080p"],
+        maxRefImages: 0,
+        textRoute: "",
+        imageRoute: "minimax/live-illustrations",
+        creditCost: 14.0,
+      };
+    }
+    if (text.includes("h3") || text.includes("reference-to-video")) {
+      const isTurbo = text.includes("turbo");
+      const isMax = text.includes("max");
+      const name = isTurbo ? "Minimax H3 Max Turbo" : isMax ? "Minimax H3 Max" : "Minimax H3";
+      const id = isTurbo ? "minimax-h3-max-turbo" : isMax ? "minimax-h3-max" : "minimax-h3";
+      return {
+        cleanName: name,
+        cleanId: id,
+        modality: "video",
+        provider: "wavespeed",
+        group: "Minimax Hailuo",
+        familyColor: "#f59e0b",
+        aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
+        durations: [6, 10, 15],
+        resolutions: ["768p", "1080p", "2K"],
+        maxRefImages: 10,
+        textRoute: "minimax/h3/reference-to-video",
+        imageRoute: "minimax/h3/reference-to-video",
+        referenceRoute: "minimax/h3/reference-to-video",
+        creditCost: isTurbo ? 40.32 : isMax ? 47.04 : 33.6,
+      };
+    }
+    if (text.includes("02")) {
+      return {
+        cleanName: "MiniMax Hailuo 02",
+        cleanId: "minimax-hailuo-02",
+        modality: "video",
+        provider: "wavespeed",
+        group: "Minimax Hailuo",
+        familyColor: "#f59e0b",
+        aspectRatios: [],
+        durations: [6, 10],
+        resolutions: ["768p", "1080p"],
+        maxRefImages: 0,
+        textRoute: "minimax/hailuo-02/pro",
+        imageRoute: "minimax/hailuo-02/pro",
+        startEndRoute: "minimax/hailuo-02/pro",
+        creditCost: 26.88,
+      };
+    }
+    if (text.includes("fast")) {
+      return {
+        cleanName: "MiniMax Hailuo 2.3 Fast",
+        cleanId: "minimax-hailuo-2.3-fast",
+        modality: "video",
+        provider: "wavespeed",
+        group: "Minimax Hailuo",
+        familyColor: "#f59e0b",
+        aspectRatios: [],
+        durations: [6, 10],
+        resolutions: ["768p", "1080p"],
+        maxRefImages: 0,
+        textRoute: "",
+        imageRoute: "minimax/hailuo-2.3/fast",
+        creditCost: 10.64,
+      };
+    }
+    return {
+      cleanName: "MiniMax Hailuo 2.3",
+      cleanId: "minimax-hailuo-2.3",
+      modality: "video",
+      provider: "wavespeed",
+      group: "Minimax Hailuo",
+      familyColor: "#f59e0b",
+      aspectRatios: [],
+      durations: [5, 6, 10],
+      resolutions: ["768p", "1080p"],
+      maxRefImages: 0,
+      textRoute: "minimax/hailuo-2.3/t2v-pro",
+      imageRoute: "minimax/hailuo-2.3/i2v-pro",
+      creditCost: 27.44,
     };
   }
 

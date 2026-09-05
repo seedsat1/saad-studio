@@ -90,7 +90,7 @@ const VIDEO_MODELS: ModelDef[] = VIDEO_MODEL_REGISTRY.map((model) => {
     label: model.name,
     short: model.name,
     desc: model.description,
-    badge: model.badge ?? undefined,
+    badge: (model.badge as ModelDef["badge"]) ?? undefined,
     icon: icon || "AI",
     family: model.family_label,
   };

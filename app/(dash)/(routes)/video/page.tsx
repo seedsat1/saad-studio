@@ -663,6 +663,7 @@ function prettyModelName(name: string): string {
     .replace(/\s*\((?:Wave\s*Speed|WaveSpeed|Google|KIE|KIE\.ai|wavespeed\.ai|Luma|Runway|Minimax)\)/gi, "")
     .replace(/\b(?:Wave\s*Speed|WaveSpeed|Google|KIE|KIE\.ai|wavespeed\.ai)\b/gi, "")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\bMini\s+Max\b/g, "MiniMax")
     .replace(/\s+/g, " ")
     .trim();
   return cleaned;
@@ -844,13 +845,18 @@ function getPromptReferenceDescriptors(files: File[], promptTagsEnabled: boolean
 
 // -- Constants -----------------------------------------------------------------
 
-const BADGE_STYLE = {
+const BADGE_STYLE: Record<string, { bg: string; text: string }> = {
   TOP:  { bg: "rgba(245,158,11,0.15)",  text: "#fbbf24" },
   NEW:  { bg: "rgba(16,185,129,0.15)",  text: "#34d399" },
+  New:  { bg: "rgba(236,72,153,0.16)",  text: "#f472b6" },
   PRO:  { bg: "rgba(139,92,246,0.15)",  text: "#a78bfa" },
   FAST: { bg: "rgba(14,165,233,0.15)",  text: "#38bdf8" },
   MINI: { bg: "rgba(16,185,129,0.15)",  text: "#34d399" },
   "4K": { bg: "rgba(236,72,153,0.16)",  text: "#f472b6" },
+  TURBO: { bg: "rgba(236,72,153,0.16)", text: "#f472b6" },
+  BUDGET: { bg: "rgba(14,165,233,0.15)", text: "#38bdf8" },
+  SPICY: { bg: "rgba(239,68,68,0.15)", text: "#f87171" },
+  "50% off": { bg: "rgba(236,72,153,0.16)", text: "#f472b6" },
 };
 
 type VideoToolId =

@@ -601,7 +601,7 @@ export function validateAndBuildSeedanceExactPayload(
     const videoUrl =
       (typeof payload.video === "string" && payload.video.trim() ? payload.video.trim() : null) ||
       (typeof out.video_url === "string" && out.video_url.trim() ? out.video_url.trim() : null) ||
-      (typeof out.video === "string" && out.video_url.trim() ? out.video_url.trim() : null) ||
+      (typeof out.video === "string" && (out.video as string).trim() ? (out.video as string).trim() : null) ||
       refVideos[0] ||
       null;
     if (!videoUrl) {

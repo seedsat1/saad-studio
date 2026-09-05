@@ -716,6 +716,59 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
     return exact;
   }
 
+  const isMinimaxHailuoRoute = typeof route === "string" && (route.startsWith("minimax/hailuo-") || route === "minimax/live-illustrations");
+  if (isMinimaxHailuoRoute) {
+    const exact: Record<string, unknown> = {};
+    const prompt = typeof out.prompt === "string" && out.prompt.trim() ? out.prompt.trim() : "";
+    const startImage =
+      (typeof out.image === "string" ? out.image : null) ||
+      (typeof payload.first_frame_url === "string" ? payload.first_frame_url : null) ||
+      (typeof out.image_url === "string" ? out.image_url : null) ||
+      (Array.isArray(out.reference_image_urls) && typeof out.reference_image_urls[0] === "string" ? out.reference_image_urls[0] : null) ||
+      null;
+    const endImage =
+      (typeof out.end_image === "string" ? out.end_image : null) ||
+      (typeof out.last_image === "string" ? out.last_image : null) ||
+      (typeof payload.last_frame_url === "string" ? payload.last_frame_url : null) ||
+      (Array.isArray(out.reference_image_urls) && typeof out.reference_image_urls[1] === "string" ? out.reference_image_urls[1] : null) ||
+      null;
+
+    const isFastRoute = route.includes("/fast") || route.includes("/fast-pro");
+    const isLiveIllustrations = route === "minimax/live-illustrations";
+    const isI2vOnly = isFastRoute || isLiveIllustrations || route.includes("/i2v-");
+    const supportsEndFrame = route.startsWith("minimax/hailuo-02") && !isFastRoute;
+
+    if (isI2vOnly && !startImage) {
+      throw new ValidationError(`${route} requires an input image.`);
+    }
+    if (!prompt && !startImage) {
+      throw new ValidationError("Prompt or image is required for video generation.");
+    }
+
+    if (prompt) exact.prompt = prompt;
+    if (startImage) exact.image = startImage;
+    if (endImage && supportsEndFrame) exact.end_image = endImage;
+
+    const rawDuration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "6"), 10);
+    if (route === "minimax/hailuo-2.3/t2v-pro" || route === "minimax/hailuo-2.3/i2v-pro") {
+      exact.duration = 5;
+    } else if (route === "minimax/hailuo-02/pro" || route === "minimax/hailuo-2.3/fast-pro") {
+      exact.duration = 6;
+    } else if (rawDuration === 10) {
+      exact.duration = 10;
+    } else {
+      exact.duration = 6;
+    }
+
+    if (isFastRoute) {
+      exact.go_fast = payload.go_fast !== false;
+    } else {
+      exact.enable_prompt_expansion = payload.enable_prompt_expansion !== false;
+    }
+
+    return exact;
+  }
+
   if (isWan30TextRoute || isWan30ImageRoute || isWan30ReferenceRoute) {
     const referenceImages = Array.isArray(out.reference_image_urls)
       ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
@@ -2489,6 +2542,26 @@ export async function POST(req: Request) {
           : hasFluxImageInput
             ? "black-forest-labs/flux-3/image-to-video"
             : "black-forest-labs/flux-3/text-to-video";
+    } else if (modelRoute.startsWith("minimax/hailuo-02")) {
+      const resLower = typeof payload.resolution === "string" ? payload.resolution.toLowerCase() : "";
+      const isFast = resLower.includes("fast") || resLower.includes("512");
+      const is768p = resLower.includes("768") || resLower.includes("standard");
+      const hasImageInput = Boolean(hasImage || hasNonEmptyString(payload.image) || hasNonEmptyString(payload.first_frame_url));
+      if (isFast || modelRoute.includes("fast")) {
+        modelRoute = "minimax/hailuo-02/fast";
+      } else if (is768p) {
+        modelRoute = hasImageInput ? "minimax/hailuo-02/i2v-standard" : "minimax/hailuo-02/t2v-standard";
+      } else {
+        modelRoute = hasImageInput ? "minimax/hailuo-02/i2v-pro" : "minimax/hailuo-02/t2v-pro";
+      }
+    } else if (modelRoute.startsWith("minimax/hailuo-2.3")) {
+      const is1080p = typeof payload.resolution === "string" && payload.resolution.toLowerCase() === "1080p";
+      const hasImageInput = Boolean(hasImage || hasNonEmptyString(payload.image) || hasNonEmptyString(payload.first_frame_url));
+      if (modelRoute.includes("fast")) {
+        modelRoute = is1080p ? "minimax/hailuo-2.3/fast-pro" : "minimax/hailuo-2.3/fast";
+      } else {
+        modelRoute = hasImageInput ? "minimax/hailuo-2.3/i2v-pro" : "minimax/hailuo-2.3/t2v-pro";
+      }
     }
 
     let kieModel = (isDirectGoogleVeo31Route || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);

@@ -198,8 +198,27 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "kwaivgi/kling-v3.0-pro/image-to-video":        "kling30",
   // Kling 3.0 Omni / Omni Edit routes removed â€” KIE has no Omni endpoint.
   "kwaivgi/kling-v3.0-pro/motion-control":        "kling30_mc",
+  "minimax-h3-max":                               "minimax_h3_max",
+  "minimax-h3-max-turbo":                         "minimax_h3_max_turbo",
+  "minimax-h3":                                   "minimax_h3",
+  "minimax-hailuo-2.3":                           "hailuo23",
+  "minimax-hailuo-2.3-fast":                      "hailuo23f",
+  "minimax-hailuo-02":                            "hailuo02",
+  "minimax-live-illustrations":                   "minimax_live_illustrations",
+  "minimax/hailuo-02/pro":                        "hailuo02",
+  "minimax/hailuo-02/standard":                   "hailuo02_std",
+  "minimax/hailuo-02/fast":                       "hailuo02_fast",
+  "minimax/hailuo-02/i2v-pro":                    "hailuo02",
+  "minimax/hailuo-02/i2v-standard":               "hailuo02_std",
+  "minimax/hailuo-02/t2v-pro":                    "hailuo02",
+  "minimax/hailuo-02/t2v-standard":               "hailuo02_std",
+  "minimax/hailuo-2.3/t2v-pro":                   "hailuo23",
+  "minimax/hailuo-2.3/t2v-standard":              "hailuo23f",
   "minimax/hailuo-2.3/i2v-standard":              "hailuo23f",
   "minimax/hailuo-2.3/i2v-pro":                   "hailuo23",
+  "minimax/hailuo-2.3/fast":                      "hailuo23f",
+  "minimax/hailuo-2.3/fast-pro":                  "hailuo23_fast_pro",
+  "minimax/live-illustrations":                   "minimax_live_illustrations",
   "openai/sora-2/text-to-video":                  "sora2",
   "openai/sora-2/image-to-video":                 "sora2_i2v",
   "openai/sora-2/text-to-video-pro":              "sora2_pro",
@@ -874,6 +893,50 @@ function resolveModelUserCharge(
     const q = (quality || "768p").trim().toLowerCase();
     const usdPerSec = q.includes("2k") ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"];
     return parseFloat((usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "minimax_h3_max") {
+    return parseFloat((0.14 * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "minimax_h3_max_turbo") {
+    return parseFloat((0.12 * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "hailuo02") {
+    return parseFloat((0.48 * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "hailuo02_std") {
+    const usd = durationSec >= 10 ? 0.56 : 0.23;
+    return parseFloat((usd * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "hailuo02_fast") {
+    const usd = durationSec >= 10 ? 0.15 : 0.10;
+    return parseFloat((usd * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "hailuo23" || constitutionId === "hailuo23_pro") {
+    return parseFloat((0.49 * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "hailuo23f" || constitutionId === "hailuo23_fast") {
+    const usd = durationSec >= 10 ? 0.32 : 0.19;
+    return parseFloat((usd * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "hailuo23_std") {
+    const usd = durationSec >= 10 ? 0.56 : 0.28;
+    return parseFloat((usd * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "hailuo23_fast_pro") {
+    return parseFloat((0.33 * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
+  }
+
+  if (constitutionId === "minimax_live_illustrations") {
+    return parseFloat((0.25 * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
   }
 
   if (constitutionId === "seedance2mini_i2v") {

@@ -1,3 +1,20 @@
+## مواصفات وعقد نماذج Minimax Hailuo الفيديو (2026-09-05)
+
+- قائمة الموديلات المعروضة للمشترك في صفحة /video تلتزم بالتسلسل الدقيق التالي:
+  1. Minimax H3 Max (شارة: New)
+  2. Minimax H3 Max Turbo (شارة: New)
+  3. Minimax H3 (شارة: 50% off)
+  4. MiniMax Hailuo 2.3
+  5. MiniMax Hailuo 2.3 Fast
+  6. MiniMax Hailuo 02 (توجيه ديناميكي ذكي يشمل Pro 1080p, Standard 768p, Fast 512p)
+  7. MiniMax Live Illustrations
+- **عائلة مسارات Hailuo 02 الدقيقة**:
+  - minimax/hailuo-02/i2v-pro: دقة 1080p، يقبل صورة بداية image وإطار نهاية اختياري end_image، تكلفة .48 -> 26.88 كريديت.
+  - minimax/hailuo-02/i2v-standard: دقة 768p، يقبل image و end_image، مدد 6s (.23 -> 12.88 كريديت) و 10s (.56 -> 31.36 كريديت).
+  - minimax/hailuo-02/t2v-pro: دقة 1080p للنصوص فقط، تكلفة .48 -> 26.88 كريديت.
+  - minimax/hailuo-02/t2v-standard: دقة 768p للنصوص، مدد 6s و 10s.
+  - minimax/hailuo-02/fast: دقة 512p، للمسودات، مدد 6s (.10 -> 5.60 كريديت) و 10s (.15 -> 8.40 كريديت).
+
 ## عقد Idempotency لصفحة الصوت (2026-09-04)
 
 - صفحة `/audio` تعرض واجهة `public/stude/sound.html` عند استخدام تجربة الاستوديو المضمنة.

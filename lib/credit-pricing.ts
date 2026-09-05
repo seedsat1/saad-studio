@@ -102,8 +102,21 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["kwaivgi/kling-v2.6-std/image-to-video", 5.0],
   ["kwaivgi/kling-v2.6-pro/text-to-video", 7.0],
   ["kwaivgi/kling-v2.6-pro/image-to-video", 7.0],
-  ["minimax/hailuo-2.3/i2v-standard", 6.18],
-  ["minimax/hailuo-2.3/i2v-pro", 10.26],
+  ["minimax-h3-max", 39.2],
+  ["minimax-h3-max-turbo", 33.6],
+  ["minimax-h3", 28.0],
+  ["minimax-hailuo-2.3", 27.44],
+  ["minimax-hailuo-2.3-fast", 10.64],
+  ["minimax-hailuo-02", 26.88],
+  ["minimax-live-illustrations", 14.0],
+  ["minimax/hailuo-02/pro", 26.88],
+  ["minimax/hailuo-02/standard", 12.88],
+  ["minimax/hailuo-02/fast", 5.6],
+  ["minimax/hailuo-2.3/t2v-pro", 27.44],
+  ["minimax/hailuo-2.3/i2v-pro", 27.44],
+  ["minimax/hailuo-2.3/fast", 10.64],
+  ["minimax/hailuo-2.3/fast-pro", 18.48],
+  ["minimax/live-illustrations", 14.0],
   ["openai/sora-2/text-to-video", 13.64],
   ["openai/sora-2/text-to-video-pro", 20.48],
   ["openai/sora-2-pro/text-to-video", 20.48],
@@ -205,11 +218,41 @@ function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number 
   return hasSoundEnabled(payload) ? parseFloat((baseCost * 1.5).toFixed(2)) : baseCost;
 }
 
-function getMinimaxH3Credits(payload?: VideoPayload): number {
+function getMinimaxH3Credits(payload?: VideoPayload, rateOverride?: number): number {
   const duration = readDuration(payload, 5);
   const quality = (readQuality(payload) || "768p").toLowerCase();
-  const usdPerSec = quality.includes("2k") ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"];
+  const usdPerSec = rateOverride !== undefined ? rateOverride : (quality.includes("2k") ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"]);
   return parseFloat(Math.max(1, duration * usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD).toFixed(2));
+}
+
+function getHailuoCredits(modelRoute: string, payload?: VideoPayload): number {
+  const duration = readDuration(payload, 6);
+  if (modelRoute === "minimax/hailuo-02/pro" || modelRoute === "minimax/hailuo-02/i2v-pro" || modelRoute === "minimax/hailuo-02/t2v-pro" || modelRoute === "minimax-hailuo-02") {
+    return 26.88;
+  }
+  if (modelRoute === "minimax/hailuo-02/standard" || modelRoute === "minimax/hailuo-02/i2v-standard" || modelRoute === "minimax/hailuo-02/t2v-standard") {
+    return duration >= 10 ? 31.36 : 12.88;
+  }
+  if (modelRoute === "minimax/hailuo-02/fast") {
+    return duration >= 10 ? 8.40 : 5.60;
+  }
+  if (modelRoute === "minimax/hailuo-2.3/t2v-pro" || modelRoute === "minimax/hailuo-2.3/i2v-pro" || modelRoute === "minimax-hailuo-2.3") {
+    return 27.44;
+  }
+  if (modelRoute === "minimax/hailuo-2.3/i2v-standard" || modelRoute === "minimax/hailuo-2.3/t2v-standard") {
+    return duration >= 10 ? 31.36 : 15.68;
+  }
+  if (modelRoute === "minimax/hailuo-2.3/fast" || modelRoute === "minimax-hailuo-2.3-fast") {
+    return duration >= 10 ? 17.92 : 10.64;
+  }
+  if (modelRoute === "minimax/hailuo-2.3/fast-pro") {
+    return 18.48;
+  }
+  if (modelRoute === "minimax/live-illustrations" || modelRoute === "minimax-live-illustrations") {
+    return 14.00;
+  }
+  const isPro = modelRoute.includes("pro");
+  return parseFloat(Math.max(1, duration * (isPro ? 4.48 : 2.15)).toFixed(2));
 }
 
 function getKling3Credits(payload?: VideoPayload): number {
@@ -350,11 +393,7 @@ function getSora2Credits(modelRoute: string, payload?: VideoPayload): number {
   return parseFloat(Math.max(1, duration * (isPro ? 5.12 : 3.41)).toFixed(2));
 }
 
-function getHailuoCredits(modelRoute: string, payload?: VideoPayload): number {
-  const duration = readDuration(payload, 6);
-  const isPro = modelRoute.includes("i2v-pro");
-  return parseFloat(Math.max(1, duration * (isPro ? 1.71 : 1.03)).toFixed(2));
-}
+
 
 function getGrokCredits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 6);
@@ -474,6 +513,12 @@ function getVideoCreditsByModelIdFallback(modelId: string, payload?: VideoPayloa
   if (modelId === "google/gemini-omni-flash" || modelId === "google/gemini-omni-video") {
     return applySoundMultiplier(getGeminiOmniFlashCredits(payload), payload);
   }
+  if (modelId === "minimax-h3-max") return getMinimaxH3Credits(payload, 0.14);
+  if (modelId === "minimax-h3-max-turbo") return getMinimaxH3Credits(payload, 0.12);
+  if (modelId === "minimax-h3") return getMinimaxH3Credits(payload);
+  if (modelId === "minimax-hailuo-2.3" || modelId === "minimax-hailuo-2.3-fast" || modelId === "minimax-hailuo-02" || modelId === "minimax-live-illustrations") {
+    return applySoundMultiplier(getHailuoCredits(modelId, payload), payload);
+  }
 
   const base = VIDEO_MODEL_ID_COST_MAP.get(modelId) ?? 0;
   if (!base) return 0;
@@ -521,8 +566,22 @@ export async function getVideoCreditsByRouteAsync(modelRoute: string, payload?: 
 }
 
 function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPayload): number {
-  if (modelRoute === "minimax/h3/reference-to-video") {
+  if (modelRoute === "minimax/h3/reference-to-video" || modelRoute === "minimax-h3") {
     return getMinimaxH3Credits(payload);
+  }
+  if (modelRoute === "minimax-h3-max") {
+    return getMinimaxH3Credits(payload, 0.14);
+  }
+  if (modelRoute === "minimax-h3-max-turbo") {
+    return getMinimaxH3Credits(payload, 0.12);
+  }
+  if (
+    modelRoute.startsWith("minimax/hailuo-") ||
+    modelRoute.startsWith("minimax-hailuo-") ||
+    modelRoute === "minimax/live-illustrations" ||
+    modelRoute === "minimax-live-illustrations"
+  ) {
+    return applySoundMultiplier(getHailuoCredits(modelRoute, payload), payload);
   }
   if (modelRoute === "kwaivgi/kling-v3-turbo-std/image-to-video" || modelRoute === "kwaivgi/kling-v3-turbo-pro/image-to-video") {
     const duration = readDuration(payload, 5);
@@ -616,9 +675,7 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
   ) {
     return applySoundMultiplier(getSora2Credits(modelRoute, payload), payload);
   }
-  if (modelRoute === "minimax/hailuo-2.3/i2v-standard" || modelRoute === "minimax/hailuo-2.3/i2v-pro") {
-    return applySoundMultiplier(getHailuoCredits(modelRoute, payload), payload);
-  }
+
   if (modelRoute === "x-ai/grok-imagine-video/text-to-video" || modelRoute === "x-ai/grok-imagine-video/edit-video") {
     return applySoundMultiplier(getGrokCredits(payload), payload);
   }

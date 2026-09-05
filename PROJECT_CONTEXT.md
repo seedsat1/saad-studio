@@ -1,3 +1,39 @@
+# Latest task: Minimax Hailuo Fleet Contract Alignment & Official WaveSpeed Pricing (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Add and align all 7 Minimax Hailuo models on `/video` and `/admin/models` with 100% strict adherence to official WaveSpeed OpenAPI reality.
+  - Zero randomness: exact integer durations (5/6/10/15s), end-frame only where supported (Hailuo 02), empty aspect_ratios array (aspect ratio inherited from image), stripped invalid parameters.
+  - Exact dropdown order matching subscriber screenshot:
+    1. Minimax H3 Max (New)
+    2. Minimax H3 Max Turbo (New)
+    3. Minimax H3 (50% off)
+    4. MiniMax Hailuo 2.3
+    5. MiniMax Hailuo 2.3 Fast
+    6. MiniMax Hailuo 02 (including Fast $0.10/$0.15, Standard $0.23/$0.56, Pro $0.48 routes)
+    7. MiniMax Live Illustrations
+- Files affected:
+  - `lib/video-model-registry.ts`
+  - `lib/video-models.ts`
+  - `lib/pricing.ts`
+  - `lib/credit-pricing.ts`
+  - `lib/provider-tariff-registry.ts`
+  - `lib/pricing-models.ts`
+  - `lib/dynamic-model-loader.ts`
+  - `app/api/video/route.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `components/canvas/CanvasNode.tsx`
+  - `lib/seedance-validation.ts`
+  - `test/hailuo-contract.test.ts`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Vitest `test/hailuo-contract.test.ts`: 5/5 tests PASS.
+  - Vitest `test/pricing-core.test.ts`: 27/27 tests PASS.
+  - Total vitest suite run: 32/32 tests PASS.
+  - All credit calculations verified against exact formula: USD * 40 * 1.4 = USD * 56.
+- Remaining step:
+  - None.
+
 # Latest task: Fix Audio Page 428 Idempotency Failure (2026-09-04)
 - Status: Completed & Verified (PASS).
 - User report:

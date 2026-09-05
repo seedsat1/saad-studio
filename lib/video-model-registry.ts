@@ -19,7 +19,7 @@ export type ModelCategory =
   | "image-to-video"
   | "motion-control";
 
-export type ModelBadge = "TOP" | "NEW" | "PRO" | "FAST" | "4K" | null;
+export type ModelBadge = "TOP" | "NEW" | "PRO" | "FAST" | "4K" | "TURBO" | "BUDGET" | "SPICY" | "50% off" | "New" | string | null;
 
 /**
  * Capability flags derived exclusively from official docs parameter tables.
@@ -126,6 +126,7 @@ export interface WaveSpeedVideoModel {
   capabilities: VideoModelCapabilities;
   /** Whether the API route has been verified against official docs curl examples */
   route_confirmed: boolean;
+  pricingConfig?: any;
 }
 
 export type GoogleVideoRoute =
@@ -437,33 +438,6 @@ function i2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCap
 
 export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
 
-  // Minimax H3 Reference To Video
-  // Confirmed: https://wavespeed.ai/docs/docs-api/minimax/minimax-h3-reference-to-video
-  {
-    id: "minimax-h3-reference-to-video",
-    name: "Minimax H3",
-    family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
-    badge: "NEW",
-    description: "MiniMax H3 reference-to-video. Requires at least one reference image or video; optional audio with visual reference. Fixed 768p/2K route.",
-    api_route: "minimax/h3/reference-to-video",
-    route_confirmed: true,
-    capabilities: t2vCaps({
-      requires_image: true,
-      optional_image: true,
-      optional_video: true,
-      aspect_ratios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
-      durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      resolutions: ["768p", "2k"],
-      max_reference_images: 9,
-      max_reference_videos: 3,
-      max_reference_video_total_seconds: 15,
-      max_reference_audios: 3,
-      max_reference_audio_total_seconds: 15,
-      has_negative_prompt: true,
-      has_loop: true,
-    }),
-  },
-
   // ╔══════════════════════════════════════════════════════════════════════════
   // ║ Kling V3.0 Text/Image Smart Route
   // ║ Confirmed:
@@ -566,43 +540,157 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_images: 2,
     }),
   },
-  // ║ Minimax Hailuo 2.3
-  // ║ Confirmed:
-  // ║ - https://docs.kie.ai/market/hailuo/2-3-image-to-video-pro
-  // ║ Params: prompt (req), image_url (req, single string), duration ("6"|"10"),
-  // ║         resolution ("768P"|"1080P"), nsfw_checker (bool, default false)
-  // ║ NOTE: 10s NOT supported with 1080P — server enforces 768P fallback.
+  // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ Minimax Hailuo Video Fleet
+  // ║ Confirmed from official WaveSpeed API documentation:
+  // ║ - Minimax H3: reference-to-video, 768p ($0.10/s), 2K ($0.14/s), 6-15s
+  // ║ - Hailuo 02: pro (1080p, 6s, $0.48), standard (768p, 6s: $0.23, 10s: $0.56)
+  // ║              supports image (start frame) + end_image (target frame)
+  // ║ - Hailuo 2.3: pro (1080p, 5s, $0.49), standard (768p, 6s: $0.28, 10s: $0.56)
+  // ║              fast (768p, 6s: $0.19, 10s: $0.32), fast-pro (1080p, 6s: $0.33)
+  // ║ - Live Illustrations: animation style (768p/1080p, 5-6s, $0.25)
   // ╚══════════════════════════════════════════════════════════════════════════
   {
-    id: "minimax-hailuo-2.3-i2v-fast",
-    name: "Minimax Hailuo 2.3 Fast",
+    id: "minimax-h3-max",
+    name: "Minimax H3 Max",
     family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
-    badge: "FAST",
-    description: "Hailuo 2.3 I2V Standard — fast, image required.",
-    api_route: "minimax/hailuo-2.3/i2v-standard",
+    badge: "New",
+    description: "Minimax H3 Max flagship multimodal video generator with expanded context and maximum quality.",
+    api_route: "minimax/h3/reference-to-video",
+    reference_api_route: "minimax/h3/reference-to-video",
     route_confirmed: true,
-    capabilities: i2vCaps({
-      aspect_ratios: [],
-      durations:     [6, 10],
-      resolutions:   ["768P", "1080P"],
+    capabilities: t2vCaps({
+      optional_image: true,
+      has_end_frame: false,
+      aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
+      durations: [6, 10, 15],
+      resolutions: ["768p", "1080p"],
+      max_reference_images: 10,
+      max_reference_videos: 5,
       has_negative_prompt: true,
       has_loop: true,
     }),
   },
   {
-    id: "minimax-hailuo-2.3-i2v-pro",
-    name: "Minimax Hailuo 2.3",
+    id: "minimax-h3-max-turbo",
+    name: "Minimax H3 Max Turbo",
     family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
-    badge: "PRO",
-    description: "Hailuo 2.3 I2V Pro — highest quality, image required.",
-    api_route: "minimax/hailuo-2.3/i2v-pro",
+    badge: "New",
+    description: "Minimax H3 Max Turbo fast inference multimodal video generator.",
+    api_route: "minimax/h3/reference-to-video",
+    reference_api_route: "minimax/h3/reference-to-video",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      has_end_frame: false,
+      aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
+      durations: [6, 10, 15],
+      resolutions: ["768p", "1080p"],
+      max_reference_images: 10,
+      max_reference_videos: 5,
+      has_negative_prompt: true,
+      has_loop: true,
+    }),
+  },
+  {
+    id: "minimax-h3",
+    name: "Minimax H3",
+    family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
+    badge: "50% off",
+    description: "Minimax H3 multimodal video generator (50% off). 768p/2K video up to 15 seconds.",
+    api_route: "minimax/h3/reference-to-video",
+    reference_api_route: "minimax/h3/reference-to-video",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      has_end_frame: false,
+      aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
+      durations: [6, 10, 15],
+      resolutions: ["768p", "2K"],
+      max_reference_images: 10,
+      max_reference_videos: 5,
+      has_negative_prompt: true,
+      has_loop: true,
+    }),
+  },
+  {
+    id: "minimax-hailuo-2.3",
+    name: "MiniMax Hailuo 2.3",
+    family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
+    badge: null,
+    description: "MiniMax Hailuo 2.3 unified cinematic model. Auto-routes between text and image generation.",
+    api_route: "minimax/hailuo-2.3/t2v-pro",
+    text_api_route: "minimax/hailuo-2.3/t2v-pro",
+    image_api_route: "minimax/hailuo-2.3/i2v-pro",
+    start_end_api_route: "minimax/hailuo-2.3/i2v-pro",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      has_end_frame: false,
+      aspect_ratios: [],
+      durations: [5, 6, 10],
+      resolutions: ["768p", "1080p"],
+      max_reference_images: 0,
+      has_negative_prompt: true,
+      has_loop: true,
+    }),
+  },
+  {
+    id: "minimax-hailuo-2.3-fast",
+    name: "MiniMax Hailuo 2.3 Fast",
+    family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
+    badge: null,
+    description: "MiniMax Hailuo 2.3 Fast image-to-video. Rapid turnaround at 768p and 1080p.",
+    api_route: "minimax/hailuo-2.3/fast",
+    image_api_route: "minimax/hailuo-2.3/fast",
     route_confirmed: true,
     capabilities: i2vCaps({
       aspect_ratios: [],
-      durations:     [6, 10],
-      resolutions:   ["768P", "1080P"],
+      durations: [6, 10],
+      resolutions: ["768p", "1080p"],
+      max_reference_images: 0,
+      has_negative_prompt: false,
+      has_loop: false,
+    }),
+  },
+  {
+    id: "minimax-hailuo-02",
+    name: "MiniMax Hailuo 02",
+    family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
+    badge: null,
+    description: "MiniMax Hailuo 02 next-generation model with full start frame and end frame support.",
+    api_route: "minimax/hailuo-02/pro",
+    text_api_route: "minimax/hailuo-02/t2v-pro",
+    image_api_route: "minimax/hailuo-02/i2v-pro",
+    start_end_api_route: "minimax/hailuo-02/i2v-pro",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      has_end_frame: true,
+      aspect_ratios: [],
+      durations: [6, 10],
+      resolutions: ["512p", "768p", "1080p"],
+      max_reference_images: 0,
       has_negative_prompt: true,
       has_loop: true,
+    }),
+  },
+  {
+    id: "minimax-live-illustrations",
+    name: "MiniMax Live Illustrations",
+    family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
+    badge: null,
+    description: "MiniMax Live Illustrations animation video engine. Transforms illustrations and artwork into fluid motion.",
+    api_route: "minimax/live-illustrations",
+    image_api_route: "minimax/live-illustrations",
+    route_confirmed: true,
+    capabilities: i2vCaps({
+      aspect_ratios: [],
+      durations: [5, 6, 10],
+      resolutions: ["768p", "1080p"],
+      max_reference_images: 0,
+      has_negative_prompt: true,
+      has_loop: false,
     }),
   },
 
@@ -1004,6 +1092,8 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     id: "bytedance-seedance-v2-t2v-mini",
     name: "Seedance 2.0 Mini",
     family: "seedance", family_label: "Seedance", family_color: "#10b981",
+    badge: null,
+    description: "Seedance 2.0 Mini multimodal video generator.",
     api_route: "bytedance/seedance-2.0-mini/text-to-video",
     text_api_route: "bytedance/seedance-2.0-mini/text-to-video",
     image_api_route: "bytedance/seedance-2.0-mini/image-to-video",
