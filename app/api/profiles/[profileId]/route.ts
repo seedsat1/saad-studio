@@ -17,7 +17,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { profileId } = params;
+    const resolvedParams = await Promise.resolve(params);
+    const profileId = resolvedParams?.profileId;
     if (!profileId) {
       return NextResponse.json({ error: "معرف البروفايل مطلوب" }, { status: 400 });
     }
@@ -92,7 +93,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { profileId } = params;
+    const resolvedParams = await Promise.resolve(params);
+    const profileId = resolvedParams?.profileId;
     if (!profileId) {
       return NextResponse.json({ error: "معرف البروفايل مطلوب" }, { status: 400 });
     }

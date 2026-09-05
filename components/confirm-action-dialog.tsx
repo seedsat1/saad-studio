@@ -4,34 +4,47 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ConfirmActionDialogProps = {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   title?: string;
   description?: string;
   confirmLabel?: string;
+  confirmText?: string;
   cancelLabel?: string;
+  cancelText?: string;
   loading?: boolean;
   destructive?: boolean;
-  onCancel: () => void;
+  onCancel?: () => void;
+  onClose?: () => void;
   onConfirm: () => void;
 };
 
 export function ConfirmActionDialog({
   open,
+  isOpen,
   title = "Confirm action?",
   description = "This action cannot be undone.",
-  confirmLabel = "Delete",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  confirmText,
+  cancelLabel,
+  cancelText,
   loading = false,
   destructive = true,
   onCancel,
+  onClose,
   onConfirm,
 }: ConfirmActionDialogProps) {
-  if (!open) return null;
+  const visible = Boolean(open ?? isOpen);
+  if (!visible) return null;
+
+  const handleCancel = onCancel || onClose || (() => {});
+  const resolvedConfirmLabel = confirmLabel || confirmText || "Delete";
+  const resolvedCancelLabel = cancelLabel || cancelText || "Cancel";
 
   return (
     <div
       className="fixed inset-0 z-[130] flex items-center justify-center bg-black/70 p-4 backdrop-blur-[2px]"
-      onClick={onCancel}
+      onClick={handleCancel}
     >
       <div
         className="relative w-full max-w-[500px] rounded-[28px] border border-white/10 bg-[#202124] p-5 text-left shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
@@ -42,10 +55,10 @@ export function ConfirmActionDialog({
       >
         <button
           type="button"
-          onClick={onCancel}
+          onClick={handleCancel}
           disabled={loading}
           className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/8 text-slate-300 transition-colors hover:bg-white/12 hover:text-white disabled:cursor-wait disabled:opacity-60"
-          aria-label={cancelLabel}
+          aria-label={resolvedCancelLabel}
         >
           <X className="h-5 w-5" />
         </button>
@@ -60,11 +73,11 @@ export function ConfirmActionDialog({
         <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancel}
             disabled={loading}
             className="rounded-xl border border-white/12 bg-transparent px-6 py-3 text-base font-extrabold text-white transition-colors hover:bg-white/8 disabled:cursor-wait disabled:opacity-60"
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             type="button"
@@ -75,7 +88,7 @@ export function ConfirmActionDialog({
               destructive ? "bg-[#ff3347] hover:bg-[#ff4658]" : "bg-cyan-600 hover:bg-cyan-500",
             )}
           >
-            {loading ? "Working..." : confirmLabel}
+            {loading ? "Working..." : resolvedConfirmLabel}
           </button>
         </div>
       </div>

@@ -173,7 +173,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         }
 
         const newProfile: UserProfile = data.profile;
-        setProfiles((prev) => [...prev, newProfile]);
+        setProfiles((prev) => {
+          const updated = [...prev, newProfile];
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem(STORAGE_PROFILES_CACHE_KEY, JSON.stringify(updated));
+            } catch {}
+          }
+          return updated;
+        });
         // Automatically switch to the newly created profile
         switchProfile(newProfile.id);
         return { success: true, profile: newProfile };
@@ -198,7 +206,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         }
 
         const updated: UserProfile = data.profile;
-        setProfiles((prev) => prev.map((p) => (p.id === profileId ? { ...p, ...updated } : p)));
+        setProfiles((prev) => {
+          const nextList = prev.map((p) => (p.id === profileId ? { ...p, ...updated } : p));
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem(STORAGE_PROFILES_CACHE_KEY, JSON.stringify(nextList));
+            } catch {}
+          }
+          return nextList;
+        });
         return { success: true, profile: updated };
       } catch (err: any) {
         return { success: false, error: err.message || "حدث خطأ أثناء تعديل البروفايل" };
@@ -226,6 +242,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             if (fallback) {
               switchProfile(fallback.id);
             }
+          }
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem(STORAGE_PROFILES_CACHE_KEY, JSON.stringify(remaining));
+            } catch {}
           }
           return remaining;
         });

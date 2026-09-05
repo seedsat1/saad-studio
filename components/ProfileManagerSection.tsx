@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export function ProfileManagerSection() {
   const {
@@ -142,6 +143,11 @@ export function ProfileManagerSection() {
     if (typeof document !== "undefined") {
       document.body.style.pointerEvents = "";
       document.body.style.overflow = "";
+    }
+    if (res.success) {
+      toast.success(lang === "ar" ? "تم حذف البروفايل بنجاح" : "Profile deleted successfully");
+    } else {
+      toast.error(res.error || (lang === "ar" ? "فشل حذف البروفايل" : "Failed to delete profile"));
     }
   };
 
@@ -480,7 +486,9 @@ export function ProfileManagerSection() {
 
       {/* Dialog: Confirm Delete */}
       <ConfirmActionDialog
+        open={Boolean(deletingId)}
         isOpen={Boolean(deletingId)}
+        onCancel={() => setDeletingId(null)}
         onClose={() => setDeletingId(null)}
         onConfirm={handleConfirmDelete}
         loading={deleting}
@@ -490,7 +498,9 @@ export function ProfileManagerSection() {
             ? "هل أنت متأكد من رغبتك في حذف هذا البروفايل؟ سيتم نقل كافة أعماله وتوليداته تلقائياً وبأمان إلى البروفايل الرئيسي لحسابك حتى لا تفقدها."
             : "Are you sure you want to delete this profile? All its creations will be safely migrated to your default profile."
         }
+        confirmLabel={lang === "ar" ? "نعم، حذف ونقل الأعمال" : "Yes, Delete & Migrate"}
         confirmText={lang === "ar" ? "نعم، حذف ونقل الأعمال" : "Yes, Delete & Migrate"}
+        cancelLabel={lang === "ar" ? "إلغاء" : "Cancel"}
         cancelText={lang === "ar" ? "إلغاء" : "Cancel"}
       />
     </section>
