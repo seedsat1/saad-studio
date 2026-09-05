@@ -227,4 +227,34 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     // Assert exactly the 6 canonical Minimax models exist
     expect(hailuoFleet.length).toBe(6);
   });
+
+  it("should never route any Minimax/Hailuo models to KIE and must route to WaveSpeed", async () => {
+    const { BASE_VIDEO_ROUTE_TO_KIE_MODEL, WAVESPEED_VIDEO_FALLBACK_MAP } = await import("@/lib/kie-model-routing");
+    
+    // Assert KIE video route map does not map any minimax or hailuo routes
+    const kieKeys = Object.keys(BASE_VIDEO_ROUTE_TO_KIE_MODEL);
+    const minimaxInKie = kieKeys.filter(k => k.includes("minimax") || k.includes("hailuo"));
+    expect(minimaxInKie).toEqual([]);
+
+    // Assert WAVESPEED_VIDEO_FALLBACK_MAP properly falls back legacy routes to WaveSpeed minimax routes
+    expect(WAVESPEED_VIDEO_FALLBACK_MAP["hailuo/02-text-to-video-pro"]).toBe("minimax/hailuo-02/t2v-pro");
+    expect(WAVESPEED_VIDEO_FALLBACK_MAP["hailuo/02-image-to-video-pro"]).toBe("minimax/hailuo-02/i2v-pro");
+    expect(WAVESPEED_VIDEO_FALLBACK_MAP["hailuo/2-3-image-to-video-pro"]).toBe("minimax/hailuo-2.3/i2v-pro");
+    expect(WAVESPEED_VIDEO_FALLBACK_MAP["minimax/hailuo-2.3/i2v-pro"]).toBe("minimax/hailuo-2.3/i2v-pro");
+
+    // Test mapToWavespeedInput for Hailuo 02 Pro with start and end image
+    const { mapToWavespeedInput } = await import("@/app/api/video/route");
+    const wsInput = mapToWavespeedInput({
+      prompt: "Cinematic camera movement",
+      image: "https://example.com/start.png",
+      end_image: "https://example.com/end.png",
+      duration: 6,
+    }, "minimax/hailuo-02/i2v-pro");
+
+    expect(wsInput.prompt).toBe("Cinematic camera movement");
+    expect(wsInput.image).toBe("https://example.com/start.png");
+    expect(wsInput.end_image).toBe("https://example.com/end.png");
+    expect(wsInput.duration).toBe(6);
+    expect(wsInput.enable_prompt_expansion).toBe(true);
+  });
 });

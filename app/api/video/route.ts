@@ -2454,6 +2454,8 @@ export async function POST(req: Request) {
     // WaveSpeed Models Checklist Bypass
     const isWaveSpeedOnlyModel = 
       modelRoute.startsWith("minimax/") ||
+      modelRoute.startsWith("minimax-") ||
+      modelRoute.startsWith("hailuo/") ||
       modelRoute.startsWith("bytedance/seedance-2.0") ||
       modelRoute.includes("seedance") ||
       modelRoute === "kwaivgi/kling-v3.0-std/text-to-video" ||
@@ -2565,28 +2567,67 @@ export async function POST(req: Request) {
       } else {
         modelRoute = hasImageInput ? "minimax/hailuo-2.3/i2v-pro" : "minimax/hailuo-2.3/t2v-pro";
       }
+    } else if (modelRoute.startsWith("minimax/h3") || modelRoute === "minimax-h3") {
+      const hasReference = Boolean(
+        hasNonEmptyStringList(payload.reference_image_urls) ||
+        hasNonEmptyStringList(payload.referenceImageUrls) ||
+        hasNonEmptyStringList(payload.reference_video_urls) ||
+        hasNonEmptyStringList(payload.referenceVideoUrls) ||
+        hasNonEmptyStringList(payload.reference_audio_urls) ||
+        hasNonEmptyStringList(payload.referenceAudioUrls)
+      );
+      const hasImg = Boolean(hasImage || hasNonEmptyString(payload.image) || hasNonEmptyString(payload.first_frame_url));
+      if (hasReference) {
+        modelRoute = "minimax/h3/reference-to-video";
+      } else if (hasImg) {
+        modelRoute = "minimax/h3/image-to-video";
+      } else {
+        modelRoute = "minimax/h3/text-to-video";
+      }
     }
 
-    let kieModel = (isDirectGoogleVeo31Route || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);
-    let wavespeedRoute: string | undefined = wavespeedFallbackMap[modelRoute];
-    if (isWaveSpeedOnlyModel && !wavespeedRoute) {
-      wavespeedRoute = modelRoute;
-    }
-
-    if (dynamicVideoModel) {
-      const isWaveSpeed =
+    const isWaveSpeedTarget =
+      isWaveSpeedOnlyModel ||
+      modelRoute.startsWith("minimax/") ||
+      modelRoute.startsWith("minimax-") ||
+      modelRoute.startsWith("hailuo/") ||
+      Boolean(dynamicVideoModel && (
+        dynamicVideoModel.provider === "wavespeed" ||
         dynamicVideoModel.family === "hailuo" ||
+        dynamicVideoModel.family === "minimax-hailuo" ||
+        dynamicVideoModel.family === "minimax" ||
+        dynamicVideoModel.family?.includes("hailuo") ||
+        dynamicVideoModel.family?.includes("minimax") ||
+        dynamicVideoModel.group?.toLowerCase().includes("hailuo") ||
+        dynamicVideoModel.group?.toLowerCase().includes("minimax") ||
+        (dynamicVideoModel as any).family_label?.toLowerCase().includes("hailuo") ||
+        (dynamicVideoModel as any).family_label?.toLowerCase().includes("minimax") ||
         dynamicVideoModel.family === "seedance" ||
+        dynamicVideoModel.family?.includes("seedance") ||
         dynamicVideoModel.family === "wan" ||
+        dynamicVideoModel.family?.includes("wan") ||
         dynamicVideoModel.family === "flux" ||
+        dynamicVideoModel.family?.includes("flux") ||
+        dynamicVideoModel.api_route?.startsWith("minimax/") ||
+        dynamicVideoModel.text_api_route?.startsWith("minimax/") ||
+        dynamicVideoModel.image_api_route?.startsWith("minimax/") ||
         dynamicVideoModel.api_route?.startsWith("alibaba/") ||
         dynamicVideoModel.text_api_route?.startsWith("alibaba/") ||
         dynamicVideoModel.image_api_route?.startsWith("alibaba/") ||
         dynamicVideoModel.api_route?.startsWith("black-forest-labs/") ||
         dynamicVideoModel.text_api_route?.startsWith("black-forest-labs/") ||
         dynamicVideoModel.image_api_route?.startsWith("black-forest-labs/") ||
-        dynamicVideoModel.isCustom;
-      if (isWaveSpeed) {
+        dynamicVideoModel.isCustom
+      ));
+
+    let kieModel = (isDirectGoogleVeo31Route || isWaveSpeedTarget) ? undefined : resolveKieVideoModel(modelRoute);
+    let wavespeedRoute: string | undefined = wavespeedFallbackMap[modelRoute];
+    if (isWaveSpeedTarget && !wavespeedRoute) {
+      wavespeedRoute = modelRoute;
+    }
+
+    if (dynamicVideoModel) {
+      if (isWaveSpeedTarget) {
         wavespeedRoute = modelRoute;
         kieModel = undefined;
       } else {
@@ -2619,6 +2660,13 @@ export async function POST(req: Request) {
         kieModel = undefined;
         isDirectGoogleVeo31Route = false;
       }
+    }
+
+    // Hard guard: Minimax/Hailuo and all other WaveSpeed models must NEVER be assigned to KIE
+    if (isWaveSpeedTarget) {
+      wavespeedRoute = wavespeedRoute || modelRoute;
+      kieModel = undefined;
+      isDirectGoogleVeo31Route = false;
     }
 
     if (

@@ -1,3 +1,54 @@
+# Latest task: Enforce WaveSpeed Direct Dispatch for All Minimax/Hailuo Video Models & Remove KIE Leaks (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed 503 error report:
+    ```json
+    {
+      "status": 503,
+      "modelRoute": "minimax/hailuo-02/pro",
+      "response": {
+        "error": "KIE provider is not active for generation execution.",
+        "code": "provider_not_active",
+        "provider": "kie",
+        "modelRoute": "minimax/hailuo-02/i2v-pro",
+        "providerModel": "minimax-hailuo-02-pro"
+      }
+    }
+    ```
+  - Root Cause Analysis:
+    1. In `app/api/video/route.ts`, when checking `if (dynamicVideoModel)`, the code checked `dynamicVideoModel.family === "hailuo"`. But in dynamic model loading, the family slug is derived from group "Minimax Hailuo" (`family: "minimax-hailuo"`).
+    2. Because `family === "hailuo"` was false and `provider === "wavespeed"` was not checked, the code entered the fallback `else` branch, setting `kieModel = dynamicVideoModel.id` (`"minimax-hailuo-02-pro"`) and clearing `wavespeedRoute = undefined`.
+    3. Furthermore, `lib/kie-model-routing.ts` had legacy entries for `minimax/hailuo-2.3/i2v-standard` and `minimax/hailuo-2.3/i2v-pro` mapped to KIE models (`BASE_VIDEO_ROUTE_TO_KIE_MODEL` and `BASE_KIE_VIDEO_MODEL_MAP`), leading `resolveKieVideoModel` to leak Hailuo into KIE.
+    4. KIE is in standby/inactive state across the platform, triggering `providerNotActiveResponse("kie", ...)` with HTTP 503.
+  - Solutions Implemented:
+    1. `app/api/video/route.ts`:
+       - Added comprehensive `isWaveSpeedTarget` condition checking `provider === "wavespeed"`, `family === "minimax-hailuo"`, `family.includes("minimax")`, `family.includes("hailuo")`, `group.includes("minimax")`, `group.includes("hailuo")`, `api_route.startsWith("minimax/")`, and `modelRoute.startsWith("minimax/")`.
+       - Implemented sub-route resolution for `minimax/h3` (text, image, reference).
+       - Added an immutable hard guard after `resolveRuntimeProviderRoute`: if `isWaveSpeedTarget` is true, `wavespeedRoute` is enforced to `wavespeedRoute || modelRoute`, `kieModel` is forced to `undefined`, and Google/KIE execution paths are completely locked out.
+    2. `lib/kie-model-routing.ts`:
+       - Purged `minimax/hailuo-2.3/*` from `BASE_VIDEO_ROUTE_TO_KIE_MODEL` and `BASE_KIE_VIDEO_MODEL_MAP`.
+       - Added explicit mappings to `WAVESPEED_VIDEO_FALLBACK_MAP` for all legacy and canonical Hailuo routes.
+    3. `app/api/generate/video/route.ts` & `app/api/panel/generate/video/route.ts`:
+       - Updated `resolveWaveSpeedModelRoute` to map `hailuo/2-3-*` and `minimax/hailuo-2.3/*` to WaveSpeed routes.
+    4. `app/api/cinema/generate/route.ts`:
+       - Removed `minimax/hailuo-2.3/*` from `ROUTE_TO_KIE_MODEL`.
+    5. Unit Tests:
+       - Added assertion in `test/hailuo-contract.test.ts` verifying zero Minimax/Hailuo routes exist in KIE routing tables and verifying WaveSpeed fallback and payload mapping for start/end frames.
+- Files affected:
+  - `app/api/video/route.ts`
+  - `lib/kie-model-routing.ts`
+  - `app/api/generate/video/route.ts`
+  - `app/api/panel/generate/video/route.ts`
+  - `app/api/cinema/generate/route.ts`
+  - `test/hailuo-contract.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest: 5/5 test suites passed (35/35 tests PASS).
+  - Clean git diff verified.
+- Remaining step:
+  - Commit and push to repository.
+
 # Latest task: Resolve 404 RSC Prefetch Errors for /video-edit and /drama-studio (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:

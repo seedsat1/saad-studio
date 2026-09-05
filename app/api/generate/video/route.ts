@@ -28,10 +28,10 @@ function resolveWaveSpeedModelRoute(modelId: string): string {
     "kling/v2-5-turbo-text-to-video-pro": "kling/v2-5-turbo-text-to-video-pro",
     "kling/v2-5-turbo-image-to-video-pro": "kling/v2-5-turbo-image-to-video-pro",
     
-    "hailuo/2-3-image-to-video-standard": "hailuo/2-3-image-to-video-standard",
-    "hailuo/2-3-image-to-video-pro": "hailuo/2-3-image-to-video-pro",
-    "minimax/hailuo-2.3/i2v-standard": "hailuo/2-3-image-to-video-standard",
-    "minimax/hailuo-2.3/i2v-pro": "hailuo/2-3-image-to-video-pro",
+    "hailuo/2-3-image-to-video-standard": "minimax/hailuo-2.3/i2v-standard",
+    "hailuo/2-3-image-to-video-pro": "minimax/hailuo-2.3/i2v-pro",
+    "minimax/hailuo-2.3/i2v-standard": "minimax/hailuo-2.3/i2v-standard",
+    "minimax/hailuo-2.3/i2v-pro": "minimax/hailuo-2.3/i2v-pro",
     
     "sora-2-text-to-video": "openai/sora-2/text-to-video",
     "sora-2-image-to-video": "openai/sora-2/image-to-video",

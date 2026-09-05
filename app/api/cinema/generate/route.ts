@@ -19,8 +19,6 @@ const KIE_BASE = "https://api.kie.ai/api/v1";
 const ROUTE_TO_KIE_MODEL: Record<string, string> = {
   "kwaivgi/kling-v3.0-pro/text-to-video": "kling-3.0/video",
   "kwaivgi/kling-v3.0-pro/motion-control": "kling-3.0/video",
-  "minimax/hailuo-2.3/i2v-standard": "hailuo/2-3-image-to-video-standard",
-  "minimax/hailuo-2.3/i2v-pro": "hailuo/2-3-image-to-video-pro",
   "openai/sora-2/text-to-video": "sora-2-text-to-video",
   "openai/sora-2/image-to-video": "sora-2-image-to-video",
 };

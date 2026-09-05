@@ -1,3 +1,18 @@
+## توجيه أسطول نماذج Minimax / Hailuo حصرياً عبر WaveSpeed ومنع تسرب KIE (2026-09-05)
+
+- **الخلل الذي تم تشخيصه ومعالجته**:
+  - عند محاولة توليد فيديو بنموذج Minimax (مثل `minimax-hailuo-02-pro` أو `minimax/hailuo-02/pro`)، كان يظهر خطأ 503:
+    `"KIE provider is not active for generation execution"`
+  - **السبب الجذري**:
+    - في فحص النماذج الديناميكية داخل `app/api/video/route.ts`، كان الشرط يفحص فقط `dynamicVideoModel.family === "hailuo"`. لكن في كود النماذج الديناميكية، يتم اشتقاق العائلة من المجموعة فينتج `minimax-hailuo`.
+    - بسبب عدم تطابق العائلة حرفياً وعدم فحص المزود `provider === "wavespeed"`، سقط التنفيذ في فرع الـ `else` الذي عيّن نموذج KIE ومسح مسار WaveSpeed.
+    - كما احتوت جداول الربط القديمة في `lib/kie-model-routing.ts` على مسارات تحويل لـ `minimax/hailuo-2.3/*` إلى KIE.
+- **التصحيحات المعتمدة**:
+  1. تم تضمين كافة فئات وأسماء Minimax و Hailuo في شرط التوجيه `isWaveSpeedTarget` لضمان اختيار WaveSpeed بنسبة 100%.
+  2. تم تطبيق حارس برمجي قاطع (`Hard Guard`) يمنع تعيين أي نموذج من أسطول Minimax/Hailuo إلى KIE أو Google تحت أي ظرف، حتى لو ورد استثناء في مركز التحكم أو قاعدة البيانات.
+  3. تطهير جداول التوجيه القديمة وحذف أي ربط لـ Hailuo مع KIE في كل من `lib/kie-model-routing.ts` و `app/api/cinema/generate/route.ts` و `app/api/generate/video/route.ts` و `app/api/panel/generate/video/route.ts`.
+  4. التحقق عبر الاختبار الآلي من عمل صياغة المدخلات (`mapToWavespeedInput`) لإطارات البداية والنهاية وإرسالها إلى واجهة برمجة تطبيقات WaveSpeed الرسمية.
+
 ## معالجة مسارات التنقل واستباق Next.js RSC لـ Cinema Edit و Drama Studio (2026-09-05)
 
 - **المشكلة التي تم رصدها**:
