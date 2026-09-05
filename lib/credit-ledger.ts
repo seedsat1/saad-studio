@@ -1048,6 +1048,7 @@ export async function saveAdditionalGenerationUrls(
   modelUsed: string,
   assetType: string,
   additionalUrls: string[],
+  profileId?: string | null,
 ): Promise<void> {
   if (!additionalUrls.length || !userId) return;
   const prepared = await Promise.all(
@@ -1064,6 +1065,7 @@ export async function saveAdditionalGenerationUrls(
       }
       return {
         userId,
+        profileId: profileId ?? null,
         prompt,
         mediaUrl: finalUrl,
         outputUrl: finalUrl,

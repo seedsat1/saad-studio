@@ -1,4 +1,53 @@
-# Latest task: Fix Profile Creation Page Freeze & Radix Pointer-Events Lock (2026-09-05)
+# Latest task: Complete Multi-Profile Generation Isolation & Dropdown Responsiveness (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed user feedback regarding multi-profile system:
+    1. Dropdown switcher not closing automatically on selection ("وعند الاختيار لاترجع المنسدلة اوتوماتيكيا").
+    2. Sluggish / delayed profile and gallery rendering without clean instant feedback ("وعند التنقل ليسة بسرعة يظهر البروفايل ويظهر الكلري").
+    3. Generation isolation failure where generations leaked across profiles ("ولم يتم عزل التوليد").
+  - Solutions Implemented:
+    1. `components/ProfileSwitcher.tsx`:
+       - Controlled `DropdownMenu` with `open={menuOpen}` state.
+       - Replaced raw button rows with `<DropdownMenuItem onSelect={() => handleSwitch(p.id)}>`.
+       - Explicitly sets `setMenuOpen(false)` on switch and modal open so the menu collapses immediately on click.
+       - Render profile instantly on frame 0 without skeleton pulse if cached in `localStorage`.
+    2. `lib/profile-context.tsx`:
+       - Added synchronous `localStorage` initialization for `profiles` and `activeProfileId` (`STORAGE_PROFILES_CACHE_KEY = "saad_cached_user_profiles"`), eliminating blank/skeleton state on route changes.
+    3. Generation Isolation Across All Endpoints:
+       - `app/api/assets/route.ts`: Automatically falls back to user's default profile (`isDefault: true`) if `profileId` is missing/null, guaranteeing unassigned requests never leak records across profiles. Safe optional chaining protects against incomplete mocks.
+       - `app/api/generate/image/route.ts`: Extracts `profileId` from headers/body, passes to `chargeInput`, and passes `profileId` to all `saveAdditionalGenerationUrls` calls for OpenAI, Google, and WaveSpeed.
+       - `app/api/generate/upscale/route.ts`: Extracts `profileId` and embeds in `charge`.
+       - `app/api/generate/face-swap/route.ts`: Extracts `profileId` and embeds in `charge`.
+       - `app/api/image/route.ts`: Extracts `profileId` and embeds in `charge` and `saveAdditionalGenerationUrls`.
+       - `app/api/assets/persist/route.ts`: Preserves and sets `profileId` on the generation record during durable upload.
+       - `lib/credit-ledger.ts`: Updated `saveAdditionalGenerationUrls` signature to accept and persist `profileId?: string | null`.
+    4. Frontend Instant Switching:
+       - `app/(dash)/(routes)/video/page.tsx`: In `saad-profile-switched`, immediately clears `setResults([])`, passes `profileId` in query, headers, and request body.
+       - `app/(dash)/(routes)/gallery/page.tsx`: In `saad-profile-switched`, immediately clears `setAssets([])`, passes `profileId` in query and headers.
+       - `app/(dash)/(routes)/image/page.tsx`: Integrated `useAuthenticatedFetch` and `useActiveProfile`, passes `overrideProfileId` to `loadPersistedImages`, clears `setResults([])` synchronously on `saad-profile-switched`, and attaches `profileId` across all generation actions (create, relight, inpaint, upscale, face-swap, enhance, persist).
+- Files affected:
+  - `components/ProfileSwitcher.tsx`
+  - `lib/profile-context.tsx`
+  - `app/api/assets/route.ts`
+  - `app/api/generate/image/route.ts`
+  - `app/api/generate/upscale/route.ts`
+  - `app/api/generate/face-swap/route.ts`
+  - `app/api/image/route.ts`
+  - `app/api/assets/persist/route.ts`
+  - `lib/credit-ledger.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/gallery/page.tsx`
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `test/assets-route.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest: 5/5 test suites passed (34/34 tests PASS).
+  - Git diff clean.
+- Remaining step:
+  - Commit and push to repository.
+
+# Previous task: Fix Profile Creation Page Freeze & Radix Pointer-Events Lock (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Addressed user report and screenshot showing page freeze / unresponsive clicks after creating a profile: "عندما عملت بروفايل تجمدة الصفحة".

@@ -20,6 +20,10 @@ vi.mock("../lib/prismadb", () => ({
       findMany: vi.fn(),
       count: vi.fn(),
     },
+    userProfile: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+    },
   },
 }));
 

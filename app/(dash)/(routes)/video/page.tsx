@@ -1844,13 +1844,28 @@ function VideoPageInner() {
       : undefined,
     providerRequestId: item.providerRequestId,
   }), []);
-  const loadPersistedVideos = useCallback(async (nextPage = 0, mode: "replace" | "append" = "replace") => {
+  const loadPersistedVideos = useCallback(async (nextPage = 0, mode: "replace" | "append" = "replace", overrideProfileId?: string) => {
     if (mode === "append") setLoadingMoreVideos(true);
     try {
-      const params = new URLSearchParams({ type: "video", page: String(nextPage), limit: "12" });
+      const targetProfileId = overrideProfileId !== undefined
+        ? overrideProfileId
+        : (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : "");
+
+      const params = new URLSearchParams({
+        type: "video",
+        page: String(nextPage),
+        limit: "12",
+        ...(targetProfileId ? { profileId: targetProfileId } : {}),
+      });
       const res = await fetchWithAuth(`/api/assets?${params.toString()}`, { cache: "no-cache" });
       const data = await res.json().catch(() => null);
-      if (!res.ok || !Array.isArray(data?.assets)) return;
+      if (!res.ok || !Array.isArray(data?.assets)) {
+        if (mode === "replace") {
+          setResults([]);
+          resultUrlsRef.current = new Set();
+        }
+        return;
+      }
 
       const pageSeen = new Set<string>();
       const mapped = data.assets.flatMap((asset: any) => {
@@ -1874,7 +1889,10 @@ function VideoPageInner() {
       setVideoResultsPage(typeof data?.page === "number" ? data.page : nextPage);
       setVideoResultsHasMore(Boolean(data?.hasMore));
     } catch {
-      // keep local results only
+      if (mode === "replace") {
+        setResults([]);
+        resultUrlsRef.current = new Set();
+      }
     } finally {
       if (mode === "append") setLoadingMoreVideos(false);
     }
@@ -1899,13 +1917,21 @@ function VideoPageInner() {
       setDeletingId(null);
     }
   }, [deleteTargetId, deletingId, fetchWithAuth, loadPersistedVideos]);
+
   useEffect(() => {
     void loadPersistedVideos(0, "replace");
   }, [loadPersistedVideos]);
 
   useEffect(() => {
-    const handleProfileSwitch = () => {
-      void loadPersistedVideos(0, "replace");
+    const handleProfileSwitch = (e: Event) => {
+      const customEvent = e as CustomEvent<{ profileId?: string }>;
+      const newProfileId = customEvent.detail?.profileId ?? (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : "");
+      // Immediately clear results for instant responsive feedback
+      setResults([]);
+      resultUrlsRef.current = new Set();
+      setVideoResultsPage(0);
+      setVideoResultsHasMore(false);
+      void loadPersistedVideos(0, "replace", newProfileId || "");
     };
     window.addEventListener("saad-profile-switched", handleProfileSwitch);
     return () => window.removeEventListener("saad-profile-switched", handleProfileSwitch);
@@ -3233,13 +3259,15 @@ function VideoPageInner() {
       }
 
       const idempotencyKey = `video-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      const activeProfileId = typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : null;
       const res = await fetchWithAuth("/api/video", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Idempotency-Key": idempotencyKey,
+          ...(activeProfileId ? { "x-profile-id": activeProfileId } : {}),
         },
-        body: JSON.stringify({ modelRoute: requestModelRoute, payload }),
+        body: JSON.stringify({ modelRoute: requestModelRoute, payload, profileId: activeProfileId }),
       });
 
       let data: { taskId?: string; error?: string; publicError?: string } = {};

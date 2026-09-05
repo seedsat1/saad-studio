@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     // Verify this generation belongs to the authenticated user
     const generation = await prismadb.generation.findUnique({
       where: { id: generationId },
-      select: { id: true, userId: true, mediaUrl: true, assetType: true, posterUrl: true, posterStatus: true },
+      select: { id: true, userId: true, mediaUrl: true, assetType: true, posterUrl: true, posterStatus: true, profileId: true },
     });
 
     if (!generation || generation.userId !== userId) {
@@ -137,9 +137,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Update the generation record with the permanent URL
+    const updateData: Record<string, any> = { mediaUrl: permanentUrl, outputUrl: permanentUrl, status: "completed" };
+    const profileIdFromHeader = req.headers.get("x-profile-id") || req.cookies.get("saad_active_profile_id")?.value;
+    const profileId = typeof body?.profileId === "string" ? body.profileId : profileIdFromHeader;
+    if (!generation.profileId && profileId && profileId !== "undefined" && profileId !== "null") {
+      updateData.profileId = profileId;
+    }
+
     await prismadb.generation.update({
       where: { id: generationId },
-      data: { mediaUrl: permanentUrl, outputUrl: permanentUrl, status: "completed" },
+      data: updateData,
     });
 
     const assetType = String(generation.assetType || "").toLowerCase();

@@ -53,6 +53,7 @@ const ProfileContext = createContext<ProfileContextType>({
 });
 
 const STORAGE_ACTIVE_PROFILE_KEY = "saad_active_profile_id";
+const STORAGE_PROFILES_CACHE_KEY = "saad_cached_user_profiles";
 
 function setCookie(name: string, value: string, days = 365) {
   if (typeof document === "undefined") return;
@@ -62,9 +63,34 @@ function setCookie(name: string, value: string, days = 365) {
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { isSignedIn, isLoaded, userId } = useAuth();
-  const [profiles, setProfiles] = useState<UserProfile[]>([]);
-  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+
+  const [profiles, setProfiles] = useState<UserProfile[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem(STORAGE_PROFILES_CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(STORAGE_ACTIVE_PROFILE_KEY);
+    }
+    return null;
+  });
+
+  const [isLoading, setIsLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      const raw = localStorage.getItem(STORAGE_PROFILES_CACHE_KEY);
+      if (raw) return false;
+    }
+    return true;
+  });
 
   const fetchProfiles = useCallback(async () => {
     if (!isSignedIn) {
@@ -80,6 +106,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       const list: UserProfile[] = Array.isArray(data?.profiles) ? data.profiles : [];
       setProfiles(list);
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(STORAGE_PROFILES_CACHE_KEY, JSON.stringify(list));
+        } catch {}
+      }
 
       // Determine active profile
       let targetId = typeof window !== "undefined" ? localStorage.getItem(STORAGE_ACTIVE_PROFILE_KEY) : null;

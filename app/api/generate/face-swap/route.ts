@@ -159,12 +159,16 @@ export async function POST(req: NextRequest) {
       ? await uploadDataUrlToWaveSpeed(targetImageUrl, waveKey)
       : targetImageUrl;
 
+    const profileIdFromHeader = req.headers.get("x-profile-id") || req.cookies.get("saad_active_profile_id")?.value;
+    const profileId = typeof body?.profileId === "string" ? body.profileId : profileIdFromHeader || undefined;
+
     const result = await runInlineGeneration({
       modelId: "tool:face-swap",
       modality: "image",
       currentRoute: { provider: "wavespeed", route: WAVESPEED_FACE_SWAP_MODEL },
       charge: {
         userId,
+        profileId,
         credits: creditsToCharge,
         prompt: "Face swap",
         assetType: "IMAGE",

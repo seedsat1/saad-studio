@@ -55,6 +55,8 @@ import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 import { PromptEditorModal } from "@/components/PromptEditorModal";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 import { HOOK_CHARACTERS } from "@/lib/hook-studio-config";
+import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
+import { useActiveProfile } from "@/lib/profile-context";
 
 type ToolId = "create" | "relight" | "inpaint" | "upscale" | "face-swap" | "enhance";
 
@@ -1237,6 +1239,8 @@ export default function ImageWorkspacePage() {
   }, [rawImageModels]);
 
   const [activeTool, setActiveTool] = useState<ToolId>("create");
+  const { fetchWithAuth } = useAuthenticatedFetch();
+  const { activeProfile } = useActiveProfile();
   const [selectedModel, setSelectedModel] = useState<ImageModel>(DEFAULT_VISIBLE_IMAGE_MODEL);
   const [hasAnnualUnlimitedImages, setHasAnnualUnlimitedImages] = useState(false);
   const [annualUnlimitedEnabled, setAnnualUnlimitedEnabled] = useState(false);
@@ -1407,14 +1411,28 @@ export default function ImageWorkspacePage() {
     };
   }, [isAuthLoaded, isSignedIn]);
 
-  const loadPersistedImages = useCallback(async (nextPage = 0, mode: "replace" | "append" = "replace") => {
+  const loadPersistedImages = useCallback(async (nextPage = 0, mode: "replace" | "append" = "replace", overrideProfileId?: string) => {
     if (isAuthLoaded && !isSignedIn) return;
     if (mode === "append") setLoadingMoreResults(true);
     try {
-      const params = new URLSearchParams({ type: "image", page: String(nextPage), limit: "25" });
-      const res = await fetch(`/api/assets?${params.toString()}`, { cache: "no-cache" });
+      const targetProfileId = overrideProfileId !== undefined
+        ? overrideProfileId
+        : (activeProfile?.id || (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : ""));
+
+      const params = new URLSearchParams({
+        type: "image",
+        page: String(nextPage),
+        limit: "25",
+        ...(targetProfileId ? { profileId: targetProfileId } : {}),
+      });
+      const res = await fetchWithAuth(`/api/assets?${params.toString()}`, { cache: "no-cache" });
       const data = await res.json().catch(() => null);
-      if (!res.ok || !Array.isArray(data?.assets)) return;
+      if (!res.ok || !Array.isArray(data?.assets)) {
+        if (mode === "replace") {
+          setResults([]);
+        }
+        return;
+      }
 
       const mapped: ResultItem[] = data.assets.map((asset: any) => mapAssetToResultItem(asset));
       setResults((prev) => {
@@ -1432,19 +1450,27 @@ export default function ImageWorkspacePage() {
       setResultsPage(typeof data?.page === "number" ? data.page : nextPage);
       setResultsHasMore(Boolean(data?.hasMore));
     } catch {
-      // no-op: keep current state
+      if (mode === "replace") {
+        setResults([]);
+      }
     } finally {
       if (mode === "append") setLoadingMoreResults(false);
     }
-  }, [isAuthLoaded, isSignedIn]);
+  }, [activeProfile?.id, fetchWithAuth, isAuthLoaded, isSignedIn]);
 
   useEffect(() => {
     void loadPersistedImages(0, "replace");
   }, [loadPersistedImages]);
 
   useEffect(() => {
-    const handleProfileSwitch = () => {
-      void loadPersistedImages(0, "replace");
+    const handleProfileSwitch = (e: Event) => {
+      const customEvent = e as CustomEvent<{ profileId?: string }>;
+      const newProfileId = customEvent.detail?.profileId ?? (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : "");
+      // Immediately clear results for instant responsive feedback
+      setResults([]);
+      setResultsPage(0);
+      setResultsHasMore(false);
+      void loadPersistedImages(0, "replace", newProfileId || "");
     };
     window.addEventListener("saad-profile-switched", handleProfileSwitch);
     return () => window.removeEventListener("saad-profile-switched", handleProfileSwitch);
@@ -1688,6 +1714,7 @@ export default function ImageWorkspacePage() {
       selectedPalette,
     });
     const activeQuality = qualityOptions.length ? (quality || qualityOptions[0]) : (quality || undefined);
+    const currentProfileId = activeProfile?.id || (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : undefined);
     const body: Record<string, unknown> = {
       prompt: effectivePrompt,
       modelId: selectedModel.id,
@@ -1696,6 +1723,7 @@ export default function ImageWorkspacePage() {
       quality: activeQuality,
       resolution: activeQuality,
       useAnnualUnlimited: isAnnualUnlimitedCreate,
+      profileId: currentProfileId,
     };
     if (imageUrls.length > 0) {
       // Always send imageInputField so the route knows which API field to use
@@ -1704,7 +1732,7 @@ export default function ImageWorkspacePage() {
       else body.imageUrls = imageUrls;
     }
     // 1. Call /api/generate/image
-    const res = await fetch("/api/generate/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const res = await fetchWithAuth("/api/generate/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || "Generation failed");
     const urls = normalizeImageResponseUrls(data);
@@ -1721,10 +1749,10 @@ export default function ImageWorkspacePage() {
     if (generationId && urls.length) {
       void (async () => {
         try {
-          const persistRes = await fetch("/api/assets/persist", {
+          const persistRes = await fetchWithAuth("/api/assets/persist", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ generationId, mediaUrl: urls[0] }),
+            body: JSON.stringify({ generationId, mediaUrl: urls[0], profileId: currentProfileId }),
           });
           const persistData = await persistRes.json();
           if (persistRes.ok && persistData.url) {
@@ -1745,7 +1773,8 @@ export default function ImageWorkspacePage() {
     const imgData = await fileToDataUrl(relightFile);
     const payload = { model: "seedream/4.5-edit", prompt: `Relight this image with ${preset.prompt}. Brightness:${relightBrightness} Contrast:${relightContrast} Temperature:${relightTemperature > 50 ? "warm" : "cool"} Direction:${relightDirection}`, image: imgData, num_images: relightVariations };
     console.log("RELIGHT_PAYLOAD", payload);
-    const res = await fetch("/api/generate/image", {
+    const currentProfileId = activeProfile?.id || (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : undefined);
+    const res = await fetchWithAuth("/api/generate/image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1754,6 +1783,7 @@ export default function ImageWorkspacePage() {
         numImages: relightVariations,
         imageInputField: "image_urls",
         imageUrl: imgData,
+        profileId: currentProfileId,
       }),
     });
     const data = await res.json();
@@ -1763,7 +1793,7 @@ export default function ImageWorkspacePage() {
     const before = URL.createObjectURL(relightFile);
     if (urls[0]) setCompare({ before, after: urls[0] });
     addResultItems(urls, "relight", "Seedream 4.5 Edit", payload.prompt, "source");
-  }, [addResultItems, relightBrightness, relightContrast, relightDirection, relightFile, relightPreset, relightTemperature, relightVariations]);
+  }, [activeProfile?.id, addResultItems, fetchWithAuth, relightBrightness, relightContrast, relightDirection, relightFile, relightPreset, relightTemperature, relightVariations]);
 
   const generateInpaint = useCallback(async () => {
     if (!inpaintFile) throw new Error("Upload image first");
@@ -1773,7 +1803,8 @@ export default function ImageWorkspacePage() {
     const guideImage = await buildInpaintGuideImage(imageData, maskData);
     const payload = { model: inpaintModelId, prompt, image: imageData, mask: maskData, guide: guideImage, num_images: inpaintVariations };
     console.log("INPAINT_PAYLOAD", payload);
-    const res = await fetch("/api/generate/image", {
+    const currentProfileId = activeProfile?.id || (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : undefined);
+    const res = await fetchWithAuth("/api/generate/image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1782,6 +1813,7 @@ export default function ImageWorkspacePage() {
         numImages: inpaintVariations,
         imageInputField: "image_urls",
         imageUrl: guideImage,
+        profileId: currentProfileId,
       }),
     });
     const data = await res.json();
@@ -1791,7 +1823,7 @@ export default function ImageWorkspacePage() {
     const before = URL.createObjectURL(inpaintFile);
     if (urls[0]) setCompare({ before, after: urls[0] });
     addResultItems(urls, "inpaint", inpaintModelId, prompt, "source");
-  }, [addResultItems, inpaintFile, inpaintModelId, inpaintVariations, prompt]);
+  }, [activeProfile?.id, addResultItems, fetchWithAuth, inpaintFile, inpaintModelId, inpaintVariations, prompt]);
 
   const generateUpscale = useCallback(async () => {
     if (!upscaleFile) throw new Error("Upload media first");
@@ -1801,7 +1833,8 @@ export default function ImageWorkspacePage() {
     const data = await fileToDataUrl(upscaleFile);
     const payload = { endpoint: "/api/upscale", media: data, scale: upscaleScale, denoise: upDenoise, sharpen: upSharpen, face_enhance: upFace, color_enhance: upColor, format: upFormat, quality: upQuality };
     console.log("UPSCALE_PAYLOAD", payload);
-    const res = await fetch("/api/generate/upscale", {
+    const currentProfileId = activeProfile?.id || (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : undefined);
+    const res = await fetchWithAuth("/api/generate/upscale", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1813,6 +1846,7 @@ export default function ImageWorkspacePage() {
         colorEnhance: upColor,
         format: upFormat,
         quality: upQuality,
+        profileId: currentProfileId,
       }),
     });
     const json = await res.json();
@@ -1822,7 +1856,7 @@ export default function ImageWorkspacePage() {
     const before = URL.createObjectURL(upscaleFile);
     setCompare({ before, after: out });
     addResultItems([out], "upscale", "Video Upscaler Pro", "Upscaled media", "source");
-  }, [addResultItems, upColor, upDenoise, upFace, upFormat, upQuality, upSharpen, upscaleFile, upscaleScale]);
+  }, [activeProfile?.id, addResultItems, fetchWithAuth, upColor, upDenoise, upFace, upFormat, upQuality, upSharpen, upscaleFile, upscaleScale]);
 
   const generateFaceSwap = useCallback(async () => {
     if (!faceSource || !faceTarget) throw new Error("Upload source and target");
@@ -1838,10 +1872,14 @@ export default function ImageWorkspacePage() {
       match_skin: faceSkin,
     };
     console.log("FACE_SWAP_PAYLOAD", payload);
-    const res = await fetch("/api/generate/face-swap", {
+    const currentProfileId = activeProfile?.id || (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : undefined);
+    const res = await fetchWithAuth("/api/generate/face-swap", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        profileId: currentProfileId,
+      }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || "Face swap failed");
@@ -1850,7 +1888,7 @@ export default function ImageWorkspacePage() {
     const before = URL.createObjectURL(faceTarget);
     setCompare({ before, after: out });
     addResultItems([out], "face-swap", "Image Face Swap Pro", "Face swap result", "source");
-  }, [addResultItems, faceBlend, faceExpression, faceIndex, faceSkin, faceSource, faceTarget]);
+  }, [activeProfile?.id, addResultItems, faceBlend, faceExpression, faceIndex, faceSkin, faceSource, faceTarget, fetchWithAuth]);
 
   const generateEnhance = useCallback(async () => {
     if (!enhanceFiles.length) throw new Error("Upload at least one image first");
@@ -1862,18 +1900,20 @@ export default function ImageWorkspacePage() {
     const enhancePrompt =
       prompt.trim() ||
       "Enhance and restore this photo. Preserve the subject's exact identity, face features, skin tone, and appearance. Improve sharpness, detail, and remove noise and blur. Photorealistic, high quality.";
+    const currentProfileId = activeProfile?.id || (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : undefined);
     const body: Record<string, unknown> = {
       prompt: enhancePrompt,
       modelId: enhanceModel.id,
       numImages: 1,
       imageInputField: enhanceModel.imageInputField,
+      profileId: currentProfileId,
     };
     if (imgDataArray.length === 1) {
       body.imageUrl = imgDataArray[0];
     } else {
       body.imageUrls = imgDataArray;
     }
-    const res = await fetch("/api/generate/image", {
+    const res = await fetchWithAuth("/api/generate/image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -1885,7 +1925,7 @@ export default function ImageWorkspacePage() {
     const before = URL.createObjectURL(enhanceFiles[0]);
     if (urls[0]) setCompare({ before, after: urls[0] });
     addResultItems(urls, "enhance", enhanceModel.label, enhancePrompt, "source");
-  }, [addResultItems, enhanceFiles, enhanceModelId, prompt]);
+  }, [activeProfile?.id, addResultItems, enhanceFiles, enhanceModelId, fetchWithAuth, prompt]);
 
   const handleGenerate = useCallback(async () => {
     if (!canGenerate) return;

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, ImageIcon, Video, Music, Box, FileText, Trash2, Download, RefreshCw, X, ChevronLeft, ChevronRight, Copy, Check, ExternalLink, FolderPlus, Folder, CheckSquare, Square, ListChecks } from "lucide-react";
 import { cn, getFallbackUrls } from "@/lib/utils";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
+import { useActiveProfile } from "@/lib/profile-context";
 
 type AssetType = "image" | "video" | "audio" | "3d" | "text";
 type FilterValue = "all" | "image" | "video" | "audio" | "3d";
@@ -85,6 +87,9 @@ export default function GalleryPage() {
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
+  const { fetchWithAuth } = useAuthenticatedFetch();
+  const { activeProfile } = useActiveProfile();
+
   // Selection mode + multi-select state
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -107,17 +112,22 @@ export default function GalleryPage() {
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
   const exitSelectionMode = useCallback(() => { setSelectionMode(false); setSelectedIds(new Set()); }, []);
 
-  const loadAssets = useCallback(async (filter: FilterValue, nextPage = 0, mode: "replace" | "append" = "replace") => {
+  const loadAssets = useCallback(async (filter: FilterValue, nextPage = 0, mode: "replace" | "append" = "replace", overrideProfileId?: string) => {
     setLoading(true);
     setError(null);
 
     try {
+      const targetProfileId = overrideProfileId !== undefined
+        ? overrideProfileId
+        : (activeProfile?.id || (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : ""));
+
       const params = new URLSearchParams({
         type: filter,
         page: String(nextPage),
         limit: "12",
+        ...(targetProfileId ? { profileId: targetProfileId } : {}),
       });
-      const res = await fetch(`/api/assets?${params.toString()}`, { cache: "no-cache" });
+      const res = await fetchWithAuth(`/api/assets?${params.toString()}`, { cache: "no-cache" });
       const data = await res.json().catch(() => null);
 
       if (!res.ok || !Array.isArray(data?.assets)) {
@@ -136,7 +146,7 @@ export default function GalleryPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeProfile?.id, fetchWithAuth]);
 
   useEffect(() => {
     setPage(0);
@@ -145,10 +155,14 @@ export default function GalleryPage() {
   }, [activeFilter, loadAssets]);
 
   useEffect(() => {
-    const handleProfileSwitch = () => {
+    const handleProfileSwitch = (e: Event) => {
+      const customEvent = e as CustomEvent<{ profileId?: string }>;
+      const newProfileId = customEvent.detail?.profileId ?? (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : "");
+      // Immediately clear assets for instant visual switch
+      setAssets([]);
       setPage(0);
       setHasMore(false);
-      void loadAssets(activeFilter, 0, "replace");
+      void loadAssets(activeFilter, 0, "replace", newProfileId || "");
     };
     window.addEventListener("saad-profile-switched", handleProfileSwitch);
     return () => window.removeEventListener("saad-profile-switched", handleProfileSwitch);

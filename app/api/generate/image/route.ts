@@ -573,6 +573,9 @@ export async function POST(req: NextRequest) {
       feature,
     } = body;
 
+    const profileIdFromHeader = req.headers.get("x-profile-id") || req.cookies.get("saad_active_profile_id")?.value;
+    const profileId = typeof (body as any)?.profileId === "string" ? (body as any).profileId : profileIdFromHeader || undefined;
+
     if (!prompt || !modelId) {
       return NextResponse.json(
         { error: "Missing required fields: prompt, modelId." },
@@ -723,6 +726,7 @@ export async function POST(req: NextRequest) {
 
     const chargeInput = {
       userId,
+      profileId,
       prompt: sanitizePrompt(prompt, 5000),
       assetType: "IMAGE",
       modelUsed: modelId,
@@ -837,6 +841,7 @@ export async function POST(req: NextRequest) {
           modelId,
           "IMAGE",
           imageUrls.slice(1),
+          profileId,
         ).catch((err) => {
           console.error("[generate/image] Failed to save additional OpenAI URLs", err);
         });
@@ -907,6 +912,7 @@ export async function POST(req: NextRequest) {
           modelId,
           "IMAGE",
           imageUrls.slice(1),
+          profileId,
         ).catch((err) => {
           console.error("[generate/image] Failed to save additional Google URLs", err);
         });
@@ -993,6 +999,7 @@ export async function POST(req: NextRequest) {
           modelId,
           "IMAGE",
           imageUrls.slice(1),
+          profileId,
         ).catch((err) => {
           console.error("[generate-image] Failed to save additional WaveSpeed URLs", err);
         });

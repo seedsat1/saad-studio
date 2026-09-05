@@ -391,16 +391,26 @@ export async function GET(req: NextRequest) {
     const typeWhere = requestedType === "all" ? {} : buildAssetTypeWhere(requestedType);
 
     // Profile isolation: filter by profileId if requested or active
-    const rawProfileId = req.nextUrl.searchParams.get("profileId") ||
+    let rawProfileId = req.nextUrl.searchParams.get("profileId") ||
       req.headers.get("x-profile-id") ||
       req.cookies.get("saad_active_profile_id")?.value;
 
+    if (!rawProfileId || rawProfileId === "undefined" || rawProfileId === "null") {
+      const defaultProfile = await (prismadb as any)?.userProfile?.findFirst?.({
+        where: { userId, isDefault: true },
+        select: { id: true },
+      })?.catch?.(() => null);
+      if (defaultProfile) {
+        rawProfileId = defaultProfile.id;
+      }
+    }
+
     let profileWhere: Record<string, any> = {};
     if (rawProfileId && rawProfileId !== "all") {
-      const profileDoc = await (prismadb as any).userProfile.findUnique({
+      const profileDoc = await (prismadb as any)?.userProfile?.findUnique?.({
         where: { id: rawProfileId },
         select: { id: true, userId: true, isDefault: true },
-      }).catch(() => null);
+      })?.catch?.(() => null);
 
       if (profileDoc && profileDoc.userId === userId) {
         if (profileDoc.isDefault) {

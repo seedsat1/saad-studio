@@ -179,12 +179,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No credit configuration for upscale tool." }, { status: 400 });
     }
 
+    const profileIdFromHeader = req.headers.get("x-profile-id") || req.cookies.get("saad_active_profile_id")?.value;
+    const profileId = typeof body?.profileId === "string" ? body.profileId : profileIdFromHeader || undefined;
+
     const result = await runInlineGeneration({
       modelId: "tool:upscale",
       modality: isVideo ? "video" : "image",
       currentRoute: { provider: "wavespeed", route: modelToUse },
       charge: {
         userId,
+        profileId,
         credits: creditsToCharge,
         prompt: isVideo ? `Upscale video to ${targetResolution}` : `Upscale image to ${targetResolution}`,
         assetType: isVideo ? "VIDEO" : "IMAGE",

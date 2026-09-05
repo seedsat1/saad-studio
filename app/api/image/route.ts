@@ -62,12 +62,16 @@ export async function POST(req: NextRequest) {
     creditsToCharge = await getGenerationCost("dall-e-3", 5, Math.floor(amount));
     chargeUserId = userId;
 
+    const profileIdFromHeader = req.headers.get("x-profile-id") || req.cookies.get("saad_active_profile_id")?.value;
+    const profileId = typeof body?.profileId === "string" ? body.profileId : profileIdFromHeader || undefined;
+
     const result = await runInlineGeneration({
       modelId: "dall-e-3",
       modality: "image",
       currentRoute: { provider: "openai", route: "dall-e-3" },
       charge: {
         userId,
+        profileId,
         credits: creditsToCharge,
         prompt,
         assetType: "image_legacy",
@@ -107,6 +111,7 @@ export async function POST(req: NextRequest) {
         "dall-e-3",
         "image_legacy",
         result.providerResult.additionalUrls,
+        profileId,
       ).catch(() => {});
     }
 

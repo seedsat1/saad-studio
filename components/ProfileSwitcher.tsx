@@ -40,6 +40,7 @@ export function ProfileSwitcher() {
   const router = useRouter();
 
   const [openModal, setOpenModal] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [newProfileName, setNewProfileName] = useState("");
   const [selectedPreset, setSelectedPreset] = useState(1);
   const [creating, setCreating] = useState(false);
@@ -55,7 +56,7 @@ export function ProfileSwitcher() {
     }
   }, [openModal]);
 
-  if (isLoading || !activeProfile) {
+  if (!activeProfile) {
     return (
       <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/5 border border-white/10 animate-pulse text-xs text-zinc-400">
         <div className="w-4 h-4 rounded-full bg-white/10" />
@@ -84,6 +85,7 @@ export function ProfileSwitcher() {
 
     if (res.success) {
       setOpenModal(false);
+      setMenuOpen(false);
       setNewProfileName("");
       if (typeof document !== "undefined") {
         document.body.style.pointerEvents = "";
@@ -96,6 +98,7 @@ export function ProfileSwitcher() {
 
   const handleSwitch = (id: string) => {
     switchProfile(id);
+    setMenuOpen(false);
     if (typeof document !== "undefined") {
       document.body.style.pointerEvents = "";
       document.body.style.overflow = "";
@@ -104,7 +107,7 @@ export function ProfileSwitcher() {
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
@@ -188,11 +191,10 @@ export function ProfileSwitcher() {
                 PRESET_AVATARS[0].gradient;
 
               return (
-                <button
+                <DropdownMenuItem
                   key={p.id}
-                  onClick={() => handleSwitch(p.id)}
-                  type="button"
-                  className={`w-full flex items-center justify-between gap-2.5 p-2 rounded-xl text-left transition-all ${
+                  onSelect={() => handleSwitch(p.id)}
+                  className={`w-full flex items-center justify-between gap-2.5 p-2 rounded-xl cursor-pointer transition-all ${
                     isActive
                       ? "bg-violet-600/20 border border-violet-500/40 text-white"
                       : "hover:bg-white/5 text-zinc-300 hover:text-white border border-transparent"
@@ -221,7 +223,7 @@ export function ProfileSwitcher() {
                   </div>
 
                   {isActive && <Check className="w-4 h-4 text-violet-400 shrink-0" />}
-                </button>
+                </DropdownMenuItem>
               );
             })}
           </div>

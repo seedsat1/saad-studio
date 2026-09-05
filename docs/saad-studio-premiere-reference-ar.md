@@ -11,16 +11,18 @@
   - لا يمكن حذف "البروفايل الرئيسي" إطلاقاً لحماية الحساب.
   - عند حذف أي بروفايل فرعي غير افتراضي، يتم نقل كافة وسائطه وتوليداته تلقائياً إلى "البروفايل الرئيسي" لحماية استثمارات المشترك من الضياع.
   - الحد الأقصى محدد بـ **10 بروفايلات** كحد حماية لمنع إغراق قاعدة البيانات.
-- **التنقل الفوري (Instant Switcher) وحماية مؤشر الفأرة (Pointer Events Safety)**:
+- **التنقل الفوري (Instant Switcher) والإغلاق التلقائي للمنسدلة**:
   - مبدل سريع مدمج في الشريط العلوي (`TopNavbar`) في الواجهة المكتبية وقائمة الهاتف المحمول.
-  - يتم حفظ البروفايل النشط في `localStorage` والـ Cookie (`saad_active_profile_id`).
-  - يتم إرسال هيدر `x-profile-id` تلقائياً مع كل استدعاء للـ API عبر `useAuthenticatedFetch`.
-  - قسم تفاعلي كامل لإدارة البروفايلات وإنشائها وتعديلها متاح في صفحة الملف الشخصي (`/profile`).
-  - **حماية التفاعل ومنع تجمّد الصفحة**: تم منع خطأ تعليق `pointer-events: none` الموروث من مكتبة Radix UI عند إغلاق النوافذ المنبثقة من خلال:
-    1. استخدام `e.preventDefault()` عند فتح نافذة الإنشاء من القائمة المنسدلة لتفادي تداخل إغلاق القائمة مع فتح النافذة.
-    2. إزالة `router.refresh()` التي كانت تقاطع تنظيف Radix UI لمؤشر الفأرة أثناء إغلاق النافذة.
-    3. إعادة ضبط `document.body.style.pointerEvents = ""` و `overflow = ""` فورياً عبر hooks و `onCloseAutoFocus`.
-    4. تفعيل مراقب عام `saad-pointer-events-guard` في `app/layout.tsx` لفك أي تجميد فوري في حال لم تكن هناك أي نافذة نشطة في الصفحة.
+  - تم تحويل قائمة التبديل في `ProfileSwitcher.tsx` لتكون محكومة (`open={menuOpen}`) باستخدام `DropdownMenuItem`، وتُغلق تلقائياً وفورياً (`setMenuOpen(false)`) بمجرد اختيار أي بروفايل.
+  - تحميل البروفايل فورياً (0ms) من كاش `localStorage` (`saad_cached_user_profiles`) عند تحميل أي صفحة دون وميض أو تأخير (Skeleton Pulse).
+  - عند التبديل، يتم تفريغ المعرض والوسائط فورياً (`setResults([])` / `setAssets([])`) وإعادة جلب وسائط البروفايل الجديد بسلاسة دون تأخير.
+- **عزل التوليد المتكامل (End-to-End Generation Isolation)**:
+  - كل طلب توليد أو تعديل وسائط (`/api/video`, `/api/generate/image`, `/api/generate/upscale`, `/api/generate/face-swap`, `/api/image`, `/api/assets/persist`) يقوم بتمرير `profileId` بدقة في كل من جسم الطلب (Body) وهيدر `x-profile-id`.
+  - دالة `saveAdditionalGenerationUrls` و `spendCredits` و `recordFreeGeneration` في `lib/credit-ledger.ts` تقوم بربط كافة التوليدات الفرعية والمباشرة بمعرف البروفايل النشط.
+  - مسار `/api/assets` يرجع تلقائياً إلى البروفايل الرئيسي (`isDefault: true`) في حال غياب المعرف لمنع تسرب أي وسائط بين البروفايلات.
+- **حماية التفاعل ومنع تجمّد الصفحة (Pointer Events Safety)**:
+  - تم منع تعليق مؤشر الفأرة الموروث من Radix UI عبر `e.preventDefault()` وإزالة `router.refresh()` وتفريغ `pointer-events` و `overflow`.
+  - تفعيل مراقب عام `saad-pointer-events-guard` في `app/layout.tsx`.
 
 ## تصحيح وضبط أسعار عائلة Kling 3.0 و Turbo وفق فواتير WaveSpeed الحقيقية (2026-09-05)
 
