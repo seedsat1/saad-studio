@@ -312,7 +312,39 @@ export default function RootLayout({
               } catch (_) {}
             `}
           </Script>
+          <Script id="saad-pointer-events-guard" strategy="afterInteractive">
+            {`
+              try {
+                const checkAndFixPointerEvents = () => {
+                  if (document.body && document.body.style.pointerEvents === 'none') {
+                    const hasActiveOverlay = document.querySelector(
+                      '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"], [data-radix-popper-content-wrapper]'
+                    );
+                    if (!hasActiveOverlay) {
+                      document.body.style.pointerEvents = '';
+                      document.body.style.overflow = '';
+                    }
+                  }
+                };
 
+                const observer = new MutationObserver(() => {
+                  checkAndFixPointerEvents();
+                });
+
+                if (document.body) {
+                  observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+                } else {
+                  window.addEventListener('DOMContentLoaded', () => {
+                    if (document.body) {
+                      observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+                    }
+                  });
+                }
+
+                window.addEventListener('focus', checkAndFixPointerEvents);
+              } catch (_) {}
+            `}
+          </Script>
 
           <Toaster />
           <ModalProvider />

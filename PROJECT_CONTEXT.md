@@ -1,4 +1,39 @@
-# Latest task: Multi-Profile Workspace System with Generation Isolation (2026-09-05)
+# Latest task: Fix Profile Creation Page Freeze & Radix Pointer-Events Lock (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed user report and screenshot showing page freeze / unresponsive clicks after creating a profile: "عندما عملت بروفايل تجمدة الصفحة".
+  - Root Cause Analysis:
+    1. In Radix UI, closing a DropdownMenu while synchronously opening a Dialog conflicts with Radix's overlay and focus-trap unmount sequence when `e.preventDefault()` is omitted on the item selection.
+    2. In `handleCreate`, calling `router.refresh()` right as the Radix Dialog closed interrupted Radix's exit cleanup, permanently trapping `document.body.style.pointerEvents = "none"` and `document.body.style.overflow = "hidden"`, freezing all clicks and scrolls across the entire window.
+    3. Radix Dialog logged a console warning: `Warning: Missing 'Description' or 'aria-describedby={undefined}' for {DialogContent}`.
+  - Solutions Implemented:
+    1. In `components/ProfileSwitcher.tsx`:
+       - Added `e.preventDefault()` on `DropdownMenuItem` when opening the Create Profile modal.
+       - Removed `router.refresh()` from `handleCreate` and `handleSwitch`; reactivity is already guaranteed instantly by `ProfileContext` state and the `saad-profile-switched` event.
+       - Added explicit reset of `document.body.style.pointerEvents = ""` and `overflow = ""`.
+       - Added `useEffect` cleanup hook for `openModal`.
+       - Added `onCloseAutoFocus` on `DialogContent` to ensure pointer events and overflow are unlocked.
+       - Added `<DialogDescription className="text-xs text-zinc-400">` inside `DialogHeader` to resolve Radix's accessibility warning.
+    2. In `components/ProfileManagerSection.tsx`:
+       - Applied the same pointer-events cleanups to both Create and Edit modals.
+       - Removed `router.refresh()` from `handleCreate`, `handleSaveEdit`, and `handleConfirmDelete`.
+       - Added `<DialogDescription>` inside both `DialogHeader` elements.
+       - Added `useEffect` cleanup on modal states.
+    3. In `app/layout.tsx`:
+       - Added global `<Script id="saad-pointer-events-guard">` with a `MutationObserver` on `document.body.style` that automatically clears stuck `pointerEvents: none` and `overflow: ''` whenever no active dialog or overlay is in the DOM.
+- Files affected:
+  - `components/ProfileSwitcher.tsx`
+  - `components/ProfileManagerSection.tsx`
+  - `app/layout.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest `test/multi-profile-isolation.test.ts`: 8/8 tests PASS.
+  - Git diff verified clean.
+- Remaining step:
+  - None.
+
+# Previous task: Multi-Profile Workspace System with Generation Isolation (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Enabled multi-profile capabilities under a single subscriber account.

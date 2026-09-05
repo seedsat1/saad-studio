@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useActiveProfile, UserProfile } from "@/lib/profile-context";
 import { PRESET_AVATARS } from "@/lib/avatar-context";
 import { useLanguage } from "@/lib/use-language";
@@ -22,6 +22,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,17 @@ export function ProfileManagerSection() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Safeguard: reset body pointer-events whenever any modal closes
+  useEffect(() => {
+    if (!openCreateModal && !editingProfile && !deletingId && typeof document !== "undefined") {
+      const timer = setTimeout(() => {
+        document.body.style.pointerEvents = "";
+        document.body.style.overflow = "";
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [openCreateModal, editingProfile, deletingId]);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = createName.trim();
@@ -76,7 +88,10 @@ export function ProfileManagerSection() {
     if (res.success) {
       setOpenCreateModal(false);
       setCreateName("");
-      router.refresh();
+      if (typeof document !== "undefined") {
+        document.body.style.pointerEvents = "";
+        document.body.style.overflow = "";
+      }
     } else {
       setCreateError(res.error || "فشل إنشاء البروفايل");
     }
@@ -109,7 +124,10 @@ export function ProfileManagerSection() {
 
     if (res.success) {
       setEditingProfile(null);
-      router.refresh();
+      if (typeof document !== "undefined") {
+        document.body.style.pointerEvents = "";
+        document.body.style.overflow = "";
+      }
     } else {
       setEditError(res.error || "فشل تعديل البروفايل");
     }
@@ -121,8 +139,9 @@ export function ProfileManagerSection() {
     const res = await deleteProfile(deletingId);
     setDeleting(false);
     setDeletingId(null);
-    if (res.success) {
-      router.refresh();
+    if (typeof document !== "undefined") {
+      document.body.style.pointerEvents = "";
+      document.body.style.overflow = "";
     }
   };
 
@@ -280,12 +299,25 @@ export function ProfileManagerSection() {
 
       {/* Modal: Create Profile */}
       <Dialog open={openCreateModal} onOpenChange={setOpenCreateModal}>
-        <DialogContent className="sm:max-w-md bg-slate-950 border border-white/10 text-white p-6 rounded-2xl shadow-2xl">
+        <DialogContent
+          onCloseAutoFocus={() => {
+            if (typeof document !== "undefined") {
+              document.body.style.pointerEvents = "";
+              document.body.style.overflow = "";
+            }
+          }}
+          className="sm:max-w-md bg-slate-950 border border-white/10 text-white p-6 rounded-2xl shadow-2xl"
+        >
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-violet-400" />
               {lang === "ar" ? "إنشاء بروفايل جديد" : "Create New Profile"}
             </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400">
+              {lang === "ar"
+                ? "أنشئ مساحة عمل جديدة لعزل أعمالك وتوليداتك."
+                : "Create a separate workspace for isolated generations."}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreate} className="space-y-4 pt-2">
@@ -367,12 +399,23 @@ export function ProfileManagerSection() {
 
       {/* Modal: Edit Profile */}
       <Dialog open={Boolean(editingProfile)} onOpenChange={(open) => !open && setEditingProfile(null)}>
-        <DialogContent className="sm:max-w-md bg-slate-950 border border-white/10 text-white p-6 rounded-2xl shadow-2xl">
+        <DialogContent
+          onCloseAutoFocus={() => {
+            if (typeof document !== "undefined") {
+              document.body.style.pointerEvents = "";
+              document.body.style.overflow = "";
+            }
+          }}
+          className="sm:max-w-md bg-slate-950 border border-white/10 text-white p-6 rounded-2xl shadow-2xl"
+        >
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
               <Edit2 className="w-5 h-5 text-violet-400" />
               {lang === "ar" ? "تعديل البروفايل" : "Edit Profile"}
             </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400">
+              {lang === "ar" ? "تعديل اسم أو أيقونة البروفايل." : "Edit profile name or avatar icon."}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSaveEdit} className="space-y-4 pt-2">

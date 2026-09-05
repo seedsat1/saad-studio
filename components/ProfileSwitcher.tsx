@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useEffect } from "react";
 import { useActiveProfile, UserProfile } from "@/lib/profile-context";
 import { PRESET_AVATARS } from "@/lib/avatar-context";
 import { useLanguage } from "@/lib/use-language";
@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,16 @@ export function ProfileSwitcher() {
   const [selectedPreset, setSelectedPreset] = useState(1);
   const [creating, setCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!openModal && typeof document !== "undefined") {
+      const timer = setTimeout(() => {
+        document.body.style.pointerEvents = "";
+        document.body.style.overflow = "";
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [openModal]);
 
   if (isLoading || !activeProfile) {
     return (
@@ -74,8 +85,10 @@ export function ProfileSwitcher() {
     if (res.success) {
       setOpenModal(false);
       setNewProfileName("");
-      // Refresh page data for new profile workspace
-      router.refresh();
+      if (typeof document !== "undefined") {
+        document.body.style.pointerEvents = "";
+        document.body.style.overflow = "";
+      }
     } else {
       setErrorMessage(res.error || "Failed to create profile");
     }
@@ -83,7 +96,10 @@ export function ProfileSwitcher() {
 
   const handleSwitch = (id: string) => {
     switchProfile(id);
-    router.refresh();
+    if (typeof document !== "undefined") {
+      document.body.style.pointerEvents = "";
+      document.body.style.overflow = "";
+    }
   };
 
   return (
@@ -215,7 +231,10 @@ export function ProfileSwitcher() {
           {/* Create Profile Button */}
           {profiles.length < 10 ? (
             <DropdownMenuItem
-              onSelect={() => setOpenModal(true)}
+              onSelect={(e) => {
+                e.preventDefault();
+                setOpenModal(true);
+              }}
               className="flex cursor-pointer items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-medium text-violet-300 hover:bg-violet-500/10 hover:text-violet-200 focus:bg-violet-500/10 focus:text-violet-200 transition-colors"
             >
               <Plus className="w-4 h-4 text-violet-400" />
@@ -242,12 +261,25 @@ export function ProfileSwitcher() {
 
       {/* Modal: Create Profile */}
       <Dialog open={openModal} onOpenChange={setOpenModal}>
-        <DialogContent className="sm:max-w-md bg-slate-950 border border-white/10 text-white p-6 rounded-2xl shadow-2xl">
+        <DialogContent
+          onCloseAutoFocus={() => {
+            if (typeof document !== "undefined") {
+              document.body.style.pointerEvents = "";
+              document.body.style.overflow = "";
+            }
+          }}
+          className="sm:max-w-md bg-slate-950 border border-white/10 text-white p-6 rounded-2xl shadow-2xl"
+        >
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-violet-400" />
               {lang === "ar" ? "إنشاء بروفايل جديد" : "Create New Profile"}
             </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400">
+              {lang === "ar"
+                ? "أنشئ بروفايلاً جديداً لعزل سجل التوليدات والمعرض بشكل مستقل."
+                : "Create a new profile with isolated generation history and media."}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreate} className="space-y-4 pt-2">
