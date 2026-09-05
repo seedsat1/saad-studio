@@ -900,7 +900,10 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
     if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
     if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
     if (out.loop === true) exact.loop = true;
-    if (finalImage) exact.end_image = finalImage;
+    if (finalImage) {
+      exact.end_image = finalImage;
+      exact.last_image = finalImage;
+    }
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
     exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(3, duration)) : 5;
     if (typeof out.cfg_scale === "number" && Number.isFinite(out.cfg_scale)) {
@@ -935,9 +938,19 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
       imageUrls[0] ||
       referenceImages[0] ||
       null;
+    const finalImage =
+      (typeof out.end_image === "string" ? out.end_image : null) ||
+      (typeof out.last_image === "string" ? out.last_image : null) ||
+      imageUrls[1] ||
+      referenceImages[1] ||
+      null;
     const exact: Record<string, unknown> = {};
     if (startImage) exact.image = startImage;
     else throw new ValidationError("Kling V3 Turbo requires an image.");
+    if (finalImage) {
+      exact.end_image = finalImage;
+      exact.last_image = finalImage;
+    }
     if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
     if (out.loop === true) exact.loop = true;
     const rawMultiPrompt = payload.multi_prompt;
@@ -1028,7 +1041,10 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
       if (images.length > 0) exact.images = images.slice(0, referenceVideos[0] ? 4 : 7);
     } else if (route?.includes("/image-to-video")) {
       if (startImage) exact.image = startImage;
-      if (finalImage) exact.end_image = finalImage;
+      if (finalImage) {
+        exact.end_image = finalImage;
+        exact.last_image = finalImage;
+      }
     }
     return exact;
   }
@@ -1063,10 +1079,13 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
     }
     if (route?.includes("/image-to-video")) {
       if (startImage) exact.image = startImage;
+      if (finalImage) {
+        exact.end_image = finalImage;
+        exact.last_image = finalImage;
+      }
       if (route.includes("-pro/")) {
         const sound = payload.sound === true || payload.generate_audio === true;
         exact.sound = sound;
-        if (finalImage && !sound) exact.end_image = finalImage;
         if (Array.isArray(payload.voice_list)) {
           const voiceList = payload.voice_list.slice(0, 2).filter((item) => item && typeof item === "object");
           if (voiceList.length > 0) exact.voice_list = voiceList;

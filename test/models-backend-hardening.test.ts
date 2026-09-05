@@ -198,7 +198,7 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       expect(klingSpecs.modality).toBe("video");
       expect(klingSpecs.textRoute).toBe("kwaivgi/kling-v3.0-pro/text-to-video");
       expect(klingSpecs.imageRoute).toBe("kwaivgi/kling-v3.0-pro/image-to-video");
-      expect(klingSpecs.durations).toEqual([5, 10, 15]);
+      expect(klingSpecs.durations).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
 
       const wan30Specs = inferModelCapabilitiesAndSpecs("Alibaba Wan 3.0 Image To Video API Documentation");
       expect(wan30Specs.cleanName).toBe("Wan 3.0");

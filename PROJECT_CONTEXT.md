@@ -1,4 +1,35 @@
-# Latest task: Enforce WaveSpeed Direct Dispatch for All Minimax/Hailuo Video Models & Remove KIE Leaks (2026-09-05)
+# Latest task: Fix Start and End Frame Payload Mapping for Kling & Seedance on WaveSpeed (2026-09-05)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed user feedback: "لم يستخدم الاستار و الاند بشكل صحيح وحتى سيدانس" (The Start and End frames were not used correctly, even with Seedance).
+  - Database Audit Findings:
+    - Generation `cmtoramo400041b4sxy0czhg1` (`kwaivgi/kling-v2.6-std/image-to-video`): Frontend sent both `image` and `end_image`. However, in `app/api/video/route.ts`, `isKling26Route` only mapped `finalImage` to `exact.end_image` inside `if (route.includes("-pro/"))`! For Standard tier, `end_image` was completely dropped, sending only the start image to WaveSpeed.
+    - Generation `cmtorgpfw000f3ryp5bvu5hyw` (`bytedance/seedance-2.0-mini/image-to-video`): Frontend sent both `image` and `end_image`. However, `lib/seedance-validation.ts` only assigned `exact.last_image` and left `end_image: undefined`. WaveSpeed's official API documentation specifies `end_image` for Seedance 2.0 / 2.5 transitions.
+    - Kling V3 Turbo: Was completely omitting `finalImage` / `end_image` check.
+  - Solutions Implemented:
+    1. `lib/seedance-validation.ts`:
+       - Updated `validateSeedanceStartEnd` to assign BOTH `exact.end_image = endImg; exact.last_image = endImg;` across all Seedance I2V and Extend routes.
+    2. `app/api/video/route.ts`:
+       - `isKling26Route`: Set BOTH `exact.end_image = finalImage; exact.last_image = finalImage;` unconditionally for both Standard and Pro tiers. Decoupled `end_image` from sound setting.
+       - `isKlingV3TurboImageRoute`: Extracted `finalImage` and set BOTH `exact.end_image = finalImage; exact.last_image = finalImage;`.
+       - `isKling30ImageRoute` & `isKlingO3Route`: Set BOTH `exact.end_image = finalImage; exact.last_image = finalImage;`.
+    3. Unit Tests:
+       - Created `test/start-end-frames-contract.test.ts` with 11 tests covering all Kling and Seedance variants.
+       - Updated duration test in `test/models-backend-hardening.test.ts` to match 3s-15s spec.
+- Files affected:
+  - `app/api/video/route.ts`
+  - `lib/seedance-validation.ts`
+  - `test/start-end-frames-contract.test.ts`
+  - `test/models-backend-hardening.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - All 5 test suites passed (70/70 tests PASS).
+  - Snapshot simulation verified that `cmtorgpfw000f3ryp5bvu5hyw` and `cmtoramo400041b4sxy0czhg1` now generate both `end_image` and `last_image`.
+- Remaining step:
+  - Commit and push to repository.
+
+# Previous task: Enforce WaveSpeed Direct Dispatch for All Minimax/Hailuo Video Models & Remove KIE Leaks (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Addressed 503 error report:

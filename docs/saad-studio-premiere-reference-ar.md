@@ -1,3 +1,17 @@
+## تصحيح تمرير إطارات البداية والنهاية (Start & End Frames) لنماذج Kling و Seedance عبر WaveSpeed (2026-09-05)
+
+- **الخلل الذي تم رصده وتشخيصه**:
+  - اشتكى المستخدم من عدم استخدام إطار البداية والنهاية بالشكل الصحيح ("لم يستخدم الاستار و الاند بشكل صحيح وحتى سيدانس")، حيث تم توليد فيديو متجاهلاً تماماً صورة النهاية وتحريف المحتوى (Hallucination).
+  - عند الفحص البرمجي ومراجعة لقطات الطلبات في قاعدة البيانات (`GenerationRequestSnapshot`):
+    1. في نموذج **Kling 2.6 Standard** (`kwaivgi/kling-v2.6-std/image-to-video`): الواجهة الأمامية أرسلت كلا الصورتين بدقة (`image` و `end_image`)، ولكن دالة `mapToWavespeedInput` في `app/api/video/route.ts` كانت تشترط `if (route.includes("-pro/"))` لتعيين `exact.end_image`. ونتيجة لذلك، سقط إطار النهاية تماماً في فئة Standard وتم إرسال صورة البداية فقط إلى WaveSpeed! وعلاوة على ذلك، في فئة Pro كان يشترط `if (finalImage && !sound)`، فإذا كان الصوت مفعلاً سقط إطار النهاية أيضاً.
+    2. في نماذج **Seedance 2.0 و 2.5** (`bytedance/seedance-2.0-mini/image-to-video` وغيرها): كان المدقق `lib/seedance-validation.ts` يعين `exact.last_image` فقط ويترك `end_image: undefined`، بينما توثيق واجهة WaveSpeed الرسمية لـ Seedance 2.0 يحدد `end_image` للتحويلات الموجهة.
+    3. في نموذج **Kling V3 Turbo**: كان يتجاهل تماماً استخراج وتمرير إطار النهاية.
+- **التصحيحات المعتمدة**:
+  1. **Seedance**: تم تحديث `validateSeedanceStartEnd` في `lib/seedance-validation.ts` لتعيين كل من `exact.end_image = endImg; exact.last_image = endImg;` بالتزامن لجميع مسارات تحويل الصور والتمديد (I2V و Extend).
+  2. **Kling 2.6**: تم فك الارتباط بشرط الصوت وفئة Pro، وتعيين كل من `exact.end_image = finalImage; exact.last_image = finalImage;` بشكل قاطع لجميع الفئات (Standard و Pro).
+  3. **Kling V3 Turbo & Kling 3.0 & Kling O3**: استخراج وتمرير كل من `end_image` و `last_image` لضمان استلام المزود لكلا المعاملين أياً كان الاسم المتوقع في عقد الخدمة.
+  4. **التحقق والاختبار**: إنشاء جناح اختبار آلي شامل `test/start-end-frames-contract.test.ts` (11 اختبار) وتأكيد نجاح جميع اختبارات الانحدار (70/70 اختبار PASS) ومحاكاة الطلبات السابقة في قاعدة البيانات بنجاح 100%.
+
 ## توجيه أسطول نماذج Minimax / Hailuo حصرياً عبر WaveSpeed ومنع تسرب KIE (2026-09-05)
 
 - **الخلل الذي تم تشخيصه ومعالجته**:

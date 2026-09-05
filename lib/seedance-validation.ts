@@ -395,6 +395,7 @@ export function validateSeedanceStartEnd(
     const endImg = rawLastImage || (refImages.length > 1 ? refImages[1] : null);
     if (endImg) {
       exact.last_image = endImg;
+      exact.end_image = endImg;
     }
     return;
   }
@@ -413,6 +414,7 @@ export function validateSeedanceStartEnd(
         exact.reference_images = [...currentRefs, rawLastImage];
       }
       delete exact.last_image;
+      delete exact.end_image;
     }
     return;
   }
@@ -424,6 +426,7 @@ export function validateSeedanceStartEnd(
     }
     if (!is25Extend && endImg) {
       exact.last_image = endImg;
+      exact.end_image = endImg;
     }
     return;
   }
