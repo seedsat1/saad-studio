@@ -58,6 +58,8 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     expect(h23Pro).toBeDefined();
     expect(h23Pro?.accepts).toContain("start-frame");
     expect(h23Pro?.accepts).not.toContain("end-frame");
+    expect(h02Pro?.durations).toEqual([6]);
+    expect(h23Pro?.durations).toEqual([6]);
 
     const h23Fast = VIDEO_MODELS.find((m) => m.id === "minimax-hailuo-2.3-fast");
     expect(h23Fast).toBeDefined();

@@ -650,7 +650,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       optional_image: true,
       has_end_frame: false,
       aspect_ratios: [],
-      durations: [5, 6],
+      durations: [6],
       resolutions: ["1080p"],
       max_reference_images: 0,
       has_negative_prompt: true,

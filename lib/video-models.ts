@@ -204,7 +204,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     inputType: "image-to-video",
     accepts: ["start-frame"],
     aspectRatios: [],
-    durations: [5, 6],
+    durations: [6],
     resolutions: ["1080p"],
     badge: null,
     creditCost: 27.44,
