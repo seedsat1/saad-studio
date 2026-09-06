@@ -750,6 +750,154 @@ export const HOOK_STYLES: HookStylePreset[] = [
     imageUrl: "/api/media/reference-thumbnails/classyvaporwave.webp",
     category: "illustration",
     systemPromptAddon: "Vaporwave visual aesthetic, neon pink and purple sunset grid landscapes, 80s computer synth graphics."
+  },
+
+  // ── NEW DESIGN STYLES ──
+  {
+    id: "minimalism",
+    nameAr: "مينيماليزم",
+    nameEn: "#minimalism",
+    imageUrl: "/api/media/reference-thumbnails/minimalism.webp",
+    category: "design",
+    systemPromptAddon: "Minimalism design, a single focal subject on a vast plain background, muted neutral palette, enormous negative space, calm diffused light, extreme visual restraint."
+  },
+  {
+    id: "maximalism",
+    nameAr: "ماكسيماليزم",
+    nameEn: "#maximalism",
+    imageUrl: "/api/media/reference-thumbnails/maximalism.webp",
+    category: "design",
+    systemPromptAddon: "Maximalism design, densely layered clashing patterns, rich jewel tones, ornate textiles and gold accents, every surface decorated, opulent visual abundance."
+  },
+  {
+    id: "surrealdesign",
+    nameAr: "تصميم سريالي",
+    nameEn: "#surrealdesign",
+    imageUrl: "/api/media/reference-thumbnails/surrealdesign.webp",
+    category: "design",
+    systemPromptAddon: "Surreal design artwork, impossible perspective, floating and levitating objects, dreamlike Magritte-inspired composition, soft pastel gradient sky, long clean shadows."
+  },
+  {
+    id: "swissdesign",
+    nameAr: "تصميم سويسري",
+    nameEn: "#swissdesign",
+    imageUrl: "/api/media/reference-thumbnails/swissdesign.webp",
+    category: "design",
+    systemPromptAddon: "Swiss International Style design, strict modular grid, flat geometric shapes, large Helvetica sans-serif type blocks, red black and white palette, rational asymmetric layout."
+  },
+  {
+    id: "y2kdesign",
+    nameAr: "تصميم واي تو كي",
+    nameEn: "#y2k",
+    imageUrl: "/api/media/reference-thumbnails/y2kdesign.webp",
+    category: "design",
+    systemPromptAddon: "Y2K aesthetic, liquid chrome metal blobs, holographic iridescent gradients, bubbly early-2000s digital graphics, lens flares and star sparkles, cyan magenta silver glossy plastic."
+  },
+  {
+    id: "glassmorphism",
+    nameAr: "جلاس مورفيزم",
+    nameEn: "#glassmorphism",
+    imageUrl: "/api/media/reference-thumbnails/glassmorphism.webp",
+    category: "design",
+    systemPromptAddon: "Glassmorphism design, floating frosted translucent glass panels, heavy background blur, thin luminous white borders, soft gradient glow behind, layered depth and soft shadows."
+  },
+  {
+    id: "collageart",
+    nameAr: "فن الكولاج",
+    nameEn: "#collageart",
+    imageUrl: "/api/media/reference-thumbnails/collageart.webp",
+    category: "design",
+    systemPromptAddon: "Mixed media collage art, torn magazine paper cutouts, halftone newspaper scraps, masking tape and staples, hand-cut layered photographic fragments on textured kraft paper."
+  },
+  {
+    id: "vectorart",
+    nameAr: "فن فيكتور",
+    nameEn: "#vectorart",
+    imageUrl: "/api/media/reference-thumbnails/vectorart.webp",
+    category: "design",
+    systemPromptAddon: "Flat vector illustration, clean bezier shapes, bold solid color fills, simple geometric figures, no gradients and no texture, crisp SVG-like flat design with a limited palette."
+  },
+  {
+    id: "futuristic",
+    nameAr: "مستقبلي",
+    nameEn: "#futuristic",
+    imageUrl: "/api/media/reference-thumbnails/futuristic.webp",
+    category: "design",
+    systemPromptAddon: "Futuristic design, sleek white and chrome curved forms, glowing blue light strips, seamless advanced technology surfaces, ultra clean sci-fi product aesthetic."
+  },
+  {
+    id: "aurora",
+    nameAr: "شفق قطبي",
+    nameEn: "#aurora",
+    imageUrl: "/api/media/reference-thumbnails/aurora.webp",
+    category: "design",
+    systemPromptAddon: "Aurora gradient aesthetic, flowing northern-lights ribbons of green teal violet and pink light, soft blurred luminous mesh gradients over a deep dark sky."
+  },
+  {
+    id: "retro",
+    nameAr: "ريترو سبعينات",
+    nameEn: "#retro",
+    imageUrl: "/api/media/reference-thumbnails/retro.webp",
+    category: "design",
+    systemPromptAddon: "Retro 1970s design, warm sunburst stripes in mustard orange rust and cream, rounded groovy shapes, vintage offset print grain, faded sun-bleached palette."
+  },
+
+  // ── NEW ILLUSTRATION STYLES ──
+  {
+    id: "pixelart",
+    nameAr: "بكسل آرت",
+    nameEn: "#pixelart",
+    imageUrl: "/api/media/reference-thumbnails/pixelart.webp",
+    category: "illustration",
+    systemPromptAddon: "16-bit pixel art, crisp square pixels, limited retro console palette, hard dithering, isometric pixel scene, nostalgic SNES-era video game look."
+  },
+  {
+    id: "cyberpunk",
+    nameAr: "سايبربانك",
+    nameEn: "#cyberpunk",
+    imageUrl: "/api/media/reference-thumbnails/cyberpunk.webp",
+    category: "illustration",
+    systemPromptAddon: "Cyberpunk aesthetic, rain-slick neon-lit streets, dense glowing signage, magenta and cyan light, holographic advertisements, atmospheric haze and high contrast."
+  },
+  {
+    id: "popart",
+    nameAr: "بوب آرت",
+    nameEn: "#popart",
+    imageUrl: "/api/media/reference-thumbnails/popart.webp",
+    category: "illustration",
+    systemPromptAddon: "Pop art illustration, bold black outlines, Ben-Day halftone dots, primary red yellow and blue flat fills, high contrast retro comic printing."
+  },
+  {
+    id: "handwritten",
+    nameAr: "خط يدوي",
+    nameEn: "#handwritten",
+    imageUrl: "/api/media/reference-thumbnails/handwritten.webp",
+    category: "illustration",
+    systemPromptAddon: "Handwritten style, ink calligraphy strokes on textured cream paper, hand-drawn doodles and arrows, casual personal notebook aesthetic."
+  },
+  {
+    id: "bohemian",
+    nameAr: "بوهيمي",
+    nameEn: "#bohemian",
+    imageUrl: "/api/media/reference-thumbnails/bohemian.webp",
+    category: "illustration",
+    systemPromptAddon: "Bohemian aesthetic, warm terracotta and sand palette, macrame textiles, dried pampas grass, rattan and woven textures, earthy natural styling in soft afternoon light."
+  },
+  {
+    id: "graffiti",
+    nameAr: "غرافيتي",
+    nameEn: "#graffiti",
+    imageUrl: "/api/media/reference-thumbnails/graffiti.webp",
+    category: "illustration",
+    systemPromptAddon: "Graffiti street art, spray paint wildstyle lettering on a concrete wall, vivid overlapping tags, paint drips and stencil layers, urban grit."
+  },
+  {
+    id: "victorian",
+    nameAr: "طراز فكتوري",
+    nameEn: "#victorian",
+    imageUrl: "/api/media/reference-thumbnails/victorian.webp",
+    category: "illustration",
+    systemPromptAddon: "Victorian era design, ornate gold filigree frames, engraved botanical etchings, deep burgundy and antique cream, damask patterns, 19th century decorative print."
   }
 ];
 

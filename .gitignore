@@ -107,3 +107,6 @@ gen-lang-client-*.json
 **/.asar-verify*/
 .tmp-asar-*/
 **/.tmp-asar-*/
+
+# Local scratch output (generated thumbnails already live on B2)
+scratchpad/
