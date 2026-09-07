@@ -1,7 +1,10 @@
-// Generate reference-studio Style thumbnails with Google Gemini image models and
-// upload them to Backblaze B2 at reference-thumbnails/<styleId>.webp
+// Generate Reference Studio thumbnails with Google Gemini image models and
+// upload them to Backblaze B2 at reference-thumbnails/<key>.webp
 //
-// Run:  node scripts/generate-new-style-thumbnails.mjs [--force] [--only id1,id2]
+// Run:  node scripts/generate-reference-thumbnails.mjs --set=shots [--force] [--only=id1,id2]
+//
+// Sets:  styles  → the 18 added HOOK_STYLES tiles
+//        shots   → the 24 HOOK_SHOT_TYPES tiles (keys prefixed "shot-")
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -35,7 +38,9 @@ const args = process.argv.slice(2);
 const FORCE = args.includes("--force");
 const onlyArg = args.find((a) => a.startsWith("--only="));
 const ONLY = onlyArg ? new Set(onlyArg.slice(7).split(",").map((s) => s.trim())) : null;
-const OUT_DIR = resolve(ROOT, "scratchpad/style-thumbnails");
+const setArg = args.find((a) => a.startsWith("--set="));
+const SET = setArg ? setArg.slice(6).trim() : "styles";
+const OUT_DIR = resolve(ROOT, `scratchpad/${SET}-thumbnails`);
 
 const KEY =
   process.env.GOOGLE_API_KEY ||
@@ -64,7 +69,15 @@ const s3 = new S3Client({
 
 const NO_TEXT = "No watermark, no logo, no caption bar, no border frame.";
 
-const STYLES = [
+// Shared look so every Shot Type tile reads as one coherent set, and a standing
+// content rule for this project: Iraqi subjects and settings, secular landmarks only.
+const SHOT_LOOK = "Cinematic film still, natural available light, subtle 35mm film grain, muted filmic color grade, believable documentary realism.";
+const SHOT_RULES = "Iraqi subject and setting. No mosques, no minarets, no shrines or religious buildings. No watermark, no logo, no text overlay, no border frame.";
+const shot = (framing, scene) => `${SHOT_LOOK} ${framing} ${scene} ${SHOT_RULES}`;
+
+const SETS = {};
+
+SETS.styles = [
   ["minimalism", `Minimalist graphic design composition. A single small matte ceramic vessel centered on a vast off-white plaster background, one thin charcoal accent line, muted beige and soft black palette, enormous negative space, calm diffused studio light, ultra clean and restrained. ${NO_TEXT}`],
   ["maximalism", `Maximalist interior design vignette. Densely layered clashing patterns, rich jewel tones of emerald fuchsia and gold, ornate embroidered textiles over leopard print, velvet brass and tropical florals, every surface decorated, opulent warm lighting. ${NO_TEXT}`],
   ["surrealdesign", `Surreal design artwork. A floating stone arch and a giant levitating orange above a pale desert plain, impossible perspective, dreamlike Magritte-inspired composition, soft peach and lavender gradient sky, long clean shadows. ${NO_TEXT}`],
@@ -83,6 +96,83 @@ const STYLES = [
   ["bohemian", `Bohemian aesthetic still life. Warm terracotta and sand palette, macrame wall hanging, dried pampas grass in a clay vase, rattan and woven textures, layered rugs, earthy natural styling in soft afternoon light. ${NO_TEXT}`],
   ["graffiti", `Graffiti street art. Spray paint wildstyle lettering on a weathered concrete wall, vivid overlapping abstract tags, paint drips and stencil layers, urban grit and daylight shadows. Lettering must be abstract invented shapes only: no personal names, no religious words or symbols, no readable slogans. ${NO_TEXT}`],
   ["victorian", `Victorian era decorative design. Ornate gold filigree frame, engraved botanical etchings, deep burgundy and antique cream, damask pattern background, 19th century decorative print plate. ${NO_TEXT}`],
+];
+
+// Shot Type tiles. B2 keys are prefixed "shot-" so they never collide with the
+// camera-movement thumbnails that share some names.
+SETS.shots = [
+  ["shot-ecu-front", shot(
+    "Extreme close-up: the face fills the entire frame from brow to chin, eyes on the upper third, subject looking straight into the lens. 85mm, very shallow depth of field.",
+    "An elderly Iraqi man with deeply weathered skin and a white moustache, warm window light from the side, dim interior behind.")],
+  ["shot-ecu-45", shot(
+    "EXTREME close-up, macro tight: the face is cropped by the frame edges, forehead and chin cut off, only the eyes nose and mouth region fills the whole frame. The head is turned exactly halfway between front and profile: both eyes visible, the far cheek receding. 85mm, very shallow depth of field.",
+    "An Iraqi woman in her late twenties, soft overcast daylight, blurred autumn street behind her.")],
+  ["shot-ecu-profile", shot(
+    "EXTREME close-up, macro tight: the face is cropped by the frame edges and fills the whole frame, in an exact 90 degree side profile. The subject looks perpendicular to the camera, only ONE eye visible, the nose and lips read as a clean silhouette against the background. 85mm, very shallow depth of field.",
+    "A young Iraqi woman with braided dark hair, rim light along the jawline, dark soft background.")],
+  ["shot-cu-front", shot(
+    "Close-up: head and the top of the shoulders, cut just below the collarbone, subject facing the lens straight on. 85mm.",
+    "An Iraqi woman in her thirties inside a Baghdad tea house, warm lamps and glassware bokeh behind her.")],
+  ["shot-cu-45", shot(
+    "Close-up: head and the top of the shoulders, body angled 45 degrees to the lens with the face turned toward camera. 85mm.",
+    "A young Iraqi man in a denim jacket on a city sidewalk, blurred pedestrians and brick facades behind.")],
+  ["shot-cu-profile", shot(
+    "Close-up: head and the top of the shoulders in an exact 90 degree side profile. The subject looks perpendicular to the camera and does NOT face the lens, only ONE eye is visible, the nose and chin form a clean silhouette. 85mm.",
+    "An older Iraqi man with grey hair and a lined face, date palms and warm afternoon haze behind him.")],
+  ["shot-medium-front", shot(
+    "Medium shot: framed from the waist up, subject facing the lens straight on, environment readable behind. 50mm.",
+    "An Iraqi woman browsing a book stall on Mutanabbi Street in Baghdad, stacked books and awnings behind her.")],
+  ["shot-medium-45", shot(
+    "Medium shot: framed from the waist up, the body turned exactly halfway between front and profile, shoulders clearly angled away from the lens while the face turns back toward camera. 50mm.",
+    "An Iraqi man on the Basra corniche at dusk, river and boat lights softly out of focus behind him.")],
+  ["shot-medium-profile", shot(
+    "Medium shot: framed from the waist up, seen from the side at a clean 90 degrees. 50mm.",
+    "An Iraqi woman standing in the courtyard of an old Baghdadi house with carved shanasheel woodwork behind her.")],
+  ["shot-three-quarter-front", shot(
+    "Three-quarter shot: framed from mid-thigh up, subject facing the lens, full posture and gesture visible. 40mm.",
+    "An Iraqi man in a wool coat standing by tall windows in a warm book-lined room.")],
+  ["shot-three-quarter-45", shot(
+    "Three-quarter shot: framed from mid-thigh up, the body turned exactly halfway between front and profile, one shoulder noticeably closer to the lens than the other, face turned back toward camera. 40mm.",
+    "A young Iraqi woman standing beside a parked vintage car on a quiet city street, low sun.")],
+  ["shot-three-quarter-profile", shot(
+    "Three-quarter shot: framed from mid-thigh up, seen from the side at a clean 90 degrees. 40mm.",
+    "An Iraqi man standing at a street tea stall, steam rising, blurred market crowd behind him.")],
+  ["shot-long-front", shot(
+    "Long shot: the full body head to feet, facing the lens, clear headroom, location established around the subject. 35mm.",
+    "An Iraqi man standing in front of a sunlit mudbrick wall in a dusty southern village.")],
+  ["shot-long-profile", shot(
+    "Long shot: the full body head to feet seen from the side, clear headroom, location established around the subject. 35mm.",
+    "An Iraqi woman standing side-on at the edge of the Ahwar marshes, tall reeds and still water behind her.")],
+  ["shot-wide-front", shot(
+    "Wide shot: the figure is small within a vast environment that dominates the frame, facing the lens. 24mm, deep focus.",
+    "A lone traveller standing in an immense Iraqi desert valley under a huge sky at golden hour.")],
+  ["shot-wide-45", shot(
+    "Wide shot: the figure is small within a vast environment that dominates the frame, angled 45 degrees to the lens. 24mm, deep focus.",
+    "A person poling a narrow mashoof boat through the wide Ahwar marshes, reed beds stretching to the horizon.")],
+  ["shot-over-shoulder", shot(
+    "Over-the-shoulder shot: the back of a foreground person's head and shoulder fills one lower corner and stays soft and out of focus, the facing subject is sharp in the opposite third. 50mm.",
+    "Two Iraqi friends talking across a small tea table, warm café interior.")],
+  ["shot-back", shot(
+    "Back shot: the subject seen from directly behind, face fully hidden, looking away into the scene so the viewer shares their vantage point. 35mm.",
+    "A man standing at a railing above the Shatt al-Arab river at sunset, water and distant palms ahead.")],
+  ["shot-pov", shot(
+    "Point-of-view shot: the scene exactly as the character's own eyes see it, their own hands entering the bottom of the frame, natural eye-level height. 28mm.",
+    "First-person view of hands holding a small istikan glass of dark tea over a metal tray, a busy Baghdad market beyond.")],
+  ["shot-high-angle", shot(
+    "High-angle shot: the camera is clearly above the subject and tilted down, compressing them against the ground so they read smaller and more vulnerable.",
+    "A woman standing alone in a narrow Baghdad alley, patterned paving and long shadows around her.")],
+  ["shot-low-angle", shot(
+    "Low-angle shot: the camera is below eye level and tilted up, the subject towering against the sky, reading as powerful and imposing.",
+    "An Iraqi man in a long coat standing above the lens against a bright open sky.")],
+  ["shot-dutch-angle", shot(
+    "EXTREME dutch angle / canted frame: the entire image is rotated roughly 35 degrees off level, as if the photograph itself were turned. Every vertical in the scene — building corners, doorways, lamp posts, the standing person — leans hard to one side and runs as a strong diagonal from one corner of the frame toward the opposite corner. The ground line and horizon cut across the frame as an obvious steep diagonal, never horizontal. Disorienting and unmistakably tilted.",
+    "A man walking through a busy Baghdad street, signage and traffic tilted with the frame.")],
+  ["shot-birds-eye", shot(
+    "Bird's eye view: the camera is directly overhead looking straight down, the scene flattened into a graphic top-down map-like composition.",
+    "An overhead view of a Basra market square, stalls, awnings and people forming a pattern of rectangles.")],
+  ["shot-worms-eye", shot(
+    "Worm's eye view: the camera sits on the ground looking almost straight up, extreme vertical perspective with everything converging high above.",
+    "Looking up past date palms and a plain concrete building edge to the sky, a person standing over the lens.")],
 ];
 
 async function objectExists(key) {
@@ -137,8 +227,10 @@ async function generate(prompt) {
 
 async function run() {
   mkdirSync(OUT_DIR, { recursive: true });
-  const targets = STYLES.filter(([id]) => !ONLY || ONLY.has(id));
-  console.log(`Generating ${targets.length} style thumbnails with ${MODEL} → b2://${BUCKET}/${FOLDER}/`);
+  const set = SETS[SET];
+  if (!set) throw new Error(`Unknown --set=${SET}. Available: ${Object.keys(SETS).join(", ")}`);
+  const targets = set.filter(([id]) => !ONLY || ONLY.has(id));
+  console.log(`Generating ${targets.length} "${SET}" thumbnails with ${MODEL} → b2://${BUCKET}/${FOLDER}/`);
 
   const results = {};
   let ok = 0, fail = 0;

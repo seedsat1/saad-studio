@@ -110,8 +110,9 @@ export default function MobileAudioPage() {
       const res = await fetch("/api/assets?type=audio", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.items)) {
-          const mapped: AudioLibraryItem[] = data.items
+        const rawList = Array.isArray(data.assets) ? data.assets : Array.isArray(data.items) ? data.items : [];
+        if (rawList.length > 0) {
+          const mapped: AudioLibraryItem[] = rawList
             .map((it: any) => ({
               id: it.id || String(Math.random()),
               type: it.type || "audio",

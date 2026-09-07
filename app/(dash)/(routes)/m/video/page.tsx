@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import MobileTopBar from "@/components/mobile/MobileTopBar";
 import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import MobileDesktopGuard from "@/components/mobile/MobileDesktopGuard";
 import { downloadMediaFile } from "@/lib/client-download";
 import SimpleToast from "@/components/SimpleToast";
+import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
+import { useActiveProfile } from "@/lib/profile-context";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 interface VideoModelConfig {
   id: string;
@@ -51,6 +54,48 @@ const VIDEO_MODELS: VideoModelConfig[] = [
     maxImages: 9,
     hasAudio: true,
   },
+  {
+    id: "kling-30-std",
+    name: "Kling 3.0",
+    provider: "KLING",
+    note: "واقعية وسينمائية فائقة",
+    description: "المحرك السينمائي الأقوى لثبات حركة الشخصيات وتفاصيل الوجه والواقعية.",
+    ratePerSec: 4.47,
+    apiRoute: "kwaivgi/kling-v3.0-std/text-to-video",
+    durations: [5, 10],
+    aspectRatios: ["9:16", "16:9", "1:1"],
+    resolutions: ["720p", "1080p"],
+    maxImages: 3,
+    hasAudio: false,
+  },
+  {
+    id: "minimax-hailuo-02-pro",
+    name: "Hailuo 02 Pro",
+    provider: "MINIMAX",
+    note: "حركة فيزيائية واقعية 1080p",
+    description: "محرك Hailuo 02 Pro بدقة 1080p سينمائية وحركة فيزيائية ناعمة وثابتة.",
+    ratePerSec: 4.57,
+    apiRoute: "minimax-hailuo-02-pro",
+    durations: [6],
+    aspectRatios: ["16:9", "9:16"],
+    resolutions: ["1080p"],
+    maxImages: 2,
+    hasAudio: false,
+  },
+  {
+    id: "alibaba-wan-30",
+    name: "Wan 3.0",
+    provider: "ALIBABA",
+    note: "تفاصيل فائقة وإضاءة متقدمة",
+    description: "أحدث محركات Alibaba للتحريك الواقعي من الصور والنصوص بدقة عالية.",
+    ratePerSec: 3.92,
+    apiRoute: "alibaba/wan-3.0/text-to-video",
+    durations: [5, 10],
+    aspectRatios: ["16:9", "9:16", "1:1"],
+    resolutions: ["720p", "1080p"],
+    maxImages: 3,
+    hasAudio: false,
+  },
 ];
 
 function getGeminiOmniRatePerSecond(resolution: string): number {
@@ -59,6 +104,39 @@ function getGeminiOmniRatePerSecond(resolution: string): number {
   if (q.includes("1080")) return 4.5;
   if (q.includes("4k")) return 9;
   return 3;
+}
+
+async function uploadMediaFile(
+  file: File,
+  authFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+): Promise<string> {
+  try {
+    const fileType = file.type || "image/jpeg";
+    const signRes = await authFetch("/api/media/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName: file.name || `mobile-video-ref-${Date.now()}`,
+        fileType,
+      }),
+    });
+    if (signRes.ok) {
+      const signData = await signRes.json();
+      if (signData?.signedUrl && signData?.publicUrl) {
+        const putRes = await fetch(signData.signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": fileType },
+          body: file,
+        });
+        if (putRes.ok) {
+          return String(signData.publicUrl);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[uploadMediaFile] fallback to direct handling", err);
+  }
+  return "";
 }
 
 export default function MobileVideoPage() {
@@ -72,6 +150,7 @@ export default function MobileVideoPage() {
   const [motionIntensity, setMotionIntensity] = useState<number>(6);
   const [generateAudio, setGenerateAudio] = useState<boolean>(true);
   const [refImages, setRefImages] = useState<string[]>([]);
+  const [refFiles, setRefFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stepText, setStepText] = useState("تحليل الوصف");
@@ -80,6 +159,9 @@ export default function MobileVideoPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { fetchWithAuth } = useAuthenticatedFetch();
+  const { activeProfile } = useActiveProfile();
+  const gate = useGenerationGate({ toolKey: "video" });
 
   // Keep duration within selected model range
   useEffect(() => {
@@ -89,18 +171,27 @@ export default function MobileVideoPage() {
     if (!selectedModel.aspectRatios.includes(ratio)) {
       setRatio(selectedModel.aspectRatios[0] || "9:16");
     }
+    if (!selectedModel.resolutions.includes(resolution)) {
+      setResolution(selectedModel.resolutions[0] || "720p");
+    }
   }, [selectedModel]);
 
-  const resolutionMultiplier = resolution === "1080p" ? 1.5 : resolution === "4k" ? 2.4 : 1.0;
-  const estimatedCost = Math.round(
-    duration * (selectedModel.id === "google-gemini-omni" ? getGeminiOmniRatePerSecond(resolution) : selectedModel.ratePerSec * resolutionMultiplier),
-  );
+  const estimatedCost = useMemo(() => {
+    if (selectedModel.id === "google-gemini-omni") {
+      return Math.round(duration * getGeminiOmniRatePerSecond(resolution));
+    }
+    const resolutionMultiplier = resolution === "1080p" ? 1.5 : resolution === "4k" ? 2.4 : 1.0;
+    const isFixedDurationModel = selectedModel.id.includes("kling") || selectedModel.id.includes("hailuo") || selectedModel.id.includes("wan");
+    return Math.round(duration * selectedModel.ratePerSec * (isFixedDurationModel ? 1.0 : resolutionMultiplier));
+  }, [duration, resolution, selectedModel]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     const remainingSlots = selectedModel.maxImages - refImages.length;
     const toProcess = Array.from(files).slice(0, Math.max(0, remainingSlots));
+
+    setRefFiles((prev) => [...prev, ...toProcess]);
 
     toProcess.forEach((file) => {
       const reader = new FileReader();
@@ -116,6 +207,7 @@ export default function MobileVideoPage() {
 
   const removeRefImage = (index: number) => {
     setRefImages((prev) => prev.filter((_, idx) => idx !== index));
+    setRefFiles((prev) => prev.filter((_, idx) => idx !== index));
   };
 
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -156,6 +248,11 @@ export default function MobileVideoPage() {
       return;
     }
 
+    if (!gate.canGenerate) {
+      gate.showUpgradeModal();
+      return;
+    }
+
     setLoading(true);
     setProgress(0);
     setResultVideoUrl(null);
@@ -163,6 +260,7 @@ export default function MobileVideoPage() {
 
     const steps = [
       "تحليل الوصف",
+      "رفع ومعالجة الوسائط",
       "بناء الإطار الأولي",
       "توليد وتنسيق الحركة",
       "معالجة واستقرار الإطارات",
@@ -178,28 +276,72 @@ export default function MobileVideoPage() {
     }, 500);
 
     try {
-      const payload: Record<string, any> = {
-        prompt,
-        model: selectedModel.apiRoute,
+      // 1. Upload any pending reference files to get clean public storage URLs
+      const uploadedImageUrls: string[] = [];
+      for (let i = 0; i < refImages.length; i++) {
+        const file = refFiles[i];
+        let publicUrl = "";
+        if (file) {
+          publicUrl = await uploadMediaFile(file, fetchWithAuth);
+        }
+        uploadedImageUrls.push(publicUrl || refImages[i]);
+      }
+
+      const firstImage = uploadedImageUrls[0] || undefined;
+      const secondImage = uploadedImageUrls[1] || undefined;
+
+      const videoPayload: Record<string, any> = {
+        prompt: prompt.trim(),
         duration,
+        aspect_ratio: ratio,
         aspectRatio: ratio,
         resolution,
         sound: selectedModel.hasAudio && generateAudio,
-        startImage: refImages[0] || undefined,
-        referenceImages: refImages.length > 0 ? refImages : undefined,
-        negativePrompt: negativePrompt || undefined,
+        negative_prompt: negativePrompt.trim() || undefined,
+        negativePrompt: negativePrompt.trim() || undefined,
       };
 
-      const res = await fetch("/api/video", {
+      if (firstImage) {
+        videoPayload.image = firstImage;
+        videoPayload.first_frame_url = firstImage;
+        videoPayload.image_url = firstImage;
+        videoPayload.imageUrl = firstImage;
+      }
+
+      if (secondImage && mode === "i2v") {
+        videoPayload.end_image = secondImage;
+        videoPayload.last_frame_url = secondImage;
+        videoPayload.last_image = secondImage;
+      }
+
+      if (uploadedImageUrls.length > 0) {
+        videoPayload.image_urls = uploadedImageUrls;
+        videoPayload.imageUrls = uploadedImageUrls;
+        videoPayload.reference_image_urls = uploadedImageUrls;
+        videoPayload.reference_images = uploadedImageUrls;
+      }
+
+      const idempotencyKey = `video-m-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      const activeProfileId = activeProfile?.id || (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : null);
+
+      const res = await fetchWithAuth("/api/video", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+          ...(activeProfileId ? { "x-profile-id": activeProfileId } : {}),
+        },
+        body: JSON.stringify({
+          modelRoute: selectedModel.apiRoute,
+          payload: videoPayload,
+          profileId: activeProfileId,
+        }),
       });
 
       if (!res.ok) {
         clearInterval(progressTimer);
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || err.message || "فشل إرسال طلب توليد الفيديو");
+        throw new Error(err.error || err.message || err.publicError || "فشل إرسال طلب توليد الفيديو");
       }
 
       const data = await res.json();
@@ -216,7 +358,7 @@ export default function MobileVideoPage() {
           attempts++;
 
           try {
-            const pollRes = await fetch(`/api/video?taskId=${encodeURIComponent(taskId)}`, { cache: "no-store" });
+            const pollRes = await fetchWithAuth(`/api/video?taskId=${encodeURIComponent(taskId)}`, { cache: "no-store" });
             if (pollRes.ok) {
               const pollData = await pollRes.json();
               if (pollData.status === "failed") {
@@ -245,7 +387,11 @@ export default function MobileVideoPage() {
 
       setProgress(100);
       setResultVideoUrl(videoUrl);
-      setToastMessage("تم توليد الفيديو بنجاح! 🎉");
+      setToastMessage("تم توليد الفيديو بنجاح! 🎉 تم حفظه في المعرض (المكتبة)");
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("saad-asset-created", { detail: { type: "video", url: videoUrl } }));
+      }
     } catch (err: any) {
       clearInterval(progressTimer);
       setToastMessage(err.message || "حدث خطأ أثناء التوليد");
@@ -336,15 +482,29 @@ export default function MobileVideoPage() {
             {!loading && resultVideoUrl && (
               <div className="relative w-full h-full group">
                 <video src={resultVideoUrl} controls autoPlay loop playsInline className="w-full h-full object-cover" />
-                <button
-                  onClick={handleSaveToCameraRoll}
-                  className="absolute bottom-3 right-3 px-3 py-1.5 rounded-full bg-[#38C2F0] text-[#04101F] text-xs font-black shadow-lg flex items-center gap-1.5 active:scale-95 transition-transform"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                    <path d="M12 4v12M8 12l4 4 4-4M4 20h16" />
-                  </svg>
-                  حفظ في الألبوم
-                </button>
+                <div className="absolute bottom-3 inset-x-3 flex items-center justify-between gap-2 pointer-events-auto">
+                  <a
+                    href="/m/gallery"
+                    className="px-3 py-1.5 rounded-full bg-[#0F1B3D]/90 border border-[#38C2F0]/40 text-[#38C2F0] text-xs font-bold shadow-lg flex items-center gap-1.5 active:scale-95 transition-transform backdrop-blur-md"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                    </svg>
+                    فتح في المعرض
+                  </a>
+                  <button
+                    onClick={handleSaveToCameraRoll}
+                    className="px-3 py-1.5 rounded-full bg-[#38C2F0] text-[#04101F] text-xs font-black shadow-lg flex items-center gap-1.5 active:scale-95 transition-transform"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                      <path d="M12 4v12M8 12l4 4 4-4M4 20h16" />
+                    </svg>
+                    حفظ في الألبوم
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -631,6 +791,22 @@ export default function MobileVideoPage() {
             </div>
           </details>
         </section>
+
+        {/* Gallery shortcut link */}
+        <div className="px-4 pt-4 pb-8 text-center">
+          <a
+            href="/m/gallery"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#16244C]/50 border border-[#38C2F0]/25 text-xs font-bold text-slate-300 hover:text-white transition-colors active:scale-95"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38C2F0" strokeWidth="2" strokeLinecap="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5" />
+              <rect x="14" y="3" width="7" height="7" rx="1.5" />
+              <rect x="3" y="14" width="7" height="7" rx="1.5" />
+              <rect x="14" y="14" width="7" height="7" rx="1.5" />
+            </svg>
+            عرض جميع فيديوهاتك في المكتبة والمعرض
+          </a>
+        </div>
 
         {/* Fixed Generate Bar */}
         <div className="fixed bottom-0 inset-x-0 max-w-[430px] mx-auto z-50 p-3.5 bg-[#070D1F]/95 backdrop-blur-2xl border-t border-[#38C2F0]/20">

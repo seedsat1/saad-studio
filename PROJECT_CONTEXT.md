@@ -1,4 +1,52 @@
-# Latest task: Image Model Capability Badges & Popover Dropdown on /image (2026-09-07)
+# Latest task: Mobile Video Generation & Gallery Fix on /m/video & /m/gallery (2026-09-07)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed user request and mobile screenshot (`media_1788807947714.png`) from user `lenahomam4@gmail.com`:
+    "عندي مشكلة بنسخة الهاتف راجع المشكلة التوليد وايظا لازم يظهر بالكلري الفديو هذا الايميل اللي تم التوليد من عندا lenahomam4@gmail.com"
+  - Root Cause 1 (Mobile Video Generation 400 Failure):
+    `app/(dash)/(routes)/m/video/page.tsx` was posting a flat payload `{ prompt, model, ... }` to `/api/video`.
+    `app/api/video/route.ts` strictly requires `{ modelRoute, payload, profileId }` at the root, throwing `400 Bad Request: "modelRoute is required"` when missing.
+  - Root Cause 2 (Gallery Empty State):
+    `app/(dash)/(routes)/m/gallery/page.tsx` and `app/(dash)/(routes)/m/audio/page.tsx` checked `data.items`, whereas `app/api/assets/route.ts` returned `{ assets: normalized }`. Thus, gallery items were never displayed.
+  - Fixes Implemented:
+    1. Backend `app/api/assets/route.ts`:
+       - Returns both `assets: normalized` and `items: normalized` ensuring backward compatibility for mobile callers.
+    2. Mobile Video Generation `app/(dash)/(routes)/m/video/page.tsx`:
+       - Aligned generation contract to `{ modelRoute, payload, profileId }`.
+       - Mapped reference images to `image`, `first_frame_url`, `image_url`, and `reference_image_urls`.
+       - Integrated `uploadMediaFile` helper to upload local images via `/api/media/upload` (with base64 fallback) to prevent oversized payloads.
+       - Integrated `useAuthenticatedFetch`, `useActiveProfile`, and `useGenerationGate`.
+       - Added `Idempotency-Key` and `x-profile-id` headers.
+       - Expanded `VIDEO_MODELS` to include canonical top models (Gemini Omni 1.1, Seedance Mini, Kling 3.0, Hailuo 02 Pro, Wan 3.0).
+       - Added direct action button "فتح في المعرض" on generated video result card linking to `/m/gallery`.
+       - Added gallery quick-link banner at the bottom of the page.
+    3. Mobile Gallery `app/(dash)/(routes)/m/gallery/page.tsx`:
+       - Handles both `data.assets` and `data.items`.
+       - Integrated `useAuthenticatedFetch` and `useActiveProfile` to pass `profileId` and Clerk auth headers.
+       - Listens to `saad-profile-switched` event to auto-refresh assets on profile switch.
+       - Configured video preview cards with poster preview and `playsInline`.
+    4. Mobile Audio `app/(dash)/(routes)/m/audio/page.tsx`:
+       - Updated `fetchLibrary` to handle `data.assets || data.items`.
+- Files affected:
+  - `app/api/assets/route.ts`
+  - `app/(dash)/(routes)/m/video/page.tsx`
+  - `app/(dash)/(routes)/m/gallery/page.tsx`
+  - `app/(dash)/(routes)/m/audio/page.tsx`
+  - `test/mobile-video-generation-contract.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest `test/mobile-video-generation-contract.test.ts`: 5/5 tests PASS.
+  - Vitest `test/image-model-capability-badges.test.ts`: 10/10 tests PASS.
+  - Vitest `test/model-capability-badges.test.ts`: 6/6 tests PASS.
+  - Vitest `test/hailuo-contract.test.ts`: 7/7 tests PASS.
+- Decisions:
+  - Provide both `assets` and `items` keys in `/api/assets` API response for complete interoperability across all frontend callers.
+  - Route mobile images through `/api/media/upload` to produce clean public URLs and avoid payload size failures.
+- Remaining step:
+  - Ready for deployment / user testing.
+
+# Previous task: Image Model Capability Badges & Popover Dropdown on /image (2026-09-07)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Addressed user request and reference screenshot (`media_1788786096271.png`):

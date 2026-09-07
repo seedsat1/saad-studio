@@ -23,6 +23,7 @@ import {
   Layers,
   Palette,
   Clapperboard,
+  Frame,
 } from "lucide-react";
 import {
   HOOK_STYLES,
@@ -32,6 +33,7 @@ import {
   HOOK_EFFECTS,
   HOOK_CHARACTERS,
   HOOK_SKETCHES,
+  HOOK_SHOT_TYPES,
 } from "@/lib/hook-studio-config";
 import {
   registerUserAsset,
@@ -58,6 +60,8 @@ export interface ReferenceStudioModalProps {
   onSelectCharacter?: (id: string | null) => void;
   selectedSketchId?: string | null;
   onSelectSketch?: (id: string | null) => void;
+  selectedShotTypeId?: string | null;
+  onSelectShotType?: (id: string | null) => void;
   onSelectPalette?: (palette: { id: string; name: string; colors: string[] } | null) => void;
   onAttachFile?: (file: { id: string; url: string; name: string; type: "image" | "video" }) => void;
   /** When true, clicking a user-owned character will NOT attach its cover here — the caller uses the Character Package flow (all referenceUrls attached at generation time). Prevents double-refs. */
@@ -179,6 +183,8 @@ export function ReferenceStudioModal({
   onSelectCharacter,
   selectedSketchId,
   onSelectSketch,
+  selectedShotTypeId,
+  onSelectShotType,
   onSelectPalette,
   onAttachFile,
   useCharacterPackage = false,
@@ -1305,6 +1311,25 @@ export function ReferenceStudioModal({
               <button
                 type="button"
                 onClick={() => {
+                  setActiveTab("shottype");
+                  setSearchQuery("");
+                  setActiveCategory("all");
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "shottype"
+                    ? "bg-[#161a29] text-white border border-orange-500/40"
+                    : "text-slate-400 hover:bg-[#131724] hover:text-slate-200"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Frame className="w-4 h-4 text-orange-400" />
+                  <span>Shot Type</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
                   setActiveTab("camera");
                   setSearchQuery("");
                 }}
@@ -1388,6 +1413,28 @@ export function ReferenceStudioModal({
                     }`}
                   >
                     {cat === "all" ? (isAr ? "الكل" : "All") : cat}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeTab === "shottype" && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {(["all", "framing", "angle"] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      activeCategory === cat
+                        ? "bg-orange-600 text-white"
+                        : "bg-[#131724] text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {cat === "all"
+                      ? (isAr ? "الكل" : "All")
+                      : cat === "framing"
+                        ? (isAr ? "تأطير" : "Framing")
+                        : (isAr ? "زاوية" : "Angle")}
                   </button>
                 ))}
               </div>
@@ -2123,6 +2170,59 @@ export function ReferenceStudioModal({
             )}
 
             {/* Sketch Tab */}
+            {activeTab === "shottype" && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("shottype", "orange", (id) => onSelectShotType?.(id), (id) => selectedShotTypeId === id)}
+                {HOOK_SHOT_TYPES.filter((st) => {
+                  const search = searchQuery.toLowerCase();
+                  const matchCat = activeCategory === "all" || st.group === activeCategory;
+                  const matchSearch =
+                    st.nameAr.toLowerCase().includes(search) ||
+                    st.nameEn.toLowerCase().includes(search) ||
+                    st.tag.toLowerCase().includes(search);
+                  return matchCat && matchSearch;
+                }).map((shotItem) => {
+                  const isSelected = selectedShotTypeId === shotItem.id;
+                  return (
+                    <div
+                      key={shotItem.id}
+                      onClick={() => {
+                        // Shot Type is a prompt-only modifier — its thumbnail is an index
+                        // card, not a visual reference, so never attach it as a ref image.
+                        onSelectShotType?.(isSelected ? null : shotItem.id);
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-orange-500 ring-2 ring-orange-500/20 bg-orange-500/10"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                      }`}
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+                        <img
+                          src={shotItem.imageUrl}
+                          alt={shotItem.nameAr}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-orange-500 text-white rounded-full p-1 shadow">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-slate-200 truncate">
+                          {isAr ? shotItem.nameAr : shotItem.nameEn}
+                        </div>
+                        <div className="text-[10px] text-orange-400 font-medium truncate mt-0.5">
+                          {shotItem.nameEn}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {activeTab === "sketch" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
                 {renderCustomCategoryItems("sketch", "teal", (id) => onSelectSketch?.(id), (id) => selectedSketchId === id)}

@@ -1,0 +1,60 @@
+import { describe, it, expect } from "vitest";
+import fs from "fs";
+import path from "path";
+
+describe("Mobile Video Generation & Gallery Contracts", () => {
+  const mVideoPath = path.join(__dirname, "../app/(dash)/(routes)/m/video/page.tsx");
+  const mGalleryPath = path.join(__dirname, "../app/(dash)/(routes)/m/gallery/page.tsx");
+  const mAudioPath = path.join(__dirname, "../app/(dash)/(routes)/m/audio/page.tsx");
+  const apiAssetsPath = path.join(__dirname, "../app/api/assets/route.ts");
+
+  it("ensures /m/video sends modelRoute, payload, and profileId in request body", () => {
+    const content = fs.readFileSync(mVideoPath, "utf8");
+
+    expect(content).toContain("useAuthenticatedFetch");
+    expect(content).toContain("useActiveProfile");
+    expect(content).toContain("useGenerationGate");
+
+    expect(content).toContain("modelRoute: selectedModel.apiRoute");
+    expect(content).toContain("payload: videoPayload");
+    expect(content).toContain("profileId: activeProfileId");
+    expect(content).toContain('"Idempotency-Key": idempotencyKey');
+    expect(content).toContain('"x-profile-id": activeProfileId');
+
+    expect(content).toContain("videoPayload.image = firstImage");
+    expect(content).toContain("videoPayload.first_frame_url = firstImage");
+    expect(content).toContain("videoPayload.reference_image_urls = uploadedImageUrls");
+  });
+
+  it("ensures /api/assets returns both assets and items for backward compatibility", () => {
+    const content = fs.readFileSync(apiAssetsPath, "utf8");
+
+    expect(content).toContain("assets: normalized");
+    expect(content).toContain("items: normalized");
+  });
+
+  it("ensures /m/gallery consumes both data.assets and data.items with profile support", () => {
+    const content = fs.readFileSync(mGalleryPath, "utf8");
+
+    expect(content).toContain("useAuthenticatedFetch");
+    expect(content).toContain("useActiveProfile");
+    expect(content).toContain("data.assets");
+    expect(content).toContain("data.items");
+    expect(content).toContain("saad-profile-switched");
+    expect(content).toContain("profileId: targetProfileId");
+  });
+
+  it("ensures /m/audio supports data.assets alongside data.items", () => {
+    const content = fs.readFileSync(mAudioPath, "utf8");
+
+    expect(content).toContain("data.assets");
+    expect(content).toContain("data.items");
+  });
+
+  it("ensures /m/video has a direct link to the gallery/library", () => {
+    const content = fs.readFileSync(mVideoPath, "utf8");
+
+    expect(content).toContain('href="/m/gallery"');
+    expect(content).toContain("المكتبة");
+  });
+});

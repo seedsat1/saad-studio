@@ -589,7 +589,15 @@ export async function GET(req: NextRequest) {
       text: textCount,
     };
 
-    return NextResponse.json({ assets: normalized, counts, page, limit, total: totalForFilter, hasMore }, { status: 200 });
+    return NextResponse.json({
+      assets: normalized,
+      items: normalized,
+      counts,
+      page,
+      limit,
+      total: totalForFilter,
+      hasMore,
+    }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load assets.";
     return NextResponse.json({ error: message }, { status: 500 });

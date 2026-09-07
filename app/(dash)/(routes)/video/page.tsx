@@ -1428,6 +1428,7 @@ function VideoPageInner() {
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
   const [selectedCharacterPresetId, setSelectedCharacterPresetId] = useState<string | null>(null);
   const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
+  const [selectedShotTypeId, setSelectedShotTypeId] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   // Kling 3.0 structured elements (name + description + 2-4 images each, max 3 elements)
@@ -2717,6 +2718,7 @@ function VideoPageInner() {
         selectedCharacterId: selectedCharacterPresetId,
         selectedCameraId,
         selectedSketchId,
+        selectedShotTypeId,
         selectedLocationId,
         selectedElementId,
         selectedPalette,
@@ -3377,7 +3379,7 @@ function VideoPageInner() {
     activeTool, videoMode, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isWan30Model, isVeo31Model, isGoogleVeoModel, isVeo31FastModel, isVeo31FixedEightSecond,
     startFrame, linkedStartFrameUrl, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
-    sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId, selectedPalette, startPolling,
+    sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedShotTypeId, selectedLocationId, selectedElementId, selectedPalette, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
     estimatedCredits, activeVideoModeLabel, fetchWithAuth, getSafeErrorMessage, guardGeneration,
   ]);
@@ -7306,8 +7308,13 @@ function VideoPageInner() {
         }}
         useCharacterPackage={true}
         selectedSketchId={selectedSketchId}
+        selectedShotTypeId={selectedShotTypeId}
         onSelectSketch={(id) => {
           setSelectedSketchId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        onSelectShotType={(id) => {
+          setSelectedShotTypeId(id);
           setShowReferenceStudioModal(false);
         }}
         onSelectPalette={(pal) => setSelectedPalette(pal)}

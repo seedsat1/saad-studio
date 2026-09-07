@@ -205,6 +205,7 @@ export default function CinemaFlowPage() {
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
   const [selectedCharacterPresetId, setSelectedCharacterPresetId] = useState<string | null>(null);
   const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
+  const [selectedShotTypeId, setSelectedShotTypeId] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   // Gallery states
@@ -796,6 +797,7 @@ export default function CinemaFlowPage() {
         selectedEffectId,
         selectedCameraId,
         selectedSketchId,
+        selectedShotTypeId,
         selectedLocationId,
         selectedElementId,
         selectedPalette,
@@ -947,6 +949,7 @@ export default function CinemaFlowPage() {
         selectedEffectId,
         selectedCameraId,
         selectedSketchId,
+        selectedShotTypeId,
         selectedLocationId,
         selectedElementId,
         selectedPalette,
@@ -2352,8 +2355,13 @@ export default function CinemaFlowPage() {
           setShowReferenceStudioModal(false);
         }}
         selectedSketchId={selectedSketchId}
+        selectedShotTypeId={selectedShotTypeId}
         onSelectSketch={(id) => {
           setSelectedSketchId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        onSelectShotType={(id) => {
+          setSelectedShotTypeId(id);
           setShowReferenceStudioModal(false);
         }}
         onSelectPalette={(pal) => setSelectedPalette(pal)}

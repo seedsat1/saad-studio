@@ -18,6 +18,7 @@ import {
   HOOK_EFFECTS,
   HOOK_CHARACTERS,
   HOOK_SKETCHES,
+  HOOK_SHOT_TYPES,
 } from "./hook-studio-config";
 import { getUserAsset, type UserAssetKind } from "./user-asset-registry";
 
@@ -26,6 +27,8 @@ export interface PresetSelections {
   selectedEffectId?: string | null;
   selectedCharacterId?: string | null;
   selectedCameraId?: string | null;
+  /** Shot framing / angle preset from the Shot Type tab. */
+  selectedShotTypeId?: string | null;
   selectedSketchId?: string | null;
   /** Semantic hint for a built-in preset location (not the user's own uploaded one). */
   selectedLocationId?: string | null;
@@ -83,6 +86,11 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
   if (sel.selectedCharacterId) {
     const ch = HOOK_CHARACTERS.find((x) => x.id === sel.selectedCharacterId);
     if (ch?.promptDescription) parts.push(`Character (${ch.tag}): ${ch.promptDescription}`);
+  }
+
+  if (sel.selectedShotTypeId) {
+    const st = HOOK_SHOT_TYPES.find((x) => x.id === sel.selectedShotTypeId);
+    if (st?.promptDescription) parts.push(`Shot type (${st.tag}): ${st.promptDescription}`);
   }
 
   if (sel.selectedCameraId) {

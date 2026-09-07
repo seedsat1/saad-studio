@@ -1,16 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import MobileTopBar from "@/components/mobile/MobileTopBar";
 import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import MobileDesktopGuard from "@/components/mobile/MobileDesktopGuard";
 import { downloadMediaFile } from "@/lib/client-download";
 import SimpleToast from "@/components/SimpleToast";
+import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
+import { useActiveProfile } from "@/lib/profile-context";
 
 interface MediaItem {
   id: string;
   type: "video" | "image" | "audio";
   url: string;
+  thumbnailUrl?: string;
+  posterUrl?: string;
   prompt?: string;
   model?: string;
   createdAt: string;
@@ -23,36 +27,69 @@ export default function MobileGalleryPage() {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    const fetchMedia = async () => {
-      try {
-        const res = await fetch("/api/assets", { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          if (active && Array.isArray(data.items)) {
-            const mapped: MediaItem[] = data.items.map((it: any) => ({
-              id: it.id || String(Math.random()),
-              type: it.type === "video" ? "video" : it.type === "audio" ? "audio" : "image",
-              url: it.url || it.originalUrl || it.mediaUrl || "",
-              prompt: it.prompt || "",
-              model: it.model || "",
-              createdAt: it.createdAt || new Date().toISOString(),
-            })).filter((it: MediaItem) => Boolean(it.url));
-            setItems(mapped);
-          }
-        }
-      } catch {
-        // ignore
-      } finally {
-        if (active) setLoading(false);
+  const { fetchWithAuth } = useAuthenticatedFetch();
+  const { activeProfile } = useActiveProfile();
+
+  const fetchMedia = useCallback(async (overrideProfileId?: string) => {
+    setLoading(true);
+    try {
+      const targetProfileId = overrideProfileId !== undefined
+        ? overrideProfileId
+        : (activeProfile?.id || (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : ""));
+
+      const params = new URLSearchParams({
+        limit: "50",
+        ...(targetProfileId ? { profileId: targetProfileId } : {}),
+      });
+
+      const res = await fetchWithAuth(`/api/assets?${params.toString()}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const rawList = Array.isArray(data.assets) ? data.assets : Array.isArray(data.items) ? data.items : [];
+        const mapped: MediaItem[] = rawList.map((it: any) => {
+          const rawType = String(it.type || it.assetType || "").toLowerCase();
+          const itemType: "video" | "image" | "audio" =
+            rawType.includes("video") ? "video" : rawType.includes("audio") ? "audio" : "image";
+          const mediaUrl = it.url || it.originalUrl || it.mediaUrl || "";
+
+          return {
+            id: it.id || String(Math.random()),
+            type: itemType,
+            url: mediaUrl,
+            thumbnailUrl: it.thumbnailUrl || it.posterUrl || mediaUrl,
+            posterUrl: it.posterUrl || undefined,
+            prompt: it.prompt || "",
+            model: it.model || it.modelUsed || "",
+            createdAt: it.createdAt || new Date().toISOString(),
+          };
+        }).filter((it: MediaItem) => Boolean(it.url));
+        setItems(mapped);
       }
-    };
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }, [activeProfile?.id, fetchWithAuth]);
+
+  useEffect(() => {
     fetchMedia();
-    return () => {
-      active = false;
+  }, [fetchMedia]);
+
+  // Synchronize on profile switch
+  useEffect(() => {
+    const handleProfileSwitch = (e: Event) => {
+      const customEvent = e as CustomEvent<{ profileId?: string }>;
+      const newProfileId = customEvent.detail?.profileId ?? (typeof window !== "undefined" ? localStorage.getItem("saad_active_profile_id") : "");
+      setItems([]);
+      fetchMedia(newProfileId || "");
     };
-  }, []);
+
+    window.addEventListener("saad-profile-switched", handleProfileSwitch);
+    return () => {
+      window.removeEventListener("saad-profile-switched", handleProfileSwitch);
+    };
+  }, [fetchMedia]);
 
   const filteredItems = items.filter((item) => filter === "all" || item.type === filter);
 
@@ -134,8 +171,15 @@ export default function MobileGalleryPage() {
                   )}
                   {item.type === "video" && (
                     <div className="relative w-full h-full">
-                      <video src={item.url} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                      <video
+                        src={item.url}
+                        poster={item.thumbnailUrl || item.posterUrl}
+                        preload="metadata"
+                        playsInline
+                        muted
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
                         <div className="w-9 h-9 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M8 5l11 7-11 7z" />

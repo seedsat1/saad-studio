@@ -1516,6 +1516,7 @@ export default function ImageWorkspacePage() {
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
   const [selectedCharacterPresetId, setSelectedCharacterPresetId] = useState<string | null>(null);
   const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
+  const [selectedShotTypeId, setSelectedShotTypeId] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   useEffect(() => {
@@ -1880,6 +1881,7 @@ export default function ImageWorkspacePage() {
       selectedEffectId,
       selectedCameraId,
       selectedSketchId,
+      selectedShotTypeId,
       selectedLocationId,
       selectedElementId,
       selectedPalette,
@@ -1936,7 +1938,7 @@ export default function ImageWorkspacePage() {
     } else {
       void loadPersistedImages(0, "replace");
     }
-  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, loadPersistedImages, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId, selectedPalette]);
+  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, loadPersistedImages, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedShotTypeId, selectedLocationId, selectedElementId, selectedPalette]);
 
   const generateRelight = useCallback(async () => {
     if (!relightFile) throw new Error("Upload image first");
@@ -3002,8 +3004,13 @@ export default function ImageWorkspacePage() {
           }}
           useCharacterPackage={true}
           selectedSketchId={selectedSketchId}
+          selectedShotTypeId={selectedShotTypeId}
           onSelectSketch={(id) => {
             setSelectedSketchId(id);
+            setShowReferenceStudioModal(false);
+          }}
+          onSelectShotType={(id) => {
+            setSelectedShotTypeId(id);
             setShowReferenceStudioModal(false);
           }}
           onSelectPalette={(pal) => {

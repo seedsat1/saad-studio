@@ -2221,3 +2221,236 @@ export const HOOK_SKETCHES: HookSketchPreset[] = [
     promptDescription: "Cyan blue background architectural draft blueprint line drawing."
   }
 ];
+
+export interface HookShotTypePreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  /** Framing group used by the Shot Type tab filter bar. */
+  group: "framing" | "angle";
+  promptDescription: string;
+}
+
+export const HOOK_SHOT_TYPES: HookShotTypePreset[] = [
+  // ── FRAMING ──
+  {
+    id: "ecu-front",
+    tag: "#ecu-front",
+    nameAr: "لقطة قريبة جداً – أمامية",
+    nameEn: "Extreme Close-Up - Front",
+    imageUrl: "/api/media/reference-thumbnails/shot-ecu-front.webp",
+    group: "framing",
+    promptDescription: "extreme close-up, front view. Framing: fill the frame with the face from brow to chin, eyes on the upper third. Lens: 85mm equivalent, shallow depth of field. Subject faces the lens straight on."
+  },
+  {
+    id: "ecu-45",
+    tag: "#ecu-45",
+    nameAr: "لقطة قريبة جداً – ٤٥°",
+    nameEn: "Extreme Close-Up - 45°",
+    imageUrl: "/api/media/reference-thumbnails/shot-ecu-45.webp",
+    group: "framing",
+    promptDescription: "extreme close-up, three-quarter 45 degree view. Framing: fill the frame with the face, head turned 45 degrees off axis so the far cheekbone stays visible. Lens: 85mm equivalent, shallow depth of field."
+  },
+  {
+    id: "ecu-profile",
+    tag: "#ecu-profile",
+    nameAr: "لقطة قريبة جداً – جانبية",
+    nameEn: "Extreme Close-Up - Profile",
+    imageUrl: "/api/media/reference-thumbnails/shot-ecu-profile.webp",
+    group: "framing",
+    promptDescription: "extreme close-up, full profile view. Framing: fill the frame with the side of the face at a clean 90 degree profile, nose silhouette against the background. Lens: 85mm equivalent, shallow depth of field."
+  },
+  {
+    id: "cu-front",
+    tag: "#cu-front",
+    nameAr: "لقطة قريبة – أمامية",
+    nameEn: "Close-Up - Front",
+    imageUrl: "/api/media/reference-thumbnails/shot-cu-front.webp",
+    group: "framing",
+    promptDescription: "close-up, front view. Framing: head and top of the shoulders, cut just below the collarbone. Subject faces the lens straight on. Lens: 85mm equivalent, background softly separated."
+  },
+  {
+    id: "cu-45",
+    tag: "#cu-45",
+    nameAr: "لقطة قريبة – ٤٥°",
+    nameEn: "Close-Up - 45°",
+    imageUrl: "/api/media/reference-thumbnails/shot-cu-45.webp",
+    group: "framing",
+    promptDescription: "close-up, three-quarter 45 degree view. Framing: head and top of the shoulders, body angled 45 degrees to the lens with the face turned toward camera. Lens: 85mm equivalent, background softly separated."
+  },
+  {
+    id: "cu-profile",
+    tag: "#cu-profile",
+    nameAr: "لقطة قريبة – جانبية",
+    nameEn: "Close-Up - Profile",
+    imageUrl: "/api/media/reference-thumbnails/shot-cu-profile.webp",
+    group: "framing",
+    promptDescription: "close-up, full profile view. Framing: head and top of the shoulders seen from the side at 90 degrees, clean facial silhouette. Lens: 85mm equivalent, background softly separated."
+  },
+  {
+    id: "medium-front",
+    tag: "#medium-front",
+    nameAr: "لقطة متوسطة – أمامية",
+    nameEn: "Medium Shot - Front",
+    imageUrl: "/api/media/reference-thumbnails/shot-medium-front.webp",
+    group: "framing",
+    promptDescription: "medium shot, front view. Framing: from the waist up, subject facing the lens straight on, with readable environment behind. Lens: 50mm equivalent."
+  },
+  {
+    id: "medium-45",
+    tag: "#medium-45",
+    nameAr: "لقطة متوسطة – ٤٥°",
+    nameEn: "Medium Shot - 45°",
+    imageUrl: "/api/media/reference-thumbnails/shot-medium-45.webp",
+    group: "framing",
+    promptDescription: "medium shot, three-quarter 45 degree view. Framing: from the waist up, body angled 45 degrees to the lens, with readable environment behind. Lens: 50mm equivalent."
+  },
+  {
+    id: "medium-profile",
+    tag: "#medium-profile",
+    nameAr: "لقطة متوسطة – جانبية",
+    nameEn: "Medium Shot - Profile",
+    imageUrl: "/api/media/reference-thumbnails/shot-medium-profile.webp",
+    group: "framing",
+    promptDescription: "medium shot, full profile view. Framing: from the waist up seen from the side at 90 degrees, with readable environment behind. Lens: 50mm equivalent."
+  },
+  {
+    id: "three-quarter-front",
+    tag: "#three-quarter-front",
+    nameAr: "لقطة ثلاثة أرباع – أمامية",
+    nameEn: "Three Quarter Shot - Front",
+    imageUrl: "/api/media/reference-thumbnails/shot-three-quarter-front.webp",
+    group: "framing",
+    promptDescription: "three-quarter shot, front view. Framing: from mid-thigh up, subject facing the lens straight on, full posture and gesture visible. Lens: 40mm equivalent."
+  },
+  {
+    id: "three-quarter-45",
+    tag: "#three-quarter-45",
+    nameAr: "لقطة ثلاثة أرباع – ٤٥°",
+    nameEn: "Three Quarter Shot - 45°",
+    imageUrl: "/api/media/reference-thumbnails/shot-three-quarter-45.webp",
+    group: "framing",
+    promptDescription: "three-quarter shot, 45 degree view. Framing: from mid-thigh up, body angled 45 degrees to the lens, full posture and gesture visible. Lens: 40mm equivalent."
+  },
+  {
+    id: "three-quarter-profile",
+    tag: "#three-quarter-profile",
+    nameAr: "لقطة ثلاثة أرباع – جانبية",
+    nameEn: "Three Quarter Shot - Profile",
+    imageUrl: "/api/media/reference-thumbnails/shot-three-quarter-profile.webp",
+    group: "framing",
+    promptDescription: "three-quarter shot, full profile view. Framing: from mid-thigh up seen from the side at 90 degrees, full posture and gesture visible. Lens: 40mm equivalent."
+  },
+  {
+    id: "long-front",
+    tag: "#long-front",
+    nameAr: "لقطة بعيدة – أمامية",
+    nameEn: "Long Shot - Front",
+    imageUrl: "/api/media/reference-thumbnails/shot-long-front.webp",
+    group: "framing",
+    promptDescription: "long shot, front view. Framing: full body head to feet facing the lens, with clear headroom and the location established around the subject. Lens: 35mm equivalent."
+  },
+  {
+    id: "long-profile",
+    tag: "#long-profile",
+    nameAr: "لقطة بعيدة – جانبية",
+    nameEn: "Long Shot - Profile",
+    imageUrl: "/api/media/reference-thumbnails/shot-long-profile.webp",
+    group: "framing",
+    promptDescription: "long shot, profile view. Framing: full body head to feet seen from the side, with clear headroom and the location established around the subject. Lens: 35mm equivalent."
+  },
+  {
+    id: "wide-front",
+    tag: "#wide-front",
+    nameAr: "لقطة واسعة – أمامية",
+    nameEn: "Wide Shot - Front",
+    imageUrl: "/api/media/reference-thumbnails/shot-wide-front.webp",
+    group: "framing",
+    promptDescription: "wide shot, front view. Framing: the subject small within a large environment, facing the lens, landscape or architecture dominating the frame. Lens: 24mm equivalent, deep focus."
+  },
+  {
+    id: "wide-45",
+    tag: "#wide-45",
+    nameAr: "لقطة واسعة – ٤٥°",
+    nameEn: "Wide Shot - 45°",
+    imageUrl: "/api/media/reference-thumbnails/shot-wide-45.webp",
+    group: "framing",
+    promptDescription: "wide shot, 45 degree view. Framing: the subject small within a large environment, angled 45 degrees to the lens, landscape or architecture dominating the frame. Lens: 24mm equivalent, deep focus."
+  },
+  {
+    id: "over-shoulder",
+    tag: "#over-shoulder",
+    nameAr: "من فوق الكتف",
+    nameEn: "Over the Shoulder",
+    imageUrl: "/api/media/reference-thumbnails/shot-over-shoulder.webp",
+    group: "framing",
+    promptDescription: "over-the-shoulder shot. Framing: the back of a foreground person's head and shoulder occupies one lower corner and stays soft, the facing subject is sharp in the opposite third. Lens: 50mm equivalent."
+  },
+  {
+    id: "back-shot",
+    tag: "#back-shot",
+    nameAr: "من الخلف",
+    nameEn: "Back",
+    imageUrl: "/api/media/reference-thumbnails/shot-back.webp",
+    group: "framing",
+    promptDescription: "back shot. Framing: the subject seen from directly behind, face hidden, looking away into the scene so the viewer shares their vantage point. Lens: 35mm equivalent."
+  },
+
+  // ── ANGLE ──
+  {
+    id: "pov-shot",
+    tag: "#pov",
+    nameAr: "وجهة نظر الشخصية",
+    nameEn: "POV",
+    imageUrl: "/api/media/reference-thumbnails/shot-pov.webp",
+    group: "angle",
+    promptDescription: "point-of-view shot. Framing: the scene exactly as the character's own eyes see it, their hands or a held object entering the bottom of the frame, natural eye-level height. Lens: 28mm equivalent."
+  },
+  {
+    id: "high-angle-shot",
+    tag: "#high-angle",
+    nameAr: "زاوية عالية",
+    nameEn: "High Angle",
+    imageUrl: "/api/media/reference-thumbnails/shot-high-angle.webp",
+    group: "angle",
+    promptDescription: "high-angle shot. Framing: camera placed above the subject and tilted down, compressing them against the ground and making them read as smaller and more vulnerable."
+  },
+  {
+    id: "low-angle-shot",
+    tag: "#low-angle",
+    nameAr: "زاوية منخفضة",
+    nameEn: "Low Angle",
+    imageUrl: "/api/media/reference-thumbnails/shot-low-angle.webp",
+    group: "angle",
+    promptDescription: "low-angle shot. Framing: camera placed below eye level and tilted up, the subject towering against the sky or ceiling, reading as powerful and imposing."
+  },
+  {
+    id: "dutch-angle",
+    tag: "#dutch-angle",
+    nameAr: "زاوية مائلة (داتش)",
+    nameEn: "Dutch Angle",
+    imageUrl: "/api/media/reference-thumbnails/shot-dutch-angle.webp",
+    group: "angle",
+    promptDescription: "dutch angle shot. Framing: the camera rolled 15 to 30 degrees so the horizon tilts diagonally across the frame, creating unease and disorientation."
+  },
+  {
+    id: "birds-eye",
+    tag: "#birds-eye",
+    nameAr: "منظور عين الطائر",
+    nameEn: "Bird's Eye View",
+    imageUrl: "/api/media/reference-thumbnails/shot-birds-eye.webp",
+    group: "angle",
+    promptDescription: "bird's eye view. Framing: camera directly overhead looking straight down, the scene flattened into a graphic top-down map-like composition."
+  },
+  {
+    id: "worms-eye",
+    tag: "#worms-eye",
+    nameAr: "منظور عين الدودة",
+    nameEn: "Worm's Eye View",
+    imageUrl: "/api/media/reference-thumbnails/shot-worms-eye.webp",
+    group: "angle",
+    promptDescription: "worm's eye view. Framing: camera at ground level looking almost straight up, extreme vertical perspective with subjects and structures converging high above."
+  }
+];
