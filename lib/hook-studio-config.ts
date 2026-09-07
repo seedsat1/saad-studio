@@ -3182,3 +3182,53 @@ export const HOOK_GRAINS: HookGrainPreset[] = [
     promptDescription: "Barely visible shadow grain: highlights and midtones rendered clean and smooth, with a faint whisper of grain living only in the darkest shadow areas. Almost imperceptible."
   }
 ];
+
+/**
+ * Halation is the coloured glow that bleeds outward from bright highlights when
+ * light scatters off the back of the film. It is a separate axis from Grain
+ * (texture) and Film Stock (whole emulsion) — a scene can carry any combination.
+ */
+export interface HookHalationPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  promptDescription: string;
+}
+
+export const HOOK_HALATIONS: HookHalationPreset[] = [
+  {
+    id: "no-halation",
+    tag: "#no-halation",
+    nameAr: "بدون هالة",
+    nameEn: "None",
+    imageUrl: "/api/media/reference-thumbnails/halation-none.webp",
+    // Not the same as leaving the tab unselected: this actively asks for contained highlights.
+    promptDescription: "No halation at all: highlights stay crisp and contained with hard clean edges, no glow or bleed of any kind around bright light sources, a clean modern digital rendering."
+  },
+  {
+    id: "warm-orange-red",
+    tag: "#warm-halation",
+    nameAr: "هالة برتقالية حمراء",
+    nameEn: "Warm Orange-Red",
+    imageUrl: "/api/media/reference-thumbnails/halation-warm-orange-red.webp",
+    promptDescription: "Classic warm halation: a soft orange-red glow bleeding outward from every bright highlight and practical light, the signature red scatter of film stock, restrained and close to the source."
+  },
+  {
+    id: "strong-warm-bloom",
+    tag: "#strong-bloom",
+    nameAr: "توهّج دافئ قوي",
+    nameEn: "Strong Warm Bloom",
+    imageUrl: "/api/media/reference-thumbnails/halation-strong-warm-bloom.webp",
+    promptDescription: "Strong warm bloom: a wide heavy amber glow spreading far out from every light source, highlights blooming into the surrounding darkness, dreamy and enveloping."
+  },
+  {
+    id: "green-yellow-fringe",
+    tag: "#green-fringe",
+    nameAr: "حافة خضراء صفراء",
+    nameEn: "Green-Yellow Fringe",
+    imageUrl: "/api/media/reference-thumbnails/halation-green-yellow-fringe.webp",
+    promptDescription: "Green-yellow fringing: a cool acid green-yellow halo bleeding around bright highlights instead of the usual warm red, the unsettling look of cross-processed or expired stock."
+  }
+];

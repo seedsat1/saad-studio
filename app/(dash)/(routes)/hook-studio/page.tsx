@@ -478,6 +478,7 @@ export default function HookStudioPage() {
   const [selectedLightingId, setSelectedLightingId] = useState<string | null>(null);
   const [selectedMotionBlurId, setSelectedMotionBlurId] = useState<string | null>(null);
   const [selectedGrainId, setSelectedGrainId] = useState<string | null>(null);
+  const [selectedHalationId, setSelectedHalationId] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   // Prompt Form State
@@ -2036,6 +2037,7 @@ export default function HookStudioPage() {
         selectedLightingId={selectedLightingId}
         selectedMotionBlurId={selectedMotionBlurId}
         selectedGrainId={selectedGrainId}
+        selectedHalationId={selectedHalationId}
         onSelectSketch={(id) => {
           setSelectedSketchId(id);
           setShowReferenceStudioModal(false);
@@ -2062,6 +2064,10 @@ export default function HookStudioPage() {
         }}
         onSelectGrain={(id) => {
           setSelectedGrainId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        onSelectHalation={(id) => {
+          setSelectedHalationId(id);
           setShowReferenceStudioModal(false);
         }}
         onSelectPalette={(pal) => setSelectedPalette(pal)}

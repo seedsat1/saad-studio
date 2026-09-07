@@ -24,6 +24,7 @@ import {
   HOOK_LIGHTING,
   HOOK_MOTION_BLURS,
   HOOK_GRAINS,
+  HOOK_HALATIONS,
 } from "./hook-studio-config";
 import { getUserAsset, type UserAssetKind } from "./user-asset-registry";
 
@@ -44,6 +45,8 @@ export interface PresetSelections {
   selectedMotionBlurId?: string | null;
   /** Grain texture preset from the Grain tab. */
   selectedGrainId?: string | null;
+  /** Highlight-glow preset from the Halation tab. */
+  selectedHalationId?: string | null;
   selectedSketchId?: string | null;
   /** Semantic hint for a built-in preset location (not the user's own uploaded one). */
   selectedLocationId?: string | null;
@@ -136,6 +139,11 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
   if (sel.selectedFilmStockId) {
     const fst = HOOK_FILM_STOCKS.find((x) => x.id === sel.selectedFilmStockId);
     if (fst?.promptDescription) parts.push(`Film stock (${fst.tag}): ${fst.promptDescription}`);
+  }
+
+  if (sel.selectedHalationId) {
+    const hl = HOOK_HALATIONS.find((x) => x.id === sel.selectedHalationId);
+    if (hl?.promptDescription) parts.push(`Halation (${hl.tag}): ${hl.promptDescription}`);
   }
 
   if (sel.selectedGrainId) {

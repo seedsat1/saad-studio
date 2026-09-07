@@ -29,6 +29,7 @@ import {
   Lightbulb,
   Wind,
   Grip,
+  Sun,
 } from "lucide-react";
 import {
   HOOK_STYLES,
@@ -44,6 +45,7 @@ import {
   HOOK_LIGHTING,
   HOOK_MOTION_BLURS,
   HOOK_GRAINS,
+  HOOK_HALATIONS,
 } from "@/lib/hook-studio-config";
 import {
   registerUserAsset,
@@ -82,6 +84,8 @@ export interface ReferenceStudioModalProps {
   onSelectMotionBlur?: (id: string | null) => void;
   selectedGrainId?: string | null;
   onSelectGrain?: (id: string | null) => void;
+  selectedHalationId?: string | null;
+  onSelectHalation?: (id: string | null) => void;
   onSelectPalette?: (palette: { id: string; name: string; colors: string[] } | null) => void;
   onAttachFile?: (file: { id: string; url: string; name: string; type: "image" | "video" }) => void;
   /** When true, clicking a user-owned character will NOT attach its cover here — the caller uses the Character Package flow (all referenceUrls attached at generation time). Prevents double-refs. */
@@ -215,6 +219,8 @@ export function ReferenceStudioModal({
   onSelectMotionBlur,
   selectedGrainId,
   onSelectGrain,
+  selectedHalationId,
+  onSelectHalation,
   onSelectPalette,
   onAttachFile,
   useCharacterPackage = false,
@@ -1455,6 +1461,25 @@ export function ReferenceStudioModal({
               <button
                 type="button"
                 onClick={() => {
+                  setActiveTab("halation");
+                  setSearchQuery("");
+                  setActiveCategory("all");
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "halation"
+                    ? "bg-[#161a29] text-white border border-fuchsia-500/40"
+                    : "text-slate-400 hover:bg-[#131724] hover:text-slate-200"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Sun className="w-4 h-4 text-fuchsia-400" />
+                  <span>Halation</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
                   setActiveTab("camera");
                   setSearchQuery("");
                 }}
@@ -2389,6 +2414,58 @@ export function ReferenceStudioModal({
             )}
 
             {/* Sketch Tab */}
+            {activeTab === "halation" && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("halation", "fuchsia", (id) => onSelectHalation?.(id), (id) => selectedHalationId === id)}
+                {HOOK_HALATIONS.filter((hl) => {
+                  const search = searchQuery.toLowerCase();
+                  return (
+                    hl.nameAr.toLowerCase().includes(search) ||
+                    hl.nameEn.toLowerCase().includes(search) ||
+                    hl.tag.toLowerCase().includes(search)
+                  );
+                }).map((halItem) => {
+                  const isSelected = selectedHalationId === halItem.id;
+                  return (
+                    <div
+                      key={halItem.id}
+                      onClick={() => {
+                        // Halation is a prompt-only modifier — its thumbnail is an index
+                        // card, not a visual reference, so never attach it as a ref image.
+                        onSelectHalation?.(isSelected ? null : halItem.id);
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-fuchsia-500 ring-2 ring-fuchsia-500/20 bg-fuchsia-500/10"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                      }`}
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+                        <img
+                          src={halItem.imageUrl}
+                          alt={halItem.nameAr}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-fuchsia-500 text-white rounded-full p-1 shadow">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-slate-200 truncate">
+                          {isAr ? halItem.nameAr : halItem.nameEn}
+                        </div>
+                        <div className="text-[10px] text-fuchsia-400 font-medium truncate mt-0.5">
+                          {halItem.nameEn}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {activeTab === "grain" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
                 {renderCustomCategoryItems("grain", "lime", (id) => onSelectGrain?.(id), (id) => selectedGrainId === id)}

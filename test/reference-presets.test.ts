@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildPresetPromptSuffix } from "@/lib/reference-prompt-injector";
-import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS, HOOK_MOVIE_LOOKS, HOOK_LIGHTING, HOOK_MOTION_BLURS, HOOK_GRAINS, HOOK_EFFECTS } from "@/lib/hook-studio-config";
+import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS, HOOK_MOVIE_LOOKS, HOOK_LIGHTING, HOOK_MOTION_BLURS, HOOK_GRAINS, HOOK_HALATIONS, HOOK_EFFECTS } from "@/lib/hook-studio-config";
 
 describe("Shot Type preset injection", () => {
   it("exposes 24 shot types split into framing and angle", () => {
@@ -139,6 +139,7 @@ describe("All five preset tabs together", () => {
       ...HOOK_LIGHTING.map((x) => x.id),
       ...HOOK_MOTION_BLURS.map((x) => x.id),
       ...HOOK_GRAINS.map((x) => x.id),
+      ...HOOK_HALATIONS.map((x) => x.id),
     ];
     expect(new Set(all).size).toBe(all.length);
   });
@@ -212,5 +213,40 @@ describe("Grain preset injection", () => {
     });
     expect(suffix).toContain("Film stock (#cinema-daylight)");
     expect(suffix).toContain("Grain (#shadow-grain)");
+  });
+});
+
+describe("Halation preset injection", () => {
+  it("exposes 4 halation presets with unique ids", () => {
+    expect(HOOK_HALATIONS).toHaveLength(4);
+    expect(new Set(HOOK_HALATIONS.map((h) => h.id)).size).toBe(4);
+  });
+
+  it("points every halation at its own prefixed thumbnail", () => {
+    for (const h of HOOK_HALATIONS) {
+      expect(h.imageUrl.startsWith("/api/media/reference-thumbnails/halation-")).toBe(true);
+    }
+  });
+
+  it("injects the selected halation into the prompt suffix", () => {
+    const suffix = buildPresetPromptSuffix({ selectedHalationId: "green-yellow-fringe" });
+    expect(suffix).toContain("Halation (#green-fringe)");
+    expect(suffix.toLowerCase()).toContain("green-yellow halo");
+  });
+
+  it("treats None as an explicit instruction, not an empty selection", () => {
+    const suffix = buildPresetPromptSuffix({ selectedHalationId: "no-halation" });
+    expect(suffix).toContain("Halation (#no-halation)");
+    expect(suffix.toLowerCase()).toContain("no halation at all");
+    expect(buildPresetPromptSuffix({})).toBe("");
+  });
+
+  it("stacks grain and halation as independent film-artefact layers", () => {
+    const suffix = buildPresetPromptSuffix({
+      selectedGrainId: "coarse-16mm",
+      selectedHalationId: "strong-warm-bloom",
+    });
+    expect(suffix).toContain("Grain (#16mm-grain)");
+    expect(suffix).toContain("Halation (#strong-bloom)");
   });
 });
