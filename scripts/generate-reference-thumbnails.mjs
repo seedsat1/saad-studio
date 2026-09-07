@@ -10,6 +10,7 @@
 //        lights  → the 18 HOOK_LIGHTING tiles (keys prefixed "light-", one shared still-life)
 //        blurs   → the 9 HOOK_MOTION_BLURS tiles (keys prefixed "blur-", one shared dancer)
 //        grains  → the 4 HOOK_GRAINS tiles (keys prefixed "grain-", one shared street scene)
+//        tonals  → the 6 HOOK_TONAL_LOOKS tiles (keys prefixed "tonal-", varied scenes)
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -481,6 +482,38 @@ SETS.grains = [
   ["grain-barely-visible-shadow", grain(
     "BARELY VISIBLE SHADOW GRAIN. The result must be CLEAN: the sky, the road, the child's shirt and all highlights and midtones rendered completely smooth with no visible grain whatsoever. Only inside the darkest shadow areas — under the eaves, in the doorways, beneath the adult's clothing — is there a faint whisper of grain. Overwhelmingly clean, grain confined to the deep shadows alone.")],
 ];
+
+// Tonal Look tiles. B2 keys are prefixed "tonal-".
+//
+// Unlike Lighting / Motion Blur / Grain / Halation, these use VARIED scenes —
+// a tonality is a colour family, and picking a scene that naturally carries that
+// colour sells it far better than forcing one subject through six grades.
+// The tonality is stated first and named as an explicit colour bias, because
+// "moody" or "cinematic" alone produces the model's default teal-and-orange.
+const tonal = (tonality, scene) =>
+  `Cinematic film still. ${tonality} ${scene} Photoreal, natural light, subtle film grain. Iraqi cast and setting. No mosques, no minarets, no shrines or religious buildings. No text, no watermark, no logo, no border frame.`;
+
+SETS.tonals = [
+  ["tonal-amber-night", tonal(
+    "AMBER NIGHT TONALITY: the whole frame must read warm amber and sodium-orange against a deep blue-black night. Glowing warm skin, saturated orange highlights held inside cool darkness, no daylight anywhere.",
+    "Two young women's faces close together at night inside a car, lit by the orange glow of street lamps and a lit shopfront through the windscreen.")],
+  ["tonal-cold-jade", tonal(
+    "COLD JADE TONALITY: a desaturated GREEN-TEAL cast must run visibly through every midtone and shadow, cool muted greys, restrained contrast. Distinctly green-leaning, definitely not warm and not blue.",
+    "A woman in a dark coat walking a cold overcast city street, concrete buildings and bare trees receding behind her.")],
+  ["tonal-golden-skin", tonal(
+    "GOLDEN SKIN TONALITY: warm sunlit gold and honey throughout, richly glowing sunlit skin, soft creamy highlights, gentle low contrast, a luminous sun-warmed palette.",
+    "A woman reclining on a lounger in bright afternoon sun beside a sunlit terrace, sunglasses on, warm light across her skin.")],
+  ["tonal-silver-meridian", tonal(
+    "SILVER MERIDIAN TONALITY: pure silver MONOCHROME with a full tonal scale from deep black to bright white and rich neutral greys. Entirely black and white — absolutely no colour anywhere in the frame.",
+    "A man seated in the doorway of an old mudbrick house, laundry strung overhead, hard daylight and deep shadow.")],
+  ["tonal-true-slate", tonal(
+    "TRUE SLATE TONALITY: cool blue-grey neutrals with a slight steel bias, honest unstyled colour, moderate contrast, clean and documentary. No warmth pushed in anywhere, but still in colour.",
+    "A man in a denim jacket standing at a public payphone against a weathered blue-grey wall.")],
+  ["tonal-velvet-dusk", tonal(
+    "VELVET DUSK TONALITY: deep VIOLET and INDIGO twilight, soft plum shadows, muted rose highlights, a rich velvety low-light palette after the sun has gone. Purple-leaning, not orange and not teal.",
+    "A woman in a long dress standing on a rocky shore looking out over the water at late twilight.")],
+];
+
 
 
 

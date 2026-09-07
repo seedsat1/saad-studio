@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildPresetPromptSuffix } from "@/lib/reference-prompt-injector";
-import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS, HOOK_MOVIE_LOOKS, HOOK_LIGHTING, HOOK_MOTION_BLURS, HOOK_GRAINS, HOOK_HALATIONS, HOOK_EFFECTS } from "@/lib/hook-studio-config";
+import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS, HOOK_MOVIE_LOOKS, HOOK_LIGHTING, HOOK_MOTION_BLURS, HOOK_GRAINS, HOOK_HALATIONS, HOOK_TONAL_LOOKS, HOOK_EFFECTS } from "@/lib/hook-studio-config";
 
 describe("Shot Type preset injection", () => {
   it("exposes 24 shot types split into framing and angle", () => {
@@ -140,6 +140,7 @@ describe("All five preset tabs together", () => {
       ...HOOK_MOTION_BLURS.map((x) => x.id),
       ...HOOK_GRAINS.map((x) => x.id),
       ...HOOK_HALATIONS.map((x) => x.id),
+      ...HOOK_TONAL_LOOKS.map((x) => x.id),
     ];
     expect(new Set(all).size).toBe(all.length);
   });
@@ -248,5 +249,33 @@ describe("Halation preset injection", () => {
     });
     expect(suffix).toContain("Grain (#16mm-grain)");
     expect(suffix).toContain("Halation (#strong-bloom)");
+  });
+});
+
+describe("Tonal Look preset injection", () => {
+  it("exposes 6 tonal looks with unique ids", () => {
+    expect(HOOK_TONAL_LOOKS).toHaveLength(6);
+    expect(new Set(HOOK_TONAL_LOOKS.map((t) => t.id)).size).toBe(6);
+  });
+
+  it("points every tonal look at its own prefixed thumbnail", () => {
+    for (const t of HOOK_TONAL_LOOKS) {
+      expect(t.imageUrl.startsWith("/api/media/reference-thumbnails/tonal-")).toBe(true);
+    }
+  });
+
+  it("injects the selected tonal look into the prompt suffix", () => {
+    const suffix = buildPresetPromptSuffix({ selectedTonalLookId: "cold-jade" });
+    expect(suffix).toContain("Tonal look (#cold-jade)");
+    expect(suffix.toLowerCase()).toContain("green-teal cast");
+  });
+
+  it("keeps tonal look independent of movie look so both can stack", () => {
+    const suffix = buildPresetPromptSuffix({
+      selectedMovieLookId: "desert-gold",
+      selectedTonalLookId: "velvet-dusk",
+    });
+    expect(suffix).toContain("Movie look (#desert-gold)");
+    expect(suffix).toContain("Tonal look (#velvet-dusk)");
   });
 });

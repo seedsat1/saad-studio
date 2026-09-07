@@ -212,6 +212,7 @@ export default function CinemaFlowPage() {
   const [selectedMotionBlurId, setSelectedMotionBlurId] = useState<string | null>(null);
   const [selectedGrainId, setSelectedGrainId] = useState<string | null>(null);
   const [selectedHalationId, setSelectedHalationId] = useState<string | null>(null);
+  const [selectedTonalLookId, setSelectedTonalLookId] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   // Gallery states
@@ -810,6 +811,7 @@ export default function CinemaFlowPage() {
         selectedMotionBlurId,
         selectedGrainId,
         selectedHalationId,
+        selectedTonalLookId,
         selectedLocationId,
         selectedElementId,
         selectedPalette,
@@ -968,6 +970,7 @@ export default function CinemaFlowPage() {
         selectedMotionBlurId,
         selectedGrainId,
         selectedHalationId,
+        selectedTonalLookId,
         selectedLocationId,
         selectedElementId,
         selectedPalette,
@@ -2380,6 +2383,7 @@ export default function CinemaFlowPage() {
         selectedMotionBlurId={selectedMotionBlurId}
         selectedGrainId={selectedGrainId}
         selectedHalationId={selectedHalationId}
+        selectedTonalLookId={selectedTonalLookId}
         onSelectSketch={(id) => {
           setSelectedSketchId(id);
           setShowReferenceStudioModal(false);
@@ -2410,6 +2414,10 @@ export default function CinemaFlowPage() {
         }}
         onSelectHalation={(id) => {
           setSelectedHalationId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        onSelectTonalLook={(id) => {
+          setSelectedTonalLookId(id);
           setShowReferenceStudioModal(false);
         }}
         onSelectPalette={(pal) => setSelectedPalette(pal)}

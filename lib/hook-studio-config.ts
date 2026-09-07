@@ -3232,3 +3232,69 @@ export const HOOK_HALATIONS: HookHalationPreset[] = [
     promptDescription: "Green-yellow fringing: a cool acid green-yellow halo bleeding around bright highlights instead of the usual warm red, the unsettling look of cross-processed or expired stock."
   }
 ];
+
+/**
+ * A Tonal Look is the colour family that dominates the frame — the tonality
+ * itself, independent of genre. It sits between Movie Look (which reads as a
+ * whole cinematic reference) and Film Stock (which is a physical emulsion):
+ * pick a Tonal Look when you know the colour you want, not the film it evokes.
+ */
+export interface HookTonalLookPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  promptDescription: string;
+}
+
+export const HOOK_TONAL_LOOKS: HookTonalLookPreset[] = [
+  {
+    id: "amber-night",
+    tag: "#amber-night",
+    nameAr: "ليل كهرماني",
+    nameEn: "Amber Night",
+    imageUrl: "/api/media/reference-thumbnails/tonal-amber-night.webp",
+    promptDescription: "Amber night tonality: warm amber and sodium-orange light pooling against deep blue-black night, glowing skin tones, saturated warm highlights held inside cool darkness."
+  },
+  {
+    id: "cold-jade",
+    tag: "#cold-jade",
+    nameAr: "يشب بارد",
+    nameEn: "Cold Jade",
+    imageUrl: "/api/media/reference-thumbnails/tonal-cold-jade.webp",
+    promptDescription: "Cold jade tonality: desaturated green-teal cast running through the midtones and shadows, cool muted greys, restrained contrast, a chilly overcast green-leaning palette."
+  },
+  {
+    id: "golden-skin",
+    tag: "#golden-skin",
+    nameAr: "بشرة ذهبية",
+    nameEn: "Golden Skin",
+    imageUrl: "/api/media/reference-thumbnails/tonal-golden-skin.webp",
+    promptDescription: "Golden skin tonality: warm sunlit gold and honey tones, richly glowing skin, soft creamy highlights, gentle contrast, a luminous sun-warmed palette."
+  },
+  {
+    id: "silver-meridian",
+    tag: "#silver-meridian",
+    nameAr: "فضّي محايد",
+    nameEn: "Silver Meridian",
+    imageUrl: "/api/media/reference-thumbnails/tonal-silver-meridian.webp",
+    promptDescription: "Silver meridian tonality: pure silver monochrome with a full tonal scale from deep black to bright white, rich neutral greys, no colour cast at all — entirely black and white."
+  },
+  {
+    id: "true-slate",
+    tag: "#true-slate",
+    nameAr: "أردوازي صافي",
+    nameEn: "True Slate",
+    imageUrl: "/api/media/reference-thumbnails/tonal-true-slate.webp",
+    promptDescription: "True slate tonality: cool blue-grey neutrals, honest unstyled colour with a slight steel bias, moderate contrast, clean and documentary with no warmth pushed in."
+  },
+  {
+    id: "velvet-dusk",
+    tag: "#velvet-dusk",
+    nameAr: "غسق مخملي",
+    nameEn: "Velvet Dusk",
+    imageUrl: "/api/media/reference-thumbnails/tonal-velvet-dusk.webp",
+    promptDescription: "Velvet dusk tonality: deep violet and indigo twilight, soft plum shadows, muted rose highlights, a rich velvety low-light palette after the sun has gone."
+  }
+];

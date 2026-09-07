@@ -25,6 +25,7 @@ import {
   HOOK_MOTION_BLURS,
   HOOK_GRAINS,
   HOOK_HALATIONS,
+  HOOK_TONAL_LOOKS,
 } from "./hook-studio-config";
 import { getUserAsset, type UserAssetKind } from "./user-asset-registry";
 
@@ -47,6 +48,8 @@ export interface PresetSelections {
   selectedGrainId?: string | null;
   /** Highlight-glow preset from the Halation tab. */
   selectedHalationId?: string | null;
+  /** Dominant colour-family preset from the Tonal Look tab. */
+  selectedTonalLookId?: string | null;
   selectedSketchId?: string | null;
   /** Semantic hint for a built-in preset location (not the user's own uploaded one). */
   selectedLocationId?: string | null;
@@ -154,6 +157,11 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
   if (sel.selectedMovieLookId) {
     const ml = HOOK_MOVIE_LOOKS.find((x) => x.id === sel.selectedMovieLookId);
     if (ml?.promptDescription) parts.push(`Movie look (${ml.tag}): ${ml.promptDescription}`);
+  }
+
+  if (sel.selectedTonalLookId) {
+    const tl = HOOK_TONAL_LOOKS.find((x) => x.id === sel.selectedTonalLookId);
+    if (tl?.promptDescription) parts.push(`Tonal look (${tl.tag}): ${tl.promptDescription}`);
   }
 
   if (sel.selectedSketchId) {
