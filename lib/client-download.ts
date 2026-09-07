@@ -139,7 +139,14 @@ export async function downloadMediaFile(
       }
     }
 
-    // 3. Desktop / Standard Anchor Download
+    // 3. Mobile Fallback (Direct attachment download)
+    if (isMobileDevice()) {
+      const downloadEndpoint = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(finalFilename)}`;
+      window.location.assign(downloadEndpoint);
+      return true;
+    }
+
+    // 4. Desktop / Standard Anchor Download
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = blobUrl;

@@ -734,9 +734,18 @@ export default function GalleryPage() {
                       className="block w-full h-full cursor-pointer"
                       aria-label={selectionMode ? "Toggle selection" : "View video details"}
                     >
-                      <video src={asset.url} className="w-full h-full object-cover pointer-events-none" muted playsInline>
-                        <track kind="captions" srcLang="en" label="No dialogue" />
-                      </video>
+                      {asset.thumbnailUrl ? (
+                        <img
+                          src={asset.thumbnailUrl}
+                          alt={asset.prompt || "Video thumbnail"}
+                          className="w-full h-full object-cover pointer-events-none"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <video src={`${asset.url}#t=0.001`} className="w-full h-full object-cover pointer-events-none" muted playsInline>
+                          <track kind="captions" srcLang="en" label="No dialogue" />
+                        </video>
+                      )}
                       {!selectionMode && (
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                           <ExternalLink className="h-7 w-7 text-white opacity-0 group-hover:opacity-80 transition-opacity drop-shadow-lg" />

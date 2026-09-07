@@ -76,16 +76,17 @@ export async function GET(req: NextRequest) {
     let res: Response | null = null;
     let finalTargetUrl = targetUrl;
 
-    for (const url of urlsToTry) {
+    for (const rawUrl of urlsToTry) {
       try {
-        const response = await fetch(url, { method: "GET" });
+        const fetchUrl = rawUrl.startsWith("/") ? `${req.nextUrl.origin}${rawUrl}` : rawUrl;
+        const response = await fetch(fetchUrl, { method: "GET" });
         if (response.ok) {
           res = response;
-          finalTargetUrl = url;
+          finalTargetUrl = fetchUrl;
           break;
         }
       } catch (err) {
-        console.warn(`[DOWNLOAD_ROUTE] Failed to fetch from ${url}:`, err);
+        console.warn(`[DOWNLOAD_ROUTE] Failed to fetch from ${rawUrl}:`, err);
       }
     }
 
@@ -126,6 +127,11 @@ export async function GET(req: NextRequest) {
 
     let fileBuffer: Buffer = Buffer.from(await res.arrayBuffer());
     let responseContentType = res.headers.get("Content-Type") || "application/octet-stream";
+    if (srcExt === "mp4") responseContentType = "video/mp4";
+    else if (srcExt === "mov") responseContentType = "video/quicktime";
+    else if (srcExt === "png") responseContentType = "image/png";
+    else if (srcExt === "jpg") responseContentType = "image/jpeg";
+    else if (srcExt === "webp") responseContentType = "image/webp";
 
     // Transcode audio on the fly if needed (MP3 <-> WAV)
     if (targetExt === "mp3" || (srcExt === "wav" && targetExt !== "wav")) {

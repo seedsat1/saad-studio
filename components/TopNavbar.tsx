@@ -1004,6 +1004,9 @@ const AuthNavButtons = ({ creditBalance, creditCapacity, hydrated }: { creditBal
 };
 const TopNavbar = () => {
   const pathname = usePathname();
+  if (pathname?.startsWith("/m/") || pathname === "/m") {
+    return null;
+  }
   const { lang } = useLanguage();
   const { isSignedIn } = useAuth();
   const { fetchWithAuth, isAuthLoaded } = useAuthenticatedFetch();

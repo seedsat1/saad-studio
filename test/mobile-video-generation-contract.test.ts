@@ -65,4 +65,58 @@ describe("Mobile Video Generation & Gallery Contracts", () => {
     expect(content).not.toContain("showUpgradeModal");
     expect(content).not.toContain("gate.canGenerate");
   });
+
+  it("ensures TopNavbar and DashLayout suppress desktop navbar and drawer on /m/ routes", () => {
+    const dashLayoutPath = path.join(__dirname, "../app/(dash)/layout.tsx");
+    const topNavbarPath = path.join(__dirname, "../components/TopNavbar.tsx");
+
+    const dashContent = fs.readFileSync(dashLayoutPath, "utf8");
+    expect(dashContent).toContain('pathname?.startsWith("/m/")');
+    expect(dashContent).toContain("<main>{children}</main>");
+
+    const topNavbarContent = fs.readFileSync(topNavbarPath, "utf8");
+    expect(topNavbarContent).toContain('pathname?.startsWith("/m/") || pathname === "/m"');
+    expect(topNavbarContent).toContain("return null;");
+  });
+
+  it("ensures /api/assets and /m/gallery support and reconcile in-flight processing tasks", () => {
+    const assetsContent = fs.readFileSync(apiAssetsPath, "utf8");
+    expect(assetsContent).toContain("reconcileUserInFlightGenerations");
+    expect(assetsContent).toContain("isProcessing");
+
+    const galleryContent = fs.readFileSync(mGalleryPath, "utf8");
+    expect(galleryContent).toContain("isProcessing");
+    expect(galleryContent).toContain("جارٍ التوليد...");
+  });
+
+  it("ensures video posters and thumbnails resolve cleanly without broken mp4 posters", () => {
+    const assetsContent = fs.readFileSync(apiAssetsPath, "utf8");
+    expect(assetsContent).toContain("effectiveVideoPoster");
+    expect(assetsContent).toContain("startImageUrl");
+    expect(assetsContent).toContain("thumbnailUrl: isTextMarker ? undefined : (type === \"video\" ? effectiveVideoPoster : galleryThumbnailUrl(row.id, type))");
+
+    const galleryContent = fs.readFileSync(mGalleryPath, "utf8");
+    expect(galleryContent).toContain("isVideoFile");
+    expect(galleryContent).toContain("item.posterUrl ?");
+    expect(galleryContent).toContain("#t=0.001");
+    // Ensure we do not blindly pass mp4 url to poster attribute
+    expect(galleryContent).not.toContain("poster={item.thumbnailUrl || item.posterUrl || mediaUrl}");
+  });
+
+  it("ensures mobile video download provides dual paths: Web Share and direct attachment download", () => {
+    const galleryContent = fs.readFileSync(mGalleryPath, "utf8");
+    expect(galleryContent).toContain("handleDirectDownload");
+    expect(galleryContent).toContain("تنزيل مباشر كملف");
+    expect(galleryContent).toContain("حفظ في ألبوم الصور");
+
+    const clientDownloadPath = path.join(__dirname, "../lib/client-download.ts");
+    const clientDownloadContent = fs.readFileSync(clientDownloadPath, "utf8");
+    expect(clientDownloadContent).toContain("isMobileDevice()");
+    expect(clientDownloadContent).toContain("window.location.assign(downloadEndpoint)");
+
+    const downloadApiPath = path.join(__dirname, "../app/api/download/route.ts");
+    const downloadApiContent = fs.readFileSync(downloadApiPath, "utf8");
+    expect(downloadApiContent).toContain("fetchUrl = rawUrl.startsWith(\"/\") ? `${req.nextUrl.origin}${rawUrl}` : rawUrl");
+    expect(downloadApiContent).toContain("responseContentType = \"video/mp4\"");
+  });
 });

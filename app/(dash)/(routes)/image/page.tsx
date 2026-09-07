@@ -1518,6 +1518,8 @@ export default function ImageWorkspacePage() {
   const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
   const [selectedShotTypeId, setSelectedShotTypeId] = useState<string | null>(null);
   const [selectedFilmStockId, setSelectedFilmStockId] = useState<string | null>(null);
+  const [selectedMovieLookId, setSelectedMovieLookId] = useState<string | null>(null);
+  const [selectedLightingId, setSelectedLightingId] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   useEffect(() => {
@@ -1884,6 +1886,8 @@ export default function ImageWorkspacePage() {
       selectedSketchId,
       selectedShotTypeId,
       selectedFilmStockId,
+      selectedMovieLookId,
+      selectedLightingId,
       selectedLocationId,
       selectedElementId,
       selectedPalette,
@@ -1940,7 +1944,7 @@ export default function ImageWorkspacePage() {
     } else {
       void loadPersistedImages(0, "replace");
     }
-  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, loadPersistedImages, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedShotTypeId, selectedFilmStockId, selectedLocationId, selectedElementId, selectedPalette]);
+  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, loadPersistedImages, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedShotTypeId, selectedFilmStockId, selectedMovieLookId, selectedLightingId, selectedLocationId, selectedElementId, selectedPalette]);
 
   const generateRelight = useCallback(async () => {
     if (!relightFile) throw new Error("Upload image first");
@@ -3008,6 +3012,8 @@ export default function ImageWorkspacePage() {
           selectedSketchId={selectedSketchId}
           selectedShotTypeId={selectedShotTypeId}
           selectedFilmStockId={selectedFilmStockId}
+          selectedMovieLookId={selectedMovieLookId}
+          selectedLightingId={selectedLightingId}
           onSelectSketch={(id) => {
             setSelectedSketchId(id);
             setShowReferenceStudioModal(false);
@@ -3018,6 +3024,14 @@ export default function ImageWorkspacePage() {
           }}
           onSelectFilmStock={(id) => {
             setSelectedFilmStockId(id);
+            setShowReferenceStudioModal(false);
+          }}
+          onSelectMovieLook={(id) => {
+            setSelectedMovieLookId(id);
+            setShowReferenceStudioModal(false);
+          }}
+          onSelectLighting={(id) => {
+            setSelectedLightingId(id);
             setShowReferenceStudioModal(false);
           }}
           onSelectPalette={(pal) => {
@@ -3056,7 +3070,4 @@ export default function ImageWorkspacePage() {
         onCancel={cancelImageDelete}
         onConfirm={() => void confirmImageDelete()}
       />
-      <AnimatePresence>{inspectorAsset ? <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/80 p-4" onClick={() => setInspectorAsset(null)}><motion.div initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }} className="mx-auto h-[82vh] max-w-5xl overflow-hidden rounded-2xl" onClick={(e) => e.stopPropagation()}><AssetInspector asset={inspectorAsset} onClose={() => setInspectorAsset(null)} /></motion.div></motion.div> : null}</AnimatePresence>
-    </>
-  );
-}
+      <AnimatePresence>{inspectorAsset ? <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/80 p-4" onClick={() => setInspectorAsset(null)}><motion.div initial={{ scale: 0.96, y: 

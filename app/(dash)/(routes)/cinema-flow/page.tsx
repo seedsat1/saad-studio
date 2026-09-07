@@ -207,6 +207,8 @@ export default function CinemaFlowPage() {
   const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
   const [selectedShotTypeId, setSelectedShotTypeId] = useState<string | null>(null);
   const [selectedFilmStockId, setSelectedFilmStockId] = useState<string | null>(null);
+  const [selectedMovieLookId, setSelectedMovieLookId] = useState<string | null>(null);
+  const [selectedLightingId, setSelectedLightingId] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   // Gallery states
@@ -800,6 +802,8 @@ export default function CinemaFlowPage() {
         selectedSketchId,
         selectedShotTypeId,
         selectedFilmStockId,
+        selectedMovieLookId,
+        selectedLightingId,
         selectedLocationId,
         selectedElementId,
         selectedPalette,
@@ -953,6 +957,8 @@ export default function CinemaFlowPage() {
         selectedSketchId,
         selectedShotTypeId,
         selectedFilmStockId,
+        selectedMovieLookId,
+        selectedLightingId,
         selectedLocationId,
         selectedElementId,
         selectedPalette,
@@ -2360,6 +2366,8 @@ export default function CinemaFlowPage() {
         selectedSketchId={selectedSketchId}
         selectedShotTypeId={selectedShotTypeId}
         selectedFilmStockId={selectedFilmStockId}
+        selectedMovieLookId={selectedMovieLookId}
+        selectedLightingId={selectedLightingId}
         onSelectSketch={(id) => {
           setSelectedSketchId(id);
           setShowReferenceStudioModal(false);
@@ -2372,17 +2380,12 @@ export default function CinemaFlowPage() {
           setSelectedFilmStockId(id);
           setShowReferenceStudioModal(false);
         }}
-        onSelectPalette={(pal) => setSelectedPalette(pal)}
-        onAttachFile={(file) => {
-          addActiveImageReference({
-            id: file.id,
-            type: file.type,
-            url: file.url,
-            prompt: file.name,
-          });
+        onSelectMovieLook={(id) => {
+          setSelectedMovieLookId(id);
+          setShowReferenceStudioModal(false);
         }}
-        isAr={lang === "ar"}
-      />
-    </div>
-  );
-}
+        onSelectLighting={(id) => {
+          setSelectedLightingId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        onSele

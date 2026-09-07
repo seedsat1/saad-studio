@@ -1,4 +1,118 @@
-# Latest task: Mobile Video Generation & Gallery Fix on /m/video & /m/gallery (2026-09-07)
+# Latest task: Mobile Video Saving & Download Enhancement on iOS/Android Gallery (2026-09-07)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed user feedback and screenshot (`media_1788812603233.png`):
+    "لا يمكنني حفض الفديو في الهاتف" (I cannot save the video to the phone).
+  - Root Cause:
+    1. On iOS Safari and mobile browsers, `downloadMediaFile` attempted to download the video blob first before calling `navigator.share({ files: [file] })`. Because network fetching took >1 second, the transient user activation token expired, causing `navigator.share` to throw `NotAllowedError`.
+    2. When `navigator.share` threw, the code fell back to creating an `<a download>` anchor with a `blob:` URL. iOS Safari does NOT download video blobs via `<a download>` (it silently ignores the click for video/audio MIME types), leaving the user with no downloaded file and no share sheet.
+    3. In `app/api/download/route.ts`, fetching relative URLs like `/api/media/...` threw `ERR_INVALID_URL` in Node.js because the request origin was omitted.
+  - Fixes Implemented:
+    1. Backend `app/api/download/route.ts`:
+       - Prepend `req.nextUrl.origin` to any relative URLs before fetching so Node.js fetch never throws `ERR_INVALID_URL`.
+       - Explicitly set `Content-Type: video/mp4` for MP4 video files with `Content-Disposition: attachment`.
+    2. Client Downloader `lib/client-download.ts`:
+       - Added an explicit mobile fallback: when `navigator.share` fails or is unavailable on mobile devices, seamlessly navigate to the direct attachment download endpoint `/api/download?url=...&filename=...` instead of triggering a dead anchor click.
+    3. Mobile Gallery Modal `app/(dash)/(routes)/m/gallery/page.tsx`:
+       - Added downloading state with spinner indicator while preparing the file.
+       - Provided dual actions:
+         - Primary: "حفظ في ألبوم الصور (Photos / Share) 📲" (opens native share sheet for direct 1-tap "Save Video").
+         - Secondary: "تنزيل مباشر كملف (MP4) 📥" (triggers direct system attachment download).
+       - Added user-facing guidance tip: "💡 على هواتف iPhone: اضغط 'حفظ في ألبوم الصور' ثم اختر 'Save Video' (حفظ الفيديو) من قائمة المشاركة لحفظه في تطبيق الصور فوراً."
+- Files affected:
+  - `app/api/download/route.ts`
+  - `lib/client-download.ts`
+  - `app/(dash)/(routes)/m/gallery/page.tsx`
+  - `test/mobile-video-generation-contract.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest `test/mobile-video-generation-contract.test.ts`: 10/10 PASS.
+- Decisions:
+  - Provide both Native Web Share and direct server attachment download on mobile so users always have a guaranteed download path regardless of iOS/Android version or browser restrictions.
+
+# Previous task: Video Poster & Thumbnail Resolution on Mobile Gallery & Asset Routes (2026-09-07)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed user feedback and screenshot (`media_1788811829141.png`):
+    "الفديوهات لمتظهر الثيمة" (The videos' theme / thumbnail / poster doesn't show up).
+  - Root Cause:
+    1. In `app/(dash)/(routes)/m/gallery/page.tsx`, `thumbnailUrl` had a fallback `it.thumbnailUrl || it.posterUrl || mediaUrl`.
+       For video items where `posterUrl` was null, this fell back to `mediaUrl` (which is an `.mp4` video URL!).
+       The video element then rendered `<video poster="https://...mp4">`. Browsers treat the `poster` attribute strictly as an image format (JPEG/PNG/WebP); when passed an MP4 stream, mobile Safari and Chrome fail to decode it as an image and render a broken image icon (`[x]`) over a black box.
+    2. In `app/api/assets/route.ts`, `videoPosterUrl` only looked at `row.posterUrl`. When `row.posterUrl` was null (due to storage upload latency or fallback), it did not check `startImageUrl` from `generationRequestSnapshot.requestPayload` (which is present on virtually all Image-to-Video generations like Gemini, Kling, Seedance, Wan, Hailuo).
+  - Fixes Implemented:
+    1. Backend `app/api/assets/route.ts`:
+       - Added `effectiveVideoPoster = videoPoster || (type === "video" ? normalizedStartImage : undefined)`.
+       - Mapped `thumbnailUrl` to `effectiveVideoPoster` for video assets instead of returning `undefined`.
+       - Mapped `posterUrl` to `effectiveVideoPoster` and included `startImageUrl`.
+       - Self-healed `row.posterUrl` in DB asynchronously if missing and `normalizedStartImage` is available.
+    2. Mobile Gallery `app/(dash)/(routes)/m/gallery/page.tsx`:
+       - Added `isVideoFile` check to strictly filter out `.mp4`, `.mov`, `.webm`, etc., from being treated as image posters.
+       - In the gallery grid, if `item.posterUrl` exists, render a clean, high-performance `<img>` poster tag with lazy loading.
+       - If no poster exists, render `<video src={`${item.url}#t=0.001`} preload="metadata" playsInline muted ... />` without any `poster` attribute, so the browser directly decodes frame 0.001s without broken image icons.
+       - In preview modal, added `playsInline`, `poster`, and background styling.
+    3. Desktop Gallery `app/(dash)/(routes)/gallery/page.tsx`:
+       - Supported `asset.thumbnailUrl ? <img src={asset.thumbnailUrl} ... /> : <video src={`${asset.url}#t=0.001`} ... />` for optimal grid performance.
+- Files affected:
+  - `app/api/assets/route.ts`
+  - `app/(dash)/(routes)/m/gallery/page.tsx`
+  - `app/(dash)/(routes)/gallery/page.tsx`
+  - `test/mobile-video-generation-contract.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest `test/mobile-video-generation-contract.test.ts`: 9/9 PASS.
+  - Vitest targeted suite (mobile contract, model badges, image badges, hailuo): 32/32 PASS.
+- Decisions:
+  - Never pass an MP4 or video URL to the `poster` attribute of `<video>`.
+  - Prefer `startImageUrl` from the generation snapshot when `row.posterUrl` has not yet been processed by FFmpeg or storage.
+
+# Previous task: Mobile Layout Navbar Conflict Isolation & In-Flight Video Reconciliation on Gallery (2026-09-07)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed user feedback and screenshot (`media_1788810619548.png`):
+    "اولا انظر الى هذا التشوه وثانيا ولدت فديو لوم يصل"
+  - Root Cause 1 (Header Distortion / Overlapping Navbars):
+    `app/(dash)/layout.tsx` was rendering the desktop `<TopNavbar />` and applying `<main className="pt-16">` on all `/m/*` routes.
+    On mobile viewports, when the desktop drawer was opened, `<MobileTopBar>` (which was `sticky top-0 z-40`) collided and overlapped directly across the opened drawer, creating a severe visual clash.
+  - Root Cause 2 (Generated Video Not Arriving in Gallery):
+    When generating with Google Gemini/Veo or WaveSpeed, the video task starts as `status: "processing"` with `task:gvo:...`.
+    In `app/api/assets/route.ts`, lines 512-519 filtered out all rows whose mediaUrl was not completed or failed, hiding all in-flight rendering videos from the gallery.
+    Furthermore, if the user navigated away from `/m/video` to `/m/gallery`, the client-side polling stopped, and `/api/assets` only reconciled BytePlus on the server, leaving Gemini and WaveSpeed tasks stuck in `processing`.
+  - Fixes Implemented:
+    1. Layout Isolation (`app/(dash)/layout.tsx` & `components/TopNavbar.tsx`):
+       - Updated `DashLayout` to inspect `pathname`: on `/m/*` routes, it bypasses `TopNavbar`, `PromotionRenderer`, and `pt-16` padding, rendering a clean isolated mobile shell.
+       - In `TopNavbar.tsx`: added immediate safety guard `if (pathname?.startsWith("/m/") || pathname === "/m") return null;` ensuring zero desktop nav interference on mobile.
+    2. In-Flight Video Reconciliation (`lib/generation/task-reconciler.ts` & `app/api/assets/route.ts`):
+       - Updated `decodeGeminiTask` in `task-reconciler.ts` to decode `base64url` and `base64` interchangeably.
+       - Added `reconcileUserInFlightGenerations(userId, batchSize)` to reconcile any in-flight Google/WaveSpeed/KIE/BytePlus tasks.
+       - Updated `GET /api/assets` to automatically trigger `reconcileUserInFlightGenerations` on gallery load.
+       - Updated `app/api/assets/route.ts` to retain `isProcessing` items in the response so active rendering jobs are visible.
+    3. Mobile Gallery Live Processing Card & Auto-Polling (`app/(dash)/(routes)/m/gallery/page.tsx`):
+       - Kept `isProcessing` items in `fetchMedia`.
+       - Rendered an animated processing card ("جارٍ التوليد... ⏳") in the grid while in flight.
+       - Added auto-refresh polling effect (every 4 seconds) whenever processing items exist, seamlessly transforming them into completed cards once finished.
+    4. Background Persistence (`app/(dash)/(routes)/m/video/page.tsx`):
+       - Persisted `taskId` to `localStorage.getItem("ff_video_pending_jobs")` so background tasks survive navigation and page refresh.
+- Files affected:
+  - `app/(dash)/layout.tsx`
+  - `components/TopNavbar.tsx`
+  - `lib/generation/task-reconciler.ts`
+  - `app/api/assets/route.ts`
+  - `app/(dash)/(routes)/m/gallery/page.tsx`
+  - `app/(dash)/(routes)/m/video/page.tsx`
+  - `test/mobile-video-generation-contract.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest `test/mobile-video-generation-contract.test.ts`: 8/8 tests PASS.
+  - Vitest full suite (badges, models, hailuo, presets): 35/35 tests PASS.
+- Decisions:
+  - Completely decouple `/m/*` pages from `TopNavbar` in `DashLayout` to provide a 100% native mobile app shell.
+  - Automatically reconcile user in-flight tasks upon loading `/api/assets` so users see their video even if they navigated away immediately after clicking Generate.
+
+# Previous task: Mobile Video Generation & Gallery Fix on /m/video & /m/gallery (2026-09-07)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Addressed user request and mobile screenshot (`media_1788807947714.png`) from user `lenahomam4@gmail.com`:

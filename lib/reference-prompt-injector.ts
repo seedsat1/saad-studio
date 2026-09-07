@@ -20,6 +20,8 @@ import {
   HOOK_SKETCHES,
   HOOK_SHOT_TYPES,
   HOOK_FILM_STOCKS,
+  HOOK_MOVIE_LOOKS,
+  HOOK_LIGHTING,
 } from "./hook-studio-config";
 import { getUserAsset, type UserAssetKind } from "./user-asset-registry";
 
@@ -32,6 +34,10 @@ export interface PresetSelections {
   selectedShotTypeId?: string | null;
   /** Film emulsion preset from the Film Stock tab. */
   selectedFilmStockId?: string | null;
+  /** Colour-grade preset from the Movie Look tab. */
+  selectedMovieLookId?: string | null;
+  /** Lighting pattern preset from the Lighting tab. */
+  selectedLightingId?: string | null;
   selectedSketchId?: string | null;
   /** Semantic hint for a built-in preset location (not the user's own uploaded one). */
   selectedLocationId?: string | null;
@@ -111,9 +117,19 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
     }
   }
 
+  if (sel.selectedLightingId) {
+    const lg = HOOK_LIGHTING.find((x) => x.id === sel.selectedLightingId);
+    if (lg?.promptDescription) parts.push(`Lighting (${lg.tag}): ${lg.promptDescription}`);
+  }
+
   if (sel.selectedFilmStockId) {
     const fst = HOOK_FILM_STOCKS.find((x) => x.id === sel.selectedFilmStockId);
     if (fst?.promptDescription) parts.push(`Film stock (${fst.tag}): ${fst.promptDescription}`);
+  }
+
+  if (sel.selectedMovieLookId) {
+    const ml = HOOK_MOVIE_LOOKS.find((x) => x.id === sel.selectedMovieLookId);
+    if (ml?.promptDescription) parts.push(`Movie look (${ml.tag}): ${ml.promptDescription}`);
   }
 
   if (sel.selectedSketchId) {
@@ -160,11 +176,4 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
 }
 
 /**
- * Convenience: append the suffix to an existing prompt with a single space.
- * If suffix is empty, returns the prompt unchanged.
- */
-export function withPresetsAppended(prompt: string, sel: PresetSelections): string {
-  const suffix = buildPresetPromptSuffix(sel);
-  if (!suffix) return prompt;
-  return `${prompt.trim()}${suffix}`;
-}
+ * Convenience: appen

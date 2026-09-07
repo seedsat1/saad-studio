@@ -357,6 +357,22 @@ export default function MobileVideoPage() {
       // If task is processing/pending, poll GET /api/video?taskId=...
       if (!videoUrl && data.taskId) {
         const taskId = data.taskId;
+
+        try {
+          const raw = localStorage.getItem("ff_video_pending_jobs");
+          const existing = raw ? JSON.parse(raw) : [];
+          const updated = Array.isArray(existing) ? existing : [];
+          if (!updated.some((j: any) => j.taskId === taskId)) {
+            updated.push({
+              taskId,
+              prompt: prompt.trim(),
+              createdAt: Date.now(),
+              model: selectedModel.id,
+            });
+            localStorage.setItem("ff_video_pending_jobs", JSON.stringify(updated));
+          }
+        } catch {}
+
         const maxPollAttempts = 120; // 4 minutes
         let attempts = 0;
 
@@ -369,6 +385,13 @@ export default function MobileVideoPage() {
             if (pollRes.ok) {
               const pollData = await pollRes.json();
               if (pollData.status === "failed") {
+                try {
+                  const raw = localStorage.getItem("ff_video_pending_jobs");
+                  if (raw) {
+                    const filtered = (JSON.parse(raw) as any[]).filter((j) => j.taskId !== taskId);
+                    localStorage.setItem("ff_video_pending_jobs", JSON.stringify(filtered));
+                  }
+                } catch {}
                 throw new Error(pollData.error || "فشل توليد الفيديو من المزود");
               }
               if (pollData.status === "completed" || pollData.status === "succeeded") {
@@ -376,6 +399,14 @@ export default function MobileVideoPage() {
                   pollData.videoUrl ||
                   pollData.url ||
                   (Array.isArray(pollData.outputs) && pollData.outputs[0]);
+
+                try {
+                  const raw = localStorage.getItem("ff_video_pending_jobs");
+                  if (raw) {
+                    const filtered = (JSON.parse(raw) as any[]).filter((j) => j.taskId !== taskId);
+                    localStorage.setItem("ff_video_pending_jobs", JSON.stringify(filtered));
+                  }
+                } catch {}
                 break;
               }
             }
@@ -389,7 +420,7 @@ export default function MobileVideoPage() {
       clearInterval(progressTimer);
 
       if (!videoUrl) {
-        throw new Error("استغرق التوليد وقتاً أطول من المتوقع، يرجى مراجعة المعرض بعد قليل");
+        throw new Error("استغرق التوليد وقتاً أطول من المتوقع، تم الحفظ وجارٍ الاستكمال في المعرض");
       }
 
       setProgress(100);

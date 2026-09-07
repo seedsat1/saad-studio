@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildPresetPromptSuffix } from "@/lib/reference-prompt-injector";
-import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS } from "@/lib/hook-studio-config";
+import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS, HOOK_MOVIE_LOOKS } from "@/lib/hook-studio-config";
 
 describe("Shot Type preset injection", () => {
   it("exposes 24 shot types split into framing and angle", () => {
@@ -60,5 +60,40 @@ describe("Combined preset selections", () => {
     const shotIds = new Set(HOOK_SHOT_TYPES.map((s) => s.id));
     const overlap = HOOK_FILM_STOCKS.filter((f) => shotIds.has(f.id));
     expect(overlap).toEqual([]);
+  });
+});
+
+describe("Movie Look preset injection", () => {
+  it("exposes 30 movie looks across four palette groups", () => {
+    expect(HOOK_MOVIE_LOOKS).toHaveLength(30);
+    expect(HOOK_MOVIE_LOOKS.filter((l) => l.group === "warm")).toHaveLength(8);
+    expect(HOOK_MOVIE_LOOKS.filter((l) => l.group === "cool")).toHaveLength(8);
+    expect(HOOK_MOVIE_LOOKS.filter((l) => l.group === "muted")).toHaveLength(11);
+    expect(HOOK_MOVIE_LOOKS.filter((l) => l.group === "vivid")).toHaveLength(3);
+    expect(new Set(HOOK_MOVIE_LOOKS.map((l) => l.id)).size).toBe(30);
+  });
+
+  it("injects the selected movie look into the prompt suffix", () => {
+    const suffix = buildPresetPromptSuffix({ selectedMovieLookId: "neon-cyberpunk" });
+    expect(suffix).toContain("Movie look (#neon-cyberpunk)");
+    expect(suffix.toLowerCase()).toContain("magenta and cyan neon");
+  });
+
+  it("keeps every preset id unique across all four new tabs", () => {
+    const all = [
+      ...HOOK_SHOT_TYPES.map((x) => x.id),
+      ...HOOK_FILM_STOCKS.map((x) => x.id),
+      ...HOOK_MOVIE_LOOKS.map((x) => x.id),
+    ];
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it("stacks film stock and movie look together without conflict", () => {
+    const suffix = buildPresetPromptSuffix({
+      selectedFilmStockId: "cinema-tungsten",
+      selectedMovieLookId: "candlelit-period",
+    });
+    expect(suffix).toContain("Film stock (#cinema-tungsten)");
+    expect(suffix).toContain("Movie look (#candlelit-period)");
   });
 });

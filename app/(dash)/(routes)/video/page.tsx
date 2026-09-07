@@ -1430,6 +1430,8 @@ function VideoPageInner() {
   const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
   const [selectedShotTypeId, setSelectedShotTypeId] = useState<string | null>(null);
   const [selectedFilmStockId, setSelectedFilmStockId] = useState<string | null>(null);
+  const [selectedMovieLookId, setSelectedMovieLookId] = useState<string | null>(null);
+  const [selectedLightingId, setSelectedLightingId] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   // Kling 3.0 structured elements (name + description + 2-4 images each, max 3 elements)
@@ -2721,6 +2723,8 @@ function VideoPageInner() {
         selectedSketchId,
         selectedShotTypeId,
         selectedFilmStockId,
+        selectedMovieLookId,
+        selectedLightingId,
         selectedLocationId,
         selectedElementId,
         selectedPalette,
@@ -3381,7 +3385,7 @@ function VideoPageInner() {
     activeTool, videoMode, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isWan30Model, isVeo31Model, isGoogleVeoModel, isVeo31FastModel, isVeo31FixedEightSecond,
     startFrame, linkedStartFrameUrl, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
-    sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedShotTypeId, selectedFilmStockId, selectedLocationId, selectedElementId, selectedPalette, startPolling,
+    sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedShotTypeId, selectedFilmStockId, selectedMovieLookId, selectedLightingId, selectedLocationId, selectedElementId, selectedPalette, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
     estimatedCredits, activeVideoModeLabel, fetchWithAuth, getSafeErrorMessage, guardGeneration,
   ]);
@@ -7312,6 +7316,8 @@ function VideoPageInner() {
         selectedSketchId={selectedSketchId}
         selectedShotTypeId={selectedShotTypeId}
         selectedFilmStockId={selectedFilmStockId}
+        selectedMovieLookId={selectedMovieLookId}
+        selectedLightingId={selectedLightingId}
         onSelectSketch={(id) => {
           setSelectedSketchId(id);
           setShowReferenceStudioModal(false);
@@ -7322,6 +7328,14 @@ function VideoPageInner() {
         }}
         onSelectFilmStock={(id) => {
           setSelectedFilmStockId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        onSelectMovieLook={(id) => {
+          setSelectedMovieLookId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        onSelectLighting={(id) => {
+          setSelectedLightingId(id);
           setShowReferenceStudioModal(false);
         }}
         onSelectPalette={(pal) => setSelectedPalette(pal)}
@@ -7345,20 +7359,4 @@ function VideoPageInner() {
         isOpen={showPromptEditorModal}
         onClose={() => setShowPromptEditorModal(false)}
         initialPrompt={prompt}
-        onApply={(p) => setPrompt(p)}
-        mediaType="video"
-        lang={lang}
-      />
-    </div>
-  );
-}
-
-// -- Export --------------------------------------------------------------------
-
-export default function VideoPage() {
-  return (
-    <Suspense>
-      <VideoPageInner />
-    </Suspense>
-  );
-}
+        on

@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { deleteFromStorage } from "@/lib/supabase-storage";
 import { reconcilePendingBytePlusGenerations } from "@/lib/providers/byteplus-reconcile";
+import { reconcileUserInFlightGenerations } from "@/lib/generation/task-reconciler";
 import { normalizeMediaUrl, readStorageRuntimeConfig, type StorageRuntimeConfig } from "@/lib/storage";
 import { scheduleImageThumbnailGeneration } from "@/lib/image-thumbnails";
 import { scheduleVideoPosterGeneration } from "@/lib/video-posters";
@@ -449,10 +450,13 @@ export async function GET(req: NextRequest) {
           ],
         };
 
-    // Resolve this user's pending Seedance jobs before loading the gallery.
-    // This works even when the original browser session was closed.
-    await reconcilePendingBytePlusGenerations(5, userId).catch((error) => {
-      console.error("[api/assets] BytePlus reconciliation failed", error);
+    // Resolve this user's pending jobs across all providers (Google, WaveSpeed, KIE, BytePlus)
+    // before loading the gallery. This works even when the original browser session was closed.
+    await Promise.allSettled([
+      reconcilePendingBytePlusGenerations(5, userId),
+      reconcileUserInFlightGenerations(userId, 5),
+    ]).catch((error) => {
+      console.error("[api/assets] in-flight reconciliation error", error);
     });
 
     const [totalForFilter, allCount, imageCount, videoCount, audioCount, threeDCount, textCount, rows] = await Promise.all([
@@ -502,21 +506,30 @@ export async function GET(req: NextRequest) {
       .map((row: any) => {
         const resolvedUrl = resolveAssetUrl(row.mediaUrl, row.outputUrl, storageConfig);
         const failed = isFailedGeneration(row);
+        const isProcessing = Boolean(
+          !failed &&
+          (row.status === "processing" ||
+           row.status === "pending" ||
+           row.status === "created" ||
+           row.mediaUrl?.startsWith("task:")) &&
+          !resolvedUrl
+        );
         return {
           ...row,
           resolvedUrl,
           failed,
+          isProcessing,
         };
       })
       .filter((row: any) => {
         if (validOnly) {
-          return !row.failed && isRenderableAssetUrl(row.resolvedUrl) && !row.resolvedUrl?.startsWith("failed:") && !row.resolvedUrl?.startsWith("task:");
+          return !row.failed && !row.isProcessing && isRenderableAssetUrl(row.resolvedUrl) && !row.resolvedUrl?.startsWith("failed:") && !row.resolvedUrl?.startsWith("task:");
         }
-        return row.failed || isRenderableAssetUrl(row.resolvedUrl);
+        return row.failed || row.isProcessing || isRenderableAssetUrl(row.resolvedUrl);
       })
       .map((row: any) => {
         const type = inferAssetType(row);
-        const mediaUrl = row.failed ? `failed:${row.id}` : row.resolvedUrl;
+        const mediaUrl = row.failed ? `failed:${row.id}` : row.isProcessing ? "" : (row.resolvedUrl || "");
         const isTextMarker = mediaUrl.startsWith("text:");
         const dimensions = type === "image" ? galleryImageDimensions(row.resolution, row.aspectRatio) : {};
         const posterIsVideoFrame = type === "video" && row.posterStatus === "ready_video_frame";
@@ -524,6 +537,17 @@ export async function GET(req: NextRequest) {
 
         const payload = row.generationRequestSnapshot?.requestPayload as any;
         const startImageUrl = firstString(payload, ["first_frame_url", "firstFrameUrl", "image", "image_url", "imageUrl", "startFrame"]) ?? undefined;
+        const normalizedStartImage = startImageUrl ? (normalizeMediaUrl(startImageUrl, { config: storageConfig }) || startImageUrl) : undefined;
+        const effectiveVideoPoster = videoPoster || (type === "video" ? normalizedStartImage : undefined);
+
+        // Self-heal posterUrl in DB if missing and start image is available
+        if (type === "video" && !row.posterUrl && normalizedStartImage) {
+          (prismadb.generation as any).update({
+            where: { id: row.id },
+            data: { posterUrl: normalizedStartImage, posterStatus: "ready" }
+          }).catch(() => {});
+        }
+
         const endImageUrl = firstString(payload, ["last_frame_url", "lastFrameUrl", "end_image", "endImage", "last_image", "lastImage", "endFrame"]) ?? undefined;
         const referenceImageUrls = collectStringArray(
           payload,
@@ -546,11 +570,13 @@ export async function GET(req: NextRequest) {
           type,
           url: isTextMarker ? undefined : mediaUrl,
           originalUrl: isTextMarker ? undefined : mediaUrl,
-          thumbnailUrl: isTextMarker ? undefined : galleryThumbnailUrl(row.id, type),
-          posterUrl: videoPoster,
-          posterStatus: type === "video" ? (row.failed ? "failed" : (posterIsVideoFrame ? "ready_video_frame" : (row.posterStatus ?? "pending"))) : undefined,
-          status: row.failed ? "failed" : (row.status ?? undefined),
+          thumbnailUrl: isTextMarker ? undefined : (type === "video" ? effectiveVideoPoster : galleryThumbnailUrl(row.id, type)),
+          posterUrl: effectiveVideoPoster,
+          startImageUrl: normalizedStartImage,
+          posterStatus: type === "video" ? (row.failed ? "failed" : (effectiveVideoPoster ? "ready" : (posterIsVideoFrame ? "ready_video_frame" : (row.posterStatus ?? "pending")))) : undefined,
+          status: row.failed ? "failed" : (row.isProcessing ? "processing" : (row.status ?? undefined)),
           isFailed: Boolean(row.failed),
+          isProcessing: Boolean(row.isProcessing),
           failureReason: row.failed ? generationFailureReason(row) : undefined,
           creditsRefunded: row.failed ? true : undefined,
           posterGeneratedAt: row.posterGeneratedAt ? row.posterGeneratedAt.toISOString() : undefined,

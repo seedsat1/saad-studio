@@ -18,6 +18,7 @@ interface MediaItem {
   prompt?: string;
   model?: string;
   createdAt: string;
+  isProcessing?: boolean;
 }
 
 export default function MobileGalleryPage() {
@@ -31,7 +32,6 @@ export default function MobileGalleryPage() {
   const { activeProfile } = useActiveProfile();
 
   const fetchMedia = useCallback(async (overrideProfileId?: string) => {
-    setLoading(true);
     try {
       const targetProfileId = overrideProfileId !== undefined
         ? overrideProfileId
@@ -51,18 +51,31 @@ export default function MobileGalleryPage() {
           const itemType: "video" | "image" | "audio" =
             rawType.includes("video") ? "video" : rawType.includes("audio") ? "audio" : "image";
           const mediaUrl = it.url || it.originalUrl || it.mediaUrl || "";
+          const isProcessing = Boolean(
+            it.isProcessing ||
+            it.status === "processing" ||
+            it.status === "pending" ||
+            it.status === "created" ||
+            (typeof mediaUrl === "string" && mediaUrl.startsWith("task:"))
+          );
+
+          // Ensure poster is a genuine image, never an mp4 or video file
+          const isVideoFile = (u: string) => /\.(mp4|mov|webm|mkv|m4v|avi|ogv)(\?.*)?$/i.test(u.trim());
+          const candidatePoster = [it.posterUrl, it.thumbnailUrl, it.startImageUrl]
+            .find((u) => typeof u === "string" && u.trim().length > 0 && !isVideoFile(u));
 
           return {
             id: it.id || String(Math.random()),
             type: itemType,
-            url: mediaUrl,
-            thumbnailUrl: it.thumbnailUrl || it.posterUrl || mediaUrl,
-            posterUrl: it.posterUrl || undefined,
+            url: isProcessing ? "" : mediaUrl,
+            thumbnailUrl: candidatePoster || (itemType === "image" ? mediaUrl : undefined),
+            posterUrl: candidatePoster || undefined,
             prompt: it.prompt || "",
             model: it.model || it.modelUsed || "",
             createdAt: it.createdAt || new Date().toISOString(),
+            isProcessing,
           };
-        }).filter((it: MediaItem) => Boolean(it.url));
+        }).filter((it: MediaItem) => Boolean(it.url || it.isProcessing));
         setItems(mapped);
       }
     } catch {
@@ -91,15 +104,52 @@ export default function MobileGalleryPage() {
     };
   }, [fetchMedia]);
 
+  // Auto-refresh when items are processing
+  useEffect(() => {
+    const hasProcessing = items.some((it) => it.isProcessing);
+    if (!hasProcessing) return;
+
+    const timer = setInterval(() => {
+      fetchMedia();
+    }, 4000);
+
+    return () => clearInterval(timer);
+  }, [items, fetchMedia]);
+
   const filteredItems = items.filter((item) => filter === "all" || item.type === filter);
 
+  const [downloading, setDownloading] = useState(false);
+
   const handleDownload = async (item: MediaItem) => {
+    if (downloading) return;
+    setDownloading(true);
+    setToastMessage("جارٍ تجهيز وحفظ الملف... ⏳");
     const ext = item.type === "video" ? "mp4" : item.type === "audio" ? "mp3" : "png";
-    await downloadMediaFile(item.url, `saadstudio_${item.type}_${Date.now()}.${ext}`, {
-      title: "وسائط استوديو سعد",
-      fallbackExt: ext,
-    });
-    setToastMessage("تم بدء التنزيل وحفظ الملف في الألبوم 📲");
+    const filename = `saadstudio_${item.type}_${Date.now()}.${ext}`;
+
+    try {
+      const ok = await downloadMediaFile(item.url, filename, {
+        title: item.prompt || "استوديو سعد",
+        fallbackExt: ext,
+      });
+      if (ok) {
+        setToastMessage("تم فتح خيارات الحفظ والتنزيل 📲");
+      }
+    } catch {
+      const dlUrl = `/api/download?url=${encodeURIComponent(item.url)}&filename=${encodeURIComponent(filename)}`;
+      window.location.assign(dlUrl);
+      setToastMessage("جاري التنزيل المباشر للهاتف 📲");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleDirectDownload = (item: MediaItem) => {
+    const ext = item.type === "video" ? "mp4" : item.type === "audio" ? "mp3" : "png";
+    const filename = `saadstudio_${item.type}_${Date.now()}.${ext}`;
+    const dlUrl = `/api/download?url=${encodeURIComponent(item.url)}&filename=${encodeURIComponent(filename)}`;
+    window.location.assign(dlUrl);
+    setToastMessage("تم بدء التنزيل المباشر للملف 📥");
   };
 
   return (
@@ -151,70 +201,96 @@ export default function MobileGalleryPage() {
                   <path d="M21 15l-5-5L5 21" />
                 </svg>
               </div>
-              <p className="text-sm font-bold text-slate-200">لا توجد وسائط مولدة بعد</p>
-              <span className="text-xs text-slate-400 block mt-1 leading-relaxed">
-                ابدأ بتوليد الصور أو الفيديوهات أو المقاطع الصوتية لتظهر هنا فوراً.
-              </span>
+              <p className="text-sm font-bold text-slate-200 mb-1">لا توجد وسائط بعد</p>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                الوسائط المولدة من صفحات الصور والفيديو والصوت ستظهر هنا تلقائياً.
+              </p>
             </div>
           )}
 
           {!loading && filteredItems.length > 0 && (
             <div className="grid grid-cols-2 gap-2.5">
-              {filteredItems.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedMedia(item)}
-                  className="relative aspect-square rounded-2xl overflow-hidden border border-[#38C2F0]/20 bg-[#16244C]/40 group cursor-pointer"
-                >
-                  {item.type === "image" && (
-                    <img src={item.url} alt={item.prompt || "image"} className="w-full h-full object-cover" />
-                  )}
-                  {item.type === "video" && (
-                    <div className="relative w-full h-full">
-                      <video
-                        src={item.url}
-                        poster={item.thumbnailUrl || item.posterUrl}
-                        preload="metadata"
-                        playsInline
-                        muted
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
-                        <div className="w-9 h-9 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M8 5l11 7-11 7z" />
-                          </svg>
+              {filteredItems.map((item) => {
+                if (item.isProcessing) {
+                  return (
+                    <div
+                      key={item.id}
+                      className="relative aspect-square rounded-2xl overflow-hidden border border-[#38C2F0]/40 bg-gradient-to-br from-[#16244C]/90 to-[#0B1330] flex flex-col items-center justify-center p-3 text-center"
+                    >
+                      <div className="w-8 h-8 border-2 border-[#38C2F0] border-t-transparent rounded-full animate-spin mb-2" />
+                      <span className="text-[11px] font-bold text-[#38C2F0]">جارٍ التوليد...</span>
+                      <span className="text-[9px] text-slate-400 mt-1 line-clamp-2 px-1 leading-snug">
+                        {item.prompt || (item.type === "video" ? "فيديو ذكاء اصطناعي" : "وسائط ذكاء اصطناعي")}
+                      </span>
+                      <span className="text-[8px] text-cyan-400/80 font-mono mt-1">قيد المعالجة ⏳</span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedMedia(item)}
+                    className="relative aspect-square rounded-2xl overflow-hidden border border-[#38C2F0]/20 bg-[#16244C]/40 group cursor-pointer"
+                  >
+                    {item.type === "image" && (
+                      <img src={item.url} alt={item.prompt || "image"} className="w-full h-full object-cover" />
+                    )}
+                    {item.type === "video" && (
+                      <div className="relative w-full h-full bg-[#070D1F]">
+                        {item.posterUrl ? (
+                          <img
+                            src={item.posterUrl}
+                            alt={item.prompt || "غلاف الفيديو"}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <video
+                            src={item.url ? `${item.url}#t=0.001` : undefined}
+                            preload="metadata"
+                            playsInline
+                            muted
+                            className="w-full h-full object-cover pointer-events-none"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
+                          <div className="w-9 h-9 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white shadow-lg">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M8 5l11 7-11 7z" />
+                            </svg>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                  {item.type === "audio" && (
-                    <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-[#1A2A57] to-[#0C1533]">
-                      <div className="w-10 h-10 rounded-full bg-[#E0B252]/20 text-[#E0B252] flex items-center justify-center mb-2">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                          <path d="M4 12h3l2-5 3 12 2.5-8 1.5 3h4" />
-                        </svg>
+                    )}
+                    {item.type === "audio" && (
+                      <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-[#1A2A57] to-[#0C1533]">
+                        <div className="w-10 h-10 rounded-full bg-[#E0B252]/20 text-[#E0B252] flex items-center justify-center mb-2">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <path d="M4 12h3l2-5 3 12 2.5-8 1.5 3h4" />
+                          </svg>
+                        </div>
+                        <span className="text-[10px] text-slate-300 line-clamp-2 leading-tight">
+                          {item.prompt || "مقطع صوتي"}
+                        </span>
                       </div>
-                      <span className="text-[10px] text-slate-300 line-clamp-2 leading-tight">
-                        {item.prompt || "مقطع صوتي"}
-                      </span>
-                    </div>
-                  )}
+                    )}
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(item);
-                    }}
-                    className="absolute bottom-2 left-2 w-7 h-7 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-white flex items-center justify-center active:scale-95 transition-transform"
-                    aria-label="تنزيل للألبوم"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                      <path d="M12 4v12M8 12l4 4 4-4M4 20h16" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(item);
+                      }}
+                      className="absolute bottom-2 left-2 w-7 h-7 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-white flex items-center justify-center active:scale-95 transition-transform"
+                      aria-label="تنزيل للألبوم"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                        <path d="M12 4v12M8 12l4 4 4-4M4 20h16" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -237,7 +313,15 @@ export default function MobileGalleryPage() {
                 <img src={selectedMedia.url} alt="preview" className="w-full max-h-[50vh] object-contain rounded-2xl" />
               )}
               {selectedMedia.type === "video" && (
-                <video src={selectedMedia.url} controls autoPlay loop className="w-full max-h-[50vh] object-contain rounded-2xl" />
+                <video
+                  src={selectedMedia.url}
+                  poster={selectedMedia.posterUrl}
+                  controls
+                  autoPlay
+                  playsInline
+                  loop
+                  className="w-full max-h-[50vh] object-contain rounded-2xl bg-black"
+                />
               )}
               {selectedMedia.type === "audio" && (
                 <audio src={selectedMedia.url} controls autoPlay className="w-full mt-4" />
@@ -249,15 +333,46 @@ export default function MobileGalleryPage() {
                 </p>
               )}
 
-              <button
-                onClick={() => handleDownload(selectedMedia)}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#38C2F0] to-[#8A65F7] text-[#04101F] font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                  <path d="M12 4v12M8 12l4 4 4-4M4 20h16" />
-                </svg>
-                حفظ في ألبوم الهاتف (Photos)
-              </button>
+              <div className="space-y-2 pt-1">
+                <button
+                  disabled={downloading}
+                  onClick={() => handleDownload(selectedMedia)}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#38C2F0] to-[#8A65F7] text-[#04101F] font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50 shadow-lg shadow-[#38C2F0]/15"
+                >
+                  {downloading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-[#04101F] border-t-transparent rounded-full animate-spin" />
+                      <span>جارٍ تجهيز الحفظ...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                        <path d="M12 4v12M8 12l4 4 4-4M4 20h16" />
+                      </svg>
+                      <span>حفظ في ألبوم الصور (Photos / Share) 📲</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDirectDownload(selectedMedia)}
+                  className="w-full py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white font-bold text-[11px] flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  <span>تنزيل مباشر كملف ({selectedMedia.type === "video" ? "MP4" : selectedMedia.type === "audio" ? "MP3" : "PNG"}) 📥</span>
+                </button>
+              </div>
+
+              {selectedMedia.type === "video" && (
+                <p className="text-[10px] text-slate-400 text-center leading-relaxed px-1">
+                  💡 على هواتف iPhone: اضغط <span className="text-[#38C2F0]">"حفظ في ألبوم الصور"</span> ثم اختر <span className="text-white font-bold">"Save Video" (حفظ الفيديو)</span> من قائمة المشاركة لحفظه في تطبيق الصور فوراً.
+                </p>
+              )}
             </div>
           </div>
         )}

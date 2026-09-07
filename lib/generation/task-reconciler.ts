@@ -26,7 +26,12 @@ export type ReconcileResult = {
 function decodeGeminiTask(taskId: string): VeoOperationHandle | null {
   try {
     const raw = taskId.slice(4);
-    const json = Buffer.from(raw, "base64").toString("utf8");
+    let json = "";
+    try {
+      json = Buffer.from(raw, "base64url").toString("utf8");
+    } catch {
+      json = Buffer.from(raw, "base64").toString("utf8");
+    }
     const parsed = JSON.parse(json);
     if (!parsed?.name && !parsed?.operationName) return null;
     return parsed as VeoOperationHandle;
@@ -488,4 +493,44 @@ export async function reconcileStaleInFlightGenerations(batchSize: number = 20):
     transientErrors,
     results,
   };
+}
+
+/**
+ * Reconciles any active in-flight generation records for a specific user.
+ * Called opportunistically when the user loads their gallery or assets.
+ */
+export async function reconcileUserInFlightGenerations(
+  userId: string,
+  batchSize = 5
+): Promise<ReconcileResult[]> {
+  if (!userId) return [];
+  const inFlight = await prismadb.generation.findMany({
+    where: {
+      userId,
+      mediaUrl: { startsWith: "task:" },
+    },
+    select: {
+      id: true,
+      userId: true,
+      mediaUrl: true,
+      outputUrl: true,
+      cost: true,
+      createdAt: true,
+      assetType: true,
+      providerName: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: Math.min(10, Math.max(1, batchSize)),
+  });
+
+  const results: ReconcileResult[] = [];
+  for (const gen of inFlight) {
+    try {
+      const res = await reconcileGenerationRecord(gen);
+      results.push(res);
+    } catch (err) {
+      console.error(`[task-reconciler] Error reconciling user gen ${gen.id}:`, err);
+    }
+  }
+  return results;
 }

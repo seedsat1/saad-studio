@@ -25,6 +25,8 @@ import {
   Clapperboard,
   Frame,
   Film,
+  Clapperboard as MovieIcon,
+  Lightbulb,
 } from "lucide-react";
 import {
   HOOK_STYLES,
@@ -36,6 +38,8 @@ import {
   HOOK_SKETCHES,
   HOOK_SHOT_TYPES,
   HOOK_FILM_STOCKS,
+  HOOK_MOVIE_LOOKS,
+  HOOK_LIGHTING,
 } from "@/lib/hook-studio-config";
 import {
   registerUserAsset,
@@ -66,6 +70,10 @@ export interface ReferenceStudioModalProps {
   onSelectShotType?: (id: string | null) => void;
   selectedFilmStockId?: string | null;
   onSelectFilmStock?: (id: string | null) => void;
+  selectedMovieLookId?: string | null;
+  onSelectMovieLook?: (id: string | null) => void;
+  selectedLightingId?: string | null;
+  onSelectLighting?: (id: string | null) => void;
   onSelectPalette?: (palette: { id: string; name: string; colors: string[] } | null) => void;
   onAttachFile?: (file: { id: string; url: string; name: string; type: "image" | "video" }) => void;
   /** When true, clicking a user-owned character will NOT attach its cover here — the caller uses the Character Package flow (all referenceUrls attached at generation time). Prevents double-refs. */
@@ -191,6 +199,10 @@ export function ReferenceStudioModal({
   onSelectShotType,
   selectedFilmStockId,
   onSelectFilmStock,
+  selectedMovieLookId,
+  onSelectMovieLook,
+  selectedLightingId,
+  onSelectLighting,
   onSelectPalette,
   onAttachFile,
   useCharacterPackage = false,
@@ -1355,6 +1367,44 @@ export function ReferenceStudioModal({
               <button
                 type="button"
                 onClick={() => {
+                  setActiveTab("movielook");
+                  setSearchQuery("");
+                  setActiveCategory("all");
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "movielook"
+                    ? "bg-[#161a29] text-white border border-rose-500/40"
+                    : "text-slate-400 hover:bg-[#131724] hover:text-slate-200"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <MovieIcon className="w-4 h-4 text-rose-400" />
+                  <span>Movie Look</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("lighting");
+                  setSearchQuery("");
+                  setActiveCategory("all");
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "lighting"
+                    ? "bg-[#161a29] text-white border border-yellow-500/40"
+                    : "text-slate-400 hover:bg-[#131724] hover:text-slate-200"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Lightbulb className="w-4 h-4 text-yellow-400" />
+                  <span>Lighting</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
                   setActiveTab("camera");
                   setSearchQuery("");
                 }}
@@ -1482,6 +1532,56 @@ export function ReferenceStudioModal({
                       : cat === "color"
                         ? (isAr ? "ملوّن" : "Color")
                         : (isAr ? "أبيض وأسود" : "B&W")}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeTab === "movielook" && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {(["all", "warm", "cool", "muted", "vivid"] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      activeCategory === cat
+                        ? "bg-rose-600 text-white"
+                        : "bg-[#131724] text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {cat === "all"
+                      ? (isAr ? "الكل" : "All")
+                      : cat === "warm"
+                        ? (isAr ? "دافئ" : "Warm")
+                        : cat === "cool"
+                          ? (isAr ? "بارد" : "Cool")
+                          : cat === "muted"
+                            ? (isAr ? "هادئ" : "Muted")
+                            : (isAr ? "مشبع" : "Vivid")}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeTab === "lighting" && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {(["all", "portrait", "natural", "dramatic"] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      activeCategory === cat
+                        ? "bg-yellow-600 text-white"
+                        : "bg-[#131724] text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {cat === "all"
+                      ? (isAr ? "الكل" : "All")
+                      : cat === "portrait"
+                        ? (isAr ? "بورتريه" : "Portrait")
+                        : cat === "natural"
+                          ? (isAr ? "طبيعي" : "Natural")
+                          : (isAr ? "درامي" : "Dramatic")}
                   </button>
                 ))}
               </div>
@@ -2217,6 +2317,112 @@ export function ReferenceStudioModal({
             )}
 
             {/* Sketch Tab */}
+            {activeTab === "lighting" && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("lighting", "yellow", (id) => onSelectLighting?.(id), (id) => selectedLightingId === id)}
+                {HOOK_LIGHTING.filter((lg) => {
+                  const search = searchQuery.toLowerCase();
+                  const matchCat = activeCategory === "all" || lg.group === activeCategory;
+                  const matchSearch =
+                    lg.nameAr.toLowerCase().includes(search) ||
+                    lg.nameEn.toLowerCase().includes(search) ||
+                    lg.tag.toLowerCase().includes(search);
+                  return matchCat && matchSearch;
+                }).map((lightItem) => {
+                  const isSelected = selectedLightingId === lightItem.id;
+                  return (
+                    <div
+                      key={lightItem.id}
+                      onClick={() => {
+                        // Lighting is a prompt-only modifier — its thumbnail is an index
+                        // card, not a visual reference, so never attach it as a ref image.
+                        onSelectLighting?.(isSelected ? null : lightItem.id);
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-yellow-500 ring-2 ring-yellow-500/20 bg-yellow-500/10"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                      }`}
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+                        <img
+                          src={lightItem.imageUrl}
+                          alt={lightItem.nameAr}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-yellow-500 text-white rounded-full p-1 shadow">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-slate-200 truncate">
+                          {isAr ? lightItem.nameAr : lightItem.nameEn}
+                        </div>
+                        <div className="text-[10px] text-yellow-400 font-medium truncate mt-0.5">
+                          {lightItem.nameEn}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {activeTab === "movielook" && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("movielook", "rose", (id) => onSelectMovieLook?.(id), (id) => selectedMovieLookId === id)}
+                {HOOK_MOVIE_LOOKS.filter((ml) => {
+                  const search = searchQuery.toLowerCase();
+                  const matchCat = activeCategory === "all" || ml.group === activeCategory;
+                  const matchSearch =
+                    ml.nameAr.toLowerCase().includes(search) ||
+                    ml.nameEn.toLowerCase().includes(search) ||
+                    ml.tag.toLowerCase().includes(search);
+                  return matchCat && matchSearch;
+                }).map((lookItem) => {
+                  const isSelected = selectedMovieLookId === lookItem.id;
+                  return (
+                    <div
+                      key={lookItem.id}
+                      onClick={() => {
+                        // Movie Look is a prompt-only modifier — its thumbnail is an index
+                        // card, not a visual reference, so never attach it as a ref image.
+                        onSelectMovieLook?.(isSelected ? null : lookItem.id);
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/10"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                      }`}
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+                        <img
+                          src={lookItem.imageUrl}
+                          alt={lookItem.nameAr}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-rose-500 text-white rounded-full p-1 shadow">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-slate-200 truncate">
+                          {isAr ? lookItem.nameAr : lookItem.nameEn}
+                        </div>
+                        <div className="text-[10px] text-rose-400 font-medium truncate mt-0.5">
+                          {lookItem.nameEn}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {activeTab === "filmstock" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
                 {renderCustomCategoryItems("filmstock", "cyan", (id) => onSelectFilmStock?.(id), (id) => selectedFilmStockId === id)}
@@ -3384,115 +3590,4 @@ export function ReferenceStudioModal({
                   onClick={() => cameraInputRef.current?.click()}
                   disabled={isSavingChar}
                   className="w-full bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  <Camera className="w-4 h-4 text-slate-400" />
-                  <span>{isAr ? "التقاط صورة" : "Take photo"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
-                >
-                  {isAr ? "إغلاق الاستوديو" : "Close Studio"}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="space-y-4">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                  {isAr ? "رفع الوسائط المخصصة" : "Drop or upload media"}
-                </span>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  {isAr
-                    ? "اسحب أو ارفع ملفات صور وفيديوهات مرجعية خاصة بك لربطها فوراً مع محرك التوليد."
-                    : "Drop an image or upload your own media to bind reference tag automatically."}
-                </p>
-
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  multiple
-                  accept="image/*,video/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    handleFilesSelected(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-
-                <input
-                  type="file"
-                  ref={cameraInputRef}
-                  accept="image/*"
-                  capture="user"
-                  className="hidden"
-                  onChange={(e) => {
-                    handleFilesSelected(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (e.dataTransfer?.files) {
-                      handleFilesSelected(e.dataTransfer.files);
-                    }
-                  }}
-                  className="border-2 border-dashed border-slate-800 hover:border-indigo-500/80 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] group"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-3 group-hover:scale-110 transition-transform">
-                    <UploadCloud className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-200 block mb-1">
-                    {isAr ? "اسحب الملف هنا" : "Drop media here"}
-                  </span>
-                  <span className="text-[10px] text-slate-400 block">
-                    PNG, JPG, MP4, WEBP (Max 50MB)
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-4">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
-                >
-                  <UploadCloud className="w-4 h-4" />
-                  <span>{isAr ? "رفع وسائط" : "Upload media"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="w-full bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Camera className="w-4 h-4 text-slate-400" />
-                  <span>{isAr ? "التقاط صورة" : "Take photo"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
-                >
-                  {isAr ? "إغلاق الاستوديو" : "Close Studio"}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-    </div>
-  );
-}
+   

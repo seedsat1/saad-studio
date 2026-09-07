@@ -2633,3 +2633,475 @@ export const HOOK_FILM_STOCKS: HookFilmStockPreset[] = [
     promptDescription: "push-processed high-speed black and white film: coarse gritty grain, hard contrast with blocked shadows, raw reportage monochrome texture."
   }
 ];
+
+export interface HookMovieLookPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  /** Palette family used by the Movie Look tab filter bar. */
+  group: "warm" | "cool" | "muted" | "vivid";
+  promptDescription: string;
+}
+
+export const HOOK_MOVIE_LOOKS: HookMovieLookPreset[] = [
+  // ── WARM LOOKS ──
+  {
+    id: "desert-gold",
+    tag: "#desert-gold",
+    nameAr: "ذهب الصحراء",
+    nameEn: "Desert Gold",
+    imageUrl: "/api/media/reference-thumbnails/look-desert-gold.webp",
+    group: "warm",
+    promptDescription: "desert gold cinematic grade: sun-bleached amber and ochre palette, hazy atmospheric depth, warm sand highlights against soft violet shadows, epic wide natural light."
+  },
+  {
+    id: "near-future-warmth",
+    tag: "#near-future-warmth",
+    nameAr: "دفء المستقبل القريب",
+    nameEn: "Near future warmth",
+    imageUrl: "/api/media/reference-thumbnails/look-near-future-warmth.webp",
+    group: "warm",
+    promptDescription: "near-future warm grade: soft coral and blush palette, clean bright interiors, gentle low contrast, optimistic tactile futurism with warm skin tones."
+  },
+  {
+    id: "warm-whimsy",
+    tag: "#warm-whimsy",
+    nameAr: "دفء طريف",
+    nameEn: "Warm Whimsy",
+    imageUrl: "/api/media/reference-thumbnails/look-warm-whimsy.webp",
+    group: "warm",
+    promptDescription: "warm whimsical grade: buttery gold and soft green palette, storybook charm, gentle contrast, nostalgic sunlit warmth with playful colour."
+  },
+  {
+    id: "sun-drenched-summer",
+    tag: "#sun-drenched-summer",
+    nameAr: "صيف مغمور بالشمس",
+    nameEn: "Sun-drenched summer",
+    imageUrl: "/api/media/reference-thumbnails/look-sun-drenched-summer.webp",
+    group: "warm",
+    promptDescription: "sun-drenched summer grade: bright hazy sunlight, warm honey highlights blooming into lens flare, lush greens, languid golden Mediterranean warmth."
+  },
+  {
+    id: "golden-ancient-rome",
+    tag: "#golden-ancient-rome",
+    nameAr: "ذهب الحقبة القديمة",
+    nameEn: "Golden Ancient Rome",
+    imageUrl: "/api/media/reference-thumbnails/look-golden-ancient-rome.webp",
+    group: "warm",
+    promptDescription: "golden antiquity epic grade: burnished bronze and wheat palette, dust motes in shafts of hard sunlight, heavy warm contrast, monumental historical scale."
+  },
+  {
+    id: "soft-warmth",
+    tag: "#soft-warmth",
+    nameAr: "دفء ناعم",
+    nameEn: "Soft Warmth",
+    imageUrl: "/api/media/reference-thumbnails/look-soft-warmth.webp",
+    group: "warm",
+    promptDescription: "soft warmth grade: gentle amber wash, lifted shadows, low contrast, intimate domestic light, tender comforting tonality."
+  },
+  {
+    id: "candlelit-period",
+    tag: "#candlelit-period",
+    nameAr: "حقبة بضوء الشموع",
+    nameEn: "Candlelit Period",
+    imageUrl: "/api/media/reference-thumbnails/look-candlelit-period.webp",
+    group: "warm",
+    promptDescription: "candlelit period grade: deep amber pools of flame light falling off into near-black, painterly chiaroscuro, natural-source-only illumination, rich historical texture."
+  },
+  {
+    id: "warm-wonder",
+    tag: "#warm-wonder",
+    nameAr: "دهشة دافئة",
+    nameEn: "Warm Wonder",
+    imageUrl: "/api/media/reference-thumbnails/look-warm-wonder.webp",
+    group: "warm",
+    promptDescription: "warm wonder grade: golden backlight and glowing rim light, soft haze, awestruck faces lit from a source just out of frame, magical amber warmth."
+  },
+
+  // ── COOL LOOKS ──
+  {
+    id: "neon-cyberpunk",
+    tag: "#neon-cyberpunk",
+    nameAr: "نيون سايبربانك",
+    nameEn: "Neon Cyberpunk",
+    imageUrl: "/api/media/reference-thumbnails/look-neon-cyberpunk.webp",
+    group: "cool",
+    promptDescription: "neon cyberpunk grade: saturated magenta and cyan neon against deep blue-black shadows, wet reflective surfaces, volumetric haze, high-contrast night city."
+  },
+  {
+    id: "cold-space",
+    tag: "#cold-space",
+    nameAr: "فضاء بارد",
+    nameEn: "Cold Space",
+    imageUrl: "/api/media/reference-thumbnails/look-cold-space.webp",
+    group: "cool",
+    promptDescription: "cold space grade: desaturated steel blue and grey palette, hard unforgiving light, vast empty negative space, clinical isolation and scale."
+  },
+  {
+    id: "green-tinted-digital",
+    tag: "#green-tinted-digital",
+    nameAr: "رقمي بميلان أخضر",
+    nameEn: "Green-tinted digital",
+    imageUrl: "/api/media/reference-thumbnails/look-green-tinted-digital.webp",
+    group: "cool",
+    promptDescription: "green-tinted digital grade: pervasive emerald cast through every midtone and shadow, crushed blacks, cold artificial screen glow, synthetic simulated reality."
+  },
+  {
+    id: "cold-minimalism",
+    tag: "#cold-minimalism",
+    nameAr: "بساطة باردة",
+    nameEn: "Cold Minimalism",
+    imageUrl: "/api/media/reference-thumbnails/look-cold-minimalism.webp",
+    group: "cool",
+    promptDescription: "cold minimalist grade: muted blue-grey palette, restrained low saturation, clean uncluttered composition, precise controlled light, emotional distance."
+  },
+  {
+    id: "futuristic-neon-blue",
+    tag: "#futuristic-neon-blue",
+    nameAr: "أزرق نيون مستقبلي",
+    nameEn: "Futuristic Neon Blue",
+    imageUrl: "/api/media/reference-thumbnails/look-futuristic-neon-blue.webp",
+    group: "cool",
+    promptDescription: "futuristic neon blue grade: glowing electric cyan light lines against pure black, hard specular reflections, geometric synthetic environment, luminous cold precision."
+  },
+  {
+    id: "contemplative-scifi",
+    tag: "#contemplative-scifi",
+    nameAr: "خيال علمي تأملي",
+    nameEn: "Contemplative sci-fi",
+    imageUrl: "/api/media/reference-thumbnails/look-contemplative-scifi.webp",
+    group: "cool",
+    promptDescription: "contemplative sci-fi grade: overcast slate blue and fog-grey palette, soft diffused light, low saturation, quiet monumental atmosphere and heavy stillness."
+  },
+  {
+    id: "digital-nightscape",
+    tag: "#digital-nightscape",
+    nameAr: "مشهد ليلي رقمي",
+    nameEn: "Digital Nightscape",
+    imageUrl: "/api/media/reference-thumbnails/look-digital-nightscape.webp",
+    group: "cool",
+    promptDescription: "digital nightscape grade: cold blue night with warm bokeh city lights, clean modern digital capture, deep shadow detail retained, reflective glass and rain."
+  },
+  {
+    id: "cold-wilderness",
+    tag: "#cold-wilderness",
+    nameAr: "برية باردة",
+    nameEn: "Cold Wilderness",
+    imageUrl: "/api/media/reference-thumbnails/look-cold-wilderness.webp",
+    group: "cool",
+    promptDescription: "cold wilderness grade: icy blue-white natural light, desaturated earth tones, breath-visible cold, raw available-light naturalism and harsh survival atmosphere."
+  },
+
+  // ── MUTED LOOKS ──
+  {
+    id: "pastel-symmetrical",
+    tag: "#pastel-symmetrical",
+    nameAr: "باستيل متناظر",
+    nameEn: "Pastel symmetrical",
+    imageUrl: "/api/media/reference-thumbnails/look-pastel-symmetrical.webp",
+    group: "muted",
+    promptDescription: "pastel symmetrical grade: flat frontal composition, perfectly centred symmetry, candy pastel palette of pink mint and butter yellow, even shadowless light, deadpan precision."
+  },
+  {
+    id: "dreamlike-memories",
+    tag: "#dreamlike-memories",
+    nameAr: "ذكريات حالمة",
+    nameEn: "Dreamlike memories",
+    imageUrl: "/api/media/reference-thumbnails/look-dreamlike-memories.webp",
+    group: "muted",
+    promptDescription: "dreamlike memory grade: soft hazy diffusion, faded desaturated colour, milky lifted blacks, gentle blur at the frame edges, the texture of a half-remembered moment."
+  },
+  {
+    id: "controlled-tension",
+    tag: "#controlled-tension",
+    nameAr: "توتر مضبوط",
+    nameEn: "Controlled Tension",
+    imageUrl: "/api/media/reference-thumbnails/look-controlled-tension.webp",
+    group: "muted",
+    promptDescription: "controlled tension grade: dusty desaturated earth palette, hard directional daylight, deep contained shadows, restrained colour and coiled procedural stillness."
+  },
+  {
+    id: "desaturated-dread",
+    tag: "#desaturated-dread",
+    nameAr: "رهبة باهتة",
+    nameEn: "Desaturated dread",
+    imageUrl: "/api/media/reference-thumbnails/look-desaturated-dread.webp",
+    group: "muted",
+    promptDescription: "desaturated dread grade: near-monochrome grey-green palette, heavy crushed shadows, cold flat light, oppressive bleak atmosphere and drained colour."
+  },
+  {
+    id: "desaturated-trenches",
+    tag: "#desaturated-trenches",
+    nameAr: "خنادق باهتة",
+    nameEn: "Desaturated trenches",
+    imageUrl: "/api/media/reference-thumbnails/look-desaturated-trenches.webp",
+    group: "muted",
+    promptDescription: "desaturated wartime grade: mud brown and gunmetal grey palette, overcast diffused light, ash and smoke in the air, grim documentary weight."
+  },
+  {
+    id: "high-contrast-bw-look",
+    tag: "#high-contrast-bw-look",
+    nameAr: "أبيض وأسود عالي التباين",
+    nameEn: "High contrast BW",
+    imageUrl: "/api/media/reference-thumbnails/look-high-contrast-bw.webp",
+    group: "muted",
+    promptDescription: "high-contrast monochrome grade: deep pooling blacks against stark whites, hard sculpted light, graphic shadow shapes, entirely black and white with no colour."
+  },
+  {
+    id: "controlled-modern",
+    tag: "#controlled-modern",
+    nameAr: "حديث مضبوط",
+    nameEn: "Controlled Modern",
+    imageUrl: "/api/media/reference-thumbnails/look-controlled-modern.webp",
+    group: "muted",
+    promptDescription: "controlled modern grade: cool neutral palette, immaculate clean interiors, precise soft window light, restrained saturation, composed contemporary austerity."
+  },
+  {
+    id: "soft-countryside",
+    tag: "#soft-countryside",
+    nameAr: "ريف ناعم",
+    nameEn: "Soft Countryside",
+    imageUrl: "/api/media/reference-thumbnails/look-soft-countryside.webp",
+    group: "muted",
+    promptDescription: "soft countryside grade: gentle sage green and dove grey palette, overcast diffused daylight, low contrast, quiet pastoral naturalism."
+  },
+  {
+    id: "muted-elegance",
+    tag: "#muted-elegance",
+    nameAr: "أناقة هادئة",
+    nameEn: "Muted elegance",
+    imageUrl: "/api/media/reference-thumbnails/look-muted-elegance.webp",
+    group: "muted",
+    promptDescription: "muted elegance grade: refined desaturated palette of taupe charcoal and slate, soft directional light, understated richness, tailored restrained sophistication."
+  },
+  {
+    id: "documentary-natural",
+    tag: "#documentary-natural",
+    nameAr: "وثائقي طبيعي",
+    nameEn: "Documentary Natural",
+    imageUrl: "/api/media/reference-thumbnails/look-documentary-natural.webp",
+    group: "muted",
+    promptDescription: "documentary natural grade: honest unstyled available light, neutral true colour, moderate contrast, no stylisation, observational everyday realism."
+  },
+  {
+    id: "symmetrical-precision",
+    tag: "#symmetrical-precision",
+    nameAr: "دقة متناظرة",
+    nameEn: "Symmetrical Precision",
+    imageUrl: "/api/media/reference-thumbnails/look-symmetrical-precision.webp",
+    group: "muted",
+    promptDescription: "symmetrical precision grade: rigorous one-point perspective, perfectly centred subject, cool controlled palette, wide-angle geometric corridors, unsettling clinical order."
+  },
+
+  // ── VIVID LOOKS ──
+  {
+    id: "saturated-apocalyptic",
+    tag: "#saturated-apocalyptic",
+    nameAr: "نهاية العالم المشبعة",
+    nameEn: "Saturated Apocalyptic",
+    imageUrl: "/api/media/reference-thumbnails/look-saturated-apocalyptic.webp",
+    group: "vivid",
+    promptDescription: "saturated apocalyptic grade: blazing orange sand against electric teal sky, extreme colour separation, harsh crushed contrast, hyper-real wasteland intensity."
+  },
+  {
+    id: "overexposed-folk",
+    tag: "#overexposed-folk",
+    nameAr: "فولك مفرط الإضاءة",
+    nameEn: "Overexposed Folk",
+    imageUrl: "/api/media/reference-thumbnails/look-overexposed-folk.webp",
+    group: "vivid",
+    promptDescription: "overexposed folk grade: blinding blown-out daylight, bleached whites, vivid saturated florals and grass, unnervingly bright and shadowless."
+  },
+  {
+    id: "saturated-pop-culture",
+    tag: "#saturated-pop-culture",
+    nameAr: "ثقافة شعبية مشبعة",
+    nameEn: "Saturated Pop Culture",
+    imageUrl: "/api/media/reference-thumbnails/look-saturated-pop-culture.webp",
+    group: "vivid",
+    promptDescription: "saturated pop grade: punchy retro colour, warm sunlit golden hour, rich reds and turquoise, glossy period-nostalgic vibrance and high colour density."
+  }
+];
+
+export interface HookLightingPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  /** Lighting family used by the Lighting tab filter bar. */
+  group: "portrait" | "natural" | "dramatic";
+  promptDescription: string;
+}
+
+export const HOOK_LIGHTING: HookLightingPreset[] = [
+  // ── PORTRAIT PATTERNS ──
+  {
+    id: "rembrandt-lighting",
+    tag: "#rembrandt",
+    nameAr: "إضاءة رمبرانت",
+    nameEn: "Rembrandt Lighting",
+    imageUrl: "/api/media/reference-thumbnails/light-rembrandt.webp",
+    group: "portrait",
+    promptDescription: "Rembrandt lighting: a single key light placed high and about 45 degrees to one side, casting a small illuminated triangle on the shadowed cheek, the rest falling into soft deep shadow."
+  },
+  {
+    id: "butterfly-lighting",
+    tag: "#butterfly",
+    nameAr: "إضاءة الفراشة",
+    nameEn: "Butterfly Lighting",
+    imageUrl: "/api/media/reference-thumbnails/light-butterfly.webp",
+    group: "portrait",
+    promptDescription: "Butterfly lighting: the key light placed directly in front and high above, throwing a small symmetrical butterfly-shaped shadow straight down beneath the subject, glamorous and even."
+  },
+  {
+    id: "loop-lighting",
+    tag: "#loop",
+    nameAr: "إضاءة الحلقة",
+    nameEn: "Loop Lighting",
+    imageUrl: "/api/media/reference-thumbnails/light-loop.webp",
+    group: "portrait",
+    promptDescription: "Loop lighting: the key light slightly off axis and a little above eye level, casting a small looping shadow down and to one side without touching the cheek shadow, natural and flattering."
+  },
+  {
+    id: "split-lighting",
+    tag: "#split",
+    nameAr: "إضاءة منقسمة",
+    nameEn: "Split Lighting",
+    imageUrl: "/api/media/reference-thumbnails/light-split.webp",
+    group: "portrait",
+    promptDescription: "Split lighting: the key light placed at a full 90 degrees to the side, lighting exactly one half and leaving the other half in darkness, a hard vertical division down the middle."
+  },
+  {
+    id: "broad-lighting",
+    tag: "#broad",
+    nameAr: "إضاءة عريضة",
+    nameEn: "Broad Lighting",
+    imageUrl: "/api/media/reference-thumbnails/light-broad.webp",
+    group: "portrait",
+    promptDescription: "Broad lighting: the key light falls on the side turned toward the camera, so the larger visible plane is lit and the shadow is pushed away from the lens, open and widening."
+  },
+  {
+    id: "short-lighting",
+    tag: "#short",
+    nameAr: "إضاءة قصيرة",
+    nameEn: "Short Lighting",
+    imageUrl: "/api/media/reference-thumbnails/light-short.webp",
+    group: "portrait",
+    promptDescription: "Short lighting: the key light falls on the side turned away from the camera, so the near plane sits in shadow, sculpting and slimming with strong dimensional falloff."
+  },
+  {
+    id: "high-key",
+    tag: "#high-key",
+    nameAr: "هاي كي",
+    nameEn: "High Key",
+    imageUrl: "/api/media/reference-thumbnails/light-high-key.webp",
+    group: "portrait",
+    promptDescription: "High key lighting: bright even illumination from multiple soft sources, almost no shadows, pale luminous background, low contrast, clean and airy."
+  },
+  {
+    id: "low-key",
+    tag: "#low-key",
+    nameAr: "لو كي",
+    nameEn: "Low Key",
+    imageUrl: "/api/media/reference-thumbnails/light-low-key.webp",
+    group: "portrait",
+    promptDescription: "Low key lighting: a single small hard source against darkness, most of the frame in deep black, only selective edges and planes picked out, heavy dramatic contrast."
+  },
+  {
+    id: "stage-lighting",
+    tag: "#stage",
+    nameAr: "إضاءة مسرح",
+    nameEn: "Stage Lighting",
+    imageUrl: "/api/media/reference-thumbnails/light-stage.webp",
+    group: "portrait",
+    promptDescription: "Stage lighting: a tight hard spotlight pooling on the subject with a defined falloff edge, surrounding space dropping to black, theatrical isolation."
+  },
+
+  // ── NATURAL LIGHT ──
+  {
+    id: "golden-hour-light",
+    tag: "#golden-hour",
+    nameAr: "الساعة الذهبية",
+    nameEn: "Golden Hour",
+    imageUrl: "/api/media/reference-thumbnails/light-golden-hour.webp",
+    group: "natural",
+    promptDescription: "Golden hour light: low warm sun raking in from the side, long soft shadows, amber highlights, gentle glowing warmth just after sunrise or before sunset."
+  },
+  {
+    id: "blue-hour-light",
+    tag: "#blue-hour",
+    nameAr: "الساعة الزرقاء",
+    nameEn: "Blue Hour",
+    imageUrl: "/api/media/reference-thumbnails/light-blue-hour.webp",
+    group: "natural",
+    promptDescription: "Blue hour light: the deep even blue twilight just after sunset, cool ambient fill with no direct sun, warm artificial lights beginning to register against it."
+  },
+  {
+    id: "hard-sunlight",
+    tag: "#hard-sunlight",
+    nameAr: "شمس حادة",
+    nameEn: "Hard Sunlight",
+    imageUrl: "/api/media/reference-thumbnails/light-hard-sunlight.webp",
+    group: "natural",
+    promptDescription: "Hard sunlight: direct midday sun from a clear sky, crisp hard-edged shadows, blown specular highlights, high contrast and strong graphic shadow shapes."
+  },
+  {
+    id: "candlelight",
+    tag: "#candlelight",
+    nameAr: "ضوء الشموع",
+    nameEn: "Candlelight",
+    imageUrl: "/api/media/reference-thumbnails/light-candlelight.webp",
+    group: "natural",
+    promptDescription: "Candlelight: a small warm flickering flame as the only source, deep amber pool falling off rapidly into darkness, soft warm skin tones and dancing shadows."
+  },
+  {
+    id: "moonlight",
+    tag: "#moonlight",
+    nameAr: "ضوء القمر",
+    nameEn: "Moonlight",
+    imageUrl: "/api/media/reference-thumbnails/light-moonlight.webp",
+    group: "natural",
+    promptDescription: "Moonlight: cool blue-silver illumination from a single high distant source, low overall level with detail retained in the shadows, quiet nocturnal stillness."
+  },
+
+  // ── DRAMATIC / SHAPED LIGHT ──
+  {
+    id: "rim-lighting",
+    tag: "#rim",
+    nameAr: "إضاءة الحواف",
+    nameEn: "Rim Lighting",
+    imageUrl: "/api/media/reference-thumbnails/light-rim.webp",
+    group: "dramatic",
+    promptDescription: "Rim lighting: a hard source placed behind and to one side tracing a bright outline along the subject's edge, separating it from a dark background while the front stays shadowed."
+  },
+  {
+    id: "backlight-strong",
+    tag: "#backlight",
+    nameAr: "إضاءة خلفية",
+    nameEn: "Backlight",
+    imageUrl: "/api/media/reference-thumbnails/light-backlight.webp",
+    group: "dramatic",
+    promptDescription: "Backlighting: the main source directly behind the subject facing the lens, glowing halation around the edges, lifted flare and haze, the front softly underexposed."
+  },
+  {
+    id: "volumetric-lighting",
+    tag: "#volumetric",
+    nameAr: "أشعة ضوئية حجمية",
+    nameEn: "Volumetric Lighting",
+    imageUrl: "/api/media/reference-thumbnails/light-volumetric.webp",
+    group: "dramatic",
+    promptDescription: "Volumetric lighting: visible god rays and shafts of light cutting through atmospheric haze, dust or smoke, the beams themselves becoming a tangible part of the composition."
+  },
+  {
+    id: "silhouette",
+    tag: "#silhouette",
+    nameAr: "ظلّية",
+    nameEn: "Silhouette",
+    imageUrl: "/api/media/reference-thumbnails/light-silhouette.webp",
+    group: "dramatic",
+    promptDescription: "Silhouette lighting: the subject rendered as a solid black shape with no front fill at all, read purely as outline against a bright evenly lit background."
+  }
+];

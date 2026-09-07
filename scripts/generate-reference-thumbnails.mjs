@@ -6,6 +6,8 @@
 // Sets:  styles  → the 18 added HOOK_STYLES tiles
 //        shots   → the 24 HOOK_SHOT_TYPES tiles (keys prefixed "shot-")
 //        films   → the 18 HOOK_FILM_STOCKS tiles (keys prefixed "film-")
+//        looks   → the 30 HOOK_MOVIE_LOOKS tiles (keys prefixed "look-")
+//        lights  → the 18 HOOK_LIGHTING tiles (keys prefixed "light-", one shared still-life)
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -238,6 +240,176 @@ SETS.films = [
     "push-processed high-speed black and white film: coarse gritty grain, hard contrast with blocked-up shadows, raw reportage monochrome texture. Completely monochrome, no colour whatsoever.",
     "A dense night crowd on a city street lit by a single harsh light, movement and grain.")],
 ];
+
+// Movie Look tiles. B2 keys are prefixed "look-". Each tile has to sell its
+// colour grade at thumbnail size, so the scene is picked to carry the palette.
+const look = (grade, scene) =>
+  `Cinematic film still from a feature film, ${grade} ${scene} Anamorphic framing, professional colour grade, subtle film grain, photoreal. Iraqi cast and setting. No mosques, no minarets, no shrines or religious buildings. No watermark, no logo, no subtitles, no text overlay, no border frame.`;
+
+SETS.looks = [
+  // warm
+  ["look-desert-gold", look(
+    "sun-bleached amber and ochre grade, hazy atmospheric depth, warm sand highlights falling into soft violet shadows.",
+    "A hooded figure seated on a ridge above an immense dune field at low sun, epic scale.")],
+  ["look-near-future-warmth", look(
+    "soft coral and blush grade, clean bright interior, gentle low contrast, optimistic tactile futurism.",
+    "A man alone at a curved desk beside a huge window overlooking a hazy future skyline.")],
+  ["look-warm-whimsy", look(
+    "buttery gold and soft green grade, storybook charm, gentle contrast, nostalgic sunlit warmth.",
+    "A woman smiling faintly at a kitchen table, sunlight through a leafy window, bicycles outside.")],
+  ["look-sun-drenched-summer", look(
+    "sun-drenched grade, bright hazy sunlight blooming into gentle flare, warm honey highlights, lush greens.",
+    "A young man by an open window over a sunlit orchard courtyard, languid summer afternoon.")],
+  ["look-golden-ancient-rome", look(
+    "burnished bronze and wheat grade, dust motes in shafts of hard sun, heavy warm contrast, monumental historical scale.",
+    "Robed figures in a vast ancient stone hall, hard sunbeams cutting through the dusty air.")],
+  ["look-soft-warmth", look(
+    "gentle amber wash, lifted shadows, low contrast, intimate domestic light.",
+    "Two women talking closely in a warm cluttered living room, framed family photographs behind them.")],
+  ["look-candlelit-period", look(
+    "candlelit grade: deep amber pools of flame light falling off into near-black, painterly chiaroscuro, natural-source-only illumination.",
+    "A period dining room lit only by a candelabra, figures in nineteenth-century dress around the table.")],
+  ["look-warm-wonder", look(
+    "warm wonder grade: golden backlight and glowing rim light, soft haze, a face lit by a source just out of frame.",
+    "A boy holding a glowing lantern up in a dark workshop, awe on his face, warm light spilling around him.")],
+
+  // cool
+  ["look-neon-cyberpunk", look(
+    "neon cyberpunk grade: saturated magenta and cyan neon against deep blue-black shadows, wet reflective ground, volumetric haze.",
+    "Figures in long coats on a rain-soaked night street beneath dense glowing signage.")],
+  ["look-cold-space", look(
+    "cold space grade: desaturated steel blue and grey, hard unforgiving light, vast empty negative space, clinical isolation.",
+    "A lone figure in a heavy suit standing before an abandoned house on a barren frozen plain under a pale sky.")],
+  ["look-green-tinted-digital", look(
+    "green-tinted digital grade: pervasive emerald cast through every midtone and shadow, crushed blacks, cold artificial screen glow.",
+    "A figure in a long coat in a dim corridor of glowing green server racks and cascading code.")],
+  ["look-cold-minimalism", look(
+    "cold minimalist grade: muted blue-grey palette, restrained low saturation, precise controlled light, emotional distance.",
+    "Two men at opposite ends of a bare grey office at night, one leaning over a desk, wide empty space between them.")],
+  ["look-futuristic-neon-blue", look(
+    "futuristic neon blue grade: glowing electric cyan light lines against pure black, hard specular reflections, geometric synthetic environment.",
+    "A figure walking a black mirrored floor lined with glowing blue circuitry and light strips.")],
+  ["look-contemplative-scifi", look(
+    "contemplative sci-fi grade: overcast slate blue and fog-grey, soft diffused light, low saturation, quiet monumental stillness.",
+    "Small figures dwarfed by an enormous smooth dark object hovering above a misty field.")],
+  ["look-digital-nightscape", look(
+    "digital nightscape grade: cold blue night against warm bokeh city lights, clean modern capture, deep retained shadow detail, rain on glass.",
+    "Two people in the front seats of a parked car at night, the windscreen streaked with rain and out-of-focus city lights.")],
+  ["look-cold-wilderness", look(
+    "cold wilderness grade: icy blue-white natural light, desaturated earth tones, visible breath, raw available-light naturalism.",
+    "A bearded man in furs crouched in deep snow among bare black trees, harsh survival atmosphere.")],
+
+  // muted
+  ["look-pastel-symmetrical", look(
+    "pastel symmetrical grade: flat frontal composition, perfectly centred symmetry, candy palette of pink mint and butter yellow, even shadowless light, deadpan precision.",
+    "A woman seated dead-centre on a patterned sofa in a symmetrical pastel room, potted plants mirrored on both sides.")],
+  ["look-dreamlike-memories", look(
+    "dreamlike memory grade, heavy: strong optical diffusion filter softening the entire image, badly faded washed-out desaturated colour, milky grey lifted blacks with no true black anywhere, a pronounced halation glow blooming from every highlight, and the outer edges of the frame melting into soft blur. It must look like a fading half-erased memory, not a clean photograph.",
+    "A woman standing in a sunlit doorway, her outline dissolving into the overexposed light around her.")],
+  ["look-controlled-tension", look(
+    "controlled tension grade: dusty desaturated earth palette, hard directional daylight, deep contained shadows, coiled procedural stillness.",
+    "Figures in tactical gear beside a vehicle on an empty desert road, waiting, dust in the air.")],
+  ["look-desaturated-dread", look(
+    "desaturated dread grade: near-monochrome grey-green palette, heavy crushed shadows, cold flat light, oppressive bleak atmosphere.",
+    "A lone figure at the end of a bare concrete corridor lit by one weak overhead lamp.")],
+  ["look-desaturated-trenches", look(
+    "desaturated wartime grade: mud brown and gunmetal grey, overcast diffused light, ash and smoke in the air, grim documentary weight.",
+    "Two soldiers in helmets sitting against an earth embankment at dusk, a burning horizon behind them.")],
+  ["look-high-contrast-bw", look(
+    "high-contrast monochrome grade: deep pooling blacks against stark whites, hard sculpted light, graphic shadow shapes. Entirely black and white, no colour whatsoever.",
+    "A figure standing alone under a street lamp on an empty night street, long hard shadow across the ground.")],
+  ["look-controlled-modern", look(
+    "controlled modern grade: cool neutral palette, immaculate clean interior, precise soft window light, restrained saturation, composed austerity.",
+    "A woman standing at a floor-to-ceiling window in a bare minimalist apartment, city beyond.")],
+  ["look-soft-countryside", look(
+    "soft countryside grade: gentle sage green and dove grey, overcast diffused daylight, low contrast, quiet pastoral naturalism.",
+    "A woman in a long dress walking a grass path toward a distant stone farmhouse under a soft grey sky.")],
+  ["look-muted-elegance", look(
+    "muted elegance grade: refined desaturated taupe charcoal and slate, soft directional light, understated tailored sophistication.",
+    "A well-dressed man reading a document by a tall window in a panelled room.")],
+  ["look-documentary-natural", look(
+    "documentary natural grade: honest unstyled available light, neutral true colour, moderate contrast, no stylisation, observational realism.",
+    "People talking around a table in an ordinary busy café, caught mid-conversation.")],
+  ["look-symmetrical-precision", look(
+    "symmetrical precision grade: rigorous one-point perspective, perfectly centred subject, cool controlled palette, wide-angle geometric corridor, unsettling clinical order.",
+    "A woman standing dead-centre at the far end of a long symmetrical corridor of pale institutional doors.")],
+
+  // vivid
+  ["look-saturated-apocalyptic", look(
+    "saturated apocalyptic grade: blazing orange sand against electric teal sky, extreme colour separation, harsh crushed contrast, hyper-real intensity.",
+    "A goggled driver gripping the wheel of a battered armoured truck tearing across a burning desert.")],
+  ["look-overexposed-folk", look(
+    "overexposed folk grade: blinding blown-out daylight, bleached whites, vivid saturated florals and grass, unnervingly bright and shadowless.",
+    "A young woman in an embroidered white dress standing in a sunlit meadow of tall flowers, staring at the camera.")],
+  ["look-saturated-pop-culture", look(
+    "saturated pop grade: punchy retro colour, warm golden-hour sun, rich reds and turquoise, glossy period-nostalgic vibrance.",
+    "Two people in the front seat of a vintage convertible on a sunlit boulevard, wind in their hair.")],
+];
+
+// Lighting tiles. B2 keys are prefixed "light-".
+//
+// Unlike the other sets, every Lighting tile uses the SAME still-life setup.
+// The lighting pattern is the only variable, so the user reads the difference
+// between Rembrandt and Loop instantly instead of being distracted by a new
+// scene each time. SUBJECT must stay byte-identical across all 18.
+//
+// The lighting instruction is stated FIRST and in terms of the shadows that must
+// be visible in the result — stating it after the scene made the model default to
+// generic soft product lighting and ignore the pattern entirely.
+const SUBJECT =
+  "The subject is always the same: one tall matte cream ceramic vase holding a few dried stems, " +
+  "a short round dark clay bowl beside it, and a small pale stone block behind them, arranged on a " +
+  "pale plaster ledge against a plain warm-grey plaster wall. Same objects, same positions, same " +
+  "camera angle, same 50mm framing.";
+
+const light = (setup) =>
+  `Photorealistic still-life photograph whose entire purpose is to demonstrate ONE lighting pattern. ${setup} ${SUBJECT} Neutral colour, fine grain, nothing added or removed. No people, no text, no watermark, no logo, no border frame.`;
+
+SETS.lights = [
+  // portrait patterns
+  ["light-rembrandt", light(
+    "REMBRANDT LIGHTING. One hard key light, high and 45 degrees to the LEFT. The result must clearly show: the left face of the vase brightly lit, the right face in deep shadow, and a single small bright TRIANGLE of light isolated on that shadowed right side, with a long hard shadow thrown right across the ledge and up the wall.")],
+  ["light-butterfly", light(
+    "BUTTERFLY LIGHTING. One key light directly IN FRONT and high ABOVE, on the camera axis. The result must clearly show: both sides of every object lit equally with no side shadow at all, and a small symmetrical shadow directly UNDERNEATH each object, tucked tight beneath its base.")],
+  ["light-loop", light(
+    "LOOP LIGHTING. One key light just off the camera axis to the left and slightly above. The result must clearly show: the objects mostly lit, with one small distinct comma-shaped loop of shadow cast down and to the lower right of the vase, and that shadow must NOT connect to the shadow side of the object.")],
+  ["light-split", light(
+    "SPLIT LIGHTING, extreme. One hard key light at a full 90 degrees to the LEFT, level with the objects, and absolutely no fill on the right. The result must clearly show: the entire LEFT half of every object brightly lit and the entire RIGHT half swallowed in complete blackness, divided by a hard vertical line running straight down the centre of the vase. Half lit, half black.")],
+  ["light-broad", light(
+    "BROAD LIGHTING. The objects are turned slightly to the RIGHT and the key light comes from the RIGHT, on the same side the objects face. The result must clearly show: the wide plane facing the camera fully lit and open, with the shadow pushed away behind the objects and barely visible to the lens.")],
+  ["light-short", light(
+    "SHORT LIGHTING, extreme. The key light is far to the LEFT and slightly BEHIND the objects, with no fill on the camera side at all. The result must clearly show: the whole broad front of the vase that faces the camera sitting in clear shadow, and only a narrow sliver along its far LEFT edge catching the light. The camera sees mostly the shadow side. Strong sculpting falloff, noticeably darker overall than a front-lit shot.")],
+  ["light-high-key", light(
+    "HIGH KEY LIGHTING. Several large soft sources flooding the scene. The result must clearly show: an almost pure white luminous wall, no visible shadows anywhere on the ledge or wall, very low contrast, bright airy and clean.")],
+  ["light-low-key", light(
+    "LOW KEY LIGHTING. One small hard source in an otherwise pitch dark room. The result must clearly show: the frame overwhelmingly BLACK, the wall invisible in darkness, and only a narrow lit edge and one small lit plane of the vase picked out of the dark. Extremely high contrast.")],
+  ["light-stage", light(
+    "STAGE SPOTLIGHT. One tight hard theatrical spotlight aimed down at the objects. The result must clearly show: a bright circular pool of light on the ledge with a clearly defined hard edge where it stops, and everything outside that circle falling to black.")],
+
+  // natural light
+  ["light-golden-hour", light(
+    "GOLDEN HOUR SUNLIGHT. Low warm sun raking in almost horizontally from the LEFT through an unseen window. The result must clearly show: long amber shadows stretching far across the ledge to the right, glowing warm highlights on the vase rim, and a warm golden cast over the whole wall.")],
+  ["light-blue-hour", light(
+    "BLUE HOUR TWILIGHT. Deep even blue ambient light after sunset, no direct sun anywhere. The result must clearly show: the whole scene rendered in cool blue shadowless light with no warm key at all, and one small warm lamp glow just beginning to register at the edge of frame.")],
+  ["light-hard-sunlight", light(
+    "HARD MIDDAY SUNLIGHT. Direct sun from a clear sky through a window. The result must clearly show: crisp razor-edged black shadows with sharp outlines projected onto the wall and ledge, blown-out specular highlights on the ceramic, and very high contrast.")],
+  ["light-candlelight", light(
+    "CANDLELIGHT. A single small lit candle standing on the ledge is the ONLY light source in the frame. The result must clearly show: a deep amber pool of light around the flame falling off very rapidly into darkness, warm glowing object edges, and the wall almost black beyond the reach of the flame.")],
+  ["light-moonlight", light(
+    "MOONLIGHT. Cool blue-silver light from a single high distant source through a window. The result must clearly show: a low overall exposure with everything rendered in blue-silver, a pale window shape of light on the wall, and shadow detail still faintly readable. No warm light anywhere.")],
+
+  // dramatic / shaped
+  ["light-rim", light(
+    "RIM LIGHTING, extreme. A dark unlit room with one hard bright source hidden directly BEHIND the objects and to one side, and absolutely no front fill. The result must clearly show: a thin brilliant glowing line of light tracing the outer edge of the vase, the bowl and the stone — a bright contour separating each object from near-black surroundings — while their front surfaces remain dark and almost featureless. The wall behind must stay dark; only the edges glow.")],
+  ["light-backlight", light(
+    "BACKLIGHTING. The main source is directly BEHIND the objects, aimed toward the lens. The result must clearly show: glowing halation blooming around every object edge, visible lens flare and haze washing across the frame, and the fronts of the objects softly underexposed.")],
+  ["light-volumetric", light(
+    "VOLUMETRIC LIGHTING. Hard light through a window into hazy dusty air. The result must clearly show: distinct visible SHAFTS of light — god rays — cutting diagonally through the air above and around the objects, the beams themselves clearly solid and tangible in the atmosphere.")],
+  ["light-silhouette", light(
+    "SILHOUETTE. A brightly lit wall directly behind and absolutely ZERO light on the front of the objects. The result must clearly show: the vase, bowl and stone rendered as completely SOLID BLACK shapes with no surface detail, no colour and no texture at all, read purely as outlines against the bright glowing background.")],
+];
+
+
 
 
 async function objectExists(key) {
