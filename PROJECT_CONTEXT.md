@@ -1,4 +1,38 @@
-# Latest task: Fix Google Interactions API 400 for Gemini Omni Flash (2026-09-05)
+# Latest task: Video Model Capability Badges & Popover Dropdown on /video (2026-09-07)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed user request and screenshot (`media_1788778988543.png`):
+    "https://www.saadstudio.app/video منسدلة الموديلات اريد تظهر مع كل موديل خصائصه وتكون منبثقة هذي الصورة ميثال"
+  - Requirements:
+    1. Display exact model capabilities (Badges) with each model in the models dropdown on `/video`:
+       - `Refs`: Reference media (images, videos, audio) support.
+       - `Multi`: Multi-prompt / multi-shot / element list support.
+       - `Start/End` or `Start`: Start and end frame or start frame support.
+       - `Custom seed`: Seed parameter support.
+       - `Resolution`: Highest standard resolution (e.g. `1080p`, `4K`, `720p`).
+       - `Audio`: Native sound/audio generation support.
+       - `Duration`: Output duration range (e.g. `5 - 10"`, `3 - 15"`, `6"`).
+       - `Credits Range`: Exact min - max credit range calculation with double-loop token badge matching the user's reference image (e.g. `⟐ 22.4 - 44.7`).
+    2. Zero guessing or randomness: Strictly derived from canonical `capabilities` and pricing formulas in `video-model-registry.ts` and `pricing.ts`.
+    3. Popover Architecture:
+       - Replaced old narrow 288px-constrained menu with Radix UI `Popover` portaled to `document.body` to eliminate sidebar clipping and scroll traps.
+       - Width dynamically sized to `640px` (desktop) with `side="bottom"` and `align="end"`, expanding cleanly into the central workspace.
+       - Added `ModelCapabilityBadges` to desktop video models, lipsync models, and mobile drawer.
+- Files affected:
+  - `components/video/ModelCapabilityBadges.tsx`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `test/model-capability-badges.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `test/model-capability-badges.test.ts`: 6/6 tests PASS.
+  - `test/start-end-frames-contract.test.ts`: 11/11 tests PASS.
+  - `test/hailuo-contract.test.ts`: 7/7 tests PASS.
+  - `test/kling-pricing-reality.test.ts`: 7/7 tests PASS.
+- Remaining step:
+  - Commit and push to repository.
+
+# Previous task: Fix Google Interactions API 400 for Gemini Omni Flash (2026-09-05)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Addressed user error report:

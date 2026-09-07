@@ -44,6 +44,8 @@ import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 import { HOOK_CHARACTERS } from "@/lib/hook-studio-config";
 import { VideoHistoryList, DeleteGenerationDialog } from "@/components/video/VideoHistoryList";
 import { AspectRatioPicker } from "@/components/generation/AspectRatioPicker";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { ModelCapabilityBadges } from "@/components/video/ModelCapabilityBadges";
 
 // -- Utilities -----------------------------------------------------------------
 
@@ -4960,10 +4962,10 @@ function VideoPageInner() {
             </label>
             {(activeTool as string) !== "lipsync" ? (
               // Regular video models
-              <>
-                <div className="relative">
+              <Popover open={modelOpen} onOpenChange={setModelOpen}>
+                <PopoverTrigger asChild>
                   <button
-                    onClick={() => setModelOpen(v => !v)}
+                    type="button"
                     className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-all"
                     style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
                   >
@@ -4997,146 +4999,168 @@ function VideoPageInner() {
                       }}
                     />
                   </button>
+                </PopoverTrigger>
 
-                  <AnimatePresence>
-                    {modelOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg overflow-y-auto py-1"
-                        style={{
-                          background: "#0a1220",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          boxShadow: "0 16px 32px rgba(0,0,0,0.6)",
-                          maxHeight: 320,
-                        }}
-                      >
-                        {displayModelGroups.map((g, gIdx) => (
-                          <div key={g.family} className={gIdx === 0 ? "pt-1.5" : ""}>
-                            {gIdx > 0 && (
-                              <div className="mx-3 my-1.5 border-t border-slate-800/80" />
-                            )}
-                            {g.models.map((m: any) => {
-                              const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
-                              return (
-                                <button
-                                  key={m.id}
-                                  onClick={() => selectModel(m)}
-                                  className="w-full flex items-center gap-2 px-4 py-2 transition-all"
-                                  style={{
-                                    background: selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent",
-                                    color:      selectedModel.id === m.id ? "#e2e8f0" : "#94a3b8",
-                                  }}
-                                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
-                                  onMouseLeave={e => (e.currentTarget.style.background = selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent")}
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
-                                  <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
-                                  {videoMode === "extend" && (
-                                    m.pricingConfig?.extendBillingMode === "source_plus_new_segment" ? (
-                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-300 font-mono">
-                                        SOURCE+NEW
-                                      </span>
-                                    ) : (
-                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300 font-mono">
-                                        NEW ONLY
-                                      </span>
-                                    )
-                                  )}
-                                  {bs && (
-                                    <span
-                                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
-                                      style={{ background: bs.bg, color: bs.text }}
-                                    >
-                                      {m.badge}
+                <PopoverContent
+                  align="end"
+                  side="bottom"
+                  sideOffset={6}
+                  collisionPadding={16}
+                  className="z-50 p-0 rounded-2xl overflow-hidden border border-white/10 bg-[#090e1a]/95 backdrop-blur-2xl shadow-2xl w-[640px] max-w-[94vw]"
+                >
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.07] bg-white/[0.02]">
+                    <span className="text-[12px] font-semibold text-slate-200 tracking-wide">
+                      {lang === "ar" ? "اختر موديل الفيديو وخصائصه" : "Select Video Model"}
+                    </span>
+                    <span className="text-[11px] text-zinc-400 font-mono">
+                      {displayModelGroups.reduce((acc, g) => acc + g.models.length, 0)} {lang === "ar" ? "موديل" : "models"}
+                    </span>
+                  </div>
+
+                  <div className="max-h-[380px] overflow-y-auto py-1.5 divide-y divide-white/[0.04]">
+                    {displayModelGroups.map((g, gIdx) => (
+                      <div key={g.family} className="py-1">
+                        <div className="px-4 py-1.5 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: g.family_color }} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 font-mono">
+                            {g.family_label}
+                          </span>
+                        </div>
+                        {g.models.map((m: any) => {
+                          const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
+                          const isSelected = selectedModel.id === m.id;
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => selectModel(m)}
+                              className="w-full flex items-center justify-between gap-3 px-4 py-2.5 transition-all text-left group hover:bg-white/[0.05]"
+                              style={{
+                                background: isSelected ? "rgba(255,255,255,0.06)" : "transparent",
+                              }}
+                            >
+                              {/* Left: Indicator, Model Name & Badge */}
+                              <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
+                                <span
+                                  className="w-2 h-2 rounded-full flex-shrink-0 transition-transform group-hover:scale-125"
+                                  style={{ background: m.family_color }}
+                                />
+                                <span className={`text-[13px] font-medium truncate max-w-[150px] ${isSelected ? "text-white font-semibold" : "text-slate-300 group-hover:text-white"}`}>
+                                  {prettyModelName(m.name)}
+                                </span>
+                                {videoMode === "extend" && (
+                                  m.pricingConfig?.extendBillingMode === "source_plus_new_segment" ? (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-300 font-mono">
+                                      SOURCE+NEW
                                     </span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </>
+                                  ) : (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300 font-mono">
+                                      NEW ONLY
+                                    </span>
+                                  )
+                                )}
+                                {bs && (
+                                  <span
+                                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm flex-shrink-0"
+                                    style={{ background: bs.bg, color: bs.text }}
+                                  >
+                                    {m.badge}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Right: Badges exactly matching user's image */}
+                              <ModelCapabilityBadges model={m} className="flex-1 justify-end" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             ) : (
               // Lipsync models only
-              <div className="relative">
-                <button
-                  onClick={() => setModelOpen(v => !v)}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-all"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-                >
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedModel.family_color }} />
-                  <span className="flex-1 text-[13px]" style={{ color: "#e2e8f0" }}>{prettyModelName(selectedModel.name)}</span>
-                  {bStyle && (
-                    <span
-                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
-                      style={{ background: bStyle.bg, color: bStyle.text }}
-                    >
-                      {selectedModel.badge}
-                    </span>
-                  )}
-                  <ChevronDown
-                    size={13}
-                    style={{
-                      color: "#94a3b8",
-                      transform: modelOpen ? "rotate(180deg)" : "none",
-                      transition: "transform 0.2s",
-                    }}
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {modelOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg overflow-y-auto py-1"
+              <Popover open={modelOpen} onOpenChange={setModelOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-all"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                  >
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedModel.family_color }} />
+                    <span className="flex-1 text-[13px]" style={{ color: "#e2e8f0" }}>{prettyModelName(selectedModel.name)}</span>
+                    {bStyle && (
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
+                        style={{ background: bStyle.bg, color: bStyle.text }}
+                      >
+                        {selectedModel.badge}
+                      </span>
+                    )}
+                    <ChevronDown
+                      size={13}
                       style={{
-                        background: "#0a1220",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        boxShadow: "0 16px 32px rgba(0,0,0,0.6)",
-                        maxHeight: 320,
+                        color: "#94a3b8",
+                        transform: modelOpen ? "rotate(180deg)" : "none",
+                        transition: "transform 0.2s",
                       }}
-                    >
-                      {LIPSYNC_MODELS.map(m => {
-                        const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
-                        return (
-                          <button
-                            key={m.id}
-                            onClick={() => selectModel(m)}
-                            className="w-full flex items-center gap-2 px-4 py-2 transition-all"
-                            style={{
-                              background: selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent",
-                              color:      selectedModel.id === m.id ? "#e2e8f0" : "#94a3b8",
-                            }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
-                            onMouseLeave={e => (e.currentTarget.style.background = selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent")}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
-                            <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
+                    />
+                  </button>
+                </PopoverTrigger>
+
+                <PopoverContent
+                  align="end"
+                  side="bottom"
+                  sideOffset={6}
+                  collisionPadding={16}
+                  className="z-50 p-0 rounded-2xl overflow-hidden border border-white/10 bg-[#090e1a]/95 backdrop-blur-2xl shadow-2xl w-[580px] max-w-[94vw]"
+                >
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.07] bg-white/[0.02]">
+                    <span className="text-[12px] font-semibold text-slate-200 tracking-wide">
+                      {lang === "ar" ? "اختر موديل مزامنة الشفاه (Lipsync)" : "Select Lipsync Model"}
+                    </span>
+                    <span className="text-[11px] text-zinc-400 font-mono">
+                      {LIPSYNC_MODELS.length} {lang === "ar" ? "موديل" : "models"}
+                    </span>
+                  </div>
+
+                  <div className="max-h-[340px] overflow-y-auto py-1.5 divide-y divide-white/[0.04]">
+                    {LIPSYNC_MODELS.map(m => {
+                      const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
+                      const isSelected = selectedModel.id === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => selectModel(m)}
+                          className="w-full flex items-center justify-between gap-3 px-4 py-2.5 transition-all text-left group hover:bg-white/[0.05]"
+                          style={{
+                            background: isSelected ? "rgba(255,255,255,0.06)" : "transparent",
+                          }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
+                            <span className={`text-[13px] font-medium truncate ${isSelected ? "text-white font-semibold" : "text-slate-300 group-hover:text-white"}`}>
+                              {prettyModelName(m.name)}
+                            </span>
                             {bs && (
                               <span
-                                className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
+                                className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm flex-shrink-0"
                                 style={{ background: bs.bg, color: bs.text }}
                               >
                                 {m.badge}
                               </span>
                             )}
-                          </button>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                          </div>
+
+                          <ModelCapabilityBadges model={m} className="flex-1 justify-end" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
             )}
           </div>
 
@@ -6791,14 +6815,17 @@ function VideoPageInner() {
                                 <button
                                   key={m.id}
                                   onClick={() => { selectModel(m); setMobileModelOpen(false); }}
-                                  className="w-full flex items-center gap-2 px-4 py-2.5 transition-colors"
+                                  className="w-full flex flex-col gap-1.5 px-4 py-2.5 transition-colors text-left"
                                   style={{ background: active ? "rgba(255,255,255,0.06)" : "transparent", color: active ? "#e2e8f0" : "#94a3b8" }}
                                 >
-                                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
-                                  <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
-                                  {bs && (
-                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style={{ background: bs.bg, color: bs.text }}>{m.badge}</span>
-                                  )}
+                                  <div className="flex items-center gap-2 w-full">
+                                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
+                                    <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
+                                    {bs && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style={{ background: bs.bg, color: bs.text }}>{m.badge}</span>
+                                    )}
+                                  </div>
+                                  <ModelCapabilityBadges model={m} />
                                 </button>
                               );
                             })
@@ -6813,14 +6840,17 @@ function VideoPageInner() {
                                     <button
                                       key={m.id}
                                       onClick={() => { selectModel(m); setMobileModelOpen(false); }}
-                                      className="w-full flex items-center gap-2 px-4 py-2.5 transition-colors"
+                                      className="w-full flex flex-col gap-1.5 px-4 py-2.5 transition-colors text-left"
                                       style={{ background: active ? "rgba(255,255,255,0.06)" : "transparent", color: active ? "#e2e8f0" : "#94a3b8" }}
                                     >
-                                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
-                                      <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
-                                      {bs && (
-                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style={{ background: bs.bg, color: bs.text }}>{m.badge}</span>
-                                      )}
+                                      <div className="flex items-center gap-2 w-full">
+                                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
+                                        <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
+                                        {bs && (
+                                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style={{ background: bs.bg, color: bs.text }}>{m.badge}</span>
+                                        )}
+                                      </div>
+                                      <ModelCapabilityBadges model={m} />
                                     </button>
                                   );
                                 })}
