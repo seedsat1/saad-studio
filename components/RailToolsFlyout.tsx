@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Wrench } from "lucide-react";
 import { RailToolButton } from "@/components/RailToolButton";
+import { ReferenceToolGrid } from "@/components/ReferenceToolGrid";
 import { REFERENCE_TOOL_TABS, type ReferenceToolTab } from "@/lib/reference-tool-tabs";
 
 /**
@@ -75,21 +76,14 @@ export function RailToolsFlyout({
           <div className="mb-2 px-1 text-[9px] font-bold tracking-[0.16em] text-white/35">
             {isAr ? "الأدوات" : "TOOLS"}
           </div>
-          <div className="grid grid-cols-4 gap-1">
-            {tabs.map((tab) => (
-              <RailToolButton
-                key={tab.id}
-                active={false}
-                icon={tab.icon}
-                iconClassName={tab.colorClass}
-                label={isAr ? tab.nameAr : tab.nameEn}
-                onClick={() => {
-                  onOpenStudio(tab.id);
-                  setOpen(false);
-                }}
-              />
-            ))}
-          </div>
+          <ReferenceToolGrid
+            tabs={tabs}
+            isAr={isAr}
+            onOpenStudio={(tab) => {
+              onOpenStudio(tab);
+              setOpen(false);
+            }}
+          />
         </div>
       )}
     </div>

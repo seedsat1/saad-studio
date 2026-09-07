@@ -39,7 +39,7 @@ import { getFallbackUrls } from "@/lib/utils";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
-import { RailToolsFlyout } from "@/components/RailToolsFlyout";
+import { ReferenceToolGrid } from "@/components/ReferenceToolGrid";
 import { VIDEO_TOOL_TABS } from "@/lib/reference-tool-tabs";
 import { PromptEditorModal } from "@/components/PromptEditorModal";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
@@ -176,6 +176,7 @@ function useVideoTranslation() {
       "Video Tools": "أدوات الفيديو",
       "Video Tools & Models": "أدوات ونماذج الفيديو",
       "Video Engines": "محركات الفيديو",
+      "Tools": "الأدوات",
       "Model Settings": "إعدادات النموذج",
       "Model": "النموذج",
       "Create high fidelity cinematic videos and animations with top AI models.": "أنشئ فيديوهات ورسوم متحركة سينمائية عالية الدقة مع أفضل نماذج الذكاء الاصطناعي.",
@@ -3554,6 +3555,22 @@ function VideoPageInner() {
             </button>
           );
         })}
+        <div className="mt-3 border-t px-3 pt-4" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
+            {t("Tools")}
+          </span>
+          <div className="mt-2">
+            <ReferenceToolGrid
+              tabs={VIDEO_TOOL_TABS}
+              columns={3}
+              isAr={lang === "ar"}
+              onOpenStudio={(tab) => {
+                setActiveStudioTab(tab);
+                setShowReferenceStudioModal(true);
+              }}
+            />
+          </div>
+        </div>
         <StyleLibraryGatewayCard />
       </aside>
 
@@ -3912,17 +3929,6 @@ function VideoPageInner() {
         style={{ width: 288, borderColor: "rgba(255,255,255,0.05)", background: "#050a14" }}
       >
         <div className="flex flex-col gap-5 p-4 flex-1">
-          <div className="mb-3">
-            <RailToolsFlyout
-              tabs={VIDEO_TOOL_TABS}
-              placement="below"
-              isAr={lang === "ar"}
-              onOpenStudio={(tab) => {
-                setActiveStudioTab(tab);
-                setShowReferenceStudioModal(true);
-              }}
-            />
-          </div>
           <ReferenceActionTiles
             onOpenStudio={(tab) => {
               setActiveStudioTab(tab);
@@ -6798,18 +6804,6 @@ function VideoPageInner() {
               <div className="px-4 py-4">
                 {/* References & Styling (mobile) */}
                 <div className="mb-4">
-                  <div className="mb-3">
-                    <RailToolsFlyout
-                      tabs={VIDEO_TOOL_TABS}
-                      placement="below"
-                      isAr={lang === "ar"}
-                      onOpenStudio={(tab) => {
-                        setActiveStudioTab(tab);
-                        setShowReferenceStudioModal(true);
-                        setMobileSettingsOpen(false);
-                      }}
-                    />
-                  </div>
                   <ReferenceActionTiles
                     onOpenStudio={(tab) => {
                       setActiveStudioTab(tab);
