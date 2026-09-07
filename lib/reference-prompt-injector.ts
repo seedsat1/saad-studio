@@ -19,6 +19,7 @@ import {
   HOOK_CHARACTERS,
   HOOK_SKETCHES,
   HOOK_SHOT_TYPES,
+  HOOK_FILM_STOCKS,
 } from "./hook-studio-config";
 import { getUserAsset, type UserAssetKind } from "./user-asset-registry";
 
@@ -29,6 +30,8 @@ export interface PresetSelections {
   selectedCameraId?: string | null;
   /** Shot framing / angle preset from the Shot Type tab. */
   selectedShotTypeId?: string | null;
+  /** Film emulsion preset from the Film Stock tab. */
+  selectedFilmStockId?: string | null;
   selectedSketchId?: string | null;
   /** Semantic hint for a built-in preset location (not the user's own uploaded one). */
   selectedLocationId?: string | null;
@@ -106,6 +109,11 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
         "Replicate the same shot type, perspective, and framing as the attached references while keeping subject and scene from the base prompt.",
       );
     }
+  }
+
+  if (sel.selectedFilmStockId) {
+    const fst = HOOK_FILM_STOCKS.find((x) => x.id === sel.selectedFilmStockId);
+    if (fst?.promptDescription) parts.push(`Film stock (${fst.tag}): ${fst.promptDescription}`);
   }
 
   if (sel.selectedSketchId) {

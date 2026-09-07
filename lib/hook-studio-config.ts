@@ -2454,3 +2454,182 @@ export const HOOK_SHOT_TYPES: HookShotTypePreset[] = [
     promptDescription: "worm's eye view. Framing: camera at ground level looking almost straight up, extreme vertical perspective with subjects and structures converging high above."
   }
 ];
+
+export interface HookFilmStockPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  /** Emulsion family used by the Film Stock tab filter bar. */
+  group: "color" | "bw";
+  promptDescription: string;
+}
+
+export const HOOK_FILM_STOCKS: HookFilmStockPreset[] = [
+  // ── COLOR EMULSIONS ──
+  {
+    id: "tungsten-balanced",
+    tag: "#tungsten-balanced",
+    nameAr: "متوازن تنغستن",
+    nameEn: "Tungsten balanced",
+    imageUrl: "/api/media/reference-thumbnails/film-tungsten-balanced.webp",
+    group: "color",
+    promptDescription: "shot on tungsten-balanced film stock: cool blue-leaning shadows with warm amber practicals left uncorrected, slightly crushed blacks, moderate grain, mixed-lighting night colour response."
+  },
+  {
+    id: "warm-fine-grain",
+    tag: "#warm-fine-grain",
+    nameAr: "حبيبات ناعمة دافئة",
+    nameEn: "Warm Fine Grain",
+    imageUrl: "/api/media/reference-thumbnails/film-warm-fine-grain.webp",
+    group: "color",
+    promptDescription: "shot on a warm fine-grain colour negative: golden highlight roll-off, gentle amber cast through the midtones, very fine tight grain, creamy smooth tonal transitions."
+  },
+  {
+    id: "soft-warm",
+    tag: "#soft-warm",
+    nameAr: "دافئ ناعم",
+    nameEn: "Soft Warm",
+    imageUrl: "/api/media/reference-thumbnails/film-soft-warm.webp",
+    group: "color",
+    promptDescription: "soft warm film look: lifted milky blacks, low contrast, honey-toned highlights, gentle halation around light sources, soft diffused rendering."
+  },
+  {
+    id: "warm-film",
+    tag: "#warm-film",
+    nameAr: "فيلم دافئ",
+    nameEn: "Warm film",
+    imageUrl: "/api/media/reference-thumbnails/film-warm-film.webp",
+    group: "color",
+    promptDescription: "warm film stock: strong amber and orange bias across the whole frame, rich saturated warm tones, deep contrast, visible organic grain."
+  },
+  {
+    id: "vibrant-fine-grain",
+    tag: "#vibrant-fine-grain",
+    nameAr: "حبيبات ناعمة زاهية",
+    nameEn: "Vibrant fine grain",
+    imageUrl: "/api/media/reference-thumbnails/film-vibrant-fine-grain.webp",
+    group: "color",
+    promptDescription: "vibrant fine-grain slide film: punchy saturated colour, high micro-contrast, crisp detail, extremely fine grain, vivid reds and greens with clean neutral whites."
+  },
+  {
+    id: "cinema-tungsten",
+    tag: "#cinema-tungsten",
+    nameAr: "تنغستن سينمائي",
+    nameEn: "Cinema tungsten",
+    imageUrl: "/api/media/reference-thumbnails/film-cinema-tungsten.webp",
+    group: "color",
+    promptDescription: "cinema tungsten motion picture stock: warm interior practicals rendered rich and golden, teal-shifted shadows, wide latitude, filmic highlight roll-off, subtle 35mm grain."
+  },
+  {
+    id: "cinema-daylight",
+    tag: "#cinema-daylight",
+    nameAr: "ضوء نهار سينمائي",
+    nameEn: "Cinema Daylight",
+    imageUrl: "/api/media/reference-thumbnails/film-cinema-daylight.webp",
+    group: "color",
+    promptDescription: "cinema daylight motion picture stock: neutral clean daylight balance, natural skin tones, wide dynamic range holding both window highlights and shadow detail, fine 35mm grain."
+  },
+  {
+    id: "soft-pastel",
+    tag: "#soft-pastel",
+    nameAr: "باستيل ناعم",
+    nameEn: "Soft Pastel",
+    imageUrl: "/api/media/reference-thumbnails/film-soft-pastel.webp",
+    group: "color",
+    promptDescription: "soft pastel film emulsion: desaturated chalky colour, pale washed highlights, lifted low-contrast blacks, dreamy muted palette of soft pinks greens and blues."
+  },
+  {
+    id: "green-cast",
+    tag: "#green-cast",
+    nameAr: "ميلان أخضر",
+    nameEn: "Green Cast",
+    imageUrl: "/api/media/reference-thumbnails/film-green-cast.webp",
+    group: "color",
+    promptDescription: "expired film with a green cast: olive-green tint pushed through the midtones and shadows, muted desaturated reds, slightly murky contrast, unstable vintage colour shift."
+  },
+  {
+    id: "saturated-film",
+    tag: "#saturated-film",
+    nameAr: "فيلم مشبع",
+    nameEn: "Saturated Film",
+    imageUrl: "/api/media/reference-thumbnails/film-saturated-film.webp",
+    group: "color",
+    promptDescription: "heavily saturated colour film: dense rich colour, deep blacks, bold contrast curve, glowing saturated primaries, classic punchy print look."
+  },
+  {
+    id: "natural-color",
+    tag: "#natural-color",
+    nameAr: "ألوان طبيعية",
+    nameEn: "Natural color",
+    imageUrl: "/api/media/reference-thumbnails/film-natural-color.webp",
+    group: "color",
+    promptDescription: "natural colour negative: accurate neutral colour reproduction, true-to-life skin tones, balanced moderate contrast, unobtrusive fine grain, no colour cast."
+  },
+  {
+    id: "saturated-heavy-grain",
+    tag: "#saturated-heavy-grain",
+    nameAr: "مشبع بحبيبات خشنة",
+    nameEn: "Saturated heavy grain",
+    imageUrl: "/api/media/reference-thumbnails/film-saturated-heavy-grain.webp",
+    group: "color",
+    promptDescription: "push-processed high-ISO colour film: heavy coarse visible grain across the whole frame, saturated dense colour, hard contrast, gritty textured photographic surface."
+  },
+  {
+    id: "cold-film",
+    tag: "#cold-film",
+    nameAr: "فيلم بارد",
+    nameEn: "Cold Film",
+    imageUrl: "/api/media/reference-thumbnails/film-cold-film.webp",
+    group: "color",
+    promptDescription: "cold film stock: blue and cyan bias throughout, cool steel shadows, desaturated warm tones, crisp contrast, chilly overcast colour response."
+  },
+  {
+    id: "fine-grain",
+    tag: "#fine-grain",
+    nameAr: "حبيبات ناعمة",
+    nameEn: "Fine grain",
+    imageUrl: "/api/media/reference-thumbnails/film-fine-grain.webp",
+    group: "color",
+    promptDescription: "low-ISO fine-grain film: exceptionally smooth near-invisible grain, high resolving detail, restrained natural saturation, clean neutral tonality."
+  },
+  {
+    id: "instant-film",
+    tag: "#instant-film",
+    nameAr: "فيلم فوري",
+    nameEn: "Instant Film",
+    imageUrl: "/api/media/reference-thumbnails/film-instant-film.webp",
+    group: "color",
+    promptDescription: "instant integral film: soft low-resolution rendering, lifted milky blacks, warm yellow-green colour shift, vignetted corners, uneven chemical development, snapshot immediacy."
+  },
+
+  // ── BLACK & WHITE EMULSIONS ──
+  {
+    id: "high-contrast-bw",
+    tag: "#high-contrast-bw",
+    nameAr: "أبيض وأسود عالي التباين",
+    nameEn: "High Contrast BW",
+    imageUrl: "/api/media/reference-thumbnails/film-high-contrast-bw.webp",
+    group: "bw",
+    promptDescription: "high-contrast black and white film: pure crushed blacks against blown clean whites, few midtones, graphic hard-edged tonal separation, punchy dramatic monochrome."
+  },
+  {
+    id: "black-and-white",
+    tag: "#black-and-white",
+    nameAr: "أبيض وأسود",
+    nameEn: "Black and white",
+    imageUrl: "/api/media/reference-thumbnails/film-black-and-white.webp",
+    group: "bw",
+    promptDescription: "classic black and white film: full continuous tonal scale from deep black to bright white, rich silver midtones, moderate contrast, fine even grain."
+  },
+  {
+    id: "high-speed-bw",
+    tag: "#high-speed-bw",
+    nameAr: "أبيض وأسود سريع الحساسية",
+    nameEn: "High Speed BW",
+    imageUrl: "/api/media/reference-thumbnails/film-high-speed-bw.webp",
+    group: "bw",
+    promptDescription: "push-processed high-speed black and white film: coarse gritty grain, hard contrast with blocked shadows, raw reportage monochrome texture."
+  }
+];

@@ -15,7 +15,7 @@
        - Aligned generation contract to `{ modelRoute, payload, profileId }`.
        - Mapped reference images to `image`, `first_frame_url`, `image_url`, and `reference_image_urls`.
        - Integrated `uploadMediaFile` helper to upload local images via `/api/media/upload` (with base64 fallback) to prevent oversized payloads.
-       - Integrated `useAuthenticatedFetch`, `useActiveProfile`, and `useGenerationGate`.
+       - Fixed `useGenerationGate`: correctly destructured `{ guardGeneration, getSafeErrorMessage }` and removed invalid `gate.showUpgradeModal()` and `gate.canGenerate` calls that caused runtime crash `TypeError: Z.showUpgradeModal is not a function`.
        - Added `Idempotency-Key` and `x-profile-id` headers.
        - Expanded `VIDEO_MODELS` to include canonical top models (Gemini Omni 1.1, Seedance Mini, Kling 3.0, Hailuo 02 Pro, Wan 3.0).
        - Added direct action button "فتح في المعرض" on generated video result card linking to `/m/gallery`.
@@ -36,7 +36,7 @@
   - `PROJECT_CONTEXT.md`
   - `docs/saad-studio-premiere-reference-ar.md`
 - Verification:
-  - Vitest `test/mobile-video-generation-contract.test.ts`: 5/5 tests PASS.
+  - Vitest `test/mobile-video-generation-contract.test.ts`: 6/6 tests PASS (including guardGeneration contract and zero showUpgradeModal occurrences).
   - Vitest `test/image-model-capability-badges.test.ts`: 10/10 tests PASS.
   - Vitest `test/model-capability-badges.test.ts`: 6/6 tests PASS.
   - Vitest `test/hailuo-contract.test.ts`: 7/7 tests PASS.

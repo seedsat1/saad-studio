@@ -57,4 +57,12 @@ describe("Mobile Video Generation & Gallery Contracts", () => {
     expect(content).toContain('href="/m/gallery"');
     expect(content).toContain("المكتبة");
   });
+
+  it("ensures /m/video correctly calls guardGeneration and never invokes showUpgradeModal", () => {
+    const content = fs.readFileSync(mVideoPath, "utf8");
+
+    expect(content).toContain("guardGeneration");
+    expect(content).not.toContain("showUpgradeModal");
+    expect(content).not.toContain("gate.canGenerate");
+  });
 });

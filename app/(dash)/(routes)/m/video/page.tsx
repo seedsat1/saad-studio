@@ -161,7 +161,7 @@ export default function MobileVideoPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { fetchWithAuth } = useAuthenticatedFetch();
   const { activeProfile } = useActiveProfile();
-  const gate = useGenerationGate({ toolKey: "video" });
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
 
   // Keep duration within selected model range
   useEffect(() => {
@@ -248,8 +248,15 @@ export default function MobileVideoPage() {
       return;
     }
 
-    if (!gate.canGenerate) {
-      gate.showUpgradeModal();
+    const gate = await guardGeneration({
+      requiredCredits: estimatedCost,
+      action: `video:${selectedModel.apiRoute}`,
+    });
+
+    if (!gate.ok) {
+      if (gate.message) {
+        setToastMessage(gate.message);
+      }
       return;
     }
 
@@ -394,7 +401,8 @@ export default function MobileVideoPage() {
       }
     } catch (err: any) {
       clearInterval(progressTimer);
-      setToastMessage(err.message || "حدث خطأ أثناء التوليد");
+      const safeMsg = getSafeErrorMessage ? getSafeErrorMessage(err) : (err.message || "حدث خطأ أثناء التوليد");
+      setToastMessage(safeMsg);
     } finally {
       setLoading(false);
     }

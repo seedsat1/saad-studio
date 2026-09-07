@@ -5,6 +5,7 @@
 //
 // Sets:  styles  → the 18 added HOOK_STYLES tiles
 //        shots   → the 24 HOOK_SHOT_TYPES tiles (keys prefixed "shot-")
+//        films   → the 18 HOOK_FILM_STOCKS tiles (keys prefixed "film-")
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -174,6 +175,70 @@ SETS.shots = [
     "Worm's eye view: the camera sits on the ground looking almost straight up, extreme vertical perspective with everything converging high above.",
     "Looking up past date palms and a plain concrete building edge to the sky, a person standing over the lens.")],
 ];
+
+// Film Stock tiles. B2 keys are prefixed "film-". Each tile must make the
+// emulsion's own character (grain, contrast curve, colour bias) legible at
+// thumbnail size, so the scene is chosen to show that character off.
+const film = (emulsion, scene) =>
+  `Authentic analog photograph, ${emulsion} ${scene} Real photochemical film character, no digital sharpening, no HDR. Iraqi subject and setting. No mosques, no minarets, no shrines or religious buildings. No watermark, no logo, no text overlay, no border frame.`;
+
+SETS.films = [
+  ["film-tungsten-balanced", film(
+    "shot on tungsten-balanced film: cool blue-leaning shadows with warm amber practicals left uncorrected, slightly crushed blacks, moderate grain.",
+    "A busy Baghdad night market street, strings of bulbs and shop signs glowing amber against deep blue evening shadow, people walking.")],
+  ["film-warm-fine-grain", film(
+    "shot on warm fine-grain colour negative: golden highlight roll-off, gentle amber cast through the midtones, very fine tight grain, creamy tonal transitions.",
+    "A young Iraqi woman beside a sunlit window, warm late light across her face and the wall behind her.")],
+  ["film-soft-warm", film(
+    "soft warm film look: lifted milky blacks, low contrast, honey-toned highlights, visible halation blooming around the light sources, soft diffused rendering.",
+    "A quiet tea house interior, backlit steam and glassware, a figure silhouetted against a bright doorway.")],
+  ["film-warm-film", film(
+    "warm film stock: strong amber and orange bias across the whole frame, rich saturated warm tones, deep contrast, visible organic grain.",
+    "A rooftop in Baghdad at golden hour, warm light raking across satellite dishes and a seated figure.")],
+  ["film-vibrant-fine-grain", film(
+    "shot on vibrant fine-grain slide film: punchy saturated colour, high micro-contrast, crisp detail, extremely fine grain, vivid reds and greens with clean neutral whites.",
+    "A spice stall in a Basra market, mounded cones of red, yellow and green spices in bright daylight.")],
+  ["film-cinema-tungsten", film(
+    "shot on cinema tungsten motion picture stock: warm practicals rendered rich and golden, teal-shifted shadows, wide latitude, filmic highlight roll-off, subtle 35mm grain.",
+    "A warm restaurant interior at night, pendant lamps over a long table, diners in conversation.")],
+  ["film-cinema-daylight", film(
+    "shot on cinema daylight motion picture stock: neutral clean daylight balance, natural skin tones, wide dynamic range holding both the bright window and the shadow detail, fine 35mm grain.",
+    "A living room interior with tall bright windows, a person standing mid-room, sunlight falling across the floor.")],
+  ["film-soft-pastel", film(
+    "soft pastel film emulsion: desaturated chalky colour, pale washed highlights, lifted low-contrast blacks, dreamy muted palette of soft pinks greens and blues.",
+    "Pale morning mist over the Ahwar marshes, reeds and still water under a soft washed sky.")],
+  ["film-green-cast", film(
+    "expired film with a heavy green cast: olive-green tint pushed through the midtones and shadows, muted desaturated reds, murky contrast, unstable vintage colour shift.",
+    "A narrow city street between concrete buildings, parked cars and a passer-by under flat daylight.")],
+  ["film-saturated-film", film(
+    "heavily saturated colour film: dense rich colour, deep blacks, bold contrast curve, glowing saturated primaries, classic punchy print look.",
+    "A rug and textile bazaar, walls of deeply coloured carpets in red, indigo and gold.")],
+  ["film-natural-color", film(
+    "shot on natural colour negative: accurate neutral colour reproduction, true-to-life skin tones, balanced moderate contrast, unobtrusive fine grain, no colour cast at all.",
+    "An Iraqi man standing on an ordinary daytime street, plain overcast daylight, honest everyday colour.")],
+  ["film-saturated-heavy-grain", film(
+    "push-processed high-ISO colour film: heavy coarse visible grain across the entire frame, saturated dense colour, hard contrast, gritty textured photographic surface.",
+    "A crowded night street with taxis and neon shopfronts, motion in the crowd.")],
+  ["film-cold-film", film(
+    "cold film stock: strong blue and cyan bias throughout, cool steel shadows, desaturated warm tones, crisp contrast, chilly overcast colour response.",
+    "A grey winter morning on the Tigris riverbank, bare trees and a lone figure by the water.")],
+  ["film-fine-grain", film(
+    "shot on low-ISO fine-grain film: exceptionally smooth almost invisible grain, very high resolving detail, restrained natural saturation, clean neutral tonality.",
+    "The carved wooden shanasheel balcony of an old Baghdadi house in even daylight, every detail crisply resolved.")],
+  ["film-instant-film", film(
+    "instant integral film: soft low-resolution rendering, lifted milky blacks, warm yellow-green colour shift, strong vignetted corners, uneven chemical development, snapshot immediacy.",
+    "Three friends grinning close to the camera at a street corner, casual snapshot.")],
+  ["film-high-contrast-bw", film(
+    "high-contrast black and white film: pure crushed blacks against clean blown whites, very few midtones, graphic hard-edged tonal separation, punchy dramatic monochrome. Completely monochrome, no colour whatsoever.",
+    "Hard midday sun on a concrete stairway, two figures reduced to sharp black shapes against the white wall.")],
+  ["film-black-and-white", film(
+    "classic black and white film: a full continuous tonal scale from deep black to bright white, rich silver midtones, moderate contrast, fine even grain. Completely monochrome, no colour whatsoever.",
+    "A street portrait of an older Iraqi man in a doorway, soft daylight modelling his face.")],
+  ["film-high-speed-bw", film(
+    "push-processed high-speed black and white film: coarse gritty grain, hard contrast with blocked-up shadows, raw reportage monochrome texture. Completely monochrome, no colour whatsoever.",
+    "A dense night crowd on a city street lit by a single harsh light, movement and grain.")],
+];
+
 
 async function objectExists(key) {
   try {

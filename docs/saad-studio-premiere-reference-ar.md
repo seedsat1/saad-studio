@@ -16,6 +16,7 @@
   2. **واجهة توليد الفيديو على الهاتف (`app/(dash)/(routes)/m/video/page.tsx`)**:
      - توحيد البنية مع الباك إند: إرسال `{ modelRoute, payload, profileId }`.
      - تضمين معالجة وسائط الصور عبر دالة `uploadMediaFile` التي ترفع الملفات عبر `/api/media/upload` للحصول على روابط عامة وتجنب تجاوز حدود حجم الطلب من كاميرا الموبايل.
+     - تصحيح تكامل `useGenerationGate`: استخدام `guardGeneration` و `getSafeErrorMessage` القياسيين وإزالة استدعاء `showUpgradeModal()` الخاطئ الذي كان يتسبب في استثناء `TypeError: Z.showUpgradeModal is not a function`.
      - ربط المصادقة بـ `useAuthenticatedFetch` وجلسات Clerk مع هيدر `Idempotency-Key` و `x-profile-id`.
      - توفير الموديلات الأساسية المعتمدة (Gemini Omni 1.1, Seedance Mini, Kling 3.0, Hailuo 02 Pro, Wan 3.0).
      - إضافة زر إجراء سريع "فتح في المعرض" عند اكتمال التوليد وبانر وصول سريع للمكتبة والمعرض أسفل الصفحة.
@@ -25,7 +26,7 @@
      - الاستماع لحدث تبديل البروفايل `saad-profile-switched` لإعادة تحميل المعرض فورياً.
      - تحسين بطاقات الفيديو بخاصية `playsInline` وعرض الغلاف/البوستر.
 - **التحقق الآلي**:
-  - إنشاء جناح اختبار `test/mobile-video-generation-contract.test.ts` واجتيازه بالكامل (5/5 PASS).
+  - إنشاء جناح اختبار `test/mobile-video-generation-contract.test.ts` واجتيازه بالكامل (6/6 PASS).
   - اجتياز جميع اختبارات المنصة والانحدار ذات الصلة (23/23 PASS).
 
 ## إظهار شارات وخصائص موديلات الصور داخل القائمة المنبثقة على صفحة /image (2026-09-07)

@@ -473,6 +473,7 @@ export default function HookStudioPage() {
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
   const [selectedShotTypeId, setSelectedShotTypeId] = useState<string | null>(null);
+  const [selectedFilmStockId, setSelectedFilmStockId] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   // Prompt Form State
@@ -2026,12 +2027,17 @@ export default function HookStudioPage() {
         }}
         selectedSketchId={selectedSketchId}
         selectedShotTypeId={selectedShotTypeId}
+        selectedFilmStockId={selectedFilmStockId}
         onSelectSketch={(id) => {
           setSelectedSketchId(id);
           setShowReferenceStudioModal(false);
         }}
         onSelectShotType={(id) => {
           setSelectedShotTypeId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        onSelectFilmStock={(id) => {
+          setSelectedFilmStockId(id);
           setShowReferenceStudioModal(false);
         }}
         onSelectPalette={(pal) => setSelectedPalette(pal)}
