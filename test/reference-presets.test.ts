@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildPresetPromptSuffix } from "@/lib/reference-prompt-injector";
-import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS, HOOK_MOVIE_LOOKS } from "@/lib/hook-studio-config";
+import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS, HOOK_MOVIE_LOOKS, HOOK_LIGHTING, HOOK_EFFECTS } from "@/lib/hook-studio-config";
 
 describe("Shot Type preset injection", () => {
   it("exposes 24 shot types split into framing and angle", () => {
@@ -95,5 +95,64 @@ describe("Movie Look preset injection", () => {
     });
     expect(suffix).toContain("Film stock (#cinema-tungsten)");
     expect(suffix).toContain("Movie look (#candlelit-period)");
+  });
+});
+
+describe("Lighting preset injection", () => {
+  it("exposes 18 lighting patterns across three groups", () => {
+    expect(HOOK_LIGHTING).toHaveLength(18);
+    expect(HOOK_LIGHTING.filter((l) => l.group === "portrait")).toHaveLength(9);
+    expect(HOOK_LIGHTING.filter((l) => l.group === "natural")).toHaveLength(5);
+    expect(HOOK_LIGHTING.filter((l) => l.group === "dramatic")).toHaveLength(4);
+    expect(new Set(HOOK_LIGHTING.map((l) => l.id)).size).toBe(18);
+  });
+
+  it("injects the selected lighting pattern into the prompt suffix", () => {
+    const suffix = buildPresetPromptSuffix({ selectedLightingId: "split-lighting" });
+    expect(suffix).toContain("Lighting (#split)");
+    expect(suffix.toLowerCase()).toContain("90 degrees to the side");
+  });
+});
+
+describe("Effects de-duplication", () => {
+  it("no longer carries presets that a new tab now owns", () => {
+    const gone = ["goldenhour", "backlight", "hardlight", "volumetric", "chiaroscuro", "studiolight", "bw"];
+    const ids = HOOK_EFFECTS.map((e) => e.id);
+    for (const id of gone) expect(ids).not.toContain(id);
+    expect(HOOK_EFFECTS).toHaveLength(23);
+  });
+
+  it("keeps the effects presets that have no replacement elsewhere", () => {
+    const ids = HOOK_EFFECTS.map((e) => e.id);
+    for (const id of ["sepia", "duotone", "redscale", "iridescent", "highflash", "glitching", "longexposure"]) {
+      expect(ids).toContain(id);
+    }
+  });
+});
+
+describe("All five preset tabs together", () => {
+  it("keeps every id unique across every new tab", () => {
+    const all = [
+      ...HOOK_SHOT_TYPES.map((x) => x.id),
+      ...HOOK_FILM_STOCKS.map((x) => x.id),
+      ...HOOK_MOVIE_LOOKS.map((x) => x.id),
+      ...HOOK_LIGHTING.map((x) => x.id),
+    ];
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it("stacks lighting, film stock, movie look, shot type and style in one suffix", () => {
+    const suffix = buildPresetPromptSuffix({
+      selectedStyleId: "cyberpunk",
+      selectedShotTypeId: "cu-profile",
+      selectedLightingId: "rembrandt-lighting",
+      selectedFilmStockId: "cinema-tungsten",
+      selectedMovieLookId: "neon-cyberpunk",
+    });
+    expect(suffix).toContain("Style:");
+    expect(suffix).toContain("Shot type (#cu-profile)");
+    expect(suffix).toContain("Lighting (#rembrandt)");
+    expect(suffix).toContain("Film stock (#cinema-tungsten)");
+    expect(suffix).toContain("Movie look (#neon-cyberpunk)");
   });
 });

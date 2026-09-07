@@ -1883,15 +1883,6 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     systemPromptAddon: "Soft pastel hue color palette, gentle highlights, low contrast cream and pink tones."
   },
   {
-    id: "bw",
-    tag: "#b&w",
-    nameAr: "أبيض وأسود أحادي",
-    nameEn: "Black & White",
-    imageUrl: "/api/media/reference-thumbnails/bw.webp",
-    category: "color",
-    systemPromptAddon: "High contrast black and white monochrome photography style, deep shadows."
-  },
-  {
     id: "sepia",
     tag: "#sepia",
     nameAr: "سيبيا دافئة كلاسيكية",
@@ -1984,33 +1975,6 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     systemPromptAddon: "Harsh direct camera flash photography, sharp shadows, high fashion studio aesthetic."
   },
   {
-    id: "chiaroscuro",
-    tag: "#chiaroscuro",
-    nameAr: "تباين ضوء وظل شديد",
-    nameEn: "Chiaroscuro",
-    imageUrl: "/api/media/reference-thumbnails/chiaroscuro.webp",
-    category: "lighting",
-    systemPromptAddon: "Chiaroscuro lighting technique, dramatic dark background with single strong spotlight key."
-  },
-  {
-    id: "backlight",
-    tag: "#back-light",
-    nameAr: "إضاءة خلفية وظلال",
-    nameEn: "Back-Lit Silhouette",
-    imageUrl: "/api/media/reference-thumbnails/backlight.webp",
-    category: "lighting",
-    systemPromptAddon: "Strong backlighting, rim light highlights around subject silhouette, glowing background atmosphere."
-  },
-  {
-    id: "studiolight",
-    tag: "#studio",
-    nameAr: "إضاءة استوديو احترافية",
-    nameEn: "Studio Key Light",
-    imageUrl: "/api/media/reference-thumbnails/studiolight.webp",
-    category: "lighting",
-    systemPromptAddon: "Professional 3-point studio lighting, soft fill light, clean commercial look."
-  },
-  {
     id: "iridescent",
     tag: "#iridescent",
     nameAr: "انعكاسات زجاجية متوهجة",
@@ -2018,33 +1982,6 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     imageUrl: "/api/media/reference-thumbnails/iridescent.webp",
     category: "lighting",
     systemPromptAddon: "Iridescent metallic sheen, prism rainbow light refractions, glossy surface highlights."
-  },
-  {
-    id: "goldenhour",
-    tag: "#golden-hour",
-    nameAr: "الساعة الذهبية لغروب الشمس",
-    nameEn: "Golden Hour Glow",
-    imageUrl: "/api/media/reference-thumbnails/goldenhour.webp",
-    category: "lighting",
-    systemPromptAddon: "Sunset golden hour light rays, warm sun flare, long soft shadows."
-  },
-  {
-    id: "hardlight",
-    tag: "#hardlight",
-    nameAr: "ضوء شمس حاد عالي التباين",
-    nameEn: "Hard Sunlight",
-    imageUrl: "/api/media/reference-thumbnails/hardlight.webp",
-    category: "lighting",
-    systemPromptAddon: "Direct midday hard sunlight, sharp crisp shadows, high contrast highlights."
-  },
-  {
-    id: "volumetric",
-    tag: "#volumetric",
-    nameAr: "أشعة ضوء ضبابية عمودية",
-    nameEn: "Volumetric Light Beams",
-    imageUrl: "/api/media/reference-thumbnails/volumetric.webp",
-    category: "lighting",
-    systemPromptAddon: "Volumetric God rays cutting through atmospheric haze, dramatic beam highlights."
   },
 
   // ── MOOD ──
