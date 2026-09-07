@@ -22,6 +22,7 @@ import {
   HOOK_FILM_STOCKS,
   HOOK_MOVIE_LOOKS,
   HOOK_LIGHTING,
+  HOOK_MOTION_BLURS,
 } from "./hook-studio-config";
 import { getUserAsset, type UserAssetKind } from "./user-asset-registry";
 
@@ -38,6 +39,8 @@ export interface PresetSelections {
   selectedMovieLookId?: string | null;
   /** Lighting pattern preset from the Lighting tab. */
   selectedLightingId?: string | null;
+  /** Motion-blur treatment preset from the Motion Blur tab. */
+  selectedMotionBlurId?: string | null;
   selectedSketchId?: string | null;
   /** Semantic hint for a built-in preset location (not the user's own uploaded one). */
   selectedLocationId?: string | null;
@@ -120,6 +123,11 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
   if (sel.selectedLightingId) {
     const lg = HOOK_LIGHTING.find((x) => x.id === sel.selectedLightingId);
     if (lg?.promptDescription) parts.push(`Lighting (${lg.tag}): ${lg.promptDescription}`);
+  }
+
+  if (sel.selectedMotionBlurId) {
+    const mb = HOOK_MOTION_BLURS.find((x) => x.id === sel.selectedMotionBlurId);
+    if (mb?.promptDescription) parts.push(`Motion blur (${mb.tag}): ${mb.promptDescription}`);
   }
 
   if (sel.selectedFilmStockId) {

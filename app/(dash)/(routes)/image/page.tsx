@@ -1520,6 +1520,7 @@ export default function ImageWorkspacePage() {
   const [selectedFilmStockId, setSelectedFilmStockId] = useState<string | null>(null);
   const [selectedMovieLookId, setSelectedMovieLookId] = useState<string | null>(null);
   const [selectedLightingId, setSelectedLightingId] = useState<string | null>(null);
+  const [selectedMotionBlurId, setSelectedMotionBlurId] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   useEffect(() => {
@@ -1888,6 +1889,7 @@ export default function ImageWorkspacePage() {
       selectedFilmStockId,
       selectedMovieLookId,
       selectedLightingId,
+      selectedMotionBlurId,
       selectedLocationId,
       selectedElementId,
       selectedPalette,
@@ -1944,7 +1946,7 @@ export default function ImageWorkspacePage() {
     } else {
       void loadPersistedImages(0, "replace");
     }
-  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, loadPersistedImages, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedShotTypeId, selectedFilmStockId, selectedMovieLookId, selectedLightingId, selectedLocationId, selectedElementId, selectedPalette]);
+  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, loadPersistedImages, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedShotTypeId, selectedFilmStockId, selectedMovieLookId, selectedLightingId, selectedMotionBlurId, selectedLocationId, selectedElementId, selectedPalette]);
 
   const generateRelight = useCallback(async () => {
     if (!relightFile) throw new Error("Upload image first");
@@ -3014,6 +3016,7 @@ export default function ImageWorkspacePage() {
           selectedFilmStockId={selectedFilmStockId}
           selectedMovieLookId={selectedMovieLookId}
           selectedLightingId={selectedLightingId}
+          selectedMotionBlurId={selectedMotionBlurId}
           onSelectSketch={(id) => {
             setSelectedSketchId(id);
             setShowReferenceStudioModal(false);
@@ -3032,6 +3035,10 @@ export default function ImageWorkspacePage() {
           }}
           onSelectLighting={(id) => {
             setSelectedLightingId(id);
+            setShowReferenceStudioModal(false);
+          }}
+          onSelectMotionBlur={(id) => {
+            setSelectedMotionBlurId(id);
             setShowReferenceStudioModal(false);
           }}
           onSelectPalette={(pal) => {

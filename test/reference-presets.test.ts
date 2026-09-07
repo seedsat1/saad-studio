@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildPresetPromptSuffix } from "@/lib/reference-prompt-injector";
-import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS, HOOK_MOVIE_LOOKS, HOOK_LIGHTING, HOOK_EFFECTS } from "@/lib/hook-studio-config";
+import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS, HOOK_MOVIE_LOOKS, HOOK_LIGHTING, HOOK_MOTION_BLURS, HOOK_EFFECTS } from "@/lib/hook-studio-config";
 
 describe("Shot Type preset injection", () => {
   it("exposes 24 shot types split into framing and angle", () => {
@@ -116,15 +116,15 @@ describe("Lighting preset injection", () => {
 
 describe("Effects de-duplication", () => {
   it("no longer carries presets that a new tab now owns", () => {
-    const gone = ["goldenhour", "backlight", "hardlight", "volumetric", "chiaroscuro", "studiolight", "bw"];
+    const gone = ["goldenhour", "backlight", "hardlight", "volumetric", "chiaroscuro", "studiolight", "bw", "longexposure"];
     const ids = HOOK_EFFECTS.map((e) => e.id);
     for (const id of gone) expect(ids).not.toContain(id);
-    expect(HOOK_EFFECTS).toHaveLength(23);
+    expect(HOOK_EFFECTS).toHaveLength(22);
   });
 
   it("keeps the effects presets that have no replacement elsewhere", () => {
     const ids = HOOK_EFFECTS.map((e) => e.id);
-    for (const id of ["sepia", "duotone", "redscale", "iridescent", "highflash", "glitching", "longexposure"]) {
+    for (const id of ["sepia", "duotone", "redscale", "iridescent", "highflash", "glitching", "spinning"]) {
       expect(ids).toContain(id);
     }
   });
@@ -137,6 +137,7 @@ describe("All five preset tabs together", () => {
       ...HOOK_FILM_STOCKS.map((x) => x.id),
       ...HOOK_MOVIE_LOOKS.map((x) => x.id),
       ...HOOK_LIGHTING.map((x) => x.id),
+      ...HOOK_MOTION_BLURS.map((x) => x.id),
     ];
     expect(new Set(all).size).toBe(all.length);
   });
@@ -154,5 +155,33 @@ describe("All five preset tabs together", () => {
     expect(suffix).toContain("Lighting (#rembrandt)");
     expect(suffix).toContain("Film stock (#cinema-tungsten)");
     expect(suffix).toContain("Movie look (#neon-cyberpunk)");
+  });
+});
+
+describe("Motion Blur preset injection", () => {
+  it("exposes 9 motion-blur presets split into amount and technique", () => {
+    expect(HOOK_MOTION_BLURS).toHaveLength(9);
+    expect(HOOK_MOTION_BLURS.filter((b) => b.group === "amount")).toHaveLength(4);
+    expect(HOOK_MOTION_BLURS.filter((b) => b.group === "technique")).toHaveLength(5);
+    expect(new Set(HOOK_MOTION_BLURS.map((b) => b.id)).size).toBe(9);
+  });
+
+  it("injects the selected motion blur into the prompt suffix", () => {
+    const suffix = buildPresetPromptSuffix({ selectedMotionBlurId: "zoom-blur" });
+    expect(suffix).toContain("Motion blur (#zoom-blur)");
+    expect(suffix.toLowerCase()).toContain("radially");
+  });
+
+  it("treats None as an explicit instruction, not an empty selection", () => {
+    const suffix = buildPresetPromptSuffix({ selectedMotionBlurId: "no-blur" });
+    expect(suffix).toContain("Motion blur (#no-blur)");
+    expect(suffix.toLowerCase()).toContain("no motion blur at all");
+    expect(buildPresetPromptSuffix({})).toBe("");
+  });
+
+  it("points every motion blur at its own prefixed thumbnail", () => {
+    for (const b of HOOK_MOTION_BLURS) {
+      expect(b.imageUrl.startsWith("/api/media/reference-thumbnails/blur-")).toBe(true);
+    }
   });
 });

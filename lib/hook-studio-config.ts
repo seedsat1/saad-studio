@@ -2033,15 +2033,6 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
 
   // ── ACTION ──
   {
-    id: "longexposure",
-    tag: "#long-exposure",
-    nameAr: "تعريض طويل مع ضبابية الحركة",
-    nameEn: "Long Exposure Blur",
-    imageUrl: "/api/media/reference-thumbnails/longexposure.webp",
-    category: "action",
-    systemPromptAddon: "Long exposure photography effect, silky motion blur trails, dynamic speed atmosphere."
-  },
-  {
     id: "walking",
     tag: "#walking",
     nameAr: "حركة مشي وتتبع",
@@ -3040,5 +3031,104 @@ export const HOOK_LIGHTING: HookLightingPreset[] = [
     imageUrl: "/api/media/reference-thumbnails/light-silhouette.webp",
     group: "dramatic",
     promptDescription: "Silhouette lighting: the subject rendered as a solid black shape with no front fill at all, read purely as outline against a bright evenly lit background."
+  }
+];
+
+export interface HookMotionBlurPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  /** Whether the preset sets an overall amount or a specific blur technique. */
+  group: "amount" | "technique";
+  promptDescription: string;
+}
+
+export const HOOK_MOTION_BLURS: HookMotionBlurPreset[] = [
+  // ── AMOUNT ──
+  {
+    id: "no-blur",
+    tag: "#no-blur",
+    nameAr: "بدون ضبابية",
+    nameEn: "None",
+    imageUrl: "/api/media/reference-thumbnails/blur-none.webp",
+    group: "amount",
+    // Not the same as leaving the tab unselected: this actively asks for a frozen frame.
+    promptDescription: "No motion blur at all: a fast shutter freezing every moving element, edges crisp and sharp throughout, no smearing or trailing anywhere in the frame."
+  },
+  {
+    id: "subtle-cinematic",
+    tag: "#subtle-cinematic",
+    nameAr: "سينمائي خفيف",
+    nameEn: "Subtle Cinematic",
+    imageUrl: "/api/media/reference-thumbnails/blur-subtle-cinematic.webp",
+    group: "amount",
+    promptDescription: "Subtle cinematic motion blur: a natural 180-degree shutter, only the fastest-moving extremities softening slightly while the main subject stays readable and sharp."
+  },
+  {
+    id: "moderate-cinematic",
+    tag: "#moderate-cinematic",
+    nameAr: "سينمائي متوسط",
+    nameEn: "Moderate Cinematic",
+    imageUrl: "/api/media/reference-thumbnails/blur-moderate-cinematic.webp",
+    group: "amount",
+    promptDescription: "Moderate cinematic motion blur: a slower shutter smearing limbs, fabric and anything in motion into clear directional streaks, while the core of the subject stays identifiable."
+  },
+  {
+    id: "heavy-cinematic",
+    tag: "#heavy-cinematic",
+    nameAr: "سينمائي قوي",
+    nameEn: "Heavy Cinematic",
+    imageUrl: "/api/media/reference-thumbnails/blur-heavy-cinematic.webp",
+    group: "amount",
+    promptDescription: "Heavy cinematic motion blur: a long shutter dissolving the moving subject into sweeping abstract smears of colour and light, form barely holding together, motion dominating the frame."
+  },
+
+  // ── TECHNIQUE ──
+  {
+    id: "subject-motion-blur",
+    tag: "#subject-blur",
+    nameAr: "ضبابية الهدف فقط",
+    nameEn: "Subject Motion Blur Only",
+    imageUrl: "/api/media/reference-thumbnails/blur-subject.webp",
+    group: "technique",
+    promptDescription: "Subject motion blur only: the camera locked off and perfectly still so the background and environment stay razor sharp, while the moving subject alone smears across the frame."
+  },
+  {
+    id: "camera-motion-blur",
+    tag: "#camera-blur",
+    nameAr: "ضبابية الكاميرا فقط",
+    nameEn: "Camera Motion Blur Only",
+    imageUrl: "/api/media/reference-thumbnails/blur-camera.webp",
+    group: "technique",
+    promptDescription: "Camera motion blur only: the camera panning with the moving subject so the subject stays sharp and readable while the entire background streaks into horizontal motion lines."
+  },
+  {
+    id: "rack-focus-blur",
+    tag: "#rack-focus-blur",
+    nameAr: "ضبابية نقل التركيز",
+    nameEn: "Rack Focus Pull Blur",
+    imageUrl: "/api/media/reference-thumbnails/blur-rack-focus.webp",
+    group: "technique",
+    promptDescription: "Rack focus pull blur: focus caught mid-transition between two planes, the foreground melting into soft creamy bokeh while a sharp plane emerges behind it, shallow depth of field."
+  },
+  {
+    id: "zoom-blur",
+    tag: "#zoom-blur",
+    nameAr: "ضبابية الزوم",
+    nameEn: "Zoom Blur",
+    imageUrl: "/api/media/reference-thumbnails/blur-zoom.webp",
+    group: "technique",
+    promptDescription: "Zoom blur: the lens racked during the exposure so every element streaks radially outward from a sharp centre point, explosive lines of motion radiating to the frame edges."
+  },
+  {
+    id: "long-exposure-trails",
+    tag: "#light-trails",
+    nameAr: "آثار ضوئية بتعريض طويل",
+    nameEn: "Long Exposure Light Trails",
+    imageUrl: "/api/media/reference-thumbnails/blur-light-trails.webp",
+    group: "technique",
+    promptDescription: "Long exposure light trails: a multi-second exposure in darkness where every moving light source paints continuous glowing ribbons through the frame, static elements staying sharp."
   }
 ];

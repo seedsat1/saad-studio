@@ -27,6 +27,7 @@ import {
   Film,
   Clapperboard as MovieIcon,
   Lightbulb,
+  Wind,
 } from "lucide-react";
 import {
   HOOK_STYLES,
@@ -40,6 +41,7 @@ import {
   HOOK_FILM_STOCKS,
   HOOK_MOVIE_LOOKS,
   HOOK_LIGHTING,
+  HOOK_MOTION_BLURS,
 } from "@/lib/hook-studio-config";
 import {
   registerUserAsset,
@@ -74,6 +76,8 @@ export interface ReferenceStudioModalProps {
   onSelectMovieLook?: (id: string | null) => void;
   selectedLightingId?: string | null;
   onSelectLighting?: (id: string | null) => void;
+  selectedMotionBlurId?: string | null;
+  onSelectMotionBlur?: (id: string | null) => void;
   onSelectPalette?: (palette: { id: string; name: string; colors: string[] } | null) => void;
   onAttachFile?: (file: { id: string; url: string; name: string; type: "image" | "video" }) => void;
   /** When true, clicking a user-owned character will NOT attach its cover here — the caller uses the Character Package flow (all referenceUrls attached at generation time). Prevents double-refs. */
@@ -203,6 +207,8 @@ export function ReferenceStudioModal({
   onSelectMovieLook,
   selectedLightingId,
   onSelectLighting,
+  selectedMotionBlurId,
+  onSelectMotionBlur,
   onSelectPalette,
   onAttachFile,
   useCharacterPackage = false,
@@ -1405,6 +1411,25 @@ export function ReferenceStudioModal({
               <button
                 type="button"
                 onClick={() => {
+                  setActiveTab("motionblur");
+                  setSearchQuery("");
+                  setActiveCategory("all");
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "motionblur"
+                    ? "bg-[#161a29] text-white border border-violet-500/40"
+                    : "text-slate-400 hover:bg-[#131724] hover:text-slate-200"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Wind className="w-4 h-4 text-violet-400" />
+                  <span>Motion Blur</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
                   setActiveTab("camera");
                   setSearchQuery("");
                 }}
@@ -1582,6 +1607,28 @@ export function ReferenceStudioModal({
                         : cat === "natural"
                           ? (isAr ? "طبيعي" : "Natural")
                           : (isAr ? "درامي" : "Dramatic")}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeTab === "motionblur" && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {(["all", "amount", "technique"] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      activeCategory === cat
+                        ? "bg-violet-600 text-white"
+                        : "bg-[#131724] text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {cat === "all"
+                      ? (isAr ? "الكل" : "All")
+                      : cat === "amount"
+                        ? (isAr ? "المقدار" : "Amount")
+                        : (isAr ? "التقنية" : "Technique")}
                   </button>
                 ))}
               </div>
@@ -2317,6 +2364,59 @@ export function ReferenceStudioModal({
             )}
 
             {/* Sketch Tab */}
+            {activeTab === "motionblur" && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("motionblur", "violet", (id) => onSelectMotionBlur?.(id), (id) => selectedMotionBlurId === id)}
+                {HOOK_MOTION_BLURS.filter((mb) => {
+                  const search = searchQuery.toLowerCase();
+                  const matchCat = activeCategory === "all" || mb.group === activeCategory;
+                  const matchSearch =
+                    mb.nameAr.toLowerCase().includes(search) ||
+                    mb.nameEn.toLowerCase().includes(search) ||
+                    mb.tag.toLowerCase().includes(search);
+                  return matchCat && matchSearch;
+                }).map((blurItem) => {
+                  const isSelected = selectedMotionBlurId === blurItem.id;
+                  return (
+                    <div
+                      key={blurItem.id}
+                      onClick={() => {
+                        // Motion Blur is a prompt-only modifier — its thumbnail is an index
+                        // card, not a visual reference, so never attach it as a ref image.
+                        onSelectMotionBlur?.(isSelected ? null : blurItem.id);
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-violet-500 ring-2 ring-violet-500/20 bg-violet-500/10"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                      }`}
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+                        <img
+                          src={blurItem.imageUrl}
+                          alt={blurItem.nameAr}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-violet-500 text-white rounded-full p-1 shadow">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-slate-200 truncate">
+                          {isAr ? blurItem.nameAr : blurItem.nameEn}
+                        </div>
+                        <div className="text-[10px] text-violet-400 font-medium truncate mt-0.5">
+                          {blurItem.nameEn}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {activeTab === "lighting" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
                 {renderCustomCategoryItems("lighting", "yellow", (id) => onSelectLighting?.(id), (id) => selectedLightingId === id)}

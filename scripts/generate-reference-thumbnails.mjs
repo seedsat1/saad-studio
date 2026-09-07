@@ -8,6 +8,7 @@
 //        films   → the 18 HOOK_FILM_STOCKS tiles (keys prefixed "film-")
 //        looks   → the 30 HOOK_MOVIE_LOOKS tiles (keys prefixed "look-")
 //        lights  → the 18 HOOK_LIGHTING tiles (keys prefixed "light-", one shared still-life)
+//        blurs   → the 9 HOOK_MOTION_BLURS tiles (keys prefixed "blur-", one shared dancer)
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -408,6 +409,49 @@ SETS.lights = [
   ["light-silhouette", light(
     "SILHOUETTE. A brightly lit wall directly behind and absolutely ZERO light on the front of the objects. The result must clearly show: the vase, bowl and stone rendered as completely SOLID BLACK shapes with no surface detail, no colour and no texture at all, read purely as outlines against the bright glowing background.")],
 ];
+
+// Motion Blur tiles. B2 keys are prefixed "blur-".
+//
+// Like the Lighting set, every tile uses the SAME subject so the blur treatment
+// is the only variable and the user can compare Subtle against Heavy directly.
+// A dancer mid-turn is used because motion blur only reads on something moving.
+//
+// The blur instruction is stated FIRST and in terms of what must be visible —
+// stating it after the scene made the model default to a clean sharp frame.
+const DANCER =
+  "The subject is always the same and must not vary between images: a Middle Eastern woman with dark " +
+  "hair pulled into a low bun, wearing a black leotard and a deep navy-blue skirt, captured mid-turn in " +
+  "a sunlit wooden-floored rehearsal studio with tall arched windows and a barre along the mirrored " +
+  "wall, her skirt flaring outward with the spin. Same dancer, same hair, same costume, same studio, " +
+  "same camera position and same framing every time.";
+
+const blur = (treatment) =>
+  `Photorealistic photograph whose entire purpose is to demonstrate ONE motion-blur treatment. ${treatment} ${DANCER} Natural light, fine grain, photoreal. No text, no watermark, no logo, no border frame.`;
+
+SETS.blurs = [
+  // amount
+  ["blur-none", blur(
+    "NO MOTION BLUR AT ALL. A very fast shutter freezing the instant completely. The result must clearly show: every edge razor sharp — the dancer's hands, feet, hair and the flying hem of the skirt all frozen crisp with individual folds and strands resolved. Absolutely no smearing or trailing anywhere.")],
+  ["blur-subtle-cinematic", blur(
+    "SUBTLE CINEMATIC MOTION BLUR. A natural 180-degree shutter. The result must clearly show: the dancer's body and face still sharp and fully readable, with only the very fastest extremities — fingertips and the outer edge of the skirt — softening into a slight blur. Restrained and filmic.")],
+  ["blur-moderate-cinematic", blur(
+    "MODERATE CINEMATIC MOTION BLUR. A noticeably slower shutter. The result must clearly show: the arms, legs and skirt smeared into clear directional streaks that follow the arc of the turn, while the head and torso stay identifiable. Obvious motion, but the figure still legible.")],
+  ["blur-heavy-cinematic", blur(
+    "HEAVY MOTION BLUR, extreme. A long shutter during fast movement. The result must clearly show: the dancer dissolved into sweeping abstract smears of colour and light, the body barely holding its shape, motion completely dominating the frame. Almost a painting of movement rather than a figure.")],
+
+  // technique
+  ["blur-subject", blur(
+    "SUBJECT MOTION BLUR ONLY. The camera is locked off on a tripod, perfectly still. The result must clearly show: the studio floor, windows, barre and mirrored wall all rendered razor sharp with crisp detail, while the DANCER ALONE smears into motion across the frame. Sharp background, blurred subject — the contrast between them must be unmistakable.")],
+  ["blur-camera", blur(
+    "CAMERA MOTION BLUR ONLY — a panning shot. The camera swings to follow the dancer at exactly her speed. The result must clearly show: the DANCER SHARP and clearly readable, while the entire background — windows, barre, mirrored wall — streaks into strong horizontal motion lines. Sharp subject, blurred background — the opposite of a locked-off shot.")],
+  ["blur-rack-focus", blur(
+    "RACK FOCUS PULL, caught mid-transition. Very shallow depth of field. The result must clearly show: a large out-of-focus foreground element melting into soft creamy bokeh across the near part of the frame, while the dancer emerges sharp in the plane behind it. A clear split between a heavily defocused near plane and a sharp far plane.")],
+  ["blur-zoom", blur(
+    "ZOOM BLUR / radial burst, extreme. The zoom lens is racked hard from wide to telephoto DURING a long exposure. The result must clearly show a RADIAL STARBURST pattern: every window, barre, floorboard and mirror stretched into long straight streaks that all point directly away from the exact centre of the frame, like speed lines exploding outward toward all four corners. Only the very centre of the image, on the dancer, stays sharp; everything gets progressively more stretched the further it sits from that centre point. This must look like a radial zoom burst, NOT like ordinary sideways motion blur.")],
+  ["blur-light-trails", blur(
+    "LONG EXPOSURE LIGHT TRAILS. A multi-second exposure in a darkened studio, the dancer holding small glowing lights while she moves. The result must clearly show: continuous glowing ribbons of coloured light painted through the dark air tracing the whole path of the movement, with the static parts of the room still sharp. Dark frame, luminous flowing light ribbons.")],
+];
+
 
 
 
