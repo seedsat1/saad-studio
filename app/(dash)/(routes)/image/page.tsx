@@ -53,6 +53,8 @@ import { useLanguage } from "@/lib/use-language";
 import { SaadLoader } from "@/components/saad-loader";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
+import { RailToolButton } from "@/components/RailToolButton";
+import { RailToolsFlyout } from "@/components/RailToolsFlyout";
 import { PromptEditorModal } from "@/components/PromptEditorModal";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 import { HOOK_CHARACTERS } from "@/lib/hook-studio-config";
@@ -476,23 +478,6 @@ async function buildInpaintGuideImage(sourceDataUrl: string, maskDataUrl: string
   return canvas.toDataURL("image/png");
 }
 
-function ToolButton({ active, icon: Icon, label, onClick }: { active: boolean; icon: any; label: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "relative flex w-14 flex-col items-center gap-1 rounded-xl border-l-2 py-3 transition-all",
-        active
-          ? "border-pink-400 bg-gradient-to-b from-pink-500/25 to-pink-500/5 text-pink-300 shadow-[0_0_24px_rgba(236,72,153,0.3)]"
-          : "border-transparent text-zinc-400 hover:bg-white/5 hover:text-zinc-200",
-      )}
-      title={label}
-    >
-      <Icon className="h-5 w-5" />
-      <span className="text-[9px] font-bold tracking-wider">{label}</span>
-    </button>
-  );
-}
 
 function SliderField({ label, value, onChange, min = 0, max = 100 }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number }) {
   const { t, lang } = useImageTranslation();
@@ -2694,7 +2679,14 @@ export default function ImageWorkspacePage() {
       <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-slate-950 pb-[60px] md:pb-0">
         <aside className="hidden w-20 shrink-0 flex-col items-center gap-1 border-r border-white/10 bg-black/30 py-4 md:flex">
           <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-pink-600/80 to-violet-600/80"><Camera className="h-4 w-4 text-white" /></div>
-          {TOOLS.map((tool) => <ToolButton key={tool.id} active={activeTool === tool.id} icon={tool.icon} label={t(tool.label)} onClick={() => { setActiveTool(tool.id); setCompare(null); }} />)}
+          {TOOLS.map((tool) => <RailToolButton key={tool.id} active={activeTool === tool.id} icon={tool.icon} label={t(tool.label)} onClick={() => { setActiveTool(tool.id); setCompare(null); }} />)}
+          <RailToolsFlyout
+            isAr={lang === "ar"}
+            onOpenStudio={(tab) => {
+              setActiveStudioTab(tab);
+              setShowReferenceStudioModal(true);
+            }}
+          />
         </aside>
 
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
