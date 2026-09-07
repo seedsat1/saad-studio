@@ -3520,41 +3520,6 @@ function VideoPageInner() {
         className="hidden lg:flex flex-shrink-0 flex-col overflow-y-auto border-r"
         style={{ width: 220, borderColor: "rgba(255,255,255,0.05)", background: "#050a14" }}
       >
-        <div className="px-3 pt-5 pb-2">
-          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
-            {t("Video Engines")}
-          </span>
-        </div>
-        {TOOLS.map(tool => {
-          const active = activeTool === tool.id;
-          return (
-            <button
-              key={tool.id}
-              onClick={() => setActiveTool(tool.id)}
-              className="group relative flex items-start gap-2.5 w-full px-3 py-2.5 text-left transition-all"
-              style={{
-                borderLeft: active ? "2px solid #06b6d4" : "2px solid transparent",
-                background:  active ? "rgba(6,182,212,0.08)" : "transparent",
-                color:       active ? "#e2e8f0" : "#a1a1aa",
-              }}
-            >
-              <tool.icon size={14} style={{ color: active ? "#06b6d4" : "#94a3b8", flexShrink: 0, marginTop: 2 }} />
-              <span className="flex min-w-0 flex-col">
-                <span className="text-[13px] font-medium leading-tight">{t(tool.label)}</span>
-                <span className="mt-0.5 text-[10px] leading-snug" style={{ color: active ? "#94a3b8" : "#94a3b8" }}>
-                  {t(tool.description)}
-                </span>
-              </span>
-              {active && (
-                <motion.div
-                  layoutId="active-tool-glow"
-                  className="absolute inset-0 pointer-events-none"
-                  style={{ background: "linear-gradient(90deg, rgba(6,182,212,0.06) 0%, transparent 100%)" }}
-                />
-              )}
-            </button>
-          );
-        })}
         <div className="mt-3 border-t px-3 pt-4" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
           <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
             {t("Tools")}
