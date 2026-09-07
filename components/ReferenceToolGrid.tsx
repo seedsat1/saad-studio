@@ -20,14 +20,18 @@ export function ReferenceToolGrid({
   onOpenStudio: (tab: string) => void;
   isAr?: boolean;
   tabs?: ReferenceToolTab[];
-  columns?: 3 | 4;
+  /** 1 stacks them one per row; 3 and 4 tile them. */
+  columns?: 1 | 3 | 4;
 }) {
+  // One per row reads as a list, so the buttons take the wider row shape rather
+  // than a column of narrow tiles.
+  const single = columns === 1;
   return (
     <div
-      className="grid gap-1"
+      className={single ? "flex flex-col gap-0.5" : "grid gap-1"}
       // written as an inline style rather than grid-cols-N so the column count
       // stays a prop; Tailwind cannot see an interpolated class name.
-      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      style={single ? undefined : { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
     >
       {tabs.map((tab) => (
         <RailToolButton
@@ -36,6 +40,7 @@ export function ReferenceToolGrid({
           icon={tab.icon}
           iconClassName={tab.colorClass}
           label={isAr ? tab.nameAr : tab.nameEn}
+          variant={single ? "row" : "tile"}
           onClick={() => onOpenStudio(tab.id)}
         />
       ))}

@@ -3562,7 +3562,7 @@ function VideoPageInner() {
           <div className="mt-2">
             <ReferenceToolGrid
               tabs={VIDEO_TOOL_TABS}
-              columns={3}
+              columns={1}
               isAr={lang === "ar"}
               onOpenStudio={(tab) => {
                 setActiveStudioTab(tab);
