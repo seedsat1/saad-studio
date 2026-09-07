@@ -39,6 +39,8 @@ import { getFallbackUrls } from "@/lib/utils";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
+import { ReferenceToolGrid } from "@/components/ReferenceToolGrid";
+import { VIDEO_TOOL_TABS } from "@/lib/reference-tool-tabs";
 import { PromptEditorModal } from "@/components/PromptEditorModal";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 import { HOOK_CHARACTERS } from "@/lib/hook-studio-config";
@@ -174,6 +176,7 @@ function useVideoTranslation() {
       "Video Tools": "أدوات الفيديو",
       "Video Tools & Models": "أدوات ونماذج الفيديو",
       "Video Engines": "محركات الفيديو",
+      "Tools": "الأدوات",
       "Model Settings": "إعدادات النموذج",
       "Model": "النموذج",
       "Create high fidelity cinematic videos and animations with top AI models.": "أنشئ فيديوهات ورسوم متحركة سينمائية عالية الدقة مع أفضل نماذج الذكاء الاصطناعي.",
@@ -376,46 +379,6 @@ function useVideoTranslation() {
   return { t, lang };
 }
 
-function StyleLibraryGatewayCard() {
-  const { t } = useVideoTranslation();
-  return (
-    <a
-      href="/image-presets"
-      className="group mx-2 mt-4 block overflow-hidden rounded-xl border transition-all hover:shadow-lg"
-      style={{
-        background: "rgba(0,0,0,0.34)",
-        borderColor: "rgba(251,191,36,0.25)",
-        boxShadow: "0 0 0 1px rgba(0,0,0,0.18)",
-      }}
-    >
-      <div className="relative h-32 overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/preset/card.webp"
-          alt="Style Library featured styles"
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          fetchPriority="high"
-        />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/5 to-transparent" />
-      </div>
-      <div className="px-3 pb-3 pt-2.5">
-        <div className="flex items-center gap-2">
-          <span className="rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
-            style={{ background: "rgba(251,191,36,0.15)", color: "#fde68a", border: "1px solid rgba(251,191,36,0.35)" }}>
-            {t("New")}
-          </span>
-          <span className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(252,211,77,0.72)" }}>
-            {t("18 styles")}
-          </span>
-        </div>
-        <h3 className="mt-1.5 text-sm font-black text-white">{t("Style Library")}</h3>
-        <p className="mt-0.5 text-[11px] leading-5" style={{ color: "#94a3b8" }}>
-          {t("Tap a curated style. The prompt, model, and aspect ratio apply instantly.")}
-        </p>
-      </div>
-    </a>
-  );
-}
 
 function validateVideoDuration(file: File, minSec = 3, maxSec = 15): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -3517,42 +3480,22 @@ function VideoPageInner() {
         className="hidden lg:flex flex-shrink-0 flex-col overflow-y-auto border-r"
         style={{ width: 220, borderColor: "rgba(255,255,255,0.05)", background: "#050a14" }}
       >
-        <div className="px-3 pt-5 pb-2">
+        <div className="mt-3 border-t px-3 pt-4" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
           <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
-            {t("Video Engines")}
+            {t("Tools")}
           </span>
-        </div>
-        {TOOLS.map(tool => {
-          const active = activeTool === tool.id;
-          return (
-            <button
-              key={tool.id}
-              onClick={() => setActiveTool(tool.id)}
-              className="group relative flex items-start gap-2.5 w-full px-3 py-2.5 text-left transition-all"
-              style={{
-                borderLeft: active ? "2px solid #06b6d4" : "2px solid transparent",
-                background:  active ? "rgba(6,182,212,0.08)" : "transparent",
-                color:       active ? "#e2e8f0" : "#a1a1aa",
+          <div className="mt-2">
+            <ReferenceToolGrid
+              tabs={VIDEO_TOOL_TABS}
+              columns={1}
+              isAr={lang === "ar"}
+              onOpenStudio={(tab) => {
+                setActiveStudioTab(tab);
+                setShowReferenceStudioModal(true);
               }}
-            >
-              <tool.icon size={14} style={{ color: active ? "#06b6d4" : "#94a3b8", flexShrink: 0, marginTop: 2 }} />
-              <span className="flex min-w-0 flex-col">
-                <span className="text-[13px] font-medium leading-tight">{t(tool.label)}</span>
-                <span className="mt-0.5 text-[10px] leading-snug" style={{ color: active ? "#94a3b8" : "#94a3b8" }}>
-                  {t(tool.description)}
-                </span>
-              </span>
-              {active && (
-                <motion.div
-                  layoutId="active-tool-glow"
-                  className="absolute inset-0 pointer-events-none"
-                  style={{ background: "linear-gradient(90deg, rgba(6,182,212,0.06) 0%, transparent 100%)" }}
-                />
-              )}
-            </button>
-          );
-        })}
-        <StyleLibraryGatewayCard />
+            />
+          </div>
+        </div>
       </aside>
 
       {/* -- Center Panel --------------------------------------------------- */}
@@ -3911,6 +3854,7 @@ function VideoPageInner() {
       >
         <div className="flex flex-col gap-5 p-4 flex-1">
           <ReferenceActionTiles
+            hideTiles
             onOpenStudio={(tab) => {
               setActiveStudioTab(tab);
               setShowReferenceStudioModal(true);
@@ -6786,6 +6730,7 @@ function VideoPageInner() {
                 {/* References & Styling (mobile) */}
                 <div className="mb-4">
                   <ReferenceActionTiles
+                    hideTiles
                     onOpenStudio={(tab) => {
                       setActiveStudioTab(tab);
                       setShowReferenceStudioModal(true);

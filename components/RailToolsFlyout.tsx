@@ -1,0 +1,91 @@
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import { Wrench } from "lucide-react";
+import { RailToolButton } from "@/components/RailToolButton";
+import { ReferenceToolGrid } from "@/components/ReferenceToolGrid";
+import { REFERENCE_TOOL_TABS, type ReferenceToolTab } from "@/lib/reference-tool-tabs";
+
+/**
+ * One rail button that opens a flyout holding every Reference Studio tab.
+ *
+ * The rail cannot fit these as their own entries — measured on a 1440x768
+ * laptop, the rail has 704px of room, the six workspace modes already take 396px
+ * of it, and a labelled single column of 16 tools needs 1051px. A flyout keeps
+ * the rail and its modes untouched at full size while still surfacing all of
+ * them, which listing them inline cannot do.
+ */
+export function RailToolsFlyout({
+  onOpenStudio,
+  isAr = true,
+  tabs = REFERENCE_TOOL_TABS,
+  placement = "side",
+}: {
+  onOpenStudio: (tab: string) => void;
+  isAr?: boolean;
+  /** Defaults to every tab; pass a subset to scope the flyout to one workspace. */
+  tabs?: ReferenceToolTab[];
+  /**
+   * "side" opens alongside the trigger — for the image workspace's narrow rail.
+   * "below" opens underneath it, for a wide settings panel where flying out
+   * sideways would leave the viewport.
+   */
+  placement?: "side" | "below";
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <RailToolButton
+        active={open}
+        icon={Wrench}
+        label={isAr ? "الأدوات" : "Tools"}
+        badge={tabs.length}
+        onClick={() => setOpen((v) => !v)}
+      />
+
+      {open && (
+        <div
+          // w-max: the panel is positioned against a 56px-wide rail button, so
+          // without it the grid inherits that width and collapses to one column.
+          className="absolute z-50 w-max rounded-2xl border border-white/12 bg-[#12151f] p-3 shadow-[0_18px_50px_rgba(0,0,0,0.6)]"
+          style={
+            placement === "below"
+              ? { top: "calc(100% + 8px)", insetInlineStart: 0 }
+              : { bottom: 0, insetInlineStart: "calc(100% + 8px)" }
+          }
+          role="menu"
+        >
+          <div className="mb-2 px-1 text-[9px] font-bold tracking-[0.16em] text-white/35">
+            {isAr ? "الأدوات" : "TOOLS"}
+          </div>
+          <ReferenceToolGrid
+            tabs={tabs}
+            isAr={isAr}
+            onOpenStudio={(tab) => {
+              onOpenStudio(tab);
+              setOpen(false);
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
