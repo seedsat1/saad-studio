@@ -1433,6 +1433,7 @@ function VideoPageInner() {
   const [selectedMovieLookId, setSelectedMovieLookId] = useState<string | null>(null);
   const [selectedLightingId, setSelectedLightingId] = useState<string | null>(null);
   const [selectedMotionBlurId, setSelectedMotionBlurId] = useState<string | null>(null);
+  const [selectedGrainId, setSelectedGrainId] = useState<string | null>(null);
   const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   // Kling 3.0 structured elements (name + description + 2-4 images each, max 3 elements)
@@ -2727,6 +2728,7 @@ function VideoPageInner() {
         selectedMovieLookId,
         selectedLightingId,
         selectedMotionBlurId,
+        selectedGrainId,
         selectedLocationId,
         selectedElementId,
         selectedPalette,
@@ -3387,7 +3389,7 @@ function VideoPageInner() {
     activeTool, videoMode, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isWan30Model, isVeo31Model, isGoogleVeoModel, isVeo31FastModel, isVeo31FixedEightSecond,
     startFrame, linkedStartFrameUrl, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
-    sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedShotTypeId, selectedFilmStockId, selectedMovieLookId, selectedLightingId, selectedMotionBlurId, selectedLocationId, selectedElementId, selectedPalette, startPolling,
+    sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedShotTypeId, selectedFilmStockId, selectedMovieLookId, selectedLightingId, selectedMotionBlurId, selectedGrainId, selectedLocationId, selectedElementId, selectedPalette, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
     estimatedCredits, activeVideoModeLabel, fetchWithAuth, getSafeErrorMessage, guardGeneration,
   ]);
@@ -7321,6 +7323,7 @@ function VideoPageInner() {
         selectedMovieLookId={selectedMovieLookId}
         selectedLightingId={selectedLightingId}
         selectedMotionBlurId={selectedMotionBlurId}
+        selectedGrainId={selectedGrainId}
         onSelectSketch={(id) => {
           setSelectedSketchId(id);
           setShowReferenceStudioModal(false);
@@ -7343,6 +7346,10 @@ function VideoPageInner() {
         }}
         onSelectMotionBlur={(id) => {
           setSelectedMotionBlurId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        onSelectGrain={(id) => {
+          setSelectedGrainId(id);
           setShowReferenceStudioModal(false);
         }}
         onSelectPalette={(pal) => setSelectedPalette(pal)}

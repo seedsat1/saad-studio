@@ -23,6 +23,7 @@ import {
   HOOK_MOVIE_LOOKS,
   HOOK_LIGHTING,
   HOOK_MOTION_BLURS,
+  HOOK_GRAINS,
 } from "./hook-studio-config";
 import { getUserAsset, type UserAssetKind } from "./user-asset-registry";
 
@@ -41,6 +42,8 @@ export interface PresetSelections {
   selectedLightingId?: string | null;
   /** Motion-blur treatment preset from the Motion Blur tab. */
   selectedMotionBlurId?: string | null;
+  /** Grain texture preset from the Grain tab. */
+  selectedGrainId?: string | null;
   selectedSketchId?: string | null;
   /** Semantic hint for a built-in preset location (not the user's own uploaded one). */
   selectedLocationId?: string | null;
@@ -133,6 +136,11 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
   if (sel.selectedFilmStockId) {
     const fst = HOOK_FILM_STOCKS.find((x) => x.id === sel.selectedFilmStockId);
     if (fst?.promptDescription) parts.push(`Film stock (${fst.tag}): ${fst.promptDescription}`);
+  }
+
+  if (sel.selectedGrainId) {
+    const gr = HOOK_GRAINS.find((x) => x.id === sel.selectedGrainId);
+    if (gr?.promptDescription) parts.push(`Grain (${gr.tag}): ${gr.promptDescription}`);
   }
 
   if (sel.selectedMovieLookId) {

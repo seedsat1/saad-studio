@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildPresetPromptSuffix } from "@/lib/reference-prompt-injector";
-import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS, HOOK_MOVIE_LOOKS, HOOK_LIGHTING, HOOK_MOTION_BLURS, HOOK_EFFECTS } from "@/lib/hook-studio-config";
+import { HOOK_SHOT_TYPES, HOOK_FILM_STOCKS, HOOK_MOVIE_LOOKS, HOOK_LIGHTING, HOOK_MOTION_BLURS, HOOK_GRAINS, HOOK_EFFECTS } from "@/lib/hook-studio-config";
 
 describe("Shot Type preset injection", () => {
   it("exposes 24 shot types split into framing and angle", () => {
@@ -138,6 +138,7 @@ describe("All five preset tabs together", () => {
       ...HOOK_MOVIE_LOOKS.map((x) => x.id),
       ...HOOK_LIGHTING.map((x) => x.id),
       ...HOOK_MOTION_BLURS.map((x) => x.id),
+      ...HOOK_GRAINS.map((x) => x.id),
     ];
     expect(new Set(all).size).toBe(all.length);
   });
@@ -183,5 +184,33 @@ describe("Motion Blur preset injection", () => {
     for (const b of HOOK_MOTION_BLURS) {
       expect(b.imageUrl.startsWith("/api/media/reference-thumbnails/blur-")).toBe(true);
     }
+  });
+});
+
+describe("Grain preset injection", () => {
+  it("exposes 4 grain textures with unique ids", () => {
+    expect(HOOK_GRAINS).toHaveLength(4);
+    expect(new Set(HOOK_GRAINS.map((g) => g.id)).size).toBe(4);
+  });
+
+  it("points every grain at its own prefixed thumbnail", () => {
+    for (const g of HOOK_GRAINS) {
+      expect(g.imageUrl.startsWith("/api/media/reference-thumbnails/grain-")).toBe(true);
+    }
+  });
+
+  it("injects the selected grain into the prompt suffix", () => {
+    const suffix = buildPresetPromptSuffix({ selectedGrainId: "coarse-16mm" });
+    expect(suffix).toContain("Grain (#16mm-grain)");
+    expect(suffix.toLowerCase()).toContain("large chunky");
+  });
+
+  it("stacks grain with film stock, which describes a whole emulsion", () => {
+    const suffix = buildPresetPromptSuffix({
+      selectedFilmStockId: "cinema-daylight",
+      selectedGrainId: "barely-visible-shadow",
+    });
+    expect(suffix).toContain("Film stock (#cinema-daylight)");
+    expect(suffix).toContain("Grain (#shadow-grain)");
   });
 });

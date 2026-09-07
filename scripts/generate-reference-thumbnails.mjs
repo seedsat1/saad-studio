@@ -9,6 +9,7 @@
 //        looks   → the 30 HOOK_MOVIE_LOOKS tiles (keys prefixed "look-")
 //        lights  → the 18 HOOK_LIGHTING tiles (keys prefixed "light-", one shared still-life)
 //        blurs   → the 9 HOOK_MOTION_BLURS tiles (keys prefixed "blur-", one shared dancer)
+//        grains  → the 4 HOOK_GRAINS tiles (keys prefixed "grain-", one shared street scene)
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -451,6 +452,36 @@ SETS.blurs = [
   ["blur-light-trails", blur(
     "LONG EXPOSURE LIGHT TRAILS. A multi-second exposure in a darkened studio, the dancer holding small glowing lights while she moves. The result must clearly show: continuous glowing ribbons of coloured light painted through the dark air tracing the whole path of the movement, with the static parts of the room still sharp. Dark frame, luminous flowing light ribbons.")],
 ];
+
+// Grain tiles. B2 keys are prefixed "grain-".
+//
+// Same fixed-subject approach as the Lighting and Motion Blur sets. Grain is the
+// hardest of the six to read at thumbnail size, so the scene is deliberately
+// plain — large flat areas of sky, road and wall give the grain somewhere to
+// show. The grain instruction is stated first and in absolute terms ("individual
+// grain clumps must be plainly visible") because a relative description like
+// "moderate grain" just produces a clean image.
+const STREET =
+  "The subject is always the same and must not vary between images: a small child in a striped shirt " +
+  "walking toward the camera on a sunlit residential street, holding the hand of an adult who is " +
+  "cropped at the edge of frame, low afternoon sun, plain concrete buildings and a wide empty road " +
+  "behind them with large flat areas of sky and asphalt. Same people, same clothing, same street, " +
+  "same camera position and same framing every time.";
+
+const grain = (texture) =>
+  `Photograph whose entire purpose is to demonstrate ONE grain texture. ${texture} ${STREET} Natural warm light, neutral colour grade, photoreal. No text, no watermark, no logo, no border frame.`;
+
+SETS.grains = [
+  ["grain-35mm-silver-halide", grain(
+    "CLASSIC 35MM SILVER HALIDE GRAIN, clearly present. The result must show a distinct even organic film grain over the WHOLE frame — crystalline, slightly irregular, strongest through the midtones of the road and the wall. Individual grain must be plainly visible when the image is examined closely, especially across the flat sky and asphalt. Real photochemical film texture, definitely NOT a clean digital image.")],
+  ["grain-coarse-16mm", grain(
+    "COARSE 16MM GRAIN, extreme and unmistakable. The result must show LARGE CHUNKY grain clumping heavily across the entire frame, gritty and restless, visibly breaking up the flat sky and road into a mottled speckled texture. The grain must be big enough to see immediately at a glance — the heavy texture of a small negative blown up far past its resolution.")],
+  ["grain-fine-organic-sensor", grain(
+    "FINE DIGITAL SENSOR NOISE. The result must show a tight fine-grained noise floor — much smaller and more uniform than film grain, an even speckle at the pixel level — present across the flat sky and shadow areas so nothing looks plastic or waxy, but far finer and smoother than film grain.")],
+  ["grain-barely-visible-shadow", grain(
+    "BARELY VISIBLE SHADOW GRAIN. The result must be CLEAN: the sky, the road, the child's shirt and all highlights and midtones rendered completely smooth with no visible grain whatsoever. Only inside the darkest shadow areas — under the eaves, in the doorways, beneath the adult's clothing — is there a faint whisper of grain. Overwhelmingly clean, grain confined to the deep shadows alone.")],
+];
+
 
 
 

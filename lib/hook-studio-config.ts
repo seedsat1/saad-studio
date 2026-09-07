@@ -3132,3 +3132,53 @@ export const HOOK_MOTION_BLURS: HookMotionBlurPreset[] = [
     promptDescription: "Long exposure light trails: a multi-second exposure in darkness where every moving light source paints continuous glowing ribbons through the frame, static elements staying sharp."
   }
 ];
+
+/**
+ * Grain is a pure texture layer — how much film grain or sensor noise sits on
+ * top of the image. It is deliberately separate from HOOK_FILM_STOCKS, whose
+ * presets describe a whole emulsion (colour bias + contrast curve + grain
+ * together). Pick a Film Stock for the look, a Grain for the texture.
+ */
+export interface HookGrainPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  promptDescription: string;
+}
+
+export const HOOK_GRAINS: HookGrainPreset[] = [
+  {
+    id: "silver-halide-35mm",
+    tag: "#35mm-grain",
+    nameAr: "حبيبات فضية ٣٥مم",
+    nameEn: "35mm Silver Halide",
+    imageUrl: "/api/media/reference-thumbnails/grain-35mm-silver-halide.webp",
+    promptDescription: "Classic 35mm silver halide grain: an even organic grain structure across the whole frame, crystalline and slightly irregular, most visible in the midtones, the texture of real photochemical film."
+  },
+  {
+    id: "coarse-16mm",
+    tag: "#16mm-grain",
+    nameAr: "حبيبات خشنة ١٦مم",
+    nameEn: "Coarse 16mm",
+    imageUrl: "/api/media/reference-thumbnails/grain-coarse-16mm.webp",
+    promptDescription: "Coarse 16mm grain: large chunky clearly visible grain clumping across the entire frame, gritty and restless, the heavy texture of a small negative blown up."
+  },
+  {
+    id: "fine-organic-sensor",
+    tag: "#sensor-noise",
+    nameAr: "ضوضاء حسّاس ناعمة",
+    nameEn: "Fine Organic Sensor Noise",
+    imageUrl: "/api/media/reference-thumbnails/grain-fine-organic-sensor.webp",
+    promptDescription: "Fine organic sensor noise: a tight fine-grained digital noise floor, softer and more uniform than film grain, subtle but present enough to keep flat areas from looking plastic."
+  },
+  {
+    id: "barely-visible-shadow",
+    tag: "#shadow-grain",
+    nameAr: "حبيبات ظلال شبه مخفية",
+    nameEn: "Barely Visible Shadow Grain",
+    imageUrl: "/api/media/reference-thumbnails/grain-barely-visible-shadow.webp",
+    promptDescription: "Barely visible shadow grain: highlights and midtones rendered clean and smooth, with a faint whisper of grain living only in the darkest shadow areas. Almost imperceptible."
+  }
+];
