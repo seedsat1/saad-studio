@@ -2705,7 +2705,20 @@ export default function ImageWorkspacePage() {
               {composerDragActive ? (
                 <div className="mb-2 flex items-center justify-center rounded-xl border border-dashed border-pink-400/50 bg-pink-500/5 py-2 text-xs text-pink-300">{t("Drop images here to add as reference")}</div>
               ) : (
-                <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
+                <div className="mb-2 flex items-center gap-2 px-1">
+                  {/* Film strip: fills the empty run beside the tiles so the row reads as a reel */}
+                  <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-white/10 bg-gradient-to-b from-black via-zinc-900/90 to-black">
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 top-0 h-[9px]"
+                      style={{ backgroundImage: "repeating-linear-gradient(to right, transparent 0 8px, rgba(255,255,255,0.16) 8px 15px)" }}
+                    />
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 bottom-0 h-[9px]"
+                      style={{ backgroundImage: "repeating-linear-gradient(to right, transparent 0 8px, rgba(255,255,255,0.16) 8px 15px)" }}
+                    />
+                    <div className="relative flex items-center gap-2 overflow-x-auto px-2 py-[13px] custom-scrollbar">
                   {/* Reference Section matching Screenshots 2, 3, 4 */}
                   {activeTool === "create" ? (
                     referenceFiles.length === 0 ? (
@@ -2728,7 +2741,7 @@ export default function ImageWorkspacePage() {
                               : "This model does not accept reference images"
                           }
                           className={cn(
-                            "group relative flex flex-col justify-between w-14 h-[68px] sm:w-16 sm:h-[74px] rounded-2xl border transition p-2 select-none",
+                            "group relative flex flex-col justify-between w-14 h-[68px] sm:w-16 sm:h-[74px] shrink-0 -rotate-3 hover:rotate-0 rounded-2xl border transition-transform duration-200 p-2 select-none shadow-lg",
                             selectedModel.maxRefImages > 0
                               ? "cursor-pointer border-white/10 bg-zinc-800/80 hover:border-white/25 hover:bg-zinc-700/80 shadow-md"
                               : "cursor-not-allowed border-white/5 bg-white/[0.02] opacity-40"
@@ -2791,6 +2804,8 @@ export default function ImageWorkspacePage() {
                       </div>
                     )
                   ) : null}
+                    </div>
+                  </div>
 
 
                   {canUseAnnualUnlimitedCreate ? (
