@@ -3927,6 +3927,22 @@ function VideoPageInner() {
             onClearCamera={() => setSelectedCameraId(null)}
             onClearEffect={() => setSelectedEffectId(null)}
             onClearCharacter={() => setSelectedCharacterPresetId(null)}
+            selectedShotTypeId={selectedShotTypeId}
+            selectedFilmStockId={selectedFilmStockId}
+            selectedMovieLookId={selectedMovieLookId}
+            selectedTonalLookId={selectedTonalLookId}
+            selectedLightingId={selectedLightingId}
+            selectedMotionBlurId={selectedMotionBlurId}
+            selectedGrainId={selectedGrainId}
+            selectedHalationId={selectedHalationId}
+            onClearShotType={() => setSelectedShotTypeId(null)}
+            onClearFilmStock={() => setSelectedFilmStockId(null)}
+            onClearMovieLook={() => setSelectedMovieLookId(null)}
+            onClearTonalLook={() => setSelectedTonalLookId(null)}
+            onClearLighting={() => setSelectedLightingId(null)}
+            onClearMotionBlur={() => setSelectedMotionBlurId(null)}
+            onClearGrain={() => setSelectedGrainId(null)}
+            onClearHalation={() => setSelectedHalationId(null)}
             isAr={lang === "ar"}
           />
           {activeTool === "lipsync" ? (
@@ -6787,6 +6803,22 @@ function VideoPageInner() {
                     onClearCamera={() => setSelectedCameraId(null)}
                     onClearEffect={() => setSelectedEffectId(null)}
                     onClearCharacter={() => setSelectedCharacterPresetId(null)}
+                    selectedShotTypeId={selectedShotTypeId}
+                    selectedFilmStockId={selectedFilmStockId}
+                    selectedMovieLookId={selectedMovieLookId}
+                    selectedTonalLookId={selectedTonalLookId}
+                    selectedLightingId={selectedLightingId}
+                    selectedMotionBlurId={selectedMotionBlurId}
+                    selectedGrainId={selectedGrainId}
+                    selectedHalationId={selectedHalationId}
+                    onClearShotType={() => setSelectedShotTypeId(null)}
+                    onClearFilmStock={() => setSelectedFilmStockId(null)}
+                    onClearMovieLook={() => setSelectedMovieLookId(null)}
+                    onClearTonalLook={() => setSelectedTonalLookId(null)}
+                    onClearLighting={() => setSelectedLightingId(null)}
+                    onClearMotionBlur={() => setSelectedMotionBlurId(null)}
+                    onClearGrain={() => setSelectedGrainId(null)}
+                    onClearHalation={() => setSelectedHalationId(null)}
                     isAr={lang === "ar"}
                   />
                 </div>

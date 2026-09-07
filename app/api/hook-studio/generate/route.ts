@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { spendCredits, InsufficientCreditsError, refundGenerationCharge, ensureUserRow } from "@/lib/credit-ledger";
 import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS, HOOK_STYLES, HOOK_ELEMENTS, HOOK_LOCATIONS, HOOK_CAMERAS, HOOK_EFFECTS, HOOK_CHARACTERS } from "@/lib/hook-studio-config";
+import { buildPresetPromptSuffix } from "@/lib/reference-prompt-injector";
 import { openai } from "@/lib/gptutils";
 import { buildHookStudioDirectorSystemPrompt } from "@/lib/hook-studio-director-prompt";
 import { getHookStudioCreditsAsync } from "@/lib/credit-pricing";
@@ -366,6 +367,14 @@ export async function POST(req: NextRequest) {
       selectedCameraId = null,
       selectedEffectId = null,
       selectedCharacterId = null,
+      selectedShotTypeId = null,
+      selectedFilmStockId = null,
+      selectedMovieLookId = null,
+      selectedTonalLookId = null,
+      selectedLightingId = null,
+      selectedMotionBlurId = null,
+      selectedGrainId = null,
+      selectedHalationId = null,
       refImages = [],
       refVideos = [],
       refAudios = [],
@@ -414,6 +423,20 @@ export async function POST(req: NextRequest) {
     const selectedCamera = HOOK_CAMERAS.find((cam) => cam.id === selectedCameraId);
     const selectedEffect = HOOK_EFFECTS.find((eff) => eff.id === selectedEffectId);
     const selectedCharacter = HOOK_CHARACTERS.find((c) => c.id === selectedCharacterId);
+
+    // Shot Type / Film Stock / Movie Look / Tonal Look / Lighting / Motion Blur /
+    // Grain / Halation go through the shared injector, so this route describes them
+    // to the model exactly as the image, video and cinema-flow pages do.
+    const newPresetSuffix = buildPresetPromptSuffix({
+      selectedShotTypeId,
+      selectedFilmStockId,
+      selectedMovieLookId,
+      selectedTonalLookId,
+      selectedLightingId,
+      selectedMotionBlurId,
+      selectedGrainId,
+      selectedHalationId,
+    });
     const selectedBrain = LLM_BRAIN_MODELS.find((b) => b.id === llmBrain) || LLM_BRAIN_MODELS[0];
     let safeDuration = normalizeDurationSeconds(duration);
     if (selectedModel.id === "kling-3.0-pro" || selectedModel.id === "kling-3.0-turbo" || selectedModel.id === "kling-o3-omni") {
@@ -589,6 +612,7 @@ export async function POST(req: NextRequest) {
                     (selectedCamera ? ("\nCamera Motion Tag: " + selectedCamera.tag + " (" + selectedCamera.promptDescription + ")") : "") + 
                     (selectedEffect ? ("\nEffect/Lighting Tag: " + selectedEffect.tag + " (" + (selectedEffect.systemPromptAddon || selectedEffect.promptDescription || "") + ")") : "") + 
                     (selectedCharacter ? ("\nCharacter Reference Tag: " + selectedCharacter.tag + " (" + selectedCharacter.promptDescription + ")") : "") + 
+                    (newPresetSuffix ? ("\nAdditional Reference Presets: " + newPresetSuffix) : "") + 
                     "\nHook Angle: " + hookAngle + 
                     "\nBrain Selected: " + selectedBrain.name
             }

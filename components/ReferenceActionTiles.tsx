@@ -9,6 +9,14 @@ import {
   HOOK_CAMERAS,
   HOOK_EFFECTS,
   HOOK_CHARACTERS,
+  HOOK_SHOT_TYPES,
+  HOOK_FILM_STOCKS,
+  HOOK_MOVIE_LOOKS,
+  HOOK_TONAL_LOOKS,
+  HOOK_LIGHTING,
+  HOOK_MOTION_BLURS,
+  HOOK_GRAINS,
+  HOOK_HALATIONS,
 } from "@/lib/hook-studio-config";
 
 export interface ReferenceActionTilesProps {
@@ -19,12 +27,28 @@ export interface ReferenceActionTilesProps {
   selectedCameraId?: string | null;
   selectedEffectId?: string | null;
   selectedCharacterId?: string | null;
+  selectedShotTypeId?: string | null;
+  selectedFilmStockId?: string | null;
+  selectedMovieLookId?: string | null;
+  selectedTonalLookId?: string | null;
+  selectedLightingId?: string | null;
+  selectedMotionBlurId?: string | null;
+  selectedGrainId?: string | null;
+  selectedHalationId?: string | null;
   onClearStyle?: () => void;
   onClearElement?: () => void;
   onClearLocation?: () => void;
   onClearCamera?: () => void;
   onClearEffect?: () => void;
   onClearCharacter?: () => void;
+  onClearShotType?: () => void;
+  onClearFilmStock?: () => void;
+  onClearMovieLook?: () => void;
+  onClearTonalLook?: () => void;
+  onClearLighting?: () => void;
+  onClearMotionBlur?: () => void;
+  onClearGrain?: () => void;
+  onClearHalation?: () => void;
   isAr?: boolean;
   hideLabel?: boolean;
 }
@@ -37,12 +61,28 @@ export function ReferenceActionTiles({
   selectedCameraId,
   selectedEffectId,
   selectedCharacterId,
+  selectedShotTypeId,
+  selectedFilmStockId,
+  selectedMovieLookId,
+  selectedTonalLookId,
+  selectedLightingId,
+  selectedMotionBlurId,
+  selectedGrainId,
+  selectedHalationId,
   onClearStyle,
   onClearElement,
   onClearLocation,
   onClearCamera,
   onClearEffect,
   onClearCharacter,
+  onClearShotType,
+  onClearFilmStock,
+  onClearMovieLook,
+  onClearTonalLook,
+  onClearLighting,
+  onClearMotionBlur,
+  onClearGrain,
+  onClearHalation,
   isAr = true,
   hideLabel = true,
 }: ReferenceActionTilesProps) {
@@ -53,8 +93,28 @@ export function ReferenceActionTiles({
   const activeEffect = HOOK_EFFECTS.find((eff) => eff.id === selectedEffectId);
   const activeCharacter = HOOK_CHARACTERS.find((c) => c.id === selectedCharacterId);
 
+  const extraBadges = [
+    { tab: "shottype",   emoji: "🔲", item: HOOK_SHOT_TYPES.find((x) => x.id === selectedShotTypeId),   onClear: onClearShotType,
+      cls: "bg-orange-500/10 text-orange-300 border-orange-500/20 hover:bg-orange-500/20" },
+    { tab: "filmstock",  emoji: "🎞️", item: HOOK_FILM_STOCKS.find((x) => x.id === selectedFilmStockId),  onClear: onClearFilmStock,
+      cls: "bg-cyan-500/10 text-cyan-300 border-cyan-500/20 hover:bg-cyan-500/20" },
+    { tab: "movielook",  emoji: "🎬", item: HOOK_MOVIE_LOOKS.find((x) => x.id === selectedMovieLookId),  onClear: onClearMovieLook,
+      cls: "bg-rose-500/10 text-rose-300 border-rose-500/20 hover:bg-rose-500/20" },
+    { tab: "tonallook",  emoji: "🌈", item: HOOK_TONAL_LOOKS.find((x) => x.id === selectedTonalLookId),  onClear: onClearTonalLook,
+      cls: "bg-sky-500/10 text-sky-300 border-sky-500/20 hover:bg-sky-500/20" },
+    { tab: "lighting",   emoji: "💡", item: HOOK_LIGHTING.find((x) => x.id === selectedLightingId),      onClear: onClearLighting,
+      cls: "bg-yellow-500/10 text-yellow-300 border-yellow-500/20 hover:bg-yellow-500/20" },
+    { tab: "motionblur", emoji: "💨", item: HOOK_MOTION_BLURS.find((x) => x.id === selectedMotionBlurId), onClear: onClearMotionBlur,
+      cls: "bg-violet-500/10 text-violet-300 border-violet-500/20 hover:bg-violet-500/20" },
+    { tab: "grain",      emoji: "🌾", item: HOOK_GRAINS.find((x) => x.id === selectedGrainId),           onClear: onClearGrain,
+      cls: "bg-lime-500/10 text-lime-300 border-lime-500/20 hover:bg-lime-500/20" },
+    { tab: "halation",   emoji: "🔆", item: HOOK_HALATIONS.find((x) => x.id === selectedHalationId),     onClear: onClearHalation,
+      cls: "bg-fuchsia-500/10 text-fuchsia-300 border-fuchsia-500/20 hover:bg-fuchsia-500/20" },
+  ].filter((b) => Boolean(b.item));
+
   const hasAnyActive =
-    activeStyle || activeElement || activeLocation || activeCamera || activeEffect || activeCharacter;
+    activeStyle || activeElement || activeLocation || activeCamera || activeEffect || activeCharacter ||
+    extraBadges.length > 0;
 
   return (
     <div className="space-y-2">
@@ -225,6 +285,28 @@ export function ReferenceActionTiles({
               )}
             </span>
           )}
+
+          {extraBadges.map((badge) => (
+            <span
+              key={badge.tab}
+              onClick={() => onOpenStudio(badge.tab)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold border cursor-pointer transition-colors ${badge.cls}`}
+            >
+              {badge.emoji} {isAr ? badge.item!.nameAr : badge.item!.nameEn}
+              {badge.onClear && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    badge.onClear!();
+                  }}
+                  className="hover:text-red-400"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </span>
+          ))}
         </div>
       )}
     </div>
