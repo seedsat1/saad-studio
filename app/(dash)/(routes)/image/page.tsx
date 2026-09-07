@@ -18,6 +18,7 @@ import {
   Lightbulb,
   Maximize2,
   Paperclip,
+  Plus,
   ScanFace,
   Search,
   Settings2,
@@ -1263,6 +1264,127 @@ export default function ImageWorkspacePage() {
 
   const [quality, setQuality] = useState("standard");
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
+  const promptTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const mentionPopupRef = useRef<HTMLDivElement>(null);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionIndex, setMentionIndex] = useState(0);
+
+  const referencePreviews = useMemo(() => {
+    return referenceFiles.map((file, idx) => ({
+      file,
+      url: URL.createObjectURL(file),
+      tag: `Image${idx + 1}`,
+      name: file.name,
+    }));
+  }, [referenceFiles]);
+
+  useEffect(() => {
+    return () => {
+      referencePreviews.forEach((item) => {
+        try {
+          URL.revokeObjectURL(item.url);
+        } catch {}
+      });
+    };
+  }, [referencePreviews]);
+
+  const filteredMentionItems = useMemo(() => {
+    if (!mentionOpen) return [];
+    if (!mentionQuery) return referencePreviews;
+    return referencePreviews.filter((p) =>
+      p.tag.toLowerCase().includes(mentionQuery) ||
+      p.name.toLowerCase().includes(mentionQuery) ||
+      p.tag.replace("Image", "").includes(mentionQuery)
+    );
+  }, [mentionOpen, mentionQuery, referencePreviews]);
+
+  const insertMention = useCallback((tag: string) => {
+    const textarea = promptTextareaRef.current;
+    const selStart = textarea?.selectionStart ?? prompt.length;
+    const selEnd = textarea?.selectionEnd ?? selStart;
+    const textBeforeCursor = prompt.slice(0, selStart);
+    const textAfterCursor = prompt.slice(selEnd);
+
+    const atIndex = textBeforeCursor.lastIndexOf("@");
+    if (atIndex !== -1) {
+      const replacement = `@${tag} `;
+      const newPrompt = textBeforeCursor.slice(0, atIndex) + replacement + textAfterCursor;
+      setPrompt(newPrompt);
+      setMentionOpen(false);
+
+      requestAnimationFrame(() => {
+        if (textarea) {
+          const newPos = atIndex + replacement.length;
+          textarea.focus();
+          textarea.setSelectionRange(newPos, newPos);
+        }
+      });
+    } else {
+      setMentionOpen(false);
+    }
+  }, [prompt]);
+
+  const handlePromptChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setPrompt(val);
+
+    const selStart = e.target.selectionStart ?? val.length;
+    const textBeforeCursor = val.slice(0, selStart);
+    const match = textBeforeCursor.match(/@([a-zA-Z0-9_]*)$/);
+
+    if (match && referencePreviews.length > 0) {
+      setMentionOpen(true);
+      setMentionQuery(match[1].toLowerCase());
+      setMentionIndex(0);
+    } else {
+      setMentionOpen(false);
+    }
+  }, [referencePreviews.length]);
+
+  const handlePromptKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (mentionOpen && filteredMentionItems.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMentionIndex((prev) => (prev + 1) % filteredMentionItems.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMentionIndex((prev) => (prev - 1 + filteredMentionItems.length) % filteredMentionItems.length);
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        const selected = filteredMentionItems[mentionIndex] || filteredMentionItems[0];
+        if (selected) {
+          insertMention(selected.tag);
+        }
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMentionOpen(false);
+        return;
+      }
+    }
+  }, [mentionOpen, filteredMentionItems, mentionIndex, insertMention]);
+
+  useEffect(() => {
+    if (!mentionOpen) return;
+    const handleClickOutside = (e: globalThis.MouseEvent) => {
+      if (
+        mentionPopupRef.current &&
+        !mentionPopupRef.current.contains(e.target as Node) &&
+        promptTextareaRef.current &&
+        !promptTextareaRef.current.contains(e.target as Node)
+      ) {
+        setMentionOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mentionOpen]);
   const [characters, setCharacters] = useState<CharacterReference[]>([]);
   const [selectedCharacterId, setSelectedCharacterId] = useState("");
   const [relightFile, setRelightFile] = useState<File | null>(null);
@@ -2427,7 +2549,9 @@ export default function ImageWorkspacePage() {
   const handleAttach = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files).filter((f) => f.type.startsWith("image/")) : [];
     if (!files.length) return;
-    setReferenceFiles((prev) => appendReferenceFiles(prev, files));
+    const maxRef = selectedModel.maxRefImages;
+    if (maxRef <= 0) return;
+    setReferenceFiles((prev) => appendReferenceFiles(prev, files).slice(0, maxRef));
     event.target.value = "";
   };
 
@@ -2449,7 +2573,10 @@ export default function ImageWorkspacePage() {
     e.stopPropagation();
     setComposerDragActive(false);
     const dropped = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
-    if (dropped.length) setReferenceFiles((prev) => appendReferenceFiles(prev, dropped));
+    const maxRef = selectedModel.maxRefImages;
+    if (dropped.length && maxRef > 0) {
+      setReferenceFiles((prev) => appendReferenceFiles(prev, dropped).slice(0, maxRef));
+    }
   };
 
   return (
@@ -2504,6 +2631,92 @@ export default function ImageWorkspacePage() {
                 <div className="mb-2 flex items-center justify-center rounded-xl border border-dashed border-pink-400/50 bg-pink-500/5 py-2 text-xs text-pink-300">{t("Drop images here to add as reference")}</div>
               ) : (
                 <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
+                  {/* Reference Section matching Screenshots 2, 3, 4 */}
+                  {activeTool === "create" ? (
+                    referenceFiles.length === 0 ? (
+                      /* Empty State Reference Tile (Screenshots 2 & 3) */
+                      <div className="relative">
+                        <input
+                          type="file"
+                          multiple={selectedModel.maxRefImages > 1}
+                          accept="image/*"
+                          disabled={selectedModel.maxRefImages <= 0}
+                          className="hidden"
+                          id="image-attach"
+                          onChange={handleAttach}
+                        />
+                        <label
+                          htmlFor={selectedModel.maxRefImages > 0 ? "image-attach" : undefined}
+                          title={
+                            selectedModel.maxRefImages > 0
+                              ? `Attach reference images (max ${selectedModel.maxRefImages})`
+                              : "This model does not accept reference images"
+                          }
+                          className={cn(
+                            "group relative flex flex-col justify-between w-14 h-[68px] sm:w-16 sm:h-[74px] rounded-2xl border transition p-2 select-none",
+                            selectedModel.maxRefImages > 0
+                              ? "cursor-pointer border-white/10 bg-zinc-800/80 hover:border-white/25 hover:bg-zinc-700/80 shadow-md"
+                              : "cursor-not-allowed border-white/5 bg-white/[0.02] opacity-40"
+                          )}
+                        >
+                          <Plus className={cn("h-4 w-4 transition", selectedModel.maxRefImages > 0 ? "text-zinc-400 group-hover:text-white" : "text-zinc-600")} />
+                          <div className="flex flex-col text-left leading-tight">
+                            <span className={cn("text-[11px] font-bold", selectedModel.maxRefImages > 0 ? "text-zinc-200" : "text-zinc-500")}>Image</span>
+                            <span className={cn("text-[10px] font-medium", selectedModel.maxRefImages > 0 ? "text-zinc-400" : "text-zinc-600")}>
+                              Refs(0/{selectedModel.maxRefImages})
+                            </span>
+                          </div>
+                        </label>
+                      </div>
+                    ) : (
+                      /* Populated State Thumbnails + Add Tile (Screenshot 4) */
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full custom-scrollbar">
+                        <input
+                          type="file"
+                          multiple={selectedModel.maxRefImages > 1}
+                          accept="image/*"
+                          disabled={referenceFiles.length >= selectedModel.maxRefImages}
+                          className="hidden"
+                          id="image-attach"
+                          onChange={handleAttach}
+                        />
+                        {referencePreviews.map((item, idx) => (
+                          <div
+                            key={`${item.file.name}_${idx}`}
+                            className="group relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-xl overflow-hidden ring-1 ring-white/15 bg-black/40 shadow-sm"
+                          >
+                            <img src={item.url} alt={item.tag} className="h-full w-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setReferenceFiles((prev) => prev.filter((_, i) => i !== idx))}
+                              className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/80 hover:bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow"
+                              title="Remove reference"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                            <span className="absolute bottom-1 left-1 text-[9px] font-semibold text-white/90 bg-black/60 px-1 rounded backdrop-blur-xs">
+                              {item.tag}
+                            </span>
+                          </div>
+                        ))}
+
+                        {referenceFiles.length < selectedModel.maxRefImages && (
+                          <label
+                            htmlFor="image-attach"
+                            title={`Add more images (${referenceFiles.length}/${selectedModel.maxRefImages})`}
+                            className="group relative flex flex-col justify-between w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-xl border border-white/10 bg-zinc-800/80 hover:border-white/25 hover:bg-zinc-700/80 cursor-pointer p-1.5 transition text-left select-none shadow-md"
+                          >
+                            <Plus className="h-3.5 w-3.5 text-zinc-400 group-hover:text-white transition" />
+                            <div className="flex flex-col leading-tight">
+                              <span className="text-[10px] font-bold text-zinc-200">Image</span>
+                              <span className="text-[9px] font-medium text-zinc-400">({referenceFiles.length}/{selectedModel.maxRefImages})</span>
+                            </div>
+                          </label>
+                        )}
+                      </div>
+                    )
+                  ) : null}
+
                   {activeTool === "create" ? (
                     selectedCharacter ? (
                       <button
@@ -2569,47 +2782,81 @@ export default function ImageWorkspacePage() {
                       </span>
                     </button>
                   ) : null}
-
-                  {referenceFiles.map((file, i) => {
-                    const u = URL.createObjectURL(file);
-                    return (
-                      <div key={`${file.name}_${i}`} className="relative">
-                        <img src={u} alt={file.name} className="h-10 w-10 rounded-lg object-cover ring-1 ring-violet-400/30" />
-                        <button onClick={() => setReferenceFiles((prev) => prev.filter((_, idx) => idx !== i))} className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-zinc-200"><X className="h-3 w-3" /></button>
-                      </div>
-                    );
-                  })}
                 </div>
               )}
-              <div className="flex flex-col gap-2 rounded-2xl bg-white/[0.04] p-3 ring-1 ring-white/10 shadow-2xl backdrop-blur-xl">
-                {referenceFiles.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 pb-2.5 border-b border-white/5">
-                    {referenceFiles.map((file, i) => {
-                      const u = URL.createObjectURL(file);
-                      return (
-                        <div key={`${file.name}_${i}`} className="relative">
-                          <img src={u} alt={file.name} className="h-10 w-10 rounded-lg object-cover ring-1 ring-pink-400/30" />
-                          <button onClick={() => setReferenceFiles((prev) => prev.filter((_, idx) => idx !== i))} className="absolute -right-1 -top-1 rounded-full bg-black/80 p-0.5 text-zinc-200 hover:text-white"><X className="h-3 w-3" /></button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+              <div className="relative flex flex-col gap-2 rounded-2xl bg-white/[0.04] p-3 ring-1 ring-white/10 shadow-2xl backdrop-blur-xl">
+                {/* Floating Mention Autocomplete Popover (Screenshot 5) */}
+                <AnimatePresence>
+                  {mentionOpen && filteredMentionItems.length > 0 && (
+                    <motion.div
+                      ref={mentionPopupRef}
+                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                      transition={{ duration: 0.12 }}
+                      className="absolute bottom-full left-3 mb-2 z-50 min-w-[170px] max-w-[240px] max-h-[260px] overflow-y-auto rounded-xl border border-white/15 bg-zinc-900/95 p-1.5 shadow-2xl backdrop-blur-xl custom-scrollbar"
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        {filteredMentionItems.map((item, idx) => {
+                          const isSelected = idx === mentionIndex;
+                          return (
+                            <button
+                              key={item.tag}
+                              type="button"
+                              onMouseEnter={() => setMentionIndex(idx)}
+                              onClick={() => insertMention(item.tag)}
+                              className={cn(
+                                "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-xs font-semibold transition select-none",
+                                isSelected
+                                  ? "bg-white/15 text-white"
+                                  : "text-zinc-300 hover:bg-white/10 hover:text-white"
+                              )}
+                            >
+                              <img
+                                src={item.url}
+                                alt={item.tag}
+                                className="h-7 w-7 rounded-md object-cover ring-1 ring-white/20 shrink-0"
+                              />
+                              <span className="truncate">{item.tag}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <div className="w-full flex-1 min-h-[64px]">
-                  <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onPaste={(e) => { if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) { const pastedFiles = Array.from(e.clipboardData.files).filter(f => f.type.startsWith("image/")); if (pastedFiles.length > 0) { e.preventDefault(); setReferenceFiles(prev => appendReferenceFiles(prev, pastedFiles)); } } }} placeholder={composer.placeholder} disabled={!composer.promptEnabled} rows={Math.min(8, Math.max(3, prompt.split('\n').length))} className="w-full flex-1 resize-y bg-transparent p-1.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none disabled:opacity-60 overflow-y-auto leading-relaxed custom-scrollbar min-h-[64px] max-h-[220px]" />
+                  <textarea
+                    ref={promptTextareaRef}
+                    value={prompt}
+                    onChange={handlePromptChange}
+                    onKeyDown={handlePromptKeyDown}
+                    onPaste={(e) => {
+                      if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+                        const pastedFiles = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
+                        if (pastedFiles.length > 0) {
+                          e.preventDefault();
+                          const maxRef = selectedModel.maxRefImages;
+                          if (maxRef > 0) {
+                            setReferenceFiles((prev) => appendReferenceFiles(prev, pastedFiles).slice(0, maxRef));
+                          }
+                        }
+                      }
+                    }}
+                    placeholder={
+                      activeTool === "create" && referenceFiles.length > 0
+                        ? 'Use @ to reference images and explain their role (e.g. "use the composition from...")'
+                        : composer.placeholder
+                    }
+                    disabled={!composer.promptEnabled}
+                    rows={Math.min(8, Math.max(3, prompt.split("\n").length))}
+                    className="w-full flex-1 resize-y bg-transparent p-1.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none disabled:opacity-60 overflow-y-auto leading-relaxed custom-scrollbar min-h-[64px] max-h-[220px]"
+                  />
                 </div>
                 <div className="flex items-center justify-between border-t border-white/5 pt-2 gap-2 flex-wrap sm:flex-nowrap">
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/20 text-pink-300 ring-1 ring-pink-500/30"><Sparkles className="h-4 w-4" /></div>
-                    {activeTool === "create" && selectedModel.maxRefImages > 0 ? (
-                      <>
-                        <input type="file" multiple={selectedModel.maxRefImages > 1} accept="image/*" className="hidden" id="image-attach" onChange={handleAttach} />
-                        <label htmlFor="image-attach" title={`Attach reference image (max ${selectedModel.maxRefImages})`} className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:text-zinc-200">
-                          <Paperclip className="h-4 w-4" />
-                          {selectedModel.maxRefImages > 1 && <span className="absolute -right-1 -top-1 rounded-full bg-violet-500 px-1 text-[9px] font-bold text-white">{selectedModel.maxRefImages}</span>}
-                        </label>
-                      </>
-                    ) : null}
 
                     {/* Prompt Editor (Ctrl+E) Button with Tooltip */}
                     <div className="relative group">

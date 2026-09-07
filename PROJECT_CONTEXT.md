@@ -1,4 +1,59 @@
-# Latest task: Video Model Capability Badges & Popover Dropdown on /video (2026-09-07)
+# Latest task: Image Models Reference Audit & Dynamic Reference UI with @ Mentions (2026-09-07)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed user request and 5 reference screenshots:
+    "اريد فحص حقيقي في https://www.saadstudio.app/image هل كل الموديلات تستخدم الرفرنسات من بوكس برومبت وهل موجودة كل الموديلات كم رفرنس تستخدم واريد تعديل ظهور الرفرنس بهذي الطريقة"
+  - Rigorous Audit Findings (Zero Guessing):
+    1. Do all image models use references? No. Pure Text-to-Image models (such as Google Imagen 4, Imagen 4 Fast, Imagen 4 Ultra, Seedream 4.5 T2I) do NOT accept reference images. The backend (`app/api/generate/image/route.ts`) explicitly enforces `maxReferenceImages <= 0` and rejects any reference images with HTTP 400 (`"Selected model does not accept reference images."`). All other models accept reference images and pass them to their respective providers (Google Interactions inline parts, OpenAI `images/edits`, WaveSpeed `images`/`image`).
+    2. Exact reference capacities (`maxRefImages`):
+       - Google Nano Banana 2 / Pro / 2 Lite: 14 reference images.
+       - Google Nano Banana Standard / Edit: 3 reference images.
+       - Google Imagen 4 / Fast / Ultra: 0 (Pure T2I).
+       - Seedream 5.0 Pro / Lite: 10 reference images (routes to edit/edit-sequential).
+       - Seedream 4.5 Edit: 10 reference images.
+       - GPT Image 2: 16 reference images (mapped to OpenAI `/v1/images/edits`).
+       - GPT Image 1.5 Edit: 16 reference images.
+       - Wan 2.7 Image Pro: 3 reference images.
+       - Qwen2 Image Edit: 3 reference images.
+       - Qwen I2I: 1 reference image.
+       - Z-Image: 1 reference image.
+       - Grok Imagine I2I: 1 reference image.
+       - FLUX.2 Pro / Flex / Max: 3 reference images.
+  - UI Redesign Implemented:
+    1. Empty State Reference Tile (Screenshots 2 & 3):
+       - Sleek vertical rounded tile (`w-14 h-[68px] sm:w-16 sm:h-[74px] rounded-2xl`) resting on top of the prompt composer.
+       - Displays `+` icon on top, and `Image` with dynamic count `Refs(0/N)` where `N` reflects `selectedModel.maxRefImages` (e.g. `0/14`, `0/16`, `0/10`, `0/3`, or disabled for `0/0`).
+       - Clicking opens file picker to attach reference images.
+    2. Populated State Thumbnails & Add Tile (Screenshot 4):
+       - Horizontal scroll row of uploaded image thumbnails (`w-14 h-14 rounded-xl object-cover ring-1 ring-white/15`) with hover `X` delete buttons.
+       - Followed by the add tile displaying `+`, `Image`, and `(K/N)` (e.g. `(6/14)`).
+       - Dynamic prompt placeholder: `Use @ to reference images and explain their role (e.g. "use the composition from...")`.
+    3. Floating `@` Mention Autocomplete (Screenshot 5):
+       - Typing `@` inside the prompt textarea triggers a floating popup listing all uploaded images.
+       - Each row displays a rounded thumbnail preview and label (`Image1`, `Image2`, etc.).
+       - Supports keyboard navigation (Up/Down/Enter/Tab/Esc) and mouse click.
+       - Inserts `@Image1 ` at the cursor position and retains focus for typing.
+    4. Code Cleanliness & Zero Duplication:
+       - Removed duplicate `referenceFiles.map` renderings and obsolete paperclip button.
+       - Memory-safe `referencePreviews` with `URL.revokeObjectURL` cleanup.
+       - Unified preset style injections via `withPresetsAppended` preserving `@Image` tags.
+- Files affected:
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `lib/image-models.ts`
+  - `app/api/generate/image/route.ts`
+  - `test/image-model-references-contract.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `test/image-model-references-contract.test.ts`: 2/2 tests PASS.
+  - `test/google-image-generation-root-cause.test.ts`: 14/14 tests PASS.
+  - `test/hailuo-contract.test.ts`: 7/7 tests PASS.
+  - `test/model-capability-badges.test.ts`: 6/6 tests PASS.
+  - `test/start-end-frames-contract.test.ts`: 11/11 tests PASS.
+- Remaining step:
+  - Commit and push to repository.
+
+# Previous task: Video Model Capability Badges & Popover Dropdown on /video (2026-09-07)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Addressed user request and screenshot (`media_1788778988543.png`):

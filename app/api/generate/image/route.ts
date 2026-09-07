@@ -212,6 +212,9 @@ function getImageReferenceLimit(
   if (modelId.startsWith("flux-kontext") || effectiveModelId.startsWith("flux-kontext")) {
     return 1;
   }
+  if (modelId.includes("gpt-image-2") || effectiveModelId.includes("gpt-image-2")) {
+    return 16;
+  }
 
   const dynamicLimit = Number(dynamicModel?.maxRefImages);
   if (Number.isFinite(dynamicLimit) && dynamicLimit >= 0) {

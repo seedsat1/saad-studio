@@ -1,4 +1,4 @@
-﻿// â”€â”€â”€ Image Model Definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ Image Model Definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Per-model API parameter configs used by the image workspace UI.
 // Routes: Google official (google/nano-banana/imagen), OpenAI official (gpt-image), WaveSpeed (all other curated image rows).
 
@@ -450,7 +450,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["auto", "1:1", "9:16", "16:9", "4:3", "3:4"],
     maxImages: 1,
-    maxRefImages: 0,
+    maxRefImages: 16,
+    imageInputField: "images",
     qualityParam: ["low", "medium", "high"],
     creditCost: 2.0,
   },
