@@ -55,6 +55,7 @@ import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 import { RailToolButton } from "@/components/RailToolButton";
 import { RailToolsFlyout } from "@/components/RailToolsFlyout";
+import { IMAGE_TOOL_TABS } from "@/lib/reference-tool-tabs";
 import { PromptEditorModal } from "@/components/PromptEditorModal";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 import { HOOK_CHARACTERS } from "@/lib/hook-studio-config";
@@ -2681,6 +2682,7 @@ export default function ImageWorkspacePage() {
           <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-pink-600/80 to-violet-600/80"><Camera className="h-4 w-4 text-white" /></div>
           {TOOLS.map((tool) => <RailToolButton key={tool.id} active={activeTool === tool.id} icon={tool.icon} label={t(tool.label)} onClick={() => { setActiveTool(tool.id); setCompare(null); }} />)}
           <RailToolsFlyout
+            tabs={IMAGE_TOOL_TABS}
             isAr={lang === "ar"}
             onOpenStudio={(tab) => {
               setActiveStudioTab(tab);

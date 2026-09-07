@@ -39,6 +39,8 @@ import { getFallbackUrls } from "@/lib/utils";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
+import { RailToolsFlyout } from "@/components/RailToolsFlyout";
+import { VIDEO_TOOL_TABS } from "@/lib/reference-tool-tabs";
 import { PromptEditorModal } from "@/components/PromptEditorModal";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 import { HOOK_CHARACTERS } from "@/lib/hook-studio-config";
@@ -3910,6 +3912,17 @@ function VideoPageInner() {
         style={{ width: 288, borderColor: "rgba(255,255,255,0.05)", background: "#050a14" }}
       >
         <div className="flex flex-col gap-5 p-4 flex-1">
+          <div className="mb-3">
+            <RailToolsFlyout
+              tabs={VIDEO_TOOL_TABS}
+              placement="below"
+              isAr={lang === "ar"}
+              onOpenStudio={(tab) => {
+                setActiveStudioTab(tab);
+                setShowReferenceStudioModal(true);
+              }}
+            />
+          </div>
           <ReferenceActionTiles
             onOpenStudio={(tab) => {
               setActiveStudioTab(tab);
@@ -6785,6 +6798,18 @@ function VideoPageInner() {
               <div className="px-4 py-4">
                 {/* References & Styling (mobile) */}
                 <div className="mb-4">
+                  <div className="mb-3">
+                    <RailToolsFlyout
+                      tabs={VIDEO_TOOL_TABS}
+                      placement="below"
+                      isAr={lang === "ar"}
+                      onOpenStudio={(tab) => {
+                        setActiveStudioTab(tab);
+                        setShowReferenceStudioModal(true);
+                        setMobileSettingsOpen(false);
+                      }}
+                    />
+                  </div>
                   <ReferenceActionTiles
                     onOpenStudio={(tab) => {
                       setActiveStudioTab(tab);

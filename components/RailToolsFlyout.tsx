@@ -18,11 +18,18 @@ export function RailToolsFlyout({
   onOpenStudio,
   isAr = true,
   tabs = REFERENCE_TOOL_TABS,
+  placement = "side",
 }: {
   onOpenStudio: (tab: string) => void;
   isAr?: boolean;
   /** Defaults to every tab; pass a subset to scope the flyout to one workspace. */
   tabs?: ReferenceToolTab[];
+  /**
+   * "side" opens alongside the trigger — for the image workspace's narrow rail.
+   * "below" opens underneath it, for a wide settings panel where flying out
+   * sideways would leave the viewport.
+   */
+  placement?: "side" | "below";
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -57,8 +64,12 @@ export function RailToolsFlyout({
         <div
           // w-max: the panel is positioned against a 56px-wide rail button, so
           // without it the grid inherits that width and collapses to one column.
-          className="absolute bottom-0 z-50 w-max rounded-2xl border border-white/12 bg-[#12151f] p-3 shadow-[0_18px_50px_rgba(0,0,0,0.6)]"
-          style={{ insetInlineStart: "calc(100% + 8px)" }}
+          className="absolute z-50 w-max rounded-2xl border border-white/12 bg-[#12151f] p-3 shadow-[0_18px_50px_rgba(0,0,0,0.6)]"
+          style={
+            placement === "below"
+              ? { top: "calc(100% + 8px)", insetInlineStart: 0 }
+              : { bottom: 0, insetInlineStart: "calc(100% + 8px)" }
+          }
           role="menu"
         >
           <div className="mb-2 px-1 text-[9px] font-bold tracking-[0.16em] text-white/35">
