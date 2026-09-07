@@ -119,6 +119,41 @@ export default function MobileGalleryPage() {
   const filteredItems = items.filter((item) => filter === "all" || item.type === filter);
 
   const [downloading, setDownloading] = useState(false);
+  const [preloadedFile, setPreloadedFile] = useState<File | null>(null);
+
+  // Preload media file as soon as the modal is opened for instant native sharing
+  useEffect(() => {
+    if (!selectedMedia?.url) {
+      setPreloadedFile(null);
+      return;
+    }
+
+    let active = true;
+    const fetchBlob = async () => {
+      try {
+        const ext = selectedMedia.type === "video" ? "mp4" : selectedMedia.type === "audio" ? "mp3" : "png";
+        const filename = `saadstudio_${selectedMedia.type}_${Date.now()}.${ext}`;
+        const mimeType = selectedMedia.type === "video" ? "video/mp4" : selectedMedia.type === "audio" ? "audio/mpeg" : "image/png";
+
+        let res = await fetch(selectedMedia.url).catch(() => null);
+        if (!res || !res.ok) {
+          res = await fetch(`/api/download?url=${encodeURIComponent(selectedMedia.url)}&filename=${encodeURIComponent(filename)}`).catch(() => null);
+        }
+        if (res && res.ok && active) {
+          const blob = await res.blob();
+          const file = new File([blob], filename, { type: mimeType });
+          if (active) setPreloadedFile(file);
+        }
+      } catch {
+        // ignore background preload
+      }
+    };
+
+    fetchBlob();
+    return () => {
+      active = false;
+    };
+  }, [selectedMedia?.url, selectedMedia?.type]);
 
   const handleDownload = async (item: MediaItem) => {
     if (downloading) return;
@@ -128,6 +163,19 @@ export default function MobileGalleryPage() {
     const filename = `saadstudio_${item.type}_${Date.now()}.${ext}`;
 
     try {
+      // 1. If preloadedFile is available, invoke navigator.share immediately (instant user activation)
+      if (preloadedFile && typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        if (typeof navigator.canShare === "function" && navigator.canShare({ files: [preloadedFile] })) {
+          await navigator.share({
+            files: [preloadedFile],
+            title: item.prompt || "استوديو سعد",
+          });
+          setToastMessage("تم فتح خيارات الحفظ 📲");
+          setDownloading(false);
+          return;
+        }
+      }
+
       const ok = await downloadMediaFile(item.url, filename, {
         title: item.prompt || "استوديو سعد",
         fallbackExt: ext,
