@@ -2388,4 +2388,17 @@ export default function CinemaFlowPage() {
           setSelectedLightingId(id);
           setShowReferenceStudioModal(false);
         }}
-        onSele
+        onSelectPalette={(pal) => setSelectedPalette(pal)}
+        onAttachFile={(file) => {
+          addActiveImageReference({
+            id: file.id,
+            type: file.type,
+            url: file.url,
+            prompt: file.name,
+          });
+        }}
+        isAr={lang === "ar"}
+      />
+    </div>
+  );
+}

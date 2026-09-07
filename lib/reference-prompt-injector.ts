@@ -176,4 +176,11 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
 }
 
 /**
- * Convenience: appen
+ * Convenience: append the suffix to an existing prompt with a single space.
+ * If suffix is empty, returns the prompt unchanged.
+ */
+export function withPresetsAppended(prompt: string, sel: PresetSelections): string {
+  const suffix = buildPresetPromptSuffix(sel);
+  if (!suffix) return prompt;
+  return `${prompt.trim()}${suffix}`;
+}

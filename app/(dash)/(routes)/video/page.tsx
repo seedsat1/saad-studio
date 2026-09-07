@@ -7359,4 +7359,20 @@ function VideoPageInner() {
         isOpen={showPromptEditorModal}
         onClose={() => setShowPromptEditorModal(false)}
         initialPrompt={prompt}
-        on
+        onApply={(p) => setPrompt(p)}
+        mediaType="video"
+        lang={lang}
+      />
+    </div>
+  );
+}
+
+// -- Export --------------------------------------------------------------------
+
+export default function VideoPage() {
+  return (
+    <Suspense>
+      <VideoPageInner />
+    </Suspense>
+  );
+}

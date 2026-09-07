@@ -2054,4 +2054,18 @@ export default function HookStudioPage() {
         }}
         onSelectPalette={(pal) => setSelectedPalette(pal)}
         onAttachFile={(file) => {
-          setAttachedFiles((
+          setAttachedFiles((prev) => [
+            ...prev,
+            {
+              id: file.id,
+              name: file.name,
+              type: file.type,
+              url: file.url,
+            },
+          ]);
+        }}
+        isAr={isAr}
+      />
+    </div>
+  );
+}

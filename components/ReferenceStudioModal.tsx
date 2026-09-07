@@ -3590,4 +3590,115 @@ export function ReferenceStudioModal({
                   onClick={() => cameraInputRef.current?.click()}
                   disabled={isSavingChar}
                   className="w-full bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-   
+                >
+                  <Camera className="w-4 h-4 text-slate-400" />
+                  <span>{isAr ? "التقاط صورة" : "Take photo"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  {isAr ? "إغلاق الاستوديو" : "Close Studio"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                  {isAr ? "رفع الوسائط المخصصة" : "Drop or upload media"}
+                </span>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {isAr
+                    ? "اسحب أو ارفع ملفات صور وفيديوهات مرجعية خاصة بك لربطها فوراً مع محرك التوليد."
+                    : "Drop an image or upload your own media to bind reference tag automatically."}
+                </p>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  multiple
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+
+                <input
+                  type="file"
+                  ref={cameraInputRef}
+                  accept="image/*"
+                  capture="user"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (e.dataTransfer?.files) {
+                      handleFilesSelected(e.dataTransfer.files);
+                    }
+                  }}
+                  className="border-2 border-dashed border-slate-800 hover:border-indigo-500/80 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-3 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-200 block mb-1">
+                    {isAr ? "اسحب الملف هنا" : "Drop media here"}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">
+                    PNG, JPG, MP4, WEBP (Max 50MB)
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>{isAr ? "رفع وسائط" : "Upload media"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="w-full bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Camera className="w-4 h-4 text-slate-400" />
+                  <span>{isAr ? "التقاط صورة" : "Take photo"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  {isAr ? "إغلاق الاستوديو" : "Close Studio"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+    </div>
+  );
+}
