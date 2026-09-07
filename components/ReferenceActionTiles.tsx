@@ -51,6 +51,8 @@ export interface ReferenceActionTilesProps {
   onClearHalation?: () => void;
   isAr?: boolean;
   hideLabel?: boolean;
+  /** Hide the Style / Character / Add tiles but keep the selected-preset badges. */
+  hideTiles?: boolean;
 }
 
 export function ReferenceActionTiles({
@@ -85,6 +87,7 @@ export function ReferenceActionTiles({
   onClearHalation,
   isAr = true,
   hideLabel = true,
+  hideTiles = false,
 }: ReferenceActionTilesProps) {
   const activeStyle = HOOK_STYLES.find((s) => s.id === selectedStyle);
   const activeElement = HOOK_ELEMENTS.find((el) => el.id === selectedElementId);
@@ -125,6 +128,7 @@ export function ReferenceActionTiles({
       )}
 
       {/* Quick Action Square Tiles Row (Style | Character | Add) */}
+      {!hideTiles && (
       <div className="grid grid-cols-3 gap-2 pb-1">
         {/* 1. Style Tile */}
         <button
@@ -156,6 +160,7 @@ export function ReferenceActionTiles({
           <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white">Add</span>
         </button>
       </div>
+      )}
 
       {/* Active Selected Badges */}
       {hasAnyActive && (
