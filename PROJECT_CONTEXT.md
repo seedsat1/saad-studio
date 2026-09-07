@@ -1,4 +1,38 @@
-# Latest task: Image Models Reference Audit & Dynamic Reference UI with @ Mentions (2026-09-07)
+# Latest task: Image Model Capability Badges & Popover Dropdown on /image (2026-09-07)
+- Status: Completed & Verified (PASS).
+- Scope:
+  - Addressed user request and reference screenshot (`media_1788786096271.png`):
+    "وايظا موديلات الصور تظهر معاهن مثل هذي الصورة كمثال"
+  - Requirements:
+    1. Display exact model capability badges for every image model in `ModelDropdown` on `/image`:
+       - `Refs`: Pill badge indicating that the model accepts reference images (`maxRefImages > 0`). Omitted for pure T2I models (`maxRefImages === 0`).
+       - Speed / Latency badge: Mapped to canonical tiers (`~5s`, `~9s`, `~18s`, `~47s`).
+       - Resolution badge: Derived from `qualityParam` / supported dimensions (`512px-4K`, `2K-4K`, `1K-4K`, `1K-2K`, `2K`, `1K`).
+       - Credit Cost badge: Double-loop token icon `⟐` followed by credit price or range (e.g. `2`, `2 - 4`, `1`, `1.5 - 3`, `1 - 2`), right-aligned.
+    2. Popover Architecture:
+       - Upgraded `ModelDropdown` in `app/(dash)/(routes)/image/page.tsx` from narrow button-bound fixed div to Radix UI `Popover` portaled to `document.body`.
+       - Width dynamically set to `w-[520px] max-w-[94vw]` with `align="start"` and `side="bottom"`, completely eliminating clipping and overflow issues.
+       - Grouped models cleanly with search filter and item count badge.
+- Files affected:
+  - `components/image/ImageModelCapabilityBadges.tsx`
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `test/image-model-capability-badges.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Vitest `test/image-model-capability-badges.test.ts`: 10/10 PASS.
+  - Vitest `test/image-model-references-contract.test.ts`: 2/2 PASS.
+  - Vitest `test/model-capability-badges.test.ts`: 6/6 PASS.
+  - Vitest `test/google-image-generation-root-cause.test.ts`: 14/14 PASS.
+  - Vitest `test/start-end-frames-contract.test.ts`: 11/11 PASS.
+  - Total: 43/43 tests PASS.
+- Decisions:
+  - Encapsulate badges into `ImageModelCapabilityBadges.tsx` to maintain modularity and zero duplication.
+  - Derive all badges strictly from `lib/image-models.ts` and `pricing.ts` with zero guessing or placeholder data.
+- Remaining step:
+  - Await user instructions for commit & push.
+
+# Previous task: Image Models Reference Audit & Dynamic Reference UI with @ Mentions (2026-09-07)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Addressed user request and 5 reference screenshots:

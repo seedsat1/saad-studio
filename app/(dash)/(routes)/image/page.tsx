@@ -58,6 +58,8 @@ import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 import { HOOK_CHARACTERS } from "@/lib/hook-studio-config";
 import { useAuthenticatedFetch } from "@/hooks/use-authenticated-fetch";
 import { useActiveProfile } from "@/lib/profile-context";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { ImageModelCapabilityBadges } from "@/components/image/ImageModelCapabilityBadges";
 
 type ToolId = "create" | "relight" | "inpaint" | "upscale" | "face-swap" | "enhance";
 
@@ -532,75 +534,122 @@ function ModelDropdown({ selected, onSelect, models }: { selected: ImageModel; o
   const { t, lang } = useImageTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
+
   const filteredModels = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q
-      ? models.filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q))
+      ? models.filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || (m.group && m.group.toLowerCase().includes(q)))
       : models;
   }, [query, models]);
 
-  const handleToggle = () => {
-    if (!open && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropPos({ top: rect.bottom + 8, left: rect.left, width: rect.width });
-    }
-    setOpen((v) => !v);
-  };
+  // Group models by group/family for clean organization
+  const modelGroups = useMemo(() => {
+    const groups: { name: string; models: ImageModel[] }[] = [];
+    filteredModels.forEach((m) => {
+      const gName = m.group || "Other";
+      let group = groups.find((g) => g.name === gName);
+      if (!group) {
+        group = { name: gName, models: [] };
+        groups.push(group);
+      }
+      group.models.push(m);
+    });
+    return groups;
+  }, [filteredModels]);
 
   return (
-    <div className="relative">
-      <button ref={buttonRef} onClick={handleToggle} className="flex w-full items-center gap-3 rounded-xl bg-white/5 p-2.5 ring-1 ring-white/10 hover:ring-white/20">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/15 ring-1 ring-pink-500/30">
-          <ImageIcon className="h-4 w-4 text-pink-400" />
-        </div>
-        <div className="min-w-0 flex-1 text-left">
-          <p className="truncate text-xs font-semibold text-white">{selected.label}</p>
-        </div>
-        {selected.badge ? <span className="rounded-full bg-lime-300 px-1.5 py-0.5 text-[8px] font-black uppercase text-black">{selected.badge}</span> : null}
-        <ChevronDown className={cn("h-4 w-4 text-zinc-400 transition", open && "rotate-180")} />
-      </button>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center gap-3 rounded-xl bg-white/5 p-2.5 ring-1 ring-white/10 hover:ring-white/20 transition-all text-left group"
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/15 ring-1 ring-pink-500/30 shrink-0">
+            <ImageIcon className="h-4 w-4 text-pink-400" />
+          </div>
+          <div className="min-w-0 flex-1 text-left">
+            <p className="truncate text-xs font-semibold text-white">{selected.label}</p>
+          </div>
+          {selected.badge ? (
+            <span className="shrink-0 rounded-full bg-lime-300 px-1.5 py-0.5 text-[8px] font-black uppercase text-black">
+              {selected.badge}
+            </span>
+          ) : null}
+          <ChevronDown className={cn("h-4 w-4 text-zinc-400 transition shrink-0", open && "rotate-180")} />
+        </button>
+      </PopoverTrigger>
 
-      <AnimatePresence>
-        {open ? (
-          <>
-            <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              style={{ top: dropPos.top, left: dropPos.left, width: dropPos.width }}
-              className="fixed z-[9999] max-h-[380px] overflow-hidden rounded-xl border border-white/10 bg-slate-950/95 shadow-2xl"
-            >
-              <div className="border-b border-white/10 p-2">
-                <div className="flex items-center gap-2 rounded-lg bg-white/5 px-2 py-1.5 ring-1 ring-white/10">
-                  <Search className="h-3.5 w-3.5 text-zinc-400" />
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Search model")} className="w-full bg-transparent text-xs text-white placeholder:text-zinc-400 focus:outline-none" />
-                </div>
+      <PopoverContent
+        align="start"
+        side="bottom"
+        sideOffset={8}
+        collisionPadding={16}
+        className="z-[9999] p-0 rounded-2xl overflow-hidden border border-white/10 bg-[#090e1a]/95 backdrop-blur-2xl shadow-2xl w-[520px] max-w-[94vw]"
+      >
+        <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-white/10 bg-white/[0.02]">
+          <div className="flex items-center gap-2 rounded-lg bg-white/5 px-2.5 py-1.5 ring-1 ring-white/10 flex-1 mr-3">
+            <Search className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("Search model")}
+              className="w-full bg-transparent text-xs text-white placeholder:text-zinc-400 focus:outline-none"
+            />
+          </div>
+          <span className="text-[11px] text-zinc-400 font-mono shrink-0">
+            {filteredModels.length} {lang === "ar" ? "موديل" : "models"}
+          </span>
+        </div>
+
+        <div className="max-h-[380px] overflow-y-auto py-1 divide-y divide-white/[0.04]">
+          {modelGroups.map((group) => (
+            <div key={group.name} className="py-1">
+              <div className="px-3.5 py-1 flex items-center gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 font-mono">
+                  {group.name}
+                </span>
               </div>
-              <div className="max-h-[320px] overflow-y-auto divide-y divide-white/5">
-                {filteredModels.map((model) => (
+              {group.models.map((model) => {
+                const isSelected = selected.id === model.id;
+                return (
                   <button
                     key={model.id}
-                    onClick={() => { onSelect(model); setOpen(false); }}
-                    className={cn("flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-white/[0.07] transition-colors", selected.id === model.id && "bg-white/10")}
+                    type="button"
+                    onClick={() => {
+                      onSelect(model);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full flex-col gap-1.5 px-3.5 py-2 text-left hover:bg-white/[0.07] transition-colors group",
+                      isSelected && "bg-white/10"
+                    )}
                   >
-                    <div className="min-w-0 flex-1 flex items-center gap-2">
-                      <p className="truncate text-xs font-semibold text-zinc-100">{model.label}</p>
-                      {model.badge ? <span className="shrink-0 rounded-full bg-lime-300 px-1.5 py-0.5 text-[8px] font-black uppercase text-black">{model.badge}</span> : null}
+                    <div className="flex items-center justify-between gap-2 w-full">
+                      <div className="min-w-0 flex-1 flex items-center gap-2">
+                        <p className={cn("truncate text-xs font-semibold", isSelected ? "text-white" : "text-zinc-200 group-hover:text-white")}>
+                          {model.label}
+                        </p>
+                        {model.badge ? (
+                          <span className="shrink-0 rounded-full bg-lime-300 px-1.5 py-0.5 text-[8px] font-black uppercase text-black">
+                            {model.badge}
+                          </span>
+                        ) : null}
+                      </div>
+                      {isSelected ? <Check className="h-3.5 w-3.5 text-pink-400 shrink-0" /> : null}
                     </div>
-                    {selected.id === model.id ? <Check className="h-3.5 w-3.5 text-pink-400 shrink-0" /> : null}
+
+                    <ImageModelCapabilityBadges model={model} className="w-full" />
                   </button>
-                ))}
-              </div>
-            </motion.div>
-          </>
-        ) : null}
-      </AnimatePresence>
-    </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
+
 
 function UploadBox({ label, file, onFile, required = false, accept = "image/*" }: { label: string; file: File | null; onFile: (f: File | null) => void; required?: boolean; accept?: string }) {
   const { t, lang } = useImageTranslation();
