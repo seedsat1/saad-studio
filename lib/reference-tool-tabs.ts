@@ -45,7 +45,7 @@ export const REFERENCE_TOOL_TABS: ReferenceToolTab[] = [
   { id: "stock",      nameAr: "ستوك",       nameEn: "Stock",       icon: ImageIcon,    colorClass: "text-slate-400",   supportsImage: true,  supportsVideo: true },
   { id: "style",      nameAr: "ستايل",      nameEn: "Style",       icon: Sparkles,     colorClass: "text-indigo-400",  supportsImage: true,  supportsVideo: true },
   { id: "character",  nameAr: "شخصية",      nameEn: "Character",   icon: User,         colorClass: "text-emerald-400", supportsImage: true,  supportsVideo: true },
-  { id: "element",    nameAr: "عنصر",       nameEn: "Element",     icon: Package,      colorClass: "text-purple-400",  supportsImage: true,  supportsVideo: true },
+  { id: "element",    nameAr: "منتج",       nameEn: "Product",     icon: Package,      colorClass: "text-purple-400",  supportsImage: true,  supportsVideo: true },
   { id: "location",   nameAr: "موقع",       nameEn: "Location",    icon: MapPin,       colorClass: "text-pink-400",    supportsImage: true,  supportsVideo: true },
   { id: "color",      nameAr: "ألوان",      nameEn: "Color",       icon: Palette,      colorClass: "text-rose-400",    supportsImage: true,  supportsVideo: true },
   { id: "effects",    nameAr: "إفكت",       nameEn: "Effects",     icon: Wand2,        colorClass: "text-pink-300",    supportsImage: true,  supportsVideo: true },

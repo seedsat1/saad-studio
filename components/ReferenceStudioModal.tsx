@@ -806,7 +806,7 @@ export function ReferenceStudioModal({
   const submitNewElement = async () => {
     if (isSavingElem) return;
     setCreateElemError(null);
-    const name = newElemName.trim().slice(0, 80) || (isAr ? "عنصر بلا اسم" : "Untitled Element");
+    const name = newElemName.trim().slice(0, 80) || (isAr ? "منتج بلا اسم" : "Untitled Product");
     if (newElemPreviews.length === 0) {
       setCreateElemError(isAr ? "أرفع صورة مرجعية واحدة على الأقل" : "Upload at least one reference image");
       return;
@@ -881,7 +881,7 @@ export function ReferenceStudioModal({
   const deleteUserAsset = async (kind: "characters" | "elements" | "locations" | "effects" | "cameras" | "palettes", id: string) => {
     const labels = {
       characters: isAr ? "هذا الكاركتر" : "this character",
-      elements: isAr ? "هذا العنصر" : "this element",
+      elements: isAr ? "هذا المنتج" : "this product",
       locations: isAr ? "هذا الموقع" : "this location",
       effects: isAr ? "هذا الإفكت" : "this effect",
       cameras: isAr ? "هذه اللقطة" : "this camera",
@@ -1295,7 +1295,7 @@ export function ReferenceStudioModal({
               >
                 <div className="flex items-center gap-3">
                   <Package className="w-4 h-4 text-purple-400" />
-                  <span>Element</span>
+                  <span>Product</span>
                 </div>
               </button>
 
@@ -1967,7 +1967,7 @@ export function ReferenceStudioModal({
                           </div>
                         )}
                         <div className="absolute top-2 left-2 bg-purple-600/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow z-10">
-                          {isAr ? "عنصر خاص" : "My Element"}
+                          {isAr ? "منتج خاص" : "My Product"}
                         </div>
                         {isSelected && (
                           <div className="absolute top-2 right-2 bg-purple-500 text-white rounded-full p-1 shadow">
@@ -1978,7 +1978,7 @@ export function ReferenceStudioModal({
                           type="button"
                           onClick={(e) => { e.stopPropagation(); deleteUserAsset("elements", ue.id); }}
                           className="absolute bottom-2 right-2 bg-black/70 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                          title={isAr ? "حذف العنصر" : "Delete element"}
+                          title={isAr ? "حذف المنتج" : "Delete product"}
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -3390,11 +3390,11 @@ export function ReferenceStudioModal({
               <div className="space-y-4 overflow-y-auto pr-1">
                 <div>
                   <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest block">
-                    {isAr ? "إنشاء عنصر جديد" : "Create New Element"}
+                    {isAr ? "إضافة منتج جديد" : "Add New Product"}
                   </span>
                   <p className="text-xs text-slate-400 leading-relaxed mt-1">
                     {isAr
-                      ? "ارفع صور منتجك أو عنصرك المميز. سيُحفظ في مكتبتك الخاصة ويُستخدم مرجعاً في التوليدات."
+                      ? "ارفع صور منتجك. سيُحفظ في مكتبتك الخاصة ويُستخدم مرجعاً في التوليدات."
                       : "Upload photos of your product or unique prop. Saved to your library and used as a reference in generations."}
                   </p>
                 </div>
@@ -3491,7 +3491,7 @@ export function ReferenceStudioModal({
                   ) : (
                     <>
                       <Plus className="w-4 h-4" />
-                      <span>{isAr ? "حفظ العنصر" : "Save Element"}</span>
+                      <span>{isAr ? "حفظ المنتج" : "Save Product"}</span>
                     </>
                   )}
                 </button>
