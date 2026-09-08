@@ -11,6 +11,7 @@ import {
   AlertCircle,
   ShieldAlert,
 } from "lucide-react";
+import { SAAD_PLANS } from "@/lib/pricing-models";
 
 /**
  * Re-send a subscription receipt to one subscriber.
@@ -34,8 +35,22 @@ function isoDay(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * The same annual price the checkout uses — see app/api/stripe/route.ts,
+ * app/api/payments/zaincash/init/route.ts and app/api/webhook/route.ts. Kept
+ * identical on purpose so a receipt states what the subscriber was charged.
+ */
+function priceFor(plan: (typeof SAAD_PLANS)[number], cycle: Cycle): number {
+  return cycle === "annual"
+    ? Math.round(plan.monthlyUsd * 12 * (1 - plan.annualDiscount / 100))
+    : plan.monthlyUsd;
+}
+
+const MANUAL = "__manual__";
+
 export default function AdminInvoicePage() {
   const [to, setTo] = useState("");
+  const [planId, setPlanId] = useState<string>(MANUAL);
   const [displayPlan, setDisplayPlan] = useState("");
   const [amount, setAmount] = useState("");
   const [credits, setCredits] = useState("");
@@ -71,6 +86,22 @@ export default function AdminInvoicePage() {
     }),
     [to, displayPlan, amount, credits, method, orderId, billingCycle, startsAt, endsAt],
   );
+
+  // Fills the receipt fields from a plan. Nothing is locked — the admin can
+  // override anything afterwards, which matters when someone paid a one-off or
+  // a legacy price.
+  const applyPlan = (plan: (typeof SAAD_PLANS)[number], cycle: Cycle) => {
+    setDisplayPlan(`${plan.name} ${cycle === "annual" ? "Annual" : "Monthly"}`);
+    setAmount(String(priceFor(plan, cycle)));
+    setCredits(String(plan.credits));
+  };
+
+  const chooseCycle = (cycle: Cycle) => {
+    setBillingCycle(cycle);
+    setPreviewHtml(null);
+    const plan = SAAD_PLANS.find((p) => p.id === planId);
+    if (plan) applyPlan(plan, cycle);
+  };
 
   const call = async (preview: boolean) => {
     setError(null);
@@ -134,8 +165,37 @@ export default function AdminInvoicePage() {
 
             <div>
               <label className={LABEL}>Subscription type *</label>
-              <input className={FIELD} value={displayPlan} placeholder="Pro Annual"
-                onChange={(e) => { setDisplayPlan(e.target.value); setPreviewHtml(null); }} />
+              <select
+                className={FIELD}
+                value={planId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setPlanId(id);
+                  setPreviewHtml(null);
+                  const plan = SAAD_PLANS.find((p) => p.id === id);
+                  if (!plan) return;
+                  // prefill from the plan; every field stays editable afterwards
+                  applyPlan(plan, billingCycle);
+                }}
+              >
+                {SAAD_PLANS.map((p) => (
+                  <option key={p.id} value={p.id} className="bg-zinc-900">
+                    {p.name} — ${p.monthlyUsd}/mo · {p.credits} credits
+                    {p.annualDiscount > 0 ? ` · ${p.annualDiscount}% off annual` : ""}
+                  </option>
+                ))}
+                <option value={MANUAL} className="bg-zinc-900">Manual — type it myself</option>
+              </select>
+
+              {planId === MANUAL ? (
+                <input className={`${FIELD} mt-2`} value={displayPlan} placeholder="Pro Annual"
+                  onChange={(e) => { setDisplayPlan(e.target.value); setPreviewHtml(null); }} />
+              ) : (
+                <p className="mt-1.5 text-[11px] text-zinc-500">
+                  Shown on the receipt as “{displayPlan || "—"}”. Amount and credits were filled from
+                  the plan — edit any of them if this subscriber paid something different.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -159,7 +219,7 @@ export default function AdminInvoicePage() {
               <div className="flex gap-2">
                 {(["monthly", "annual"] as Cycle[]).map((c) => (
                   <button key={c} type="button"
-                    onClick={() => { setBillingCycle(c); setPreviewHtml(null); }}
+                    onClick={() => chooseCycle(c)}
                     className={`flex-1 rounded-xl border px-3 py-2 text-xs font-bold capitalize transition ${
                       billingCycle === c
                         ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
