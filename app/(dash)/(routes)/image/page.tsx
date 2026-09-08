@@ -1556,25 +1556,23 @@ export default function ImageWorkspacePage() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
+  // Refetchable: a character created inside the Reference Studio would otherwise
+  // never appear here, so selectedCharacter would stay null and the picked
+  // character would show no chip at all.
+  const refreshCharacters = useCallback(async () => {
     if (isAuthLoaded && !isSignedIn) return;
-    let cancelled = false;
-    const loadCharacters = async () => {
-      try {
-        const res = await fetch("/api/characters", { cache: "no-store" });
-        const data = await res.json().catch(() => null);
-        if (!cancelled && res.ok && Array.isArray(data?.characters)) {
-          setCharacters(data.characters);
-        }
-      } catch {
-        if (!cancelled) setCharacters([]);
-      }
-    };
-    void loadCharacters();
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const res = await fetch("/api/characters", { cache: "no-store" });
+      const data = await res.json().catch(() => null);
+      if (res.ok && Array.isArray(data?.characters)) setCharacters(data.characters);
+    } catch {
+      setCharacters([]);
+    }
   }, [isAuthLoaded, isSignedIn]);
+
+  useEffect(() => {
+    void refreshCharacters();
+  }, [refreshCharacters]);
 
   const loadPersistedImages = useCallback(async (nextPage = 0, mode: "replace" | "append" = "replace", overrideProfileId?: string) => {
     if (isAuthLoaded && !isSignedIn) return;
@@ -2992,7 +2990,11 @@ export default function ImageWorkspacePage() {
         {/* Unified Reference Studio Modal */}
         <ReferenceStudioModal
           isOpen={showReferenceStudioModal}
-          onClose={() => setShowReferenceStudioModal(false)}
+          onClose={() => {
+            setShowReferenceStudioModal(false);
+            // picks up characters created or deleted while the studio was open
+            void refreshCharacters();
+          }}
           activeTab={activeStudioTab}
           setActiveTab={setActiveStudioTab}
           selectedStyle={selectedStyle}

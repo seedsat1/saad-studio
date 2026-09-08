@@ -952,7 +952,11 @@ export function ReferenceStudioModal({
       setNewCharName("");
       setNewCharPreviews([]);
       onSelectCharacter?.(created.id);
-      if (created.coverUrl && onAttachFile) {
+      // Same guard as picking an existing character: under Character Package the
+      // caller attaches every referenceUrl at generation time, so attaching the
+      // cover here would land the new character in the reference strip as a plain
+      // image instead of showing as the selected character.
+      if (created.coverUrl && onAttachFile && !useCharacterPackage) {
         onAttachFile({
           id: `char-${created.id}`,
           url: created.coverUrl,
