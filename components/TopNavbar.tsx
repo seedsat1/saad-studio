@@ -1124,7 +1124,7 @@ const TopNavbar = () => {
 
           <Logo />
 
-          <div className="hidden 2xl:flex items-center flex-1 justify-center min-w-0">
+          <div className="hidden xl:flex items-center flex-1 justify-center min-w-0">
             <div className="flex items-center gap-0">
               {/* Explore */}
               <Link
@@ -1356,7 +1356,8 @@ const TopNavbar = () => {
                     )}
                   >
                     <link.icon className={cn("h-3 w-3 shrink-0", link.color)} />
-                    <span className="hidden xl:inline">{getTranslation(link.label, lang)}</span>
+                    {/* labels only from 2xl; 1280-1399 shows icons alone so the row fits */}
+                    <span className="hidden 2xl:inline">{getTranslation(link.label, lang)}</span>
                   </Link>
                 ))}
               </div>
