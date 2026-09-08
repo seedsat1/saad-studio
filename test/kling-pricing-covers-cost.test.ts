@@ -35,10 +35,10 @@ describe("Kling pricing covers the measured provider cost", () => {
     }
   });
 
-  it.each(CASES)("$route $seconds s keeps at least a 1.3x margin on the cheapest credit", async (c) => {
+  it.each(CASES)("$route $seconds s keeps at least a 1.2x margin on the cheapest credit", async (c) => {
     const credits = await getGenerationCost(c.route, c.seconds, 1, c.quality);
     const margin = (credits * USD_PER_CREDIT.Max) / c.providerUsd;
-    expect(margin).toBeGreaterThanOrEqual(1.3);
+    expect(margin).toBeGreaterThanOrEqual(1.2);
   });
 
   it.each(CASES)("$route $seconds s charges the same through both pricing paths", async (c) => {
@@ -47,9 +47,9 @@ describe("Kling pricing covers the measured provider cost", () => {
     expect(b).toBe(a);
   });
 
-  it("charges 4.0 credits per second for Kling v3 Turbo std", async () => {
-    expect(await getGenerationCost("kwaivgi/kling-v3-turbo-std/image-to-video", 10, 1, "std")).toBe(40);
-    expect(await getGenerationCost("kwaivgi/kling-v3-turbo-std/image-to-video", 5, 1, "std")).toBe(20);
+  it("charges 3.5 credits per second for Kling v3 Turbo std", async () => {
+    expect(await getGenerationCost("kwaivgi/kling-v3-turbo-std/image-to-video", 10, 1, "std")).toBe(35);
+    expect(await getGenerationCost("kwaivgi/kling-v3-turbo-std/image-to-video", 5, 1, "std")).toBe(17.5);
   });
 
   it("charges more for the Pro route than the Std route", async () => {

@@ -912,7 +912,7 @@ function resolveModelUserCharge(
   if (constitutionId === "kling_v3_turbo") {
     const isPro = modelRef.includes("-pro") || (quality || "").toLowerCase().includes("pro");
     // Std provider cost is a measured $0.1064/s; below 2.90 cr/s this model sells at a loss.
-    const rate = isPro ? 5.0 : 4.0;
+    const rate = isPro ? 4.4 : 3.5;
     return parseFloat((rate * durationSec * numUnits).toFixed(2));
   }
 

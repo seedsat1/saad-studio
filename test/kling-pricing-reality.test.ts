@@ -56,15 +56,15 @@ describe('Kling 3.0 & Turbo Pricing Reality & Margin Contract', () => {
     // The $0.02128/s this test used to assume was five times under the real price.
     // Three WaveSpeed invoices measure Std at $0.1064/s (10s=$1.064, 15s=$1.596,
     // 10s=$1.064), so 1.19 cr/s sold every generation below cost. Std is now
-    // 4.0 cr/s and Pro 5.0 cr/s, which clears cost on every plan.
+    // 3.5 cr/s and Pro 4.4 cr/s, which clears cost on every plan.
     const cost5sTurbo = getGenerationCostSync('kling_v3_turbo', 5, 1);
-    expect(cost5sTurbo).toBe(20);
+    expect(cost5sTurbo).toBe(17.5);
 
     const creditTurboStd = getVideoCreditsByRoute('kwaivgi/kling-v3-turbo-std/image-to-video', { duration: 5 });
-    expect(creditTurboStd).toBe(20);
+    expect(creditTurboStd).toBe(17.5);
 
     const creditTurboPro = getVideoCreditsByRoute('kwaivgi/kling-v3-turbo-pro/image-to-video', { duration: 5 });
-    expect(creditTurboPro).toBe(25);
+    expect(creditTurboPro).toBe(22);
   });
 
   it('6. verifies WaveSpeed provider operating cost tariff estimation for Kling 3.0', () => {
