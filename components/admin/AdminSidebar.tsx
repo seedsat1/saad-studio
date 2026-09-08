@@ -34,6 +34,7 @@ import {
   PhoneCall,
   FileCode,
   Megaphone,
+  ReceiptText,
   Mail,
   Share2,
   FlaskConical,
@@ -126,6 +127,11 @@ export const ADMIN_NAV_CONFIG: NavGroup[] = [
         label: "Subscriber Messages",
         href: "/admin/broadcast",
         icon: Megaphone,
+      },
+      {
+        label: "Send Receipt",
+        href: "/admin/invoice",
+        icon: ReceiptText,
       },
       {
         label: "Newsletter Hub",
