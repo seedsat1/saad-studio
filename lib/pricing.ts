@@ -826,12 +826,12 @@ const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "kwaivgi/kling-video-o3-pro/text-to-video":     { "4k": 5.0, "pro": 4/3, "std": 1.0 },
   "kwaivgi/kling-video-o3-pro/image-to-video":    { "4k": 5.0, "pro": 4/3, "std": 1.0 },
   "kling-video-o3":                             { "4k": 5.0, "pro": 4/3, "std": 1.0 },
-  "kling-2.6/video":                            { "pro": 1.6, "std": 1.0 },
-  "kling-2.6/image-to-video":                   { "pro": 1.6, "std": 1.0 },
-  "kwaivgi/kling-v2.6-pro/text-to-video":       { "pro": 1.6, "std": 1.0 },
-  "kwaivgi/kling-v2.6-pro/image-to-video":      { "pro": 1.6, "std": 1.0 },
-  "kwaivgi/kling-v2.6-std/text-to-video":       { "pro": 1.6, "std": 1.0 },
-  "kwaivgi/kling-v2.6-std/image-to-video":      { "pro": 1.6, "std": 1.0 },
+  "kling-2.6/video":                            { "pro": 2.0, "std": 1.0 },
+  "kling-2.6/image-to-video":                   { "pro": 2.0, "std": 1.0 },
+  "kwaivgi/kling-v2.6-pro/text-to-video":       { "pro": 2.0, "std": 1.0 },
+  "kwaivgi/kling-v2.6-pro/image-to-video":      { "pro": 2.0, "std": 1.0 },
+  "kwaivgi/kling-v2.6-std/text-to-video":       { "pro": 2.0, "std": 1.0 },
+  "kwaivgi/kling-v2.6-std/image-to-video":      { "pro": 2.0, "std": 1.0 },
 };
 
 function qualityMultiplierForModel(modelRef: string, quality: string | null | undefined): number {
@@ -911,7 +911,8 @@ function resolveModelUserCharge(
 
   if (constitutionId === "kling_v3_turbo") {
     const isPro = modelRef.includes("-pro") || (quality || "").toLowerCase().includes("pro");
-    const rate = isPro ? 1.49 : 1.19;
+    // Std provider cost is a measured $0.1064/s; below 2.90 cr/s this model sells at a loss.
+    const rate = isPro ? 5.0 : 4.0;
     return parseFloat((rate * durationSec * numUnits).toFixed(2));
   }
 

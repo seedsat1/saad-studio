@@ -617,12 +617,12 @@ function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPaylo
     modelRoute === "kwaivgi/kling-v3-turbo-pro/text-to-video"
   ) {
     const duration = readDuration(payload, 5);
-    const perSecond = modelRoute.includes("-pro/") ? 1.49 : 1.19;
+    const perSecond = modelRoute.includes("-pro/") ? 5.0 : 4.0;
     return parseFloat((duration * perSecond).toFixed(2));
   }
   if (modelRoute.includes("kling/v3-turbo") || modelRoute === "kling-v3-turbo") {
     const duration = readDuration(payload, 5);
-    return applySoundMultiplier(parseFloat((duration * 1.19).toFixed(2)), payload);
+    return applySoundMultiplier(parseFloat((duration * 4.0).toFixed(2)), payload);
   }
   if (modelRoute === "kwaivgi/kling-v3.0-std/text-to-video") {
     return getKling30StdCredits(payload);
