@@ -597,7 +597,6 @@ export async function GET(req: NextRequest) {
           cost: row.cost,
           isFavorite: Boolean(row.isFavorite),
           providerRequestId: row.providerRequestId ?? undefined,
-          startImageUrl,
           endImageUrl,
           referenceImageUrls,
           referenceVideoUrls,

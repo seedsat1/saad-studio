@@ -916,6 +916,8 @@ function resolveModelUserCharge(
   }
 
   if (constitutionId === "minimax_h3") {
+    // Same normalisation the provider-USD helper uses, so both agree on the tier.
+    const q = (quality || "768p").trim().toLowerCase();
     const isHighRes = q.includes("2k") || q.includes("1080");
     const usdPerSec = isHighRes ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"];
     return parseFloat((usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
