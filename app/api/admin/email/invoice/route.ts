@@ -14,6 +14,8 @@ type InvoiceBody = {
   startsAt?: string | null;
   endsAt?: string | null;
   method?: string | null;
+  /** Optional override; blank means look the name up from the account. */
+  customerName?: string | null;
   billingCycle?: "monthly" | "annual";
   preview?: boolean;
 };
@@ -47,6 +49,7 @@ function buildParams(body: InvoiceBody): { ok: true; params: InvoiceParams } | {
 
   const credits = Math.max(0, Math.floor(Number(body.credits ?? 0)));
   const method = body.method ? String(body.method).trim() : null;
+  const customerName = String(body.customerName ?? "").trim() || null;
 
   const now = new Date();
   const isAnnual = body.billingCycle === "annual" || displayPlan.toLowerCase().includes("annual");
@@ -56,7 +59,7 @@ function buildParams(body: InvoiceBody): { ok: true; params: InvoiceParams } | {
 
   return {
     ok: true,
-    params: { to, orderId, displayPlan, amount, credits, startsAt, endsAt, method },
+    params: { to, orderId, displayPlan, amount, credits, startsAt, endsAt, method, customerName },
   };
 }
 

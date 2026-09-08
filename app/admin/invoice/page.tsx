@@ -50,6 +50,7 @@ const MANUAL = "__manual__";
 
 export default function AdminInvoicePage() {
   const [to, setTo] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [planId, setPlanId] = useState<string>(MANUAL);
   const [displayPlan, setDisplayPlan] = useState("");
   const [amount, setAmount] = useState("");
@@ -75,6 +76,7 @@ export default function AdminInvoicePage() {
   const payload = useMemo(
     () => ({
       to: to.trim(),
+      customerName: customerName.trim() || null,
       displayPlan: displayPlan.trim(),
       amount: Number(amount),
       credits: credits.trim() ? Number(credits) : 0,
@@ -84,7 +86,7 @@ export default function AdminInvoicePage() {
       startsAt: startsAt || null,
       endsAt: endsAt || null,
     }),
-    [to, displayPlan, amount, credits, method, orderId, billingCycle, startsAt, endsAt],
+    [to, customerName, displayPlan, amount, credits, method, orderId, billingCycle, startsAt, endsAt],
   );
 
   // Fills the receipt fields from a plan. Nothing is locked — the admin can
@@ -161,6 +163,15 @@ export default function AdminInvoicePage() {
               {to.trim() && !emailLooksValid && (
                 <p className="mt-1 text-[11px] text-rose-400">Enter a valid email address</p>
               )}
+            </div>
+
+            <div>
+              <label className={LABEL}>Subscriber name</label>
+              <input className={FIELD} type="text" value={customerName} placeholder="Leave blank to use the name on the account"
+                onChange={(e) => { setCustomerName(e.target.value); setPreviewHtml(null); }} />
+              <p className="mt-1 text-[11px] text-white/40">
+                Blank looks the name up from the account with this email. Type one to override it.
+              </p>
             </div>
 
             <div>

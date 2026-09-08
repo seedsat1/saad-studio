@@ -9,7 +9,28 @@ export type InvoiceParams = {
   startsAt: Date;
   endsAt: Date;
   method?: string | null;
+  /**
+   * Who the receipt is billed to. Left out, it is looked up from the account
+   * with this email, so the webhook and the transaction-approval flows show a
+   * name without either of them having to pass one.
+   */
+  customerName?: string | null;
 };
+
+/** Never throws and never blocks a receipt: no name simply means none is shown. */
+async function resolveCustomerName(params: InvoiceParams): Promise<string | null> {
+  const explicit = String(params.customerName ?? "").trim();
+  if (explicit) return explicit;
+  const email = String(params.to ?? "").trim().toLowerCase();
+  if (!email) return null;
+  return prismadb.user
+    .findUnique({ where: { email }, select: { name: true } })
+    .then((u) => {
+      const n = String(u?.name ?? "").trim();
+      return n || null;
+    })
+    .catch(() => null);
+}
 
 function escapeHtml(value: string): string {
   return String(value ?? "")
@@ -79,6 +100,9 @@ export function buildInvoiceText(params: InvoiceParams): string {
     `Receipt from Saad Studio\n` +
     `إيصال من Saad Studio\n\n` +
     `Receipt No. ${params.orderId}\n\n` +
+    (params.customerName
+      ? `Billed to / المشترك: ${params.customerName} <${params.to}>\n\n`
+      : `Billed to / المشترك: ${params.to}\n\n`) +
     `Amount paid: US$${amountFmt}\n` +
     `Date paid:   ${issuedHuman}\n` +
     `Method:      ${methodLabel}\n\n` +
@@ -99,6 +123,7 @@ export function buildInvoiceText(params: InvoiceParams): string {
 export async function buildInvoiceHtml(params: InvoiceParams): Promise<string> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app";
   const logoSrc = await resolveLogoSrc(siteUrl);
+  const customerName = await resolveCustomerName(params);
   const issuedAt = new Date();
   const issuedHuman = issuedAt.toLocaleString("en-US", {
     month: "short",
@@ -155,6 +180,18 @@ export async function buildInvoiceHtml(params: InvoiceParams): Promise<string> {
             <div style="color:#1a1f36;font-size:22px;font-weight:600;letter-spacing:-.2px">Receipt from Saad Studio</div>
             <div dir="rtl" style="color:#1a1f36;font-size:18px;font-weight:600;margin-top:6px">إيصال من Saad Studio</div>
             <div style="color:#7c3aed;font-size:13px;font-weight:500;margin-top:14px;font-family:'SF Mono',Consolas,Menlo,monospace">Receipt No. ${escapeHtml(params.orderId)}</div>
+          </td>
+        </tr>
+
+        <!-- Billed to -->
+        <tr>
+          <td style="padding:24px 32px 0">
+            <div style="${labelEn}">Billed To</div>
+            <div dir="rtl" style="${labelAr};text-align:left">المشترك</div>
+            ${customerName
+              ? `<div style="color:#1a1f36;font-size:15px;font-weight:600;margin-top:8px">${escapeHtml(customerName)}</div>
+            <div style="color:#697386;font-size:13px;margin-top:2px">${escapeHtml(params.to)}</div>`
+              : `<div style="color:#1a1f36;font-size:15px;font-weight:600;margin-top:8px">${escapeHtml(params.to)}</div>`}
           </td>
         </tr>
 
@@ -327,8 +364,10 @@ export async function sendInvoiceEmail(
   }
 
   const subject = buildInvoiceSubject(params.orderId);
-  const text = buildInvoiceText(params);
-  const html = await buildInvoiceHtml(params);
+  // Resolved once here so the plain-text and HTML parts name the same person.
+  const named: InvoiceParams = { ...params, customerName: await resolveCustomerName(params) };
+  const text = buildInvoiceText(named);
+  const html = await buildInvoiceHtml(named);
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
