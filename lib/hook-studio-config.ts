@@ -458,7 +458,7 @@ export interface HookStylePreset {
 }
 
 export const HOOK_STYLES: HookStylePreset[] = [
-  // ── DESIGN CATEGORY ──
+  // ── NEWEST — trending styles lead the picker ──
   {
     id: "eighties",
     nameAr: "الثمانينات",
@@ -467,6 +467,15 @@ export const HOOK_STYLES: HookStylePreset[] = [
     category: "design",
     systemPromptAddon: "Authentic 1980s portrait photograph. Big voluminous feathered hair, acid-wash denim, a bright windbreaker or varsity jacket, chunky gold jewellery and oversized frames. Shot in a shopping-mall portrait studio on expired 35mm film: soft frontal key with a hair light, mottled blue-grey studio backdrop, warm magenta colour cast, slight halation around highlights, visible film grain and the soft focus of a period lens."
   },
+  {
+    id: "papercraft",
+    nameAr: "نحت ورقي",
+    nameEn: "#papercraft",
+    imageUrl: "/api/media/reference-thumbnails/papercraft.webp",
+    category: "3d",
+    systemPromptAddon: "Low-poly papercraft sculpture. Every subject is built from folded matte cardstock: flat faceted planes meeting at crisp creases, visible fold lines and cut edges, small shadows where sheets overlap, no smooth or organic curves anywhere. Set against a layered paper backdrop of cut circles and pleated paper fans, soft diffused studio light raking across the folds, shallow depth of field, delicate handmade paper-diorama craft.",
+  },
+  // ── DESIGN CATEGORY ──
   {
     id: "photorealistic",
     nameAr: "تصوير واقعي",
