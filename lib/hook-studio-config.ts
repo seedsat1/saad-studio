@@ -465,7 +465,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     nameEn: "#1980s",
     imageUrl: "/api/media/reference-thumbnails/eighties.webp",
     category: "design",
-    systemPromptAddon: "Authentic 1980s portrait photograph. Big voluminous feathered hair, acid-wash denim, a bright windbreaker or varsity jacket, chunky gold jewellery and oversized frames. Shot in a shopping-mall portrait studio on expired 35mm film: soft frontal key with a hair light, mottled blue-grey studio backdrop, warm magenta colour cast, slight halation around highlights, visible film grain and the soft focus of a period lens."
+    systemPromptAddon: "1980s photographic treatment: expired 35mm film stock with a warm magenta cast, soft frontal key plus a hair light, gentle halation on the highlights, heavy period grain and the soft focus of a period lens. Era styling — voluminous hair, bright windbreakers, acid-wash denim, chunky gold — only as far as the subject's own wardrobe and hair allow. If a face, character or photo is attached, keep its identity, features, hairline and skin tone exactly as given: apply the era to the photograph, never replace the person. Add a mottled blue-grey portrait-studio backdrop only when the frame has no setting of its own."
   },
   {
     id: "papercraft",
@@ -473,7 +473,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     nameEn: "#papercraft",
     imageUrl: "/api/media/reference-thumbnails/papercraft.webp",
     category: "3d",
-    systemPromptAddon: "Low-poly papercraft sculpture. Every subject is built from folded matte cardstock: flat faceted planes meeting at crisp creases, visible fold lines and cut edges, small shadows where sheets overlap, no smooth or organic curves anywhere. Set against a layered paper backdrop of cut circles and pleated paper fans, soft diffused studio light raking across the folds, shallow depth of field, delicate handmade paper-diorama craft.",
+    systemPromptAddon: "Low-poly papercraft treatment: render the scene as folded matte cardstock — flat faceted planes meeting at crisp creases, visible fold lines and cut edges, small shadows where sheets overlap, no smooth or organic curves anywhere. Soft diffused light raking across the folds, shallow depth of field, handmade paper-diorama craft. Rebuild whatever is already in the frame out of paper, keeping the subject's proportions, pose and recognisable features; add a layered cut-paper backdrop only when the frame has no setting of its own.",
   },
   // ── DESIGN CATEGORY ──
   {
