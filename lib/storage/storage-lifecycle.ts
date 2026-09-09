@@ -10,6 +10,7 @@ export type MediaOwnershipClass =
   | "PAYMENT_PROOF"
   | "AD_CAMPAIGN_MEDIA"
   | "CMS_SITE_ASSET"
+  | "USER_LIBRARY_ASSET"
   | "ACTIVE_IN_FLIGHT_JOB"
   | "TEMPORARY_STAGING"
   | "ORPHAN_CANDIDATE";
@@ -35,6 +36,60 @@ export type StorageLifecycleSummary = {
   dryRun: boolean;
   items: MediaAssetCandidate[];
 };
+
+// UserPalette is deliberately absent: it stores colour values, not media, so it
+// has no coverUrl/referenceUrls columns and including it made the whole UNION
+// fail — which silently classified every character photo as an orphan.
+const USER_LIBRARY_TABLES = [
+  "UserCharacter",
+  "UserElement",
+  "UserLocation",
+  "UserEffect",
+  "UserCamera",
+] as const;
+
+const USER_LIBRARY_CACHE_MS = 60_000;
+let userLibraryCache: { at: number; entries: Array<{ owner: string; media: string[] }> } | null = null;
+
+/**
+ * Every media path the subscriber's own libraries point at, loaded once and
+ * held briefly. This is consulted per candidate file during a cleanup sweep,
+ * and a query per candidate against a remote database is far too slow — a
+ * fifty-file batch timed out. Freshly uploaded files are covered separately by
+ * the 24-hour grace period, so a short cache cannot expose them.
+ */
+async function loadUserLibraryMedia() {
+  if (userLibraryCache && Date.now() - userLibraryCache.at < USER_LIBRARY_CACHE_MS) {
+    return userLibraryCache.entries;
+  }
+  // Table names come from the constant list above, never from input.
+  const union = USER_LIBRARY_TABLES.map(
+    (t) => `SELECT '${t}' AS "table", "id", "name", "coverUrl", "referenceUrls"::text AS "refs" FROM "${t}"`,
+  ).join(" UNION ALL ");
+
+  const rows = await prismadb
+    .$queryRawUnsafe<Array<{ table: string; id: string; name: string; coverUrl: string | null; refs: string | null }>>(union)
+    .catch(() => [] as Array<{ table: string; id: string; name: string; coverUrl: string | null; refs: string | null }>);
+
+  const entries = rows.map((r) => ({
+    owner: `${r.table}:${r.id} (${r.name})`,
+    media: [r.coverUrl ?? "", r.refs ?? ""].filter(Boolean),
+  }));
+  userLibraryCache = { at: Date.now(), entries };
+  return entries;
+}
+
+/** Returns the owning library row for a media path, or null. */
+async function findUserLibraryOwner(cleanPath: string, searchPattern: string): Promise<string | null> {
+  const segments = cleanPath.split("/").filter(Boolean);
+  // "1.webp" alone matches almost any character; the last two segments
+  // ("<characterId>/1.webp") identify one.
+  const key = segments.length >= 2 ? segments.slice(-2).join("/") : searchPattern;
+  if (!key) return null;
+  const entries = await loadUserLibraryMedia();
+  const hit = entries.find((e) => e.media.some((m) => m.includes(key)));
+  return hit ? hit.owner : null;
+}
 
 /**
  * Checks across all database models to determine if a media path or URL is actively referenced.
@@ -138,7 +193,22 @@ export async function isMediaObjectReferencedInDatabase(mediaPathOrUrl: string):
     }
   }
 
-  // 5. CMS, Site Settings
+  // 5. Reference libraries the subscriber built and owns. Without this, a
+  //    character's uploaded photos read as orphans: nothing in Generation
+  //    points at them, because they are inputs the subscriber keeps, not
+  //    outputs of any one job. Deleting them breaks the character forever.
+  {
+    const owner = await findUserLibraryOwner(cleanPath, searchPattern);
+    if (owner) {
+      return {
+        referenced: true,
+        ownershipClass: "USER_LIBRARY_ASSET",
+        ownerDetail: owner,
+      };
+    }
+  }
+
+  // 6. CMS, Site Settings
   if (prismadb.siteSetting?.findFirst) {
     const siteSetting = await prismadb.siteSetting.findFirst({
       where: { logoUrl: { contains: searchPattern } },
