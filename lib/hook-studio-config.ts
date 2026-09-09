@@ -465,7 +465,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     nameEn: "#1980s",
     imageUrl: "/api/media/reference-thumbnails/eighties.webp",
     category: "design",
-    systemPromptAddon: "1980s photographic treatment: expired 35mm film stock with a warm magenta cast, soft frontal key plus a hair light, gentle halation on the highlights, heavy period grain and the soft focus of a period lens. Era styling — voluminous hair, bright windbreakers, acid-wash denim, chunky gold — only as far as the subject's own wardrobe and hair allow. If a face, character or photo is attached, keep its identity, features, hairline and skin tone exactly as given: apply the era to the photograph, never replace the person. Add a mottled blue-grey portrait-studio backdrop only when the frame has no setting of its own."
+    systemPromptAddon: "Show the attached person as they would have looked around 1985. Preserve their identity, facial features, skin tone, age and recognizable appearance. Reimagine their hair, clothing, accessories and surroundings with bold, unmistakably mid-1980s styling — expressive silhouettes, statement accessories, layered details, distinctive colours and textures. Make it feel like a genuine 1985 photograph with analog grain, faded colour, direct flash and subtle softness. Add a period-accurate 1980s red-orange date stamp in the lower corner. No modern objects, and no text other than that date stamp."
   },
   {
     id: "papercraft",
