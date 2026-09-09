@@ -2725,8 +2725,10 @@ export default function ImageWorkspacePage() {
 
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="pointer-events-none absolute inset-0" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
-          {/* overflow-hidden clips the panel while it sits below the fold, so it cannot bleed over the composer. */}
-          <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
+          {/* overflow-clip keeps the waiting panel off-screen. Not overflow-hidden:
+              that still allows programmatic scrolling, and one scrollIntoView inside
+              the panel shifted this column 34px with no scrollbar to undo it. */}
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-clip">
             <div className="min-h-0 flex-1 overflow-y-auto p-4">{error ? <div className="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div> : null}{renderWorkspace()}</div>
             <PresetSlideOver
               open={showStyleLibrary}

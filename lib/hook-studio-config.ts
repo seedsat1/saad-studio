@@ -834,6 +834,14 @@ export const HOOK_STYLES: HookStylePreset[] = [
     systemPromptAddon: "Aurora gradient aesthetic, flowing northern-lights ribbons of green teal violet and pink light, soft blurred luminous mesh gradients over a deep dark sky."
   },
   {
+    id: "eighties",
+    nameAr: "الثمانينات",
+    nameEn: "#1980s",
+    imageUrl: "/api/media/reference-thumbnails/eighties.webp",
+    category: "design",
+    systemPromptAddon: "Authentic 1980s portrait photograph. Big voluminous feathered hair, acid-wash denim, a bright windbreaker or varsity jacket, chunky gold jewellery and oversized frames. Shot in a shopping-mall portrait studio on expired 35mm film: soft frontal key with a hair light, mottled blue-grey studio backdrop, warm magenta colour cast, slight halation around highlights, visible film grain and the soft focus of a period lens."
+  },
+  {
     id: "retro",
     nameAr: "ريترو سبعينات",
     nameEn: "#retro",
