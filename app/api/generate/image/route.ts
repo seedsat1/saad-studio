@@ -768,6 +768,7 @@ export async function POST(req: NextRequest) {
     }
 
     const resolvedRefs: string[] = [];
+    const unreachableRefs: string[] = [];
     for (const ref of refUrls) {
       try {
         await checkStoryboardReferenceImageSafety(ref);
@@ -775,8 +776,25 @@ export async function POST(req: NextRequest) {
         await verifyPublicMediaUrl(resolved, "reference_image");
         resolvedRefs.push(resolved);
       } catch (err) {
+        unreachableRefs.push(ref);
         console.warn(`[image generation] Reference image failed verification/resolution, skipping unreachable reference: ${ref}`, err);
       }
+    }
+
+    // Every reference the caller attached failed to load. Silently generating
+    // anyway spends the credits and hands back a stranger's face — which is
+    // exactly what a character whose stored file has gone missing looks like.
+    if (refUrls.length > 0 && resolvedRefs.length === 0) {
+      return NextResponse.json(
+        {
+          error: `None of the ${refUrls.length} attached reference image${refUrls.length === 1 ? "" : "s"} could be loaded from storage.`,
+          publicError:
+            "تعذّر تحميل الصور المرجعية المرفقة — قد تكون صور الشخصية محذوفة من التخزين. أعد رفع الشخصية ثم حاول مرة أخرى.",
+          code: "references_unreachable",
+          unreachableCount: unreachableRefs.length,
+        },
+        { status: 400 },
+      );
     }
 
     if (waveSpeedImageRoute?.requiresReference && resolvedRefs.length === 0) {
