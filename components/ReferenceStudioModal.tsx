@@ -95,6 +95,12 @@ export interface ReferenceStudioModalProps {
   /** When true, clicking a user-owned character will NOT attach its cover here — the caller uses the Character Package flow (all referenceUrls attached at generation time). Prevents double-refs. */
   useCharacterPackage?: boolean;
   isAr?: boolean;
+  /**
+   * "modal" (default) is the centred dialog every other page mounts.
+   * "panel" slides the same studio up over its container instead, so the
+   * caller keeps its gallery, rail and composer visible behind it.
+   */
+  variant?: "modal" | "panel";
 }
 
 export interface UploadedItem {
@@ -231,8 +237,20 @@ export function ReferenceStudioModal({
   onAttachFile,
   useCharacterPackage = false,
   isAr = true,
+  variant = "modal",
 }: ReferenceStudioModalProps) {
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+
+  // Panel variant only: stay mounted for the slide-out before unmounting.
+  const [panelMounted, setPanelMounted] = useState(isOpen);
+  useEffect(() => {
+    if (isOpen) {
+      setPanelMounted(true);
+      return;
+    }
+    const timer = setTimeout(() => setPanelMounted(false), 300);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [uploadedItems, setUploadedItems] = useState<UploadedItem[]>([]);
@@ -1155,19 +1173,30 @@ export function ReferenceStudioModal({
     });
   };
 
-  if (!isOpen) return null;
+  const isPanel = variant === "panel";
+  if (isPanel ? !panelMounted : !isOpen) return null;
 
   return (
     <div
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
+      onClick={isPanel ? undefined : onClose}
+      className={
+        isPanel
+          ? `absolute inset-0 z-30 overflow-hidden transition-transform duration-300 ease-out ${
+              isOpen ? "translate-y-0" : "pointer-events-none translate-y-full"
+            }`
+          : "fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
+      }
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative max-w-6xl w-full bg-[#090c14] border border-slate-800/90 rounded-3xl overflow-y-auto md:overflow-hidden shadow-2xl flex flex-col md:flex-row h-[88vh] transition-all animate-in zoom-in-95 duration-200"
+        className={
+          isPanel
+            ? "relative h-full w-full bg-[#090c14] border-t border-slate-800/90 overflow-y-auto md:overflow-hidden shadow-2xl flex flex-col md:flex-row"
+            : "relative max-w-6xl w-full bg-[#090c14] border border-slate-800/90 rounded-3xl overflow-y-auto md:overflow-hidden shadow-2xl flex flex-col md:flex-row h-[88vh] transition-all animate-in zoom-in-95 duration-200"
+        }
       >
         {/* ── Left Rail Navigation ── */}
-        <div className="w-full md:w-64 bg-[#0c0f18] border-b md:border-b-0 md:border-r border-slate-800/80 p-4 flex flex-col justify-between md:flex-shrink-0">
+        <div className="w-full md:w-64 bg-[#0c0f18] border-b md:border-b-0 md:border-r border-slate-800/80 p-4 flex flex-col justify-between md:flex-shrink-0 md:min-h-0 md:overflow-y-auto custom-scrollbar">
           <div className="space-y-4">
             <div className="flex items-center justify-between px-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">

@@ -7,6 +7,7 @@ import {
   ArrowUp,
   Brush,
   Camera,
+  Wrench,
   Check,
   ChevronDown,
   Copy,
@@ -54,7 +55,6 @@ import { SaadLoader } from "@/components/saad-loader";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 import { RailToolButton } from "@/components/RailToolButton";
-import { RailToolsFlyout } from "@/components/RailToolsFlyout";
 import { IMAGE_TOOL_TABS } from "@/lib/reference-tool-tabs";
 import { PromptEditorModal } from "@/components/PromptEditorModal";
 import { withPresetsAppended } from "@/lib/reference-prompt-injector";
@@ -2694,13 +2694,12 @@ export default function ImageWorkspacePage() {
         <aside className="hidden w-20 shrink-0 flex-col items-center gap-1 border-r border-white/10 bg-black/30 py-4 md:flex">
           <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-pink-600/80 to-violet-600/80"><Camera className="h-4 w-4 text-white" /></div>
           {TOOLS.map((tool) => <RailToolButton key={tool.id} active={activeTool === tool.id} icon={tool.icon} label={t(tool.label)} onClick={() => { setActiveTool(tool.id); setCompare(null); }} />)}
-          <RailToolsFlyout
-            tabs={IMAGE_TOOL_TABS}
-            isAr={lang === "ar"}
-            onOpenStudio={(tab) => {
-              setActiveStudioTab(tab);
-              setShowReferenceStudioModal(true);
-            }}
+          <RailToolButton
+            active={showReferenceStudioModal}
+            icon={Wrench}
+            label={lang === "ar" ? "الأدوات" : "Tools"}
+            badge={IMAGE_TOOL_TABS.length}
+            onClick={() => setShowReferenceStudioModal((v) => !v)}
           />
         </aside>
 
@@ -2714,6 +2713,126 @@ export default function ImageWorkspacePage() {
               onClose={() => setShowStyleLibrary(false)}
               onApply={applyStylePreset}
               isAr={lang === "ar"}
+            />
+            {/* Reference Studio — slides over the gallery, same as the Style Library */}
+            <ReferenceStudioModal
+              isOpen={showReferenceStudioModal}
+              onClose={() => {
+                setShowReferenceStudioModal(false);
+                // picks up characters created or deleted while the studio was open
+                void refreshCharacters();
+              }}
+              activeTab={activeStudioTab}
+              setActiveTab={setActiveStudioTab}
+              selectedStyle={selectedStyle}
+              onSelectStyle={(id) => {
+                setSelectedStyle(id);
+                setShowReferenceStudioModal(false);
+              }}
+              selectedElementId={selectedElementId}
+              onSelectElement={(id) => {
+                setSelectedElementId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              selectedLocationId={selectedLocationId}
+              onSelectLocation={(id) => {
+                setSelectedLocationId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              selectedCameraId={selectedCameraId}
+              onSelectCamera={(id) => {
+                setSelectedCameraId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              selectedEffectId={selectedEffectId}
+              onSelectEffect={(id) => {
+                setSelectedEffectId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              selectedCharacterId={selectedCharacterId || selectedCharacterPresetId}
+              onSelectCharacter={(id) => {
+                if (!id) {
+                  setSelectedCharacterPresetId(null);
+                  setSelectedCharacterId("");
+                } else if (HOOK_CHARACTERS.some((h) => h.id === id)) {
+                  // Built-in 3D preset — prompt-only path via withPresetsAppended.
+                  setSelectedCharacterPresetId(id);
+                  setSelectedCharacterId("");
+                } else {
+                  // User character — activate the full Character Package flow.
+                  setSelectedCharacterId(id);
+                  setSelectedCharacterPresetId(null);
+                  // Auto-switch to a reference-capable model so the character actually influences the output.
+                  if (selectedModel.maxRefImages <= 0) {
+                    const compatible = visibleImageModels.find((m) => m.maxRefImages > 0);
+                    if (compatible) setSelectedModel(compatible);
+                  }
+                }
+                setShowReferenceStudioModal(false);
+              }}
+              useCharacterPackage={true}
+              selectedSketchId={selectedSketchId}
+              selectedShotTypeId={selectedShotTypeId}
+              selectedFilmStockId={selectedFilmStockId}
+              selectedMovieLookId={selectedMovieLookId}
+              selectedLightingId={selectedLightingId}
+              selectedMotionBlurId={selectedMotionBlurId}
+              selectedGrainId={selectedGrainId}
+              selectedHalationId={selectedHalationId}
+              selectedTonalLookId={selectedTonalLookId}
+              onSelectSketch={(id) => {
+                setSelectedSketchId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              onSelectShotType={(id) => {
+                setSelectedShotTypeId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              onSelectFilmStock={(id) => {
+                setSelectedFilmStockId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              onSelectMovieLook={(id) => {
+                setSelectedMovieLookId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              onSelectLighting={(id) => {
+                setSelectedLightingId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              onSelectMotionBlur={(id) => {
+                setSelectedMotionBlurId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              onSelectGrain={(id) => {
+                setSelectedGrainId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              onSelectHalation={(id) => {
+                setSelectedHalationId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              onSelectTonalLook={(id) => {
+                setSelectedTonalLookId(id);
+                setShowReferenceStudioModal(false);
+              }}
+              onSelectPalette={(pal) => {
+                setSelectedPalette(pal);
+              }}
+              onAttachFile={(file) => {
+                const targetUrl = file.url.startsWith("blob:") || file.url.startsWith("data:")
+                  ? file.url
+                  : `/api/proxy-image?url=${encodeURIComponent(file.url)}`;
+                fetch(targetUrl)
+                  .then((r) => r.blob())
+                  .then((blob) => {
+                    const f = new File([blob], `${file.name || "ref"}.jpg`, { type: "image/jpeg" });
+                    setReferenceFiles((prev) => appendReferenceFiles(prev, [f]));
+                  })
+                  .catch((err) => console.error("Failed to attach reference file:", err));
+              }}
+              isAr={lang === "ar"}
+              variant="panel"
             />
           </div>
           <div className="relative z-10 border-t border-white/10 p-3">
@@ -3011,125 +3130,6 @@ export default function ImageWorkspacePage() {
 
         <AnimatePresence>{mobileSettingsOpen ? <><motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-black/70 md:hidden" onClick={() => setMobileSettingsOpen(false)} /><motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="fixed bottom-0 left-0 right-0 z-50 h-[85vh] overflow-y-auto rounded-t-3xl border-t border-white/10 bg-slate-950 p-4 md:hidden"><div className="mb-4 flex items-center justify-between"><p className="text-sm font-semibold text-white">{t("Settings")}</p><button onClick={() => setMobileSettingsOpen(false)} className="rounded-lg bg-white/5 p-2 text-zinc-400"><X className="h-4 w-4" /></button></div><div className="space-y-4">{renderRightPanel()}</div></motion.div></> : null}</AnimatePresence>
 
-        {/* Unified Reference Studio Modal */}
-        <ReferenceStudioModal
-          isOpen={showReferenceStudioModal}
-          onClose={() => {
-            setShowReferenceStudioModal(false);
-            // picks up characters created or deleted while the studio was open
-            void refreshCharacters();
-          }}
-          activeTab={activeStudioTab}
-          setActiveTab={setActiveStudioTab}
-          selectedStyle={selectedStyle}
-          onSelectStyle={(id) => {
-            setSelectedStyle(id);
-            setShowReferenceStudioModal(false);
-          }}
-          selectedElementId={selectedElementId}
-          onSelectElement={(id) => {
-            setSelectedElementId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          selectedLocationId={selectedLocationId}
-          onSelectLocation={(id) => {
-            setSelectedLocationId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          selectedCameraId={selectedCameraId}
-          onSelectCamera={(id) => {
-            setSelectedCameraId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          selectedEffectId={selectedEffectId}
-          onSelectEffect={(id) => {
-            setSelectedEffectId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          selectedCharacterId={selectedCharacterId || selectedCharacterPresetId}
-          onSelectCharacter={(id) => {
-            if (!id) {
-              setSelectedCharacterPresetId(null);
-              setSelectedCharacterId("");
-            } else if (HOOK_CHARACTERS.some((h) => h.id === id)) {
-              // Built-in 3D preset — prompt-only path via withPresetsAppended.
-              setSelectedCharacterPresetId(id);
-              setSelectedCharacterId("");
-            } else {
-              // User character — activate the full Character Package flow.
-              setSelectedCharacterId(id);
-              setSelectedCharacterPresetId(null);
-              // Auto-switch to a reference-capable model so the character actually influences the output.
-              if (selectedModel.maxRefImages <= 0) {
-                const compatible = visibleImageModels.find((m) => m.maxRefImages > 0);
-                if (compatible) setSelectedModel(compatible);
-              }
-            }
-            setShowReferenceStudioModal(false);
-          }}
-          useCharacterPackage={true}
-          selectedSketchId={selectedSketchId}
-          selectedShotTypeId={selectedShotTypeId}
-          selectedFilmStockId={selectedFilmStockId}
-          selectedMovieLookId={selectedMovieLookId}
-          selectedLightingId={selectedLightingId}
-          selectedMotionBlurId={selectedMotionBlurId}
-          selectedGrainId={selectedGrainId}
-          selectedHalationId={selectedHalationId}
-          selectedTonalLookId={selectedTonalLookId}
-          onSelectSketch={(id) => {
-            setSelectedSketchId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          onSelectShotType={(id) => {
-            setSelectedShotTypeId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          onSelectFilmStock={(id) => {
-            setSelectedFilmStockId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          onSelectMovieLook={(id) => {
-            setSelectedMovieLookId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          onSelectLighting={(id) => {
-            setSelectedLightingId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          onSelectMotionBlur={(id) => {
-            setSelectedMotionBlurId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          onSelectGrain={(id) => {
-            setSelectedGrainId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          onSelectHalation={(id) => {
-            setSelectedHalationId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          onSelectTonalLook={(id) => {
-            setSelectedTonalLookId(id);
-            setShowReferenceStudioModal(false);
-          }}
-          onSelectPalette={(pal) => {
-            setSelectedPalette(pal);
-          }}
-          onAttachFile={(file) => {
-            const targetUrl = file.url.startsWith("blob:") || file.url.startsWith("data:")
-              ? file.url
-              : `/api/proxy-image?url=${encodeURIComponent(file.url)}`;
-            fetch(targetUrl)
-              .then((r) => r.blob())
-              .then((blob) => {
-                const f = new File([blob], `${file.name || "ref"}.jpg`, { type: "image/jpeg" });
-                setReferenceFiles((prev) => appendReferenceFiles(prev, [f]));
-              })
-              .catch((err) => console.error("Failed to attach reference file:", err));
-          }}
-          isAr={lang === "ar"}
-        />
 
         {/* Prompt Editor (Ctrl+E) Modal */}
         <PromptEditorModal
