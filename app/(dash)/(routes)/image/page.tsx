@@ -753,12 +753,13 @@ function SettingsAccordion({ label, summary, children, defaultOpen = false }: { 
 }
 
 /* ─── Gateway card — leads to /image-presets ───────────────────────── */
-function StyleLibraryGatewayCard() {
+function StyleLibraryGatewayCard({ onOpen }: { onOpen: () => void }) {
   const { t, lang } = useImageTranslation();
   return (
-    <a
-      href="/image-presets"
-      className="hidden lg:block group relative overflow-hidden rounded-2xl border border-amber-400/25 bg-black/40 transition-all hover:border-amber-400/55 hover:shadow-xl hover:shadow-amber-500/20"
+    <button
+      type="button"
+      onClick={onOpen}
+      className="hidden w-full text-start lg:block group relative overflow-hidden rounded-2xl border border-amber-400/25 bg-black/40 transition-all hover:border-amber-400/55 hover:shadow-xl hover:shadow-amber-500/20"
     >
       {/* Hero image — tall to give the collage room to breathe */}
       <div className="relative h-44 overflow-hidden">
@@ -794,7 +795,7 @@ function StyleLibraryGatewayCard() {
           <span className="transition-transform group-hover:translate-x-0.5">→</span>
         </div>
       </div>
-    </a>
+    </button>
   );
 }
 
@@ -913,6 +914,8 @@ function CompareSlider({
 }
 
 import { ImageResultGrid as ResultGrid, DeleteImageDialog } from "@/components/image/ImageResultGrid";
+import { PresetSlideOver } from "@/components/image/PresetSlideOver";
+import type { ImagePreset } from "@/lib/image-presets";
 
 // Album Picker modal — shared visual with /gallery
 function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Album[]; count: number; onPick: (id: string) => void; onCreate: (name: string) => void; onClose: () => void }) {
@@ -1494,6 +1497,7 @@ export default function ImageWorkspacePage() {
   }, [rawImageModels, visibleImageModels, editModels, enhanceModels]);
 
   const [showReferenceStudioModal, setShowReferenceStudioModal] = useState(false);
+  const [showStyleLibrary, setShowStyleLibrary] = useState(false);
   const [activeStudioTab, setActiveStudioTab] = useState("style");
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
@@ -1555,6 +1559,17 @@ export default function ImageWorkspacePage() {
       window.history.replaceState({}, "", url.toString());
     }
   }, [searchParams]);
+
+  const applyStylePreset = useCallback((preset: ImagePreset) => {
+    setPrompt(preset.prompt);
+    if (preset.model) {
+      const model = visibleImageModels.find((m) => m.id === preset.model);
+      if (model) setSelectedModel(model);
+    }
+    if (preset.aspect) setAspectRatio(preset.aspect);
+    if (preset.quality) setQuality(preset.quality);
+    setShowStyleLibrary(false);
+  }, [visibleImageModels]);
 
   // Refetchable: a character created inside the Reference Studio would otherwise
   // never appear here, so selectedCharacter would stay null and the picked
@@ -2490,7 +2505,7 @@ export default function ImageWorkspacePage() {
         ) : null}
 
         {/* ── Gateway card → /image-presets ── */}
-        <StyleLibraryGatewayCard />
+        <StyleLibraryGatewayCard onOpen={() => setShowStyleLibrary(true)} />
 
       </>;
     }
@@ -2691,7 +2706,16 @@ export default function ImageWorkspacePage() {
 
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="pointer-events-none absolute inset-0" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
-          <div className="relative z-10 flex-1 overflow-y-auto p-4">{error ? <div className="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div> : null}{renderWorkspace()}</div>
+          {/* overflow-hidden clips the panel while it sits below the fold, so it cannot bleed over the composer. */}
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">{error ? <div className="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div> : null}{renderWorkspace()}</div>
+            <PresetSlideOver
+              open={showStyleLibrary}
+              onClose={() => setShowStyleLibrary(false)}
+              onApply={applyStylePreset}
+              isAr={lang === "ar"}
+            />
+          </div>
           <div className="relative z-10 border-t border-white/10 p-3">
             <div
               className={cn("rounded-2xl border p-2 backdrop-blur-xl transition-colors", composerDragActive ? "border-pink-400/60 bg-pink-500/[0.06]" : "border-white/10 bg-black/55")}

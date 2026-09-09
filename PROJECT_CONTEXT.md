@@ -15969,3 +15969,9 @@
 - Verification:
   - All 90 vitest tests passed.
   - Production build compiled successfully.
+
+## Hosting configuration inquiry (2026-09-09)
+- Read-only inspection found Vercel deployment configuration in vercel.json and local .vercel metadata. No Render domain references found in app/lib, scripts/docs, or local .env files examined (secret values not displayed).
+- Conclusion: local evidence points to Vercel; live hosting and any external Render account services remain unverified.
+- No runtime/code changes or tests required. Search with wildcard path arguments initially failed on Windows; retried with explicit directories. No architecture changes.
+
