@@ -30,7 +30,14 @@ export const dynamic = "force-dynamic";
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const IDEMPOTENCY_ROUTE = "generate:image";
-const OPENAI_IMAGE_MODEL_MAP: Record<string, string> = {
+export const OPENAI_IMAGE_MODEL_MAP: Record<string, string> = {
+  // Released 2026-09-08. Both variants sit on /v1/images/generations and
+  // /v1/images/edits, exactly like gpt-image-2, so generateOpenAIImage needs
+  // no change — only the id mapping.
+  "gpt-image-2.5-flare-text-to-image": "gpt-image-2.5-flare",
+  "gpt-image-2.5-flare-image-to-image": "gpt-image-2.5-flare",
+  "gpt-image-2.5-sunburst-text-to-image": "gpt-image-2.5-sunburst",
+  "gpt-image-2.5-sunburst-image-to-image": "gpt-image-2.5-sunburst",
   "gpt-image-2-text-to-image": "gpt-image-2",
   "gpt-image-2-image-to-image": "gpt-image-2",
   "gpt-image/1.5-text-to-image": "gpt-image-1.5",
