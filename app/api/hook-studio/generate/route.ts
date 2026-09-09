@@ -417,7 +417,12 @@ export async function POST(req: NextRequest) {
     const hookVideoModels = await getEffectiveHookVideoModels();
     const selectedModel = hookVideoModels.find((m) => m.id === modelId || m.apiRoute === modelId) || hookVideoModels[0];
     const selectedGenre = HOOK_GENRES.find((g) => g.id === genre) || HOOK_GENRES[0];
-    const selectedStyle = HOOK_STYLES.find((s) => s.id === artStyle) || HOOK_STYLES[0];
+    // Named, not HOOK_STYLES[0]: the list is ordered for the picker, so whoever
+    // puts a new style at the top would otherwise silently become the default.
+    const selectedStyle =
+      HOOK_STYLES.find((s) => s.id === artStyle) ||
+      HOOK_STYLES.find((s) => s.id === "photorealistic") ||
+      HOOK_STYLES[0];
     const selectedElement = HOOK_ELEMENTS.find((el) => el.id === selectedElementId);
     const selectedLocation = HOOK_LOCATIONS.find((loc) => loc.id === selectedLocationId);
     const selectedCamera = HOOK_CAMERAS.find((cam) => cam.id === selectedCameraId);
