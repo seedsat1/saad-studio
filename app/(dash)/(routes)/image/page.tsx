@@ -1560,6 +1560,23 @@ export default function ImageWorkspacePage() {
     }
   }, [searchParams]);
 
+  const hasAnyReferenceSelection = Boolean(
+    selectedStyle ||
+      selectedElementId ||
+      selectedLocationId ||
+      selectedCameraId ||
+      selectedEffectId ||
+      selectedCharacterPresetId ||
+      selectedShotTypeId ||
+      selectedFilmStockId ||
+      selectedMovieLookId ||
+      selectedTonalLookId ||
+      selectedLightingId ||
+      selectedMotionBlurId ||
+      selectedGrainId ||
+      selectedHalationId,
+  );
+
   const applyStylePreset = useCallback((preset: ImagePreset) => {
     setPrompt(preset.prompt);
     if (preset.model) {
@@ -2379,8 +2396,10 @@ export default function ImageWorkspacePage() {
   const renderRightPanel = () => {
     if (activeTool === "create") {
       return <>
+        {hasAnyReferenceSelection ? (
         <SettingsAccordion label="References & Styling" summary={selectedStyle || "None"} defaultOpen>
           <ReferenceActionTiles
+            hideTiles
             onOpenStudio={(tab) => {
               setActiveStudioTab(tab);
               setShowReferenceStudioModal(true);
@@ -2416,6 +2435,7 @@ export default function ImageWorkspacePage() {
             isAr={lang === "ar"}
           />
         </SettingsAccordion>
+        ) : null}
 
         <SettingsAccordion label="Model" summary={selectedModel.label} defaultOpen>
           <ModelDropdown selected={selectedModel} onSelect={setSelectedModel} models={visibleImageModels} />
