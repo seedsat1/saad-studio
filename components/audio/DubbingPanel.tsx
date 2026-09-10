@@ -32,13 +32,13 @@ function formatDuration(seconds: number): string {
 export function DubbingPanel({ isAr = false }: { isAr?: boolean }) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [dataUrl, setDataUrl] = useState<string>("");
+  const [isDragging, setIsDragging] = useState(false);
   const [duration, setDuration] = useState<number | null>(null);
   const [targetLang, setTargetLang] = useState("ar");
   const [sourceLang, setSourceLang] = useState("auto");
   const [numSpeakers, setNumSpeakers] = useState(0);
   const [dropBackgroundAudio, setDropBackgroundAudio] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | false>(false);
   const [error, setError] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
 
@@ -66,14 +66,14 @@ export function DubbingPanel({ isAr = false }: { isAr?: boolean }) {
         return;
       }
       setFile(picked);
-      const url = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = reject;
-        reader.readAsDataURL(picked);
-      });
-      setDataUrl(url);
-      setDuration(await measure(url, picked.type.startsWith("video/")));
+      // An object URL, not base64: this is only for reading the length locally,
+      // and a data URL of a real video is enormous.
+      const objectUrl = URL.createObjectURL(picked);
+      try {
+        setDuration(await measure(objectUrl, picked.type.startsWith("video/")));
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
     },
     [measure, t],
   );
@@ -87,18 +87,45 @@ export function DubbingPanel({ isAr = false }: { isAr?: boolean }) {
   const trimmed = Boolean(duration && duration > DUBBING_MAX_BILLED_SECONDS);
 
   const run = useCallback(async () => {
-    if (!dataUrl || busy) return;
-    setBusy(true);
+    if (!file || busy) return;
+    setBusy(t("جارٍ الرفع…", "Uploading…"));
     setError(null);
     setResultUrl(null);
     try {
-      const isVideo = Boolean(file?.type.startsWith("video/"));
+      const isVideo = file.type.startsWith("video/");
+      const contentType = file.type || (isVideo ? "video/mp4" : "audio/mpeg");
+
+      // Straight to storage with a signed URL. Sending the media inside the
+      // JSON body meant a 20-second clip came back HTTP 413 and the request
+      // never reached the provider.
+      const signRes = await fetch("/api/studio/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType,
+          assetType: isVideo ? "video" : "audio",
+        }),
+      });
+      const signData = await signRes.json().catch(() => null);
+      if (!signRes.ok || !signData?.signedUrl || !signData?.publicUrl) {
+        throw new Error(signData?.error || t("تعذّر تحضير الرفع.", "Could not prepare the upload."));
+      }
+      const putRes = await fetch(String(signData.signedUrl), {
+        method: "PUT",
+        headers: { "Content-Type": contentType },
+        body: file,
+      });
+      if (!putRes.ok) throw new Error(t("فشل رفع الملف.", "The file upload failed."));
+      const mediaUrl = String(signData.publicUrl);
+
+      setBusy(t("جارٍ الدبلجة…", "Dubbing…"));
       const res = await fetch("/api/generate/audio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           actionType: "dubbing",
-          ...(isVideo ? { videoUrl: dataUrl } : { audioUrl: dataUrl }),
+          ...(isVideo ? { videoUrl: mediaUrl } : { audioUrl: mediaUrl }),
           targetLang,
           sourceLang,
           numSpeakers,
@@ -117,10 +144,29 @@ export function DubbingPanel({ isAr = false }: { isAr?: boolean }) {
     } finally {
       setBusy(false);
     }
-  }, [billedSeconds, busy, dataUrl, dropBackgroundAudio, file, numSpeakers, sourceLang, targetLang, t]);
+  }, [billedSeconds, busy, dropBackgroundAudio, file, numSpeakers, sourceLang, targetLang, t]);
 
   return (
-    <div className="space-y-4" dir={isAr ? "rtl" : "ltr"}>
+    // Dropping anywhere on the panel works, not only on the empty upload box —
+    // once a file is chosen that box is replaced, and a subscriber swapping the
+    // file would otherwise have nowhere to drop.
+    <div
+      className="space-y-4"
+      dir={isAr ? "rtl" : "ltr"}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        setIsDragging(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        void onPick(e.dataTransfer?.files?.[0]);
+      }}
+    >
       <div>
         <h3 className="flex items-center gap-2 text-sm font-black text-white">
           <Languages className="h-4 w-4 text-cyan-400" />
@@ -155,7 +201,6 @@ export function DubbingPanel({ isAr = false }: { isAr?: boolean }) {
             type="button"
             onClick={() => {
               setFile(null);
-              setDataUrl("");
               setDuration(null);
               setResultUrl(null);
             }}
@@ -168,11 +213,34 @@ export function DubbingPanel({ isAr = false }: { isAr?: boolean }) {
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-white/10 bg-black/20 px-4 py-6 transition hover:border-cyan-500/50 hover:bg-black/40"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(false);
+            void onPick(e.dataTransfer?.files?.[0]);
+          }}
+          className={cn(
+            "flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed px-4 py-6 transition",
+            isDragging
+              ? "border-cyan-400 bg-cyan-500/10"
+              : "border-white/10 bg-black/20 hover:border-cyan-500/50 hover:bg-black/40",
+          )}
         >
           <UploadCloud className="h-5 w-5 text-cyan-400" />
           <span className="text-xs font-bold text-zinc-200">
-            {t("ارفع فيديو أو صوت", "Upload a video or audio file")}
+            {isDragging
+              ? t("أفلت الملف هنا", "Drop the file here")
+              : t("ارفع أو اسحب فيديو أو صوت", "Upload or drag a video or audio file")}
           </span>
           <span className="text-[10px] text-zinc-500">
             {t("حتى 15 دقيقة تُحاسب", "Up to 15 minutes are billed")}
@@ -258,10 +326,10 @@ export function DubbingPanel({ isAr = false }: { isAr?: boolean }) {
       <button
         type="button"
         onClick={run}
-        disabled={!dataUrl || busy}
+        disabled={!file || Boolean(busy)}
         className={cn(
           "flex h-11 w-full items-center justify-center gap-2 rounded-xl text-xs font-black transition",
-          !dataUrl || busy
+          !file || busy
             ? "cursor-not-allowed bg-white/5 text-zinc-500"
             : "bg-cyan-500 text-slate-950 hover:bg-cyan-400",
         )}
@@ -269,7 +337,7 @@ export function DubbingPanel({ isAr = false }: { isAr?: boolean }) {
         {busy ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            {t("جارٍ الدبلجة…", "Dubbing…")}
+            {busy}
           </>
         ) : (
           <>
