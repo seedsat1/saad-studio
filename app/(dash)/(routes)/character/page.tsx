@@ -20,6 +20,7 @@ import {
   Wand2,
   X,
   ChevronDown,
+  Mic,
   BookOpen,
   Download,
   Link2,
@@ -28,7 +29,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeMediaUrl } from "@/lib/storage";
-import { VOICE_CATALOG } from "@/lib/voice-catalog";
+import { VOICE_CATALOG, type VoiceDefinition } from "@/lib/voice-catalog";
+import { VoiceLibraryModal } from "@/components/voices/VoiceLibraryModal";
 import {
   GEMINI_FLASH_IMAGE_ASPECT_RATIOS,
   GEMINI_FLASH_LITE_IMAGE_ASPECT_RATIOS,
@@ -297,6 +299,8 @@ export default function CharacterPage() {
   // Stored in the character's metadata JSON, so neither needs a schema change.
   const [gender, setGender] = useState<CharacterGender>("unspecified");
   const [voiceId, setVoiceId] = useState<string>("");
+  const [voice, setVoice] = useState<VoiceDefinition | null>(null);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -522,6 +526,7 @@ export default function CharacterPage() {
       setDescription("");
       setGender("unspecified");
       setVoiceId("");
+      setVoice(null);
       setFaceNotes("");
       setBodyNotes("");
       setOutfitNotes("");
@@ -944,32 +949,24 @@ export default function CharacterPage() {
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Voice</label>
-                  <select
-                    value={voiceId}
-                    onChange={(e) => setVoiceId(e.target.value)}
-                    className="w-full h-10 rounded-xl border border-white/5 bg-black/40 px-3 text-xs text-zinc-200 focus:outline-none focus:border-violet-500/60 transition"
+                  <button
+                    type="button"
+                    onClick={() => setVoiceModalOpen(true)}
+                    className="w-full h-10 rounded-xl border border-white/5 bg-black/40 px-3 text-xs text-zinc-200 hover:border-violet-500/60 transition flex items-center gap-2 text-left"
                   >
-                    <option value="">Select a voice</option>
-                    {VOICE_CATALOG.filter(
-                      (v) =>
-                        gender === "unspecified" ||
-                        gender === "non-binary" ||
-                        v.gender === gender ||
-                        v.gender === "neutral",
-                    ).map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} — {v.language} · {v.accent}
-                      </option>
-                    ))}
-                  </select>
-                  {voiceId ? (
-                    <audio
-                      key={voiceId}
-                      controls
-                      preload="none"
-                      src={VOICE_CATALOG.find((v) => v.id === voiceId)?.sampleUrl}
-                      className="mt-1 h-8 w-full"
-                    />
+                    <Mic size={13} className="shrink-0 text-zinc-500" />
+                    {voice ? (
+                      <span className="truncate">
+                        {voice.name}
+                        <span className="text-zinc-500"> — {voice.language} · {voice.accent}</span>
+                      </span>
+                    ) : (
+                      <span className="text-zinc-500">Select a voice</span>
+                    )}
+                    <ChevronDown size={13} className="ms-auto shrink-0 text-zinc-500" />
+                  </button>
+                  {voice ? (
+                    <audio key={voice.id} controls preload="none" src={voice.sampleUrl} className="mt-1 h-8 w-full" />
                   ) : (
                     <p className="text-[10px] text-zinc-500">
                       Picking a voice here saves it with the character, so video and voice-over
@@ -1161,6 +1158,16 @@ export default function CharacterPage() {
           </div>
         )}
       </div>
-    </div>
+          <VoiceLibraryModal
+        isOpen={voiceModalOpen}
+        onClose={() => setVoiceModalOpen(false)}
+        selectedVoiceId={voiceId}
+        onSelectVoice={(v) => {
+          setVoice(v);
+          setVoiceId(v.id);
+          setVoiceModalOpen(false);
+        }}
+      />
+</div>
   );
 }
