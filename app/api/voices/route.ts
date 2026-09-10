@@ -15,12 +15,17 @@ export async function GET(req: NextRequest) {
 
     const registry = getRegistry();
 
-    // Map samples with pre-cached URLs if available
+    // Only a fully hosted sample may replace the catalogue's own URL. The
+    // registry still holds relative "/api/media/audio/sample_*.mp3" paths whose
+    // files are long gone, and swapping them in gave every voice in the picker
+    // a 404 preview — the catalogue URL points at /api/voice-sample, which
+    // looks the sample up and regenerates it when it is missing.
     let voices: VoiceDefinition[] = VOICE_CATALOG.map((v) => {
       const storedUrl = v.geminiVoiceId ? registry[v.geminiVoiceId] : null;
+      const hosted = typeof storedUrl === "string" && /^https?:\/\//i.test(storedUrl);
       return {
         ...v,
-        sampleUrl: storedUrl || v.sampleUrl,
+        sampleUrl: hosted ? (storedUrl as string) : v.sampleUrl,
       };
     });
 

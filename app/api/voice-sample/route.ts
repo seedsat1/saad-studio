@@ -237,8 +237,21 @@ export async function GET(req: NextRequest) {
     const registry = getRegistry();
     const storedUrl = registry[canonicalKey] || registry[legacyKey] || (exactLang === "ar" ? registry[exactVoice] : undefined);
     if (storedUrl && (storedUrl.startsWith("http://") || storedUrl.startsWith("https://"))) {
-      const targetUrl = toBrowserMediaUrl(storedUrl);
-      return NextResponse.redirect(new URL(targetUrl, req.url));
+      const target = new URL(toBrowserMediaUrl(storedUrl), req.url);
+      // Redirecting blind sends the browser to a 404 when the stored file has
+      // been removed, and the sample never recovers. Check first, and forget a
+      // dead entry so the next request regenerates instead of paying for this
+      // check again.
+      const alive = await fetch(target, { method: "HEAD" })
+        .then((r) => r.ok)
+        .catch(() => false);
+      if (alive) {
+        return NextResponse.redirect(target);
+      }
+      delete registry[canonicalKey];
+      delete registry[legacyKey];
+      if (exactLang === "ar") delete registry[exactVoice];
+      saveRegistry(registry);
     }
 
     // 2. Generate on-demand & return MP3 stream directly with 200 OK
