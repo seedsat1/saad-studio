@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   X, Search, Play, Pause, Heart, Plus, Sparkles, Volume2,
   Mic, Globe, Users, Check, Flame, BookOpen, MessageSquare,
@@ -197,9 +198,13 @@ export function VoiceLibraryModal({
     return list;
   }, [voices, myVoices, activeTab, favorites, selectedCategory, selectedLanguage, selectedGender, searchQuery]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === "undefined") return null;
 
-  return (
+  // Portalled to the body: an ancestor with a transform — the Reference
+  // Studio panel slides on one — turns `fixed` into `absolute` against itself,
+  // which pinned this modal inside the panel and cut its header, and with it
+  // the close button, out of view.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-6 md:p-8 overflow-y-auto">
       <div className="w-full max-w-5xl bg-[#111317] border border-zinc-800/90 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-6 text-zinc-100 relative max-h-[92vh] flex flex-col">
         {/* ─── Header ─── */}
@@ -603,6 +608,7 @@ export function VoiceLibraryModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
