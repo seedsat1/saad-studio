@@ -23,19 +23,26 @@ export function CharacterIdentityFields({
   voice,
   onVoiceChange,
   isAr = false,
+  layout = "grid",
 }: {
   gender: CharacterGender;
   onGenderChange: (gender: CharacterGender) => void;
   voice: VoiceDefinition | null;
   onVoiceChange: (voice: VoiceDefinition | null) => void;
   isAr?: boolean;
+  /**
+   * "grid" pairs the two fields, which fits the Character Studio page.
+   * "stack" is for the Reference Studio's sidebar — a media query cannot see
+   * that the column is narrow while the viewport is wide, so the caller says.
+   */
+  layout?: "grid" | "stack";
 }) {
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const t = (ar: string, en: string) => (isAr ? ar : en);
 
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className={layout === "stack" ? "space-y-3" : "grid gap-3 sm:grid-cols-2"}>
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
             {t("الجنس", "Gender")}

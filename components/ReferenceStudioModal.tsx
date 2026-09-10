@@ -248,6 +248,7 @@ export function ReferenceStudioModal({
   // Stored in the character's metadata JSON, so neither needs a column.
   const [newCharGender, setNewCharGender] = useState<CharacterGender>("unspecified");
   const [newCharVoice, setNewCharVoice] = useState<VoiceDefinition | null>(null);
+  const [newCharDescription, setNewCharDescription] = useState("");
   const [panelMounted, setPanelMounted] = useState(isOpen);
   useEffect(() => {
     if (isOpen) {
@@ -964,6 +965,7 @@ export function ReferenceStudioModal({
         body: JSON.stringify({
           name,
           images: newCharPreviews.map((p) => ({ dataUrl: p.dataUrl, name: p.name })),
+          description: newCharDescription.trim(),
           metadata: {
             gender: newCharGender,
             voiceId: newCharVoice?.id ?? null,
@@ -981,6 +983,7 @@ export function ReferenceStudioModal({
       setNewCharPreviews([]);
       setNewCharGender("unspecified");
       setNewCharVoice(null);
+      setNewCharDescription("");
       onSelectCharacter?.(created.id);
       // Same guard as picking an existing character: under Character Package the
       // caller attaches every referenceUrl at generation time, so attaching the
@@ -3879,6 +3882,30 @@ export function ReferenceStudioModal({
                   />
                 </div>
 
+                <CharacterIdentityFields
+                  gender={newCharGender}
+                  onGenderChange={setNewCharGender}
+                  voice={newCharVoice}
+                  onVoiceChange={setNewCharVoice}
+                  isAr={isAr}
+                  layout="stack"
+                />
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {isAr ? "نبذة (اختياري)" : "Description (optional)"}
+                  </label>
+                  <textarea
+                    value={newCharDescription}
+                    onChange={(e) => setNewCharDescription(e.target.value)}
+                    placeholder={isAr ? "اوصف الشخصية — مهنتها، أسلوبها، ما يميزها" : "Describe the character"}
+                    rows={3}
+                    maxLength={600}
+                    disabled={isSavingChar}
+                    className="w-full bg-[#121624] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all resize-none"
+                  />
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     {isAr ? "الصور المرجعية" : "Reference photos"}
@@ -3950,14 +3977,6 @@ export function ReferenceStudioModal({
                     </div>
                   )}
                 </div>
-
-                <CharacterIdentityFields
-                  gender={newCharGender}
-                  onGenderChange={setNewCharGender}
-                  voice={newCharVoice}
-                  onVoiceChange={setNewCharVoice}
-                  isAr={isAr}
-                />
 
                 {createCharError && (
                   <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
