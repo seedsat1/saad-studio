@@ -916,6 +916,16 @@ function resolveModelUserCharge(
     return parseFloat((rate * durationSec * numUnits).toFixed(2));
   }
 
+  if (constitutionId === "dubbing") {
+    // ElevenLabs Dubbing bills $0.01 per second of source media and trims
+    // anything past 15 minutes. The constitution row says billing:"flat" at 12
+    // credits, which charged the same for a 30-second clip as for a 15-minute
+    // one — $0.35 of revenue against $9.00 of cost. 0.33 cr/s clears the cost
+    // on the cheapest credit sold (1.21x on Max, 1.44x on Plus).
+    const seconds = Math.min(900, Math.max(1, Math.ceil(Number(durationSec) || 60)));
+    return parseFloat((seconds * 0.33 * numUnits).toFixed(2));
+  }
+
   if (constitutionId === "minimax_h3") {
     // Same normalisation the provider-USD helper uses, so both agree on the tier.
     const q = (quality || "768p").trim().toLowerCase();

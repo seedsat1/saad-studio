@@ -769,6 +769,17 @@ export function get3DCredits(modelId: string, mode: string): number {
   return THREE_D_COST_MAP.get(combinedKey) ?? 0;
 }
 
+/**
+ * ElevenLabs Dubbing bills $0.01 per second of source media, capped at 15
+ * minutes. At 0.33 credits per second the cheapest credit a subscriber can hold
+ * still clears that cost (1.21x on Max, 1.44x on Plus) — the margin Kling v3
+ * Turbo settled on. The old flat 8 credits ignored duration entirely.
+ */
+const DUBBING_CREDITS_PER_SECOND = 0.33;
+/** Used when the caller could not measure the media; one minute. */
+const DUBBING_FALLBACK_SECONDS = 60;
+const DUBBING_MAX_BILLED_SECONDS = 15 * 60;
+
 export function getAudioActionCredits(
   actionType: "tts" | "video2audio" | "music" | "voice-changer" | "dubbing" | "lip-sync" | "voice-cloning",
   textOrPayloadOrDuration?: string | number | { text?: string; prompt?: string; duration?: number; musicDuration?: number }
@@ -788,7 +799,19 @@ export function getAudioActionCredits(
   const dbCost = getGenerationCostSync(`audio:${actionType}`, 0, 1);
   if (dbCost > 0) return dbCost;
 
-  if (actionType === "dubbing") return 8;
+  if (actionType === "dubbing") {
+    const raw =
+      typeof textOrPayloadOrDuration === "number"
+        ? textOrPayloadOrDuration
+        : typeof textOrPayloadOrDuration === "object"
+          ? textOrPayloadOrDuration?.duration
+          : undefined;
+    const seconds = Math.min(
+      DUBBING_MAX_BILLED_SECONDS,
+      Math.max(1, Math.ceil(Number(raw) || DUBBING_FALLBACK_SECONDS)),
+    );
+    return parseFloat((seconds * DUBBING_CREDITS_PER_SECOND).toFixed(2));
+  }
   if (actionType === "voice-changer") return 3;
   if (actionType === "lip-sync") return 6;
   return 10;

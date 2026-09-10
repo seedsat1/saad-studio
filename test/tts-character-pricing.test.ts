@@ -61,7 +61,8 @@ describe("TTS Character-Based Credit Pricing Acceptance Suite", () => {
     const music60Credits = getAudioActionCredits("music", 60);
     const sfx5Credits = getAudioActionCredits("video2audio", 5);
     const sfx22Credits = getAudioActionCredits("video2audio", 22);
-    const dubbingCredits = getAudioActionCredits("dubbing");
+    const dubbing30Credits = getAudioActionCredits("dubbing", 30);
+    const dubbing60Credits = getAudioActionCredits("dubbing", 60);
     const voiceChangerCredits = getAudioActionCredits("voice-changer");
     const lipsyncCredits = getAudioActionCredits("lip-sync");
 
@@ -69,7 +70,13 @@ describe("TTS Character-Based Credit Pricing Acceptance Suite", () => {
     expect(music60Credits).toBe(10);
     expect(sfx5Credits).toBe(4);
     expect(sfx22Credits).toBe(8);
-    expect(dubbingCredits).toBe(8);
+    // Dubbing is billed per second of source media ($0.01/s at the provider),
+    // so it belongs to the duration-based family this suite is about. It used
+    // to be a flat 8 regardless of length, which is what made a 15-minute job
+    // lose money.
+    expect(dubbing30Credits).toBe(9.9);
+    expect(dubbing60Credits).toBe(19.8);
+    expect(dubbing60Credits).toBe(dubbing30Credits * 2);
     expect(voiceChangerCredits).toBe(3);
     expect(lipsyncCredits).toBe(6);
 

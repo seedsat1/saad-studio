@@ -37,6 +37,12 @@ function hasActiveKie(kieKey: string | undefined): boolean {
 }
 
 import { CURATED_GEMINI_TTS_VOICES, CURATED_TTS_MODELS } from "@/lib/model-definition-registry";
+import {
+  DUBBING_TARGET_LANGUAGES,
+  clampDubbingSpeakers,
+  toDubbingSourceCode,
+  toDubbingTargetCode,
+} from "@/lib/dubbing-languages";
 
 const WS_TTS_MODEL = "elevenlabs/multilingual-v2";
 const WS_VIDEO2AUDIO_MODEL = "wavespeed-ai/mmaudio-v2";
@@ -99,6 +105,9 @@ interface AudioRequestBody {
   outputFormat?: string;
   sync_mode?: "loop" | "bounce" | "cut_off" | "silence" | "remap";
   sourceLang?: string;
+  /** 0 lets the provider detect; the API accepts up to 32. */
+  numSpeakers?: number;
+  dropBackgroundAudio?: boolean;
   targetLang?: string;
   cloneName?: string;
   customVoiceId?: string;
@@ -316,6 +325,14 @@ function resolveQuoteDurationSec(actionType: AudioRequestBody["actionType"], bod
     // Rough TTS pacing: ~2.6 words/sec, clamped to a safe quote range.
     const estimated = Math.ceil(words / 2.6);
     return Math.max(3, Math.min(180, estimated));
+  }
+
+  if (actionType === "dubbing") {
+    // Billed per second of source media, so the duration has to come from the
+    // request. It used to fall through to a flat 30 regardless of the file.
+    const raw = Number(body.duration);
+    if (!Number.isFinite(raw) || raw <= 0) return 60;
+    return Math.max(1, Math.min(900, Math.ceil(raw)));
   }
 
   if (actionType === "lip-sync") {
@@ -1624,17 +1641,32 @@ export async function POST(req: NextRequest) {
         ? (body.audioUrl.startsWith("data:") ? await uploadDataUrlToWaveSpeed(body.audioUrl, wavespeedKey!) : body.audioUrl)
         : undefined;
 
-      const sourceLang = (body.sourceLang || "Auto").replace("Auto-detect", "Auto");
-      const targetLang = body.targetLang || "Arabic";
+      // The provider takes ISO-639 codes, not names: `es`, never `Spanish`.
+      // This used to forward "Arabic" and "Auto" straight through, which it
+      // cannot resolve.
+      const sourceLang = toDubbingSourceCode(body.sourceLang);
+      const targetLang = toDubbingTargetCode(body.targetLang);
+      if (!targetLang) {
+        throw new Error(
+          `Unsupported dubbing target language: ${String(body.targetLang ?? "(none)")}. ` +
+            `This model dubs into ${DUBBING_TARGET_LANGUAGES.length} languages; Hebrew, Persian and Thai can be dubbed from but not into.`,
+        );
+      }
+      if (!normalizedVideoUrl && !normalizedAudioUrl) {
+        throw new Error("Dubbing needs a video or an audio file.");
+      }
 
       await markProviderDispatched();
       const outputUrl = await runWaveSpeed(
         WS_DUBBING_MODEL,
         {
+          // Video wins when both are sent — the provider processes and bills video only.
           ...(normalizedVideoUrl ? { video: normalizedVideoUrl } : {}),
-          ...(normalizedAudioUrl ? { audio: normalizedAudioUrl } : {}),
+          ...(normalizedAudioUrl && !normalizedVideoUrl ? { audio: normalizedAudioUrl } : {}),
           source_lang: sourceLang,
           target_lang: targetLang,
+          num_speakers: clampDubbingSpeakers(body.numSpeakers),
+          drop_background_audio: Boolean(body.dropBackgroundAudio),
         },
         wavespeedKey!,
       );
