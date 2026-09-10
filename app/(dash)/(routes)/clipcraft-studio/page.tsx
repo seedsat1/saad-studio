@@ -41,8 +41,6 @@ import {
   Volume2
 } from "lucide-react";
 import { FloatingParticles } from "@/components/FloatingParticles";
-import { VoiceLibraryModal } from "@/components/voices/VoiceLibraryModal";
-import { VOICE_CATALOG } from "@/lib/voice-catalog";
 
 const FALLBACK_LANGUAGES = [
   { code: "en-US", label: "English (United States)" },
@@ -351,8 +349,6 @@ export default function ClipCraftStudioPage() {
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [editPrompt, setEditPrompt] = useState("");
   const [brandTemplateId, setBrandTemplateId] = useState("");
-  const [dubbingVoice, setDubbingVoice] = useState("Omar");
-  const [showVoiceModal, setShowVoiceModal] = useState(false);
 
   // Audiogram form options
   const [waveformTemplate, setWaveformTemplate] = useState("wave");
@@ -1329,43 +1325,17 @@ export default function ClipCraftStudioPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Voice Actors / أصوات المتحدثين</span>
-              <button
-                type="button"
-                onClick={() => setShowVoiceModal(true)}
-                className="text-[10px] text-[#f5cb68] font-bold hover:underline flex items-center gap-1 transition-transform hover:scale-105"
-              >
-                <span>Browse Voices ({VOICE_CATALOG.length})</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { name: "Johnny Kid", label: "Calm Narrator", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" },
-                { name: "Addison 2.0", label: "Australian", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" },
-                { name: "طارق (Tariq)", label: "عربي فصحى", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80" },
-                { name: "ليلى (Layla)", label: "عربي دافئ", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" }
-              ].map((vc, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setDubbingVoice(vc.name)}
-                  className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
-                    dubbingVoice === vc.name
-                      ? "bg-[#f5cb68]/15 border-[#f5cb68] text-[#f5cb68] shadow-[0_0_12px_rgba(245,203,104,0.2)]"
-                      : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-slate-900/80"
-                  }`}
-                >
-                  <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-700 bg-slate-950 flex items-center justify-center mb-1">
-                    <img src={vc.image} alt={vc.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="text-[10px] font-bold truncate w-full">{vc.name}</div>
-                  <div className="text-[8px] text-slate-500 truncate w-full">{vc.label}</div>
-                </button>
-              ))}
-            </div>
+          {/* Reap chooses the target voice itself — its dubbing API takes only
+              sourceLanguage and targetLanguage (lib/providers/reap.ts). The voice
+              pickers that used to sit here wrote to a state nothing sent, so they
+              promised a choice the provider never received. */}
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 space-y-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Voice</span>
+            <p className="text-[11px] leading-relaxed text-slate-500">
+              The dubbing engine matches a voice to your target language automatically and
+              preserves the speaker&apos;s delivery. To choose a specific voice yourself, use
+              Lipsync — it reads your voice library and your saved characters.
+            </p>
           </div>
         </div>
 
@@ -1440,23 +1410,6 @@ export default function ClipCraftStudioPage() {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-slate-405 uppercase">Voice Accent</label>
-                <select
-                  value={dubbingVoice}
-                  onChange={(e) => setDubbingVoice(e.target.value)}
-                  className="w-full rounded-lg bg-slate-900 border border-slate-855 p-2 text-xs text-slate-200 outline-none"
-                >
-                  <option value="Omar">Omar (Natural)</option>
-                  <option value="Layla">Layla (Warm)</option>
-                  <option value="Hamed">Hamed (Deep)</option>
-                  <option value="Sera">Sera (Soft)</option>
-                </select>
-              </div>
-
-              <button className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-bold rounded-lg transition-colors">
-                Preview Voice
-              </button>
             </div>
           </div>
 
@@ -2809,13 +2762,6 @@ export default function ClipCraftStudioPage() {
         )}
       </AnimatePresence>
 
-      {/* Interactive Voice Library Modal */}
-      <VoiceLibraryModal
-        isOpen={showVoiceModal}
-        onClose={() => setShowVoiceModal(false)}
-        onSelectVoice={(v) => setDubbingVoice(v.name)}
-        selectedVoiceId={dubbingVoice}
-      />
     </div>
   );
 }
