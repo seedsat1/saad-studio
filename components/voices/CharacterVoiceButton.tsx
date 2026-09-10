@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/use-language";
 
 /**
  * Applies a saved character's voice wherever a voice is being chosen.
@@ -27,6 +28,8 @@ export function CharacterVoiceButton({
 }) {
   const [characters, setCharacters] = useState<CharacterWithVoice[]>([]);
   const [open, setOpen] = useState(false);
+  const { lang } = useLanguage();
+  const isAr = lang === "ar";
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +74,7 @@ export function CharacterVoiceButton({
         className="inline-flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-[10px] font-bold text-violet-300 transition hover:bg-violet-500/20"
       >
         <UserRound className="h-3 w-3 stroke-[2.5]" />
-        <span>Use a character&apos;s voice</span>
+        <span>{isAr ? "استخدم صوت شخصية" : "Use a character's voice"}</span>
       </button>
 
       {open ? (

@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { normalizeMediaUrl } from "@/lib/storage";
 import { VOICE_CATALOG, type VoiceDefinition } from "@/lib/voice-catalog";
+import { useLanguage } from "@/lib/use-language";
 import { VoiceLibraryModal } from "@/components/voices/VoiceLibraryModal";
 import {
   GEMINI_FLASH_IMAGE_ASPECT_RATIOS,
@@ -293,6 +294,10 @@ export default function CharacterPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [characters, setCharacters] = useState<CharacterRecord[]>([]);
   const [refs, setRefs] = useState<LocalRefImage[]>([]);
+  // The rest of this page predates bilingual support and is English-only; the
+  // strings added here follow the site's language toggle.
+  const { lang } = useLanguage();
+  const tr = (ar: string, en: string) => (lang === "ar" ? ar : en);
   const [genOpen, setGenOpen] = useState(false);
   const [genPrompt, setGenPrompt] = useState("");
   const [genBusy, setGenBusy] = useState<string | null>(null);
@@ -433,7 +438,7 @@ export default function CharacterPage() {
       });
       const data = await res.json().catch(() => null);
       const url = data?.imageUrl || (Array.isArray(data?.imageUrls) ? data.imageUrls[0] : null);
-      if (!res.ok || !url) throw new Error(data?.publicError || data?.error || "Generation failed.");
+      if (!res.ok || !url) throw new Error(data?.publicError || data?.error || tr("فشل التوليد.", "Generation failed."));
       return String(url);
     };
 
@@ -449,7 +454,7 @@ export default function CharacterPage() {
     };
 
     try {
-      setGenBusy("Portrait 1 of 3…");
+      setGenBusy(tr("بورتريه 1 من 3…", "Portrait 1 of 3…"));
       const base = await shoot(
         `Neutral head-and-shoulders reference portrait of ${brief}. Facing the camera directly, ` +
         `relaxed neutral expression, even soft studio light with no harsh shadows, plain mid-grey ` +
@@ -462,7 +467,7 @@ export default function CharacterPage() {
         "Same person, same face, same hair, same clothing. Full profile, side view.",
       ];
       for (let i = 0; i < angles.length; i++) {
-        setGenBusy(`Portrait ${i + 2} of 3…`);
+        setGenBusy(tr(`بورتريه ${i + 2} من 3…`, `Portrait ${i + 2} of 3…`));
         const url = await shoot(
           `${angles[i]} Keep the identity, facial features, skin tone and proportions identical to ` +
           `the attached reference. Same even studio light and plain mid-grey background.`,
@@ -473,7 +478,7 @@ export default function CharacterPage() {
       setGenOpen(false);
       setGenPrompt("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not generate reference photos.");
+      setError(err instanceof Error ? err.message : tr("تعذّر توليد الصور المرجعية.", "Could not generate reference photos."));
     } finally {
       setGenBusy(null);
     }
@@ -893,21 +898,22 @@ export default function CharacterPage() {
                   className="h-12 px-4 rounded-xl border border-violet-500/25 bg-violet-500/[0.06] hover:bg-violet-500/[0.12] text-xs font-bold transition flex items-center justify-center gap-2 text-violet-300 disabled:opacity-50"
                 >
                   <Sparkles size={13} />
-                  Generate
+                  {tr("ولّد", "Generate")}
                 </button>
               </div>
 
               {genOpen ? (
                 <div className="mt-3 rounded-2xl border border-violet-500/20 bg-violet-500/[0.03] p-4 space-y-3">
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Describe the face and we will shoot three matching references — front,
-                    three-quarter and profile — from one generated portrait, so all three are
-                    the same person. Costs three image generations.
+                    {tr(
+                      "اوصف الوجه ونصوّر ثلاثة مراجع متطابقة — أمامي وثلاثة أرباع وجانبي — من بورتريه واحد مولّد، فيكون الثلاثة نفس الشخص. يكلّف ثلاث توليدات صور.",
+                      "Describe the face and we will shoot three matching references — front, three-quarter and profile — from one generated portrait, so all three are the same person. Costs three image generations.",
+                    )}
                   </p>
                   <textarea
                     value={genPrompt}
                     onChange={(e) => setGenPrompt(e.target.value)}
-                    placeholder="e.g. an Iraqi woman in her late twenties, short dark curly hair, warm brown eyes, light makeup, charcoal blazer"
+                    placeholder={tr("مثال: امرأة عراقية في أواخر العشرينات، شعر أسود قصير مجعّد، عيون بنية، مكياج خفيف، بليزر فحمي", "e.g. an Iraqi woman in her late twenties, short dark curly hair, warm brown eyes, light makeup, charcoal blazer")}
                     rows={3}
                     disabled={Boolean(genBusy)}
                     className="w-full rounded-xl border border-white/5 bg-black/40 px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-violet-500/60 transition disabled:opacity-50"
@@ -925,7 +931,7 @@ export default function CharacterPage() {
                     ) : (
                       <>
                         <Sparkles size={13} />
-                        Generate 3 references
+                        {tr("ولّد 3 مراجع", "Generate 3 references")}
                       </>
                     )}
                   </button>
@@ -934,21 +940,21 @@ export default function CharacterPage() {
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Gender</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{tr("الجنس", "Gender")}</label>
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value as CharacterGender)}
                     className="w-full h-10 rounded-xl border border-white/5 bg-black/40 px-3 text-xs text-zinc-200 focus:outline-none focus:border-violet-500/60 transition"
                   >
-                    <option value="unspecified">Not specified</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="non-binary">Non-binary</option>
+                    <option value="unspecified">{tr("غير محدد", "Not specified")}</option>
+                    <option value="male">{tr("ذكر", "Male")}</option>
+                    <option value="female">{tr("أنثى", "Female")}</option>
+                    <option value="non-binary">{tr("غير ثنائي", "Non-binary")}</option>
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Voice</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{tr("الصوت", "Voice")}</label>
                   <button
                     type="button"
                     onClick={() => setVoiceModalOpen(true)}
@@ -961,7 +967,7 @@ export default function CharacterPage() {
                         <span className="text-zinc-500"> — {voice.language} · {voice.accent}</span>
                       </span>
                     ) : (
-                      <span className="text-zinc-500">Select a voice</span>
+                      <span className="text-zinc-500">{tr("اختر صوتاً", "Select a voice")}</span>
                     )}
                     <ChevronDown size={13} className="ms-auto shrink-0 text-zinc-500" />
                   </button>
@@ -969,8 +975,10 @@ export default function CharacterPage() {
                     <audio key={voice.id} controls preload="none" src={voice.sampleUrl} className="mt-1 h-8 w-full" />
                   ) : (
                     <p className="text-[10px] text-zinc-500">
-                      Picking a voice here saves it with the character, so video and voice-over
-                      reach for it instead of asking again.
+                      {tr(
+                        "اختيار الصوت هنا يُحفظ مع الشخصية، فيستخدمه الفيديو والتعليق الصوتي بدل السؤال مرة أخرى.",
+                        "Picking a voice here saves it with the character, so video and voice-over reach for it instead of asking again.",
+                      )}
                     </p>
                   )}
                 </div>
@@ -986,10 +994,16 @@ export default function CharacterPage() {
                 }`}
               >
                 {refs.length === 0
-                  ? "Upload 3–4 photos of the same face, from different angles and lighting. One photo works, but strong styles will drift the face."
+                  ? tr(
+                      "ارفع 3–4 صور لنفس الوجه بزوايا وإضاءات مختلفة. صورة واحدة تعمل، لكن الستايلات القوية ستُزيح الوجه.",
+                      "Upload 3–4 photos of the same face, from different angles and lighting. One photo works, but strong styles will drift the face.",
+                    )
                   : refs.length >= 3
-                    ? `${refs.length} photos — good identity stability.`
-                    : `${refs.length} photo${refs.length === 1 ? "" : "s"} — add ${3 - refs.length} more for a face that holds under strong styles.`}
+                    ? tr(`${refs.length} صور — ثبات جيد للوجه.`, `${refs.length} photos — good identity stability.`)
+                    : tr(
+                        `${refs.length === 1 ? "صورة واحدة" : "صورتان"} — أضف ${3 - refs.length} للحصول على وجه يصمد أمام الستايلات القوية.`,
+                        `${refs.length} photo${refs.length === 1 ? "" : "s"} — add ${3 - refs.length} more for a face that holds under strong styles.`,
+                      )}
               </p>
             </div>
 
@@ -1003,8 +1017,8 @@ export default function CharacterPage() {
                   <p>• <strong>Nano Banana 2</strong> excels at multiple reference image processing and keeping characters consistent across outputs.</p>
                   <p>• <strong>Nano Banana Pro</strong> is optimal for complex visual textures and custom brand identities.</p>
                   <p>• Supports uploading up to 14 reference photos to build a stable identity record.</p>
-                  <p>• Your uploaded photos are stored for your own character library and are <strong>not used to train any AI model</strong>.</p>
-                  <p>• <strong>3–4 photos is the sweet spot.</strong> One reference still generates, but a strong style can pull the face away from it.</p>
+                  <p>• {tr("صورك محفوظة لمكتبة شخصياتك الخاصة و", "Your uploaded photos are stored for your own character library and are ")}<strong>{tr("لا تُستخدم لتدريب أي نموذج ذكاء اصطناعي", "not used to train any AI model")}</strong>.</p>
+                  <p>• <strong>{tr("3–4 صور هي الأفضل.", "3–4 photos is the sweet spot.")}</strong> {tr("مرجع واحد يولّد أيضاً، لكن ستايلاً قوياً قد يُبعد الوجه عنه.", "One reference still generates, but a strong style can pull the face away from it.")}</p>
                 </div>
               </div>
 

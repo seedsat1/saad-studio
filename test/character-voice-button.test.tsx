@@ -44,7 +44,7 @@ describe("CharacterVoiceButton", () => {
       { id: "c2", name: "Unvoiced", metadata: {} },
     ]);
     render(<CharacterVoiceButton onPickVoice={() => {}} />);
-    const trigger = await screen.findByRole("button", { name: /character's voice/i });
+    const trigger = await screen.findByRole("button", { name: /character's voice|صوت شخصية/i });
     await userEvent.click(trigger);
     expect(await screen.findByText("Layla")).toBeInTheDocument();
     expect(screen.queryByText("Unvoiced")).not.toBeInTheDocument();
@@ -54,7 +54,7 @@ describe("CharacterVoiceButton", () => {
     mockCharacters([{ id: "c1", name: "Layla", metadata: { voiceId: "Sulafat" } }]);
     const onPickVoice = vi.fn();
     render(<CharacterVoiceButton onPickVoice={onPickVoice} />);
-    await userEvent.click(await screen.findByRole("button", { name: /character's voice/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /character's voice|صوت شخصية/i }));
     await userEvent.click(await screen.findByText("Layla"));
     expect(onPickVoice).toHaveBeenCalledWith("Sulafat", "Layla");
   });
