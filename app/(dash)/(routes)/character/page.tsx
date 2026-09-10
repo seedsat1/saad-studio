@@ -796,6 +796,22 @@ export default function CharacterPage() {
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickImages} />
               </div>
+
+              <p
+                className={`mt-2 text-[11px] font-semibold ${
+                  refs.length === 0
+                    ? "text-zinc-400"
+                    : refs.length >= 3
+                      ? "text-emerald-400"
+                      : "text-amber-400"
+                }`}
+              >
+                {refs.length === 0
+                  ? "Upload 3–4 photos of the same face, from different angles and lighting. One photo works, but strong styles will drift the face."
+                  : refs.length >= 3
+                    ? `${refs.length} photos — good identity stability.`
+                    : `${refs.length} photo${refs.length === 1 ? "" : "s"} — add ${3 - refs.length} more for a face that holds under strong styles.`}
+              </p>
             </div>
 
             {/* Guide Step slider & Quality Checklist */}
@@ -808,6 +824,7 @@ export default function CharacterPage() {
                   <p>• <strong>Nano Banana 2</strong> excels at multiple reference image processing and keeping characters consistent across outputs.</p>
                   <p>• <strong>Nano Banana Pro</strong> is optimal for complex visual textures and custom brand identities.</p>
                   <p>• Supports uploading up to 14 reference photos to build a stable identity record.</p>
+                  <p>• <strong>3–4 photos is the sweet spot.</strong> One reference still generates, but a strong style can pull the face away from it.</p>
                 </div>
               </div>
 

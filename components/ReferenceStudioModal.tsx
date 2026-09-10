@@ -3889,8 +3889,27 @@ export function ReferenceStudioModal({
                     <span className="text-[10px] text-slate-400 block">
                       PNG, JPG, WEBP · {isAr ? "حتى 8 صور · 8MB/صورة" : "up to 8 · 8MB each"}
                     </span>
+                    <span className="text-[10px] text-emerald-300/90 block mt-1 font-semibold">
+                      {isAr
+                        ? "أفضل نتيجة: 3–4 صور لنفس الوجه بزوايا وإضاءات مختلفة"
+                        : "Best results: 3–4 photos of the same face, different angles and lighting"}
+                    </span>
                   </div>
 
+                  {newCharPreviews.length > 0 && (
+                    <p className={`text-[10px] font-semibold mt-1.5 ${
+                      newCharPreviews.length >= 3 ? "text-emerald-400" : "text-amber-400"
+                    }`}>
+                      {newCharPreviews.length >= 3
+                        ? isAr
+                          ? `${newCharPreviews.length} صور — ثبات جيد للوجه`
+                          : `${newCharPreviews.length} photos — good identity stability`
+                        : isAr
+                          ? `${newCharPreviews.length === 1 ? "صورة واحدة" : "صورتان"} — تعمل، لكن الوجه قد يتغيّر مع الستايلات القوية. أضف ${3 - newCharPreviews.length} للأفضل.`
+                          : `${newCharPreviews.length} photo${newCharPreviews.length === 1 ? "" : "s"} — works, but strong styles may drift the face. Add ${3 - newCharPreviews.length} more.`}
+                    </p>
+                  )}
+                  
                   {newCharPreviews.length > 0 && (
                     <div className="grid grid-cols-4 gap-1.5 mt-2">
                       {newCharPreviews.map((p, idx) => (
