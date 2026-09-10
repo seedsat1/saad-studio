@@ -3501,7 +3501,8 @@ function VideoPageInner() {
       {/* -- Center Panel --------------------------------------------------- */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden pb-[60px] lg:pb-0">
         {/* Results grid */}
-        <div className="flex-1 overflow-y-auto px-2">
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-clip">
+          <div className="min-h-0 flex-1 overflow-y-auto px-2">
           {results.length === 0 && pendingTasks.size === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 pb-16">
               <motion.div
@@ -3539,6 +3540,114 @@ function VideoPageInner() {
               onDelete={(id) => setDeleteTargetId(id)}
             />
           )}
+        </div>
+          {/* Reference Studio — slides over the results, as on the image page */}
+          <ReferenceStudioModal
+            isOpen={showReferenceStudioModal}
+            onClose={() => setShowReferenceStudioModal(false)}
+            activeTab={activeStudioTab}
+            setActiveTab={setActiveStudioTab}
+            selectedStyle={selectedStyle}
+            onSelectStyle={(id) => {
+              setSelectedStyle(id);
+              setShowReferenceStudioModal(false);
+            }}
+            selectedElementId={selectedElementId}
+            onSelectElement={(id) => {
+              setSelectedElementId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            selectedLocationId={selectedLocationId}
+            onSelectLocation={(id) => {
+              setSelectedLocationId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            selectedCameraId={selectedCameraId}
+            onSelectCamera={(id) => {
+              setSelectedCameraId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            selectedEffectId={selectedEffectId}
+            onSelectEffect={(id) => {
+              setSelectedEffectId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            selectedCharacterId={selectedCharacterId || selectedCharacterPresetId}
+            onSelectCharacter={(id) => {
+              if (!id) {
+                setSelectedCharacterPresetId(null);
+                setSelectedCharacterId("");
+              } else if (HOOK_CHARACTERS.some((h) => h.id === id)) {
+                setSelectedCharacterPresetId(id);
+                setSelectedCharacterId("");
+              } else {
+                setSelectedCharacterId(id);
+                setSelectedCharacterPresetId(null);
+              }
+              setShowReferenceStudioModal(false);
+            }}
+            useCharacterPackage={true}
+            selectedSketchId={selectedSketchId}
+            selectedShotTypeId={selectedShotTypeId}
+            selectedFilmStockId={selectedFilmStockId}
+            selectedMovieLookId={selectedMovieLookId}
+            selectedLightingId={selectedLightingId}
+            selectedMotionBlurId={selectedMotionBlurId}
+            selectedGrainId={selectedGrainId}
+            selectedHalationId={selectedHalationId}
+            selectedTonalLookId={selectedTonalLookId}
+            onSelectSketch={(id) => {
+              setSelectedSketchId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            onSelectShotType={(id) => {
+              setSelectedShotTypeId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            onSelectFilmStock={(id) => {
+              setSelectedFilmStockId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            onSelectMovieLook={(id) => {
+              setSelectedMovieLookId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            onSelectLighting={(id) => {
+              setSelectedLightingId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            onSelectMotionBlur={(id) => {
+              setSelectedMotionBlurId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            onSelectGrain={(id) => {
+              setSelectedGrainId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            onSelectHalation={(id) => {
+              setSelectedHalationId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            onSelectTonalLook={(id) => {
+              setSelectedTonalLookId(id);
+              setShowReferenceStudioModal(false);
+            }}
+            onSelectPalette={(pal) => setSelectedPalette(pal)}
+            onAttachFile={(file) => {
+              const targetUrl = file.url.startsWith("blob:") || file.url.startsWith("data:")
+                ? file.url
+                : `/api/proxy-image?url=${encodeURIComponent(file.url)}`;
+              fetch(targetUrl)
+                .then((r) => r.blob())
+                .then((blob) => {
+                  const f = new File([blob], `${file.name || "ref"}-${Date.now()}.jpg`, { type: "image/jpeg" });
+                  setReferenceImages((prev) => mergeReferenceFiles(prev, [f], selectedModel));
+                })
+                .catch((err) => console.error("Failed to attach reference file:", err));
+            }}
+            isAr={lang === "ar"}
+            variant="panel"
+          />
         </div>
 
         {/* Error banner */}
@@ -7252,112 +7361,6 @@ function VideoPageInner() {
           </motion.div>
         ) : null}
       </AnimatePresence>
-      {/* Unified Reference Studio Modal */}
-      <ReferenceStudioModal
-        isOpen={showReferenceStudioModal}
-        onClose={() => setShowReferenceStudioModal(false)}
-        activeTab={activeStudioTab}
-        setActiveTab={setActiveStudioTab}
-        selectedStyle={selectedStyle}
-        onSelectStyle={(id) => {
-          setSelectedStyle(id);
-          setShowReferenceStudioModal(false);
-        }}
-        selectedElementId={selectedElementId}
-        onSelectElement={(id) => {
-          setSelectedElementId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        selectedLocationId={selectedLocationId}
-        onSelectLocation={(id) => {
-          setSelectedLocationId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        selectedCameraId={selectedCameraId}
-        onSelectCamera={(id) => {
-          setSelectedCameraId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        selectedEffectId={selectedEffectId}
-        onSelectEffect={(id) => {
-          setSelectedEffectId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        selectedCharacterId={selectedCharacterId || selectedCharacterPresetId}
-        onSelectCharacter={(id) => {
-          if (!id) {
-            setSelectedCharacterPresetId(null);
-            setSelectedCharacterId("");
-          } else if (HOOK_CHARACTERS.some((h) => h.id === id)) {
-            setSelectedCharacterPresetId(id);
-            setSelectedCharacterId("");
-          } else {
-            setSelectedCharacterId(id);
-            setSelectedCharacterPresetId(null);
-          }
-          setShowReferenceStudioModal(false);
-        }}
-        useCharacterPackage={true}
-        selectedSketchId={selectedSketchId}
-        selectedShotTypeId={selectedShotTypeId}
-        selectedFilmStockId={selectedFilmStockId}
-        selectedMovieLookId={selectedMovieLookId}
-        selectedLightingId={selectedLightingId}
-        selectedMotionBlurId={selectedMotionBlurId}
-        selectedGrainId={selectedGrainId}
-        selectedHalationId={selectedHalationId}
-        selectedTonalLookId={selectedTonalLookId}
-        onSelectSketch={(id) => {
-          setSelectedSketchId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        onSelectShotType={(id) => {
-          setSelectedShotTypeId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        onSelectFilmStock={(id) => {
-          setSelectedFilmStockId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        onSelectMovieLook={(id) => {
-          setSelectedMovieLookId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        onSelectLighting={(id) => {
-          setSelectedLightingId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        onSelectMotionBlur={(id) => {
-          setSelectedMotionBlurId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        onSelectGrain={(id) => {
-          setSelectedGrainId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        onSelectHalation={(id) => {
-          setSelectedHalationId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        onSelectTonalLook={(id) => {
-          setSelectedTonalLookId(id);
-          setShowReferenceStudioModal(false);
-        }}
-        onSelectPalette={(pal) => setSelectedPalette(pal)}
-        onAttachFile={(file) => {
-          const targetUrl = file.url.startsWith("blob:") || file.url.startsWith("data:")
-            ? file.url
-            : `/api/proxy-image?url=${encodeURIComponent(file.url)}`;
-          fetch(targetUrl)
-            .then((r) => r.blob())
-            .then((blob) => {
-              const f = new File([blob], `${file.name || "ref"}-${Date.now()}.jpg`, { type: "image/jpeg" });
-              setReferenceImages((prev) => mergeReferenceFiles(prev, [f], selectedModel));
-            })
-            .catch((err) => console.error("Failed to attach reference file:", err));
-        }}
-        isAr={lang === "ar"}
-      />
 
       {/* Prompt Editor (Ctrl+E) Modal */}
       <PromptEditorModal
