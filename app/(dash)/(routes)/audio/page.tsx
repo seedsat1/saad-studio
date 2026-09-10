@@ -8,7 +8,7 @@ import {
   Music2, Upload, Play, Pause, Volume2, VolumeX, Download, Share2, Copy,
   ChevronDown, ChevronUp, ChevronRight, Sparkles, X, Settings2, RefreshCw,
   Check, MoreHorizontal, Zap, Plus, Heart, List, RotateCcw, Clock,
-  Star, AlignLeft, Sliders, Trash2
+  Star, AlignLeft, Sliders, Trash2, Languages
 } from "lucide-react";
 import { cn, getFallbackUrls } from "@/lib/utils";
 import { useProModal } from "@/hooks/use-pro-modal";
@@ -20,6 +20,7 @@ import { calculateMusicCredits } from "@/lib/pricing";
 import { SaadLoader } from "@/components/saad-loader";
 import { reportMobileTelemetry } from "@/lib/mobile/client-telemetry";
 import { downloadMediaFile } from "@/lib/client-download";
+import { DubbingPanel } from "@/components/audio/DubbingPanel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -291,6 +292,7 @@ function useAudioTranslation() {
       "Sound Studio": "استوديو الصوت",
       "Create Your Song": "أنشئ أغنيتك",
       "Production Library": "مكتبة الإنتاج",
+      "Dubbing": "الدبلجة",
       
       // Library
       "Refresh": "تحديث",
@@ -417,7 +419,7 @@ export default function AudioPage() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
 
   // Suite Tab
-  const [suiteTab, setSuiteTab] = useState<"sound-studio" | "create-song" | "library">("sound-studio");
+  const [suiteTab, setSuiteTab] = useState<"sound-studio" | "create-song" | "dubbing" | "library">("sound-studio");
 
   // Load library assets
   const [libraryAssets, setLibraryAssets] = useState<any[]>([]);
@@ -807,6 +809,18 @@ export default function AudioPage() {
             {t("Create Your Song")}
           </button>
           <button
+            onClick={() => setSuiteTab("dubbing")}
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all",
+              suiteTab === "dubbing"
+                ? "bg-cyan-600 text-white shadow-lg"
+                : "text-zinc-400 hover:text-white"
+            )}
+          >
+            <Languages className="h-3.5 w-3.5" />
+            {t("Dubbing")}
+          </button>
+          <button
             onClick={() => setSuiteTab("library")}
             className={cn(
               "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all",
@@ -831,6 +845,10 @@ export default function AudioPage() {
             title="Audio Studio"
             allow="microphone *; autoplay *"
           />
+        ) : suiteTab === "dubbing" ? (
+          <div className="mx-auto w-full max-w-3xl rounded-3xl border border-white/10 bg-black/40 p-6">
+            <DubbingPanel isAr={lang === "ar"} />
+          </div>
         ) : suiteTab === "library" ? (
           <div className="flex-1 overflow-y-auto min-h-0 bg-[#060b13] text-slate-100 p-6" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
             <div className="max-w-[1400px] mx-auto space-y-6">
