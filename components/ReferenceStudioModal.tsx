@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { confirmAction } from "@/lib/confirm-action";
+import { CharacterIdentityFields, type CharacterGender } from "@/components/character/CharacterIdentityFields";
+import { GenerateReferences } from "@/components/character/GenerateReferences";
+import type { VoiceDefinition } from "@/lib/voice-catalog";
 import {
   Sparkles,
   User,
@@ -242,6 +245,9 @@ export function ReferenceStudioModal({
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
 
   // Panel variant only: stay mounted for the slide-out before unmounting.
+  // Stored in the character's metadata JSON, so neither needs a column.
+  const [newCharGender, setNewCharGender] = useState<CharacterGender>("unspecified");
+  const [newCharVoice, setNewCharVoice] = useState<VoiceDefinition | null>(null);
   const [panelMounted, setPanelMounted] = useState(isOpen);
   useEffect(() => {
     if (isOpen) {
@@ -958,6 +964,10 @@ export function ReferenceStudioModal({
         body: JSON.stringify({
           name,
           images: newCharPreviews.map((p) => ({ dataUrl: p.dataUrl, name: p.name })),
+          metadata: {
+            gender: newCharGender,
+            voiceId: newCharVoice?.id ?? null,
+          },
         }),
       });
       const data = await res.json().catch(() => null);
@@ -969,6 +979,8 @@ export function ReferenceStudioModal({
       setUserCharacters((prev) => [created, ...prev]);
       setNewCharName("");
       setNewCharPreviews([]);
+      setNewCharGender("unspecified");
+      setNewCharVoice(null);
       onSelectCharacter?.(created.id);
       // Same guard as picking an existing character: under Character Package the
       // caller attaches every referenceUrl at generation time, so attaching the
@@ -3896,6 +3908,16 @@ export function ReferenceStudioModal({
                     </span>
                   </div>
 
+                  <GenerateReferences
+                    isAr={isAr}
+                    disabled={isSavingChar}
+                    onGenerated={(ref) =>
+                      setNewCharPreviews((prev) =>
+                        [...prev, { dataUrl: ref.dataUrl, name: ref.name }].slice(0, 8),
+                      )
+                    }
+                  />
+
                   {newCharPreviews.length > 0 && (
                     <p className={`text-[10px] font-semibold mt-1.5 ${
                       newCharPreviews.length >= 3 ? "text-emerald-400" : "text-amber-400"
@@ -3928,6 +3950,14 @@ export function ReferenceStudioModal({
                     </div>
                   )}
                 </div>
+
+                <CharacterIdentityFields
+                  gender={newCharGender}
+                  onGenderChange={setNewCharGender}
+                  voice={newCharVoice}
+                  onVoiceChange={setNewCharVoice}
+                  isAr={isAr}
+                />
 
                 {createCharError && (
                   <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
