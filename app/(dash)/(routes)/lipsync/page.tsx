@@ -32,6 +32,7 @@ import { downloadMediaFile } from "@/lib/client-download";
 import { getFallbackUrls } from "@/lib/utils";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { VoiceLibraryModal } from "@/components/voices/VoiceLibraryModal";
+import { CharacterVoiceButton } from "@/components/voices/CharacterVoiceButton";
 import { VOICE_CATALOG } from "@/lib/voice-catalog";
 
 
@@ -960,6 +961,7 @@ function LipsyncStudioPageInner() {
                           {ttsVoice}
                         </span>
                       </div>
+                      <CharacterVoiceButton onPickVoice={(voiceId) => setTtsVoice(voiceId)} />
                       <button
                         type="button"
                         onClick={() => setShowVoiceModal(true)}
