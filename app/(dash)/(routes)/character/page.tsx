@@ -288,6 +288,9 @@ export default function CharacterPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [characters, setCharacters] = useState<CharacterRecord[]>([]);
   const [refs, setRefs] = useState<LocalRefImage[]>([]);
+  const [genOpen, setGenOpen] = useState(false);
+  const [genPrompt, setGenPrompt] = useState("");
+  const [genBusy, setGenBusy] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -395,6 +398,76 @@ export default function CharacterPage() {
     const mapped = await Promise.all(files.map(async (file) => ({ id: uid("ref"), file, dataUrl: await fileToDataUrl(file) })));
     setRefs((prev) => [...prev, ...mapped].slice(0, MAX_CHARACTER_REFERENCE_IMAGES));
   }, [refs.length]);
+
+  /**
+   * Builds the reference set from a description instead of an upload, for a
+   * character nobody has photos of. The first portrait comes from the text;
+   * the rest are generated *from that portrait* so all three are the same
+   * face — generating three times from the same text gives three people.
+   */
+  const generateReferences = useCallback(async () => {
+    const brief = genPrompt.trim();
+    if (!brief || genBusy) return;
+    setError(null);
+
+    const shoot = async (prompt: string, referenceUrl?: string) => {
+      const res = await fetch("/api/generate/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          modelId: referenceUrl ? "nano-banana-2" : "nano-banana-2",
+          aspectRatio: "1:1",
+          ...(referenceUrl ? { imageUrls: [referenceUrl] } : {}),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      const url = data?.imageUrl || (Array.isArray(data?.imageUrls) ? data.imageUrls[0] : null);
+      if (!res.ok || !url) throw new Error(data?.publicError || data?.error || "Generation failed.");
+      return String(url);
+    };
+
+    const attach = async (url: string, index: number) => {
+      const blob = await fetch(`/api/proxy-image?url=${encodeURIComponent(url)}`)
+        .then((r) => (r.ok ? r.blob() : fetch(url).then((x) => x.blob())))
+        .catch(() => fetch(url).then((x) => x.blob()));
+      const file = new File([blob], `generated-${index}.png`, { type: blob.type || "image/png" });
+      const dataUrl = await fileToDataUrl(file);
+      setRefs((prev) =>
+        [...prev, { id: uid("ref"), file, dataUrl }].slice(0, MAX_CHARACTER_REFERENCE_IMAGES),
+      );
+    };
+
+    try {
+      setGenBusy("Portrait 1 of 3…");
+      const base = await shoot(
+        `Neutral head-and-shoulders reference portrait of ${brief}. Facing the camera directly, ` +
+        `relaxed neutral expression, even soft studio light with no harsh shadows, plain mid-grey ` +
+        `seamless background, sharp focus on the face, no props, no text, no watermark.`,
+      );
+      await attach(base, 1);
+
+      const angles = [
+        "Same person, same face, same hair, same clothing. Turned three-quarters to their left.",
+        "Same person, same face, same hair, same clothing. Full profile, side view.",
+      ];
+      for (let i = 0; i < angles.length; i++) {
+        setGenBusy(`Portrait ${i + 2} of 3…`);
+        const url = await shoot(
+          `${angles[i]} Keep the identity, facial features, skin tone and proportions identical to ` +
+          `the attached reference. Same even studio light and plain mid-grey background.`,
+          base,
+        );
+        await attach(url, i + 2);
+      }
+      setGenOpen(false);
+      setGenPrompt("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not generate reference photos.");
+    } finally {
+      setGenBusy(null);
+    }
+  }, [genBusy, genPrompt]);
 
   const createCharacter = useCallback(async () => {
     if (!canCreate) return;
@@ -795,7 +868,54 @@ export default function CharacterPage() {
                   Upload Face Reference Photos (up to 14)
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickImages} />
+
+                {/* For a character nobody has photos of — an invented host,
+                    mascot or spokesperson — describing the face is the only
+                    way in. Uploading was previously mandatory. */}
+                <button
+                  onClick={() => setGenOpen((v) => !v)}
+                  disabled={Boolean(genBusy)}
+                  className="h-12 px-4 rounded-xl border border-violet-500/25 bg-violet-500/[0.06] hover:bg-violet-500/[0.12] text-xs font-bold transition flex items-center justify-center gap-2 text-violet-300 disabled:opacity-50"
+                >
+                  <Sparkles size={13} />
+                  Generate
+                </button>
               </div>
+
+              {genOpen ? (
+                <div className="mt-3 rounded-2xl border border-violet-500/20 bg-violet-500/[0.03] p-4 space-y-3">
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Describe the face and we will shoot three matching references — front,
+                    three-quarter and profile — from one generated portrait, so all three are
+                    the same person. Costs three image generations.
+                  </p>
+                  <textarea
+                    value={genPrompt}
+                    onChange={(e) => setGenPrompt(e.target.value)}
+                    placeholder="e.g. an Iraqi woman in her late twenties, short dark curly hair, warm brown eyes, light makeup, charcoal blazer"
+                    rows={3}
+                    disabled={Boolean(genBusy)}
+                    className="w-full rounded-xl border border-white/5 bg-black/40 px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-violet-500/60 transition disabled:opacity-50"
+                  />
+                  <button
+                    onClick={generateReferences}
+                    disabled={!genPrompt.trim() || Boolean(genBusy)}
+                    className="w-full h-10 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:hover:bg-violet-600 text-xs font-bold text-white transition flex items-center justify-center gap-2"
+                  >
+                    {genBusy ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        {genBusy}
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={13} />
+                        Generate 3 references
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : null}
 
               <p
                 className={`mt-2 text-[11px] font-semibold ${
@@ -824,6 +944,7 @@ export default function CharacterPage() {
                   <p>• <strong>Nano Banana 2</strong> excels at multiple reference image processing and keeping characters consistent across outputs.</p>
                   <p>• <strong>Nano Banana Pro</strong> is optimal for complex visual textures and custom brand identities.</p>
                   <p>• Supports uploading up to 14 reference photos to build a stable identity record.</p>
+                  <p>• Your uploaded photos are stored for your own character library and are <strong>not used to train any AI model</strong>.</p>
                   <p>• <strong>3–4 photos is the sweet spot.</strong> One reference still generates, but a strong style can pull the face away from it.</p>
                 </div>
               </div>
