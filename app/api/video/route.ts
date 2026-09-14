@@ -35,6 +35,7 @@ import { resolveRuntimeProviderRoute, routingMetadata } from "@/lib/routing/runt
 import { isFinalProviderExecutionAllowed } from "@/lib/generation/runtime-safety";
 import { assertMobileCapabilityAllowed, MobileCapabilityDisabledError } from "@/lib/mobile/mobile-control-plane";
 import { validateAndBuildSeedanceExactPayload, isSeedanceRoute } from "@/lib/seedance-validation";
+import { assertVideoRouteAllowed, BlockedVideoRouteError } from "@/lib/generation/video-route-policy";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
@@ -143,8 +144,8 @@ function resolveSeedance25Route(baseRoute: string, payload: Record<string, unkno
   if (!hasExplicitStartImage) return baseRoute;
 
   const requestedResolution = String(payload.resolution ?? payload.quality ?? payload.mode ?? "").trim().toLowerCase();
-  if (requestedResolution === "480p") {
-    return "bytedance/seedance-2.5/image-to-video-spicy";
+  if (requestedResolution === "480p" || requestedResolution === "4k") {
+    return "bytedance/seedance-2.5/image-to-video";
   }
 
   return "bytedance/seedance-2.5/image-to-video-turbo";
@@ -2306,6 +2307,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "modelRoute is required" }, { status: 400 });
     }
 
+    try {
+      assertVideoRouteAllowed(modelRoute);
+    } catch (routeError) {
+      if (routeError instanceof BlockedVideoRouteError) {
+        return NextResponse.json({ error: routeError.message, code: routeError.code }, { status: routeError.status });
+      }
+      throw routeError;
+    }
+
     if (!payload || typeof payload !== "object") {
       return NextResponse.json({ error: "payload is required" }, { status: 400 });
     }
@@ -2686,6 +2696,17 @@ export async function POST(req: Request) {
       wavespeedRoute = wavespeedRoute || modelRoute;
       kieModel = undefined;
       isDirectGoogleVeo31Route = false;
+    }
+
+    try {
+      assertVideoRouteAllowed(modelRoute);
+      if (kieModel) assertVideoRouteAllowed(kieModel);
+      if (wavespeedRoute) assertVideoRouteAllowed(wavespeedRoute);
+    } catch (routeError) {
+      if (routeError instanceof BlockedVideoRouteError) {
+        return NextResponse.json({ error: routeError.message, code: routeError.code }, { status: routeError.status });
+      }
+      throw routeError;
     }
 
     if (
@@ -3425,7 +3446,7 @@ export async function POST(req: Request) {
         await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
         return NextResponse.json(responseJson, { status: 400 });
       }
-      if ((wavespeedRoute === "bytedance/seedance-2.5/image-to-video-turbo" || wavespeedRoute === "bytedance/seedance-2.5/image-to-video-spicy") && typeof wsInput.image !== "string") {
+      if ((wavespeedRoute === "bytedance/seedance-2.5/image-to-video-turbo" || wavespeedRoute === "bytedance/seedance-2.5/image-to-video") && typeof wsInput.image !== "string") {
         const responseJson = { error: "Seedance 2.5 Image-to-Video requires an image reference." };
         await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 400, responseJson });
         return NextResponse.json(responseJson, { status: 400 });
