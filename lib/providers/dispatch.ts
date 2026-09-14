@@ -26,6 +26,7 @@ import { generateImage, generateVideo } from "../provider-router";
 import { runInlineGeneration } from "../generation/inline-orchestrator";
 import { persistProviderUrl } from "./persist-output";
 import { resolveRuntimeProviderRoute, routingMetadata, type RuntimeRoutingDecision } from "../routing/runtime-routing";
+import { assertVideoRouteAllowed } from "../generation/video-route-policy";
 
 const DEFAULT_IMAGE_COST = 10;
 const DEFAULT_VIDEO_COST = 60;
@@ -98,6 +99,7 @@ export async function dispatchDirectImage(input: DispatchImageInput): Promise<Di
     legacyRoute: { provider: legacyProviderName, route: input.modelId },
   });
   const directRoutingDecision = routingDecision;
+  assertVideoRouteAllowed(directRoutingDecision.providerRoute);
 
   const result = await runInlineGeneration({
     modelId: input.modelId,
@@ -170,6 +172,7 @@ export async function dispatchDirectImage(input: DispatchImageInput): Promise<Di
 // ─── Video ─────────────────────────────────────────────────────────────
 
 export async function dispatchDirectVideo(input: DispatchVideoInput): Promise<DispatchResult> {
+  assertVideoRouteAllowed(input.modelId);
   await ensureUserRow(input.userId);
   const banned = await prismadb.user.findUnique({
     where: { id: input.userId },
