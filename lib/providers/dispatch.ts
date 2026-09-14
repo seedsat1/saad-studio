@@ -99,7 +99,6 @@ export async function dispatchDirectImage(input: DispatchImageInput): Promise<Di
     legacyRoute: { provider: legacyProviderName, route: input.modelId },
   });
   const directRoutingDecision = routingDecision;
-  assertVideoRouteAllowed(directRoutingDecision.providerRoute);
 
   const result = await runInlineGeneration({
     modelId: input.modelId,
@@ -199,6 +198,7 @@ export async function dispatchDirectVideo(input: DispatchVideoInput): Promise<Di
     legacyRoute: { provider: legacyProviderName, route: input.modelId },
   });
   const directRoutingDecision = routingDecision;
+  assertVideoRouteAllowed(directRoutingDecision.providerRoute);
 
   const result = await runInlineGeneration({
     modelId: input.modelId,
