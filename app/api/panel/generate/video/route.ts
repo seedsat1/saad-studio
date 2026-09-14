@@ -14,6 +14,7 @@ import { isDirectProviderModel, getProviderFor } from "@/lib/provider-router";
 import { dispatchDirectVideo } from "@/lib/providers/dispatch";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
 import { isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
+import { assertVideoRouteAllowed, BlockedVideoRouteError } from "@/lib/generation/video-route-policy";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -29,8 +30,8 @@ function resolveSeedance25Route(baseRoute: string, hasImageInput: boolean, selec
   if (!hasImageInput) return baseRoute;
 
   const normalizedResolution = String(selectedResolution || "").trim().toLowerCase();
-  if (normalizedResolution === "480p") {
-    return "bytedance/seedance-2.5/image-to-video-spicy";
+  if (normalizedResolution === "480p" || normalizedResolution === "4k") {
+    return "bytedance/seedance-2.5/image-to-video";
   }
 
   return "bytedance/seedance-2.5/image-to-video-turbo";
@@ -268,6 +269,15 @@ export async function POST(req: NextRequest) {
       generationType,
       enableAudio,
     } = body;
+
+    try {
+      assertVideoRouteAllowed(modelId);
+    } catch (routeError) {
+      if (routeError instanceof BlockedVideoRouteError) {
+        return NextResponse.json({ error: routeError.message, code: routeError.code }, { status: routeError.status });
+      }
+      throw routeError;
+    }
 
     if (!prompt?.trim()) {
       return NextResponse.json({ error: "Please enter a prompt." }, { status: 400 });

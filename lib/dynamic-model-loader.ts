@@ -173,7 +173,14 @@ const BLOCKED_DYNAMIC_VIDEO_IDS = new Set([
   "minimax-hailuo-02",
   "minimax-hailuo-2.3",
   "kwaivgi/kling-v3.0-pro/text-to-video",
+  "bytedance-seedance-v25-i2v-spicy",
+  "bytedance-seedance-v2-mini-spicy",
 ]);
+
+function hasBlockedVideoRoute(model: Partial<DynamicVideoModel>): boolean {
+  return [model.id, model.api_route, model.text_api_route, model.image_api_route, model.reference_api_route, model.start_end_api_route, model.video_api_route]
+    .some((value) => typeof value === "string" && /(?:^|[\/_-])spicy(?:$|[\/_-])/i.test(value));
+}
 
 function mergeCuratedImageModel(curated: ImageModel, existing?: DynamicImageModel): DynamicImageModel {
   const group = existing?.group ?? curated.group ?? "Image Models";
@@ -331,7 +338,7 @@ export function normalizeDynamicVideoModels(models: DynamicVideoModel[]): Dynami
   if (Array.isArray(models) && models.length > 0) {
     for (const model of models) {
       const id = model.id?.toLowerCase();
-      if (!id || processedIds.has(id) || model.isDeleted || BLOCKED_DYNAMIC_VIDEO_IDS.has(id)) continue;
+      if (!id || processedIds.has(id) || model.isDeleted || BLOCKED_DYNAMIC_VIDEO_IDS.has(id) || hasBlockedVideoRoute(model)) continue;
 
       const curated = VIDEO_MODEL_REGISTRY.find((c) => c.id.toLowerCase() === id);
       const merged = curated ? mergeCuratedVideoModel(curated, model) : null;
@@ -366,7 +373,7 @@ export function normalizeDynamicVideoModels(models: DynamicVideoModel[]): Dynami
     const group = (curated.family_label || curated.family || "").toLowerCase();
     const modelName = (curated.name || "").trim().toLowerCase();
     const groupAndNameKey = `${group}:${modelName}`;
-    if (!processedIds.has(id) && !processedGroupAndNames.has(groupAndNameKey) && !BLOCKED_DYNAMIC_VIDEO_IDS.has(id)) {
+    if (!processedIds.has(id) && !processedGroupAndNames.has(groupAndNameKey) && !BLOCKED_DYNAMIC_VIDEO_IDS.has(id) && !hasBlockedVideoRoute(curated)) {
       orderedResult.push(mergeCuratedVideoModel(curated));
       processedIds.add(id);
       processedGroupAndNames.add(groupAndNameKey);
