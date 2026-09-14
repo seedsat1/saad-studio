@@ -1003,6 +1003,7 @@ const HIDDEN_VIDEO_PAGE_MODEL_IDS = new Set([
   "xai-grok-imagine-edit",
   "bytedance-seedance-v25-i2v-turbo",
   "bytedance-seedance-v25-i2v-spicy",
+  "bytedance-seedance-v2-mini-spicy",
 ]);
 
 function resolveSeedance25Route(baseRoute: string, hasImageInput: boolean, selectedResolution?: string | null): string {
@@ -1012,7 +1013,7 @@ function resolveSeedance25Route(baseRoute: string, hasImageInput: boolean, selec
 
   const normalizedResolution = String(selectedResolution || "").trim().toLowerCase();
   if (normalizedResolution === "480p" || normalizedResolution === "4k") {
-    return "bytedance/seedance-2.5/image-to-video-spicy";
+    return "bytedance/seedance-2.5/image-to-video";
   }
 
   return "bytedance/seedance-2.5/image-to-video-turbo";
