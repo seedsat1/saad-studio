@@ -1,3 +1,16 @@
+## عرض سعر الكريدت للوحة Premiere / VAE بدون خصم (2026-09-18)
+
+- **الهدف**: إضافة مسار قراءة فقط يعيد للكلاينت (CEP / VAE) نفس تكلفة توليد الفيديو التي سيخصمها السيرفر، مع توكن اللوحة `ssp_…`، بدون خصم كريدت وبدون بدء توليد.
+- **المسار**: `POST /api/panel/credits/quote` في `app/api/panel/credits/quote/route.ts`.
+- **المصادقة**: مطابقة لـ `GET /api/panel/credits`: `extractPanelToken` + `verifyPanelToken` + rate limit + `ensureUserRow` + فحص الحظر.
+- **التسعير**:
+  - الفيديو: `getVideoCreditsByModelIdAsync` من `@/lib/credit-pricing` (نفس دالة شحن `app/api/panel/generate/video`).
+  - مسارات Google: نفس `isGoogleVideoRoute` + `normalizeGoogleVideoOptions` المستخدمة عند حساب `creditsToCharge`.
+  - الصورة عند `kind`/`type` = `image`: `getGenerationCost` (نفس مساعد مسار توليد الصورة في اللوحة).
+- **الاستجابة**: `credits`, `creditBalance`, `balanceAfter` (قد يكون سالباً), `modelRoute`, `duration`, `quality`/`resolution`, `deducted: false`. لا تُرجع تكاليف المزود أو أسرار API.
+- **قيود**: لا يستدعي `spendCredits`. لا يغيّر بوابة Five-Screen ولا واجهة VAE. `/api/pricing/quote` يبقى بمصادقة Clerk للمتصفح.
+- CORS لمسارات `/api/panel/*` يبقى من الـ middleware كما هو.
+
 ## تمكين وتأمين حفظ الفيديو في ألبوم الهاتف للهواتف الذكية (2026-09-07)
 
 - **الهدف والمتطلبات**:
