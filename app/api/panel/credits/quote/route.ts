@@ -153,8 +153,11 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         credits,
+        exactCredits: credits,
         creditBalance,
+        currentBalance: creditBalance,
         balanceAfter: creditBalance - credits,
+        projectedBalance: creditBalance - credits,
         modelRoute: billingModelId,
         duration: 5,
         quality: resolution,
