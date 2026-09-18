@@ -229,6 +229,13 @@ export function evaluateUserReconciliation(
   const balanceBefore = Number(user.creditBalance ?? 0);
   const debtBefore = Math.max(0, Math.floor(Number(user.creditAdvanceBalance ?? 0)));
 
+  // A settled subscription can remain as history after a standalone grant.
+  // Its old term must not expire the new, independently valid credit window.
+  if (subscription && !isTermActive && user.monthlyCredits === 0 &&
+      storedCreditsExpireAt && storedCreditsExpireAt.getTime() > now.getTime()) {
+    return evaluateUserReconciliation(user, null, now);
+  }
+
   // ──────────────────────────────────────────────────────────────────────────
   // BRANCH C & D: ANNUAL SUBSCRIPTIONS
   // ──────────────────────────────────────────────────────────────────────────

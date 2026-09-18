@@ -3,7 +3,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
 import { WELCOME_SIGNUP_CREDITS } from "@/lib/credits-config";
-import { tryCreateCreditLedgerEntry } from "@/lib/credit-ledger";
+import { handleCreditExpiry, preserveExpiryOrFresh, tryCreateCreditLedgerEntry } from "@/lib/credit-ledger";
 
 export const dynamic = "force-dynamic";
 
@@ -207,6 +207,9 @@ export async function PATCH(
 
       await ensureUserRow(targetUserId);
 
+      // Settle the old cycle before granting new credits; never revive expired balances.
+      if (parsedAmount > 0) await handleCreditExpiry(targetUserId);
+
       // ATOMIC TRANSACTION: Balance adjustment + Negative Floor Protection + Ledger
       const result = await prismadb.$transaction(async (tx) => {
         let updatedUser;
@@ -240,10 +243,15 @@ export async function PATCH(
           });
         } else {
           // Add credits
+          const current = await tx.user.findUnique({
+            where: { id: targetUserId },
+            select: { creditsExpireAt: true },
+          });
           updatedUser = await tx.user.update({
             where: { id: targetUserId },
             data: {
               creditBalance: { increment: parsedAmount },
+              creditsExpireAt: preserveExpiryOrFresh(current?.creditsExpireAt),
             },
             select: { id: true, creditBalance: true },
           });

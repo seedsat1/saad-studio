@@ -190,7 +190,7 @@ export async function handleCreditExpiry(userId: string): Promise<void> {
  * current cycle (no rollover), but new users with no active cycle still
  * need a 30-day window to spend what they just purchased.
  */
-function preserveExpiryOrFresh(current: Date | null | undefined): Date {
+export function preserveExpiryOrFresh(current: Date | null | undefined): Date {
   const now = Date.now();
   if (current && current.getTime() > now) return current;
   return new Date(now + THIRTY_DAYS_MS);

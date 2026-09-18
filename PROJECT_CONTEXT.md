@@ -1,4 +1,15 @@
-# Latest task: Panel-authenticated generation credit quote (2026-09-18)
+# Latest task: Manual admin credits after expiry (2026-09-18)
+- Request: fix manual credit grants only, with no new features.
+- Confirmed code defect: admin PATCH incremented creditBalance without renewing an expired creditsExpireAt; reconciliation could then discard the new grant. Historical expired subscriptions also discarded a fresh standalone window.
+- Fix: settle the target user's old cycle before positive adjustment; reuse preserveExpiryOrFresh (existing 30-day topup policy) inside the grant transaction. Reconciliation treats a future standalone window with monthlyCredits=0 independently of an inactive historical subscription.
+- Scope: app/api/admin/users/[userId]/route.ts, lib/credit-ledger.ts, lib/credit-reconciler.ts, test/admin-manual-credits.test.ts, and memory/reference notes.
+- Preserved: active cycle expiry/allocation, annual renewal/advance rules, deduction floor, authorization, audit reason and transactional grant ledger. No schema or direct production-data changes.
+- Release authorization: user explicitly requested git add ., commit message "update", and git push on 2026-09-18; publishing this fix on the existing main branch. Deployment health remains unverified.
+- Publish integration: initial push rejected because origin/main advanced; rebased over 4a80766, preserving both sides of documentation-only conflicts. Post-rebase tests: 44 passed, 1 failed in incoming panel-credits-quote.test.ts (exact response comparison omits currentBalance/exactCredits/projectedBalance already returned by the incoming route). Manual credit tests still pass; unrelated panel test left unchanged.
+- Verification: 33 targeted tests passed; 5 existing pure reconciler tests passed (live database test intentionally excluded); git diff --check passed. Production build blocked by Google Fonts Caveat fetch EACCES in storyboard/page.tsx; no font/UI changes made. Root has no build:all script, so used npm run build. Initial typecheck overlapped the build's removal of generated .next/types; rerun completed with 12 errors outside modified files (drama-studio isRTL, explore CameraMovementEntry.name, image generation InlineChargeInput/profileId and InlineProviderResult fields, Request.cookies, DynamicVideoModel.provider). No errors reported in modified files; unrelated type issues left untouched.
+- Remaining: resolve separate project-wide type errors, rerun build with font network access, and deploy through the normal authorized release process before the live site benefits. Previously lost grants were not automatically reissued.
+
+# Previous task: Panel-authenticated generation credit quote (2026-09-18)
 - Status: Implemented.
 - Scope: Premiere / VAE CEP uses Bearer `ssp_…` panel tokens. Clerk-only `/api/pricing/quote` returns 401 for those tokens. Panel video generation already charges via `getVideoCreditsByModelIdAsync`; the panel needed a matching read-only quote.
 - Implemented:
