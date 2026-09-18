@@ -14,7 +14,7 @@
   - `test/panel-credits-quote.test.ts`
   - `PROJECT_CONTEXT.md`
   - `docs/saad-studio-premiere-reference-ar.md`
-- Verification: Vitest `test/panel-credits-quote.test.ts`.
+- Verification: Vitest `test/panel-credits-quote.test.ts`: 8/8 PASS. Quote route compiles via the Vitest import of `POST`.
 - Decisions:
   - Dedicated `/api/panel/credits/quote` instead of widening `/api/pricing/quote`, because the Clerk quote returns `providerEstimatedCost` and uses `getGenerationCost`, which is not the panel video charge path.
   - Default kind is video. Image quoting is supported when `kind` or `type` is `image`.
