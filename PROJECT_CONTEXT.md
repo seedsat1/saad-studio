@@ -1,4 +1,26 @@
-# Latest task: Mobile Video Saving & Download Enhancement on iOS/Android Gallery (2026-09-07)
+# Latest task: Panel-authenticated generation credit quote (2026-09-18)
+- Status: Implemented.
+- Scope: Premiere / VAE CEP uses Bearer `ssp_…` panel tokens. Clerk-only `/api/pricing/quote` returns 401 for those tokens. Panel video generation already charges via `getVideoCreditsByModelIdAsync`; the panel needed a matching read-only quote.
+- Implemented:
+  - New `POST /api/panel/credits/quote` at `app/api/panel/credits/quote/route.ts`.
+  - Auth matches `GET /api/panel/credits`: `extractPanelToken` + `verifyPanelToken` + rate limit + `ensureUserRow` + ban check.
+  - Video pricing calls `getVideoCreditsByModelIdAsync` (same helper as `app/api/panel/generate/video`). Google routes use the same `isGoogleVideoRoute` + `normalizeGoogleVideoOptions` duration/resolution normalization as the generate-video `creditsToCharge` block.
+  - Image quotes (`kind`/`type` = `image`) use `getGenerationCost`, the same helper as `app/api/panel/generate/image`.
+  - Response is user-facing only: `credits`, `creditBalance`, `balanceAfter` (unclamped), `modelRoute`, normalized `duration`/`quality`/`resolution`, `deducted: false`. No provider USD / WaveSpeed / KIE cost fields.
+  - Never calls `spendCredits`, ledger deduct, or generation start.
+  - Clerk auth on `/api/pricing/quote` is unchanged (panel tokens stay on the dedicated panel quote route).
+- Files affected:
+  - `app/api/panel/credits/quote/route.ts`
+  - `test/panel-credits-quote.test.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification: Vitest `test/panel-credits-quote.test.ts`.
+- Decisions:
+  - Dedicated `/api/panel/credits/quote` instead of widening `/api/pricing/quote`, because the Clerk quote returns `providerEstimatedCost` and uses `getGenerationCost`, which is not the panel video charge path.
+  - Default kind is video. Image quoting is supported when `kind` or `type` is `image`.
+  - CORS continues to come from middleware `/api/panel/*` handling; the new route does not add a local OPTIONS handler.
+
+# Previous task: Mobile Video Saving & Download Enhancement on iOS/Android Gallery (2026-09-07)
 - Status: Completed & Verified (PASS).
 - Scope:
   - Addressed user feedback and screenshot (`media_1788812603233.png`):
