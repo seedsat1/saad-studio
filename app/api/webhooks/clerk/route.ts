@@ -103,8 +103,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (type === "user.deleted") {
-      await prismadb.user.delete({ where: { id: data.id } }).catch(() => {});
-      console.log(`[clerk-webhook] User deleted: ${data.id}`);
+      try {
+        await prismadb.user.delete({ where: { id: data.id } });
+        console.log(`[clerk-webhook] User deleted: ${data.id}`);
+      } catch (deleteError: any) {
+        // P2025 = record not found: already deleted or never synced — treat as success.
+        if (deleteError?.code === "P2025") {
+          console.log(`[clerk-webhook] User already absent: ${data.id}`);
+        } else {
+          throw deleteError;
+        }
+      }
     }
   } catch (err) {
     console.error("[clerk-webhook] DB error", err);

@@ -183,13 +183,24 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Partial refund for failures ──
+    let creditsRefunded = 0;
     if (creditsToRefund > 0 && chargedUserId) {
-      await refundCreditsWithReason(
-        chargedUserId,
-        creditsToRefund,
-        "generation_refund_partial_failure",
-        generationId,
-      ).catch(() => {});
+      try {
+        await refundCreditsWithReason(
+          chargedUserId,
+          creditsToRefund,
+          "generation_refund_partial_failure",
+          generationId,
+        );
+        creditsRefunded = creditsToRefund;
+      } catch (refundError) {
+        console.error("[shots/generate] partial refund failed", {
+          generationId,
+          userId: chargedUserId,
+          creditsToRefund,
+          error: refundError instanceof Error ? refundError.message : String(refundError),
+        });
+      }
     }
 
     // ── Save first successful asset URL to the generation record ──
@@ -198,7 +209,7 @@ export async function POST(req: NextRequest) {
       await setGenerationMediaUrl(generationId, firstSuccess.asset_url).catch(() => {});
     }
 
-    const actualCost    = estimate.total - creditsToRefund;
+    const actualCost    = estimate.total - creditsRefunded;
     const successCount  = outputs.filter((o) => o.generation_status !== "failed").length;
     const fallbackCount = outputs.filter((o) => o.fallback_used).length;
 
@@ -212,7 +223,7 @@ export async function POST(req: NextRequest) {
         failedCount: outputs.length - successCount,
         fallbackCount,
         mode,
-        creditsRefunded: creditsToRefund,
+        creditsRefunded,
       },
     });
   } catch (err) {

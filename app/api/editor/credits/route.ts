@@ -30,6 +30,6 @@ export async function GET() {
     return NextResponse.json({ balance: safeBalance, credits: safeBalance, capacity: safeCapacity });
   } catch (error) {
     console.error("[editor/credits]", error);
-    return NextResponse.json({ balance: 0, credits: 0, capacity: 0 }, { status: 200 });
+    return NextResponse.json({ error: "credits_unavailable" }, { status: 503 });
   }
 }

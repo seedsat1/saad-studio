@@ -178,11 +178,13 @@ export async function POST(req: Request) {
                     ? session.subscription
                     : session.subscription?.id;
             if (!subscriptionId) {
+                await releaseStripeEvent(event.id).catch(() => {});
                 return new NextResponse("Subscription id is required", { status: 400 });
             }
             const subscription = await stripe.subscriptions.retrieve(subscriptionId)
 
             if (!session?.metadata?.userId) {
+                await releaseStripeEvent(event.id).catch(() => {});
                 return new NextResponse("User id is required", { status: 400 });
             }
 
@@ -375,7 +377,13 @@ export async function POST(req: Request) {
                     // Only re-allocate when the plan actually changed
                     // (an upgrade/downgrade). Pure interval flips and
                     // metadata edits don't reset credits.
-                    if (planChanged || (priceChanged && intervalChanged)) {
+                    const subscriptionPaid =
+                        subscription.status === "active" || subscription.status === "trialing";
+                    if ((planChanged || (priceChanged && intervalChanged)) && !subscriptionPaid) {
+                        console.warn(
+                            `[stripe-webhook] Subscription plan changed but status=${subscription.status}; credits NOT re-allocated: user=${existing.userId} ${existing.planId}/${existing.billingInterval} -> ${nextPlanId}/${nextInterval}`,
+                        );
+                    } else if (planChanged || (priceChanged && intervalChanged)) {
                         await allocateSubscriptionCredits(existing.userId, nextPlanId, nextInterval);
                         console.log(
                             `[stripe-webhook] Subscription plan changed: user=${existing.userId} ${existing.planId}/${existing.billingInterval} -> ${nextPlanId}/${nextInterval} (credits re-allocated)`,

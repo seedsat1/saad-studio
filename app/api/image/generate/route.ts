@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, recordFreeGeneration, refundCredits, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { applyAnnualUnlimitedImageSlowdown, getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
@@ -40,7 +40,7 @@ function toQwenImageSize(aspectRatio: string): string {
   return map[aspectRatio] ?? "square_hd";
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
   let generationId: string | null = null;

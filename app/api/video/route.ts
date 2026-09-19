@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 
 export const maxDuration = 90;
@@ -2258,7 +2258,7 @@ function validateKling30Payload(payload: Record<string, unknown>): string | null
   return null;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
   let generationId: string | null = null;

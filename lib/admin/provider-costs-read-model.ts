@@ -452,6 +452,7 @@ export async function getProviderCostsReadModel(filters: ProviderCostsFilters = 
         user: { select: { email: true } },
         generationRequestSnapshot: { select: { provider: true, model: true, estimatedProviderCostUsd: true, userCreditsCharged: true } },
         providerUsageRecords: { take: 1 },
+        creditLedgerEntries: { where: { operationType: "refund" }, select: { delta: true } },
       },
     }),
   ]);
@@ -490,9 +491,17 @@ export async function getProviderCostsReadModel(filters: ProviderCostsFilters = 
       finalCostUsd = null;
     }
 
-    const isRefunded = gen.status === "failed" || gen.cost === 0;
     const userCreditsCharged = snap?.userCreditsCharged || gen.cost || 0;
-    const refundedCredits = isRefunded ? userCreditsCharged : 0;
+    const ledgerRefunded = ((gen as any).creditLedgerEntries ?? []).reduce(
+      (sum: number, e: { delta: number }) => sum + Math.max(0, Number(e.delta) || 0),
+      0,
+    );
+    // Prefer the real ledger; fall back to the legacy status inference only
+    // for generations that predate the ledger (no refund entries at all).
+    const isRefunded = gen.status === "failed" || gen.cost === 0;
+    const refundedCredits = ledgerRefunded > 0
+      ? Math.min(ledgerRefunded, userCreditsCharged)
+      : (isRefunded ? userCreditsCharged : 0);
     const netUserCredits = userCreditsCharged - refundedCredits;
 
     return {
