@@ -6,6 +6,10 @@
 *.out.log
 .agents/
 .claude/
+.terrain/
+.litho/
+.repository-intelligence/
+/tools/repository-intelligence/
 
 # Ignore heavy project source directories at the root level only
 /adobe/

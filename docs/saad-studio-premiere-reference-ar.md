@@ -4915,3 +4915,25 @@
   - scoped `git diff --check` نجح.
   - `tsc --noEmit` ما زال يفشل فقط بسبب `lib/storage/supabase.ts(115,38)`، وهو دين تقني منفصل خارج P0-C.
 - لم يتم Push أو Merge أو Deploy، ولم يبدأ Drama Studio Backend.
+
+## عزل Repository Intelligence عن Production (2026-09-19)
+
+- `Website Production` مستقل بالكامل عن Terrain وLitho:
+  - لا import أو script أو API route أو middleware أو Server Action يستدعي أدوات التحليل.
+  - لا تتغير مزودات الصور أو الفيديو أو مسارات التوليد أو الكريديت أو الاشتراكات.
+  - مجلدات الأدوات والمخرجات مستبعدة من Vercel وDocker.
+- `Codex -> Terrain` مخصص لاكتشاف الكود والفهرسة وfreshness والبحث، ويمكن لهذه الوظائف الأساسية أن تعمل دون طلب LLM.
+- بناء Terrain CLI الكامل في النسخة المحلية يفعّل اعتماد مزود محلي غير مسموح عبر `terrain-agent`؛ لذلك أزيل الـbinary المحلي ولا يُعاد بناؤه قبل اعتماد مسار core-only آمن.
+- `Codex -> Litho` مخصص لوثائق Architecture/C4، لكن تنفيذه متوقف ولا يحتوي إعداد provider أو endpoint أو key حتى اعتماد خيار صريح.
+- الخيارات غير المحلية المثبتة من source Litho الحالي: OpenAI، Moonshot، DeepSeek، Mistral، OpenRouter، Anthropic، Gemini.
+- لا يجوز استخدام مفاتيح Production الخاصة بالموقع لتشغيل أدوات Repository Intelligence.
+
+## تشغيل Repository Intelligence عبر Gemini (2026-09-20)
+
+- بناءً على موافقة المالك اللاحقة، أصبح المسار المحلي:
+  - `Codex -> Terrain core -> targeted context -> Litho -> Google Gemini API`.
+- الموديل الوحيد المعتمد هو `gemini-3.5-flash-lite` في خانتي efficient وpowerful، دون fallback إلى موديل أو مزود آخر.
+- يعاد استخدام `GOOGLE_API_KEY` الموجود على السيرفر عبر environment خاص بعملية Litho فقط؛ لا يُكتب المفتاح في ملفات الإعداد أو Git أو السجلات.
+- Terrain core مسؤول عن الفهرسة والبحث وfreshness محلياً دون LLM. Litho يُستدعى يدوياً فقط لإنشاء Architecture/C4/Mermaid/ERD من subset محدود.
+- cache مبني على بصمة المحتوى والسياسة وسياق Terrain. عند عدم تغير المدخلات تعاد نتيجة التشغيل المسجلة دون طلب Gemini جديد.
+- هذا المسار غير مستورد من Next.js، غير موجود في request path، ومستبعد من Vercel وDocker. فشل Terrain أو Litho لا يمنع build أو تشغيل الموقع.

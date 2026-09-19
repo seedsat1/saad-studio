@@ -1,0 +1,11 @@
+[package]
+name = "terrain-core-bridge"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+serde = "1"
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+terrain-core = { path = "E:/saad-agent/release-production-v4/terrain-main/terrain-main/crates/terrain-core", features = ["repomix"] }

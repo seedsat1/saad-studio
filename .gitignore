@@ -110,3 +110,9 @@ gen-lang-client-*.json
 
 # Local scratch output (generated thumbnails already live on B2)
 scratchpad/
+
+# Local repository-intelligence outputs (Terrain + Litho)
+/.terrain/
+/.litho/
+/.repository-intelligence/
+/litho.docs/

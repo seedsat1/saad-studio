@@ -1,0 +1,71 @@
+project_name = "Saad Studio"
+project_path = "."
+output_path = ".repository-intelligence/litho/docs"
+target_language = "en"
+analyze_dependencies = true
+identify_components = true
+max_depth = 12
+max_file_size = 524288
+include_tests = false
+include_hidden = false
+git_tracked_only = true
+
+excluded_dirs = [
+    ".git",
+    ".next",
+    ".terrain",
+    ".litho",
+    ".repository-intelligence",
+    ".agents",
+    ".codex",
+    "node_modules",
+    "coverage",
+    "build",
+    "dist",
+    "out",
+    "release",
+    "public",
+    "uploads",
+    "downloads",
+    "scratchpad",
+    "seedsat1",
+    "codex-main"
+]
+
+excluded_files = [
+    "litho.toml",
+    "*.lock",
+    "*.log",
+    "*.tmp",
+    "*.cache",
+    ".env",
+    ".env.*",
+    "*.pem",
+    "*service-account*.json",
+    "next-env.d.ts"
+]
+
+excluded_extensions = [
+    "jpg", "jpeg", "png", "gif", "webp", "bmp", "ico", "svg",
+    "mp3", "wav", "m4a", "mp4", "mov", "avi", "mkv", "webm",
+    "pdf", "zip", "rar", "7z", "tar", "gz",
+    "exe", "msi", "dll", "so", "dylib", "asar", "bin"
+]
+
+included_extensions = []
+
+[cache]
+enabled = true
+cache_dir = ".litho/cache"
+expire_hours = 8760
+
+[boundary_analysis]
+max_boundary_insights = 15
+code_insights_limit = 25
+include_source_code = false
+only_directories_when_files_more_than = 100
+
+[knowledge.local_docs]
+enabled = false
+cache_dir = ".litho/cache/knowledge/local_docs"
+watch_for_changes = true

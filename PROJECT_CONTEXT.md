@@ -16008,3 +16008,65 @@
 - Conclusion: local evidence points to Vercel; live hosting and any external Render account services remain unverified.
 - No runtime/code changes or tests required. Search with wildcard path arguments initially failed on Windows; retried with explicit directories. No architecture changes.
 
+## Repository Intelligence isolation and provider rollback (2026-09-19)
+
+- Status: Terrain discovery was validated in read-only mode, while Litho execution is disabled pending an explicit provider decision.
+- Production isolation:
+  - No changes to `package.json`, lockfiles, Next configuration, middleware, API routes, Server Actions, generation providers, database, billing, credits, storage, or Vercel runtime code.
+  - `.vercelignore` and `.dockerignore` exclude all repository-intelligence tools and generated state from deployment contexts.
+  - The development helper is not referenced by the application or any build script.
+- Provider cleanup:
+  - Removed the local-provider configuration, endpoint, model selection, generated caches, compiled analysis binaries, generated Terrain source pack, and related audit output added during this task.
+  - Stopped the pre-existing local inference process used during the aborted documentation attempt. No runtime was installed by this task.
+  - Litho config now contains filtering/isolation settings only; generation commands are unavailable until a provider is explicitly approved. Production credentials must not be reused.
+- Terrain source finding:
+  - Core scan, Git/OpenAPI ingestion, repomix packing, freshness, overview, and pack search work without making an LLM request.
+  - The checked-out full CLI nevertheless compiles an unwanted local-provider feature through `terrain-agent`; its locally built binary was removed. A provider-free Terrain build path remains the next technical decision.
+- Litho source finding:
+  - Supported non-local choices in this checkout are OpenAI, Moonshot, DeepSeek, Mistral, OpenRouter, Anthropic, and Gemini. No choice was configured.
+- Verification:
+  - Repository-intelligence isolation test: 5/5 passed.
+  - `npm run build`: passed after stopping local inference processes; 258/258 static pages generated.
+  - `tsc --noEmit`: failed on 12 pre-existing application type errors.
+  - `npm run lint`: failed on pre-existing conditional-hook, missing ESLint rule, entity, image, and hook-dependency findings.
+  - Sequential `npm run test:run`: 106 files / 945 tests passed; 17 files / 32 pre-existing or environment-dependent tests failed, including unreachable Neon DB and existing route/pricing/profile assertions. The new isolation test passed 5/5.
+- Errors recorded:
+  - Initial Litho generation required `mermaid-fixer`; it was installed into ignored local output and then removed during cleanup.
+  - A broad ignored-output deletion was rejected by automatic review; cleanup was completed using verified, narrow generated paths.
+- Next step: wait for explicit developer approval of a non-local Litho provider and decide whether to create a core-only Terrain launcher that excludes the unwanted provider feature.
+
+## Litho Gemini paid stable model verification (2026-09-19)
+
+- Scope: read-only provider research and minimal Gemini API probes; Litho was not run or configured.
+- Exclusions applied: Gemma/free-only models, preview/experimental/latest aliases, deprecated models, unavailable `gemini-2.5-flash-lite`, and non-Google providers.
+- `gemini-3.1-flash-lite` was excluded because Google has announced a May 7, 2027 shutdown date.
+- Cheapest eligible paid stable candidates are tied at standard pricing of $0.30 input / $2.50 output per 1M tokens:
+  - `gemini-3.5-flash-lite`
+  - `gemini-2.5-flash`
+- Both candidates appeared in the current key's `models.list` response and passed tiny live tests for `generateContent`, JSON Schema structured output, and function calling.
+- Litho compatibility was confirmed against the checked-out source: its native Rig Gemini client accepts the configured model ID, builds schema extractors, and attaches repository tools.
+- Decision: `gemini-3.5-flash-lite` is the preferred cheapest verified paid stable model because it is GA, is positioned for economical agentic workloads, and has no announced shutdown date. No model binding was made; explicit developer approval is still required before Litho configuration or execution.
+
+## Terrain + Litho Gemini integration (2026-09-20)
+
+- Status: development-only integration completed and verified on a synthetic targeted fixture; no website source was sent to Gemini.
+- Provider policy is locked to native Gemini with `gemini-3.5-flash-lite` for both model slots. No alternate model/provider fallback is configured.
+- The launcher reuses server-side `GOOGLE_API_KEY` and maps it to `LITHO_LLM_API_KEY` only in the Litho child process. The key is absent from command arguments, config, logs, generated documents, and Git.
+- Terrain now uses a small provider-free bridge built from `terrain-core` with the `repomix` feature. The dependency graph excludes `terrain-agent` and `adk-model`.
+- Cost controls: explicit file allowlists, content fingerprints, Terrain freshness/search context, persistent Litho prompt cache, and successful-run metadata prevent unchanged runs from calling Gemini again.
+- Litho local source fix: `src/generator/preprocess/agents/directory_summary.rs` now emits Gemini-compatible nested JSON Schema and uses accepted lowercase `code_purpose` values. This fixed Gemini 400 schema rejection and redundant same-model retry.
+- Synthetic Terrain -> Litho result:
+  - Terrain source index score: 100; 5 targeted hits across 3 fixture files.
+  - 10 documents generated; C4-style architecture, Mermaid diagrams, SQL ERD, structured extraction, and 7 repository tool calls verified.
+  - Litho estimates: 47,639 input tokens, 19,921 output tokens, approximately $0.064094 at $0.30/$2.50 per 1M tokens; 78.54 seconds.
+  - Immediate rerun returned cached metadata in 2.5 seconds without an API call.
+- Verification:
+  - Repository-intelligence integration test: 6/6 passed.
+  - Litho release build: passed.
+  - Next production build: passed (258/258 pages); existing dynamic-route warnings remain.
+  - `tsc --noEmit`: still fails on 14 pre-existing application type errors outside this integration.
+  - `npm run lint`: still fails on pre-existing hook-order, unescaped-entity, and missing ESLint-rule errors.
+  - Full Vitest: 103 files / 940 tests passed; 20 files / 38 existing or environment-dependent tests failed, including unreachable Neon DB and existing route/pricing/profile assertions.
+- Error history: initial wrapper JSON reporting exhausted memory after Litho succeeded; piping the child log through `Out-Host` fixed it. Prisma alone did not trigger Litho's database analyzer, so the synthetic fixture added an equivalent `.sql` schema for ERD verification.
+- Remaining approval boundary: the real `terrain-litho` action would send exactly `package.json`, a reduced `prisma/schema.prisma`, `app/api/admin/users/[userId]/route.ts`, `lib/credit-ledger.ts`, and `lib/credit-reconciler.ts` to Google Gemini. It has not run and requires explicit consent naming that payload and destination.
+

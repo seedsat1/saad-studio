@@ -44,5 +44,10 @@
 
 - **Exact Specifications**: For any new video generation model provided via OpenAPI spec, do not guess or use placeholder ranges. You must map the exact maximum duration (e.g., 3s-15s) and maximum resolutions/qualities (e.g., std, pro, 4K) into the code registry.
 
+## Repository Intelligence (Local Development Only)
 
-
+- Terrain and Litho are optional local developer tools. They must never be imported by the Next.js application or required by production builds.
+- For broad feature work, use `terrain-refresh` only after a provider-free Terrain binary is available; the helper must not build the checked-out full CLI while its dependency graph includes a prohibited local-provider feature.
+- Use `terrain-scan` for the first index, `terrain-grep -Query "..."` for focused discovery, and `terrain-overview` / `terrain-freshness` to verify the index.
+- Litho execution is disabled until the developer explicitly approves and configures one of the providers supported by the checked-out source. Do not reuse website production credentials.
+- If either local source tree, Cargo, an approved provider, or a built binary is unavailable, the helper must fail with an actionable message without affecting the application.

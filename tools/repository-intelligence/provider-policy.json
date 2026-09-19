@@ -1,0 +1,8 @@
+{
+  "provider": "gemini",
+  "model_efficient": "gemini-3.5-flash-lite",
+  "model_powerful": "gemini-3.5-flash-lite",
+  "source_secret_env": "GOOGLE_API_KEY",
+  "process_secret_env": "LITHO_LLM_API_KEY",
+  "fallback_to_another_model": false
+}
