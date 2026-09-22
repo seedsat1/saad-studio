@@ -4937,3 +4937,9 @@
 - Terrain core مسؤول عن الفهرسة والبحث وfreshness محلياً دون LLM. Litho يُستدعى يدوياً فقط لإنشاء Architecture/C4/Mermaid/ERD من subset محدود.
 - cache مبني على بصمة المحتوى والسياسة وسياق Terrain. عند عدم تغير المدخلات تعاد نتيجة التشغيل المسجلة دون طلب Gemini جديد.
 - هذا المسار غير مستورد من Next.js، غير موجود في request path، ومستبعد من Vercel وDocker. فشل Terrain أو Litho لا يمنع build أو تشغيل الموقع.
+
+## عقد Grok Imagine 2.0 لتحرير الصور (2026-09-23)
+
+- مسار WaveSpeed `x-ai/grok-imagine-image-v2.0/edit` يستقبل الصورة المرجعية في `images` كمصفوفة بحد أقصى صورة واحدة.
+- مسار `x-ai/grok-imagine-image-quality/edit` القديم يبقى على الحقل المفرد `image`.
+- يحدد `lib/wavespeed-image-routing.ts` الفرق بين العقدين قبل بناء طلب `/api/generate/image`، ويمنع اختبار عقد مخصص رجوع Grok 2.0 إلى الحقل المفرد.

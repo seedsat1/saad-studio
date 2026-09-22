@@ -196,7 +196,7 @@ export function resolveWaveSpeedImageModelRoute(
 
     return {
       model: targetModel,
-      referenceField: edit ? "image" : undefined,
+      referenceField: edit ? (isV2 ? "images" : "image") : undefined,
       requiresReference: edit,
       maxReferenceImages: edit ? 1 : 0,
       outputCountField: "num_images",

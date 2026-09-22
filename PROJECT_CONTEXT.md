@@ -16070,3 +16070,25 @@
 - Error history: initial wrapper JSON reporting exhausted memory after Litho succeeded; piping the child log through `Out-Host` fixed it. Prisma alone did not trigger Litho's database analyzer, so the synthetic fixture added an equivalent `.sql` schema for ERD verification.
 - Remaining approval boundary: the real `terrain-litho` action would send exactly `package.json`, a reduced `prisma/schema.prisma`, `app/api/admin/users/[userId]/route.ts`, `lib/credit-ledger.ts`, and `lib/credit-reconciler.ts` to Google Gemini. It has not run and requires explicit consent naming that payload and destination.
 
+## Adobe podcast entitlement diagnosis (2026-09-22)
+
+- Status: resolved without a code or data change.
+- The approved order `SS-MUCMVJUG-LCL` was verified in the production database as completed, with an active monthly `podcast` subscription through 2026-10-22. Zero credits are expected for this add-on and do not control its access.
+- The installed CEP client bundle and `index.html` exactly matched the repository build, and the current panel access check recognizes an active `podcast` subscription.
+- The subscriber reported the actual cause: their registration/login was not saved in the Adobe extension. Saving or reconnecting the correct account session restores the entitlement lookup.
+- Decision: no subscription, billing, credit, API, or CEP code was changed because server activation and the installed bundle were correct.
+- Verification: read-only database and installed-bundle/hash checks only; no build or tests were needed because runtime code did not change.
+- Diagnostic method: direct source search, a read-only production database query, and installed CEP bundle/hash comparison. Terrain and Litho were not invoked for this focused incident.
+- Error recorded: a follow-up read-only Prisma diagnostic used a model property unavailable on the instantiated client and stopped before reading CEP token data; it made no writes and became unnecessary after the subscriber identified the unsaved session.
+
+## Grok Imagine 2.0 image-edit payload fix (2026-09-23)
+
+- Status: fixed and verified.
+- Root cause: `resolveWaveSpeedImageModelRoute` configured every Grok edit endpoint with the singular `image` field. WaveSpeed's `x-ai/grok-imagine-image-v2.0/edit` contract requires `images` as an array containing at most one URL, which caused HTTP 400 and surfaced as `/api/generate/image` HTTP 500.
+- Fix: Grok Imagine 2.0 edit now uses `images`; the existing Grok Image Quality edit endpoint continues using its required singular `image` field. No other image model, billing, credit, or provider route changed.
+- Terrain: full-repository indexing did not complete in a reasonable time, so a local three-file targeted subset was indexed successfully (3 files / 10,743 tokens). Terrain grep confirmed the mismatch between the Grok route configuration and `buildWaveSpeedImageInput`.
+- Verification:
+  - Focused Grok routing/payload test passed: 1 passed, 40 skipped.
+  - The broader two-file run passed 39/43 tests; four unrelated Seedance cases timed out at the existing 5-second limit and produced no assertion failure.
+  - `npm run build` passed and generated 258/258 static pages. Existing dynamic-route and Browserslist/Tailwind warnings remain.
+- Files changed: `lib/wavespeed-image-routing.ts`, `test/models-backend-hardening.test.ts`, `PROJECT_CONTEXT.md`, and `docs/saad-studio-premiere-reference-ar.md`.

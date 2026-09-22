@@ -79,7 +79,11 @@ describe("Admin Models Backend Hardening Test Suite", () => {
 
   describe("4. WaveSpeed Route Normalization & Grok Routing", () => {
     it("correctly routes Grok text-to-image and edit to official WaveSpeed endpoints", async () => {
-      const { resolveWaveSpeedImageModelRoute, normalizeWaveSpeedModelEndpoint } = await import("@/lib/wavespeed-image-routing");
+      const {
+        buildWaveSpeedImageInput,
+        resolveWaveSpeedImageModelRoute,
+        normalizeWaveSpeedModelEndpoint,
+      } = await import("@/lib/wavespeed-image-routing");
       const { resolveVideoModelSource } = await import("@/lib/model-source-map");
 
       const textRoute = resolveWaveSpeedImageModelRoute("grok-imagine/text-to-image", false, 1);
@@ -89,9 +93,20 @@ describe("Admin Models Backend Hardening Test Suite", () => {
       const editRoute = resolveWaveSpeedImageModelRoute("grok-imagine/image-to-image", true, 1);
       expect(editRoute?.model).toBe("x-ai/grok-imagine-image-quality/edit");
       expect(editRoute?.requiresReference).toBe(true);
+      expect(editRoute?.referenceField).toBe("image");
 
       const v2Route = resolveWaveSpeedImageModelRoute("x-ai-grok-imagine-image-v2.0-text-to-image", false, 1);
       expect(v2Route?.model).toBe("x-ai/grok-imagine-image-v2.0/text-to-image");
+
+      const v2EditRoute = resolveWaveSpeedImageModelRoute("x-ai-grok-imagine-image-v2.0-edit", true, 1);
+      expect(v2EditRoute?.model).toBe("x-ai/grok-imagine-image-v2.0/edit");
+      expect(v2EditRoute?.referenceField).toBe("images");
+      const v2EditInput = buildWaveSpeedImageInput(v2EditRoute!, {
+        prompt: "Preserve the subject and change the background",
+        referenceUrls: ["https://example.com/reference.png"],
+      });
+      expect(v2EditInput.images).toEqual(["https://example.com/reference.png"]);
+      expect(v2EditInput).not.toHaveProperty("image");
 
       const customNormalized = normalizeWaveSpeedModelEndpoint("bytedance-seedream-v5.0-pro-text-to-image");
       expect(customNormalized).toBe("bytedance/seedream-v5.0-pro/text-to-image");
