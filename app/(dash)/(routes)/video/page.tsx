@@ -29,8 +29,10 @@ import {
   getModelGroups,
   DEFAULT_MODEL,
   getGoogleVideoConstraints,
+  getSeedanceComposerMediaConflict,
   isGoogleVideoRoute,
   normalizeGoogleVideoOptions,
+  supportsSeedanceComposerAspectRatio,
 } from "@/lib/video-model-registry";
 import { getGenerationCostSync, computeCreditsFromDynamicModel } from "@/lib/pricing";
 import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
@@ -1972,8 +1974,14 @@ function VideoPageInner() {
         : isVeo31LiteModel
           ? caps.resolutions.filter((value) => value.toLowerCase() !== "4k")
           : caps.resolutions;
+  const seedanceUsesExplicitAspectRatio = supportsSeedanceComposerAspectRatio(
+    selectedModel.api_route,
+    Boolean(startFrame || linkedStartFrameUrl),
+  );
   const effectiveAspectRatios = sortAspectRatios(
-    isLegacyGoogleVeo3Model && resolution?.toLowerCase() === "1080p"
+    !seedanceUsesExplicitAspectRatio
+      ? []
+      : isLegacyGoogleVeo3Model && resolution?.toLowerCase() === "1080p"
       ? ["16:9"]
       : Array.isArray(caps.aspect_ratios)
         ? caps.aspect_ratios
@@ -2410,7 +2418,7 @@ function VideoPageInner() {
 
   const activeVideoModeLabel = getActiveVideoModeLabel(selectedModel, {
     hasStartFrame: Boolean(startFrame || linkedStartFrameUrl || selectedCharacter?.referenceUrls?.[0]),
-    hasEndFrame: Boolean(endFrame),
+    hasEndFrame: Boolean(endFrame || linkedEndFrameUrl),
     hasMotionVideo: Boolean(motionVideo),
     referenceImageCount: referenceImages.filter((file) => file.type.startsWith("image/")).length,
     isExtendMode: videoMode === "extend",
@@ -2476,6 +2484,30 @@ function VideoPageInner() {
           : `Prompt exceeds the maximum allowed limit of ${maxPromptChars} characters for this model by ${prompt.length - maxPromptChars} characters.`
       );
       return;
+    }
+
+    if (videoMode === "generate") {
+      const seedanceMediaConflict = getSeedanceComposerMediaConflict(selectedModel.api_route, {
+        hasStartFrame: Boolean(startFrame || linkedStartFrameUrl),
+        hasEndFrame: Boolean(endFrame || linkedEndFrameUrl),
+        hasReferenceMedia: referenceImages.length > 0,
+      });
+      if (seedanceMediaConflict === "end_requires_start") {
+        setGenerationError(
+          lang === "ar"
+            ? "يتطلب إطار النهاية إضافة إطار بداية أولاً في موديلات Seedance."
+            : "Seedance requires a Start Frame before an End Frame can be used."
+        );
+        return;
+      }
+      if (seedanceMediaConflict === "frames_and_references_conflict") {
+        setGenerationError(
+          lang === "ar"
+            ? "لا يمكن الجمع بين Start/End وقائمة References في طلب Seedance واحد. استخدم إطارات البداية والنهاية، أو احذفها واستخدم المراجع."
+            : "Seedance cannot combine Start/End frames with Reference media in one request. Use Start/End, or remove them and use References."
+        );
+        return;
+      }
     }
 
     const gate = await guardGeneration({ requiredCredits: estimatedCredits, action: `video:${selectedModel.api_route}` });
@@ -2813,14 +2845,21 @@ function VideoPageInner() {
         ...uploadedRefImgs,
       ].slice(0, maxRefImgs);
 
+      const keepSeedanceTextReferences =
+        selectedModel.api_route.startsWith("bytedance/seedance-") &&
+        selectedModel.api_route.includes("/text-to-video") &&
+        caps.max_reference_images > 0;
+
       // If user uploaded 1 or 2 images and did not explicitly use separate start/end boxes:
       // Image 1 is Start Frame, and Image 2 is End Frame!
-      if (!explicitStartUrl && allRefImgs.length >= 1 && refVids.length === 0 && refAuds.length === 0) {
+      // Seedance text/reference generation keeps these as reference_images;
+      // only the dedicated Start Frame box should switch it to image-to-video.
+      if (!keepSeedanceTextReferences && !explicitStartUrl && allRefImgs.length >= 1 && refVids.length === 0 && refAuds.length === 0) {
         explicitStartUrl = allRefImgs[0];
         payload.image = explicitStartUrl;
         payload.first_frame_url = explicitStartUrl;
       }
-      if (!explicitEndUrl && allRefImgs.length >= 2 && refVids.length === 0 && refAuds.length === 0) {
+      if (!keepSeedanceTextReferences && !explicitEndUrl && allRefImgs.length >= 2 && refVids.length === 0 && refAuds.length === 0) {
         explicitEndUrl = allRefImgs[1];
         payload.last_image = explicitEndUrl;
         payload.end_image = explicitEndUrl;
@@ -2873,7 +2912,7 @@ function VideoPageInner() {
       if (caps.sizes.length > 0 && size) {
         payload.size = size;
       }
-      if (caps.aspect_ratios.length > 0 && aspectRatio) {
+      if (seedanceUsesExplicitAspectRatio && caps.aspect_ratios.length > 0 && aspectRatio) {
         payload.aspect_ratio = aspectRatio;
       }
 
@@ -3355,11 +3394,11 @@ function VideoPageInner() {
     }
   }, [
     activeTool, videoMode, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isWan30Model, isVeo31Model, isGoogleVeoModel, isVeo31FastModel, isVeo31FixedEightSecond,
-    startFrame, linkedStartFrameUrl, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
+    startFrame, linkedStartFrameUrl, endFrame, linkedEndFrameUrl, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, selectedCharacterPresetId, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedShotTypeId, selectedFilmStockId, selectedMovieLookId, selectedLightingId, selectedMotionBlurId, selectedGrainId, selectedHalationId, selectedTonalLookId, selectedLocationId, selectedElementId, selectedPalette, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
-    estimatedCredits, activeVideoModeLabel, fetchWithAuth, getSafeErrorMessage, guardGeneration,
+    estimatedCredits, activeVideoModeLabel, seedanceUsesExplicitAspectRatio, fetchWithAuth, getSafeErrorMessage, guardGeneration,
   ]);
 
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);

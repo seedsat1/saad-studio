@@ -949,9 +949,13 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Seedance 2.5",
     family: "seedance", family_label: "Seedance", family_color: "#10b981",
     badge: "NEW",
-    description: "Bytedance Seedance 2.5 Turbo - 480p/720p/1080p, 4-30s, up to 30 images + 10 videos + 10 audios on text/reference generation.",
+    description: "Bytedance Seedance 2.5 Turbo - 720p/1080p, 4-30s, up to 30 images + 10 videos + 10 audios on text/reference generation.",
     api_route: "bytedance/seedance-2.5/text-to-video-turbo",
+    text_api_route: "bytedance/seedance-2.5/text-to-video-turbo",
+    image_api_route: "bytedance/seedance-2.5/image-to-video-turbo",
+    reference_api_route: "bytedance/seedance-2.5/text-to-video-turbo",
     video_api_route: "bytedance/seedance-2.5/video-extend",
+    start_end_api_route: "bytedance/seedance-2.5/image-to-video-turbo",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
@@ -959,14 +963,12 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_end_frame: true,
       aspect_ratios: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"],
       durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
-      resolutions: ["480p", "720p", "1080p"],
+      resolutions: ["720p", "1080p"],
       max_reference_images: 30,
       max_reference_videos: 10,
       max_reference_video_total_seconds: 30,
       max_reference_audios: 10,
       max_reference_audio_total_seconds: 30,
-      has_negative_prompt: true,
-      has_loop: true,
       has_sound: true,
       sound_param: "generate_audio",
     }),
@@ -976,16 +978,14 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Seedance 2.5 I2V Turbo",
     family: "seedance", family_label: "Seedance", family_color: "#10b981",
     badge: "FAST",
-    description: "Bytedance Seedance 2.5 Image-to-Video Turbo - start image, optional last image, 480p/720p/1080p, 4-30s, native audio.",
+    description: "Bytedance Seedance 2.5 Image-to-Video Turbo - start image, optional last image, 720p/1080p, 4-30s, native audio.",
     api_route: "bytedance/seedance-2.5/image-to-video-turbo",
     route_confirmed: true,
     capabilities: i2vCaps({
       has_end_frame: true,
       aspect_ratios: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"],
       durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
-      resolutions: ["480p", "720p", "1080p"],
-      has_negative_prompt: true,
-      has_loop: true,
+      resolutions: ["720p", "1080p"],
       has_sound: true,
       sound_param: "generate_audio",
     }),
@@ -1017,14 +1017,18 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Seedance 2.0 Turbo",
     family: "seedance", family_label: "Seedance", family_color: "#10b981",
     badge: "TURBO",
-    description: "Bytedance Seedance 2.0 Turbo — HD image-to-video with optional last frame and native audio.",
+    description: "Bytedance Seedance 2.0 Turbo — text/reference generation plus start/end image-to-video, 720p/1080p, 4-15s, native audio.",
     api_route: "bytedance/seedance-2.0/text-to-video-turbo",
+    text_api_route: "bytedance/seedance-2.0/text-to-video-turbo",
+    image_api_route: "bytedance/seedance-2.0/image-to-video-turbo",
+    reference_api_route: "bytedance/seedance-2.0/text-to-video-turbo",
     video_api_route: "bytedance/seedance-2.0/video-extend",
+    start_end_api_route: "bytedance/seedance-2.0/image-to-video-turbo",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
-      aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
+      aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
       durations:     [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions:   ["720p", "1080p"],
       max_reference_images: 9,
@@ -1032,8 +1036,6 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_video_total_seconds: 15,
       max_reference_audios: 3,
       max_reference_audio_total_seconds: 15,
-      has_negative_prompt: true,
-      has_loop: true,
       has_sound: true,
       sound_param: "generate_audio",
     }),
@@ -1056,7 +1058,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame: true,
-      aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
+      aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
       durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions: ["480p", "720p", "1080p", "4k"],
       max_reference_images: 9,
@@ -1064,8 +1066,6 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_video_total_seconds: 15,
       max_reference_audios: 3,
       max_reference_audio_total_seconds: 15,
-      has_negative_prompt: true,
-      has_loop: true,
       has_sound: true,
       sound_param: "generate_audio",
     }),
@@ -1086,7 +1086,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
-      aspect_ratios:  ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
+      aspect_ratios:  ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
       durations:      [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions:    ["480p", "720p", "1080p", "4k"],
       max_reference_images: 9,
@@ -1094,8 +1094,6 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_video_total_seconds: 15,
       max_reference_audios: 3,
       max_reference_audio_total_seconds: 15,
-      has_negative_prompt: true,
-      has_loop: true,
       has_sound: true,
       sound_param: "generate_audio",
     }),
@@ -1109,13 +1107,14 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     api_route: "bytedance/seedance-2.0-mini/text-to-video-turbo",
     text_api_route: "bytedance/seedance-2.0-mini/text-to-video-turbo",
     image_api_route: "bytedance/seedance-2.0-mini/image-to-video-turbo",
+    reference_api_route: "bytedance/seedance-2.0-mini/text-to-video-turbo",
     video_api_route: "bytedance/seedance-2.0-mini/video-edit-turbo",
     start_end_api_route: "bytedance/seedance-2.0-mini/image-to-video-turbo",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
-      aspect_ratios:  ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
+      aspect_ratios:  ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
       durations:      [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions:    ["720p", "1080p"],
       max_reference_images: 9,
@@ -1123,8 +1122,6 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_video_total_seconds: 15,
       max_reference_audios: 3,
       max_reference_audio_total_seconds: 15,
-      has_negative_prompt: true,
-      has_loop: true,
       has_sound: true,
       sound_param: "generate_audio",
     }),
@@ -1156,14 +1153,18 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Seedance 2.0",
     family: "seedance", family_label: "Seedance", family_color: "#10b981",
     badge: "NEW",
-    description: "Bytedance Seedance 2.0 — cinematic image-to-video with optional last frame and native audio.",
+    description: "Bytedance Seedance 2.0 — text/reference generation plus start/end image-to-video, 480p-4k, 4-15s, native audio.",
     api_route: "bytedance/seedance-2.0/text-to-video",
+    text_api_route: "bytedance/seedance-2.0/text-to-video",
+    image_api_route: "bytedance/seedance-2.0/image-to-video",
+    reference_api_route: "bytedance/seedance-2.0/text-to-video",
     video_api_route: "bytedance/seedance-2.0/video-extend",
+    start_end_api_route: "bytedance/seedance-2.0/image-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
-      aspect_ratios:  ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
+      aspect_ratios:  ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
       durations:      [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions:    ["480p", "720p", "1080p", "4k"],
       max_reference_images: 9,
@@ -1171,8 +1172,6 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_video_total_seconds: 15,
       max_reference_audios: 3,
       max_reference_audio_total_seconds: 15,
-      has_negative_prompt: true,
-      has_loop: true,
       has_sound: true,
       sound_param: "generate_audio",
     }),
@@ -1280,6 +1279,30 @@ export function orderVideoModelsForDisplay<T extends Pick<WaveSpeedVideoModel, "
       return priorityDelta !== 0 ? priorityDelta : a.index - b.index;
     })
     .map(({ model }) => model);
+}
+
+export type SeedanceComposerMediaConflict =
+  | "end_requires_start"
+  | "frames_and_references_conflict"
+  | null;
+
+/**
+ * Seedance generation uses two mutually exclusive provider contracts:
+ * text-to-video accepts reference media, while image-to-video accepts a required
+ * start image and an optional last image. Validate that choice before upload or billing.
+ */
+export function getSeedanceComposerMediaConflict(
+  route: string,
+  input: { hasStartFrame: boolean; hasEndFrame: boolean; hasReferenceMedia: boolean },
+): SeedanceComposerMediaConflict {
+  if (!route.startsWith("bytedance/seedance-")) return null;
+  if (input.hasEndFrame && !input.hasStartFrame) return "end_requires_start";
+  if (input.hasStartFrame && input.hasReferenceMedia) return "frames_and_references_conflict";
+  return null;
+}
+
+export function supportsSeedanceComposerAspectRatio(route: string, hasStartFrame: boolean): boolean {
+  return !(hasStartFrame && route.startsWith("bytedance/seedance-2.5"));
 }
 
 /** All models grouped by family for the UI dropdown */

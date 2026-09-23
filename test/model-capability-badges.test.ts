@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { extractModelCapabilities } from "@/components/video/ModelCapabilityBadges";
-import { VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
+import {
+  getSeedanceComposerMediaConflict,
+  supportsSeedanceComposerAspectRatio,
+  VIDEO_MODEL_REGISTRY,
+} from "@/lib/video-model-registry";
 
 describe("Model Capability Badges Contract Tests", () => {
   it("should accurately extract capabilities for Kling 3.0 Pro without guessing", () => {
@@ -66,5 +70,121 @@ describe("Model Capability Badges Contract Tests", () => {
     expect(caps.multi).toBe(true);
     expect(caps.duration).toBe("3 - 15\"");
     expect(caps.creditRange).toBeTruthy();
+  });
+
+  it("keeps the six visible Seedance cards aligned with the official WaveSpeed contracts", () => {
+    const ratios = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
+    const cases = [
+      {
+        id: "bytedance-seedance-v25-t2v-turbo",
+        text: "bytedance/seedance-2.5/text-to-video-turbo",
+        image: "bytedance/seedance-2.5/image-to-video-turbo",
+        resolutions: ["720p", "1080p"],
+        maxDuration: 30,
+        refs: [30, 10, 10],
+      },
+      {
+        id: "bytedance-seedance-v2-t2v-fast",
+        text: "bytedance/seedance-2.0/text-to-video-turbo",
+        image: "bytedance/seedance-2.0/image-to-video-turbo",
+        resolutions: ["720p", "1080p"],
+        maxDuration: 15,
+        refs: [9, 3, 3],
+      },
+      {
+        id: "bytedance-seedance-v2-t2v-mini",
+        text: "bytedance/seedance-2.0-mini/text-to-video",
+        image: "bytedance/seedance-2.0-mini/image-to-video",
+        resolutions: ["480p", "720p", "1080p", "4k"],
+        maxDuration: 15,
+        refs: [9, 3, 3],
+      },
+      {
+        id: "bytedance-seedance-v2-t2v",
+        text: "bytedance/seedance-2.0/text-to-video",
+        image: "bytedance/seedance-2.0/image-to-video",
+        resolutions: ["480p", "720p", "1080p", "4k"],
+        maxDuration: 15,
+        refs: [9, 3, 3],
+      },
+      {
+        id: "bytedance-seedance-v2-fast",
+        text: "bytedance/seedance-2.0-fast/text-to-video",
+        image: "bytedance/seedance-2.0-fast/image-to-video",
+        resolutions: ["480p", "720p", "1080p", "4k"],
+        maxDuration: 15,
+        refs: [9, 3, 3],
+      },
+      {
+        id: "bytedance-seedance-v2-mini-turbo",
+        text: "bytedance/seedance-2.0-mini/text-to-video-turbo",
+        image: "bytedance/seedance-2.0-mini/image-to-video-turbo",
+        resolutions: ["720p", "1080p"],
+        maxDuration: 15,
+        refs: [9, 3, 3],
+      },
+    ] as const;
+
+    for (const expected of cases) {
+      const model = VIDEO_MODEL_REGISTRY.find((candidate) => candidate.id === expected.id);
+      expect(model, expected.id).toBeDefined();
+      expect(model?.text_api_route).toBe(expected.text);
+      expect(model?.reference_api_route).toBe(expected.text);
+      expect(model?.image_api_route).toBe(expected.image);
+      expect(model?.start_end_api_route).toBe(expected.image);
+      expect(model?.capabilities.has_end_frame).toBe(true);
+      expect([...(model?.capabilities.aspect_ratios ?? [])].sort()).toEqual([...ratios].sort());
+      expect(model?.capabilities.resolutions).toEqual(expected.resolutions);
+      expect(model?.capabilities.durations.at(0)).toBe(4);
+      expect(model?.capabilities.durations.at(-1)).toBe(expected.maxDuration);
+      expect([
+        model?.capabilities.max_reference_images,
+        model?.capabilities.max_reference_videos,
+        model?.capabilities.max_reference_audios,
+      ]).toEqual(expected.refs);
+    }
+  });
+
+  it("rejects invalid Seedance Start/End and References combinations before submission", () => {
+    const route = "bytedance/seedance-2.0-mini/text-to-video";
+
+    expect(getSeedanceComposerMediaConflict(route, {
+      hasStartFrame: false,
+      hasEndFrame: true,
+      hasReferenceMedia: false,
+    })).toBe("end_requires_start");
+
+    expect(getSeedanceComposerMediaConflict(route, {
+      hasStartFrame: true,
+      hasEndFrame: true,
+      hasReferenceMedia: true,
+    })).toBe("frames_and_references_conflict");
+
+    expect(getSeedanceComposerMediaConflict(route, {
+      hasStartFrame: true,
+      hasEndFrame: true,
+      hasReferenceMedia: false,
+    })).toBeNull();
+
+    expect(getSeedanceComposerMediaConflict(route, {
+      hasStartFrame: false,
+      hasEndFrame: false,
+      hasReferenceMedia: true,
+    })).toBeNull();
+  });
+
+  it("uses real aspect-ratio behavior for Seedance text and image routes", () => {
+    expect(supportsSeedanceComposerAspectRatio(
+      "bytedance/seedance-2.5/text-to-video-turbo",
+      false,
+    )).toBe(true);
+    expect(supportsSeedanceComposerAspectRatio(
+      "bytedance/seedance-2.5/text-to-video-turbo",
+      true,
+    )).toBe(false);
+    expect(supportsSeedanceComposerAspectRatio(
+      "bytedance/seedance-2.0-mini/text-to-video",
+      true,
+    )).toBe(true);
   });
 });

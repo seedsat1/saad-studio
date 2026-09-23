@@ -16103,3 +16103,36 @@
   - Relevant navigation tests: 78/79 passed. The single failure is an existing assertion for an absent creative-workspace route and is unrelated to navbar sizing.
   - `npm run build`: passed; 258/258 static pages generated. Existing dynamic-route and Browserslist/Tailwind warnings remain.
 - Files changed: `components/TopNavbar.tsx`, `PROJECT_CONTEXT.md`, and `docs/saad-studio-premiere-reference-ar.md`.
+
+## Seedance 2.5 multi-reference routing fix (2026-09-23)
+
+- Status: fixed and verified.
+- Terrain indexed a targeted five-file subset (19,278 tokens) covering the video page, model registry, dynamic loader, Seedance validation, and routing tests.
+- Root cause: the video composer automatically promotes the first two generic reference images to start/end frames. Their presence makes unified Seedance 2.5 routing select `image-to-video`, while the same full list remains in `reference_image_urls`.
+- The server then correctly rejects the payload because Seedance 2.5 `image-to-video` accepts start/end image fields but no `reference_images`; the text/reference route accepts up to 30 image references.
+- User-visible symptom: `seedance-2.5/image-to-video does not accept any reference_images` when many references are attached.
+- Fix: generic images added through the reference panel now remain `reference_image_urls` on the Seedance 2.5 text/reference route. Only an image placed explicitly in the Start Frame box triggers the image-to-video route; the optional End Frame remains `last_image`.
+- Provider documentation supplied by the developer confirms that Seedance 2.5 `image-to-video` accepts required `image` plus optional `last_image`, with no `reference_images` request field.
+- Verification: the focused Seedance routing test passed (1 passed, 40 skipped). The first run hit its 15-second timeout during route loading; rerunning with a 60-second limit completed in 10.25 seconds.
+- `npm run build`: passed; 258/258 static pages generated. Existing dynamic-route and Browserslist/Tailwind warnings remain.
+- Files changed: `app/(dash)/(routes)/video/page.tsx`, `PROJECT_CONTEXT.md`, and `docs/saad-studio-premiere-reference-ar.md`.
+
+## Seedance visible-model capability audit (2026-09-23)
+
+- Status: corrected and verified for the six visible models: Seedance 2.5, 2.0 Turbo, 2.0 Mini, 2.0, 2.0 Fast, and 2.0 Mini Turbo.
+- Prices and credit calculations were intentionally unchanged.
+- The curated registry now carries explicit text/reference and image/start-end routes for every visible model. Generic references stay on the text route; only the dedicated Start/End inputs select image-to-video.
+- Provider-aligned capabilities:
+  - Seedance 2.5 and 2.0 Turbo/Mini Turbo: `720p|1080p`.
+  - Seedance 2.0, Mini, and Fast: `480p|720p|1080p|4k`.
+  - Seedance 2.5 duration: 4-30 seconds; all visible 2.0 variants: 4-15 seconds.
+  - Ratios: `16:9|9:16|1:1|4:3|3:4|21:9`; unsupported `adaptive` was removed.
+  - 2.5 reference limits: 30 images / 10 videos / 10 audios, with 30-second total limits for video/audio. 2.0 limits: 9 / 3 / 3, with 15-second totals.
+- Hook Studio's shared Seedance capability metadata was aligned, including the current 2.0 Fast route and Mini video/audio reference limits.
+- Unsupported negative-prompt and loop controls were removed from the six visible cards because they are absent from the verified provider request schemas.
+- The developer-supplied `C:\Users\PC\Desktop\مرجع سيدانس.docx` was parsed completely (4,172 paragraphs / 246 tables) and used to verify the request-parameter tables. It confirms that Seedance I2V requires `image`, accepts optional `last_image`, and cannot combine those fields with reference-media arrays. For 2.0 I2V, omitting `aspect_ratio` adapts to the input image; the literal value `adaptive` is not sent.
+- Composer validation now blocks End without Start and blocks combining Start/End with References before upload, credit gating, or provider submission. This avoids an invalid mixed payload and does not charge the subscriber.
+- Seedance 2.5 hides the aspect-ratio picker when a Start Frame selects I2V and omits `aspect_ratio`; the provider follows the start image. Text/reference mode still exposes the six documented ratios. Seedance 2.0 I2V keeps the six explicit ratios.
+- Verification: 3 focused test files passed, 61/61 tests. `npm run build` passed and generated 258/258 pages after the final ratio-mode change; existing dynamic-route and Browserslist/Tailwind warnings remain.
+- Error recorded: visual DOCX rendering could not run because the bundled workspace dependencies do not contain LibreOffice `soffice.exe`; structural extraction and all relevant parameter tables succeeded without changing the source document.
+- Files changed for this audit: `app/(dash)/(routes)/video/page.tsx`, `lib/video-model-registry.ts`, `lib/hook-studio-config.ts`, `test/model-capability-badges.test.ts`, `PROJECT_CONTEXT.md`, and `docs/saad-studio-premiere-reference-ar.md`.
