@@ -3864,6 +3864,8 @@
 
 ## Seedance 2.5 Quality Correction (2026-08-07)
 
+> **متجاوز:** هذا القسم مبني على عقد أقدم. العقد المعتمد حالياً موثق في قسم **عقد قدرات موديلات Seedance الظاهرة (2026-09-23)** أدناه؛ بطاقة Seedance 2.5 Turbo الظاهرة تدعم `720p` و`1080p`.
+
 - Current subscriber-facing Seedance 2.5 quality options are `480p` and `720p` only, in this order. Do not expose `1080p` or `4k` for the public Seedance 2.5 selector unless a later verified source explicitly restores them.
 - Seedance 2.5 API normalization must clamp stale/invalid resolution values to `720p`.
 - Seedance 2.5 pricing must use the user-supplied source table for the visible quality set: `480p = $0.162/s`, `720p = $0.18/s`, then multiply by `40 credits/USD` plus a 40% user-price margin. Audio generation is included and must not add cost.
@@ -4972,4 +4974,7 @@
 - **End Frame** لا يعمل منفرداً، لأن جميع مسارات Seedance Image-to-Video تتطلب `image` كبداية.
 - لا يمكن دمج **Start/End** مع قائمة **References** في طلب واحد: Start/End يستخدمان `image` و`last_image` على I2V، بينما المراجع تستخدم مسار T2V وحقول `reference_images/videos/audios`. تتحقق الواجهة من التعارض قبل الرفع أو الخصم.
 - يجب منع تكوين الحالة المختلطة من جميع مداخل الوسائط في الواجهة: رفع الجهاز، المعرض، السحب والإفلات، اللصق، وReference Studio. لا تحذف الواجهة الملفات تلقائياً؛ تعرض رسالة واضحة ويزيل المستخدم Start/End أو References لاختيار نمط واحد.
-- اختيار **End Frame** في Seedance يتطلب وجود **Start Frame** مسبقاً، ويُمنع عند الإدخال بدلاً من انتظار رفض المزوّد.
+- في التوليد العادي، اختيار **End Frame** في Seedance يتطلب وجود **Start Frame** مسبقاً، ويُمنع عند الإدخال بدلاً من انتظار رفض المزوّد. في وضع **Video Extend** يكون فيديو المصدر هو البداية، لذلك يُسمح بـ **End Frame** للمسارات التي توثق `last_image`، بينما يبقى غير متاح في Seedance 2.5 Extend.
+- طلب WaveSpeed النهائي يرسل `last_image` فقط ولا يرسل الاسم غير الموثق `end_image`، ويحافظ صراحةً على اختيار `generate_audio` من المشترك.
+- مسارات Seedance النصية تقبل `reference_audios` بصورة مستقلة وفق العقد المرفق. لا تُطبق عليها قاعدة Minimax H3 التي تتطلب مرجع صورة أو فيديو مع الصوت.
+- عند الانتقال إلى **Video Extend** تُرسل أداة الفيديو فيديو المصدر دائماً، ولا تُمرر مراجع بقيت محفوظة من وضع التوليد السابق. تبقى الملفات في حالة الواجهة ولا تُحذف تلقائياً.

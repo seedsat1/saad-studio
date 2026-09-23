@@ -161,6 +161,12 @@ describe("Model Capability Badges Contract Tests", () => {
     })).toBe("frames_and_references_conflict");
 
     expect(getSeedanceComposerMediaConflict(route, {
+      hasStartFrame: false,
+      hasEndFrame: true,
+      hasReferenceMedia: true,
+    })).toBe("frames_and_references_conflict");
+
+    expect(getSeedanceComposerMediaConflict(route, {
       hasStartFrame: true,
       hasEndFrame: true,
       hasReferenceMedia: false,
@@ -170,6 +176,13 @@ describe("Model Capability Badges Contract Tests", () => {
       hasStartFrame: false,
       hasEndFrame: false,
       hasReferenceMedia: true,
+    })).toBeNull();
+
+    expect(getSeedanceComposerMediaConflict(route, {
+      hasStartFrame: false,
+      hasEndFrame: true,
+      hasReferenceMedia: false,
+      isExtendMode: true,
     })).toBeNull();
   });
 

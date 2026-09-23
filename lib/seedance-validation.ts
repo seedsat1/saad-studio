@@ -395,7 +395,6 @@ export function validateSeedanceStartEnd(
     const endImg = rawLastImage || (refImages.length > 1 ? refImages[1] : null);
     if (endImg) {
       exact.last_image = endImg;
-      exact.end_image = endImg;
     }
     return;
   }
@@ -426,7 +425,6 @@ export function validateSeedanceStartEnd(
     }
     if (!is25Extend && endImg) {
       exact.last_image = endImg;
-      exact.end_image = endImg;
     }
     return;
   }
@@ -619,6 +617,16 @@ export function validateAndBuildSeedanceExactPayload(
   if (isSpicy) {
     exact.seed = typeof payload.seed === "number" && Number.isFinite(payload.seed) ? payload.seed : -1;
   }
+
+  const generateAudio =
+    typeof out.generate_audio === "boolean"
+      ? out.generate_audio
+      : typeof payload.generate_audio === "boolean"
+        ? payload.generate_audio
+        : typeof payload.sound === "boolean"
+          ? payload.sound
+          : true;
+  exact.generate_audio = generateAudio;
 
   if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) {
     exact.negative_prompt = out.negative_prompt.trim();

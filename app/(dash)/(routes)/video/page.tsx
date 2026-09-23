@@ -1640,26 +1640,27 @@ function VideoPageInner() {
     const hasStartFrame = Boolean(startFrame || linkedStartFrameUrl);
     const hasEndFrame = Boolean(endFrame || linkedEndFrameUrl);
     const hasReferences = referenceImages.length > 0;
+    const conflict = getSeedanceComposerMediaConflict(selectedModel.api_route, {
+      hasStartFrame: target === "startFrame" ? true : hasStartFrame,
+      hasEndFrame: target === "endFrame" ? true : hasEndFrame,
+      hasReferenceMedia: target === "referenceImages" ? true : hasReferences,
+      isExtendMode: videoMode === "extend",
+    });
 
-    if (target === "referenceImages" && (hasStartFrame || hasEndFrame)) {
+    if (conflict === "frames_and_references_conflict") {
       setGenerationError(
-        lang === "ar"
-          ? "لا يمكن إضافة References مع Start/End في طلب Seedance واحد. احذف إطارات البداية والنهاية أولاً، أو استخدمها بدون References."
-          : "Seedance cannot combine References with Start/End frames. Remove the frames first, or use them without References."
+        target === "referenceImages"
+          ? lang === "ar"
+            ? "لا يمكن إضافة References مع Start/End في طلب Seedance واحد. احذف إطارات البداية والنهاية أولاً، أو استخدمها بدون References."
+            : "Seedance cannot combine References with Start/End frames. Remove the frames first, or use them without References."
+          : lang === "ar"
+            ? "لا يمكن إضافة Start/End مع References في طلب Seedance واحد. احذف المراجع أولاً، أو استخدمها بدون إطارات."
+            : "Seedance cannot combine Start/End frames with References. Remove the references first, or use them without frames."
       );
       return true;
     }
 
-    if ((target === "startFrame" || target === "endFrame") && hasReferences) {
-      setGenerationError(
-        lang === "ar"
-          ? "لا يمكن إضافة Start/End مع References في طلب Seedance واحد. احذف المراجع أولاً، أو استخدمها بدون إطارات."
-          : "Seedance cannot combine Start/End frames with References. Remove the references first, or use them without frames."
-      );
-      return true;
-    }
-
-    if (target === "endFrame" && !hasStartFrame) {
+    if (conflict === "end_requires_start") {
       setGenerationError(
         lang === "ar"
           ? "أضف Start Frame أولاً قبل اختيار End Frame في Seedance."
@@ -1669,7 +1670,7 @@ function VideoPageInner() {
     }
 
     return false;
-  }, [endFrame, lang, linkedEndFrameUrl, linkedStartFrameUrl, referenceImages.length, selectedModel.api_route, startFrame]);
+  }, [endFrame, lang, linkedEndFrameUrl, linkedStartFrameUrl, referenceImages.length, selectedModel.api_route, startFrame, videoMode]);
 
   const selectFrameFile = useCallback((target: "startFrame" | "endFrame", file: File | null) => {
     if (file && guardSeedanceMediaSelection(target)) return;
@@ -2800,9 +2801,10 @@ function VideoPageInner() {
       }
 
       if (isSeedanceV2 || isMinimaxH3) {
-        const refImgs = referenceImages.filter((f) => f.type.startsWith("image/"));
-        const refVids = referenceImages.filter((f) => f.type.startsWith("video/"));
-        const refAuds = referenceImages.filter((f) => f.type.startsWith("audio/"));
+        const activeReferenceFiles = videoMode === "extend" ? [] : referenceImages;
+        const refImgs = activeReferenceFiles.filter((f) => f.type.startsWith("image/"));
+        const refVids = activeReferenceFiles.filter((f) => f.type.startsWith("video/"));
+        const refAuds = activeReferenceFiles.filter((f) => f.type.startsWith("audio/"));
         const hasStartImage =
           !!startFrame ||
           (characterSupport.mode === "image_reference" &&
@@ -2817,11 +2819,9 @@ function VideoPageInner() {
           refVids.length + (caps.requires_video && !!motionVideo ? 1 : 0);
         const audioCount = refAuds.length;
 
-        if (audioCount > 0 && imageCount === 0 && videoCount === 0) {
+        if (isMinimaxH3 && audioCount > 0 && imageCount === 0 && videoCount === 0) {
           setGenerationError(
-            isMinimaxH3
-              ? "Minimax H3 does not support audio-only references. Add at least one reference image or video with the audio."
-              : "Seedance requires at least one reference image or video when audio references are attached."
+            "Minimax H3 does not support audio-only references. Add at least one reference image or video with the audio."
           );
           setIsSubmitting(false);
           return;
@@ -2877,9 +2877,10 @@ function VideoPageInner() {
       }
 
       // 3. Multimodal References (from Add references panel)
-      const refImgs = referenceImages.filter((f) => f.type.startsWith("image/"));
-      const refVids = referenceImages.filter((f) => f.type.startsWith("video/"));
-      const refAuds = referenceImages.filter((f) => f.type.startsWith("audio/"));
+      const activeReferenceFiles = videoMode === "extend" ? [] : referenceImages;
+      const refImgs = activeReferenceFiles.filter((f) => f.type.startsWith("image/"));
+      const refVids = activeReferenceFiles.filter((f) => f.type.startsWith("video/"));
+      const refAuds = activeReferenceFiles.filter((f) => f.type.startsWith("audio/"));
 
       const maxRefImgs = Math.max(1, caps.max_reference_images || 9);
       const uploadedRefImgs = await Promise.all(
@@ -2933,7 +2934,7 @@ function VideoPageInner() {
       }
 
       // 4. Motion Video (when applicable)
-      if ((caps.requires_video || caps.optional_video) && motionVideo) {
+      if ((videoMode === "extend" || caps.requires_video || caps.optional_video) && motionVideo) {
         payload.video = await uploadVideoRequestFile(motionVideo, fetchWithAuth);
       }
 

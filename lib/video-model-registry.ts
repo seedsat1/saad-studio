@@ -1293,11 +1293,19 @@ export type SeedanceComposerMediaConflict =
  */
 export function getSeedanceComposerMediaConflict(
   route: string,
-  input: { hasStartFrame: boolean; hasEndFrame: boolean; hasReferenceMedia: boolean },
+  input: {
+    hasStartFrame: boolean;
+    hasEndFrame: boolean;
+    hasReferenceMedia: boolean;
+    isExtendMode?: boolean;
+  },
 ): SeedanceComposerMediaConflict {
   if (!route.startsWith("bytedance/seedance-")) return null;
+  if (input.isExtendMode) return null;
+  if ((input.hasStartFrame || input.hasEndFrame) && input.hasReferenceMedia) {
+    return "frames_and_references_conflict";
+  }
   if (input.hasEndFrame && !input.hasStartFrame) return "end_requires_start";
-  if (input.hasStartFrame && input.hasReferenceMedia) return "frames_and_references_conflict";
   return null;
 }
 

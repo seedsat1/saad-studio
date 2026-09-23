@@ -880,6 +880,8 @@ describe("Admin Models Backend Hardening Test Suite", () => {
         );
         expect(result.image).toBe("https://start.jpg");
         expect(result.last_image).toBe("https://end.jpg");
+        expect(result.end_image).toBeUndefined();
+        expect(result.generate_audio).toBe(true);
         expect(result.reference_images).toBeUndefined();
       });
 
@@ -915,7 +917,37 @@ describe("Admin Models Backend Hardening Test Suite", () => {
         );
         expect(result.video).toBe("https://video.mp4");
         expect(result.last_image).toBe("https://target-end.jpg");
+        expect(result.end_image).toBeUndefined();
         expect(result.reference_images).toBeUndefined();
+      });
+
+      it("preserves the explicit Seedance generate_audio choice", async () => {
+        const { validateAndBuildSeedanceExactPayload } = await import("@/lib/seedance-validation");
+        const muted = validateAndBuildSeedanceExactPayload(
+          "bytedance/seedance-2.5/text-to-video-turbo",
+          { prompt: "Silent cinematic shot", generate_audio: false },
+          {}
+        );
+        const audible = validateAndBuildSeedanceExactPayload(
+          "bytedance/seedance-2.0-fast/text-to-video",
+          { prompt: "Cinematic shot with sound", generate_audio: true },
+          {}
+        );
+        expect(muted.generate_audio).toBe(false);
+        expect(audible.generate_audio).toBe(true);
+      });
+
+      it("accepts Seedance audio-only references on documented text routes", async () => {
+        const { validateAndBuildSeedanceExactPayload } = await import("@/lib/seedance-validation");
+        const result = validateAndBuildSeedanceExactPayload(
+          "bytedance/seedance-2.0-mini/text-to-video",
+          {
+            prompt: "Use the supplied ambience",
+            reference_audio_urls: ["https://audio.example/ambience.wav"],
+          },
+          {}
+        );
+        expect(result.reference_audios).toEqual(["https://audio.example/ambience.wav"]);
       });
 
       it("Video-Extend on 2.5 rejects last_image", async () => {
