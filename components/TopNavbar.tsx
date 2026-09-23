@@ -125,9 +125,9 @@ const LanguageSwitcher = () => {
   return (
     <button
       onClick={() => changeLanguage(lang === "ar" ? "en" : "ar")}
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 transition-all select-none"
+      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-zinc-300 hover:text-white border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 transition-all select-none"
     >
-      <Globe className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+      <Globe className="h-4 w-4 text-cyan-400 shrink-0" />
       <span>{lang === "ar" ? "العربية" : "English"}</span>
     </button>
   );
@@ -551,12 +551,12 @@ const ListItem = ({
 
 const Logo = () => (
   <Link href="/explore" className="group flex items-center shrink-0">
-    <div className="relative h-9 w-9">
+    <div className="relative h-10 w-10">
       <Image
         src="/icon-192.png"
         alt="Saad Studio"
         fill
-        sizes="36px"
+        sizes="40px"
         className="object-contain"
         priority
       />
@@ -578,8 +578,8 @@ const PricingButton = () => (
         transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
         style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5,#06b6d4)", backgroundSize: "200% 200%" }}
       />
-      <span className="relative flex items-center gap-1.5 rounded-full bg-slate-950 px-4 py-1.5 text-sm font-semibold text-white hover:bg-slate-900 transition-colors">
-        <Zap className="h-3.5 w-3.5 text-violet-400" />
+      <span className="relative flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900 transition-colors">
+        <Zap className="h-4 w-4 text-violet-400" />
         Pricing
       </span>
     </motion.div>
@@ -925,7 +925,7 @@ const HoverNavItem = ({
         href={href}
         onClick={() => setOpen(false)}
         className={cn(
-          "flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-white/[0.08] whitespace-nowrap",
+          "flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors hover:bg-white/[0.08] whitespace-nowrap",
           isActive ? "text-white bg-white/[0.08]" : "text-zinc-300 hover:text-white"
         )}
       >
@@ -934,7 +934,7 @@ const HoverNavItem = ({
         {children && (
           <ChevronDown
             className={cn(
-              "h-3 w-3 ml-0.5 transition-transform duration-200",
+              "h-3.5 w-3.5 ml-0.5 transition-transform duration-200",
               open ? "rotate-180 text-white" : "text-zinc-500"
             )}
           />
@@ -983,13 +983,13 @@ const AuthNavButtons = ({ creditBalance, creditCapacity, hydrated }: { creditBal
         <div className="hidden xl:flex items-center gap-2">
           <button
             onClick={() => onOpen("login")}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white border border-white/15 hover:border-white/30 hover:bg-white/10 transition-all"
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-zinc-300 hover:text-white border border-white/15 hover:border-white/30 hover:bg-white/10 transition-all"
           >
             {getTranslation("Sign In", lang)}
           </button>
           <button
             onClick={() => onOpen("signup")}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white transition-all"
+            className="px-4 py-2 rounded-lg text-sm font-bold text-white transition-all"
             style={{
               background: "linear-gradient(135deg,#7c3aed 0%,#a855f7 100%)",
               boxShadow: "0 2px 16px rgba(124,58,237,0.45)",
@@ -1120,7 +1120,7 @@ const TopNavbar = () => {
             : "bg-black/40 backdrop-blur-xl border-b border-white/10"
         )}
       >
-        <div className="flex h-14 w-full items-center justify-between gap-2 px-3 lg:px-5">
+        <div className="flex h-16 w-full items-center justify-between gap-3 px-4 lg:px-6">
 
           <Logo />
 
@@ -1130,15 +1130,15 @@ const TopNavbar = () => {
               <Link
                 href="/dash"
                 className={cn(
-                  "flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-white/[0.08] whitespace-nowrap",
+                  "flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors hover:bg-white/[0.08] whitespace-nowrap",
                   pathname === "/dash" ? "text-white bg-white/[0.08]" : "text-zinc-300 hover:text-white"
                 )}
               >
-                <Globe className="h-3 w-3 text-sky-400" />{getTranslation("Explore", lang)}
+                <Globe className="h-4 w-4 text-sky-400" />{getTranslation("Explore", lang)}
               </Link>
 
               {/* Image */}
-              <HoverNavItem href="/image" icon={<ImageIcon className="h-3 w-3 text-pink-400" />} label={getTranslation("Image", lang)}>
+              <HoverNavItem href="/image" icon={<ImageIcon className="h-4 w-4 text-pink-400" />} label={getTranslation("Image", lang)}>
                 <div className="w-[min(860px,calc(100vw-2rem))] p-5">
                   <div className="mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -1197,7 +1197,7 @@ const TopNavbar = () => {
               </HoverNavItem>
 
               {/* Video */}
-              <HoverNavItem href="/video" icon={<VideoIcon className="h-3 w-3 text-orange-400" />} label={getTranslation("Video", lang)}>
+              <HoverNavItem href="/video" icon={<VideoIcon className="h-4 w-4 text-orange-400" />} label={getTranslation("Video", lang)}>
                 <div className="w-[min(860px,calc(100vw-2rem))] p-5">
                   <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/10">
                     <div className="flex items-center gap-2">
@@ -1273,7 +1273,7 @@ const TopNavbar = () => {
               </HoverNavItem>
 
               {/* Audio */}
-              <HoverNavItem href="/audio" icon={<Music className="h-3 w-3 text-emerald-400" />} label={getTranslation("Audio", lang)}>
+              <HoverNavItem href="/audio" icon={<Music className="h-4 w-4 text-emerald-400" />} label={getTranslation("Audio", lang)}>
                 <div className="w-[min(620px,calc(100vw-2rem))] p-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -1308,7 +1308,7 @@ const TopNavbar = () => {
               </HoverNavItem>
 
               {/* Edit */}
-              <HoverNavItem href="/edit" icon={<Scissors className="h-3 w-3 text-cyan-400" />} label={getTranslation("Edit", lang)}>
+              <HoverNavItem href="/edit" icon={<Scissors className="h-4 w-4 text-cyan-400" />} label={getTranslation("Edit", lang)}>
                 <div className="w-[min(620px,calc(100vw-2rem))] p-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -1351,11 +1351,11 @@ const TopNavbar = () => {
                     key={link.href}
                     href={link.href}
                     className={cn(
-                      "flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-white/[0.08] whitespace-nowrap",
+                      "flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors hover:bg-white/[0.08] whitespace-nowrap",
                       pathname === link.href ? "text-white bg-white/[0.08]" : "text-zinc-300 hover:text-white"
                     )}
                   >
-                    <link.icon className={cn("h-3 w-3 shrink-0", link.color)} />
+                    <link.icon className={cn("h-4 w-4 shrink-0", link.color)} />
                     {/* labels only from 2xl; 1280-1399 shows icons alone so the row fits */}
                     <span className="hidden 2xl:inline">{getTranslation(link.label, lang)}</span>
                   </Link>
@@ -1392,8 +1392,8 @@ const TopNavbar = () => {
 
               {/* Gallery */}
               <div className="flex items-center gap-1">
-                <Link href="/gallery" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/gallery" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
-                  <GalleryHorizontalEnd className="h-3 w-3 text-fuchsia-400" />{getTranslation("Gallery", lang)}
+                <Link href="/gallery" className={cn("flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/gallery" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
+                  <GalleryHorizontalEnd className="h-4 w-4 text-fuchsia-400" />{getTranslation("Gallery", lang)}
                 </Link>
               </div>
 
@@ -1403,7 +1403,7 @@ const TopNavbar = () => {
           <div className="flex items-center gap-2 shrink-0">
             <AuthNavButtons creditBalance={creditBalance} creditCapacity={creditCapacity} hydrated={hydrated} />
             <button
-              className="xl:hidden flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="xl:hidden flex h-10 w-10 items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >

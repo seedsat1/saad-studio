@@ -16092,3 +16092,14 @@
   - The broader two-file run passed 39/43 tests; four unrelated Seedance cases timed out at the existing 5-second limit and produced no assertion failure.
   - `npm run build` passed and generated 258/258 static pages. Existing dynamic-route and Browserslist/Tailwind warnings remain.
 - Files changed: `lib/wavespeed-image-routing.ts`, `test/models-backend-hardening.test.ts`, `PROJECT_CONTEXT.md`, and `docs/saad-studio-premiere-reference-ar.md`.
+
+## Subscriber top-navbar sizing (2026-09-23)
+
+- Status: fixed and verified.
+- Terrain indexed a six-file targeted navbar/layout subset and confirmed that shared layouts already reserve `64px` (`pt-16`) while the fixed navbar rendered at `56px` (`h-14`) with 12px labels and icons.
+- The shared `TopNavbar` now renders at 64px and uses 14px primary labels, 16px primary icons, a 40px logo, larger top-row controls, and a 40px mobile menu target. Dropdown contents and page layouts were not changed.
+- Scope: `components/TopNavbar.tsx` only for runtime behavior; no API, billing, credits, generation, provider, or database code changed.
+- Verification:
+  - Relevant navigation tests: 78/79 passed. The single failure is an existing assertion for an absent creative-workspace route and is unrelated to navbar sizing.
+  - `npm run build`: passed; 258/258 static pages generated. Existing dynamic-route and Browserslist/Tailwind warnings remain.
+- Files changed: `components/TopNavbar.tsx`, `PROJECT_CONTEXT.md`, and `docs/saad-studio-premiere-reference-ar.md`.
