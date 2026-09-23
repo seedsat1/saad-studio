@@ -1634,6 +1634,54 @@ function VideoPageInner() {
     setActiveDropZone((current) => (current === zone ? null : current));
   }, []);
 
+  const guardSeedanceMediaSelection = useCallback((target: PickerTarget): boolean => {
+    if (!selectedModel.api_route.startsWith("bytedance/seedance-")) return false;
+
+    const hasStartFrame = Boolean(startFrame || linkedStartFrameUrl);
+    const hasEndFrame = Boolean(endFrame || linkedEndFrameUrl);
+    const hasReferences = referenceImages.length > 0;
+
+    if (target === "referenceImages" && (hasStartFrame || hasEndFrame)) {
+      setGenerationError(
+        lang === "ar"
+          ? "لا يمكن إضافة References مع Start/End في طلب Seedance واحد. احذف إطارات البداية والنهاية أولاً، أو استخدمها بدون References."
+          : "Seedance cannot combine References with Start/End frames. Remove the frames first, or use them without References."
+      );
+      return true;
+    }
+
+    if ((target === "startFrame" || target === "endFrame") && hasReferences) {
+      setGenerationError(
+        lang === "ar"
+          ? "لا يمكن إضافة Start/End مع References في طلب Seedance واحد. احذف المراجع أولاً، أو استخدمها بدون إطارات."
+          : "Seedance cannot combine Start/End frames with References. Remove the references first, or use them without frames."
+      );
+      return true;
+    }
+
+    if (target === "endFrame" && !hasStartFrame) {
+      setGenerationError(
+        lang === "ar"
+          ? "أضف Start Frame أولاً قبل اختيار End Frame في Seedance."
+          : "Add a Start Frame before selecting an End Frame for Seedance."
+      );
+      return true;
+    }
+
+    return false;
+  }, [endFrame, lang, linkedEndFrameUrl, linkedStartFrameUrl, referenceImages.length, selectedModel.api_route, startFrame]);
+
+  const selectFrameFile = useCallback((target: "startFrame" | "endFrame", file: File | null) => {
+    if (file && guardSeedanceMediaSelection(target)) return;
+    if (target === "startFrame") setStartFrame(file);
+    else setEndFrame(file);
+  }, [guardSeedanceMediaSelection]);
+
+  const addReferenceFiles = useCallback((files: File[]) => {
+    if (files.length === 0 || guardSeedanceMediaSelection("referenceImages")) return;
+    setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+  }, [guardSeedanceMediaSelection, selectedModel]);
+
   const handleDropSingleImage = useCallback((event: DragEvent<HTMLElement>, setter: (file: File | null) => void) => {
     event.preventDefault();
     setActiveDropZone(null);
@@ -1656,8 +1704,8 @@ function VideoPageInner() {
     const dropped = Array.from(event.dataTransfer.files ?? []).filter((file) => isAllowedReferenceFile(file, selectedModel));
     if (!dropped.length) return;
     if (getReferenceFileLimits(selectedModel).images <= 0) return;
-    setReferenceImages((prev) => mergeReferenceFiles(prev, dropped, selectedModel));
-  }, [selectedModel]);
+    addReferenceFiles(dropped);
+  }, [addReferenceFiles, selectedModel]);
 
   useEffect(() => {
     if (!startFrame) {
@@ -2154,6 +2202,7 @@ function VideoPageInner() {
   }, [fetchWithAuth]);
 
   const openMediaPicker = useCallback(async (target: PickerTarget) => {
+    if (guardSeedanceMediaSelection(target)) return;
     setMediaPicker(target);
     setPickerGallery([]);
     if (target === "motionVideo") {
@@ -2167,7 +2216,7 @@ function VideoPageInner() {
       setPickerTab("images");
       await loadPickerAssets("image");
     }
-  }, [loadPickerAssets]);
+  }, [guardSeedanceMediaSelection, loadPickerAssets]);
 
   const pickGalleryAsset = useCallback(async (url: string, target: PickerTarget, assetType?: string) => {
     setMediaPicker(null);
@@ -2193,23 +2242,23 @@ function VideoPageInner() {
       const ext  = (url.split(".").pop()?.split("?")[0] ?? "jpg").toLowerCase();
       const mime = blob.type || (isAudio ? "audio/mpeg" : isVideo ? "video/mp4" : "image/jpeg");
       const file = new File([blob], `ref-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`, { type: mime });
-      if (target === "startFrame")       setStartFrame(file);
-      else if (target === "endFrame")    setEndFrame(file);
+      if (target === "startFrame" || target === "endFrame") selectFrameFile(target, file);
       else if (target === "motionVideo") setMotionVideo(file);
       else if (target === "referenceImages") {
-        setReferenceImages((prev) => mergeReferenceFiles(prev, [file], selectedModel));
+        addReferenceFiles([file]);
       }
     } catch (err) {
       console.error("[pickGalleryAsset] Failed to load gallery asset:", err);
       // Fallback: show a user-visible toast or error here if needed
     }
-  }, [selectedModel]);
+  }, [addReferenceFiles, selectFrameFile]);
 
   const pickDeviceFiles = useCallback(async (target: PickerTarget): Promise<boolean> => {
     if (typeof window === "undefined") return false;
     const anyWindow = window as any;
     if (typeof anyWindow.showOpenFilePicker !== "function") return false;
     if (!window.isSecureContext) return false;
+    if (guardSeedanceMediaSelection(target)) return true;
 
     const multiple = target === "referenceImages";
     const referenceLimits = getReferenceFileLimits(selectedModel);
@@ -2255,11 +2304,10 @@ function VideoPageInner() {
       const files = await Promise.all(handles.map((h) => h.getFile()));
       if (files.length === 0) return true;
 
-      if (target === "startFrame") setStartFrame(files[0] ?? null);
-      else if (target === "endFrame") setEndFrame(files[0] ?? null);
+      if (target === "startFrame" || target === "endFrame") selectFrameFile(target, files[0] ?? null);
       else if (target === "motionVideo") setMotionVideo(files[0] ?? null);
       else if (target === "referenceImages") {
-        setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+        addReferenceFiles(files);
       }
 
       return true;
@@ -2267,7 +2315,7 @@ function VideoPageInner() {
       if (e?.name === "AbortError") return true;
       return false;
     }
-  }, [selectedModel]);
+  }, [addReferenceFiles, guardSeedanceMediaSelection, selectFrameFile, selectedModel]);
 
   // -- Generate -----------------------------------------------------------------
 
@@ -3681,7 +3729,7 @@ function VideoPageInner() {
                 .then((r) => r.blob())
                 .then((blob) => {
                   const f = new File([blob], `${file.name || "ref"}-${Date.now()}.jpg`, { type: "image/jpeg" });
-                  setReferenceImages((prev) => mergeReferenceFiles(prev, [f], selectedModel));
+                  addReferenceFiles([f]);
                 })
                 .catch((err) => console.error("Failed to attach reference file:", err));
             }}
@@ -3786,7 +3834,7 @@ function VideoPageInner() {
                   );
                   if (pastedFiles.length > 0) {
                     e.preventDefault();
-                    setReferenceImages(prev => mergeReferenceFiles(prev, pastedFiles, selectedModel));
+                    addReferenceFiles(pastedFiles);
                   }
                 }
               }}
@@ -4354,7 +4402,7 @@ function VideoPageInner() {
                 className="hidden"
                 onChange={e => {
                   const files = Array.from(e.target.files ?? []);
-                  setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+                  addReferenceFiles(files);
                   e.target.value = "";
                 }}
               />
@@ -4444,7 +4492,7 @@ function VideoPageInner() {
                     onDragOver={allowDrop}
                     onDragEnter={(event) => markDropZone(event, "endFrame")}
                     onDragLeave={(event) => clearDropZone(event, "endFrame")}
-                    onDrop={(event) => handleDropSingleImage(event, setEndFrame)}
+                    onDrop={(event) => handleDropSingleImage(event, (file) => selectFrameFile("endFrame", file))}
                     className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
                     style={{
                       height: 105,
@@ -4457,7 +4505,7 @@ function VideoPageInner() {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={e => setEndFrame(e.target.files?.[0] ?? null)}
+                      onChange={e => selectFrameFile("endFrame", e.target.files?.[0] ?? null)}
                     />
                     {(endFrame || linkedEndFrameUrl || endFramePreview) ? (
                       <>
@@ -4575,7 +4623,7 @@ function VideoPageInner() {
                 onDragOver={allowDrop}
                 onDragEnter={(event) => markDropZone(event, "startFrame")}
                 onDragLeave={(event) => clearDropZone(event, "startFrame")}
-                onDrop={(event) => handleDropSingleImage(event, setStartFrame)}
+                onDrop={(event) => handleDropSingleImage(event, (file) => selectFrameFile("startFrame", file))}
                 className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
                 style={{
                   height: 100,
@@ -4588,7 +4636,7 @@ function VideoPageInner() {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={e => setStartFrame(e.target.files?.[0] ?? null)}
+                  onChange={e => selectFrameFile("startFrame", e.target.files?.[0] ?? null)}
                 />
                 {startFrame ? (
                   <>
@@ -4658,7 +4706,7 @@ function VideoPageInner() {
                   onDragOver={allowDrop}
                   onDragEnter={(event) => markDropZone(event, "startFrame")}
                   onDragLeave={(event) => clearDropZone(event, "startFrame")}
-                  onDrop={(event) => handleDropSingleImage(event, setStartFrame)}
+                  onDrop={(event) => handleDropSingleImage(event, (file) => selectFrameFile("startFrame", file))}
                   className="relative flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all w-full"
                   style={{
                     height: 110,
@@ -4671,7 +4719,7 @@ function VideoPageInner() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={e => setStartFrame(e.target.files?.[0] ?? null)}
+                    onChange={e => selectFrameFile("startFrame", e.target.files?.[0] ?? null)}
                   />
                   {(startFrame || linkedStartFrameUrl || startFramePreview) ? (
                     <>
@@ -4712,7 +4760,7 @@ function VideoPageInner() {
                     onDragOver={allowDrop}
                     onDragEnter={(event) => markDropZone(event, "startFrame")}
                     onDragLeave={(event) => clearDropZone(event, "startFrame")}
-                    onDrop={(event) => handleDropSingleImage(event, setStartFrame)}
+                    onDrop={(event) => handleDropSingleImage(event, (file) => selectFrameFile("startFrame", file))}
                     className="relative flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
                     style={{
                       height: 110,
@@ -4725,7 +4773,7 @@ function VideoPageInner() {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={e => setStartFrame(e.target.files?.[0] ?? null)}
+                      onChange={e => selectFrameFile("startFrame", e.target.files?.[0] ?? null)}
                     />
                     {(startFrame || linkedStartFrameUrl || startFramePreview) ? (
                       <>
@@ -4767,7 +4815,7 @@ function VideoPageInner() {
                     onDragOver={allowDrop}
                     onDragEnter={(event) => markDropZone(event, "endFrame")}
                     onDragLeave={(event) => clearDropZone(event, "endFrame")}
-                    onDrop={(event) => handleDropSingleImage(event, setEndFrame)}
+                    onDrop={(event) => handleDropSingleImage(event, (file) => selectFrameFile("endFrame", file))}
                     className="relative flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
                     style={{
                       height: 110,
@@ -4780,7 +4828,7 @@ function VideoPageInner() {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={e => setEndFrame(e.target.files?.[0] ?? null)}
+                      onChange={e => selectFrameFile("endFrame", e.target.files?.[0] ?? null)}
                     />
                     {(endFrame || linkedEndFrameUrl || endFramePreview) ? (
                       <>
@@ -4830,7 +4878,7 @@ function VideoPageInner() {
                   onDragOver={allowDrop}
                   onDragEnter={(event) => markDropZone(event, "startFrame")}
                   onDragLeave={(event) => clearDropZone(event, "startFrame")}
-                  onDrop={(event) => handleDropSingleImage(event, setStartFrame)}
+                  onDrop={(event) => handleDropSingleImage(event, (file) => selectFrameFile("startFrame", file))}
                   className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
                   style={{
                     height: 100,
@@ -4843,7 +4891,7 @@ function VideoPageInner() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={e => setStartFrame(e.target.files?.[0] ?? null)}
+                    onChange={e => selectFrameFile("startFrame", e.target.files?.[0] ?? null)}
                   />
                   {(startFrame || linkedStartFrameUrl || startFramePreview) ? (
                     <>
@@ -4892,7 +4940,7 @@ function VideoPageInner() {
                   onDragOver={allowDrop}
                   onDragEnter={(event) => markDropZone(event, "endFrame")}
                   onDragLeave={(event) => clearDropZone(event, "endFrame")}
-                  onDrop={(event) => handleDropSingleImage(event, setEndFrame)}
+                  onDrop={(event) => handleDropSingleImage(event, (file) => selectFrameFile("endFrame", file))}
                   className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
                   style={{
                     height: 100,
@@ -4905,7 +4953,7 @@ function VideoPageInner() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={e => setEndFrame(e.target.files?.[0] ?? null)}
+                    onChange={e => selectFrameFile("endFrame", e.target.files?.[0] ?? null)}
                   />
                   {(endFrame || linkedEndFrameUrl || endFramePreview) ? (
                     <>
@@ -5360,14 +5408,14 @@ function VideoPageInner() {
                     onDragOver={allowDrop}
                     onDragEnter={(event) => markDropZone(event, "startFrame")}
                     onDragLeave={(event) => clearDropZone(event, "startFrame")}
-                    onDrop={(event) => handleDropSingleImage(event, setStartFrame)}
+                    onDrop={(event) => handleDropSingleImage(event, (file) => selectFrameFile("startFrame", file))}
                     className="relative flex flex-col items-center justify-center gap-2 rounded-2xl transition-all overflow-hidden aspect-square w-full"
                     style={{
                       background: "rgba(255,255,255,0.03)",
                       border: `1px solid ${(startFrame || linkedStartFrameUrl || startFramePreview) ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.08)"}`,
                     }}
                   >
-                    <input ref={startFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setStartFrame(e.target.files?.[0] ?? null)} />
+                    <input ref={startFrameRef} type="file" accept="image/*" className="hidden" onChange={e => selectFrameFile("startFrame", e.target.files?.[0] ?? null)} />
                     {(startFrame || linkedStartFrameUrl || startFramePreview) ? (
                       <>
                         {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8, background: "#000" }} />}
@@ -5391,14 +5439,14 @@ function VideoPageInner() {
                       onDragOver={allowDrop}
                       onDragEnter={(event) => markDropZone(event, "endFrame")}
                       onDragLeave={(event) => clearDropZone(event, "endFrame")}
-                      onDrop={(event) => handleDropSingleImage(event, setEndFrame)}
+                      onDrop={(event) => handleDropSingleImage(event, (file) => selectFrameFile("endFrame", file))}
                       className="relative flex flex-col items-center justify-center gap-2 rounded-2xl transition-all overflow-hidden aspect-square w-full"
                       style={{
                         background: "rgba(255,255,255,0.03)",
                         border: `1px solid ${(endFrame || linkedEndFrameUrl || endFramePreview) ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.08)"}`,
                       }}
                     >
-                      <input ref={endFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setEndFrame(e.target.files?.[0] ?? null)} />
+                      <input ref={endFrameRef} type="file" accept="image/*" className="hidden" onChange={e => selectFrameFile("endFrame", e.target.files?.[0] ?? null)} />
                       {(endFrame || linkedEndFrameUrl || endFramePreview) ? (
                         <>
                           {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8, background: "#000" }} />}
@@ -6685,15 +6733,17 @@ function VideoPageInner() {
                         if (files.length === 0) return;
                         const target = mediaPicker;
                         if (target === "startFrame") {
-                          setStartFrame(files[0]);
+                          if (guardSeedanceMediaSelection("startFrame")) return;
+                          selectFrameFile("startFrame", files[0]);
                           setLinkedStartFrameUrl(null);
                         } else if (target === "endFrame") {
-                          setEndFrame(files[0]);
+                          if (guardSeedanceMediaSelection("endFrame")) return;
+                          selectFrameFile("endFrame", files[0]);
                           setLinkedEndFrameUrl(null);
                         } else if (target === "motionVideo") {
                           setMotionVideo(files[0]);
                         } else if (target === "referenceImages") {
-                          setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+                          addReferenceFiles(files);
                         }
                         e.target.value = "";
                         setMediaPicker(null);
@@ -7117,7 +7167,7 @@ function VideoPageInner() {
                           onChange={(e) => {
                             const files = Array.from(e.target.files ?? []);
                             if (files.length > 0) {
-                              setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
+                              addReferenceFiles(files);
                             }
                           }}
                         />
