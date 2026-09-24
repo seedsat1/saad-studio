@@ -1,3 +1,24 @@
+## تصحيح سقف Cloud Agent واختيار tier التسعير (2026-09-25)
+
+- أزيلت قاعدة `maxCreditsPerRequest = 1` الافتراضية لأنها ليست قرار Product معتمد.
+- سقف طلب Agent أصبح اختيارياً فقط: إذا ضبطه Admin يُستخدم `min(User.creditBalance, configuredModelCap)`، وإذا لم يضبطه Admin يكون السقف هو `User.creditBalance`.
+- يبقى preflight مسؤولاً عن حساب `maxOutputTokens` آمن من السقف المتاح وسعر الإدخال/الإخراج والهامش، ويفشل قبل Google إذا لم يستطع إثبات الميزانية.
+- اختيار tier تسعير `gemini-2.5-pro` يعتمد على input tokens حسب threshold الرسمي المستخدم في Google pricing: حتى 200,000 input tokens يستخدم سعر 1.25/10، وفوقه يستخدم 2.50/15.
+- هامش Saad Studio يطبق مرة واحدة فقط في `lib/agent-pricing.ts`: تكلفة المزود بالدولار ثم `× 1.40` ثم التحويل إلى credits على أساس 0.05 دولار ثم التقريب للأعلى.
+- `countTokens` و`generateContent` يستخدمان نفس بناء سياق Google: system instruction، محتوى المحادثة، تعريفات الأدوات، وresponse format. طلب generation يضيف فقط `maxOutputTokens`.
+## تكامل Cloud Agent backend داخل Website فقط (2026-09-25)
+
+- أضيف مسار المشتركين `POST /api/panel/director/v1/chat/completions` لعقل Cloud Agent باستخدام توكن اللوحة `ssp_` فقط؛ لا يقبل `userId` من العميل.
+- أضيف مسار `GET /api/panel/agent-models` لإرجاع موديلات Agent المسموحة للمشترك بناءً على الحساب والاشتراك وحالة الريجستري، بدون إرسال أسرار Google أو تفاصيل داخلية غير لازمة.
+- الريجستري المنفصل `lib/agent-model-registry.ts` أصبح مصدر الحقيقة runtime لموديلات Agent/LLM الثلاثة فقط: `gemini-2.5-flash-lite` و`gemini-2.5-flash` و`gemini-2.5-pro`.
+- بقي Agent Registry منفصلاً عن Media Registry؛ لم تتغير موديلات الصور أو الفيديو أو الصوت أو 3D ولم يتغير مسار فوترة Media.
+- تسعير Agent يتم عبر `lib/agent-pricing.ts`: تكلفة Google الفعلية من tokens الإدخال/الإخراج، ثم هامش Saad Studio `1.40`، ثم تحويل إلى integer credits على أساس `0.05` دولار لكل credit وبحد أدنى 1 credit.
+- قبل طلب Google المدفوع، يحسب المسار سقف الطلب من `User.creditBalance` و`maxCreditsPerRequest` عند ضبطه من الإدارة فقط، ويستخدم `countTokens` لحساب الإدخال، ويشتق `maxOutputTokens` آمن. إذا تعذر إثبات الميزانية، يفشل الطلب قبل generation.
+- بعد نجاح Google، يقرأ المسار `usageMetadata` ثم يخصم عبر `spendCredits` فقط، بحيث تبقى `Generation` و`ProviderUsageRecord` و`CreditLedgerEntry` و`User.creditBalance` هي مسار السجل المالي المعتمد.
+- يستخدم المسار idempotency الموجود لمنع الخصم أو provider dispatch المكرر عند إعادة المحاولة. إذا تم dispatch إلى Google وصارت الحالة ملتبسة، يفشل بصورة آمنة بدلاً من إعادة الطلب المدفوع.
+- التحكم الإداري في تعطيل/تفعيل موديلات Agent يتم عبر `PATCH /api/admin/agent-models` باستخدام `PlatformConfig` الموجود، بدون migration.
+- لا توجد policy تفصيلية حالية للخطط، لذلك entitlement الحالي هو: اشتراك نشط + موديل Agent مفعّل وقابل للاختيار. لا توجد سياسة plan-tier مخترعة.
+
 ## إضافة موديلات Gemini 2.5 إلى كتالوج Agent / LLM (2026-09-24)
 
 - أُضيفت موديلات `gemini-2.5-flash-lite` و`gemini-2.5-flash` و`gemini-2.5-pro` إلى كتالوج `Agent / LLM` المنفصل في `lib/agent-model-registry.ts`.
@@ -4994,3 +5015,4 @@
 - حالة Registered تعني التسجيل فقط؛ runtimeStatus يبقى `not_connected` والواجهة تصرّح بأن الربط بعقل الـAgent لم يُفعّل. لم يوجد `/api/director/v1` في هذه النسخة.
 - الأسعار هي تكلفة Google بالدولار لكل مليون token نصي، وليست كريديت المشترك. يدعم التعريف فترات الأسعار وتغيّر سعر Flash في 2027-01-01 UTC، وشريحتي Pro حتى/بعد 200 ألف token إدخال. الإخراج يشمل التفكير.
 - لا يتغير مونتاج Premiere أو Reap أو مسار توليد الوسائط أو خصم الكريديت. طلب إضافة LLM/Text/Chat عبر نموذج Media يُرفض بدل تحويله إلى Image.
+

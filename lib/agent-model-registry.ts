@@ -1,14 +1,22 @@
 /** Agent brains are a separate catalog, never DynamicImageModel/DynamicVideoModel. */
+export type AgentModelTier = "economy" | "main" | "advanced";
+export type AgentRuntimeStatus = "ready" | "disabled" | "not_configured" | "pricing_unverified";
+
 export type AgentModelDefinition = {
   id: string;
   displayName: string;
   category: "agent_llm";
   provider: "google";
-  role: "economy" | "main" | "advanced";
+  tier: AgentModelTier;
+  role: AgentModelTier;
   roleLabel: string;
-  release: "stable" | "preview";
+  release: "stable";
+  enabled: boolean;
+  runtimeStatus: AgentRuntimeStatus;
+  autoSelectable: boolean;
+  manualSelectable: boolean;
+  isDefault: boolean;
   registrationStatus: "registered";
-  runtimeStatus: "not_connected";
   capabilities: {
     chat: boolean;
     reasoning: boolean;
@@ -18,13 +26,17 @@ export type AgentModelDefinition = {
   };
   inputTokenLimit: number;
   outputTokenLimit: number;
+  maxCreditsPerRequest?: number;
   pricing: {
     currency: "USD";
     unit: "per_million_tokens";
     serviceTier: "standard";
     inputModality: "text";
     outputIncludesThinking: true;
+    markupMultiplier: 1.4;
     sourceUrl: string;
+    verified: boolean;
+    verifiedAt: string;
     periods: AgentPricePeriod[];
   };
   documentationUrl: string;
@@ -46,10 +58,15 @@ const common = {
   category: "agent_llm" as const,
   provider: "google" as const,
   registrationStatus: "registered" as const,
-  runtimeStatus: "not_connected" as const,
+  release: "stable" as const,
+  enabled: true,
+  runtimeStatus: "ready" as const,
   capabilities: {
-    chat: true, reasoning: true, functionCalling: true,
-    structuredOutput: true, streaming: true,
+    chat: true,
+    reasoning: true,
+    functionCalling: true,
+    structuredOutput: true,
+    streaming: true,
   },
   inputTokenLimit: 1_048_576,
   outputTokenLimit: 65_536,
@@ -62,7 +79,10 @@ const pricing = {
   serviceTier: "standard" as const,
   inputModality: "text" as const,
   outputIncludesThinking: true as const,
+  markupMultiplier: 1.4 as const,
   sourceUrl: "https://ai.google.dev/gemini-api/docs/pricing",
+  verified: true,
+  verifiedAt: "2026-09-24",
 };
 
 const AGENT_MODELS: AgentModelDefinition[] = [
@@ -70,38 +90,33 @@ const AGENT_MODELS: AgentModelDefinition[] = [
     ...common,
     id: "gemini-2.5-flash-lite",
     displayName: "Gemini 2.5 Flash-Lite",
+    tier: "economy",
     role: "economy",
-    roleLabel: "Lowest-cost legacy Agent",
-    release: "stable",
+    roleLabel: "Economy Cloud Agent",
+    autoSelectable: true,
+    manualSelectable: true,
+    isDefault: false,
     documentationUrl: "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-lite",
     pricing: { ...pricing, periods: [{
-      effectiveFrom: "2026-09-24", effectiveUntil: null,
+      effectiveFrom: "2026-09-24",
+      effectiveUntil: null,
       tiers: [{ maxInputTokens: null, inputUsd: 0.10, outputUsd: 0.40 }],
-    }] },
-  },
-  {
-    ...common,
-    id: "gemini-3.1-flash-lite",
-    displayName: "Gemini 3.1 Flash-Lite",
-    role: "economy",
-    roleLabel: "Fast / Economy Agent",
-    release: "stable",
-    documentationUrl: "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite",
-    pricing: { ...pricing, periods: [{
-      effectiveFrom: "2026-09-24", effectiveUntil: null,
-      tiers: [{ maxInputTokens: null, inputUsd: 0.25, outputUsd: 1.50 }],
     }] },
   },
   {
     ...common,
     id: "gemini-2.5-flash",
     displayName: "Gemini 2.5 Flash",
+    tier: "main",
     role: "main",
-    roleLabel: "Low-cost legacy Main Agent",
-    release: "stable",
+    roleLabel: "Main / Default Cloud Agent",
+    autoSelectable: true,
+    manualSelectable: true,
+    isDefault: true,
     documentationUrl: "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash",
     pricing: { ...pricing, periods: [{
-      effectiveFrom: "2026-09-24", effectiveUntil: null,
+      effectiveFrom: "2026-09-24",
+      effectiveUntil: null,
       tiers: [{ maxInputTokens: null, inputUsd: 0.30, outputUsd: 2.50 }],
     }] },
   },
@@ -109,50 +124,19 @@ const AGENT_MODELS: AgentModelDefinition[] = [
     ...common,
     id: "gemini-2.5-pro",
     displayName: "Gemini 2.5 Pro",
+    tier: "advanced",
     role: "advanced",
-    roleLabel: "Legacy Advanced Reasoning Agent",
-    release: "stable",
+    roleLabel: "Advanced Cloud Agent",
+    autoSelectable: false,
+    manualSelectable: true,
+    isDefault: false,
     documentationUrl: "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-pro",
     pricing: { ...pricing, periods: [{
-      effectiveFrom: "2026-09-24", effectiveUntil: null,
+      effectiveFrom: "2026-09-24",
+      effectiveUntil: null,
       tiers: [
         { maxInputTokens: 200_000, inputUsd: 1.25, outputUsd: 10 },
         { maxInputTokens: null, inputUsd: 2.50, outputUsd: 15 },
-      ],
-    }] },
-  },
-  {
-    ...common,
-    id: "gemini-3.8-flash",
-    displayName: "Gemini 3.8 Flash",
-    role: "main",
-    roleLabel: "Default / Main Agent",
-    release: "stable",
-    documentationUrl: "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash",
-    pricing: { ...pricing, periods: [
-      {
-        effectiveFrom: "2026-09-24", effectiveUntil: "2027-01-01",
-        tiers: [{ maxInputTokens: null, inputUsd: 0.75, outputUsd: 3.75 }],
-      },
-      {
-        effectiveFrom: "2027-01-01", effectiveUntil: null,
-        tiers: [{ maxInputTokens: null, inputUsd: 1.50, outputUsd: 7.50 }],
-      },
-    ] },
-  },
-  {
-    ...common,
-    id: "gemini-3.1-pro-preview",
-    displayName: "Gemini 3.1 Pro Preview",
-    role: "advanced",
-    roleLabel: "Advanced Reasoning / Complex Directing",
-    release: "preview",
-    documentationUrl: "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview",
-    pricing: { ...pricing, periods: [{
-      effectiveFrom: "2026-09-24", effectiveUntil: null,
-      tiers: [
-        { maxInputTokens: 200_000, inputUsd: 2, outputUsd: 12 },
-        { maxInputTokens: null, inputUsd: 4, outputUsd: 18 },
       ],
     }] },
   },
@@ -161,6 +145,14 @@ const AGENT_MODELS: AgentModelDefinition[] = [
 /** Return isolated definitions so consumers cannot mutate the shared catalog. */
 export function getAgentModels(): AgentModelDefinition[] {
   return AGENT_MODELS.map((model) => structuredClone(model));
+}
+
+export function getAgentModel(id: string): AgentModelDefinition | null {
+  return getAgentModels().find((model) => model.id === id) ?? null;
+}
+
+export function getDefaultAgentModel(): AgentModelDefinition {
+  return getAgentModels().find((model) => model.isDefault) ?? getAgentModels()[0];
 }
 
 export function getAgentPricePeriod(model: AgentModelDefinition, at = new Date()): AgentPricePeriod | null {

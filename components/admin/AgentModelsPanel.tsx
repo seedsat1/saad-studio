@@ -37,7 +37,7 @@ export function AgentModelsPanel() {
             <Bot className="h-5 w-5 text-cyan-400" /> Agent / LLM Models
           </h2>
           <p className="mt-2 text-sm text-zinc-400" dir="auto">موديلات عقل الـAgent: المحادثة، الاستدلال واستدعاء الأدوات.</p>
-          <p className="mt-1 text-sm text-amber-300" dir="auto">مسجّلة في الكتالوج؛ الربط بعقل الـAgent لم يُفعّل بعد.</p>
+          <p className="mt-1 text-sm text-amber-300" dir="auto">مسجّلة في كتالوج Agent المنفصل؛ التشغيل يعتمد على حالة runtime لكل موديل.</p>
         </div>
         <button type="button" disabled={loading} onClick={() => setRevision((value) => value + 1)}
           className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm disabled:opacity-50">
@@ -58,10 +58,9 @@ export function AgentModelsPanel() {
                   <div>
                     <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
                       <span className="rounded-full border border-cyan-900 bg-cyan-950/50 px-2 py-1 text-cyan-300">Google</span>
-                      <span className={`rounded-full border px-2 py-1 ${model.release === "preview" ? "border-amber-800 text-amber-300" : "border-emerald-800 text-emerald-300"}`}>
-                        {model.release === "preview" ? "Preview" : "Stable / GA"}
-                      </span>
+                      <span className="rounded-full border border-emerald-800 px-2 py-1 text-emerald-300">Stable / GA</span>
                       <span className="text-zinc-400">Registered</span>
+                      <span className="text-zinc-400">{model.runtimeStatus}</span>
                     </div>
                     <h3 className="text-lg font-semibold">{model.displayName}</h3>
                     <code className="mt-1 block break-all text-xs text-zinc-400">{model.id}</code>
