@@ -13,8 +13,10 @@ describe("Agent model admin panel", () => {
     expect(await screen.findByText("Gemini 3.1 Pro Preview")).toBeInTheDocument();
     expect(screen.getByText("Preview", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/الربط بعقل الـAgent لم يُفعّل بعد/)).toBeInTheDocument();
+    expect(screen.getByText("gemini-2.5-flash-lite")).toBeInTheDocument();
+    expect(screen.getByText("gemini-2.5-pro")).toBeInTheDocument();
     expect(screen.getByText("gemini-3.8-flash")).toBeInTheDocument();
-    expect(screen.getAllByText("Tool calling")).toHaveLength(3);
+    expect(screen.getAllByText("Tool calling")).toHaveLength(6);
     expect(screen.queryByRole("button", { name: /Add Model/ })).toBeNull();
     expect(screen.queryByText("ACTIVE", { exact: true })).toBeNull();
   });

@@ -68,6 +68,19 @@ const pricing = {
 const AGENT_MODELS: AgentModelDefinition[] = [
   {
     ...common,
+    id: "gemini-2.5-flash-lite",
+    displayName: "Gemini 2.5 Flash-Lite",
+    role: "economy",
+    roleLabel: "Lowest-cost legacy Agent",
+    release: "stable",
+    documentationUrl: "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-lite",
+    pricing: { ...pricing, periods: [{
+      effectiveFrom: "2026-09-24", effectiveUntil: null,
+      tiers: [{ maxInputTokens: null, inputUsd: 0.10, outputUsd: 0.40 }],
+    }] },
+  },
+  {
+    ...common,
     id: "gemini-3.1-flash-lite",
     displayName: "Gemini 3.1 Flash-Lite",
     role: "economy",
@@ -77,6 +90,35 @@ const AGENT_MODELS: AgentModelDefinition[] = [
     pricing: { ...pricing, periods: [{
       effectiveFrom: "2026-09-24", effectiveUntil: null,
       tiers: [{ maxInputTokens: null, inputUsd: 0.25, outputUsd: 1.50 }],
+    }] },
+  },
+  {
+    ...common,
+    id: "gemini-2.5-flash",
+    displayName: "Gemini 2.5 Flash",
+    role: "main",
+    roleLabel: "Low-cost legacy Main Agent",
+    release: "stable",
+    documentationUrl: "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash",
+    pricing: { ...pricing, periods: [{
+      effectiveFrom: "2026-09-24", effectiveUntil: null,
+      tiers: [{ maxInputTokens: null, inputUsd: 0.30, outputUsd: 2.50 }],
+    }] },
+  },
+  {
+    ...common,
+    id: "gemini-2.5-pro",
+    displayName: "Gemini 2.5 Pro",
+    role: "advanced",
+    roleLabel: "Legacy Advanced Reasoning Agent",
+    release: "stable",
+    documentationUrl: "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-pro",
+    pricing: { ...pricing, periods: [{
+      effectiveFrom: "2026-09-24", effectiveUntil: null,
+      tiers: [
+        { maxInputTokens: 200_000, inputUsd: 1.25, outputUsd: 10 },
+        { maxInputTokens: null, inputUsd: 2.50, outputUsd: 15 },
+      ],
     }] },
   },
   {

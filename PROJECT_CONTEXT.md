@@ -1,3 +1,11 @@
+# Latest task: Add Gemini 2.5 Agent / LLM catalog entries (2026-09-24)
+- Request: add the Gemini 2.5 Flash-Lite, Gemini 2.5 Flash, and Gemini 2.5 Pro models visible in Google Gemini API docs to the separate Agent / LLM catalog.
+- Implemented: added `gemini-2.5-flash-lite`, `gemini-2.5-flash`, and `gemini-2.5-pro` to `lib/agent-model-registry.ts` only. They remain `agent_llm`, provider `google`, release `stable`, and `runtimeStatus: "not_connected"`, so no media registry, subscriber credit charging, or runtime route changed.
+- Pricing: official Google standard text token prices recorded as provider USD per 1M tokens: Flash-Lite `$0.10` input / `$0.40` output; Flash `$0.30` input / `$2.50` output; Pro `$1.25` input / `$10` output for prompts <=200k tokens and `$2.50` input / `$15` output above 200k tokens. Output includes thinking tokens.
+- Evidence: Google docs state the 2.5 text models are stable with 1,048,576 input tokens, 65,536 output tokens, function calling, structured outputs, streaming-compatible API usage, and thinking support. Google also notes 2.5 model access may be limited to projects that used them previously; the catalog therefore does not claim production activation.
+- Verification: targeted Vitest passed: `test/agent-model-registry.test.ts` and `test/agent-models-panel.test.tsx` (8/8). No build, migration, commit, push, Gemini generation, or DB write was performed.
+- Remaining: if production should actually route Cloud Agent traffic to these models, implement the separate Director/Agent runtime billing path first.
+
 # Latest task: Separate Google Agent / LLM catalog (2026-09-24)
 - Request: explicitly add Gemini 3.1 Flash-Lite, Gemini 3.8 Flash, and Gemini 3.1 Pro Preview after the read-only audit; retain a separate Agent/LLM category.
 - Implemented: typed curated `lib/agent-model-registry.ts`, admin-only read endpoint `/api/admin/agent-models`, and an independent Agent / LLM tab in `/admin/models` via `components/admin/AgentModelsPanel.tsx`. No schema migration or production DB write is needed for these version-controlled definitions.
