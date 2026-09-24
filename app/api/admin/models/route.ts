@@ -95,6 +95,10 @@ export async function POST(req: Request) {
 
   if (body.newModel) {
     const { newModel } = body;
+    // Agent brains have their own registry and must never fall through to images.
+    if ((newModel.modality as string) === "llm" || (newModel.modality as string) === "agent_llm" || (newModel.modality as string) === "text" || (newModel.modality as string) === "chat") {
+      return NextResponse.json({ error: "Agent / LLM models belong to the separate Agent model registry." }, { status: 400 });
+    }
     if (!newModel.id || !newModel.name) {
       return NextResponse.json({ error: "Model ID and Name are required." }, { status: 400 });
     }

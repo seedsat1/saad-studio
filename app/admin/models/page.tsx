@@ -67,6 +67,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { AgentModelsPanel } from "@/components/admin/AgentModelsPanel";
 import {
   type DynamicImageModel,
   type DynamicVideoModel,
@@ -263,7 +264,7 @@ export default function AdminModelsPage() {
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<"matrix" | "audit" | "integrity">("matrix");
+  const [activeTab, setActiveTab] = useState<"matrix" | "agent" | "audit" | "integrity">("matrix");
 
   // View Mode & Group Management
   const [viewMode, setViewMode] = useState<"flat" | "grouped">("flat");
@@ -1412,7 +1413,7 @@ export default function AdminModelsPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          {activeTab !== "agent" && <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-300">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>Optimistic Concurrency Active</span>
@@ -1443,10 +1444,10 @@ export default function AdminModelsPage() {
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
               <span>Refresh</span>
             </button>
-          </div>
+          </div>}
         </div>
 
-        {error && (
+        {error && activeTab !== "agent" && (
           <div className="p-4 rounded-lg bg-rose-950/50 border border-rose-800 text-rose-300 text-sm flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <AlertTriangle className="w-5 h-5 flex-shrink-0 text-rose-400" />
@@ -1471,6 +1472,7 @@ export default function AdminModelsPage() {
         )}
 
         {/* LEVEL 2: Model Fleet Snapshot Strip */}
+        {activeTab !== "agent" && <>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 p-4 rounded-xl bg-zinc-900/90 border border-zinc-800">
           <div className="p-3">
             <span className="text-xs text-zinc-400 font-medium block">Total Models</span>
@@ -1556,8 +1558,19 @@ export default function AdminModelsPage() {
           </div>
         </div>
 
-        {/* Tab Switcher: Model Registry Matrix vs Audit Trail vs Integrity */}
-        <div className="flex items-center gap-4 border-b border-zinc-800">
+        </>}
+        {/* Agent definitions are intentionally separate from the media matrix. */}
+        <div className="flex flex-wrap items-center gap-4 border-b border-zinc-800">
+          <button
+            onClick={() => setActiveTab("agent")}
+            aria-pressed={activeTab === "agent"}
+            className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+              activeTab === "agent" ? "border-cyan-500 text-white" : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <Bot className="w-4 h-4" />
+            <span>Agent / LLM Models</span>
+          </button>
           <button
             onClick={() => setActiveTab("matrix")}
             className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
@@ -1592,6 +1605,8 @@ export default function AdminModelsPage() {
             <span>Registry Integrity Verification</span>
           </button>
         </div>
+
+        {activeTab === "agent" && <AgentModelsPanel />}
 
         {activeTab === "matrix" && (
           <>
