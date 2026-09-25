@@ -4,6 +4,7 @@ import { generatePanelToken } from "@/lib/panel-auth";
 
 const {
   ensureUserRow,
+  handleCreditExpiry,
   spendCredits,
   countAgentInputTokens,
   runAgentGoogleCompletion,
@@ -18,6 +19,7 @@ const {
   platformFindUnique,
 } = vi.hoisted(() => ({
   ensureUserRow: vi.fn(),
+  handleCreditExpiry: vi.fn(),
   spendCredits: vi.fn(),
   countAgentInputTokens: vi.fn(),
   runAgentGoogleCompletion: vi.fn(),
@@ -34,6 +36,7 @@ const {
 
 vi.mock("@/lib/credit-ledger", () => ({
   ensureUserRow,
+  handleCreditExpiry,
   spendCredits,
   InsufficientCreditsError: class InsufficientCreditsError extends Error {
     constructor(public readonly currentBalance: number, public readonly requiredCredits: number) {
@@ -85,6 +88,7 @@ describe("POST /api/panel/director/v1/chat/completions", () => {
     process.env.NODE_ENV = "test";
     vi.clearAllMocks();
     ensureUserRow.mockResolvedValue({});
+    handleCreditExpiry.mockResolvedValue(undefined);
     userFindUnique.mockResolvedValue({ creditBalance: 5, isBanned: false });
     subscriptionFindUnique.mockResolvedValue({
       planId: "starter",
@@ -163,6 +167,43 @@ describe("POST /api/panel/director/v1/chat/completions", () => {
     expect(spendCredits.mock.calls[0][0].requestPayload.pricing.requestCreditCap).toBe(2);
   });
 
+
+  it("allows inactive subscriptions to reach authoritative credit preflight", async () => {
+    subscriptionFindUnique.mockResolvedValue({
+      planId: "podcast",
+      stripeCurrentPeriodEnd: new Date(Date.now() - 86_400_000),
+    });
+    userFindUnique.mockResolvedValue({ creditBalance: 5, isBanned: false });
+    const token = generatePanelToken("user_agent_inactive_with_credits");
+    const response = await POST(request({ model: "gemini-2.5-flash", messages: [{ role: "user", content: "hi" }] }, token));
+    const json = await response.json();
+    expect(response.status).toBe(200);
+    expect(JSON.stringify(json)).not.toContain("active_subscription_required");
+    expect(countAgentInputTokens).toHaveBeenCalledTimes(1);
+    expect(runAgentGoogleCompletion).toHaveBeenCalledTimes(1);
+    expect(spendCredits).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs credit reconciliation before provider dispatch and blocks expired/insufficient credits", async () => {
+    userFindUnique.mockResolvedValue({ creditBalance: 5, isBanned: false });
+    handleCreditExpiry.mockImplementation(async () => {
+      userFindUnique.mockResolvedValue({ creditBalance: 0, isBanned: false });
+    });
+    subscriptionFindUnique.mockResolvedValue({
+      planId: "podcast",
+      stripeCurrentPeriodEnd: new Date(Date.now() - 86_400_000),
+    });
+    const token = generatePanelToken("user_agent_expired_credits");
+    const response = await POST(request({ model: "gemini-2.5-flash", messages: [{ role: "user", content: "hi" }] }, token));
+    const json = await response.json();
+    expect(response.status).toBe(402);
+    expect(json.error).toBe("Insufficient credits");
+    expect(handleCreditExpiry).toHaveBeenCalledWith("user_agent_expired_credits");
+    expect(beginIdempotency).not.toHaveBeenCalled();
+    expect(countAgentInputTokens).not.toHaveBeenCalled();
+    expect(runAgentGoogleCompletion).not.toHaveBeenCalled();
+    expect(spendCredits).not.toHaveBeenCalled();
+  });
   it("charges exactly once after authoritative usage and records existing ledger path", async () => {
     const token = generatePanelToken("user_agent_ok");
     const response = await POST(request({ model: "gemini-2.5-flash", messages: [{ role: "user", content: "hi" }] }, token));
@@ -210,3 +251,4 @@ describe("POST /api/panel/director/v1/chat/completions", () => {
     expect(spendCredits).not.toHaveBeenCalled();
   });
 });
+

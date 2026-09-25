@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
-import { ensureUserRow, InsufficientCreditsError, spendCredits } from "@/lib/credit-ledger";
+import { ensureUserRow, handleCreditExpiry, InsufficientCreditsError, spendCredits } from "@/lib/credit-ledger";
 import prismadb from "@/lib/prismadb";
 import {
   completeIdempotency,
@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await ensureUserRow(userId);
+    await handleCreditExpiry(userId);
 
     const user = await prismadb.user.findUnique({
       where: { id: userId },
@@ -342,3 +343,5 @@ export async function POST(req: NextRequest) {
     return json({ error: message }, 500);
   }
 }
+
+

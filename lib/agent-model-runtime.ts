@@ -128,11 +128,8 @@ export function resolveAgentEntitlement(input: {
     input.subscription?.stripeCurrentPeriodEnd &&
     input.subscription.stripeCurrentPeriodEnd.getTime() > Date.now(),
   );
-  const planId = subscriptionActive ? input.subscription?.planId ?? null : null;
+  const planId = input.subscription?.planId ?? null;
 
-  if (!subscriptionActive) {
-    return { allowed: false, reason: "active_subscription_required", planId, subscriptionActive };
-  }
   if (!input.model.enabled || input.model.runtimeStatus !== "ready") {
     return { allowed: false, reason: "model_unavailable", planId, subscriptionActive };
   }
@@ -142,3 +139,5 @@ export function resolveAgentEntitlement(input: {
 
   return { allowed: true, planId, subscriptionActive };
 }
+
+
