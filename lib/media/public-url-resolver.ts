@@ -207,7 +207,7 @@ async function uploadDataUrlToKieOrB2(
 export async function verifyPublicMediaUrl(
   url: string,
   label: string,
-  options: { allowSaasMediaProxy?: boolean } = {}
+  options: { allowSaasMediaProxy?: boolean; expectedMediaKind?: "image" | "video" | "audio" } = {}
 ): Promise<void> {
   if (!isProviderSafeUrl(url, options)) {
     throw new ValidationError(`Insecure or invalid public URL format for ${label}: ${url}`);
@@ -269,4 +269,95 @@ export async function verifyPublicMediaUrl(
   console.log(`[Media Pipeline Audit] HEAD status: ${status} ${statusText}`);
   console.log(`[Media Pipeline Audit] Content-Type: ${contentType}`);
   console.log(`[Media Pipeline Audit] Content-Length: ${contentLength}`);
+
+  if (options.expectedMediaKind) {
+    await assertExpectedMediaKind(url, label, options.expectedMediaKind, contentType);
+  }
+}
+
+function contentTypeMatchesKind(contentType: string, kind: "image" | "video" | "audio"): boolean {
+  return contentType.toLowerCase().split(";")[0].trim().startsWith(`${kind}/`);
+}
+
+function bytesMatchImageSignature(bytes: Uint8Array): boolean {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return true;
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) return true;
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) return true;
+  if (
+    bytes.length >= 6 &&
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38 &&
+    (bytes[4] === 0x37 || bytes[4] === 0x39) &&
+    bytes[5] === 0x61
+  ) return true;
+  if (
+    bytes.length >= 12 &&
+    bytes[4] === 0x66 &&
+    bytes[5] === 0x74 &&
+    bytes[6] === 0x79 &&
+    bytes[7] === 0x70 &&
+    bytes[8] === 0x61 &&
+    bytes[9] === 0x76 &&
+    bytes[10] === 0x69 &&
+    bytes[11] === 0x66
+  ) return true;
+  return false;
+}
+
+async function assertExpectedMediaKind(
+  url: string,
+  label: string,
+  kind: "image" | "video" | "audio",
+  initialContentType: string,
+): Promise<void> {
+  if (initialContentType && contentTypeMatchesKind(initialContentType, kind)) return;
+
+  if (kind !== "image") {
+    throw new ValidationError(
+      `The reference media (${label}) is not a valid ${kind} file. Content-Type was '${initialContentType || "unknown"}'.`
+    );
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Range: "bytes=0-31" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType && contentTypeMatchesKind(contentType, kind)) return;
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytesMatchImageSignature(bytes)) return;
+    throw new ValidationError(
+      `The reference media (${label}) is reachable but is not a decodable image. Content-Type was '${contentType || initialContentType || "unknown"}'.`
+    );
+  } catch (error) {
+    if (error instanceof ValidationError) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    throw new ValidationError(
+      `Could not verify that reference media (${label}) is a valid image before provider dispatch. ${message}`
+    );
+  }
 }

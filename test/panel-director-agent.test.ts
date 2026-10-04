@@ -8,6 +8,8 @@ const {
   spendCredits,
   countAgentInputTokens,
   runAgentGoogleCompletion,
+  estimateWaveSpeedInputTokens,
+  runAgentWaveSpeedCompletion,
   beginIdempotency,
   completeIdempotency,
   failIdempotency,
@@ -23,6 +25,8 @@ const {
   spendCredits: vi.fn(),
   countAgentInputTokens: vi.fn(),
   runAgentGoogleCompletion: vi.fn(),
+  estimateWaveSpeedInputTokens: vi.fn(),
+  runAgentWaveSpeedCompletion: vi.fn(),
   beginIdempotency: vi.fn(),
   completeIdempotency: vi.fn(),
   failIdempotency: vi.fn(),
@@ -48,6 +52,11 @@ vi.mock("@/lib/credit-ledger", () => ({
 vi.mock("@/lib/agent-google-provider", () => ({
   countAgentInputTokens,
   runAgentGoogleCompletion,
+}));
+
+vi.mock("@/lib/agent-wavespeed-provider", () => ({
+  estimateWaveSpeedInputTokens,
+  runAgentWaveSpeedCompletion,
 }));
 
 vi.mock("@/lib/idempotency", () => ({
@@ -100,12 +109,21 @@ describe("POST /api/panel/director/v1/chat/completions", () => {
     failIdempotency.mockResolvedValue("failed_terminal");
     markIdempotencyProviderDispatched.mockResolvedValue(undefined);
     countAgentInputTokens.mockResolvedValue(100);
+    estimateWaveSpeedInputTokens.mockReturnValue(100);
     runAgentGoogleCompletion.mockResolvedValue({
       id: "google-test",
       text: "hello",
       toolCalls: [],
       usage: { inputTokens: 100, outputTokens: 25, totalTokens: 125 },
       rawFinishReason: "STOP",
+      rawResponse: {},
+    });
+    runAgentWaveSpeedCompletion.mockResolvedValue({
+      id: "wavespeed-test",
+      text: "hello from wavespeed",
+      toolCalls: [],
+      usage: { inputTokens: 100, outputTokens: 25, totalTokens: 125 },
+      rawFinishReason: "stop",
       rawResponse: {},
     });
     spendCredits.mockResolvedValue({ generationId: "gen_1", remainingCredits: 4 });
@@ -232,6 +250,42 @@ describe("POST /api/panel/director/v1/chat/completions", () => {
     expect(completeIdempotency).toHaveBeenCalledWith(expect.objectContaining({
       generationId: "gen_1",
       responseStatus: 200,
+    }));
+  });
+
+  it("rejects structured output on WaveSpeed models without verified structured-output support before provider dispatch", async () => {
+    const token = generatePanelToken("user_agent_wavespeed_no_structured");
+    const response = await POST(request({
+      model: "mistralai/mistral-nemo",
+      messages: [{ role: "user", content: "hi" }],
+      response_format: { type: "json_object" },
+    }, token));
+    const json = await response.json();
+    expect(response.status).toBe(400);
+    expect(json.error).toBe("Agent model does not support structured output.");
+    expect(estimateWaveSpeedInputTokens).not.toHaveBeenCalled();
+    expect(runAgentWaveSpeedCompletion).not.toHaveBeenCalled();
+    expect(spendCredits).not.toHaveBeenCalled();
+  });
+
+  it("dispatches WaveSpeed Agent models through the WaveSpeed adapter and bills once", async () => {
+    const token = generatePanelToken("user_agent_wavespeed");
+    const response = await POST(request({ model: "mistralai/mistral-nemo", messages: [{ role: "user", content: "hi" }] }, token));
+    expect(response.status).toBe(200);
+    expect(estimateWaveSpeedInputTokens).toHaveBeenCalledTimes(1);
+    expect(countAgentInputTokens).not.toHaveBeenCalled();
+    expect(runAgentWaveSpeedCompletion).toHaveBeenCalledWith(expect.objectContaining({
+      model: "mistralai/mistral-nemo",
+      maxOutputTokens: expect.any(Number),
+    }));
+    expect(runAgentGoogleCompletion).not.toHaveBeenCalled();
+    expect(spendCredits).toHaveBeenCalledWith(expect.objectContaining({
+      modelUsed: "mistralai/mistral-nemo",
+      providerName: "WaveSpeed",
+      providerModel: "mistralai/mistral-nemo",
+      providerRequestId: "wavespeed-test",
+      providerTokens: 125,
+      providerCostSource: "actual",
     }));
   });
 

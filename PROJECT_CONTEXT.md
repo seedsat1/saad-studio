@@ -16198,3 +16198,32 @@
 - Verification: 3 focused test files passed, 61/61 tests. `npm run build` passed and generated 258/258 pages after the final ratio-mode change; existing dynamic-route and Browserslist/Tailwind warnings remain.
 - Error recorded: visual DOCX rendering could not run because the bundled workspace dependencies do not contain LibreOffice `soffice.exe`; structural extraction and all relevant parameter tables succeeded without changing the source document.
 - Files changed for this audit: `app/(dash)/(routes)/video/page.tsx`, `lib/video-model-registry.ts`, `lib/hook-studio-config.ts`, `test/model-capability-badges.test.ts`, `PROJECT_CONTEXT.md`, and `docs/saad-studio-premiere-reference-ar.md`.
+
+## WaveSpeed cheap Agent / LLM models (2026-09-26)
+
+- Status: implemented in Website only; no Desktop, Media Registry, media billing, credit-ledger schema, migration, commit, push, or paid provider generation.
+- Added eight WaveSpeed Agent/LLM catalog entries for the cheapest verified provider choices requested by the owner: `mistralai/mistral-nemo`, `qwen/qwen3.7-flash`, `openai/gpt-oss-120b`, `deepseek/deepseek-v4-flash`, `anthropic/claude-3-haiku`, `minimax/minimax-m3`, `moonshotai/kimi-k2`, and `z-ai/glm-5.2`.
+- Added `lib/agent-wavespeed-provider.ts` and dispatch logic so WaveSpeed Agent models use the OpenAI-compatible `https://llm.wavespeed.ai/v1/chat/completions` route instead of Google. Actual post-provider billing still uses authoritative usage returned by the provider and the existing Agent pricing + 1.40 markup + `spendCredits` path.
+- WaveSpeed preflight uses a conservative local token estimate because the inspected WaveSpeed LLM pages document chat/completions usage and returned usage, not a countTokens endpoint. This prevents open dispatch beyond the current credit cap but can be stricter than exact provider tokenization.
+- Verification: focused Agent tests passed (`test/agent-model-registry.test.ts`, `test/panel-agent-models.test.ts`, `test/panel-director-agent.test.ts`: 3 files / 23 tests). `npm run build` passed; existing Browserslist/Tailwind and dynamic-route warnings remain unrelated.
+- Files changed: `lib/agent-model-registry.ts`, `lib/agent-wavespeed-provider.ts`, `app/api/panel/director/v1/chat/completions/route.ts`, `test/agent-model-registry.test.ts`, `test/panel-agent-models.test.ts`, `test/panel-director-agent.test.ts`, plus this memory file and the Arabic reference doc.
+
+## Website Cloud Service Catalog for Desktop consumption (2026-09-26)
+
+- Status: implemented in Website only; no Desktop changes, no commit, no push, no billing redesign, no provider key exposure, and no paid provider generation.
+- Added authenticated `GET /api/panel/cloud-services` as the safe Desktop-facing cloud service catalog. It reuses the panel token contract and returns `Cache-Control: private, no-store`.
+- The catalog derives from existing authoritative sources instead of a disconnected list: Agent runtime registry/overrides, dynamic image models, dynamic video models, curated TTS models, and curated music models.
+- The contract separates `logicalProvider` from `executionProvider`: Google/Gemini Agent models execute on Google, while Anthropic/OpenAI/Kimi/Qwen/GLM/DeepSeek/MiniMax/Mistral Agent models execute through WaveSpeed. Creative models expose only safe routing metadata and existing Website execution routes.
+- Existing execution routes remain authoritative: Agent `/api/panel/director/v1/chat/completions`, Image `/api/panel/generate/image`, Video `/api/panel/generate/video`, TTS `/api/panel/generate/tts`, Music `/api/panel/generate/music`.
+- TTS catalog marks only the implemented panel route model `elevenlabs/text-to-speech-multilingual-v2` as ready; curated Google TTS rows remain visible but not selectable because they are not connected to `/api/panel/generate/tts`.
+- Verification: focused catalog + Agent tests passed (`test/panel-cloud-services.test.ts`, `test/agent-model-registry.test.ts`, `test/panel-agent-models.test.ts`, `test/panel-director-agent.test.ts`: 4 files / 26 tests). `npm run build` passed; existing Browserslist/Tailwind and dynamic-route warnings remain unrelated.
+- Files changed: `lib/cloud-service-catalog.ts`, `app/api/panel/cloud-services/route.ts`, `test/panel-cloud-services.test.ts`, plus prior Agent WaveSpeed files still in the same uncommitted working tree.
+
+## Seedance/WaveSpeed reference image validation (2026-10-04)
+
+- Request: follow up the `/video` failure where Seedance 2.5 returned `The input file could not be decoded as an image` after many reference images were attached.
+- Root cause found in code path: media URLs were checked for reachability before WaveSpeed dispatch, but the shared verification did not prove that image references actually resolved to decodable image bytes or an `image/*` response. A reachable HTML/error/blob-like response could pass local verification and fail at the provider.
+- Fix: `verifyPublicMediaUrl` now supports optional expected media kind validation. The WaveSpeed video path enables image validation for single image fields and reference image arrays before credit spend/provider dispatch. Generic/octet-stream image responses are still accepted when the first bytes match known image signatures.
+- Safety: invalid reference image URLs are filtered from WaveSpeed reference lists; if a supplied list contains no valid image after validation, the request fails before dispatch. No pricing, credits, provider routing, auth, model registry, or media UI behavior changed.
+- Verification: `npm test -- --run test/public-url-resolver-media-kind.test.ts` passed 2/2. `tsc --noEmit --pretty false` still fails only on known pre-existing/out-of-scope errors already present in `.next/types`, drama/explore pages, and unrelated image/video inline charge typings.
+- Files changed: `lib/media/public-url-resolver.ts`, `app/api/video/route.ts`, `test/public-url-resolver-media-kind.test.ts`, plus this memory file and the Arabic reference doc.

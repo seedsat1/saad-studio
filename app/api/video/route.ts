@@ -3461,8 +3461,9 @@ export async function POST(req: NextRequest) {
       for (const key of ["image", "image_url", "end_image", "last_image", "first_frame_url", "last_frame_url"] as const) {
         const mediaValue = wsInput[key];
         if (typeof mediaValue === "string" && mediaValue.trim()) {
-          const resolvedUrl = await resolveProviderMediaUrl(mediaValue, { userId, assetType: getAssetTypeFromKey(key) });
-          await verifyPublicMediaUrl(resolvedUrl, `wavespeed_${key}`);
+          const assetType = getAssetTypeFromKey(key);
+          const resolvedUrl = await resolveProviderMediaUrl(mediaValue, { userId, assetType });
+          await verifyPublicMediaUrl(resolvedUrl, `wavespeed_${key}`, assetType === "image" ? { expectedMediaKind: "image" } : {});
           wsInput[key] = resolvedUrl;
         }
       }
@@ -3473,15 +3474,20 @@ export async function POST(req: NextRequest) {
         const value = wsInput[key];
         if (!Array.isArray(value)) return;
         const validItems: string[] = [];
+        let firstFailure: unknown = null;
         for (const u of value) {
           if (typeof u !== "string" || !u.trim()) continue;
           try {
             const resolved = await resolveProviderMediaUrl(u, { userId, assetType });
-            await verifyPublicMediaUrl(resolved, verifyLabel);
+            await verifyPublicMediaUrl(resolved, verifyLabel, assetType === "image" ? { expectedMediaKind: "image" } : {});
             validItems.push(resolved);
           } catch (err) {
+            firstFailure ??= err;
             console.warn(`[WaveSpeed] Skipping unreachable reference media (${key}): ${u}`, err);
           }
+        }
+        if (value.length > 0 && validItems.length === 0 && firstFailure) {
+          throw firstFailure;
         }
         wsInput[key] = validItems;
       };

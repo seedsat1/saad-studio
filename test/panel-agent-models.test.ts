@@ -55,7 +55,7 @@ describe("GET /api/panel/agent-models", () => {
     expect(response.status).toBe(200);
     expect(json.subscription.active).toBe(false);
     expect(json.subscription.planId).toBe("podcast");
-    expect(json.models).toHaveLength(3);
+    expect(json.models).toHaveLength(11);
     expect(json.models.every((model: any) => model.enabled === true)).toBe(true);
     expect(json.models.every((model: any) => model.available === true)).toBe(true);
     expect(json.models.every((model: any) => model.unavailableReason === null)).toBe(true);

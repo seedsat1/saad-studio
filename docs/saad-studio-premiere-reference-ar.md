@@ -5016,3 +5016,27 @@
 - الأسعار هي تكلفة Google بالدولار لكل مليون token نصي، وليست كريديت المشترك. يدعم التعريف فترات الأسعار وتغيّر سعر Flash في 2027-01-01 UTC، وشريحتي Pro حتى/بعد 200 ألف token إدخال. الإخراج يشمل التفكير.
 - لا يتغير مونتاج Premiere أو Reap أو مسار توليد الوسائط أو خصم الكريديت. طلب إضافة LLM/Text/Chat عبر نموذج Media يُرفض بدل تحويله إلى Image.
 
+
+## تحديث Agent / LLM عبر WaveSpeed (2026-09-26)
+
+- يبقى سجل Agent / LLM منفصلاً عن سجلات الصور والفيديو والصوت و3D. لا تُضاف موديلات النص إلى Media Registry.
+- أضيف مزود `wavespeed` إلى سجل Agent بجانب `google`، مع ثمانية موديلات LLM رخيصة مختارة من صفحات WaveSpeed الرسمية حسب المزود: Mistral Nemo، Qwen 3.7 Flash، GPT OSS 120B، DeepSeek V4 Flash، Claude 3 Haiku، MiniMax M3، Kimi K2، وGLM 5.2.
+- تنفيذ `/api/panel/director/v1/chat/completions` يختار adapter حسب `model.provider`: موديلات Google تستخدم Gemini SDK، وموديلات WaveSpeed تستخدم واجهة OpenAI-compatible على `https://llm.wavespeed.ai/v1/chat/completions`.
+- لا يتغير نظام الكريديت: التسعير يبقى بالدولار لكل مليون token مع هامش 1.40 داخل Agent pricing، والخصم النهائي يمر عبر `spendCredits` وCredit Ledger مرة واحدة بعد usage فعلي من المزود.
+- preflight لموديلات WaveSpeed محافظ محلياً لأن صفحات WaveSpeed الحالية لا توثق countTokens مستقل. الاستجابة النهائية لا تُقبل للفوترة إلا إذا احتوت usage رقمي فعلي من المزود.
+
+## كتالوج خدمات السحابة للموقع (2026-09-26)
+
+- أضيف مسار Website مصادق عليه `GET /api/panel/cloud-services` ليكون عقداً آمناً يستهلكه Desktop لاحقاً من دون كشف مفاتيح المزودين.
+- يعرض الكتالوج خمس فئات: Agent / LLM، الصور، الفيديو، Speech/TTS، وMusic/Audio.
+- مصدر البيانات هو سجلات الموقع الحالية نفسها: Agent runtime registry، سجلات الصور والفيديو الديناميكية، وسجلات TTS والموسيقى المنسقة. لذلك يمكن تغيير حالة موديل من لوحة الموقع ثم ينعكس في الكتالوج عند التحديث.
+- يفرّق العقد بين `logicalProvider` و`executionProvider`: يظهر للمستخدم مزود مثل Kimi أو Qwen، بينما يبقى التنفيذ عبر WaveSpeed مملوكاً للموقع. موديلات Google/Gemini تبقى منفذة عبر Google.
+- لا يحتوي العقد على مفاتيح API أو أسرار. التنفيذ والفوترة والكريديت تبقى داخل مسارات Website الحالية: Agent director، وتوليد الصور، وتوليد الفيديو، وTTS، والموسيقى.
+- في TTS، الموديل الموصول فعلياً بمسار Panel الحالي هو ElevenLabs multilingual v2 عبر KIE. صفوف Google TTS المنسقة تظهر غير جاهزة حتى يتم ربطها بمسار تنفيذ Panel فعلي.
+
+## تحقق صور المراجع قبل إرسال WaveSpeed (2026-10-04)
+
+- عند توليد الفيديو عبر WaveSpeed، خصوصاً Seedance 2.5 مع مراجع صور كثيرة، لا يكفي أن يكون رابط المرجع قابلاً للوصول HTTP فقط.
+- يتحقق الخادم الآن من أن مرجع الصورة يرجع `image/*` أو يحمل توقيع ملف صورة معروفاً مثل JPEG/PNG/WebP/GIF/AVIF قبل الخصم وإرسال الطلب للمزوّد.
+- إذا كانت صورة مرجعية فاسدة أو ترجع HTML/ملفاً غير قابل للفك كصورة، تُستبعد من قائمة المراجع. وإذا لم يبقَ أي مرجع صالح من القائمة، يفشل الطلب قبل provider dispatch بدلاً من ظهور خطأ مزوّد عام مثل `input file could not be decoded as an image`.
+- لا يغيّر هذا أسعار الفيديو أو نظام الكريديت أو اختيار الموديل أو فصل Start/End عن References في Seedance.

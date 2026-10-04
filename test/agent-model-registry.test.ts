@@ -28,23 +28,46 @@ describe("Agent / LLM runtime catalog", () => {
     platformUpsert.mockResolvedValue({});
   });
 
-  it("registers only the three approved Google Cloud Agent IDs", () => {
+  it("registers Google Agent IDs plus the cheapest verified WaveSpeed provider choices", () => {
     const models = getAgentModels();
     expect(models.map((model) => model.id)).toEqual([
       "gemini-2.5-flash-lite",
       "gemini-2.5-flash",
       "gemini-2.5-pro",
+      "mistralai/mistral-nemo",
+      "qwen/qwen3.7-flash",
+      "openai/gpt-oss-120b",
+      "deepseek/deepseek-v4-flash",
+      "anthropic/claude-3-haiku",
+      "minimax/minimax-m3",
+      "moonshotai/kimi-k2",
+      "z-ai/glm-5.2",
     ]);
     expect(models.every((model) =>
       model.category === "agent_llm" &&
-      model.provider === "google" &&
       model.enabled &&
       model.runtimeStatus === "ready" &&
       model.maxCreditsPerRequest === undefined
     )).toBe(true);
+    expect(models.filter((model) => model.provider === "google")).toHaveLength(3);
+    expect(models.filter((model) => model.provider === "wavespeed")).toHaveLength(8);
     expect(models.find((model) => model.id === "gemini-2.5-flash")?.isDefault).toBe(true);
     expect(models.find((model) => model.id === "gemini-2.5-pro")?.autoSelectable).toBe(false);
     expect(models.every((model) => !("creditCost" in model) && !("api_route" in model))).toBe(true);
+  });
+
+  it("preserves verified WaveSpeed per-million-token pricing for the selected cheapest models", () => {
+    const rates = Object.fromEntries(getAgentModels()
+      .filter((model) => model.provider === "wavespeed")
+      .map((model) => [model.id, getAgentPricePeriod(model, new Date("2026-09-26"))!.tiers[0]]));
+    expect(rates["mistralai/mistral-nemo"]).toEqual({ maxInputTokens: null, inputUsd: 0.019, outputUsd: 0.05 });
+    expect(rates["qwen/qwen3.7-flash"]).toEqual({ maxInputTokens: null, inputUsd: 0.03, outputUsd: 0.13 });
+    expect(rates["openai/gpt-oss-120b"]).toEqual({ maxInputTokens: null, inputUsd: 0.037, outputUsd: 0.17 });
+    expect(rates["deepseek/deepseek-v4-flash"]).toEqual({ maxInputTokens: null, inputUsd: 0.14, outputUsd: 0.28 });
+    expect(rates["anthropic/claude-3-haiku"]).toEqual({ maxInputTokens: null, inputUsd: 0.25, outputUsd: 1.25 });
+    expect(rates["minimax/minimax-m3"]).toEqual({ maxInputTokens: null, inputUsd: 0.3, outputUsd: 1.2 });
+    expect(rates["moonshotai/kimi-k2"]).toEqual({ maxInputTokens: null, inputUsd: 0.57, outputUsd: 2.3 });
+    expect(rates["z-ai/glm-5.2"]).toEqual({ maxInputTokens: null, inputUsd: 1.4, outputUsd: 4.4 });
   });
 
   it("preserves Gemini 2.5 Pro context pricing tiers and thinking-inclusive output", () => {
@@ -171,7 +194,7 @@ describe("Agent / LLM runtime catalog", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     const data = await response.json();
-    expect(data.models).toHaveLength(3);
+    expect(data.models).toHaveLength(11);
     expect(data.sourceOfTruth).toBe("agent_model_registry");
     expect(data.imageModels).toBeUndefined();
     expect(data.videoModels).toBeUndefined();

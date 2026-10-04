@@ -20,6 +20,10 @@ import {
   type AgentChatMessage,
   type AgentGoogleTool,
 } from "@/lib/agent-google-provider";
+import {
+  estimateWaveSpeedInputTokens,
+  runAgentWaveSpeedCompletion,
+} from "@/lib/agent-wavespeed-provider";
 import { getDefaultAgentModel } from "@/lib/agent-model-registry";
 import { getRuntimeAgentModel, resolveAgentEntitlement } from "@/lib/agent-model-runtime";
 
@@ -141,6 +145,9 @@ export async function POST(req: NextRequest) {
     if (!entitlement.allowed) {
       return json({ error: "Agent model is not entitled for this account.", reason: entitlement.reason }, 403);
     }
+    if ((body.responseFormat ?? body.response_format) && !model.capabilities.structuredOutput) {
+      return json({ error: "Agent model does not support structured output." }, 400);
+    }
 
     const userCreditBalance = Math.max(0, Math.floor(user.creditBalance));
     const configuredModelCap = model.maxCreditsPerRequest !== undefined
@@ -168,12 +175,18 @@ export async function POST(req: NextRequest) {
     }
     idempotencyClaimed = true;
 
-    const inputTokens = await countAgentInputTokens({
-      model: model.id,
-      messages,
-      tools: body.tools,
-      responseFormat: body.responseFormat ?? body.response_format,
-    });
+    const inputTokens = model.provider === "wavespeed"
+      ? estimateWaveSpeedInputTokens({
+        messages,
+        tools: body.tools,
+        responseFormat: body.responseFormat ?? body.response_format,
+      })
+      : await countAgentInputTokens({
+        model: model.id,
+        messages,
+        tools: body.tools,
+        responseFormat: body.responseFormat ?? body.response_format,
+      });
     const maxOutputTokens = calculateMaxOutputTokensForCreditCap({
       model,
       inputTokens,
@@ -205,14 +218,23 @@ export async function POST(req: NextRequest) {
     });
     providerDispatched = true;
 
-    const provider = await runAgentGoogleCompletion({
-      model: model.id,
-      messages,
-      tools: body.tools,
-      toolChoice: body.toolChoice ?? body.tool_choice,
-      responseFormat: body.responseFormat ?? body.response_format,
-      maxOutputTokens,
-    });
+    const provider = model.provider === "wavespeed"
+      ? await runAgentWaveSpeedCompletion({
+        model: model.id,
+        messages,
+        tools: body.tools,
+        toolChoice: body.toolChoice ?? body.tool_choice,
+        responseFormat: body.responseFormat ?? body.response_format,
+        maxOutputTokens,
+      })
+      : await runAgentGoogleCompletion({
+        model: model.id,
+        messages,
+        tools: body.tools,
+        toolChoice: body.toolChoice ?? body.tool_choice,
+        responseFormat: body.responseFormat ?? body.response_format,
+        maxOutputTokens,
+      });
 
     const quote = calculateAgentCredits({ model, usage: provider.usage });
     if (!quote) {
@@ -228,7 +250,7 @@ export async function POST(req: NextRequest) {
       prompt: lastPrompt(messages),
       assetType: "AGENT_LLM",
       modelUsed: model.id,
-      providerName: "Google",
+      providerName: model.provider === "wavespeed" ? "WaveSpeed" : "Google",
       providerModel: model.id,
       providerRequestId: provider.id,
       providerCostUsd: quote.providerCostUsd,
