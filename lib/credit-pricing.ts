@@ -25,16 +25,8 @@ const SEEDANCE_25_USD_PER_SECOND = {
 const MINIMAX_H3_CREDITS_PER_USD = 40;
 const MINIMAX_H3_MARGIN_MULTIPLIER = 1.4;
 const MINIMAX_H3_USD_PER_SECOND = {
-  "480p": 0.05,
-  "540p": 0.075,
   "768p": 0.10,
-  "1080p": 0.20,
-} as const;
-const MINIMAX_H3_TEXT_IMAGE_USD_PER_SECOND = {
-  "480p": 0.04,
-  "540p": 0.06,
-  "768p": 0.08,
-  "1080p": 0.16,
+  "2k": 0.14,
 } as const;
 const WAN_30_CREDITS_PER_USD = 40;
 const WAN_30_MARGIN_MULTIPLIER = 1.4;
@@ -83,10 +75,12 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["black-forest-labs/flux-3/image-to-video-draft", 16.8],
   ["black-forest-labs/flux-3/start-end-to-video-draft", 16.8],
   ["black-forest-labs/flux-3/video-extend-draft", 16.8],
-  ["minimax/h3/reference-to-video", 14.0],
-  ["wavespeed-ai/minimax-h3/text-to-video", 14.0],
-  ["wavespeed-ai/minimax-h3/image-to-video", 14.0],
-  ["wavespeed-ai/minimax-h3/reference-to-video", 14.0],
+  ["minimax/h3/text-to-video", 39.2],
+  ["minimax/h3/image-to-video", 39.2],
+  ["minimax/h3/reference-to-video", 39.2],
+  ["wavespeed-ai/minimax-h3/text-to-video", 39.2],
+  ["wavespeed-ai/minimax-h3/image-to-video", 39.2],
+  ["wavespeed-ai/minimax-h3/reference-to-video", 39.2],
   ["kwaivgi/kling-v3.0-std/text-to-video", 22.35],
   ["kwaivgi/kling-v3.0-std/image-to-video", 22.35],
   ["kwaivgi/kling-v3.0-pro/image-to-video", 29.8],
@@ -116,7 +110,7 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["kwaivgi/kling-v2.6-std/text-to-video", 5.0],
   ["kwaivgi/kling-v2.6-std/image-to-video", 5.0],
   ["kwaivgi/kling-v2.6-pro/text-to-video", 7.0],
-  ["minimax-h3", 8.4],
+  ["minimax-h3", 39.2],
   ["minimax-hailuo-02-pro", 27.44],
   ["minimax-hailuo-02-standard", 12.88],
   ["minimax-hailuo-02-fast", 5.6],
@@ -238,11 +232,9 @@ function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number 
 }
 
 function getMinimaxH3RateKey(quality?: string): keyof typeof MINIMAX_H3_USD_PER_SECOND {
-  const q = (quality || "480p").toLowerCase();
-  if (q.includes("1080")) return "1080p";
-  if (q.includes("768")) return "768p";
-  if (q.includes("540")) return "540p";
-  return "480p";
+  const q = (quality || "2k").toLowerCase();
+  if (q.includes("2k") || q.includes("2 k") || q.includes("2K".toLowerCase())) return "2k";
+  return "768p";
 }
 
 function readReferenceVideoDurationSeconds(payload?: VideoPayload): number {
@@ -255,12 +247,11 @@ function readReferenceVideoDurationSeconds(payload?: VideoPayload): number {
 }
 
 function getMinimaxH3Credits(payload?: VideoPayload, rateOverride?: number, modelRoute?: string): number {
-  const outputDuration = readDuration(payload, 5);
+  const outputDuration = Math.max(5, readDuration(payload, 5));
   const quality = readQuality(payload);
   const rateKey = getMinimaxH3RateKey(quality);
   const isReferenceRoute = modelRoute?.includes("reference-to-video") === true;
-  const rateTable = isReferenceRoute ? MINIMAX_H3_USD_PER_SECOND : MINIMAX_H3_TEXT_IMAGE_USD_PER_SECOND;
-  const usdPerSec = rateOverride !== undefined ? rateOverride : rateTable[rateKey];
+  const usdPerSec = rateOverride !== undefined ? rateOverride : MINIMAX_H3_USD_PER_SECOND[rateKey];
   const referenceVideoDuration = isReferenceRoute ? readReferenceVideoDurationSeconds(payload) : 0;
   const billableDuration = outputDuration + referenceVideoDuration;
   return parseFloat(Math.max(1, billableDuration * usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD).toFixed(2));

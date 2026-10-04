@@ -51,6 +51,8 @@ export function extractModelCapabilities(m: WaveSpeedVideoModel | any): ModelCap
   const resolutions: string[] = Array.isArray(caps.resolutions) ? caps.resolutions : [];
   if (resolutions.some((r: string) => r.toLowerCase() === "4k")) {
     resolution = "4K";
+  } else if (resolutions.some((r: string) => r.toLowerCase() === "2k")) {
+    resolution = "2K";
   } else if (resolutions.some((r: string) => r.toLowerCase() === "1080p" || r.toLowerCase() === "pro")) {
     resolution = "1080p";
   } else if (resolutions.some((r: string) => r.toLowerCase() === "720p" || r.toLowerCase() === "std" || r.toLowerCase() === "standard")) {

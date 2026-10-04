@@ -36,8 +36,8 @@ describe("Model Capability Badges Contract Tests", () => {
     const caps = extractModelCapabilities(minimaxH3);
     expect(caps.refs).toBe(true);
     expect(caps.startEnd).toBe("Start/End");
-    expect(caps.duration).toBe("3 - 15\"");
-    expect(caps.resolution).toBe("1080p");
+    expect(caps.duration).toBe("5 - 15\"");
+    expect(caps.resolution).toBe("2K");
     expect(caps.creditRange).toBeTruthy();
   });
 

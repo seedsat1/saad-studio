@@ -780,13 +780,13 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
         group: "Minimax Hailuo",
         familyColor: "#f59e0b",
         aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
-        durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-        resolutions: ["480p", "540p", "768p", "1080p"],
+        durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        resolutions: ["768p", "2k"],
         maxRefImages: 9,
-        textRoute: "wavespeed-ai/minimax-h3/text-to-video",
-        imageRoute: "wavespeed-ai/minimax-h3/image-to-video",
-        referenceRoute: "wavespeed-ai/minimax-h3/reference-to-video",
-        creditCost: 8.4,
+        textRoute: "minimax/h3/text-to-video",
+        imageRoute: "minimax/h3/image-to-video",
+        referenceRoute: "minimax/h3/reference-to-video",
+        creditCost: 39.2,
       };
     }
     if (text.includes("02")) {

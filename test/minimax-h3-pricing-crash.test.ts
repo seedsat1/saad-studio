@@ -22,22 +22,21 @@ describe("Minimax H3 pricing", () => {
 
   it("prices every registered H3 route without throwing", () => {
     for (const ref of routes) {
-      expect(() => getGenerationCostSync(ref, 6, 1, "1080p"), ref).not.toThrow();
+      expect(() => getGenerationCostSync(ref, 6, 1, "2k"), ref).not.toThrow();
     }
   });
 
-  it("keeps text/image routes cheaper than reference routes", () => {
-    const text = getGenerationCostSync("wavespeed-ai/minimax-h3/text-to-video", 6, 1, "1080p");
-    const image = getGenerationCostSync("wavespeed-ai/minimax-h3/image-to-video", 6, 1, "1080p");
-    const reference = getGenerationCostSync("wavespeed-ai/minimax-h3/reference-to-video", 6, 1, "1080p");
-    expect(text).toBe(53.76);
+  it("uses the same official H3 rate table for text, image, and reference routes", () => {
+    const text = getGenerationCostSync("minimax/h3/text-to-video", 6, 1, "2k");
+    const image = getGenerationCostSync("minimax/h3/image-to-video", 6, 1, "2k");
+    const reference = getGenerationCostSync("minimax/h3/reference-to-video", 6, 1, "2k");
+    expect(text).toBe(47.04);
     expect(image).toBe(text);
-    expect(reference).toBe(67.2);
-    expect(reference).toBeGreaterThan(text);
+    expect(reference).toBe(text);
   });
 
-  it("still separates the 1080p and 768p tiers", () => {
-    const hi = getGenerationCostSync("wavespeed-ai/minimax-h3/text-to-video", 6, 1, "1080p");
+  it("separates the 2K and 768p tiers", () => {
+    const hi = getGenerationCostSync("minimax/h3/text-to-video", 6, 1, "2k");
     const lo = getGenerationCostSync("minimax/h3/text-to-video", 6, 1, "768p");
     expect(hi).toBeGreaterThan(lo);
   });
@@ -45,10 +44,10 @@ describe("Minimax H3 pricing", () => {
   it("adds reference video seconds for WaveSpeed H3 reference-to-video billing", () => {
     expect(
       getVideoCreditsByRoute("minimax/h3/reference-to-video", {
-        duration: 4,
+        duration: 5,
         resolution: "768p",
         reference_video_durations: [5, 5, 5],
       }),
-    ).toBe(106.4);
+    ).toBe(112);
   });
 });

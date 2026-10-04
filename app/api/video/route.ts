@@ -709,12 +709,45 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
     if (typeof out.aspect_ratio === "string" && ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"].includes(out.aspect_ratio)) {
       exact.aspect_ratio = out.aspect_ratio;
     }
-    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "480p";
-    exact.resolution = ["480p", "540p", "768p", "1080p"].includes(resolution) ? resolution : "480p";
+    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "2k";
+    exact.resolution = resolution === "2k" || resolution === "2 k" ? "2k" : "768p";
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
-    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(3, duration)) : 5;
-    if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
-    if (out.loop === true) exact.loop = true;
+    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(5, duration)) : 5;
+    return exact;
+  }
+
+  const isMinimaxH3TextOrImageRoute =
+    route === "minimax/h3/text-to-video" ||
+    route === "minimax/h3/image-to-video" ||
+    route === "wavespeed-ai/minimax-h3/text-to-video" ||
+    route === "wavespeed-ai/minimax-h3/image-to-video";
+  if (isMinimaxH3TextOrImageRoute) {
+    const exact: Record<string, unknown> = {};
+    const prompt = typeof out.prompt === "string" && out.prompt.trim() ? out.prompt.trim() : "";
+    if (!prompt) throw new ValidationError("Minimax H3 requires a prompt.");
+    exact.prompt = prompt;
+    if (route.includes("image-to-video")) {
+      const startImage =
+        (typeof out.image === "string" && out.image.trim() ? out.image.trim() : null) ||
+        (typeof payload.first_frame_url === "string" && payload.first_frame_url.trim() ? payload.first_frame_url.trim() : null) ||
+        (typeof out.image_url === "string" && out.image_url.trim() ? out.image_url.trim() : null) ||
+        null;
+      if (!startImage) throw new ValidationError("Minimax H3 image-to-video requires a start image.");
+      exact.image = startImage;
+      const endImage =
+        (typeof out.last_image === "string" && out.last_image.trim() ? out.last_image.trim() : null) ||
+        (typeof out.end_image === "string" && out.end_image.trim() ? out.end_image.trim() : null) ||
+        (typeof payload.last_frame_url === "string" && payload.last_frame_url.trim() ? payload.last_frame_url.trim() : null) ||
+        null;
+      if (endImage) exact.last_image = endImage;
+    }
+    if (typeof out.aspect_ratio === "string" && ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "9:21"].includes(out.aspect_ratio)) {
+      exact.aspect_ratio = out.aspect_ratio;
+    }
+    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "2k";
+    exact.resolution = resolution === "2k" || resolution === "2 k" ? "2k" : "768p";
+    const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
+    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(5, duration)) : 5;
     return exact;
   }
 
@@ -2608,11 +2641,11 @@ export async function POST(req: NextRequest) {
       );
       const hasImg = Boolean(hasImage || hasNonEmptyString(payload.image) || hasNonEmptyString(payload.first_frame_url));
       if (hasReference) {
-        modelRoute = "wavespeed-ai/minimax-h3/reference-to-video";
+        modelRoute = "minimax/h3/reference-to-video";
       } else if (hasImg) {
-        modelRoute = "wavespeed-ai/minimax-h3/image-to-video";
+        modelRoute = "minimax/h3/image-to-video";
       } else {
-        modelRoute = "wavespeed-ai/minimax-h3/text-to-video";
+        modelRoute = "minimax/h3/text-to-video";
       }
     }
 

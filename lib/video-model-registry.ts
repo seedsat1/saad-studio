@@ -543,7 +543,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
   // ╔══════════════════════════════════════════════════════════════════════════
   // ║ Minimax Hailuo Video Fleet (Verified WaveSpeed Endpoints)
   // ║ Confirmed from official WaveSpeed API documentation & playground:
-  // ║ - Minimax H3 Open Weights: 480p ($0.05/s), 540p ($0.075/s), 768p ($0.10/s), 1080p ($0.20/s), 3-15s
+  // ║ - Minimax H3 official: 768p ($0.10/s), 2K ($0.14/s), 5-15s
   // ║ - Hailuo 02 Pro: 1080p, 6s ($0.49 i2v, $0.48 t2v), image + end_image
   // ║ - Hailuo 02 Standard: 768p, 6s ($0.23), 10s ($0.56), image + end_image
   // ║ - Hailuo 02 Fast: 512p, 6s ($0.10), 10s ($0.15)
@@ -555,23 +555,23 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Minimax H3",
     family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
     badge: null,
-    description: "Minimax H3 multimodal video generator. Supports text, image, and reference to video with end frame.",
-    api_route: "wavespeed-ai/minimax-h3/reference-to-video",
-    text_api_route: "wavespeed-ai/minimax-h3/text-to-video",
-    image_api_route: "wavespeed-ai/minimax-h3/image-to-video",
-    reference_api_route: "wavespeed-ai/minimax-h3/reference-to-video",
+    description: "Minimax H3 official multimodal video generator. Supports text, image, and reference to video with end frame.",
+    api_route: "minimax/h3/reference-to-video",
+    text_api_route: "minimax/h3/text-to-video",
+    image_api_route: "minimax/h3/image-to-video",
+    reference_api_route: "minimax/h3/reference-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame: true,
       aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21"],
-      durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      resolutions: ["480p", "540p", "768p", "1080p"],
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      resolutions: ["768p", "2k"],
       max_reference_images: 9,
       max_reference_videos: 3,
       max_reference_audios: 3,
-      has_negative_prompt: true,
-      has_loop: true,
+      has_negative_prompt: false,
+      has_loop: false,
     }),
   },
   {
