@@ -18,6 +18,7 @@ describe("Minimax H3 pricing", () => {
     "wavespeed-ai/minimax-h3/text-to-video",
     "wavespeed-ai/minimax-h3/image-to-video",
     "wavespeed-ai/minimax-h3/reference-to-video",
+    "minimax-h3-max",
   ];
 
   it("prices every registered H3 route without throwing", () => {
@@ -26,7 +27,7 @@ describe("Minimax H3 pricing", () => {
     }
   });
 
-  it("uses the same official H3 rate table for text, image, and reference routes", () => {
+  it("uses the same official H3 rate table for official text, image, and reference routes", () => {
     const text = getGenerationCostSync("minimax/h3/text-to-video", 6, 1, "2k");
     const image = getGenerationCostSync("minimax/h3/image-to-video", 6, 1, "2k");
     const reference = getGenerationCostSync("minimax/h3/reference-to-video", 6, 1, "2k");
@@ -39,6 +40,12 @@ describe("Minimax H3 pricing", () => {
     const hi = getGenerationCostSync("minimax/h3/text-to-video", 6, 1, "2k");
     const lo = getGenerationCostSync("minimax/h3/text-to-video", 6, 1, "768p");
     expect(hi).toBeGreaterThan(lo);
+  });
+
+  it("prices H3 Max Open Weights separately from official H3", () => {
+    expect(getGenerationCostSync("wavespeed-ai/minimax-h3/text-to-video", 5, 1, "480p")).toBe(11.2);
+    expect(getGenerationCostSync("wavespeed-ai/minimax-h3/text-to-video", 5, 1, "768p")).toBe(22.4);
+    expect(getGenerationCostSync("wavespeed-ai/minimax-h3/reference-to-video", 5, 1, "768p")).toBe(28);
   });
 
   it("adds reference video seconds for WaveSpeed H3 reference-to-video billing", () => {

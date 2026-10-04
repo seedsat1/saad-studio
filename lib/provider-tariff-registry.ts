@@ -290,8 +290,19 @@ export const WAVESPEED_PROVENANCE_REGISTRY: Record<string, Omit<TariffProvenance
     billingUnit: "USD/sec",
     sourceType: "official_docs",
     sourceReference: "WaveSpeed Official API Docs (https://wavespeed.ai/docs/docs-api)",
-    effectiveDate: "2026-08-16",
-    capturedAt: "2026-08-16T20:08:39+03:00",
+    effectiveDate: "2026-10-05",
+    capturedAt: "2026-10-05T00:00:00+03:00",
+    verificationStatus: "VERIFIED_CURRENT",
+  },
+  "wavespeed-ai/minimax-h3": {
+    provider: "WaveSpeed",
+    providerRoute: "wavespeed-ai/minimax-h3/reference-to-video",
+    rateUsd: 0.10, // exposed H3 Max tiers: 480p 0.05 reference, 768p 0.10 reference
+    billingUnit: "USD/sec",
+    sourceType: "official_docs",
+    sourceReference: "WaveSpeed Official API Docs (https://wavespeed.ai/docs/docs-api)",
+    effectiveDate: "2026-10-05",
+    capturedAt: "2026-10-05T00:00:00+03:00",
     verificationStatus: "VERIFIED_CURRENT",
   },
   "minimax/hailuo-02": {
@@ -524,8 +535,35 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
   const referenceVideoDuration = Math.max(0, Number.isFinite(input.referenceVideoDurationSec) ? Number(input.referenceVideoDurationSec) : 0);
   const units = Math.max(1, Math.floor(Number.isFinite(input.numUnits) ? Number(input.numUnits) : 1));
 
-  // Minimax H3
-  if (modelLower.includes("minimax/h3") || modelLower.includes("wavespeed-ai/minimax-h3") || modelLower.includes("minimax_h3") || modelLower.includes("minimax-h3")) {
+  // MiniMax H3 Max Open Weights
+  if (modelLower.includes("wavespeed-ai/minimax-h3") || modelLower.includes("minimax_h3_max") || modelLower.includes("minimax-h3-max")) {
+    const resolution = q.includes("768") ? "768p" : "480p";
+    const isReferenceRoute = modelLower.includes("reference-to-video");
+    const outputDuration = Math.max(3, duration);
+    const billableDuration = isReferenceRoute ? outputDuration + referenceVideoDuration : outputDuration;
+    const rateUsd = isReferenceRoute
+      ? resolution === "768p" ? 0.10 : 0.05
+      : resolution === "768p" ? 0.08 : 0.04;
+    const provMeta = WAVESPEED_PROVENANCE_REGISTRY["wavespeed-ai/minimax-h3"];
+    const tariffKey = `wavespeed:video:minimax-h3-max:${resolution}:${isReferenceRoute ? "reference" : "base"}`;
+    return {
+      usd: parseFloat((rateUsd * billableDuration * units).toFixed(4)),
+      source: "estimated",
+      tariffKey,
+      providerName: "WaveSpeed",
+      unit: "USD/sec",
+      provenance: {
+        ...provMeta,
+        tariffKey,
+        rateUsd,
+        resolution,
+        verificationStatus: checkTariffStaleness(provMeta.capturedAt),
+      },
+    };
+  }
+
+  // Minimax H3 official
+  if (modelLower.includes("minimax/h3") || modelLower.includes("minimax_h3") || modelLower === "minimax-h3") {
     const resolution = q.includes("2k") || q.includes("2 k") ? "2k" : "768p";
     const isReferenceRoute = modelLower.includes("reference-to-video");
     const outputDuration = Math.max(5, duration);

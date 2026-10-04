@@ -1047,8 +1047,10 @@ function resolveMinimaxH3Route(baseRoute: string, hasImageInput: boolean, hasRef
   if (!baseRoute.startsWith("minimax/h3") && !baseRoute.startsWith("wavespeed-ai/minimax-h3") && baseRoute !== "minimax-h3") {
     return baseRoute;
   }
-  if (hasReferenceInput) return "minimax/h3/reference-to-video";
-  return hasImageInput ? "minimax/h3/image-to-video" : "minimax/h3/text-to-video";
+  const isH3Max = baseRoute.startsWith("wavespeed-ai/minimax-h3");
+  const prefix = isH3Max ? "wavespeed-ai/minimax-h3" : "minimax/h3";
+  if (hasReferenceInput) return `${prefix}/reference-to-video`;
+  return hasImageInput ? `${prefix}/image-to-video` : `${prefix}/text-to-video`;
 }
 const MODEL_GROUPS = getModelGroups()
   .map((group) => ({

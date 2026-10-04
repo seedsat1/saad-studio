@@ -60,6 +60,10 @@ describe("Provider Cost Pricing & Recency Audit Suite", () => {
     });
     expect(h3_with_refs.source).toBe("estimated");
     expect(h3_with_refs.usd).toBe(2.00);
+
+    const h3Max = estimateProviderCostSync("wavespeed-ai/minimax-h3/reference-to-video", 5, "768p");
+    expect(h3Max.source).toBe("estimated");
+    expect(h3Max.usd).toBe(0.50);
   });
 
   it("4. verifies Seedance 2.5 calibrated provider cost tariff", () => {

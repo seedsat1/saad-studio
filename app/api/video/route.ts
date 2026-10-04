@@ -655,6 +655,7 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
   const isKling30ImageRoute =
     route === "kwaivgi/kling-v3.0-std/image-to-video" ||
     route === "kwaivgi/kling-v3.0-pro/image-to-video";
+  const isMinimaxH3MaxRoute = typeof route === "string" && route.startsWith("wavespeed-ai/minimax-h3");
   const isMinimaxH3ReferenceRoute = route === "minimax/h3/reference-to-video" || route === "wavespeed-ai/minimax-h3/reference-to-video";
   const isKlingV3TurboImageRoute =
     route === "kwaivgi/kling-v3-turbo-std/image-to-video" ||
@@ -709,10 +710,16 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
     if (typeof out.aspect_ratio === "string" && ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"].includes(out.aspect_ratio)) {
       exact.aspect_ratio = out.aspect_ratio;
     }
-    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "2k";
-    exact.resolution = resolution === "2k" || resolution === "2 k" ? "2k" : "768p";
+    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : (isMinimaxH3MaxRoute ? "480p" : "2k");
+    exact.resolution = isMinimaxH3MaxRoute
+      ? (resolution === "768p" ? "768p" : "480p")
+      : (resolution === "2k" || resolution === "2 k" ? "2k" : "768p");
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
-    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(5, duration)) : 5;
+    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(isMinimaxH3MaxRoute ? 3 : 5, duration)) : 5;
+    if (isMinimaxH3MaxRoute) {
+      const seed = Number(payload.seed ?? out.seed);
+      if (Number.isInteger(seed)) exact.seed = seed;
+    }
     return exact;
   }
 
@@ -744,10 +751,17 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
     if (typeof out.aspect_ratio === "string" && ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "9:21"].includes(out.aspect_ratio)) {
       exact.aspect_ratio = out.aspect_ratio;
     }
-    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "2k";
-    exact.resolution = resolution === "2k" || resolution === "2 k" ? "2k" : "768p";
+    const isTextOrImageH3MaxRoute = route.startsWith("wavespeed-ai/minimax-h3");
+    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : (isTextOrImageH3MaxRoute ? "480p" : "2k");
+    exact.resolution = isTextOrImageH3MaxRoute
+      ? (resolution === "768p" ? "768p" : "480p")
+      : (resolution === "2k" || resolution === "2 k" ? "2k" : "768p");
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
-    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(5, duration)) : 5;
+    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(isTextOrImageH3MaxRoute ? 3 : 5, duration)) : 5;
+    if (isTextOrImageH3MaxRoute) {
+      const seed = Number(payload.seed ?? out.seed);
+      if (Number.isInteger(seed)) exact.seed = seed;
+    }
     return exact;
   }
 
@@ -2641,11 +2655,14 @@ export async function POST(req: NextRequest) {
       );
       const hasImg = Boolean(hasImage || hasNonEmptyString(payload.image) || hasNonEmptyString(payload.first_frame_url));
       if (hasReference) {
-        modelRoute = "minimax/h3/reference-to-video";
+        const prefix = modelRoute.startsWith("wavespeed-ai/minimax-h3") ? "wavespeed-ai/minimax-h3" : "minimax/h3";
+        modelRoute = `${prefix}/reference-to-video`;
       } else if (hasImg) {
-        modelRoute = "minimax/h3/image-to-video";
+        const prefix = modelRoute.startsWith("wavespeed-ai/minimax-h3") ? "wavespeed-ai/minimax-h3" : "minimax/h3";
+        modelRoute = `${prefix}/image-to-video`;
       } else {
-        modelRoute = "minimax/h3/text-to-video";
+        const prefix = modelRoute.startsWith("wavespeed-ai/minimax-h3") ? "wavespeed-ai/minimax-h3" : "minimax/h3";
+        modelRoute = `${prefix}/text-to-video`;
       }
     }
 

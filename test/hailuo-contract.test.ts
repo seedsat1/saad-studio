@@ -7,12 +7,13 @@ import { resolveCanonicalProviderTariff } from "@/lib/provider-tariff-registry";
 import { normalizeDynamicVideoModels, DynamicVideoModel } from "@/lib/dynamic-model-loader";
 
 describe("Minimax Hailuo Contract and Specification Tests", () => {
-  it("should have all 6 models registered under family 'hailuo' in exact dropdown sequence", () => {
+  it("should have all 7 models registered under family 'hailuo' in exact dropdown sequence", () => {
     const hailuoModels = VIDEO_MODEL_REGISTRY.filter((m) => m.family === "hailuo");
-    expect(hailuoModels.length).toBe(6);
+    expect(hailuoModels.length).toBe(7);
 
     const expectedOrder = [
       { id: "minimax-h3", name: "Minimax H3", badge: null },
+      { id: "minimax-h3-max", name: "MiniMax H3 Max", badge: null },
       { id: "minimax-hailuo-02-pro", name: "MiniMax Hailuo 02 Pro", badge: null },
       { id: "minimax-hailuo-02-standard", name: "MiniMax Hailuo 02 Standard", badge: null },
       { id: "minimax-hailuo-02-fast", name: "MiniMax Hailuo 02 Fast", badge: null },
@@ -33,7 +34,7 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     });
   });
 
-  it("should mirror all 6 models into VIDEO_MODELS with correct accepts flags", () => {
+  it("should mirror all 7 models into VIDEO_MODELS with correct accepts flags", () => {
     const h3 = VIDEO_MODELS.find((m) => m.id === "minimax-h3");
     expect(h3).toBeDefined();
     expect(h3?.accepts).toContain("start-frame");
@@ -41,6 +42,13 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     expect(h3?.aspectRatios).toEqual(["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21"]);
     expect(h3?.durations).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
     expect(h3?.resolutions).toEqual(["768p", "2k"]);
+
+    const h3Max = VIDEO_MODELS.find((m) => m.id === "minimax-h3-max");
+    expect(h3Max).toBeDefined();
+    expect(h3Max?.accepts).toContain("start-frame");
+    expect(h3Max?.accepts).toContain("end-frame");
+    expect(h3Max?.durations).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    expect(h3Max?.resolutions).toEqual(["480p", "768p"]);
 
     const h02Pro = VIDEO_MODELS.find((m) => m.id === "minimax-hailuo-02-pro");
     expect(h02Pro).toBeDefined();
@@ -102,6 +110,11 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     expect(getVideoCreditsByModelId("minimax-h3", { duration: 5, quality: "2k" })).toBe(39.2);
     expect(getVideoCreditsByModelId("minimax-h3", { duration: 10, quality: "768p" })).toBe(56);
     expect(getVideoCreditsByModelId("minimax-h3", { duration: 10, quality: "2k" })).toBe(78.4);
+
+    // H3 Max Open Weights: 480p text/image -> 2.24 cr/s, 768p reference -> 5.6 cr/s
+    expect(getVideoCreditsByModelId("minimax-h3-max", { duration: 5, quality: "480p" })).toBe(11.2);
+    expect(getVideoCreditsByRoute("wavespeed-ai/minimax-h3/reference-to-video", { duration: 5, resolution: "768p" })).toBe(28);
+    expect(getVideoCreditsByRoute("wavespeed-ai/minimax-h3/reference-to-video", { duration: 5, resolution: "768p", reference_video_durations: [5, 5, 5] })).toBe(112);
   });
 
   it("should resolve verified WaveSpeed tariffs from registry", () => {
@@ -134,6 +147,16 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     });
     expect(tariffH3.usd).toBe(0.50);
     expect(tariffH3.providerName).toBe("WaveSpeed");
+
+    const tariffH3Max = resolveCanonicalProviderTariff({
+      modelRef: "minimax-h3-max",
+      providerName: "WaveSpeed",
+      providerRoute: "wavespeed-ai/minimax-h3/reference-to-video",
+      durationSec: 5,
+      quality: "768p",
+    });
+    expect(tariffH3Max.usd).toBe(0.50);
+    expect(tariffH3Max.tariffKey).toBe("wavespeed:video:minimax-h3-max:768p:reference");
   });
 
   it("should enforce zero duplicates and filter out legacy and fake blocked IDs in normalizeDynamicVideoModels", () => {
@@ -144,7 +167,7 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
         name: "Minimax H3 Max",
         group: "Minimax Hailuo",
         family_label: "Minimax Hailuo",
-        api_route: "minimax/h3-max",
+        api_route: "wavespeed-ai/minimax-h3/reference-to-video",
       },
       {
         id: "minimax-h3-max-turbo",
@@ -215,7 +238,7 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
 
     // Assert blocked fake and legacy IDs are completely absent
     const blockedFound = hailuoFleet.filter((m) =>
-      ["minimax-h3-max", "minimax-h3-max-turbo", "minimax-live-illustrations", "minimax-h3-reference-to-video"].includes(m.id)
+      ["minimax-h3-max-turbo", "minimax-live-illustrations", "minimax-h3-reference-to-video"].includes(m.id)
     );
     expect(blockedFound).toHaveLength(0);
 
@@ -224,8 +247,8 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     const uniqueNames = new Set(names);
     expect(names.length).toBe(uniqueNames.size);
 
-    // Assert exactly the 6 canonical Minimax models exist
-    expect(hailuoFleet.length).toBe(6);
+    // Assert exactly the 7 canonical Minimax models exist
+    expect(hailuoFleet.length).toBe(7);
   });
 
   it("should never route any Minimax/Hailuo models to KIE and must route to WaveSpeed", async () => {

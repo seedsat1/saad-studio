@@ -152,6 +152,22 @@ export const VIDEO_MODELS: VideoModel[] = [
     description: "Official MiniMax H3 multimodal video generation supporting text, image, and references",
   },
   {
+    id: "minimax-h3-max",
+    name: "MiniMax H3 Max",
+    family: "Hailuo",
+    familyColor: "#f59e0b",
+    inputType: "text-to-video",
+    accepts: ["start-frame", "end-frame"],
+    aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21"],
+    durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    resolutions: ["480p", "768p"],
+    badge: null,
+    creditCost: 14.0,
+    maxDuration: 15,
+    description: "Open Weights MiniMax H3 Max video generation with lower-cost 480p and native 768p tiers",
+  },
+
+  {
     id: "minimax-hailuo-02-pro",
     name: "MiniMax Hailuo 02 Pro",
     family: "Hailuo",

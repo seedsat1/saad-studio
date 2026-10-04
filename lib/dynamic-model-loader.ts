@@ -164,7 +164,6 @@ const BLOCKED_DYNAMIC_VIDEO_IDS = new Set([
   "google/veo-3.1-generate-preview",
   "google/veo-3.1-fast-generate-preview",
   "google/veo-3.1-lite-generate-preview",
-  "minimax-h3-max",
   "minimax-h3-max-turbo",
   "minimax-live-illustrations",
   "minimax-h3-reference-to-video",
@@ -771,7 +770,44 @@ export function inferModelCapabilitiesAndSpecs(rawIdOrRoute: string, rawTitle?: 
 
   // 7. Minimax / Hailuo Video
   if (text.includes("minimax") || text.includes("hailuo")) {
+    if (text.includes("h3") && text.includes("max")) {
+
+      return {
+
+        cleanName: "MiniMax H3 Max",
+
+        cleanId: "minimax-h3-max",
+
+        modality: "video",
+
+        provider: "wavespeed",
+
+        group: "Minimax Hailuo",
+
+        familyColor: "#f59e0b",
+
+        aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21"],
+
+        durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+
+        resolutions: ["480p", "768p"],
+
+        maxRefImages: 9,
+
+        textRoute: "wavespeed-ai/minimax-h3/text-to-video",
+
+        imageRoute: "wavespeed-ai/minimax-h3/image-to-video",
+
+        referenceRoute: "wavespeed-ai/minimax-h3/reference-to-video",
+
+        creditCost: 14.0,
+
+      };
+
+    }
+
     if (text.includes("h3")) {
+
       return {
         cleanName: "Minimax H3",
         cleanId: "minimax-h3",

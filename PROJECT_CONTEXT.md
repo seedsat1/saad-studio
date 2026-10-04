@@ -16310,3 +16310,12 @@
 - H3 Max: not added. The supplied DOCX did not include a documented H3 Max route/pricing contract, so adding it would be speculative.
 - Verification: `npx vitest run test/minimax-h3-pricing-crash.test.ts test/pricing-core.test.ts test/provider-cost-audit.test.ts test/model-capability-badges.test.ts test/hailuo-contract.test.ts --testTimeout 30000` passed 5 files / 57 tests. `npm run build` passed with the known non-blocking dynamic-server warnings for existing API routes. No paid provider generation was executed.
 - Files changed: `lib/video-model-registry.ts`, `lib/video-models.ts`, `lib/dynamic-model-loader.ts`, `app/(dash)/(routes)/video/page.tsx`, `app/api/video/route.ts`, `components/video/ModelCapabilityBadges.tsx`, pricing/tariff files, focused tests, plus memory/reference docs.
+
+# Latest task: MiniMax H3 Max Open Weights separation (2026-10-05)
+- Request: re-check `مرجع Minimax H3.docx` and implement the correct split shown in the screenshots: `MiniMax H3` as the official 2K-capable model, and `MiniMax H3 Max` as a separate lower-resolution Open Weights model.
+- Implemented: added a distinct `minimax-h3-max` video model using WaveSpeed Open Weights routes `wavespeed-ai/minimax-h3/text-to-video`, `image-to-video`, and `reference-to-video`; kept the existing official `minimax-h3` model on `minimax/h3/*` with `768p`/`2k` and 5-15s.
+- H3 Max contract: exposed only `480p` and `768p`, duration 3-15s, aspect ratios matching the documented Open Weights routes, reference-image/video/audio routing through the reference route, and no KIE routing.
+- Pricing: H3 Max uses the Open Weights source rates with the existing site margin and credit conversion: text/image `480p=$0.04/s`, `768p=$0.08/s`; reference `480p=$0.05/s`, `768p=$0.10/s`; reference videos add their duration to billable seconds; reference image/audio assets add the documented per-asset provider cost. Official H3 prices remain `768p=$0.10/s` and `2K=$0.14/s`.
+- Preserved: no auth, ledger, spendCredits semantics, subscription logic, media history schema, provider secrets, or non-H3 providers changed. No live provider generation or paid call was executed.
+- Verification: targeted Vitest passed 61/61 across `test/hailuo-contract.test.ts`, `test/minimax-h3-pricing-crash.test.ts`, `test/pricing-core.test.ts`, `test/provider-cost-audit.test.ts`, and `test/model-capability-badges.test.ts`. `npm run build` passed with the existing Next dynamic-server and Browserslist/Tailwind warnings.
+- Remaining: commit/push only if explicitly requested.

@@ -41,6 +41,17 @@ describe("Model Capability Badges Contract Tests", () => {
     expect(caps.creditRange).toBeTruthy();
   });
 
+  it("should accurately extract capabilities for MiniMax H3 Max without mixing it with official H3", () => {
+    const h3Max = VIDEO_MODEL_REGISTRY.find(m => m.id === "minimax-h3-max");
+    expect(h3Max).toBeDefined();
+
+    const caps = extractModelCapabilities(h3Max);
+    expect(caps.refs).toBe(true);
+    expect(caps.startEnd).toBe("Start/End");
+    expect(caps.duration).toBe("3 - 15\"");
+    expect(caps.resolution).toBe("768p");
+  });
+
   it("should accurately extract capabilities for Hailuo 02 Pro with fixed 6s duration", () => {
     const hailuo02Pro = VIDEO_MODEL_REGISTRY.find(m => m.id === "minimax-hailuo-02-pro");
     expect(hailuo02Pro).toBeDefined();

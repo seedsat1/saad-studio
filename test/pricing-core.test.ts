@@ -99,6 +99,20 @@ const parityCases: PricingCase[] = [
     expected: 39.2,
   },
   {
+    name: "MiniMax H3 Max reference 768p",
+    modelRef: "wavespeed-ai/minimax-h3/reference-to-video",
+    durationSec: 5,
+    quality: "768p",
+    expected: 28,
+  },
+  {
+    name: "MiniMax H3 Max text 480p",
+    modelRef: "wavespeed-ai/minimax-h3/text-to-video",
+    durationSec: 5,
+    quality: "480p",
+    expected: 11.2,
+  },
+  {
     name: "Alibaba Wan 3.0 480p",
     modelRef: "alibaba/wan-3.0/text-to-video",
     durationSec: 30,

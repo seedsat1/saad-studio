@@ -131,9 +131,9 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "minimax/h3/text-to-video":                       "minimax_h3",
   "minimax/h3/image-to-video":                      "minimax_h3",
   "minimax/h3/reference-to-video":                  "minimax_h3",
-  "wavespeed-ai/minimax-h3/text-to-video":          "minimax_h3",
-  "wavespeed-ai/minimax-h3/image-to-video":         "minimax_h3",
-  "wavespeed-ai/minimax-h3/reference-to-video":     "minimax_h3",
+  "wavespeed-ai/minimax-h3/text-to-video":          "minimax_h3_max",
+  "wavespeed-ai/minimax-h3/image-to-video":         "minimax_h3_max",
+  "wavespeed-ai/minimax-h3/reference-to-video":     "minimax_h3_max",
   "kling-3.0/video":                              "kling30",
   "kling-3.0/motion-control":                     "kling30_mc",
   "kling/v2-5-turbo-text-to-video-pro":           "kling25t",
@@ -203,6 +203,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "kwaivgi/kling-v3.0-pro/image-to-video":        "kling30",
   // Kling 3.0 Omni / Omni Edit routes removed â€” KIE has no Omni endpoint.
   "minimax-h3":                                   "minimax_h3",
+  "minimax-h3-max":                               "minimax_h3_max",
   "minimax-hailuo-02-pro":                        "hailuo02",
   "minimax-hailuo-02-standard":                   "hailuo02_std",
   "minimax-hailuo-02-fast":                       "hailuo02_fast",
@@ -554,6 +555,14 @@ const MINIMAX_H3_USD_PER_SECOND = {
   "768p": 0.10,
   "2k": 0.14,
 } as const;
+const MINIMAX_H3_MAX_TEXT_IMAGE_USD_PER_SECOND = {
+  "480p": 0.04,
+  "768p": 0.08,
+} as const;
+const MINIMAX_H3_MAX_REFERENCE_USD_PER_SECOND = {
+  "480p": 0.05,
+  "768p": 0.10,
+} as const;
 const WAN_30_CREDITS_PER_USD = 40;
 const WAN_30_MARGIN_MULTIPLIER = 1.4;
 const WAN_30_TEXT_REFERENCE_USD_PER_SECOND = {
@@ -708,10 +717,22 @@ function getMinimaxH3RateKey(quality?: string | null): keyof typeof MINIMAX_H3_U
   return "768p";
 }
 
+function getMinimaxH3MaxRateKey(quality?: string | null): keyof typeof MINIMAX_H3_MAX_REFERENCE_USD_PER_SECOND {
+  const q = (quality || "480p").trim().toLowerCase();
+  if (q.includes("768")) return "768p";
+  return "480p";
+}
+
 function getMinimaxH3ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
   const constitutionId = MODEL_ALIAS_MAP[modelRef] ?? modelRef;
+  const route = modelRef.toLowerCase();
+  const duration = Math.max(constitutionId === "minimax_h3_max" || route.startsWith("wavespeed-ai/minimax-h3") ? 3 : 5, Number.isFinite(durationSec) ? durationSec : 5);
+  if (constitutionId === "minimax_h3_max" || route.startsWith("wavespeed-ai/minimax-h3")) {
+    const rateTable = route.includes("reference-to-video") ? MINIMAX_H3_MAX_REFERENCE_USD_PER_SECOND : MINIMAX_H3_MAX_TEXT_IMAGE_USD_PER_SECOND;
+    const usdPerSecond = rateTable[getMinimaxH3MaxRateKey(quality)];
+    return parseFloat((usdPerSecond * duration).toFixed(4));
+  }
   if (constitutionId !== "minimax_h3" && !modelRef.startsWith("minimax/h3")) return null;
-  const duration = Math.max(5, Number.isFinite(durationSec) ? durationSec : 5);
   const usdPerSecond = MINIMAX_H3_USD_PER_SECOND[getMinimaxH3RateKey(quality)];
   return parseFloat((usdPerSecond * duration).toFixed(4));
 }
@@ -936,9 +957,18 @@ function resolveModelUserCharge(
     return parseFloat((seconds * 0.33 * numUnits).toFixed(2));
   }
 
+  if (constitutionId === "minimax_h3_max") {
+    const route = modelRef.toLowerCase();
+    const duration = Math.max(3, Number.isFinite(durationSec) ? durationSec : 5);
+    const rateTable = route.includes("reference-to-video") ? MINIMAX_H3_MAX_REFERENCE_USD_PER_SECOND : MINIMAX_H3_MAX_TEXT_IMAGE_USD_PER_SECOND;
+    const usdPerSec = rateTable[getMinimaxH3MaxRateKey(quality)];
+    return parseFloat((usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * duration * numUnits).toFixed(2));
+  }
+
   if (constitutionId === "minimax_h3") {
+    const duration = Math.max(5, Number.isFinite(durationSec) ? durationSec : 5);
     const usdPerSec = MINIMAX_H3_USD_PER_SECOND[getMinimaxH3RateKey(quality)];
-    return parseFloat((usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
+    return parseFloat((usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * duration * numUnits).toFixed(2));
   }
 
   if (constitutionId === "hailuo02" || constitutionId === "hailuo02_pro") {
