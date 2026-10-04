@@ -25,8 +25,16 @@ const SEEDANCE_25_USD_PER_SECOND = {
 const MINIMAX_H3_CREDITS_PER_USD = 40;
 const MINIMAX_H3_MARGIN_MULTIPLIER = 1.4;
 const MINIMAX_H3_USD_PER_SECOND = {
+  "480p": 0.05,
+  "540p": 0.075,
   "768p": 0.10,
-  "2k": 0.14,
+  "1080p": 0.20,
+} as const;
+const MINIMAX_H3_TEXT_IMAGE_USD_PER_SECOND = {
+  "480p": 0.04,
+  "540p": 0.06,
+  "768p": 0.08,
+  "1080p": 0.16,
 } as const;
 const WAN_30_CREDITS_PER_USD = 40;
 const WAN_30_MARGIN_MULTIPLIER = 1.4;
@@ -75,7 +83,10 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["black-forest-labs/flux-3/image-to-video-draft", 16.8],
   ["black-forest-labs/flux-3/start-end-to-video-draft", 16.8],
   ["black-forest-labs/flux-3/video-extend-draft", 16.8],
-  ["minimax/h3/reference-to-video", 28.0],
+  ["minimax/h3/reference-to-video", 14.0],
+  ["wavespeed-ai/minimax-h3/text-to-video", 14.0],
+  ["wavespeed-ai/minimax-h3/image-to-video", 14.0],
+  ["wavespeed-ai/minimax-h3/reference-to-video", 14.0],
   ["kwaivgi/kling-v3.0-std/text-to-video", 22.35],
   ["kwaivgi/kling-v3.0-std/image-to-video", 22.35],
   ["kwaivgi/kling-v3.0-pro/image-to-video", 29.8],
@@ -105,7 +116,7 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["kwaivgi/kling-v2.6-std/text-to-video", 5.0],
   ["kwaivgi/kling-v2.6-std/image-to-video", 5.0],
   ["kwaivgi/kling-v2.6-pro/text-to-video", 7.0],
-  ["minimax-h3", 22.4],
+  ["minimax-h3", 8.4],
   ["minimax-hailuo-02-pro", 27.44],
   ["minimax-hailuo-02-standard", 12.88],
   ["minimax-hailuo-02-fast", 5.6],
@@ -183,7 +194,7 @@ function shouldApplySound(modelRef: string): boolean {
   if (ref.includes("gemini-omni")) {
     return false;
   }
-  if (ref.includes("seedance") || ref.includes("dreamina") || ref.includes("minimax/h3") || ref.includes("minimax_h3")) {
+  if (ref.includes("seedance") || ref.includes("dreamina") || ref.includes("minimax/h3") || ref.includes("wavespeed-ai/minimax-h3") || ref.includes("minimax_h3")) {
     return false;
   }
   return true;
@@ -226,12 +237,33 @@ function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number 
   return hasSoundEnabled(payload) ? parseFloat((baseCost * 1.5).toFixed(2)) : baseCost;
 }
 
-function getMinimaxH3Credits(payload?: VideoPayload, rateOverride?: number): number {
-  const duration = readDuration(payload, 5);
-  const quality = (readQuality(payload) || "768p").toLowerCase();
-  const isHighRes = quality.includes("2k") || quality.includes("1080");
-  const usdPerSec = rateOverride !== undefined ? rateOverride : (isHighRes ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"]);
-  return parseFloat(Math.max(1, duration * usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD).toFixed(2));
+function getMinimaxH3RateKey(quality?: string): keyof typeof MINIMAX_H3_USD_PER_SECOND {
+  const q = (quality || "480p").toLowerCase();
+  if (q.includes("1080")) return "1080p";
+  if (q.includes("768")) return "768p";
+  if (q.includes("540")) return "540p";
+  return "480p";
+}
+
+function readReferenceVideoDurationSeconds(payload?: VideoPayload): number {
+  const rawDurations = payload?.reference_video_durations ?? payload?.referenceVideoDurations;
+  if (!Array.isArray(rawDurations)) return 0;
+  return rawDurations.reduce((sum, value) => {
+    const n = typeof value === "number" ? value : typeof value === "string" ? Number.parseFloat(value) : 0;
+    return Number.isFinite(n) && n > 0 ? sum + n : sum;
+  }, 0);
+}
+
+function getMinimaxH3Credits(payload?: VideoPayload, rateOverride?: number, modelRoute?: string): number {
+  const outputDuration = readDuration(payload, 5);
+  const quality = readQuality(payload);
+  const rateKey = getMinimaxH3RateKey(quality);
+  const isReferenceRoute = modelRoute?.includes("reference-to-video") === true;
+  const rateTable = isReferenceRoute ? MINIMAX_H3_USD_PER_SECOND : MINIMAX_H3_TEXT_IMAGE_USD_PER_SECOND;
+  const usdPerSec = rateOverride !== undefined ? rateOverride : rateTable[rateKey];
+  const referenceVideoDuration = isReferenceRoute ? readReferenceVideoDurationSeconds(payload) : 0;
+  const billableDuration = outputDuration + referenceVideoDuration;
+  return parseFloat(Math.max(1, billableDuration * usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD).toFixed(2));
 }
 
 function getHailuoCredits(modelRoute: string, payload?: VideoPayload): number {
@@ -579,6 +611,10 @@ function getVideoCreditsByModelIdFallback(modelId: string, payload?: VideoPayloa
 }
 
 export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayload): number {
+  if (modelRoute.startsWith("minimax/h3") || modelRoute.startsWith("wavespeed-ai/minimax-h3") || modelRoute === "minimax-h3") {
+    return getMinimaxH3Credits(payload, undefined, modelRoute);
+  }
+
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
   const dbCost = getGenerationCostSync(modelRoute, duration, 1, quality);
@@ -590,6 +626,10 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
 }
 
 export async function getVideoCreditsByRouteAsync(modelRoute: string, payload?: VideoPayload): Promise<number> {
+  if (modelRoute.startsWith("minimax/h3") || modelRoute.startsWith("wavespeed-ai/minimax-h3") || modelRoute === "minimax-h3") {
+    return getMinimaxH3Credits(payload, undefined, modelRoute);
+  }
+
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
   const dbCost = await getGenerationCost(modelRoute, duration, 1, quality).catch(() => 0);
@@ -601,8 +641,8 @@ export async function getVideoCreditsByRouteAsync(modelRoute: string, payload?: 
 }
 
 function getVideoCreditsByRouteFallback(modelRoute: string, payload?: VideoPayload): number {
-  if (modelRoute.startsWith("minimax/h3") || modelRoute === "minimax-h3") {
-    return getMinimaxH3Credits(payload);
+  if (modelRoute.startsWith("minimax/h3") || modelRoute.startsWith("wavespeed-ai/minimax-h3") || modelRoute === "minimax-h3") {
+    return getMinimaxH3Credits(payload, undefined, modelRoute);
   }
   if (
     modelRoute.startsWith("minimax/hailuo-") ||

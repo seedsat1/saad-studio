@@ -47,6 +47,7 @@ export interface ProviderCostEstimateInput {
   providerModel?: string | null;
   providerRoute?: string | null;
   durationSec?: number | null;
+  referenceVideoDurationSec?: number | null;
   quality?: string | null;
   resolution?: string | null;
   aspectRatio?: string | null;
@@ -284,8 +285,8 @@ function resolveBytePlusTariff(input: ProviderCostEstimateInput): ProviderCostEs
 export const WAVESPEED_PROVENANCE_REGISTRY: Record<string, Omit<TariffProvenanceRecord, "tariffKey">> = {
   "minimax/h3": {
     provider: "WaveSpeed",
-    providerRoute: "minimax/h3/reference-to-video",
-    rateUsd: 0.10, // 768p: 0.10, 2k: 0.14
+    providerRoute: "wavespeed-ai/minimax-h3/reference-to-video",
+    rateUsd: 0.05, // 480p: 0.05, 540p: 0.075, 768p: 0.10, 1080p: 0.20
     billingUnit: "USD/sec",
     sourceType: "official_docs",
     sourceReference: "WaveSpeed Official API Docs (https://wavespeed.ai/docs/docs-api)",
@@ -520,16 +521,21 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
   const modelLower = (input.providerModel || input.providerRoute || input.modelRef || "").toLowerCase();
   const q = String(input.resolution || input.quality || "768p").toLowerCase();
   const duration = Math.max(1, Number.isFinite(input.durationSec) ? Number(input.durationSec) : 5);
+  const referenceVideoDuration = Math.max(0, Number.isFinite(input.referenceVideoDurationSec) ? Number(input.referenceVideoDurationSec) : 0);
   const units = Math.max(1, Math.floor(Number.isFinite(input.numUnits) ? Number(input.numUnits) : 1));
 
   // Minimax H3
-  if (modelLower.includes("minimax/h3") || modelLower.includes("minimax_h3") || modelLower.includes("minimax-h3")) {
-    const isHighRes = q.includes("2k") || q.includes("1080");
-    const rateUsd = isHighRes ? 0.14 : 0.10;
+  if (modelLower.includes("minimax/h3") || modelLower.includes("wavespeed-ai/minimax-h3") || modelLower.includes("minimax_h3") || modelLower.includes("minimax-h3")) {
+    const resolution = q.includes("1080") ? "1080p" : q.includes("768") ? "768p" : q.includes("540") ? "540p" : "480p";
+    const isReferenceRoute = modelLower.includes("reference-to-video");
+    const billableDuration = isReferenceRoute ? duration + referenceVideoDuration : duration;
+    const rateUsd = isReferenceRoute
+      ? resolution === "1080p" ? 0.20 : resolution === "768p" ? 0.10 : resolution === "540p" ? 0.075 : 0.05
+      : resolution === "1080p" ? 0.16 : resolution === "768p" ? 0.08 : resolution === "540p" ? 0.06 : 0.04;
     const provMeta = WAVESPEED_PROVENANCE_REGISTRY["minimax/h3"];
-    const tariffKey = `wavespeed:video:minimax-h3:${isHighRes ? "2k" : "768p"}`;
+    const tariffKey = `wavespeed:video:minimax-h3:${resolution}`;
     return {
-      usd: parseFloat((rateUsd * duration * units).toFixed(4)),
+      usd: parseFloat((rateUsd * billableDuration * units).toFixed(4)),
       source: "estimated",
       tariffKey,
       providerName: "WaveSpeed",
@@ -538,7 +544,7 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
         ...provMeta,
         tariffKey,
         rateUsd,
-        resolution: q.includes("2k") ? "2k" : "768p",
+        resolution,
         verificationStatus: checkTariffStaleness(provMeta.capturedAt),
       },
     };

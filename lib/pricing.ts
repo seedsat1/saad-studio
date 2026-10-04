@@ -128,7 +128,12 @@ export function invalidatePricingCache(): void {
 
 const MODEL_ALIAS_MAP: Record<string, string> = {
   // â”€â”€ Video â€” app/api/generate/video (WaveSpeed route model IDs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  "minimax/h3/text-to-video":                       "minimax_h3",
+  "minimax/h3/image-to-video":                      "minimax_h3",
   "minimax/h3/reference-to-video":                  "minimax_h3",
+  "wavespeed-ai/minimax-h3/text-to-video":          "minimax_h3",
+  "wavespeed-ai/minimax-h3/image-to-video":         "minimax_h3",
+  "wavespeed-ai/minimax-h3/reference-to-video":     "minimax_h3",
   "kling-3.0/video":                              "kling30",
   "kling-3.0/motion-control":                     "kling30_mc",
   "kling/v2-5-turbo-text-to-video-pro":           "kling25t",
@@ -546,8 +551,16 @@ const SEEDANCE_25_USD_PER_SECOND = {
 const MINIMAX_H3_CREDITS_PER_USD = 40;
 const MINIMAX_H3_MARGIN_MULTIPLIER = 1.4;
 const MINIMAX_H3_USD_PER_SECOND = {
+  "480p": 0.05,
+  "540p": 0.075,
   "768p": 0.10,
-  "2k": 0.14,
+  "1080p": 0.20,
+} as const;
+const MINIMAX_H3_TEXT_IMAGE_USD_PER_SECOND = {
+  "480p": 0.04,
+  "540p": 0.06,
+  "768p": 0.08,
+  "1080p": 0.16,
 } as const;
 const WAN_30_CREDITS_PER_USD = 40;
 const WAN_30_MARGIN_MULTIPLIER = 1.4;
@@ -697,12 +710,21 @@ function getSeedance25ProviderUsd(modelRef: string, durationSec: number, quality
   return parseFloat((usdPerSecond * duration).toFixed(4));
 }
 
+function getMinimaxH3RateKey(quality?: string | null): keyof typeof MINIMAX_H3_USD_PER_SECOND {
+  const q = (quality || "480p").trim().toLowerCase();
+  if (q.includes("1080")) return "1080p";
+  if (q.includes("768")) return "768p";
+  if (q.includes("540")) return "540p";
+  return "480p";
+}
+
 function getMinimaxH3ProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
   const constitutionId = MODEL_ALIAS_MAP[modelRef] ?? modelRef;
-  if (constitutionId !== "minimax_h3" && modelRef !== "minimax/h3/reference-to-video") return null;
+  if (constitutionId !== "minimax_h3" && !modelRef.startsWith("minimax/h3")) return null;
   const duration = Math.max(1, Number.isFinite(durationSec) ? durationSec : 5);
-  const q = (quality || "768p").trim().toLowerCase();
-  const usdPerSecond = q.includes("2k") ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"];
+  const route = modelRef.toLowerCase();
+  const rateTable = route.includes("reference-to-video") ? MINIMAX_H3_USD_PER_SECOND : MINIMAX_H3_TEXT_IMAGE_USD_PER_SECOND;
+  const usdPerSecond = rateTable[getMinimaxH3RateKey(quality)];
   return parseFloat((usdPerSecond * duration).toFixed(4));
 }
 
@@ -927,10 +949,9 @@ function resolveModelUserCharge(
   }
 
   if (constitutionId === "minimax_h3") {
-    // Same normalisation the provider-USD helper uses, so both agree on the tier.
-    const q = (quality || "768p").trim().toLowerCase();
-    const isHighRes = q.includes("2k") || q.includes("1080");
-    const usdPerSec = isHighRes ? MINIMAX_H3_USD_PER_SECOND["2k"] : MINIMAX_H3_USD_PER_SECOND["768p"];
+    const route = modelRef.toLowerCase();
+    const rateTable = route.includes("reference-to-video") ? MINIMAX_H3_USD_PER_SECOND : MINIMAX_H3_TEXT_IMAGE_USD_PER_SECOND;
+    const usdPerSec = rateTable[getMinimaxH3RateKey(quality)];
     return parseFloat((usdPerSec * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * durationSec * numUnits).toFixed(2));
   }
 

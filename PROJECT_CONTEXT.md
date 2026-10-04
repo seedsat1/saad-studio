@@ -16278,3 +16278,21 @@
 - This aligns admin/history cards with the corrected routing: prompt + reference images/videos/audios for Seedance 2.5 is Reference/Text generation, not Image-to-Video. No billing, credit amount, auth, or provider execution behavior changed.
 - Verification: `npm test -- --run test/seedance-reference-video-routing.test.ts test/credit-ledger.test.ts test/model-capability-badges.test.ts` passed 3 files / 22 tests.
 - Files changed additionally: `lib/credit-ledger.ts`, `test/credit-ledger.test.ts`.
+
+#### Latest task: Correct Minimax H3 WaveSpeed pricing and routing tiers (2026-10-04)
+- Status: Completed. Reviewed the `/video` Minimax H3 price display where 480p/540p/768p/1080p were collapsing into the old H3 pricing buckets.
+- Changed Minimax H3 to use the current WaveSpeed Open Weights route family `wavespeed-ai/minimax-h3/*` for new dispatch while retaining legacy `minimax/h3/*` aliases for pricing compatibility.
+- Pricing now separates Text/Image from Reference:
+  - Text/Image: 480p `$0.04/s` -> `2.24 cr/s`, 540p `$0.06/s` -> `3.36 cr/s`, 768p `$0.08/s` -> `4.48 cr/s`, 1080p `$0.16/s` -> `8.96 cr/s`.
+  - Reference: 480p `$0.05/s` -> `2.8 cr/s`, 540p `$0.075/s` -> `4.2 cr/s`, 768p `$0.10/s` -> `5.6 cr/s`, 1080p `$0.20/s` -> `11.2 cr/s`.
+- Removed `2K` from Minimax H3 video options because the active WaveSpeed H3 Open Weights contract used by the site exposes 480p/540p/768p/1080p.
+- Fixed the `/video` price estimate to resolve the active H3 route from the current inputs, so plain text requests price as text-to-video and reference requests price as reference-to-video.
+- Preserved billing architecture: no credit ledger, auth, provider execution framework, subscription, or media billing refactor.
+- Verification: `npx vitest run test/hailuo-contract.test.ts test/minimax-h3-pricing-crash.test.ts test/pricing-core.test.ts test/provider-cost-audit.test.ts test/provider-cost-attribution-remediation.test.ts test/provider-cost-capture-and-reconciliation.test.ts test/universal-checkpoint-routing.test.ts --testTimeout 30000` passed (7 files, 86 tests). `npm run build` completed successfully; existing Next dynamic-server warnings for `/api/editor/credits`, `/api/models`, and `/api/ads` remain non-blocking build-time warnings.
+- Provider calls: none. Paid generation: none.
+
+# Latest task: Minimax H3 reference video billing correction (2026-10-04)
+- Request: review the source price shown by WaveSpeed for `minimax/h3/reference-to-video`, where a 4s 768p generation with three reference videos was billed at `$1.9`.
+- Finding: the previous H3 correction used the right per-second output rates, but missed WaveSpeed reference-video billing semantics. For H3 Reference-to-Video, billable seconds are output duration plus the combined duration of reference videos. The screenshot matched `(4s output + 15s references) × $0.10/s = $1.90`.
+- Fix: `/video` now reads local reference-video metadata, includes `reference_video_durations` in the internal payload for Minimax H3 only, and `getVideoCreditsByRoute` prices H3 reference requests from output seconds plus reference-video seconds. Provider-cost attribution also records this combined billable duration for WaveSpeed H3.
+- Verification: focused Vitest passed 41/41 across `test/minimax-h3-pricing-crash.test.ts`, `test/pricing-core.test.ts`, and `test/provider-cost-audit.test.ts`. `npm run build` passed with existing dynamic-server warnings. No provider generation or paid call was executed.

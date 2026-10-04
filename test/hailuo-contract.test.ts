@@ -40,7 +40,7 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     expect(h3?.accepts).toContain("end-frame");
     expect(h3?.aspectRatios).toEqual(["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21"]);
     expect(h3?.durations).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
-    expect(h3?.resolutions).toEqual(["480p", "540p", "768p", "1080p", "2K"]);
+    expect(h3?.resolutions).toEqual(["480p", "540p", "768p", "1080p"]);
 
     const h02Pro = VIDEO_MODELS.find((m) => m.id === "minimax-hailuo-02-pro");
     expect(h02Pro).toBeDefined();
@@ -97,11 +97,13 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     expect(getVideoCreditsByModelId("minimax-hailuo-2.3-fast", { duration: 6 })).toBe(10.64);
     expect(getVideoCreditsByModelId("minimax-hailuo-2.3-fast", { duration: 10 })).toBe(17.92);
 
-    // H3 models: 768p -> 5.60 cr/s, 2K -> 7.84 cr/s
-    expect(getVideoCreditsByModelId("minimax-h3", { duration: 5, quality: "768p" })).toBe(28.00);
-    expect(getVideoCreditsByModelId("minimax-h3", { duration: 5, quality: "2k" })).toBe(39.20);
-    expect(getVideoCreditsByModelId("minimax-h3", { duration: 10, quality: "768p" })).toBe(56.00);
-    expect(getVideoCreditsByModelId("minimax-h3", { duration: 10, quality: "2k" })).toBe(78.40);
+    // H3 Text/Image: 480p -> 2.24 cr/s, 540p -> 3.36 cr/s, 768p -> 4.48 cr/s, 1080p -> 8.96 cr/s
+    expect(getVideoCreditsByModelId("minimax-h3", { duration: 5, quality: "480p" })).toBe(11.20);
+    expect(getVideoCreditsByModelId("minimax-h3", { duration: 5, quality: "540p" })).toBe(16.80);
+    expect(getVideoCreditsByModelId("minimax-h3", { duration: 5, quality: "768p" })).toBe(22.40);
+    expect(getVideoCreditsByModelId("minimax-h3", { duration: 5, quality: "1080p" })).toBe(44.80);
+    expect(getVideoCreditsByModelId("minimax-h3", { duration: 10, quality: "480p" })).toBe(22.40);
+    expect(getVideoCreditsByModelId("minimax-h3", { duration: 10, quality: "1080p" })).toBe(89.60);
   });
 
   it("should resolve verified WaveSpeed tariffs from registry", () => {
@@ -128,7 +130,7 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     const tariffH3 = resolveCanonicalProviderTariff({
       modelRef: "minimax-h3",
       providerName: "WaveSpeed",
-      providerRoute: "minimax/h3/reference-to-video",
+      providerRoute: "wavespeed-ai/minimax-h3/reference-to-video",
       durationSec: 5,
       quality: "768p",
     });

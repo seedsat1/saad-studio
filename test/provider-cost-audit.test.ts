@@ -46,10 +46,20 @@ describe("Provider Cost Pricing & Recency Audit Suite", () => {
     expect(h3_768.source).toBe("estimated");
     expect(h3_768.usd).toBe(0.50);
 
-    // 2k: $0.14/s -> 5s = $0.70
-    const h3_2k = estimateProviderCostSync("minimax/h3/reference-to-video", 5, "2k");
-    expect(h3_2k.source).toBe("estimated");
-    expect(h3_2k.usd).toBe(0.70);
+    // 1080p: $0.20/s -> 5s = $1.00
+    const h3_1080 = estimateProviderCostSync("wavespeed-ai/minimax-h3/reference-to-video", 5, "1080p");
+    expect(h3_1080.source).toBe("estimated");
+    expect(h3_1080.usd).toBe(1.00);
+
+    const h3_with_refs = estimateProviderCostSync({
+      modelRef: "minimax/h3/reference-to-video",
+      providerName: "WaveSpeed",
+      durationSec: 4,
+      resolution: "768p",
+      referenceVideoDurationSec: 15,
+    });
+    expect(h3_with_refs.source).toBe("estimated");
+    expect(h3_with_refs.usd).toBe(1.90);
   });
 
   it("4. verifies Seedance 2.5 calibrated provider cost tariff", () => {

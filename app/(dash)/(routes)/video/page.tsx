@@ -412,6 +412,14 @@ function validateVideoDuration(file: File, minSec = 3, maxSec = 15): Promise<num
   });
 }
 
+async function readVideoDurationSeconds(file: File): Promise<number | null> {
+  try {
+    return await validateVideoDuration(file, 0.1, 60 * 60);
+  } catch {
+    return null;
+  }
+}
+
 async function fileToDataURL(file: File, maxPx = 1920, quality = 0.85): Promise<string> {
   // For non-image files (video) return raw data URL without compression
   if (!file.type.startsWith("image/")) {
@@ -1033,6 +1041,14 @@ function resolveFlux3Route(baseRoute: string, hasImageInput: boolean, hasStartEn
   if (hasStartEndInput) return "black-forest-labs/flux-3/start-end-to-video";
   if (hasImageInput) return "black-forest-labs/flux-3/image-to-video";
   return "black-forest-labs/flux-3/text-to-video";
+}
+
+function resolveMinimaxH3Route(baseRoute: string, hasImageInput: boolean, hasReferenceInput: boolean): string {
+  if (!baseRoute.startsWith("minimax/h3") && !baseRoute.startsWith("wavespeed-ai/minimax-h3") && baseRoute !== "minimax-h3") {
+    return baseRoute;
+  }
+  if (hasReferenceInput) return "wavespeed-ai/minimax-h3/reference-to-video";
+  return hasImageInput ? "wavespeed-ai/minimax-h3/image-to-video" : "wavespeed-ai/minimax-h3/text-to-video";
 }
 const MODEL_GROUPS = getModelGroups()
   .map((group) => ({
@@ -1766,6 +1782,27 @@ function VideoPageInner() {
     return () => urls.forEach((u) => {
       if (u) URL.revokeObjectURL(u);
     });
+  }, [referenceImages]);
+
+  const [referenceVideoDurations, setReferenceVideoDurations] = useState<number[]>([]);
+  useEffect(() => {
+    const videos = referenceImages.filter((file) => file.type.startsWith("video/"));
+    if (!videos.length) {
+      setReferenceVideoDurations([]);
+      return;
+    }
+
+    let cancelled = false;
+    Promise.all(videos.map(readVideoDurationSeconds)).then((durations) => {
+      if (cancelled) return;
+      setReferenceVideoDurations(
+        durations.filter((duration): duration is number => typeof duration === "number" && Number.isFinite(duration) && duration > 0),
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [referenceImages]);
 
   // Generation state
@@ -2504,13 +2541,16 @@ function VideoPageInner() {
         reference_video_urls: referenceImages.filter((file) => file.type.startsWith("video/")).map((_, index) => `video-${index}`),
       });
     }
-    const base = getGenerationCostSync(
-      selectedModel.api_route,
-      pricingDuration,
-      1,
-      resolution ?? undefined,
-    );
-    return base;
+    const hasMinimaxH3EstimateImage =
+      Boolean(startFrame || linkedStartFrameUrl || endFrame || linkedEndFrameUrl || selectedCharacter?.referenceUrls?.[0]);
+    const hasMinimaxH3EstimateReference =
+      referenceImages.length > 0 || (selectedCharacter?.referenceUrls?.length ?? 0) > 0;
+    const pricingRoute = resolveMinimaxH3Route(selectedModel.api_route, hasMinimaxH3EstimateImage, hasMinimaxH3EstimateReference);
+    return getVideoCreditsByRoute(pricingRoute, {
+      duration: pricingDuration,
+      resolution: resolution ?? undefined,
+      reference_video_durations: referenceVideoDurations,
+    });
   })();
 
   const handleGenerate = useCallback(async () => {
@@ -2559,7 +2599,28 @@ function VideoPageInner() {
       }
     }
 
-    const gate = await guardGeneration({ requiredCredits: estimatedCredits, action: `video:${selectedModel.api_route}` });
+    const refVids = referenceImages.filter((f) => f.type.startsWith("video/"));
+    let submitReferenceVideoDurations = referenceVideoDurations;
+    const isMinimaxH3Submit =
+      selectedModel.api_route.startsWith("minimax/h3") ||
+      selectedModel.api_route.startsWith("wavespeed-ai/minimax-h3") ||
+      selectedModel.api_route === "minimax-h3";
+    if (isMinimaxH3Submit && refVids.length > 0 && submitReferenceVideoDurations.length !== refVids.length) {
+      submitReferenceVideoDurations = (await Promise.all(refVids.map(readVideoDurationSeconds)))
+        .filter((duration): duration is number => typeof duration === "number" && Number.isFinite(duration) && duration > 0);
+    }
+    const requiredCredits = isMinimaxH3Submit
+      ? getVideoCreditsByRoute(
+          resolveMinimaxH3Route(selectedModel.api_route, Boolean(startFrame || linkedStartFrameUrl || endFrame || linkedEndFrameUrl || selectedCharacter?.referenceUrls?.[0]), referenceImages.length > 0 || (selectedCharacter?.referenceUrls?.length ?? 0) > 0),
+          {
+            duration: isVeo31FixedEightSecond ? 8 : (duration ?? (selectedModel.api_route === "google/gemini-omni-flash" ? 5 : isGoogleVeoModel ? 8 : 5)),
+            resolution: resolution ?? undefined,
+            reference_video_durations: submitReferenceVideoDurations,
+          },
+        )
+      : estimatedCredits;
+
+    const gate = await guardGeneration({ requiredCredits, action: `video:${selectedModel.api_route}` });
     if (!gate.ok) {
       if (gate.reason === "error") setGenerationError(gate.message ?? getSafeErrorMessage(gate.message));
       return;
@@ -2574,7 +2635,6 @@ function VideoPageInner() {
         return;
       }
     }
-    const refVids = referenceImages.filter((f) => f.type.startsWith("video/"));
     for (const vid of refVids) {
       try {
         await validateVideoDuration(vid, 3, 30);
@@ -2786,7 +2846,9 @@ function VideoPageInner() {
 
       const isSeedanceV25 = selectedModel.id.startsWith("bytedance-seedance-v25");
       const isSeedanceV2 = selectedModel.id.startsWith("bytedance-seedance-v2") || isSeedanceV25;
-      const isMinimaxH3 = selectedModel.api_route === "minimax/h3/reference-to-video";
+      const isMinimaxH3 =
+        selectedModel.api_route === "minimax/h3/reference-to-video" ||
+        selectedModel.api_route === "wavespeed-ai/minimax-h3/reference-to-video";
       const isKling30Video = isKling30Route(selectedModel.api_route);
       const isKlingElementModel = selectedModel.family === "kling" && caps.has_element_list;
       const isKling30StdImage =
@@ -2823,11 +2885,6 @@ function VideoPageInner() {
           setGenerationError(
             "Minimax H3 does not support audio-only references. Add at least one reference image or video with the audio."
           );
-          setIsSubmitting(false);
-          return;
-        }
-        if (isMinimaxH3 && imageCount === 0 && videoCount === 0) {
-          setGenerationError("Minimax H3 requires at least one reference image or reference video.");
           setIsSubmitting(false);
           return;
         }
@@ -2924,6 +2981,9 @@ function VideoPageInner() {
         payload.reference_video_urls = await Promise.all(
           refVids.slice(0, maxVids).map((f) => uploadVideoRequestFile(f, fetchWithAuth))
         );
+        if (isMinimaxH3Submit && submitReferenceVideoDurations.length > 0) {
+          payload.reference_video_durations = submitReferenceVideoDurations.slice(0, maxVids);
+        }
       }
 
       if (refAuds.length > 0) {
@@ -3258,6 +3318,13 @@ function VideoPageInner() {
           ((typeof payload.end_image === "string" && payload.end_image.trim()) || (typeof payload.last_image === "string" && payload.last_image.trim()) || (Array.isArray(payload.image_urls) && payload.image_urls[1]))
         );
         requestModelRoute = resolveFlux3Route(requestModelRoute, payloadHasImageInput, payloadHasStartEndInput, payloadHasVideoInput);
+      } else if (requestModelRoute.startsWith("minimax/h3") || requestModelRoute.startsWith("wavespeed-ai/minimax-h3") || requestModelRoute === "minimax-h3") {
+        const payloadHasH3ReferenceInput = Boolean(
+          (Array.isArray(payload.reference_image_urls) && payload.reference_image_urls.some((value) => typeof value === "string" && value.trim())) ||
+          (Array.isArray(payload.reference_video_urls) && payload.reference_video_urls.some((value) => typeof value === "string" && value.trim())) ||
+          (Array.isArray(payload.reference_audio_urls) && payload.reference_audio_urls.some((value) => typeof value === "string" && value.trim()))
+        );
+        requestModelRoute = resolveMinimaxH3Route(requestModelRoute, payloadHasImageInput, payloadHasH3ReferenceInput);
       } else if (requestModelRoute.includes("seedance")) {
         const hasDirectStart = Boolean(
           (typeof payload.image === "string" && payload.image.trim()) ||

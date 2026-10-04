@@ -655,7 +655,7 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
   const isKling30ImageRoute =
     route === "kwaivgi/kling-v3.0-std/image-to-video" ||
     route === "kwaivgi/kling-v3.0-pro/image-to-video";
-  const isMinimaxH3ReferenceRoute = route === "minimax/h3/reference-to-video";
+  const isMinimaxH3ReferenceRoute = route === "minimax/h3/reference-to-video" || route === "wavespeed-ai/minimax-h3/reference-to-video";
   const isKlingV3TurboImageRoute =
     route === "kwaivgi/kling-v3-turbo-std/image-to-video" ||
     route === "kwaivgi/kling-v3-turbo-pro/image-to-video";
@@ -709,10 +709,10 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
     if (typeof out.aspect_ratio === "string" && ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"].includes(out.aspect_ratio)) {
       exact.aspect_ratio = out.aspect_ratio;
     }
-    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "768p";
-    exact.resolution = resolution === "2k" ? "2k" : "768p";
+    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "480p";
+    exact.resolution = ["480p", "540p", "768p", "1080p"].includes(resolution) ? resolution : "480p";
     const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
-    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(4, duration)) : 5;
+    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(3, duration)) : 5;
     if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
     if (out.loop === true) exact.loop = true;
     return exact;
@@ -2597,7 +2597,7 @@ export async function POST(req: NextRequest) {
       } else {
         modelRoute = hasImageInput ? "minimax/hailuo-2.3/i2v-pro" : "minimax/hailuo-2.3/t2v-pro";
       }
-    } else if (modelRoute.startsWith("minimax/h3") || modelRoute === "minimax-h3") {
+    } else if (modelRoute.startsWith("minimax/h3") || modelRoute.startsWith("wavespeed-ai/minimax-h3") || modelRoute === "minimax-h3") {
       const hasReference = Boolean(
         hasNonEmptyStringList(payload.reference_image_urls) ||
         hasNonEmptyStringList(payload.referenceImageUrls) ||
@@ -2608,11 +2608,11 @@ export async function POST(req: NextRequest) {
       );
       const hasImg = Boolean(hasImage || hasNonEmptyString(payload.image) || hasNonEmptyString(payload.first_frame_url));
       if (hasReference) {
-        modelRoute = "minimax/h3/reference-to-video";
+        modelRoute = "wavespeed-ai/minimax-h3/reference-to-video";
       } else if (hasImg) {
-        modelRoute = "minimax/h3/image-to-video";
+        modelRoute = "wavespeed-ai/minimax-h3/image-to-video";
       } else {
-        modelRoute = "minimax/h3/text-to-video";
+        modelRoute = "wavespeed-ai/minimax-h3/text-to-video";
       }
     }
 
@@ -2831,7 +2831,7 @@ export async function POST(req: NextRequest) {
       (typeof payload.resolution === "string" ? payload.resolution : null) ||
       (typeof payload.quality === "string" ? payload.quality : null);
     const soundEnabled = payload.sound === true || payload.generate_audio === true;
-    const baseCost = (modelRoute.startsWith("bytedance/seedance") || modelRoute.includes("seedance"))
+    const baseCost = (modelRoute.startsWith("bytedance/seedance") || modelRoute.includes("seedance") || modelRoute.startsWith("wavespeed-ai/minimax-h3") || modelRoute.startsWith("minimax/h3") || modelRoute === "minimax-h3")
       ? await getVideoCreditsByRouteAsync(modelRoute, payload)
       : await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost).catch(() => 0);
     const creditsToCharge = baseCost;
@@ -3506,7 +3506,21 @@ export async function POST(req: NextRequest) {
       console.log(`[Provider Payload Audit] Payload:`, JSON.stringify(wsInput, null, 2));
       console.log(`[Provider Payload Audit] ---`);
 
-      const wsCostEst = estimateProviderCostSync(modelRoute, durationForCost, qualityForCost);
+      const referenceVideoDurationSec = Array.isArray(payload.reference_video_durations)
+        ? payload.reference_video_durations.reduce((sum, value) => {
+            const n = typeof value === "number" ? value : typeof value === "string" ? Number.parseFloat(value) : 0;
+            return Number.isFinite(n) && n > 0 ? sum + n : sum;
+          }, 0)
+        : 0;
+      const wsCostEst = estimateProviderCostSync({
+        modelRef: modelRoute,
+        providerName: "WaveSpeed",
+        providerRoute: wavespeedRoute,
+        durationSec: durationForCost,
+        quality: qualityForCost,
+        resolution: qualityForCost,
+        referenceVideoDurationSec,
+      });
 
       const charge = await spendCredits({
         userId,
