@@ -12,6 +12,37 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function getClerkEmail(cu: any): string | null {
+  const primaryId = cu?.primaryEmailAddressId;
+  const primary = cu?.primaryEmailAddress?.emailAddress;
+  if (typeof primary === "string" && primary.includes("@")) return primary;
+  const emails = Array.isArray(cu?.emailAddresses) ? cu.emailAddresses : [];
+  const matched = emails.find((entry: any) => entry?.id === primaryId)?.emailAddress;
+  if (typeof matched === "string" && matched.includes("@")) return matched;
+  const first = emails.find((entry: any) => typeof entry?.emailAddress === "string" && entry.emailAddress.includes("@"))?.emailAddress;
+  return typeof first === "string" ? first : null;
+}
+
+function getClerkName(cu: any): string | null {
+  const fullName = [cu?.firstName, cu?.lastName].filter(Boolean).join(" ").trim();
+  if (fullName) return fullName;
+  if (typeof cu?.fullName === "string" && cu.fullName.trim()) return cu.fullName.trim();
+  if (typeof cu?.username === "string" && cu.username.trim()) return cu.username.trim();
+  return null;
+}
+
+function isFallbackEmail(email: string | null | undefined, userId: string): boolean {
+  const normalized = String(email ?? "").trim().toLowerCase();
+  if (!normalized || !normalized.includes("@")) return true;
+  return normalized === `${userId.toLowerCase()}@unknown` || normalized.endsWith("@unknown");
+}
+
+function unwrapClerkUserList(value: unknown): any[] {
+  if (Array.isArray(value)) return value;
+  const data = (value as any)?.data;
+  return Array.isArray(data) ? data : [];
+}
+
 export async function GET(req: NextRequest) {
   if (!(await isAdmin())) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -117,12 +148,29 @@ export async function GET(req: NextRequest) {
       where.creditBalance = { lte: 0 };
     }
 
-    // Search Query (case-insensitive name, email, phone)
+    // Search Query (case-insensitive DB name/email/phone + exact Clerk email fallback)
     if (search) {
+      let clerkSearchUserIds: string[] = [];
+      if (search.includes("@")) {
+        try {
+          const clerk = await clerkClient();
+          const clerkRes = await clerk.users.getUserList({
+            emailAddress: [search.toLowerCase()],
+            limit: 10,
+          } as any);
+          clerkSearchUserIds = unwrapClerkUserList(clerkRes)
+            .map((cu) => cu?.id)
+            .filter((id): id is string => typeof id === "string" && id.length > 0);
+        } catch (clerkErr) {
+          console.warn("[admin/users] Clerk email search fallback failed:", clerkErr);
+        }
+      }
+
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
         { email: { contains: search, mode: "insensitive" } },
         { phone: { contains: search, mode: "insensitive" } },
+        ...(clerkSearchUserIds.length > 0 ? [{ id: { in: clerkSearchUserIds } }] : []),
       ];
     }
 
@@ -172,7 +220,7 @@ export async function GET(req: NextRequest) {
     const nowTime = now.getTime();
 
     // 6. Single Batched Clerk Presence Lookup (Zero N+1)
-    const clerkPresenceMap = new Map<string, { lastActiveAt: number | null }>();
+    const clerkPresenceMap = new Map<string, { lastActiveAt: number | null; email: string | null; name: string | null }>();
     let clerkLookupFailed = false;
 
     if (pageUserIds.length > 0) {
@@ -183,10 +231,12 @@ export async function GET(req: NextRequest) {
           limit: pageUserIds.length,
         });
 
-        const clerkUsers = Array.isArray(clerkRes) ? clerkRes : (clerkRes as any).data ?? [];
+        const clerkUsers = unwrapClerkUserList(clerkRes);
         for (const cu of clerkUsers) {
           clerkPresenceMap.set(cu.id, {
             lastActiveAt: cu.lastActiveAt ?? null,
+            email: getClerkEmail(cu),
+            name: getClerkName(cu),
           });
         }
       } catch (clerkErr) {
@@ -218,6 +268,12 @@ export async function GET(req: NextRequest) {
       const clerkData = clerkPresenceMap.get(u.id);
       const lastActiveAt = clerkData ? clerkData.lastActiveAt : null;
       const presence = resolvePresenceState(lastActiveAt, nowTime, clerkLookupFailed);
+      const displayEmail = isFallbackEmail(u.email, u.id)
+        ? clerkData?.email ?? u.email
+        : u.email;
+      const displayName = !u.name || u.name === "User"
+        ? clerkData?.name ?? u.name
+        : u.name;
 
       const statusCategory = resolveUserStatusCategory(
         {
@@ -234,8 +290,8 @@ export async function GET(req: NextRequest) {
 
       return {
         id: u.id,
-        name: u.name,
-        email: u.email,
+        name: displayName,
+        email: displayEmail,
         phone: u.phone,
         creditBalance: effective.effectiveBalance,
         rawCreditBalance: u.creditBalance,

@@ -22,6 +22,8 @@ describe("Admin Users Backend Foundation Safety Suite", () => {
       expect(content).toContain("name: { contains: search");
       expect(content).toContain("email: { contains: search");
       expect(content).toContain("phone: { contains: search");
+      expect(content).toContain("emailAddress: [search.toLowerCase()]");
+      expect(content).toContain("id: { in: clerkSearchUserIds }");
     });
 
     it("verifies status filters for subscriber, annual, free, and banned", () => {

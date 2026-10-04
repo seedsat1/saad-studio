@@ -7,6 +7,31 @@ import { handleCreditExpiry, preserveExpiryOrFresh, tryCreateCreditLedgerEntry }
 
 export const dynamic = "force-dynamic";
 
+function getClerkEmail(cu: any): string | null {
+  const primaryId = cu?.primaryEmailAddressId;
+  const primary = cu?.primaryEmailAddress?.emailAddress;
+  if (typeof primary === "string" && primary.includes("@")) return primary;
+  const emails = Array.isArray(cu?.emailAddresses) ? cu.emailAddresses : [];
+  const matched = emails.find((entry: any) => entry?.id === primaryId)?.emailAddress;
+  if (typeof matched === "string" && matched.includes("@")) return matched;
+  const first = emails.find((entry: any) => typeof entry?.emailAddress === "string" && entry.emailAddress.includes("@"))?.emailAddress;
+  return typeof first === "string" ? first : null;
+}
+
+function getClerkName(cu: any): string | null {
+  const fullName = [cu?.firstName, cu?.lastName].filter(Boolean).join(" ").trim();
+  if (fullName) return fullName;
+  if (typeof cu?.fullName === "string" && cu.fullName.trim()) return cu.fullName.trim();
+  if (typeof cu?.username === "string" && cu.username.trim()) return cu.username.trim();
+  return null;
+}
+
+function isFallbackEmail(email: string | null | undefined, userId: string): boolean {
+  const normalized = String(email ?? "").trim().toLowerCase();
+  if (!normalized || !normalized.includes("@")) return true;
+  return normalized === `${userId.toLowerCase()}@unknown` || normalized.endsWith("@unknown");
+}
+
 // Helper: ensure user row exists in our DB — upsert to avoid unique constraint issues
 async function ensureUserRow(userId: string) {
   const existing = await prismadb.user.findUnique({ where: { id: userId } });
@@ -106,6 +131,18 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    const clerk = await clerkClient();
+    const clerkUser = await clerk.users.getUser(targetUserId).catch(() => null);
+    const displayUser = {
+      ...user,
+      email: isFallbackEmail(user.email, user.id)
+        ? getClerkEmail(clerkUser) ?? user.email
+        : user.email,
+      name: !user.name || user.name === "User"
+        ? getClerkName(clerkUser) ?? user.name
+        : user.name,
+    };
+
     // Try to load recent ledger entries (best-effort)
     let ledgerEntries: any[] = [];
     try {
@@ -128,7 +165,7 @@ export async function GET(
     );
 
     return NextResponse.json({
-      user,
+      user: displayUser,
       subscription: subscription ? { ...subscription, isSubscriber } : null,
       recentTransactions: transactions,
       recentLedger: ledgerEntries,

@@ -16227,3 +16227,19 @@
 - Safety: invalid reference image URLs are filtered from WaveSpeed reference lists; if a supplied list contains no valid image after validation, the request fails before dispatch. No pricing, credits, provider routing, auth, model registry, or media UI behavior changed.
 - Verification: `npm test -- --run test/public-url-resolver-media-kind.test.ts` passed 2/2. `tsc --noEmit --pretty false` still fails only on known pre-existing/out-of-scope errors already present in `.next/types`, drama/explore pages, and unrelated image/video inline charge typings.
 - Files changed: `lib/media/public-url-resolver.ts`, `app/api/video/route.ts`, `test/public-url-resolver-media-kind.test.ts`, plus this memory file and the Arabic reference doc.
+
+## Admin Users Clerk email fallback (2026-10-04)
+
+- Request: investigate why `/admin/users` shows `user_...` instead of subscriber emails.
+- Root cause: the admin list used only `User.email` from Postgres. Some rows were created while Clerk lookup was unavailable and therefore kept fallback email values such as `${userId}@unknown`, so the UI displayed a truncated Clerk user id rather than the real email.
+- Fix: the admin users list now reuses the existing batched Clerk lookup to derive a display email/name when the DB email is missing or fallback. The user inspector route applies the same display fallback. The database row is not mutated by this read model change.
+- Verification: `npm test -- --run test/admin-users-backend-safety.test.ts test/admin-users-visuals.test.ts` passed 18/18. `tsc --noEmit --pretty false` still fails only on known unrelated errors outside the admin users routes.
+- Files changed: `app/api/admin/users/route.ts`, `app/api/admin/users/[userId]/route.ts`, plus this memory file.
+
+## Admin Users search Clerk email fallback (2026-10-04)
+
+- Follow-up: the account email visible in the user menu, e.g. `actionarena8@gmail.com`, may still not appear in `/admin/users` search when the Postgres `User.email` row is a fallback value.
+- Fix: `/api/admin/users` now augments email searches with an exact Clerk `emailAddress` lookup and includes matched Clerk user IDs in the existing Prisma search OR. Display still prefers Clerk email/name only when DB identity is missing or fallback.
+- Scope: read-model/search only. No DB mutation, auth, credits, subscription, billing, or generation behavior changed.
+- Verification: `npm test -- --run test/admin-users-backend-safety.test.ts test/admin-users-visuals.test.ts` passed 18/18.
+- Files changed: `app/api/admin/users/route.ts`, `test/admin-users-backend-safety.test.ts`, plus this memory file.
