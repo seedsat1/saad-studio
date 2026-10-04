@@ -68,8 +68,13 @@ describe("LipSync Models Integration Contract", () => {
   it("keeps model-specific lip-sync validations in API", () => {
     const routeCode = read(audioRoutePath);
 
-    expect(routeCode).toContain("if (normalized === WS_LIPSYNC_MODEL) return KIE_SEEDANCE_2_FAST_MODEL;");
+    expect(routeCode).toContain("if (normalized === WS_LIPSYNC_MODEL) return WS_LIPSYNC_MODEL;");
+    expect(routeCode).not.toContain("if (normalized === WS_LIPSYNC_MODEL) return KIE_SEEDANCE_2_FAST_MODEL;");
+    expect(routeCode).toContain('const lipSyncUsesWaveSpeed = lipSyncModelForProviderGate === WS_LIPSYNC_MODEL;');
+    expect(routeCode).toContain('const lipSyncUsesWaveSpeedForLedger = actionType === "lip-sync" && modelUsedForLedger === WS_LIPSYNC_MODEL;');
+    expect(routeCode).toContain("runWaveSpeed(\n          WS_LIPSYNC_MODEL");
     expect(routeCode).toContain("Fields 'imageUrl' and 'audioUrl' are required for selected lip-sync model.");
+    expect(routeCode).toContain("Fields 'videoUrl' and 'audioUrl' are required for LipSync 3.");
     expect(routeCode).toContain("Field 'prompt' is required for selected lip-sync model.");
     expect(routeCode).toContain("Provide prompt or media references for seedance lip-sync model.");
   });

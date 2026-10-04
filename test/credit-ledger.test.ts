@@ -7,6 +7,9 @@ const {
   mockUserSubscriptionFindUnique,
   mockGenerationUpdate,
   mockGenerationUpdateMany,
+  mockGenerationCreate,
+  mockProviderUsageRecordCreate,
+  mockGenerationRequestSnapshotCreate,
   mockCreditLedgerEntryCreate,
 } = vi.hoisted(() => {
   return {
@@ -16,6 +19,9 @@ const {
     mockUserSubscriptionFindUnique: vi.fn(async () => null),
     mockGenerationUpdate: vi.fn(async () => ({})),
     mockGenerationUpdateMany: vi.fn(async () => ({ count: 1 })),
+    mockGenerationCreate: vi.fn(async () => ({ id: "gen_reference" })),
+    mockProviderUsageRecordCreate: vi.fn(async () => ({ id: "usage_reference" })),
+    mockGenerationRequestSnapshotCreate: vi.fn(async () => ({})),
     mockCreditLedgerEntryCreate: vi.fn(async () => ({})),
   };
 });
@@ -32,9 +38,16 @@ const tx = {
     findMany: vi.fn(async () => []),
   },
   generation: {
+    create: mockGenerationCreate,
     findUnique: vi.fn(async () => ({ id: "g1", cost: 10, isFlagged: false })),
     update: mockGenerationUpdate,
     updateMany: mockGenerationUpdateMany,
+  },
+  providerUsageRecord: {
+    create: mockProviderUsageRecordCreate,
+  },
+  generationRequestSnapshot: {
+    create: mockGenerationRequestSnapshotCreate,
   },
   creditLedgerEntry: {
     create: mockCreditLedgerEntryCreate,
@@ -46,13 +59,18 @@ vi.mock("@/lib/prismadb", () => {
     default: {
       $transaction: async (fn: any) => await fn(tx),
       generation: {
+        create: mockGenerationCreate,
         update: vi.fn(async () => ({})),
         updateMany: vi.fn(async () => ({})),
         findUnique: vi.fn(async () => null),
         findMany: vi.fn(async () => []),
       },
       providerUsageRecord: {
+        create: mockProviderUsageRecordCreate,
         updateMany: vi.fn(async () => ({})),
+      },
+      generationRequestSnapshot: {
+        create: mockGenerationRequestSnapshotCreate,
       },
       user: {
         findUnique: mockUserFindUnique,
@@ -90,6 +108,7 @@ import {
   requestAnnualCreditAdvance,
   setActualProviderUsage,
   setGenerationCompletedWithoutMedia,
+  spendCredits,
 } from "@/lib/credit-ledger";
 
 describe("credit-ledger policy + refunds", () => {
@@ -211,6 +230,40 @@ describe("credit-ledger policy + refunds", () => {
     expect(prismadb.providerUsageRecord.updateMany).toHaveBeenCalledWith({
       where: { generationId: "gen_transcript" },
       data: { status: "completed" },
+    });
+  });
+
+  it("spendCredits records reference-only video requests as reference-to-video", async () => {
+    mockUserFindUnique.mockResolvedValue({ creditBalance: 100 });
+    mockUserUpdateMany.mockResolvedValue({ count: 1 });
+    mockGenerationCreate.mockResolvedValueOnce({ id: "gen_reference" });
+
+    await spendCredits({
+      userId: "u1",
+      credits: 51,
+      prompt: "Prompt with character and decor references",
+      assetType: "VIDEO",
+      modelUsed: "bytedance/seedance-2.5/text-to-video-turbo",
+      providerName: "WaveSpeed",
+      providerModel: "bytedance/seedance-2.5/text-to-video-turbo",
+      requestPayload: {
+        prompt: "Prompt with character and decor references",
+        reference_image_urls: ["https://cdn.example.com/character.jpg", "https://cdn.example.com/decor.jpg"],
+        reference_video_urls: [
+          "https://cdn.example.com/ref-1.mp4",
+          "https://cdn.example.com/ref-2.mp4",
+          "https://cdn.example.com/ref-3.mp4",
+          "https://cdn.example.com/ref-4.mp4",
+        ],
+      },
+    });
+
+    expect(mockGenerationRequestSnapshotCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        generationId: "gen_reference",
+        generationType: "reference-to-video",
+        inputType: "reference",
+      }),
     });
   });
 

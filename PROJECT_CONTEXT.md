@@ -16243,3 +16243,38 @@
 - Scope: read-model/search only. No DB mutation, auth, credits, subscription, billing, or generation behavior changed.
 - Verification: `npm test -- --run test/admin-users-backend-safety.test.ts test/admin-users-visuals.test.ts` passed 18/18.
 - Files changed: `app/api/admin/users/route.ts`, `test/admin-users-backend-safety.test.ts`, plus this memory file.
+
+## User-facing provider outage messages (2026-10-04)
+
+- Request: investigate why the Lipsync page exposed `KIE provider is not active for generation execution` even though the subscriber is using Saad Studio, not the internal provider directly.
+- Root cause: disabled final-provider guards in the audio/video generation routes returned internal provider labels (`KIE`, `BytePlus`, `WaveSpeed`, `Google`) in public JSON `error` fields. The Lipsync UI displayed that backend message directly.
+- Fix: public disabled/unconfigured provider responses now use generic Saad Studio service wording while preserving the existing internal guard checks, HTTP 503 behavior, and error codes. The server no longer includes the internal provider id in the public inactive-provider response body.
+- Scope: message hygiene only. No provider routing, auth, billing, credits, model registry, or execution activation changed.
+- Verification: `npm test -- --run test/final-generation-runtime-safety.test.ts test/runtime-safety.test.ts` passed 2 files / 6 tests.
+- Files changed: `app/api/generate/audio/route.ts`, `app/api/video/route.ts`, `lib/generation/runtime-safety.ts`, `test/final-generation-runtime-safety.test.ts`, plus this memory file and the Arabic reference doc.
+
+## LipSync 3 WaveSpeed routing fix (2026-10-04)
+
+- Follow-up: hiding the internal provider name was not enough; the real `/lipsync` failure happened because `sync/lipsync-3` was resolved to the KIE Seedance fallback route and then blocked when KIE was inactive.
+- Fix: `sync/lipsync-3` now remains on its native WaveSpeed route. The audio generation route gates this model on WaveSpeed readiness, validates `video`/`audio` input, dispatches `POST /api/v3/sync/lipsync-3` through the existing WaveSpeed helper with `video`, `audio`, and `sync_mode`, and records provider/routing metadata as WaveSpeed.
+- Legacy KIE-specific lip-sync models still use the existing KIE paths when explicitly selected. No pricing, credit deduction, auth, or model registry behavior changed.
+- Provider reference checked: WaveSpeed `sync/lipsync-3` documents required `video` and `audio`, optional `sync_mode`, and the `POST https://api.wavespeed.ai/api/v3/sync/lipsync-3` endpoint.
+- Verification: `npm test -- --run test/lipsync-models.integration.test.ts test/final-generation-runtime-safety.test.ts test/runtime-safety.test.ts` passed 3 files / 10 tests. No paid provider generation was executed.
+- Files changed: `app/api/generate/audio/route.ts`, `test/lipsync-models.integration.test.ts`, plus prior provider-message hygiene files and documentation updates in this working tree.
+
+## Seedance reference-video routing fix (2026-10-04)
+
+- Request: review the subscriber-facing `/video` models and fix the issue where a subscriber using a prompt plus character/decor/color images and four videos was told Seedance does not allow references.
+- Root cause: `/api/video` dynamic sub-route dispatch counted `reference_video_urls` / `referenceVideoUrls` as direct video input. For unified models such as Seedance 2.5, that could select the direct video/extend route before the reference route, even though reference videos should stay on the text/reference route.
+- Fix: dynamic video input detection now treats only direct `video`, `video_url`, or `videoUrl` as direct video input. `reference_video_urls` remain reference media and can select the model `reference_api_route`/text-reference route.
+- Effect: Seedance 2.5 prompt/reference generation remains on `bytedance/seedance-2.5/text-to-video-turbo` for prompts with reference images/videos/audios. Direct Start/End frames remain separate from References and still cannot be mixed in one Seedance request.
+- Verification: `npm test -- --run test/seedance-reference-video-routing.test.ts test/model-capability-badges.test.ts` passed 2 files / 11 tests. A broader run including `test/start-end-frames-contract.test.ts` still fails on pre-existing/out-of-scope assertions expecting `end_image` mirroring for Seedance start/end mapping.
+- Files changed: `app/api/video/route.ts`, `test/seedance-reference-video-routing.test.ts`, plus this memory file and the Arabic reference doc.
+
+## Seedance reference generation history classification fix (2026-10-04)
+
+- Follow-up to failed admin history cards labeled `Image to Video`: reference-only Seedance requests were being classified by `credit-ledger` as `image-to-video` because `reference_image_urls` counted as image input and `reference_video_urls` counted as video input.
+- Fix: request snapshot inference now distinguishes direct source media from reference media. Direct image/start-frame input remains `image-to-video`; reference-only video generations are stored as `reference-to-video` with `inputType: reference`.
+- This aligns admin/history cards with the corrected routing: prompt + reference images/videos/audios for Seedance 2.5 is Reference/Text generation, not Image-to-Video. No billing, credit amount, auth, or provider execution behavior changed.
+- Verification: `npm test -- --run test/seedance-reference-video-routing.test.ts test/credit-ledger.test.ts test/model-capability-badges.test.ts` passed 3 files / 22 tests.
+- Files changed additionally: `lib/credit-ledger.ts`, `test/credit-ledger.test.ts`.

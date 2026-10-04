@@ -1,4 +1,4 @@
-import { getProviderRegistryEntry, isProviderRoutingAllowed, type ProviderRegistryId } from "@/lib/provider-registry";
+import { isProviderRoutingAllowed, type ProviderRegistryId } from "@/lib/provider-registry";
 
 export class ProviderExecutionBlockedError extends Error {
   provider: ProviderRegistryId;
@@ -6,9 +6,7 @@ export class ProviderExecutionBlockedError extends Error {
   code: string;
 
   constructor(provider: ProviderRegistryId) {
-    const entry = getProviderRegistryEntry(provider);
-    const label = entry?.shortName ?? provider;
-    super(`${label} is not active for generation execution.`);
+    super("Generation service is not active for execution.");
     this.name = "ProviderExecutionBlockedError";
     this.provider = provider;
     this.status = 503;

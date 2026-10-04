@@ -50,12 +50,13 @@ const GOOGLE_VEO3_ROUTE = "google/veo3-text-to-video";
 const LEGACY_GEMINI_OMNI_VIDEO_ROUTE = "google/gemini-omni-video";
 const BYTEPLUS_ARK_BASE = (process.env.BYTEPLUS_ARK_BASE_URL || "https://ark.ap-southeast.bytepluses.com/api/v3").replace(/\/+$/, "");
 const BYTEPLUS_CONTENT_TASKS_URL = `${BYTEPLUS_ARK_BASE}/contents/generations/tasks`;
+const GENERATION_SERVICE_UNAVAILABLE_MESSAGE = "This generation service is temporarily unavailable. Please try again later.";
+const GENERATION_SERVICE_NOT_CONFIGURED_MESSAGE = "This generation service is not configured for execution right now.";
 
-function providerNotActiveResponse(provider: "byteplus" | "kie", extra?: Record<string, unknown>) {
+function providerNotActiveResponse(_provider: "byteplus" | "kie", extra?: Record<string, unknown>) {
   return {
-    error: `${provider === "byteplus" ? "BytePlus" : "KIE"} provider is not active for generation execution.`,
+    error: GENERATION_SERVICE_UNAVAILABLE_MESSAGE,
     code: "provider_not_active",
-    provider,
     ...extra,
   };
 }
@@ -2513,8 +2514,8 @@ export async function POST(req: NextRequest) {
     if (dynamicVideoModel) {
       const dynamicHasVideoInput =
         (typeof payload.video === "string" && payload.video.trim().length > 0) ||
-        hasNonEmptyStringList(payload.reference_video_urls) ||
-        hasNonEmptyStringList(payload.referenceVideoUrls);
+        hasNonEmptyString(payload.video_url) ||
+        hasNonEmptyString(payload.videoUrl);
       const dynamicHasStartEndInput =
         (Boolean(payload.start_image) && Boolean(payload.end_image)) ||
         (Array.isArray(payload.image_urls) && payload.image_urls.length >= 2 && Boolean(payload.has_end_frame));
@@ -3590,7 +3591,7 @@ export async function POST(req: NextRequest) {
 
     // KIE path
     if (!isFinalProviderExecutionAllowed("kie")) {
-      const responseJson = providerNotActiveResponse("kie", { modelRoute, providerModel: kieModel });
+      const responseJson = providerNotActiveResponse("kie", { modelRoute });
       await completeIdempotency({
         userId,
         route: IDEMPOTENCY_ROUTE,
@@ -3604,7 +3605,7 @@ export async function POST(req: NextRequest) {
 
     const kieKey = getKieKeyFromEnv();
     if (!kieKey) {
-      const responseJson = { error: "KIE provider is not configured.", code: "kie_key_missing" };
+      const responseJson = { error: GENERATION_SERVICE_NOT_CONFIGURED_MESSAGE, code: "kie_key_missing" };
       await completeIdempotency({ userId, route: IDEMPOTENCY_ROUTE, key: idempotencyKey, generationId, responseStatus: 503, responseJson });
       return NextResponse.json(responseJson, { status: 503 });
     }
@@ -4190,7 +4191,7 @@ export async function GET(req: Request) {
 
       const kieKey = getKieKeyFromEnv();
       if (!kieKey) {
-        return NextResponse.json({ error: "KIE provider is not configured.", code: "kie_key_missing" }, { status: 503 });
+        return NextResponse.json({ error: GENERATION_SERVICE_NOT_CONFIGURED_MESSAGE, code: "kie_key_missing" }, { status: 503 });
       }
       const veoVariant = taskId.startsWith("veo4k:") ? "4k" : taskId.startsWith("veo1080:") ? "1080p" : "base";
       const veoTaskId = taskId.replace(/^veo(?:1080|4k)?:/, "");
@@ -4295,7 +4296,7 @@ export async function GET(req: Request) {
 
     const kieKey = getKieKeyFromEnv();
     if (!kieKey) {
-      return NextResponse.json({ error: "KIE provider is not configured.", code: "kie_key_missing" }, { status: 503 });
+      return NextResponse.json({ error: GENERATION_SERVICE_NOT_CONFIGURED_MESSAGE, code: "kie_key_missing" }, { status: 503 });
     }
     const pollRes = await fetch(`${KIE_BASE}/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`, {
       method: "GET",

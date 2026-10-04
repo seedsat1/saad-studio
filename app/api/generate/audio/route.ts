@@ -18,13 +18,12 @@ const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const KIE_BASE_URL = "https://api.kie.ai/api/v1";
 const KIE_FILE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-base64-upload";
 const IDEMPOTENCY_ROUTE = "generate:audio";
+const GENERATION_SERVICE_UNAVAILABLE_MESSAGE = "This generation service is temporarily unavailable. Please try again later.";
 
-function providerNotActiveResponse(provider: "kie" | "wavespeed" | "google") {
-  const label = provider === "kie" ? "KIE" : provider === "wavespeed" ? "WaveSpeed" : "Google";
+function providerNotActiveResponse(_provider: "kie" | "wavespeed" | "google") {
   return {
-    error: `${label} provider is not active for generation execution.`,
+    error: GENERATION_SERVICE_UNAVAILABLE_MESSAGE,
     code: "provider_not_active",
-    provider,
   };
 }
 
@@ -292,8 +291,7 @@ function resolveLipSyncModel(model?: string): string {
   if (normalized === "kling-ai-avatar-pro" || normalized === "kling/ai-avatar-pro") return KIE_AI_AVATAR_PRO_MODEL;
   if (normalized === KIE_SEEDANCE_2_MODEL) return KIE_SEEDANCE_2_MODEL;
   if (normalized === KIE_SEEDANCE_2_FAST_MODEL) return KIE_SEEDANCE_2_FAST_MODEL;
-  // Route WaveSpeed-only lip-sync selection to a KIE equivalent.
-  if (normalized === WS_LIPSYNC_MODEL) return KIE_SEEDANCE_2_FAST_MODEL;
+  if (normalized === WS_LIPSYNC_MODEL) return WS_LIPSYNC_MODEL;
   return KIE_AI_AVATAR_PRO_MODEL;
 }
 
@@ -1172,7 +1170,20 @@ export async function POST(req: NextRequest) {
     }
     if (actionType === "lip-sync") {
       const lipSyncModel = resolveLipSyncModel(body.model);
-      if (lipSyncModel === KIE_FROM_AUDIO_MODEL || lipSyncModel === KIE_AI_AVATAR_PRO_MODEL) {
+      if (lipSyncModel === WS_LIPSYNC_MODEL) {
+        const sourceVideoUrl = body.videoUrl?.trim() || body.imageUrl?.trim();
+        if (!sourceVideoUrl || !body.audioUrl?.trim()) {
+          return NextResponse.json(
+            { error: "Fields 'videoUrl' and 'audioUrl' are required for LipSync 3." },
+            { status: 400 },
+          );
+        }
+        const validVideo = sourceVideoUrl.startsWith("data:") || isSafePublicHttpUrl(sourceVideoUrl);
+        const validAudio = body.audioUrl.startsWith("data:") || isSafePublicHttpUrl(body.audioUrl);
+        if (!validVideo || !validAudio) {
+          return NextResponse.json({ error: "Invalid videoUrl or audioUrl." }, { status: 400 });
+        }
+      } else if (lipSyncModel === KIE_FROM_AUDIO_MODEL || lipSyncModel === KIE_AI_AVATAR_PRO_MODEL) {
         if (!body.imageUrl?.trim() || !body.audioUrl?.trim()) {
           return NextResponse.json(
             { error: "Fields 'imageUrl' and 'audioUrl' are required for selected lip-sync model." },
@@ -1222,10 +1233,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if ((actionType === "speech-to-text" || actionType === "audio-isolation" || actionType === "lip-sync") && !hasActiveKie(kieKey)) {
+    const lipSyncModelForProviderGate = actionType === "lip-sync" ? resolveLipSyncModel(body.model) : null;
+    const lipSyncUsesWaveSpeed = lipSyncModelForProviderGate === WS_LIPSYNC_MODEL;
+    if ((actionType === "speech-to-text" || actionType === "audio-isolation" || (actionType === "lip-sync" && !lipSyncUsesWaveSpeed)) && !hasActiveKie(kieKey)) {
       return NextResponse.json(providerNotActiveResponse("kie"), { status: 503 });
     }
-    if ((actionType === "video2audio" || actionType === "voice-changer" || actionType === "dubbing") && !hasActiveWaveSpeedFallback(wavespeedKey)) {
+    if ((actionType === "video2audio" || actionType === "voice-changer" || actionType === "dubbing" || (actionType === "lip-sync" && lipSyncUsesWaveSpeed)) && !hasActiveWaveSpeedFallback(wavespeedKey)) {
       return NextResponse.json(providerNotActiveResponse("wavespeed"), { status: 503 });
     }
     if (actionType === "tts") {
@@ -1296,14 +1309,17 @@ export async function POST(req: NextRequest) {
               : actionType === "audio-isolation"
                 ? KIE_AUDIO_ISOLATION_MODEL
             : resolveWaveSpeedMusicModel(body.model);
+    const lipSyncUsesWaveSpeedForLedger = actionType === "lip-sync" && modelUsedForLedger === WS_LIPSYNC_MODEL;
     const generationRequestPayload =
       actionType === "lip-sync"
         ? {
             routing: {
-              routingSource: "legacy_fallback",
-              effectiveProvider: "kie",
+              routingSource: lipSyncUsesWaveSpeedForLedger ? "native_model_route" : "legacy_fallback",
+              effectiveProvider: lipSyncUsesWaveSpeedForLedger ? "wavespeed" : "kie",
               providerRoute: modelUsedForLedger,
-              routingReason: "Lip-sync currently executes the KIE-specific upload/task path; KIE is standby in Routing Control.",
+              routingReason: lipSyncUsesWaveSpeedForLedger
+                ? "LipSync 3 executes on its native WaveSpeed route."
+                : "Legacy lip-sync model executes the KIE-specific upload/task path.",
             },
           }
         : undefined;
@@ -1685,6 +1701,38 @@ export async function POST(req: NextRequest) {
     }
     if (actionType === "lip-sync") {
       const lipSyncModel = resolveLipSyncModel(body.model);
+
+      if (lipSyncModel === WS_LIPSYNC_MODEL) {
+        if (!hasActiveWaveSpeedFallback(wavespeedKey)) {
+          throw new Error("WaveSpeed API key is required for LipSync 3.");
+        }
+        const sourceVideoUrl = body.videoUrl?.trim() || body.imageUrl?.trim();
+        if (!sourceVideoUrl || !body.audioUrl?.trim()) {
+          throw new Error("LipSync 3 requires videoUrl and audioUrl.");
+        }
+        const normalizedVideoUrl = sourceVideoUrl.startsWith("data:")
+          ? await uploadDataUrlToWaveSpeed(sourceVideoUrl, wavespeedKey!)
+          : sourceVideoUrl;
+        const normalizedAudioUrl = body.audioUrl.startsWith("data:")
+          ? await uploadDataUrlToWaveSpeed(body.audioUrl, wavespeedKey!)
+          : body.audioUrl;
+
+        await markProviderDispatched();
+        const videoUrl = await runWaveSpeed(
+          WS_LIPSYNC_MODEL,
+          {
+            video: normalizedVideoUrl,
+            audio: normalizedAudioUrl,
+            sync_mode: body.sync_mode || "cut_off",
+          },
+          wavespeedKey!,
+        );
+
+        if (generationId) {
+          await setGenerationMediaUrl(generationId, videoUrl);
+        }
+        return await finalize({ videoUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, 200);
+      }
 
       if (!kieKey) {
         throw new Error("KIE API key is required for selected lip-sync model.");

@@ -585,7 +585,7 @@ async function createRequestSnapshot(
       if (!generationType) {
         generationType = payload.generation_type ?? payload.generationType ?? payload.type ?? null;
         if (!generationType) {
-          const hasImage = !!(
+          const hasDirectImage = !!(
             payload.image_url ??
             payload.imageUrl ??
             payload.image ??
@@ -594,16 +594,22 @@ async function createRequestSnapshot(
             payload.firstFrameUrl ??
             payload.start_image ??
             payload.startImage ??
-            payload.reference_image_urls ??
-            payload.referenceImageUrls ??
             payload.imageUrls ??
             payload.imageUrlList
           );
+          const hasReferences = !!(
+            payload.reference_image_urls ??
+            payload.referenceImageUrls ??
+            payload.reference_video_urls ??
+            payload.referenceVideoUrls ??
+            payload.reference_audio_urls ??
+            payload.referenceAudioUrls
+          );
           const isVideo = String(input.assetType || "").toLowerCase().includes("video");
           if (isVideo) {
-            generationType = hasImage ? "image-to-video" : "text-to-video";
+            generationType = hasDirectImage ? "image-to-video" : hasReferences ? "reference-to-video" : "text-to-video";
           } else {
-            generationType = hasImage ? "image-to-image" : "text-to-image";
+            generationType = hasDirectImage ? "image-to-image" : "text-to-image";
           }
         }
       }
@@ -625,24 +631,29 @@ async function createRequestSnapshot(
       }
       // inputType
       if (!inputType) {
-        const hasVideo = !!(
+        const hasDirectVideo = !!(
           payload.videoUrl ??
           payload.video_url ??
-          payload.video ??
-          payload.reference_video_urls ??
-          payload.referenceVideoUrls
+          payload.video
         );
-        const hasImage = !!(
+        const hasDirectImage = !!(
           payload.imageUrl ??
           payload.image_url ??
           payload.image ??
-          payload.reference_image_urls ??
-          payload.referenceImageUrls ??
           payload.first_frame_url ??
           payload.firstFrameUrl
         );
-        if (hasVideo) inputType = "video";
-        else if (hasImage) inputType = "image";
+        const hasReferences = !!(
+          payload.reference_image_urls ??
+          payload.referenceImageUrls ??
+          payload.reference_video_urls ??
+          payload.referenceVideoUrls ??
+          payload.reference_audio_urls ??
+          payload.referenceAudioUrls
+        );
+        if (hasDirectVideo) inputType = "video";
+        else if (hasDirectImage) inputType = "image";
+        else if (hasReferences) inputType = "reference";
         else inputType = "text";
       }
     }
