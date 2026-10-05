@@ -532,7 +532,8 @@ function resolveWaveSpeedTariff(input: ProviderCostEstimateInput): ProviderCostE
   const modelLower = (input.providerModel || input.providerRoute || input.modelRef || "").toLowerCase();
   const q = String(input.resolution || input.quality || "768p").toLowerCase();
   const duration = Math.max(1, Number.isFinite(input.durationSec) ? Number(input.durationSec) : 5);
-  const referenceVideoDuration = Math.max(0, Number.isFinite(input.referenceVideoDurationSec) ? Number(input.referenceVideoDurationSec) : 0);
+  const rawReferenceVideoDuration = Math.max(0, Number.isFinite(input.referenceVideoDurationSec) ? Number(input.referenceVideoDurationSec) : 0);
+  const referenceVideoDuration = rawReferenceVideoDuration > 0 ? Math.min(15, Math.ceil(rawReferenceVideoDuration)) : 0;
   const units = Math.max(1, Math.floor(Number.isFinite(input.numUnits) ? Number(input.numUnits) : 1));
 
   // MiniMax H3 Max Open Weights

@@ -57,4 +57,14 @@ describe("Minimax H3 pricing", () => {
       }),
     ).toBe(112);
   });
+
+  it("rounds and caps H3 Max reference video duration before pricing", () => {
+    expect(
+      getVideoCreditsByRoute("wavespeed-ai/minimax-h3/reference-to-video", {
+        duration: 3,
+        resolution: "768p",
+        reference_video_durations: [15.08],
+      }),
+    ).toBe(100.8);
+  });
 });

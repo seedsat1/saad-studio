@@ -255,10 +255,12 @@ function getMinimaxH3MaxRateKey(quality?: string): keyof typeof MINIMAX_H3_MAX_R
 function readReferenceVideoDurationSeconds(payload?: VideoPayload): number {
   const rawDurations = payload?.reference_video_durations ?? payload?.referenceVideoDurations;
   if (!Array.isArray(rawDurations)) return 0;
-  return rawDurations.reduce((sum, value) => {
+  const total = rawDurations.reduce((sum, value) => {
     const n = typeof value === "number" ? value : typeof value === "string" ? Number.parseFloat(value) : 0;
     return Number.isFinite(n) && n > 0 ? sum + n : sum;
   }, 0);
+  if (total <= 0) return 0;
+  return Math.min(15, Math.ceil(total));
 }
 
 function countStringList(value: unknown): number {

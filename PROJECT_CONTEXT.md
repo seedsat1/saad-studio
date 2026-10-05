@@ -16319,3 +16319,12 @@
 - Preserved: no auth, ledger, spendCredits semantics, subscription logic, media history schema, provider secrets, or non-H3 providers changed. No live provider generation or paid call was executed.
 - Verification: targeted Vitest passed 61/61 across `test/hailuo-contract.test.ts`, `test/minimax-h3-pricing-crash.test.ts`, `test/pricing-core.test.ts`, `test/provider-cost-audit.test.ts`, and `test/model-capability-badges.test.ts`. `npm run build` passed with the existing Next dynamic-server and Browserslist/Tailwind warnings.
 - Remaining: commit/push only if explicitly requested.
+
+# Latest task: MiniMax H3 Max reference-video billing normalization (2026-10-05)
+- Request: investigate why adding one reference video to `MiniMax H3 Max` changed the visible 3s/768p price from 13.44 credits to 101.27 credits.
+- Finding: the implementation correctly charged H3 Max reference-video requests for output duration plus reference-video duration, but it used the browser-provided fractional reference duration directly. The attached WaveSpeed reference states total reference-video duration is capped at 15 seconds and rounded up to a whole second for billing.
+- Fix: normalize H3/H3 Max reference video billing seconds by summing reference durations, rounding up to whole seconds, and capping at 15 seconds before user-credit pricing and provider-cost estimation. This removes fractional overcharge while preserving the provider-documented extra cost for video references.
+- Example: `MiniMax H3 Max`, 3s output, 768p, one 15.08s reference video now prices as `(3 + 15) * $0.10 * 1.40 * 40 = 100.8 credits`, not 101.27 credits. Without reference media, the same 3s/768p base remains 13.44 credits on the text/image route.
+- Preserved: no auth, provider routing, spendCredits, ledger, margin, model registry, or non-H3 pricing behavior changed. No paid provider call was executed.
+- Verification: targeted Vitest passed 52/52 across `test/minimax-h3-pricing-crash.test.ts`, `test/hailuo-contract.test.ts`, `test/provider-cost-audit.test.ts`, and `test/pricing-core.test.ts`. `npm run build` passed with existing Next dynamic-server and Browserslist/Tailwind warnings.
+- Remaining: commit/push only if explicitly requested.
