@@ -280,4 +280,26 @@ describe("Minimax Hailuo Contract and Specification Tests", () => {
     expect(wsInput.duration).toBe(6);
     expect(wsInput.enable_prompt_expansion).toBe(true);
   });
+
+  it("should keep Minimax H3 uploaded reference images as reference media with official prompt tags", async () => {
+    const { mapToWavespeedInput } = await import("@/app/api/video/route");
+    const refs = Array.from({ length: 8 }, (_, index) => `https://example.com/ref-${index + 1}.png`);
+
+    const wsInput = mapToWavespeedInput({
+      prompt: "Use @Image1 as the hero and @Image2 as the set. Match @Video1 if present.",
+      duration: 5,
+      resolution: "2k",
+      aspect_ratio: "16:9",
+      reference_image_urls: refs,
+    }, "minimax/h3/reference-to-video");
+
+    expect(wsInput.prompt).toContain("<Picture 1>");
+    expect(wsInput.prompt).toContain("<Picture 2>");
+    expect(wsInput.prompt).toContain("<Video 1>");
+    expect(wsInput.reference_images).toEqual(refs);
+    expect(wsInput).not.toHaveProperty("image");
+    expect(wsInput).not.toHaveProperty("last_image");
+    expect(wsInput.resolution).toBe("2k");
+    expect(wsInput.duration).toBe(5);
+  });
 });

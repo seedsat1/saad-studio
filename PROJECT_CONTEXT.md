@@ -16328,3 +16328,11 @@
 - Preserved: no auth, provider routing, spendCredits, ledger, margin, model registry, or non-H3 pricing behavior changed. No paid provider call was executed.
 - Verification: targeted Vitest passed 52/52 across `test/minimax-h3-pricing-crash.test.ts`, `test/hailuo-contract.test.ts`, `test/provider-cost-audit.test.ts`, and `test/pricing-core.test.ts`. `npm run build` passed with existing Next dynamic-server and Browserslist/Tailwind warnings.
 - Remaining: commit/push only if explicitly requested.
+
+# Latest task: Minimax H3 reference prompt tagging fix (2026-10-05)
+- Request: investigate screenshot where `Minimax H3` with uploaded reference images failed with a generic generation error.
+- Finding: the H3 reference path itself maps to `minimax/h3/reference-to-video` and sends `reference_images`, but the UI still treated H3 like generic/Seedance-style references: reference prompt chips used `@Image` labels or only non-clickable order labels, while the WaveSpeed H3 reference contract expects exact angle-bracket tags such as `<Picture 1>`, `<Video 1>`, and `<Audio 1>` when assigning reference roles. The UI also auto-promoted uploaded reference-only images into start/end fields for non-Seedance models; H3 should keep uploaded reference media as references unless the dedicated Start/End boxes are used.
+- Fix: H3 and H3 Max now enable clickable prompt reference chips using official `<Picture n>`, `<Video n>`, and `<Audio n>` tags. The client keeps uploaded H3 reference images as `reference_image_urls` instead of auto-copying them into `image`/`last_image`. The server also converts older `@Image1`, `@Video1`, and `@Audio1` tokens to the official H3 tags before provider dispatch.
+- Preserved: no pricing, credits, spendCredits, ledger, auth, provider key, or model route changes. No paid provider generation was executed.
+- Verification: targeted Vitest passed 24/24 across `test/hailuo-contract.test.ts`, `test/minimax-h3-pricing-crash.test.ts`, and `test/model-capability-badges.test.ts`. `npm run build` passed with the existing Next dynamic-server and Browserslist/Tailwind warnings.
+- Remaining: commit/push only if explicitly requested.

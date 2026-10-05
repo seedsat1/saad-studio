@@ -719,9 +719,15 @@ function supportsPromptReferenceTags(model: WaveSpeedVideoModel): boolean {
   return (
     model.id.startsWith("bytedance-seedance-v2") ||
     model.id.startsWith("bytedance-seedance-v25") ||
+    model.api_route.startsWith("minimax/h3") ||
+    model.api_route.startsWith("wavespeed-ai/minimax-h3") ||
     model.api_route === "google/gemini-omni-flash" ||
     model.api_route === "google/gemini-omni-video"
   );
+}
+
+function usesMinimaxH3PromptReferenceTags(model: WaveSpeedVideoModel): boolean {
+  return model.api_route.startsWith("minimax/h3") || model.api_route.startsWith("wavespeed-ai/minimax-h3");
 }
 
 function getReferenceFileLimits(model: WaveSpeedVideoModel) {
@@ -789,6 +795,13 @@ function getReferenceFileMaxLabel(model: WaveSpeedVideoModel): string {
 function getPromptReferenceTagHint(model: WaveSpeedVideoModel): string {
   const limits = getReferenceFileLimits(model);
   const parts: string[] = [];
+  if (usesMinimaxH3PromptReferenceTags(model)) {
+    if (limits.images > 0) parts.push(`<Picture 1>..<Picture ${limits.images}>`);
+    if (limits.videos > 0) parts.push(`<Video 1>..<Video ${limits.videos}>`);
+    if (limits.audios > 0) parts.push(`<Audio 1>..<Audio ${limits.audios}>`);
+    const joined = parts.length > 0 ? parts.join(", ") : "<Picture 1>";
+    return `Minimax H3 references use ${joined}. Assign each reference in the prompt with these exact angle-bracket tags.`;
+  }
   if (limits.images > 0) parts.push(`@Image1..@Image${limits.images}`);
   if (limits.videos > 0) parts.push(`@Video1..@Video${limits.videos}`);
   if (limits.audios > 0) parts.push(`@Audio1..@Audio${limits.audios}`);
@@ -796,24 +809,25 @@ function getPromptReferenceTagHint(model: WaveSpeedVideoModel): string {
   return `Reference media supports ${joined}. Audio requires at least one image or video reference.`;
 }
 
-function getPromptReferenceDescriptors(files: File[], promptTagsEnabled: boolean) {
+function getPromptReferenceDescriptors(files: File[], promptTagsEnabled: boolean, model?: WaveSpeedVideoModel) {
   let imageCount = 0;
   let videoCount = 0;
   let audioCount = 0;
+  const h3Tags = model ? usesMinimaxH3PromptReferenceTags(model) : false;
 
   return files.map((file, originalIndex) => {
     if (file.type.startsWith("video/")) {
       videoCount++;
-      const tag = `@Video${videoCount}`;
+      const tag = h3Tags ? `<Video ${videoCount}>` : `@Video${videoCount}`;
       return { file, originalIndex, kind: "video" as const, tag, label: promptTagsEnabled ? tag : `Video ${videoCount}` };
     }
     if (file.type.startsWith("audio/")) {
       audioCount++;
-      const tag = `@Audio${audioCount}`;
+      const tag = h3Tags ? `<Audio ${audioCount}>` : `@Audio${audioCount}`;
       return { file, originalIndex, kind: "audio" as const, tag, label: promptTagsEnabled ? tag : `Audio ${audioCount}` };
     }
     imageCount++;
-    const tag = `@Image${imageCount}`;
+    const tag = h3Tags ? `<Picture ${imageCount}>` : `@Image${imageCount}`;
     return { file, originalIndex, kind: "image" as const, tag, label: promptTagsEnabled ? tag : `Image ${imageCount}` };
   });
 }
@@ -2957,17 +2971,18 @@ function VideoPageInner() {
         selectedModel.api_route.startsWith("bytedance/seedance-") &&
         selectedModel.api_route.includes("/text-to-video") &&
         caps.max_reference_images > 0;
+      const keepProviderReferenceMedia = keepSeedanceTextReferences || isMinimaxH3Submit;
 
       // If user uploaded 1 or 2 images and did not explicitly use separate start/end boxes:
       // Image 1 is Start Frame, and Image 2 is End Frame!
-      // Seedance text/reference generation keeps these as reference_images;
+      // Seedance and Minimax H3 text/reference generation keep these as reference_images;
       // only the dedicated Start Frame box should switch it to image-to-video.
-      if (!keepSeedanceTextReferences && !explicitStartUrl && allRefImgs.length >= 1 && refVids.length === 0 && refAuds.length === 0) {
+      if (!keepProviderReferenceMedia && !explicitStartUrl && allRefImgs.length >= 1 && refVids.length === 0 && refAuds.length === 0) {
         explicitStartUrl = allRefImgs[0];
         payload.image = explicitStartUrl;
         payload.first_frame_url = explicitStartUrl;
       }
-      if (!keepSeedanceTextReferences && !explicitEndUrl && allRefImgs.length >= 2 && refVids.length === 0 && refAuds.length === 0) {
+      if (!keepProviderReferenceMedia && !explicitEndUrl && allRefImgs.length >= 2 && refVids.length === 0 && refAuds.length === 0) {
         explicitEndUrl = allRefImgs[1];
         payload.last_image = explicitEndUrl;
         payload.end_image = explicitEndUrl;
@@ -3844,7 +3859,7 @@ function VideoPageInner() {
                 <Sparkles size={11} className="text-cyan-400" /> {promptReferenceTagsEnabled ? t("Click to insert reference:") : "Reference order:"}
               </span>
               {(() => {
-                return getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled).map((ref) => {
+                return getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled, selectedModel).map((ref) => {
                   const previewSrc = referencePreviews[ref.originalIndex];
                   const isImage = ref.kind === "image";
                   const isVideo = ref.kind === "video";
@@ -4404,7 +4419,7 @@ function VideoPageInner() {
                     const isImage = file.type.startsWith("image/");
                     const isVideo = file.type.startsWith("video/");
                     const isAudio = file.type.startsWith("audio/");
-                    const descriptors = getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled);
+                    const descriptors = getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled, selectedModel);
                     const desc = descriptors[i];
                     const tag = desc ? desc.tag : `@ref${i + 1}`;
 
@@ -5071,7 +5086,7 @@ function VideoPageInner() {
           {(showReferenceImages || showSimpleKlingRefs) && referenceImages.length > 0 && (
             <div className="flex flex-col gap-2 mt-1">
               <div className="flex flex-wrap gap-2 items-center">
-                {getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled).map((ref) => {
+                {getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled, selectedModel).map((ref) => {
                   const isImage = ref.kind === "image";
                   const isVideo = ref.kind === "video";
                   return (

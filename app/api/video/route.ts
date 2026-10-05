@@ -702,7 +702,13 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
     }
 
     const exact: Record<string, unknown> = {};
-    if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    if (typeof out.prompt === "string" && out.prompt.trim()) {
+      exact.prompt = out.prompt
+        .trim()
+        .replace(/@Image(\d+)\b/g, "<Picture $1>")
+        .replace(/@Video(\d+)\b/g, "<Video $1>")
+        .replace(/@Audio(\d+)\b/g, "<Audio $1>");
+    }
     else throw new ValidationError("Minimax H3 requires a prompt.");
     if (referenceImages.length > 0) exact.reference_images = referenceImages.slice(0, 9);
     if (referenceVideos.length > 0) exact.reference_videos = referenceVideos.slice(0, 3);
