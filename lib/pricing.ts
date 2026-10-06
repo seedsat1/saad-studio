@@ -172,8 +172,11 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "bytedance/seedance-2.0/image-to-video":        "seedance2",
   "bytedance/seedance-2-fast":                    "seedance2f",
   "bytedance/seedance-2-mini":                    "seedance2mini_t2v",
-  "bytedance/seedance-2.0/text-to-video-turbo":   "seedance2f",
-  "bytedance/seedance-2.0/image-to-video-turbo":  "seedance2f",
+  "bytedance/seedance-2.0/text-to-video-turbo":   "seedance2turbo",
+  "bytedance/seedance-2.0/image-to-video-turbo":  "seedance2turbo",
+  "bytedance/seedance-2.0-fast/text-to-video":    "seedance2fast",
+  "bytedance/seedance-2.0-fast/image-to-video":   "seedance2fast",
+  "bytedance/seedance-2.0-fast/video-extend":     "seedance2fast",
   "bytedance/seedance-2.0-mini/text-to-video":    "seedance2mini_t2v",
   "bytedance/seedance-2.0-mini/video-edit":       "seedance2mini_t2v",
   "bytedance/seedance-2.0-mini/image-to-video":   "seedance2mini_i2v",
@@ -193,8 +196,6 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "bytedance/v1-lite-text-to-video":              "seedance2f",
   "grok-imagine/text-to-video":                   "grok_vid",
   "grok-imagine/image-to-video":                  "grok_vid",
-  "grok-imagine/text-to-video-1-5":               "grok_vid_v15",
-  "grok-imagine/image-to-video-1-5":              "grok_vid_v15_i2v",
 
   // â”€â”€ Cinema â€” app/api/video (KIE model routes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   "kwaivgi/kling-v3.0-std/text-to-video":         "kling30",
@@ -240,8 +241,6 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "bytedance/dreamina-v3.0/text-to-video-720p":   "seedance2",
   "x-ai/grok-imagine-video/text-to-video":        "grok_vid",
   "x-ai/grok-imagine-video/edit-video":           "grok_vid",
-  "x-ai/grok-imagine-video/text-to-video-1-5":    "grok_vid_v15",
-  "x-ai/grok-imagine-video/edit-video-1-5":       "grok_vid_v15_i2v",
   "black-forest-labs/flux-3/text-to-video":        "flux3_video",
   "black-forest-labs/flux-3/image-to-video":       "flux3_video",
   "black-forest-labs/flux-3/start-end-to-video":   "flux3_video",
@@ -422,7 +421,12 @@ function getGoogleVideoUsdPerSecond(modelRef: string, quality: string | null | u
   const billingKey = resolveGoogleVideoBillingKey(modelRef);
   if (!billingKey) return null;
   const q = normalizeGoogleVideoQuality(quality);
-  if (billingKey === "omni_flash") return 0.10;
+  if (billingKey === "omni_flash") {
+    if (q === "360p") return 0.03;
+    if (q === "1080p") return 0.15;
+    if (q === "4k") return 0.30;
+    return 0.10;
+  }
   if (billingKey === "veo31_lite") return q === "1080p" || q === "4k" ? 0.08 : 0.05;
   if (billingKey === "veo31_fast" || billingKey === "veo3_fast") {
     if (q === "4k") return 0.30;
@@ -565,16 +569,15 @@ const MINIMAX_H3_MAX_REFERENCE_USD_PER_SECOND = {
 } as const;
 const WAN_30_CREDITS_PER_USD = 40;
 const WAN_30_MARGIN_MULTIPLIER = 1.4;
-const WAN_30_TEXT_REFERENCE_USD_PER_SECOND = {
-  "480p": 0.07,
-  "720p": 0.13,
-  "1080p": 0.28,
+const WAN_30_USD_PER_SECOND = {
+  "480p": 0.05,
+  "720p": 0.10,
+  "1080p": 0.20,
 } as const;
-const WAN_30_IMAGE_USD_PER_SECOND = {
-  "480p": 0.06,
-  "720p": 0.12,
-  "1080p": 0.24,
-} as const;
+// Wan 3.0 bills reference-to-video and image-to-video at the same rate, so both
+// aliases point at one table rather than drifting apart again.
+const WAN_30_TEXT_REFERENCE_USD_PER_SECOND = WAN_30_USD_PER_SECOND;
+const WAN_30_IMAGE_USD_PER_SECOND = WAN_30_USD_PER_SECOND;
 const FLUX_3_CREDITS_PER_USD = 40;
 const FLUX_3_MARGIN_MULTIPLIER = 1.4;
 const FLUX_3_USD_PER_SECOND = {
@@ -824,8 +827,8 @@ const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
 
 const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "bytedance/seedance-2-fast":                  { "720p": 1.0, "1080p": 2.16 / 2.10 },
-  "bytedance/seedance-2.0/text-to-video-turbo": { "720p": 1.0, "1080p": 2.16 / 2.10 },
-  "bytedance/seedance-2.0/image-to-video-turbo": { "720p": 1.0, "1080p": 2.16 / 2.10 },
+  "bytedance/seedance-2.0/text-to-video-turbo": { "720p": 1.0, "1080p": 0.115 / 0.095 },
+  "bytedance/seedance-2.0/image-to-video-turbo": { "720p": 1.0, "1080p": 0.115 / 0.095 },
   "bytedance/seedance-2.5/text-to-video-turbo": { "480p": 0.162 / 0.180, "720p": 1.0, "1080p": 0.240 / 0.180 },
   "bytedance/seedance-2.5/image-to-video-turbo": { "480p": 0.162 / 0.180, "720p": 1.0, "1080p": 0.240 / 0.180 },
   "bytedance/seedance-2.5/image-to-video-spicy": { "480p": 0.162 / 0.180, "720p": 1.0, "1080p": 0.240 / 0.180, "4k": 0.360 / 0.180 },
@@ -836,12 +839,19 @@ const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "bytedance/seedance-v2/text-to-video-mini":   { "480p": 0.5, "720p": 1.0, "1080p": 151.2 / 64, "4k": 300 / 64 },
   "seedance2f":                                 { "720p": 1.0, "1080p": 2.16 / 2.10 },
   "seedance2mini":                              { "480p": 0.5, "720p": 1.0, "1080p": 151.2 / 64, "4k": 300 / 64 },
-  "bytedance/seedance-2":                       { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
-  "bytedance/seedance-2.0/text-to-video":       { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
-  "bytedance/seedance-2.0/image-to-video":      { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
-  "bytedance/seedance-v2/text-to-video":        { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
-  "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
-  "seedance2":                                  { "480p": 0.5, "720p": 1.0, "1080p": 453.6 / 116, "4k": 580 / 116 },
+  "bytedance/seedance-2":                       { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-2.0/text-to-video":       { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-2.0/image-to-video":      { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-v2/text-to-video":        { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "seedance2":                                  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-2.0-fast/text-to-video":  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-2.0-fast/image-to-video": { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-2.0-fast/video-extend":   { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "seedance2fast":                              { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  // Turbo bills $0.075/s generation plus an upscale surcharge of $0.02/s at
+  // 720p or $0.04/s at 1080p, so 1080p is 0.115/0.095 of the 720p rate.
+  "seedance2turbo":                             { "720p": 1.0, "1080p": 0.115 / 0.095 },
   "kwaivgi/kling-v3.0-std/text-to-video":        { "4k": 5.0, "pro": 4/3, "std": 1.0 },
   "kwaivgi/kling-v3.0-pro/text-to-video":        { "4k": 5.0, "pro": 4/3, "std": 1.0 },
   "kwaivgi/kling-v3.0-pro/motion-control":       { "pro": 1.0, "std": 0.75 },
@@ -1038,11 +1048,11 @@ function resolveModelUserCharge(
   if (constitutionId === "seedance2") {
     const q = quality?.trim().toLowerCase() ?? "720p";
     const perSec15 = ({
-      "480p": 58 / 15,
-      "720p": 116 / 15,
-      "1080p": 453.6 / 15,
-      "4k": 580 / 15,
-    } as Record<string, number>)[q] ?? 116 / 15;
+      "480p": 100.8 / 15,
+      "720p": 201.6 / 15,
+      "1080p": 504 / 15,
+      "4k": 1008 / 15,
+    } as Record<string, number>)[q] ?? 201.6 / 15;
     return parseFloat((perSec15 * durationSec * numUnits).toFixed(2));
   }
 

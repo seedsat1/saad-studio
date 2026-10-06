@@ -91,6 +91,13 @@ export interface VideoModelCapabilities {
   has_orientation: boolean;
   /** Show Elements/Frames tab switcher (Kling Omni only) */
   has_omni_tabs: boolean;
+  /**
+   * True when ONE request may carry reference media and start/end frames together.
+   * Nearly every provider splits these across separate endpoints, so the UI makes
+   * the user pick one. Gemini Omni is the documented exception: it binds roles with
+   * <FIRST_FRAME> / <IMAGE_REF_n> tags inside a single interaction.
+   */
+  combines_references_with_frames?: boolean;
 }
 
 export interface WaveSpeedVideoModel {
@@ -426,6 +433,7 @@ function t2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCap
     has_scene_control:  false,
     has_orientation:    false,
     has_omni_tabs:      false,
+    combines_references_with_frames: false,
     ...overrides,
   };
 }
@@ -515,7 +523,6 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_negative_prompt: true,
       has_loop:            true,
       has_multi_prompt:    true,
-      max_reference_images: 1,
     }),
   },
   {
@@ -537,7 +544,6 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_loop:         true,
       has_cfg_scale:    true,
       has_sound:        true,
-      max_reference_images: 2,
     }),
   },
   // ╔══════════════════════════════════════════════════════════════════════════
@@ -565,8 +571,8 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame: true,
-      aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21"],
-      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
+      durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions: ["768p", "2k"],
       max_reference_images: 9,
       max_reference_videos: 3,
@@ -878,6 +884,9 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_videos: 3,
       max_reference_video_total_seconds: 9,
       max_prompt_characters: 2500,
+      // Documented: "[# Sources <FIRST_FRAME>@Image1] [# References <IMAGE_REF_0>@Image2]"
+      // binds a starting frame and a reference image in the same interaction.
+      combines_references_with_frames: true,
     }),
   },
 
@@ -902,7 +911,6 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     api_route: "black-forest-labs/flux-3/text-to-video",
     text_api_route: "black-forest-labs/flux-3/text-to-video",
     image_api_route: "black-forest-labs/flux-3/image-to-video",
-    reference_api_route: "black-forest-labs/flux-3/image-to-video",
     start_end_api_route: "black-forest-labs/flux-3/start-end-to-video",
     video_api_route: "black-forest-labs/flux-3/video-extend",
     route_confirmed: true,
@@ -913,8 +921,6 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "2:1"],
       durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
       resolutions: ["720p", "1080p"],
-      max_reference_images: 10,
-      max_reference_videos: 1,
       has_seed: true,
       has_sound: true,
       sound_param: "generate_audio",
@@ -1246,39 +1252,6 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       durations:            [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
       resolutions:          ["480p", "720p"],
       max_reference_images: 7,
-      has_negative_prompt:  true,
-      has_loop:              true,
-    }),
-  },
-  {
-    id: "xai-grok-imagine-v1-5-t2v",
-    name: "Grok Imagine Video 1.5",
-    family: "grok", family_label: "xAI Grok", family_color: "#ef4444",
-    badge: "NEW",
-    description: "xAI Grok Imagine Video 1.5 Preview — text-to-video. Advanced generation capabilities.",
-    api_route: "x-ai/grok-imagine-video/text-to-video-1-5",
-    route_confirmed: true,
-    capabilities: t2vCaps({
-      aspect_ratios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
-      durations:     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      resolutions:   ["480p", "720p"],
-      has_negative_prompt: true,
-      has_loop: true,
-    }),
-  },
-  {
-    id: "xai-grok-imagine-v1-5-i2v",
-    name: "Grok Imagine Video 1.5 I2V",
-    family: "grok", family_label: "xAI Grok", family_color: "#ef4444",
-    badge: "NEW",
-    description: "xAI Grok Imagine Video 1.5 Preview — image-to-video. Up to 1 reference image.",
-    api_route: "x-ai/grok-imagine-video/edit-video-1-5",
-    route_confirmed: true,
-    capabilities: i2vCaps({
-      aspect_ratios:        ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
-      durations:            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      resolutions:          ["480p", "720p"],
-      max_reference_images: 1,
       has_negative_prompt:  true,
       has_loop:              true,
     }),

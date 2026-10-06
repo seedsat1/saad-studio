@@ -646,6 +646,14 @@ function prettyModelName(name: string): string {
 
 type VideoModeLabel = "Text To Video" | "Image To Video" | "Reference To Video" | "Video Extend" | "Video Edit" | "Video To Video";
 
+/**
+ * Reference input and start/end frames are separate provider endpoints with
+ * disjoint parameters, so one request carries one or the other — never both.
+ * The user picks the mode explicitly instead of us inferring it from whichever
+ * box happened to get filled.
+ */
+type InputMode = "references" | "frames";
+
 function getActiveVideoModeLabel(model: WaveSpeedVideoModel, input: {
   hasStartFrame: boolean;
   hasEndFrame: boolean;
@@ -1455,6 +1463,7 @@ function VideoPageInner() {
   const [linkedEndFrameUrl, setLinkedEndFrameUrl] = useState<string | null>(null);
   const [motionVideo,  setMotionVideo]  = useState<File | null>(null);
   const [referenceImages, setReferenceImages] = useState<File[]>([]); // unified: image + video + audio for Seedance 2
+  const [inputMode,    setInputMode]    = useState<InputMode>("references");
   const [startFramePreview, setStartFramePreview] = useState<string | null>(null);
   const [endFramePreview, setEndFramePreview] = useState<string | null>(null);
   const [motionVideoPreview, setMotionVideoPreview] = useState<string | null>(null);
@@ -2017,6 +2026,38 @@ function VideoPageInner() {
 
   // Capability shorthand
   const caps = selectedModel.capabilities;
+
+  // ── Input mode: References vs Start/End frames ─────────────────────────────
+  // Kling 3.0 declares reference-image slots but spends them on start/end frames
+  // and has no reference-to-video endpoint, so it must stay single-mode. This
+  // mirrors the `showReferenceImages` exclusions below.
+  const referencePanelSuppressed =
+    isKling30Route(selectedModel.api_route) ||
+    selectedModel.api_route === "kwaivgi/kling-v3.0-std/image-to-video" ||
+    selectedModel.api_route === "kwaivgi/kling-v3.0-pro/image-to-video";
+  const supportsReferenceInput =
+    !referencePanelSuppressed &&
+    ((caps.max_reference_images || 0) > 0 ||
+      (caps.max_reference_videos || 0) > 0 ||
+      (caps.max_reference_audios || 0) > 0);
+  const supportsFrameInput = caps.requires_image || caps.optional_image || caps.has_end_frame;
+  const inputModeChoices = useMemo<InputMode[]>(() => {
+    const modes: InputMode[] = [];
+    if (supportsReferenceInput) modes.push("references");
+    if (supportsFrameInput) modes.push("frames");
+    return modes;
+  }, [supportsReferenceInput, supportsFrameInput]);
+  // Only a model offering both needs the switcher; single-mode models render as
+  // before, and so do models whose single endpoint accepts both at once.
+  const showInputModeTabs = inputModeChoices.length > 1 && !caps.combines_references_with_frames;
+  const referenceModeActive = !showInputModeTabs || inputMode === "references";
+  const frameModeActive     = !showInputModeTabs || inputMode === "frames";
+
+  useEffect(() => {
+    if (inputModeChoices.length > 0 && !inputModeChoices.includes(inputMode)) {
+      setInputMode(inputModeChoices[0]);
+    }
+  }, [inputModeChoices, inputMode]);
   const characterSupport = useMemo(() => getVideoCharacterSupport(selectedModel), [selectedModel]);
   const selectableCharacters = useMemo(
     () => characterSupport.mode === "provider_character_id"
@@ -2058,10 +2099,8 @@ function VideoPageInner() {
   const isVeo31ExtensionCapableModel = Boolean(googleConstraints?.extensionCapable);
   const isGoogleVeoExtensionInput = isVeo31ExtensionCapableModel && Boolean(motionVideo);
   const hasVeo31ReferenceInput = isVeo31Model && (
-    Boolean(startFrame) ||
-    Boolean(linkedStartFrameUrl) ||
-    Boolean(endFrame) ||
-    referenceImages.length > 0 ||
+    (frameModeActive && (Boolean(startFrame) || Boolean(linkedStartFrameUrl) || Boolean(endFrame))) ||
+    (referenceModeActive && referenceImages.length > 0) ||
     isGoogleVeoExtensionInput
   );
   const isGoogleVeoHighResolution = isGoogleVeoModel && ["1080p", "4k"].includes((resolution ?? "").toLowerCase());
@@ -2179,6 +2218,16 @@ function VideoPageInner() {
     setSceneControl(false);
     setOrientation("video");
     setOmniTab("elements");
+    const refSuppressed =
+      isKling30Route(m.api_route) ||
+      m.api_route === "kwaivgi/kling-v3.0-std/image-to-video" ||
+      m.api_route === "kwaivgi/kling-v3.0-pro/image-to-video";
+    setInputMode(
+      !refSuppressed &&
+      ((c.max_reference_images || 0) > 0 || (c.max_reference_videos || 0) > 0 || (c.max_reference_audios || 0) > 0)
+        ? "references"
+        : "frames",
+    );
 
     // Clear any stale error from a previous model
     setGenerationError(null);
@@ -2879,15 +2928,16 @@ function VideoPageInner() {
       }
 
       if (isSeedanceV2 || isMinimaxH3) {
-        const activeReferenceFiles = videoMode === "extend" ? [] : referenceImages;
+        const activeReferenceFiles = (videoMode === "extend" || !referenceModeActive) ? [] : referenceImages;
         const refImgs = activeReferenceFiles.filter((f) => f.type.startsWith("image/"));
         const refVids = activeReferenceFiles.filter((f) => f.type.startsWith("video/"));
         const refAuds = activeReferenceFiles.filter((f) => f.type.startsWith("audio/"));
         const hasStartImage =
-          !!startFrame ||
-          (characterSupport.mode === "image_reference" &&
-            !!characterReferenceUrls[0]);
-        const hasEndImage = !!endFrame;
+          frameModeActive &&
+          (!!startFrame ||
+            (characterSupport.mode === "image_reference" &&
+              !!characterReferenceUrls[0]));
+        const hasEndImage = frameModeActive && !!endFrame;
         const imageCount =
           refImgs.length +
           characterReferenceUrls.length +
@@ -2911,8 +2961,12 @@ function VideoPageInner() {
       }
 
       // 1. Explicit Start Frame (from Start frame box)
+      // In references mode the frame boxes are hidden, so their values must not
+      // reach the request — the provider resolves a different endpoint for each.
       let explicitStartUrl: string | null = null;
-      if (startFrame) {
+      if (!frameModeActive) {
+        explicitStartUrl = null;
+      } else if (startFrame) {
         try {
           explicitStartUrl = await uploadVideoRequestFile(startFrame, fetchWithAuth);
         } catch {
@@ -2931,7 +2985,7 @@ function VideoPageInner() {
 
       // 2. Explicit End Frame (from End frame box)
       let explicitEndUrl: string | null = null;
-      if (caps.has_end_frame && (endFrame || linkedEndFrameUrl)) {
+      if (frameModeActive && caps.has_end_frame && (endFrame || linkedEndFrameUrl)) {
         if (endFrame) {
           try {
             explicitEndUrl = await uploadVideoRequestFile(endFrame, fetchWithAuth);
@@ -2950,7 +3004,7 @@ function VideoPageInner() {
       }
 
       // 3. Multimodal References (from Add references panel)
-      const activeReferenceFiles = videoMode === "extend" ? [] : referenceImages;
+      const activeReferenceFiles = (videoMode === "extend" || !referenceModeActive) ? [] : referenceImages;
       const refImgs = activeReferenceFiles.filter((f) => f.type.startsWith("image/"));
       const refVids = activeReferenceFiles.filter((f) => f.type.startsWith("video/"));
       const refAuds = activeReferenceFiles.filter((f) => f.type.startsWith("audio/"));
@@ -2977,12 +3031,12 @@ function VideoPageInner() {
       // Image 1 is Start Frame, and Image 2 is End Frame!
       // Seedance and Minimax H3 text/reference generation keep these as reference_images;
       // only the dedicated Start Frame box should switch it to image-to-video.
-      if (!keepProviderReferenceMedia && !explicitStartUrl && allRefImgs.length >= 1 && refVids.length === 0 && refAuds.length === 0) {
+      if (!showInputModeTabs && !keepProviderReferenceMedia && !explicitStartUrl && allRefImgs.length >= 1 && refVids.length === 0 && refAuds.length === 0) {
         explicitStartUrl = allRefImgs[0];
         payload.image = explicitStartUrl;
         payload.first_frame_url = explicitStartUrl;
       }
-      if (!keepProviderReferenceMedia && !explicitEndUrl && allRefImgs.length >= 2 && refVids.length === 0 && refAuds.length === 0) {
+      if (!showInputModeTabs && !keepProviderReferenceMedia && !explicitEndUrl && allRefImgs.length >= 2 && refVids.length === 0 && refAuds.length === 0) {
         explicitEndUrl = allRefImgs[1];
         payload.last_image = explicitEndUrl;
         payload.end_image = explicitEndUrl;
@@ -4312,8 +4366,34 @@ function VideoPageInner() {
             <>
 
 
+          {/* 0. References / Frames switcher (models supporting both input modes) */}
+          {showInputModeTabs && videoMode !== "extend" && (
+            <div
+              className="flex rounded-lg overflow-hidden"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              {inputModeChoices.map(mode => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setInputMode(mode)}
+                  className="flex-1 py-2 text-[12px] font-semibold transition-all"
+                  style={{
+                    background: inputMode === mode ? hexA(selectedModel.family_color, 0.15) : "transparent",
+                    color:      inputMode === mode ? selectedModel.family_color : "#a1a1aa",
+                    borderBottom: inputMode === mode ? `2px solid ${selectedModel.family_color}` : "2px solid transparent",
+                  }}
+                >
+                  {mode === "references"
+                    ? (lang === "ar" ? "المراجع" : "References")
+                    : (lang === "ar" ? "الإطارات" : "Frames")}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* 1. Reference Media Box (Always visible Status Bar with conditional thumbnails) */}
-          {(showReferenceImages || showSimpleKlingRefs) && videoMode !== "extend" && (
+          {(showReferenceImages || showSimpleKlingRefs) && referenceModeActive && videoMode !== "extend" && (
             <div className="flex flex-col gap-2">
               {/* The Status Bar Row - Clickable as a single unified button with drag and drop */}
               <button
@@ -4954,7 +5034,7 @@ function VideoPageInner() {
           )}
 
           {/* 4. Image inputs (Start / End frame) (non-Omni / non-Motion Control) */}
-          {!showVideoInput && !showOmniTabs && !isKling30Video && videoMode !== "extend" && (showImageInput || showEndFrame) && (
+          {!showVideoInput && !showOmniTabs && !isKling30Video && frameModeActive && videoMode !== "extend" && (showImageInput || showEndFrame) && (
             <div className="flex gap-2">
               {showImageInput && (
                 <button
@@ -5083,7 +5163,7 @@ function VideoPageInner() {
 
 
           {/* 6. Uploaded reference list tags and Hint Text */}
-          {(showReferenceImages || showSimpleKlingRefs) && referenceImages.length > 0 && (
+          {(showReferenceImages || showSimpleKlingRefs) && referenceModeActive && referenceImages.length > 0 && (
             <div className="flex flex-col gap-2 mt-1">
               <div className="flex flex-wrap gap-2 items-center">
                 {getPromptReferenceDescriptors(referenceImages, promptReferenceTagsEnabled, selectedModel).map((ref) => {

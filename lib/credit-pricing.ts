@@ -30,24 +30,27 @@ const MINIMAX_H3_USD_PER_SECOND = {
 } as const;
 const MINIMAX_H3_MAX_TEXT_IMAGE_USD_PER_SECOND = {
   "480p": 0.04,
+  "540p": 0.06,
   "768p": 0.08,
+  "1080p": 0.16,
 } as const;
 const MINIMAX_H3_MAX_REFERENCE_USD_PER_SECOND = {
   "480p": 0.05,
+  "540p": 0.075,
   "768p": 0.10,
+  "1080p": 0.20,
 } as const;
 const WAN_30_CREDITS_PER_USD = 40;
 const WAN_30_MARGIN_MULTIPLIER = 1.4;
-const WAN_30_TEXT_REFERENCE_USD_PER_SECOND = {
-  "480p": 0.07,
-  "720p": 0.13,
-  "1080p": 0.28,
+const WAN_30_USD_PER_SECOND = {
+  "480p": 0.05,
+  "720p": 0.10,
+  "1080p": 0.20,
 } as const;
-const WAN_30_IMAGE_USD_PER_SECOND = {
-  "480p": 0.06,
-  "720p": 0.12,
-  "1080p": 0.24,
-} as const;
+// Wan 3.0 bills reference-to-video and image-to-video at the same rate, so both
+// aliases point at one table rather than drifting apart again.
+const WAN_30_TEXT_REFERENCE_USD_PER_SECOND = WAN_30_USD_PER_SECOND;
+const WAN_30_IMAGE_USD_PER_SECOND = WAN_30_USD_PER_SECOND;
 const FLUX_3_CREDITS_PER_USD = 40;
 const FLUX_3_MARGIN_MULTIPLIER = 1.4;
 const FLUX_3_USD_PER_SECOND = {
@@ -248,7 +251,11 @@ function getMinimaxH3RateKey(quality?: string): keyof typeof MINIMAX_H3_USD_PER_
 
 function getMinimaxH3MaxRateKey(quality?: string): keyof typeof MINIMAX_H3_MAX_REFERENCE_USD_PER_SECOND {
   const q = (quality || "480p").toLowerCase();
+  // Most specific label first: 1080p previously fell through to the 480p rate
+  // and was billed at a quarter of its true cost.
+  if (q.includes("1080")) return "1080p";
   if (q.includes("768")) return "768p";
+  if (q.includes("540")) return "540p";
   return "480p";
 }
 

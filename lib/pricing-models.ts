@@ -92,12 +92,12 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"hailuo23",      name:"MiniMax Hailuo 2.3 Pro",  notes:"WaveSpeed fixed $0.49/5-6s (27.44 cr)", type:"video", provider:"wavespeed", billing:"flat", kieCredits:0, waveUsd:0.49, userCreditsRate:27.44, maxDuration:6, isActive:true },
   { id:"hailuo23f",     name:"MiniMax Hailuo 2.3 Fast", notes:"WaveSpeed 6s: $0.19 (10.64 cr), 10s: $0.32 (17.92 cr)", type:"video", provider:"wavespeed", billing:"flat", kieCredits:0, waveUsd:0.19, userCreditsRate:10.64, maxDuration:10, isActive:true },
   { id:"grok_vid",      name:"Grok Imagine Video",      notes:"T2V/I2V",      type:"video",  provider:"kie",       billing:"per_sec", kieCredits:9.0,   waveUsd:0,     userCreditsRate:1.54,  maxDuration:20,   isActive:true  },
-  { id:"grok_vid_v15",  name:"Grok Imagine Video 1.5",  notes:"T2V",          type:"video",  provider:"kie",       billing:"per_sec", kieCredits:14.7,  waveUsd:0,     userCreditsRate:2.06,  maxDuration:15,   isActive:true  },
-  { id:"grok_vid_v15_i2v", name:"Grok Imagine Video 1.5 I2V", notes:"I2V",      type:"video",  provider:"kie",       billing:"per_sec", kieCredits:14.7,  waveUsd:0,     userCreditsRate:2.06,  maxDuration:15,   isActive:true  },
   // Seedance 2.0 family: base rate is 720p — per-resolution multipliers applied in lib/pricing.ts.
   { id:"seedance2f",    name:"Seedance 2.0 Fast",       notes:"fast source + 40% margin: $2.10/15s 720p, $2.16/15s 1080p", type:"video", provider:"kie",       billing:"per_sec", kieCredits:33.0,  waveUsd:0,     userCreditsRate:117.6 / 15,  maxDuration:15,   isActive:true  },
   { id:"seedance2mini",  name:"Seedance 2.0 Mini",       notes:"720p base — pricing.ts adds res mult", type:"video", provider:"kie", billing:"per_sec", kieCredits:20.0,  waveUsd:0,     userCreditsRate:64 / 15, maxDuration:15,   isActive:true  },
-  { id:"seedance2",     name:"Seedance 2.0",            notes:"720p base — pricing.ts adds res mult", type:"video", provider:"kie", billing:"per_sec", kieCredits:41.0,  waveUsd:0,     userCreditsRate:116 / 15, maxDuration:15,   isActive:true  },
+  { id:"seedance2",     name:"Seedance 2.0",            notes:"720p base $0.24/s — pricing.ts adds res mult", type:"video", provider:"kie", billing:"per_sec", kieCredits:41.0,  waveUsd:0,     userCreditsRate:201.6 / 15, maxDuration:15,   isActive:true  },
+  { id:"seedance2fast", name:"Seedance 2.0 Fast",       notes:"720p base $0.20/s — pricing.ts adds res mult", type:"video", provider:"kie", billing:"per_sec", kieCredits:41.0,  waveUsd:0,     userCreditsRate:168 / 15, maxDuration:15,   isActive:true  },
+  { id:"seedance2turbo", name:"Seedance 2.0 Turbo",     notes:"720p base $0.095/s = $0.075 generation + $0.02 upscale", type:"video", provider:"kie", billing:"per_sec", kieCredits:41.0,  waveUsd:0,     userCreditsRate:79.8 / 15, maxDuration:15,   isActive:true  },
   // ── CINEMA — per second via KIE ─────────────────────────────────────────────
   { id:"sora2",         name:"Sora 2",                  notes:"10s max",      type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:20.0,  waveUsd:0,     userCreditsRate:3.41,  maxDuration:10,   isActive:true  },
   { id:"sora2_i2v",     name:"Sora 2 I2V",              notes:"img2vid",      type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:22.0,  waveUsd:0,     userCreditsRate:3.75,  maxDuration:10,   isActive:true  },
@@ -174,7 +174,7 @@ export function calcUserCredits(model: PricingModel, durationSec: number): numbe
 }
 
 const DEFAULT_MODEL_BY_ID = new Map(DEFAULT_MODELS.map((model) => [model.id, model]));
-const CODE_LOCKED_MODEL_IDS = new Set(["kling30", "kling30_mc", "kling_v3_turbo", "seedance2", "seedance2f", "seedance2mini", "minimax_h3", "veo31_lite", "veo31_fast", "veo31", "veo31_gem_lite", "veo31_gem_fast", "veo31_gem", "veo3_fast", "veo3", "gemini_omni_video", "gemini_omni_flash", "nano2_lite"]);
+const CODE_LOCKED_MODEL_IDS = new Set(["kling30", "kling30_mc", "kling_v3_turbo", "seedance2", "seedance2f", "seedance2fast", "seedance2turbo", "seedance2mini", "minimax_h3", "veo31_lite", "veo31_fast", "veo31", "veo31_gem_lite", "veo31_gem_fast", "veo31_gem", "veo3_fast", "veo3", "gemini_omni_video", "gemini_omni_flash", "nano2_lite"]);
 
 /**
  * DB rows may be older than the code reference. Keep admin overrides that raise

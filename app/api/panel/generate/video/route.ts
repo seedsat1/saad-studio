@@ -95,8 +95,6 @@ function resolveWaveSpeedModelRoute(modelId: string, opts?: { resolution?: strin
     "grok-imagine/image-to-video": "x-ai/grok-imagine-video/edit-video",
     "x-ai/grok-imagine-video/text-to-video": "x-ai/grok-imagine-video/text-to-video",
     "x-ai/grok-imagine-video/edit-video": "x-ai/grok-imagine-video/edit-video",
-    "x-ai/grok-imagine-video/text-to-video-1-5": "x-ai/grok-imagine-video/text-to-video-1-5",
-    "x-ai/grok-imagine-video/edit-video-1-5": "x-ai/grok-imagine-video/edit-video-1-5",
   };
   return mapping[clean] || clean;
 }
@@ -517,8 +515,7 @@ export async function POST(req: NextRequest) {
       }
       const isKling = wavespeedModel.includes("kling");
 
-      const isGrokEdit = wavespeedModel === "x-ai/grok-imagine-video/edit-video"
-        || wavespeedModel === "x-ai/grok-imagine-video/edit-video-1-5";
+      const isGrokEdit = wavespeedModel === "x-ai/grok-imagine-video/edit-video";
       const payload: Record<string, unknown> = {
         prompt: sanitizePrompt(prompt, 5000),
         duration: isKling || isGrokEdit ? String(duration) : duration,
