@@ -152,10 +152,10 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "kwaivgi/kling-video-o3-4k/text-to-video":      "kling30",
   "kwaivgi/kling-video-o3-4k/image-to-video":     "kling30",
   "kwaivgi/kling-video-o3-4k/reference-to-video": "kling30",
-  "kwaivgi/kling-v2.6-std/text-to-video":         "kling25t",
-  "kwaivgi/kling-v2.6-std/image-to-video":        "kling25t",
-  "kwaivgi/kling-v2.6-pro/text-to-video":         "kling25t",
-  "kwaivgi/kling-v2.6-pro/image-to-video":        "kling25t",
+  "kwaivgi/kling-v2.6-std/text-to-video":         "kling26",
+  "kwaivgi/kling-v2.6-std/image-to-video":        "kling26",
+  "kwaivgi/kling-v2.6-pro/text-to-video":         "kling26",
+  "kwaivgi/kling-v2.6-pro/image-to-video":        "kling26",
   "hailuo/2-3-image-to-video-pro":                "hailuo23",
   "hailuo/2-3-image-to-video-standard":           "hailuo23f",
   "hailuo/02-text-to-video-pro":                  "hailuo23",
@@ -394,6 +394,8 @@ const QUALITY_MULTIPLIER: Record<string, number> = {
 
 const USER_CREDIT_USD = 0.05;
 const GOOGLE_VIDEO_MARGIN = 1.4;
+/** Platform-wide: 1.4 margin x 40 credits-per-USD = 56 credits per provider dollar. */
+const GOOGLE_VIDEO_CREDITS_PER_USD = 40;
 type GoogleVideoBillingKey = "veo31_lite" | "veo31_fast" | "veo31" | "veo3_fast" | "veo3" | "omni_flash";
 type GoogleVideoQuality = "360p" | "720p" | "1080p" | "4k";
 
@@ -440,10 +442,10 @@ function getGoogleVideoUsdPerSecond(modelRef: string, quality: string | null | u
 
 function getGeminiOmniUserCreditsPerSecond(quality: string | null | undefined): number {
   const q = normalizeGoogleVideoQuality(quality);
-  if (q === "360p") return 1;
-  if (q === "1080p") return 4.5;
-  if (q === "4k") return 9;
-  return 3;
+  if (q === "360p") return 1.68;
+  if (q === "1080p") return 8.4;
+  if (q === "4k") return 16.8;
+  return 5.6;
 }
 
 function getGoogleVideoCredits(modelRef: string, durationSec: number, numUnits: number, quality: string | null | undefined): number | null {
@@ -464,7 +466,7 @@ function getGoogleVideoCredits(modelRef: string, durationSec: number, numUnits: 
 
   const usdPerSecond = getGoogleVideoUsdPerSecond(modelRef, billingQuality);
   if (usdPerSecond === null) return null;
-  const credits = (usdPerSecond * safeDuration * safeUnits * GOOGLE_VIDEO_MARGIN) / USER_CREDIT_USD;
+  const credits = usdPerSecond * safeDuration * safeUnits * GOOGLE_VIDEO_MARGIN * GOOGLE_VIDEO_CREDITS_PER_USD;
   return parseFloat(Math.max(1, credits).toFixed(2));
 }
 
@@ -601,7 +603,7 @@ const SEEDANCE_20_MINI_T2V_USD_PER_SECOND = {
 } as const;
 const SEEDANCE_20_MINI_TURBO_USD_PER_SECOND = {
   "720p": 0.08,
-  "1080p": 0.09,
+  "1080p": 0.10,
 } as const;
 
 function getSeedance20MiniProviderUsd(modelRef: string, durationSec: number, quality?: string | null): number | null {
@@ -867,12 +869,13 @@ const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "kwaivgi/kling-video-o3-pro/text-to-video":     { "4k": 5.0, "pro": 4/3, "std": 1.0 },
   "kwaivgi/kling-video-o3-pro/image-to-video":    { "4k": 5.0, "pro": 4/3, "std": 1.0 },
   "kling-video-o3":                             { "4k": 5.0, "pro": 4/3, "std": 1.0 },
-  "kling-2.6/video":                            { "pro": 2.0, "std": 1.0 },
-  "kling-2.6/image-to-video":                   { "pro": 2.0, "std": 1.0 },
-  "kwaivgi/kling-v2.6-pro/text-to-video":       { "pro": 2.0, "std": 1.0 },
-  "kwaivgi/kling-v2.6-pro/image-to-video":      { "pro": 2.0, "std": 1.0 },
-  "kwaivgi/kling-v2.6-std/text-to-video":       { "pro": 2.0, "std": 1.0 },
-  "kwaivgi/kling-v2.6-std/image-to-video":      { "pro": 2.0, "std": 1.0 },
+  "kling-2.6/video":                            { "pro": 0.07 / 0.042, "std": 1.0 },
+  "kling-2.6/image-to-video":                   { "pro": 0.07 / 0.042, "std": 1.0 },
+  "kwaivgi/kling-v2.6-pro/text-to-video":       { "pro": 0.07 / 0.042, "std": 1.0 },
+  "kwaivgi/kling-v2.6-pro/image-to-video":      { "pro": 0.07 / 0.042, "std": 1.0 },
+  "kwaivgi/kling-v2.6-std/text-to-video":       { "pro": 0.07 / 0.042, "std": 1.0 },
+  "kwaivgi/kling-v2.6-std/image-to-video":      { "pro": 0.07 / 0.042, "std": 1.0 },
+  "kling26":                                    { "pro": 0.07 / 0.042, "std": 1.0 },
 };
 
 function qualityMultiplierForModel(modelRef: string, quality: string | null | undefined): number {
@@ -952,8 +955,8 @@ function resolveModelUserCharge(
 
   if (constitutionId === "kling_v3_turbo") {
     const isPro = modelRef.includes("-pro") || (quality || "").toLowerCase().includes("pro");
-    // Std provider cost is a measured $0.1064/s; below 2.90 cr/s this model sells at a loss.
-    const rate = isPro ? 4.4 : 3.5;
+    // Published rates: Std $0.112/s, Pro $0.14/s. 0.112 x 56 = 6.272, 0.14 x 56 = 7.84.
+    const rate = isPro ? 7.84 : 6.272;
     return parseFloat((rate * durationSec * numUnits).toFixed(2));
   }
 
@@ -982,11 +985,11 @@ function resolveModelUserCharge(
   }
 
   if (constitutionId === "hailuo02" || constitutionId === "hailuo02_pro") {
-    return parseFloat((0.49 * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
+    return parseFloat((0.50 * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
   }
 
   if (constitutionId === "hailuo02_std") {
-    const usd = durationSec >= 10 ? 0.56 : 0.23;
+    const usd = durationSec >= 10 ? 0.56 : 0.28;
     return parseFloat((usd * MINIMAX_H3_MARGIN_MULTIPLIER * MINIMAX_H3_CREDITS_PER_USD * numUnits).toFixed(2));
   }
 

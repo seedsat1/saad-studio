@@ -74,7 +74,7 @@ const SEEDANCE_20_MINI_T2V_USD_PER_SECOND = {
 } as const;
 const SEEDANCE_20_MINI_TURBO_USD_PER_SECOND = {
   "720p": 0.08,
-  "1080p": 0.09,
+  "1080p": 0.10,
 } as const;
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([

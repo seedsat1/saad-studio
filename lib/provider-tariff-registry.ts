@@ -308,7 +308,7 @@ export const WAVESPEED_PROVENANCE_REGISTRY: Record<string, Omit<TariffProvenance
   "minimax/hailuo-02": {
     provider: "WaveSpeed",
     providerRoute: "minimax/hailuo-02/pro",
-    rateUsd: 0.48,
+    rateUsd: 0.50, // Pro: $0.50 per 6s 1080p video; Standard $0.28/6s, Fast $0.10/6s
     billingUnit: "USD/generation",
     sourceType: "official_docs",
     sourceReference: "WaveSpeed Official API Docs - Minimax Hailuo 02 (https://wavespeed.ai/docs/docs-api)",
@@ -330,7 +330,7 @@ export const WAVESPEED_PROVENANCE_REGISTRY: Record<string, Omit<TariffProvenance
   "alibaba/wan-3.0": {
     provider: "WaveSpeed",
     providerRoute: "alibaba/wan-3.0",
-    rateUsd: 0.13, // Text/Reference 720p: 0.13/s; Image 720p: 0.12/s
+    rateUsd: 0.10, // One schedule for reference and image routes: 480p 0.05/s, 720p 0.10/s, 1080p 0.20/s
     billingUnit: "USD/sec",
     sourceType: "official_docs",
     sourceReference: "WaveSpeed Alibaba Wan 3.0 Text/Image/Reference API Documentation supplied by owner",
@@ -506,12 +506,12 @@ export const WAVESPEED_PROVENANCE_REGISTRY: Record<string, Omit<TariffProvenance
   "kwaivgi/kling-v3-turbo": {
     provider: "WaveSpeed",
     providerRoute: "kwaivgi/kling-v3-turbo-std/image-to-video",
-    rateUsd: 0.02128, // Silver tier: Std $0.02128/s ($0.1064/5s), Pro $0.0266/s ($0.133/5s)
+    rateUsd: 0.112, // Std $0.112/s ($0.336/3s, $1.12/10s), Pro $0.14/s
     billingUnit: "USD/sec",
-    sourceType: "official_api",
-    sourceReference: "WaveSpeed Kling V3 Turbo API Model Catalog",
-    effectiveDate: "2026-09-05",
-    capturedAt: "2026-09-05T19:20:00+03:00",
+    sourceType: "official_docs",
+    sourceReference: "https://wavespeed.ai/models/kwaivgi/kling-v3-turbo-std/image-to-video",
+    effectiveDate: "2026-10-07",
+    capturedAt: "2026-10-07T00:00:00+03:00",
     verificationStatus: "VERIFIED_CURRENT",
   },
 };
