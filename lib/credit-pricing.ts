@@ -259,12 +259,12 @@ function getMinimaxH3MaxRateKey(quality?: string): keyof typeof MINIMAX_H3_MAX_R
   return "480p";
 }
 
-function readReferenceVideoDurationSeconds(payload?: VideoPayload): number {
+function readReferenceVideoDurationSeconds(payload?: VideoPayload, minPerClipSeconds = 0): number {
   const rawDurations = payload?.reference_video_durations ?? payload?.referenceVideoDurations;
   if (!Array.isArray(rawDurations)) return 0;
   const total = rawDurations.reduce((sum, value) => {
     const n = typeof value === "number" ? value : typeof value === "string" ? Number.parseFloat(value) : 0;
-    return Number.isFinite(n) && n > 0 ? sum + n : sum;
+    return Number.isFinite(n) && n > 0 ? sum + Math.max(minPerClipSeconds, n) : sum;
   }, 0);
   if (total <= 0) return 0;
   return Math.min(15, Math.ceil(total));
@@ -277,7 +277,7 @@ function countStringList(value: unknown): number {
 function getMinimaxH3Credits(payload?: VideoPayload, rateOverride?: number, modelRoute?: string): number {
   const isH3Max = modelRoute?.startsWith("wavespeed-ai/minimax-h3") === true || modelRoute === "minimax-h3-max";
   const isReferenceRoute = modelRoute?.includes("reference-to-video") === true;
-  const referenceVideoDuration = isReferenceRoute ? readReferenceVideoDurationSeconds(payload) : 0;
+  const referenceVideoDuration = isReferenceRoute ? readReferenceVideoDurationSeconds(payload, 2) : 0;
 
   if (isH3Max) {
     const outputDuration = Math.max(3, readDuration(payload, 5));
@@ -643,7 +643,67 @@ function getVideoCreditsByModelIdFallback(modelId: string, payload?: VideoPayloa
   return applySoundMultiplier(base, payload);
 }
 
+const SEEDANCE_20_REFERENCE_VIDEO_USD_PER_SECOND = {
+  standard: { "480p": 0.075, "720p": 0.15, "1080p": 0.375, "4k": 0.75 },
+  fast:     { "480p": 0.065, "720p": 0.13, "1080p": 0.325, "4k": 0.65 },
+} as const;
+
+/**
+ * Seedance 2.0 / 2.0 Fast with reference videos attached. The provider bills one
+ * reduced per-second rate across the normalised reference duration plus the
+ * output duration, instead of the output-only schedule. Returns null when the
+ * route or payload does not match so the caller falls through unchanged.
+ */
+function getSeedance20ReferenceVideoCredits(modelRoute: string, payload?: VideoPayload): number | null {
+  const route = (modelRoute || "").toLowerCase();
+  const isFast = route.startsWith("bytedance/seedance-2.0-fast/");
+  const isStandard = route.startsWith("bytedance/seedance-2.0/") && !route.includes("-turbo");
+  if (!isFast && !isStandard) return null;
+
+  const referenceSeconds = readReferenceVideoDurationSeconds(payload, 2);
+  if (referenceSeconds <= 0) return null;
+
+  const quality = readQuality(payload);
+  const q: keyof typeof SEEDANCE_20_REFERENCE_VIDEO_USD_PER_SECOND["standard"] =
+    quality.includes("4k") ? "4k" : quality.includes("1080") ? "1080p" : quality.includes("480") ? "480p" : "720p";
+  const usdPerSecond = SEEDANCE_20_REFERENCE_VIDEO_USD_PER_SECOND[isFast ? "fast" : "standard"][q];
+  const billedSeconds = referenceSeconds + Math.max(1, readDuration(payload, 5));
+  return parseFloat(Math.max(1, usdPerSecond * billedSeconds * 1.4 * 40).toFixed(2));
+}
+
+const SEEDANCE_V15_PRO_USD_PER_SECOND = {
+  "480p": 0.012,
+  "720p": 0.026,
+} as const;
+
+/**
+ * Seedance V1.5 Pro (and its v1-pro aliases). Cost scales linearly with
+ * duration, 720p costs about 2.17x the 480p branch, and generate_audio doubles
+ * the price. Returns null for routes it does not own.
+ */
+function getSeedanceV15ProCredits(modelRoute: string, payload?: VideoPayload): number | null {
+  const route = (modelRoute || "").toLowerCase();
+  const owned =
+    route.startsWith("bytedance/seedance-v1.5-pro/") ||
+    route === "bytedance/seedance-1.5-pro" ||
+    route === "bytedance/v1-pro-image-to-video" ||
+    route === "bytedance/v1-pro-text-to-video" ||
+    route === "bytedance/v1-pro-fast-image-to-video";
+  if (!owned) return null;
+
+  const quality = readQuality(payload);
+  const q: keyof typeof SEEDANCE_V15_PRO_USD_PER_SECOND = quality.includes("720") ? "720p" : "480p";
+  const audioMultiplier = hasSoundEnabled(payload) ? 2 : 1;
+  const usd = SEEDANCE_V15_PRO_USD_PER_SECOND[q] * Math.max(1, readDuration(payload, 5)) * audioMultiplier;
+  return parseFloat(Math.max(1, usd * 1.4 * 40).toFixed(2));
+}
+
 export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayload): number {
+  const seedanceReferenceCredits = getSeedance20ReferenceVideoCredits(modelRoute, payload);
+  if (seedanceReferenceCredits !== null) return seedanceReferenceCredits;
+  const seedanceV15Credits = getSeedanceV15ProCredits(modelRoute, payload);
+  if (seedanceV15Credits !== null) return seedanceV15Credits;
+
   if (modelRoute.startsWith("minimax/h3") || modelRoute.startsWith("wavespeed-ai/minimax-h3") || modelRoute === "minimax-h3") {
     return getMinimaxH3Credits(payload, undefined, modelRoute);
   }
@@ -849,6 +909,8 @@ export function get3DCredits(modelId: string, mode: string): number {
  * Turbo settled on. The old flat 8 credits ignored duration entirely.
  */
 const DUBBING_CREDITS_PER_SECOND = 0.33;
+/** minimax/voice-clone bills a flat $1.60 per run; 1.60 x 1.4 x 40 = 89.6. */
+const VOICE_CLONE_CREDITS = 89.6;
 /** Used when the caller could not measure the media; one minute. */
 const DUBBING_FALLBACK_SECONDS = 60;
 const DUBBING_MAX_BILLED_SECONDS = 15 * 60;
@@ -857,7 +919,12 @@ export function getAudioActionCredits(
   actionType: "tts" | "video2audio" | "music" | "voice-changer" | "dubbing" | "lip-sync" | "voice-cloning",
   textOrPayloadOrDuration?: string | number | { text?: string; prompt?: string; duration?: number; musicDuration?: number }
 ): number {
-  if (actionType === "tts" || actionType === "voice-cloning") {
+  if (actionType === "voice-cloning") {
+    // Flat per-run charge: cloning cost does not scale with the script length.
+    const dbCost = getGenerationCostSync("audio:voice-cloning", 0, 1);
+    return dbCost > 0 ? dbCost : VOICE_CLONE_CREDITS;
+  }
+  if (actionType === "tts") {
     const text = typeof textOrPayloadOrDuration === "string" ? textOrPayloadOrDuration : typeof textOrPayloadOrDuration === "object" ? textOrPayloadOrDuration?.text || textOrPayloadOrDuration?.prompt : "";
     if (text !== undefined) return calculateTtsCredits(text);
   }

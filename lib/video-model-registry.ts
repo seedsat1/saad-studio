@@ -880,7 +880,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       aspect_ratios: ["16:9", "9:16"],
       durations:     [3, 4, 5, 6, 7, 8, 9, 10],
       resolutions:   ["360p", "720p", "1080p", "4k"],
-      max_reference_images: 3,
+      max_reference_images: 6,
       max_reference_videos: 3,
       max_reference_video_total_seconds: 9,
       max_prompt_characters: 2500,

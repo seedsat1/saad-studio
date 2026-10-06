@@ -1036,6 +1036,10 @@ const HIDDEN_VIDEO_PAGE_MODEL_IDS = new Set([
   "bytedance-seedance-v25-i2v-turbo",
   "bytedance-seedance-v25-i2v-spicy",
   "bytedance-seedance-v2-mini-spicy",
+  // Google lists Veo 3 and Veo 3 Fast as Deprecated; they may stop serving
+  // without notice. The registry rows stay so past generations still resolve.
+  "google-veo3-t2v",
+  "google-veo3-fast-t2v",
 ]);
 
 function resolveSeedance25Route(baseRoute: string, hasImageInput: boolean, selectedResolution?: string | null): string {
