@@ -310,6 +310,8 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   // â”€â”€ Image models â€” app/api/generate/image (IMAGE_MODELS catalog IDs) â”€â”€â”€â”€â”€
   "nano-banana-pro":                    "nano_pro",
   "nano-banana-2":                      "nano2",
+  "nano-banana-2.1":                    "nano21",
+  "gemini-nano-banana-2.1":             "nano21",
   "nano-banana-2-lite":                 "nano2_lite",
   "google/nano-banana":                 "nano",
   "google/nano-banana-edit":            "nano_edit",
@@ -806,6 +808,8 @@ const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "wan/2-7-image-pro":            { "2k": 1.5, "4k": 1.875 },
   "wan_image_pro":                { "2k": 1.5, "4k": 1.875 },
   "nano-banana-2":                { "512px": 0.5, "2k": 1.5, "4k": 2.25 },
+  "nano-banana-2.1":              { "1k": 1.0, "2k": 0.0504 / 0.0336, "4k": 0.113 / 0.0336 },
+  "nano21":                       { "1k": 1.0, "2k": 0.0504 / 0.0336, "4k": 0.113 / 0.0336 },
   "nano2":                        { "512px": 0.5, "2k": 1.5, "4k": 2.25 },
   "nano-banana-2-lite":           { "2k": 1.5, "4k": 2.25 },
   "nano2_lite":                   { "2k": 1.5, "4k": 2.25 },

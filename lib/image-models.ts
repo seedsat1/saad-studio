@@ -155,6 +155,21 @@ export const ALL_ASPECT_OPTIONS = [
 export const IMAGE_MODELS: ImageModel[] = [
   // â”€â”€ Google Nano Banana â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
+    id: "nano-banana-2.1",
+    label: "Nano Banana 2.1",
+    sublabel: "Sharper text, steadier characters, clean panoramas",
+    badge: "NEW",
+    group: "Nano Banana",
+    upstreamModelId: GOOGLE_IMAGE_UPSTREAM_MODEL_MAP["nano-banana-2.1"],
+    inputType: "text-to-image",
+    aspectRatios: GEMINI_FLASH_IMAGE_ASPECT_RATIOS,
+    maxImages: 4,
+    maxRefImages: 14,
+    imageInputField: "image_input",
+    qualityParam: ["1K", "2K", "4K"],
+    creditCost: 2.0,
+  },
+  {
     id: "nano-banana-2",
     label: "Nano Banana 2",
     sublabel: "Balanced quality, speed, and cost",

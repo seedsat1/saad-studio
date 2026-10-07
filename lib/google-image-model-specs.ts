@@ -47,6 +47,7 @@ export const GEMINI_FLASH_LITE_IMAGE_ASPECT_RATIOS = [
 
 export const GOOGLE_IMAGE_UPSTREAM_MODEL_MAP: Record<string, string> = {
   "nano-banana-2": "gemini-3.1-flash-image",
+  "nano-banana-2.1": "gemini-nano-banana-2.1",
   "nano-banana-pro": "gemini-3-pro-image",
   "nano-banana-2-lite": "gemini-3.1-flash-lite-image",
   "google/nano-banana": "gemini-2.5-flash-image",
@@ -60,6 +61,13 @@ const GEMINI_UPSTREAM_SPECS: Record<string, { aspectRatios: string[]; qualityPar
   "gemini-3.1-flash-image": {
     aspectRatios: GEMINI_FLASH_IMAGE_ASPECT_RATIOS,
     qualityParam: ["512px", "1K", "2K", "4K"],
+    maxRefImages: 14,
+  },
+  "gemini-nano-banana-2.1": {
+    aspectRatios: GEMINI_FLASH_IMAGE_ASPECT_RATIOS,
+    // Google documents 1K, 2K and 4K for this model; 512px is not offered.
+    qualityParam: ["1K", "2K", "4K"],
+    // Multi-image fusion: up to 14 references, 4 characters plus 10 objects.
     maxRefImages: 14,
   },
   "gemini-3-pro-image": {
