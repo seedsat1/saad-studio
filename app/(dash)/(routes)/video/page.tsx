@@ -26,6 +26,7 @@ import type { MediaItem } from "@/components/MediaGrid";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import {
   WaveSpeedVideoModel,
+  VIDEO_MODEL_REGISTRY,
   getModelGroups,
   DEFAULT_MODEL,
   getGoogleVideoConstraints,
@@ -35,6 +36,7 @@ import {
   supportsSeedanceComposerAspectRatio,
 } from "@/lib/video-model-registry";
 import { getGenerationCostSync, computeCreditsFromDynamicModel } from "@/lib/pricing";
+import { saveVideoDraft, loadVideoDraft, clearVideoDraft } from "@/lib/video-draft-store";
 import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { getFallbackUrls } from "@/lib/utils";
@@ -2027,6 +2029,89 @@ function VideoPageInner() {
     window.addEventListener("saad-profile-switched", handleProfileSwitch);
     return () => window.removeEventListener("saad-profile-switched", handleProfileSwitch);
   }, [loadPersistedVideos]);
+
+  // ── Draft persistence ──────────────────────────────────────────────────────
+  // A reload used to discard the prompt and every attachment. Scalars live in
+  // localStorage and attachments in IndexedDB, which stores File objects as-is.
+  const draftRestoredRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const draft = await loadVideoDraft();
+      if (cancelled) {
+        draftRestoredRef.current = true;
+        return;
+      }
+      if (draft) {
+        const { scalars, files } = draft;
+        const model = scalars.modelId
+          ? VIDEO_MODEL_REGISTRY.find((entry: WaveSpeedVideoModel) => entry.id === scalars.modelId)
+          : undefined;
+        if (model) setSelectedModel(model);
+        if (scalars.prompt) setPrompt(scalars.prompt);
+        if (scalars.negativePrompt) setNegPrompt(scalars.negativePrompt);
+        if (scalars.duration !== null) setDuration(scalars.duration);
+        if (scalars.aspectRatio !== null) setAspectRatio(scalars.aspectRatio);
+        if (scalars.size !== null) setSize(scalars.size);
+        if (scalars.resolution !== null) setResolution(scalars.resolution);
+        setSound(scalars.sound);
+        setInputMode(scalars.inputMode);
+        if (scalars.linkedStartFrameUrl) setLinkedStartFrameUrl(scalars.linkedStartFrameUrl);
+        if (scalars.linkedEndFrameUrl) setLinkedEndFrameUrl(scalars.linkedEndFrameUrl);
+        if (scalars.referenceVideoDurations.length) setReferenceVideoDurations(scalars.referenceVideoDurations);
+        if (files.referenceImages.length) setReferenceImages(files.referenceImages);
+        if (files.startFrame) setStartFrame(files.startFrame);
+        if (files.endFrame) setEndFrame(files.endFrame);
+      }
+      draftRestoredRef.current = true;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!draftRestoredRef.current) return;
+    // Debounced so typing a prompt does not write on every keystroke.
+    const timer = window.setTimeout(() => {
+      void saveVideoDraft(
+        {
+          modelId: selectedModel.id,
+          prompt,
+          negativePrompt: negPrompt,
+          duration,
+          aspectRatio,
+          size,
+          resolution,
+          sound,
+          inputMode,
+          linkedStartFrameUrl,
+          linkedEndFrameUrl,
+          referenceVideoDurations,
+          savedAt: Date.now(),
+        },
+        { referenceImages, startFrame, endFrame },
+      );
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [
+    selectedModel.id,
+    prompt,
+    negPrompt,
+    duration,
+    aspectRatio,
+    size,
+    resolution,
+    sound,
+    inputMode,
+    linkedStartFrameUrl,
+    linkedEndFrameUrl,
+    referenceVideoDurations,
+    referenceImages,
+    startFrame,
+    endFrame,
+  ]);
 
   // Capability shorthand
   const caps = selectedModel.capabilities;
