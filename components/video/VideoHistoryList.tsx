@@ -346,7 +346,7 @@ function FailedVideoHistoryCard({
           className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/15"
         >
           <RefreshCw size={13} />
-          <span>Reuse Prompt</span>
+          <span>Restore Setup</span>
         </button>
       )}
     </article>
@@ -584,6 +584,21 @@ export function VideoHistoryList({
                 <p className="text-xs text-slate-300 leading-relaxed line-clamp-4">
                   {item.prompt || "Generated video"}
                 </p>
+
+                {onReusePrompt && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReusePrompt(item);
+                    }}
+                    className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition hover:border-cyan-400 hover:bg-cyan-500/20 active:scale-[0.98]"
+                    title={lang === "ar" ? "استرجاع الموديل والبرومبت والمدخلات" : "Restore model, prompt and inputs"}
+                  >
+                    <RefreshCw size={12} />
+                    <span>{lang === "ar" ? "استرجاع للتوليد من جديد" : "Restore & Regenerate"}</span>
+                  </button>
+                )}
 
                 {/* Reference Inputs */}
                 {Boolean(item.startImageUrl || item.endImageUrl || (item.referenceImageUrls && item.referenceImageUrls.length > 0)) && (

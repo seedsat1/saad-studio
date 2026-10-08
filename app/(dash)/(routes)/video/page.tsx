@@ -750,6 +750,25 @@ function getReferenceFileLimits(model: WaveSpeedVideoModel) {
   };
 }
 
+/**
+ * Downloads a stored asset back into a File so restored reference media flows
+ * through the same previews, limit checks and upload path as a fresh pick.
+ * Returns null when the asset is unreachable (expired link, CORS) so the caller
+ * can report what could not be restored instead of failing the whole restore.
+ */
+async function fetchUrlAsFile(url: string): Promise<File | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    if (!blob.size) return null;
+    const name = url.split("?")[0].split("/").pop() || "reference";
+    return new File([blob], name, { type: blob.type || "application/octet-stream" });
+  } catch {
+    return null;
+  }
+}
+
 function isAllowedReferenceFile(file: File, model: WaveSpeedVideoModel): boolean {
   if (file.type.startsWith("image/")) return true;
   if (file.type.startsWith("video/")) {
@@ -2322,6 +2341,69 @@ function VideoPageInner() {
     setGenerationError(null);
   }, []);
 
+  /**
+   * Pulls a past generation back into the composer so it can be re-run or
+   * tweaked: model, prompt, aspect ratio, duration, start/end frames and
+   * reference media.
+   *
+   * Start and end frames are restored as URLs, which the submit path already
+   * understands, so nothing is re-uploaded. Reference media is fetched back
+   * into File objects instead, because the composer's previews, limit checks
+   * and draft persistence all work on files — converting here keeps those
+   * paths untouched rather than adding a parallel URL-based one.
+   */
+  const restoreGenerationIntoComposer = useCallback(async (item: MediaItem) => {
+    const model = VIDEO_MODEL_REGISTRY.find((entry: WaveSpeedVideoModel) => entry.name === item.model);
+    // selectModel resets the whole composer, so it has to run before anything
+    // below it or the restored values would be wiped.
+    if (model) selectModel(model);
+
+    const caps = (model ?? selectedModel).capabilities;
+    setPrompt(item.prompt || "");
+
+    if (item.ratio && (caps.aspect_ratios.length === 0 || caps.aspect_ratios.includes(item.ratio))) {
+      setAspectRatio(item.ratio);
+    }
+    const seconds = Math.round(Number.parseFloat(String(item.duration ?? "").replace(/[^0-9.]/g, "")));
+    if (Number.isFinite(seconds) && seconds > 0 && (caps.durations.length === 0 || caps.durations.includes(seconds))) {
+      setDuration(seconds);
+    }
+
+    setStartFrame(null);
+    setEndFrame(null);
+    setLinkedStartFrameUrl(item.startImageUrl ?? null);
+    setStartFramePreview(item.startImageUrl ?? null);
+    setLinkedEndFrameUrl(item.endImageUrl ?? null);
+    setEndFramePreview(item.endImageUrl ?? null);
+
+    const limits = getReferenceFileLimits(model ?? selectedModel);
+    const imageUrls = (item.referenceImageUrls ?? []).slice(0, limits.images);
+    const videoUrls = (item.referenceVideoUrls ?? []).slice(0, limits.videos);
+    const restoredFiles: File[] = [];
+    let failedCount = 0;
+    for (const url of [...imageUrls, ...videoUrls]) {
+      const file = await fetchUrlAsFile(url);
+      if (file && isAllowedReferenceFile(file, model ?? selectedModel)) restoredFiles.push(file);
+      else failedCount += 1;
+    }
+    setReferenceImages(restoredFiles);
+    setReferenceVideoDurations([]);
+
+    const hasFrames = Boolean(item.startImageUrl || item.endImageUrl);
+    setInputMode(hasFrames && restoredFiles.length === 0 ? "frames" : "references");
+
+    setGenerationError(
+      failedCount > 0
+        ? lang === "ar"
+          ? `تعذّر استرجاع ${failedCount} من الوسائط المرجعية — أعد رفعها يدوياً.`
+          : `${failedCount} reference file(s) could not be restored — re-upload them manually.`
+        : null,
+    );
+
+    document.getElementById("video-prompt-composer")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    requestAnimationFrame(() => document.getElementById("video-prompt-input")?.focus());
+  }, [selectModel, selectedModel, lang]);
+
   useEffect(() => {
     if (activeTool === "lipsync") {
       if (!LIPSYNC_MODELS.some((m) => m.id === selectedModel.id)) {
@@ -3848,11 +3930,7 @@ function VideoPageInner() {
               onLoadMore={() => void loadPersistedVideos(videoResultsPage + 1, "append")}
               onInspect={(item) => setInspectorAsset(mediaItemToInspectorAsset(item))}
               onToggleFavorite={toggleVideoFavorite}
-              onReusePrompt={(item) => {
-                setPrompt(item.prompt || "");
-                document.getElementById("video-prompt-composer")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                requestAnimationFrame(() => document.getElementById("video-prompt-input")?.focus());
-              }}
+              onReusePrompt={(item) => { void restoreGenerationIntoComposer(item); }}
               onDelete={(id) => setDeleteTargetId(id)}
             />
           )}
