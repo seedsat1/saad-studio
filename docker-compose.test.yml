@@ -1,0 +1,54 @@
+# Throwaway PostgreSQL for the integration tests.
+#
+# Completely separate from Neon and from production: a local container, its own
+# volume, and port 5433 rather than 5432 so it cannot collide with a Postgres
+# already installed on the machine.
+#
+# Driven by scripts/test-db.mjs, which is the supported entry point:
+#   npm run test:db:up       start it and push the schema
+#   npm run test:integration run the integration suite against it
+#   npm run test:db:down     stop it and delete the volume
+#
+# Nothing here ever reaches production. The only credentials are the throwaway
+# ones below, which is also why they are committed.
+
+name: saad-studio-test
+
+services:
+  test-db:
+    image: postgres:16-alpine
+    container_name: saad-studio-test-db
+    restart: "no"
+    environment:
+      POSTGRES_USER: saad_test
+      POSTGRES_PASSWORD: saad_test
+      POSTGRES_DB: saad_studio_test
+      # The suite re-creates data per run; durability is pointless and slow.
+      PGDATA: /var/lib/postgresql/data/pgdata
+    command:
+      - postgres
+      # Safe here because the data is disposable, and it makes the schema push
+      # and per-test truncation noticeably faster.
+      - -c
+      - fsync=off
+      - -c
+      - synchronous_commit=off
+      - -c
+      - full_page_writes=off
+      - -c
+      - max_connections=200
+    ports:
+      # Loopback only, and 5433 to stay clear of a local 5432.
+      - target: 5432
+        published: "5433"
+        host_ip: 127.0.0.1
+        protocol: tcp
+    tmpfs:
+      # Keeps the data in RAM: fast, and gone when the container stops.
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saad_test -d saad_studio_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 3s

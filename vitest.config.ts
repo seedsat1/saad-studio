@@ -5,20 +5,19 @@ import path from "path";
 import { SAFE_TEST_DATABASE_URL } from "./test/db-safety";
 
 /**
- * Database variables for the test run.
+ * Unit suite — `npm test`.
  *
- * Vitest loads the project's .env files, and those hold production credentials
- * on a developer machine. Several test files query through lib/prismadb.ts, so
- * without this block `npm test` reaches the production database. Values set
- * here take precedence over anything dotenv loaded.
+ * No database. test/integration/** is excluded and runs under
+ * vitest.integration.config.ts against a real local Postgres instead.
  *
- * A plain DATABASE_URL exported in the shell is deliberately ignored: pointing
- * the suite at a different database has to be a conscious act, which is what
- * TEST_DATABASE_URL is for. test/setup.ts verifies the result either way.
+ * Database variables are pinned here because Vitest loads the project's .env
+ * files, and those hold production credentials on a developer machine. Several
+ * modules construct a PrismaClient on import, so without this a plain
+ * `npm test` reaches the production database. Values set here take precedence
+ * over anything dotenv loaded, and over a DATABASE_URL exported in the shell:
+ * pointing the suite at another database has to be deliberate, which is what
+ * the integration config is for. test/setup.ts verifies the result either way.
  */
-const testDatabaseUrl = process.env.TEST_DATABASE_URL?.trim() || SAFE_TEST_DATABASE_URL;
-const testDirectUrl = process.env.TEST_DIRECT_URL?.trim() || testDatabaseUrl;
-
 export default defineConfig({
   plugins: [react()],
   test: {
@@ -26,10 +25,17 @@ export default defineConfig({
     setupFiles: "./test/setup.ts",
     globals: true,
     include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
-    exclude: ["**/node_modules/**", "**/.claude/**", "**/seedsat1/**", "**/dist/**"],
+    exclude: [
+      "**/node_modules/**",
+      "**/.claude/**",
+      "**/seedsat1/**",
+      "**/dist/**",
+      // Owned by vitest.integration.config.ts.
+      "test/integration/**",
+    ],
     env: {
-      DATABASE_URL: testDatabaseUrl,
-      DIRECT_URL: testDirectUrl,
+      DATABASE_URL: SAFE_TEST_DATABASE_URL,
+      DIRECT_URL: SAFE_TEST_DATABASE_URL,
     },
   },
   resolve: {
