@@ -8,6 +8,7 @@ import {
 export async function POST(req: Request) {
   let generationId: string | null = null;
   let chargedUserId: string | null = null;
+  let providerDispatched = false;
 
   try {
     const { userId } = await auth();
@@ -73,13 +74,15 @@ export async function POST(req: Request) {
       );
     }
 
+    providerDispatched = true;
+
     return Response.json({ ...data, generationId });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       return insufficientCreditsResponse(error.requiredCredits, error.currentBalance);
     }
 
-    if (generationId && chargedUserId) {
+    if (!providerDispatched && generationId && chargedUserId) {
       await rollbackGenerationCharge(generationId, chargedUserId, SCENE_STUDIO_CREDITS).catch(() => {});
     }
 

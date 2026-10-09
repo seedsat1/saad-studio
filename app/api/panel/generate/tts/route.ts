@@ -5,6 +5,7 @@ import {
   ensureUserRow,
   rollbackGenerationCharge,
   setGenerationMediaUrl,
+  setGenerationTaskMarker,
   spendCredits,
 } from "@/lib/credit-ledger";
 import { sanitizePrompt } from "@/lib/security";
@@ -107,6 +108,7 @@ export async function POST(req: NextRequest) {
 
   await ensureUserRow(userId);
   let generationId: string | undefined;
+  let providerDispatched = false;
 
   try {
     const { generationId: gid, remainingCredits } = await spendCredits({
@@ -148,6 +150,11 @@ export async function POST(req: NextRequest) {
     const taskId = submitJson?.data?.taskId ?? submitJson?.data?.id;
     if (!taskId) throw new Error("No taskId returned from KIE.");
 
+    providerDispatched = true;
+    if (generationId) {
+      await setGenerationTaskMarker(generationId, String(taskId)).catch(() => {});
+    }
+
     const audioUrl = await pollKie(String(taskId), apiKey);
 
     if (generationId) await setGenerationMediaUrl(generationId, audioUrl);
@@ -159,7 +166,7 @@ export async function POST(req: NextRequest) {
       balanceAfter: remainingCredits,
     });
   } catch (err) {
-    if (generationId) {
+    if (generationId && !providerDispatched) {
       await rollbackGenerationCharge(generationId, userId, creditsToCharge).catch(() => {});
     }
 
