@@ -3,6 +3,7 @@ import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import {
   InsufficientCreditsError,
   ensureUserRow,
+  rollbackGenerationCharge,
   setGenerationMediaUrl,
   spendCredits,
 } from "@/lib/credit-ledger";
@@ -158,6 +159,10 @@ export async function POST(req: NextRequest) {
       balanceAfter: remainingCredits,
     });
   } catch (err) {
+    if (generationId) {
+      await rollbackGenerationCharge(generationId, userId, creditsToCharge).catch(() => {});
+    }
+
     if (err instanceof InsufficientCreditsError) {
       return NextResponse.json(
         { error: "Insufficient credits.", requiredCredits: creditsToCharge },

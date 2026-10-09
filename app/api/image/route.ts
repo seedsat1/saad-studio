@@ -60,6 +60,9 @@ export async function POST(req: NextRequest) {
     }
 
     creditsToCharge = await getGenerationCost("dall-e-3", 5, Math.floor(amount));
+    if (creditsToCharge <= 0) {
+      return NextResponse.json({ error: "Invalid credit configuration for model: dall-e-3" }, { status: 400 });
+    }
     chargeUserId = userId;
 
     const profileIdFromHeader = req.headers.get("x-profile-id") || req.cookies.get("saad_active_profile_id")?.value;
