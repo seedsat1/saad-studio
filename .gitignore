@@ -24,10 +24,12 @@
 .DS_Store
 *.pem
 
-# debug
+# debug & logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+**/*.log
 
 # local env files
 .env*.local
@@ -41,13 +43,17 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/.idea/
+# IDEs and editors
 /.idea/
 /aisaas.iml
 /prisma-notes.txt
 CINEMA STUDIO VS.O/
-
-.vercel
+.vs/
+**/.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 
 # Large files - use R2/Cloudflare for storage
 *.exe
@@ -74,6 +80,14 @@ gen-lang-client-*.json
 **/*-service-account*.json
 **/*-serviceaccount*.json
 
+# Sensitive files & scratch dumps
+neno.txt
+scratch/check_db_assets.js
+scratch/find_b2_records.js
+scratch/monitor_db.js
+scratch/query_db_config.js
+scratch/run-kie-kling-test.js
+
 .claude/
 
 .env*
@@ -93,8 +107,8 @@ gen-lang-client-*.json
 **/app.asar.new*
 **/resources/app-asar-work/
 *.bak
-
-.env*
+*.bak_*
+*.bak.*
 
 # Electron release folders
 **/release/
@@ -119,3 +133,4 @@ scratchpad/
 
 # Committed template, no real values. Must stay tracked while .env* is ignored.
 !.env.example
+!production.env.example
