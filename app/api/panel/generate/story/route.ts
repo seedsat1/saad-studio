@@ -3,6 +3,7 @@ import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import {
   InsufficientCreditsError,
   ensureUserRow,
+  rollbackGenerationCharge,
   spendCredits,
 } from "@/lib/credit-ledger";
 import { runAiTask, resolveModelId, AiEngineError, type UserContext } from "@/lib/ai-engine";
@@ -141,6 +142,9 @@ export async function POST(req: NextRequest) {
     const sections = parseAiResponse(aiResult.content);
 
     if (sections.length === 0) {
+      if (generationId) {
+        await rollbackGenerationCharge(generationId, userId, STORY_CREDIT_COST).catch(() => {});
+      }
       return NextResponse.json(
         { error: "AI returned an empty sections list." },
         { status: 502 },
@@ -154,6 +158,10 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
+    if (generationId) {
+      await rollbackGenerationCharge(generationId, userId, STORY_CREDIT_COST).catch(() => {});
+    }
+
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(
         {

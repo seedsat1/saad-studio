@@ -3,6 +3,7 @@ import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import {
   InsufficientCreditsError,
   ensureUserRow,
+  rollbackGenerationCharge,
   spendCredits,
 } from "@/lib/credit-ledger";
 import { runAiTask, resolveModelId, AiEngineError, type UserContext } from "@/lib/ai-engine";
@@ -230,6 +231,10 @@ export async function POST(req: NextRequest) {
           });
         }
       } catch (batchErr) {
+        if (spent?.generationId) {
+          await rollbackGenerationCharge(spent.generationId, userId, TRANSLATE_CREDIT_COST).catch(() => {});
+          creditsSpent -= TRANSLATE_CREDIT_COST;
+        }
         // Don't blow up the whole request — record the failure and continue
         failedBatches.push(b + 1);
         // Use source text as fallback for this batch's cues so indices stay aligned

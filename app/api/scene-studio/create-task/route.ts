@@ -1,12 +1,14 @@
 import { auth } from "@clerk/nextjs/server";
-import { spendCredits, InsufficientCreditsError } from "@/lib/credit-ledger";
+import { spendCredits, rollbackGenerationCharge, InsufficientCreditsError } from "@/lib/credit-ledger";
 import { SCENE_STUDIO_CREDITS } from "@/lib/credits-config";
 import {
-  assertSufficientCredits,
   insufficientCreditsResponse,
 } from "@/lib/generation-guard";
 
 export async function POST(req: Request) {
+  let generationId: string | null = null;
+  let chargedUserId: string | null = null;
+
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -22,8 +24,20 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    // Credit check
-    await assertSufficientCredits(userId, SCENE_STUDIO_CREDITS);
+    const promptText =
+      body.nodeInfoList?.find((n: any) => n.fieldName === "text")?.fieldValue?.slice(0, 500) ||
+      "Scene Studio Generation";
+
+    // Deduct credits upfront before calling external provider
+    const charge = await spendCredits({
+      userId,
+      credits: SCENE_STUDIO_CREDITS,
+      prompt: promptText,
+      assetType: "VIDEO",
+      modelUsed: "scene-studio/runninghub",
+    });
+    generationId = charge?.generationId ?? null;
+    chargedUserId = userId;
 
     const payload = {
       instanceType: "default",
@@ -47,19 +61,16 @@ export async function POST(req: Request) {
         body: JSON.stringify(payload),
       }
     );
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
-    // Spend credits if task creation was successful
-    let generationId: string | null = null;
-    if (data.taskId) {
-      const charge = await spendCredits({
-        userId,
-        credits: SCENE_STUDIO_CREDITS,
-        prompt: body.nodeInfoList?.find((n: any) => n.fieldName === "text")?.fieldValue?.slice(0, 500) || "Scene Studio Generation",
-        assetType: "VIDEO",
-        modelUsed: "scene-studio/runninghub",
-      });
-      generationId = charge?.generationId ?? null;
+    if (!res.ok || !data.taskId) {
+      if (generationId && chargedUserId) {
+        await rollbackGenerationCharge(generationId, chargedUserId, SCENE_STUDIO_CREDITS).catch(() => {});
+      }
+      return Response.json(
+        { code: data.code ?? -1, msg: data.msg || "Failed to initiate task" },
+        { status: res.ok ? 400 : res.status }
+      );
     }
 
     return Response.json({ ...data, generationId });
@@ -67,6 +78,11 @@ export async function POST(req: Request) {
     if (error instanceof InsufficientCreditsError) {
       return insufficientCreditsResponse(error.requiredCredits, error.currentBalance);
     }
+
+    if (generationId && chargedUserId) {
+      await rollbackGenerationCharge(generationId, chargedUserId, SCENE_STUDIO_CREDITS).catch(() => {});
+    }
+
     console.error("[SCENE_STUDIO_CREATE_TASK]", error);
     return Response.json(
       { code: -1, msg: "Generation failed. Please try again." },

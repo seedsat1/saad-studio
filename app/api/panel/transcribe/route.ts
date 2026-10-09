@@ -3,6 +3,7 @@ import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import {
   InsufficientCreditsError,
   ensureUserRow,
+  rollbackGenerationCharge,
   spendCredits,
 } from "@/lib/credit-ledger";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
@@ -218,6 +219,10 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
+    if (generationId) {
+      await rollbackGenerationCharge(generationId, userId, TRANSCRIBE_CREDIT_COST).catch(() => {});
+    }
+
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(
         {
