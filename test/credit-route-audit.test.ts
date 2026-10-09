@@ -79,4 +79,14 @@ describe("credit route and deduction audit guarantees", () => {
     // Callback must call rollbackGenerationCharge on failed tasks
     expect(code).toContain("rollbackGenerationCharge");
   });
+
+  it("guarantees scene-studio and tts never rollback once provider is dispatched", () => {
+    const sceneStudioCode = fs.readFileSync(path.join(__dirname, "../app/api/scene-studio/create-task/route.ts"), "utf8");
+    expect(sceneStudioCode).toContain("providerDispatched = true");
+    expect(sceneStudioCode).toContain("!providerDispatched");
+
+    const ttsCode = fs.readFileSync(path.join(__dirname, "../app/api/panel/generate/tts/route.ts"), "utf8");
+    expect(ttsCode).toContain("providerDispatched = true");
+    expect(ttsCode).toContain("!providerDispatched");
+  });
 });
