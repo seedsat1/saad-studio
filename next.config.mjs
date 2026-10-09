@@ -25,6 +25,39 @@ const r2RemotePatterns = (() => {
   }
 })();
 
+/**
+ * Optional offload of the heavy /downloads assets to object storage.
+ *
+ * public/downloads holds ~103 MB of installers, and the largest is 34 MB, so
+ * every plugin download is 34 MB of egress from whichever host serves the app.
+ * Setting STATIC_CDN_BASE_URL (a Backblaze B2 or Cloudflare public base URL)
+ * redirects those paths to storage instead, while the URLs the site and the
+ * plugin updater already use — /downloads/SaadStudio-Setup.exe and friends in
+ * lib/admin/plugin-control-plane.ts — keep working unchanged.
+ *
+ * Leaving the variable unset changes nothing: the files continue to be served
+ * from public/. Next.js evaluates redirects before the filesystem, so when it
+ * is set the redirect wins over the local file and the file can then be removed
+ * from the repository in a separate, deliberate commit.
+ *
+ * Deliberately a temporary (307) redirect, not a permanent one: browsers cache
+ * a 301 indefinitely, which would make unsetting the variable ineffective and
+ * leave no way back if the bucket URL turns out to be wrong.
+ *
+ * See deploy/upload-static-to-b2.sh for the upload side.
+ */
+function staticOffloadRedirects() {
+  const base = process.env.STATIC_CDN_BASE_URL?.trim().replace(/\/+$/, "");
+  if (!base) return [];
+  return [
+    {
+      source: "/downloads/:file*",
+      destination: `${base}/downloads/:file*`,
+      permanent: false,
+    },
+  ];
+}
+
 const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
@@ -208,6 +241,7 @@ const nextConfig = {
         destination: "/canvas",
         permanent: true,
       },
+      ...staticOffloadRedirects(),
     ];
   },
 };

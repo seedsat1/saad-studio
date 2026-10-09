@@ -1,29 +1,13 @@
 import { NextResponse } from "next/server";
 import { runCreditReconciliation } from "@/lib/credit-reconciler";
+import { authorizeCronRequest, cronAuthFailureResponse } from "@/lib/server/cron-auth";
 
 export const dynamic = "force-dynamic";
 
-function isAuthorizedCron(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-
-  const authHeader = req.headers.get("authorization");
-  if (authHeader === `Bearer ${secret}`) return true;
-
-  const url = new URL(req.url);
-  if (url.searchParams.get("key") === secret || url.searchParams.get("secret") === secret) {
-    return true;
-  }
-
-  // Vercel cron header check if configured
-  if (req.headers.get("x-vercel-cron") === "1") return true;
-
-  return false;
-}
-
 export async function GET(req: Request) {
-  if (!isAuthorizedCron(req)) {
-    return new NextResponse("Unauthorized", { status: 401 });
+  const auth = authorizeCronRequest(req);
+  if (!auth.ok) {
+    return cronAuthFailureResponse(auth);
   }
 
   try {

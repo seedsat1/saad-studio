@@ -116,3 +116,6 @@ scratchpad/
 /.litho/
 /.repository-intelligence/
 /litho.docs/
+
+# Committed template, no real values. Must stay tracked while .env* is ignored.
+!.env.example

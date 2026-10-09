@@ -1,0 +1,80 @@
+# Saad Studio — single-host deployment.
+#
+# The app container is not published to the internet directly; Caddy terminates
+# TLS in front of it and obtains certificates automatically. Neon, Clerk,
+# Backblaze B2 and every model provider stay external and are reached over the
+# network, so nothing here touches production data.
+#
+# Secrets come from .env.production, which is NOT committed. Copy .env.example
+# and fill it in on the server. See deploy/README.md.
+#
+# Local build/run check — app only, reachable on loopback, no domain needed:
+#   docker compose build
+#   docker compose up -d
+#   curl -fsS "http://127.0.0.1:3000/api/health?full=1"
+#
+# Production — layers in docker-compose.serve.yml, which adds Caddy and needs
+# SITE_DOMAIN, ACME_EMAIL and public ports 80/443:
+#   docker compose -f docker-compose.yml -f docker-compose.serve.yml up -d
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Next.js inlines NEXT_PUBLIC_* at build time, so these must be passed
+        # as build args. Compose reads them from the shell or an .env file in
+        # this directory; env_file below applies at runtime only.
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_B2_PUBLIC_URL: ${NEXT_PUBLIC_B2_PUBLIC_URL:-}
+        NEXT_PUBLIC_B2_PUBLIC_BASE_URL: ${NEXT_PUBLIC_B2_PUBLIC_BASE_URL:-}
+        NEXT_PUBLIC_R2_PUBLIC_URL: ${NEXT_PUBLIC_R2_PUBLIC_URL:-}
+        NEXT_PUBLIC_R2_PUBLIC_BASE_URL: ${NEXT_PUBLIC_R2_PUBLIC_BASE_URL:-}
+    image: saad-studio:local
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      # Matches the Dockerfile; keeps ffmpeg scratch files off the image layer.
+      TMPDIR: /tmp/saad-studio
+    expose:
+      - "3000"
+    ports:
+      # Loopback only: the host can curl /api/health and run the smoke tests,
+      # but the app is never reachable from outside the machine. Caddy reaches
+      # it over the compose network instead, not through this binding.
+      - target: 3000
+        published: "3000"
+        host_ip: 127.0.0.1
+        protocol: tcp
+    volumes:
+      # ffmpeg intermediates for export/stitch can reach gigabytes. A disk-backed
+      # volume rather than tmpfs, which would consume RAM.
+      - ffmpeg-scratch:/tmp/saad-studio
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    # Set these from measured peak usage, not from a guess. See deploy/README.md
+    # for how to measure; leaving them unset means the container may use the
+    # whole host.
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "6"
+    #       memory: 12g
+
+volumes:
+  ffmpeg-scratch:

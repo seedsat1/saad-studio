@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getFfmpegPath } from '@/lib/server/ffmpeg-path';
 
-// Dynamic imports to prevent webpack from bundling native binaries at build time
+// fluent-ffmpeg is imported dynamically so webpack does not bundle native
+// binaries at build time. Binary discovery lives in lib/server/ffmpeg-path.ts,
+// which probes each candidate and falls back to a system ffmpeg — the bundled
+// ffmpeg-static build is glibc-linked and will not run on a musl image.
 let Ffmpeg: typeof import('fluent-ffmpeg');
 let ffmpegPath: string;
 
@@ -10,19 +14,8 @@ async function ensureFfmpeg() {
       const ffmpegMod = await import('fluent-ffmpeg');
       Ffmpeg = ffmpegMod.default as typeof import('fluent-ffmpeg');
 
-      // Try ffmpeg-static first (more reliable on Vercel), fallback to @ffmpeg-installer
-      try {
-        const staticMod = await import('ffmpeg-static');
-        ffmpegPath = (staticMod.default || staticMod) as unknown as string;
-        console.log('[export] using ffmpeg-static:', ffmpegPath);
-      } catch {
-        const installerMod = await import('@ffmpeg-installer/ffmpeg');
-        ffmpegPath = (installerMod.default as any).path;
-        console.log('[export] using @ffmpeg-installer:', ffmpegPath);
-      }
-
-      // Ensure executable on Linux
-      try { (await import('fs')).chmodSync(ffmpegPath, 0o755); } catch {}
+      ffmpegPath = await getFfmpegPath();
+      console.log('[export] using ffmpeg:', ffmpegPath);
       Ffmpeg.setFfmpegPath(ffmpegPath);
     } catch (err) {
       console.error('[export] ensureFfmpeg error:', err);

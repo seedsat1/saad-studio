@@ -36,8 +36,34 @@ export function isBackblazeConfigured(): boolean {
   );
 }
 
+/**
+ * Whether the legacy Cloudflare R2 read path is available.
+ *
+ * The old body was `Boolean(R2_PUBLIC_URL || NEXT_PUBLIC_R2_PUBLIC_URL || true)`.
+ * The trailing `|| true` made the whole expression a constant and both env
+ * checks dead code, so the admin storage page and /api/health reported R2 as
+ * "configured" on the strength of nothing. That misreporting is what is fixed
+ * here: the dead checks are gone and the real condition is stated outright.
+ *
+ * The real condition is unconditional, and deliberately so. R2 in this codebase
+ * is read-only access to a *public* bucket whose URL is a compile-time constant
+ * in `R2Provider` (lib/storage/r2.ts) — no credential makes it work and no
+ * missing credential makes it stop. `R2Provider.upload()` always throws, so it
+ * can never be a write target.
+ *
+ * Gating it on `R2_PUBLIC_URL` instead would be actively harmful. That variable
+ * is unset in production, so the predicate would become false,
+ * `getStorageReadProvidersForConfig()` filters legacy providers on `configured`
+ * (lib/storage/runtime.ts:266), R2 would drop out of the `readObject()` fallback
+ * chain, and any user media that exists only in that bucket would stop being
+ * served.
+ *
+ * To switch legacy reads off, use the `legacyReadEnabled` flag in the storage
+ * runtime config (Admin → Storage). That is the control built for the job, it is
+ * audited, and it does not depend on starving the process of an env var.
+ */
 export function isR2LegacyConfigured(): boolean {
-  return Boolean(process.env.R2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || true);
+  return true;
 }
 
 export function getStorageProvider(id: StorageProviderId): StorageProvider {
@@ -85,7 +111,11 @@ export function getStorageProviderRegistry(): StorageProviderDefinition[] {
       region: null,
       endpoint: "https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev",
       publicBaseUrl: "https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev",
-      lastError: r2Configured ? null : "Legacy R2 public read endpoint is not configured.",
+      // No error branch: the read endpoint is a built-in public URL, so there is
+      // no credential whose absence could put this provider in a failed state.
+      // A read that fails fails per-object, and readObject() records that in its
+      // `attempts` list rather than here.
+      lastError: null,
     },
     {
       id: "supabase",

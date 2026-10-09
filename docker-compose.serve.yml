@@ -1,0 +1,42 @@
+# Public-facing layer: TLS termination and the reverse proxy.
+#
+# Kept in a separate file rather than behind a Compose profile because Compose
+# interpolates variables for every service in a file regardless of profile — so
+# a required `${SITE_DOMAIN:?...}` in the main file would break the local
+# app-only run as well. Splitting it keeps `docker compose up -d` usable with no
+# domain at all.
+#
+# Production:
+#   docker compose -f docker-compose.yml -f docker-compose.serve.yml up -d
+#
+# SITE_DOMAIN and ACME_EMAIL come from a plain .env beside this file.
+
+services:
+  caddy:
+    image: caddy:2.8.4-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      # HTTP/3.
+      - "443:443/udp"
+    environment:
+      # The domain Caddy requests a certificate for.
+      SITE_DOMAIN: ${SITE_DOMAIN:?set SITE_DOMAIN, e.g. saadstudio.app}
+      # Certificate expiry notices from Let's Encrypt go to this address.
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL for certificate notices}
+      # Reached over the compose network, not through the app's loopback port.
+      UPSTREAM: app:3000
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Holds the issued certificates and the ACME account key. Losing this
+      # volume means re-issuing certificates, so keep it in backups.
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

@@ -10,3 +10,13 @@ seedance-tutorial.html linguist-documentation
 cinema-studio-vso-mockup.html linguist-documentation
 graphics-dashboard.html linguist-documentation
 video-editor.html linguist-documentation
+
+# Deployment files are consumed by Linux: CRLF makes a shell script fail with
+# "bad interpreter" and breaks RUN line-continuations in the Dockerfile.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+deploy/Caddyfile text eol=lf
+deploy/nginx/*.conf text eol=lf
+deploy/crontab.example text eol=lf

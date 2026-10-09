@@ -42,6 +42,9 @@ const isPublicRoute = createRouteMatcher([
   '/video-project-editor(.*)',
   '/video-edit(.*)',
   '/drama-studio(.*)',
+  // Readiness probe: must answer without a session or the container health
+  // check in Dockerfile/docker-compose.yml would only ever see Clerk's 401.
+  '/api/health(.*)',
   '/api/maintenance(.*)',
   '/api/layouts(.*)',
   '/api/content(.*)',

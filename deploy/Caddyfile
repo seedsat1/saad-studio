@@ -1,0 +1,54 @@
+# Reverse proxy and TLS termination for Saad Studio.
+#
+# Caddy obtains and renews Let's Encrypt certificates automatically, so there is
+# no certbot step and no renewal cron. It needs ports 80 and 443 reachable from
+# the internet and SITE_DOMAIN pointing at this host.
+#
+# Variables come from docker-compose.yml: SITE_DOMAIN, UPSTREAM, ACME_EMAIL.
+
+{
+	# Expiry and problem notices from the CA go here.
+	email {$ACME_EMAIL}
+
+	# Caddy's own access/error log; the app logs separately to its container.
+	log {
+		output stderr
+		format console
+	}
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	# The studio export, video-extend stitch and transitions stitch routes run
+	# ffmpeg inside the request and are declared at 300s in vercel.json. The
+	# proxy timeout has to exceed that or the client sees a 504 while the job is
+	# still running. 360s leaves headroom for the response to be written.
+	reverse_proxy {$UPSTREAM} {
+		transport http {
+			dial_timeout 10s
+			read_timeout 360s
+			write_timeout 360s
+		}
+		header_up X-Real-IP {remote_host}
+	}
+
+	# next.config.mjs sets serverActions.bodySizeLimit to 10mb. 25MB here leaves
+	# room for multipart overhead while still rejecting runaway uploads — large
+	# media is meant to go straight to B2/R2 over a signed URL, not through the
+	# app.
+	request_body {
+		max_size 25MB
+	}
+
+	# Security headers are set per-response by middleware.ts (CSP, COOP, CORP,
+	# X-Frame-Options, Permissions-Policy). They are deliberately not repeated
+	# here: two sources for the same header is how CSP breaks in production.
+	# HSTS is Caddy's default on an HTTPS site and is left in place.
+}
+
+# Both hostnames are in getAllowedOrigins() in lib/security.ts; canonicalise to
+# the apex so sessions and CORS have one origin.
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}

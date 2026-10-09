@@ -1,0 +1,48 @@
+# Saad Studio scheduled jobs — the off-Vercel replacement for the `crons`
+# block in vercel.json. Schedules are copied from it unchanged.
+#
+# Vercel Cron runs in UTC, so this crontab must too, or the jobs drift by the
+# host's offset. CRON_TZ below pins that regardless of the server timezone.
+#
+# Install for root:
+#   crontab -u root deploy/crontab.example
+# Verify:
+#   crontab -l -u root
+#
+# Requires /usr/local/bin/saad-cron and /etc/saad-studio/cron.env — see
+# deploy/run-cron.sh for both.
+
+CRON_TZ=UTC
+SHELL=/bin/sh
+PATH=/usr/local/bin:/usr/bin:/bin
+# Failures are mailed here if a local MTA exists; otherwise read them with
+# `journalctl -u cron`. Output is suppressed on success only, never on error.
+MAILTO=""
+
+# Daily at 00:00 UTC — refresh the KIE model catalogue snapshot.
+0 0 * * * saad-cron /api/cron/kie-sync >/dev/null
+
+# Daily at 02:00 UTC — close out generations left in flight.
+0 2 * * * saad-cron /api/cron/generation-reconcile >/dev/null
+
+# Daily at 03:00 UTC — reconcile pending BytePlus generations.
+0 3 * * * saad-cron /api/cron/byteplus-reconcile >/dev/null
+
+# Daily at 04:00 UTC — storage lifecycle sweep. The route defaults to a dry run;
+# add ?live=true only once you have reviewed a dry-run report.
+0 4 * * * saad-cron /api/cron/storage-cleanup >/dev/null
+
+# Mondays at 09:00 UTC — weekly digest email.
+0 9 * * 1 saad-cron /api/cron/weekly-digest >/dev/null
+
+# NOT ENABLED — credit reconciliation.
+#
+# app/api/cron/credit-reconcile/route.ts exists but was never listed in
+# vercel.json, so it has never run on a schedule. It mutates credit balances
+# when called without ?dryRun, which makes switching it on a financial change,
+# not a migration step. Review a dry run first:
+#
+#   saad-cron '/api/cron/credit-reconcile?dryRun=true'
+#
+# then uncomment, choosing a time that does not collide with the sweeps above.
+# 0 5 * * * saad-cron /api/cron/credit-reconcile >/dev/null

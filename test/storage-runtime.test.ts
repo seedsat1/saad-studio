@@ -1,12 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageProvider } from "@/lib/storage/types";
 import {
   createStorageRuntimeForTests,
+  getStorageReadProvidersForConfig,
   normalizeMediaUrl,
   resolveMediaObject,
   resolvePublicUrl,
+  sanitizeStorageRuntimeConfig,
 } from "@/lib/storage/runtime";
-import { validateActiveWriteProvider } from "@/lib/storage/provider-registry";
+import {
+  getStorageProviderRegistry,
+  isBackblazeConfigured,
+  isR2LegacyConfigured,
+  validateActiveWriteProvider,
+} from "@/lib/storage/provider-registry";
 import fs from "fs";
 import path from "path";
 
@@ -120,6 +127,116 @@ describe("central storage runtime", () => {
   it("fails closed for non-writable admin storage providers", () => {
     expect(validateActiveWriteProvider("r2").ok).toBe(false);
     expect(validateActiveWriteProvider("missing-provider").ok).toBe(false);
+  });
+
+  describe("storage provider registry reporting", () => {
+    // isR2LegacyConfigured() used to end in `|| true`, which made both of its
+    // env checks dead code and reported R2 as configured on no evidence. These
+    // cover the replacement: the reporting is honest, and — the part that
+    // matters — legacy R2 reads still work without any R2 credential, because
+    // dropping them would make user media that only exists in that bucket
+    // unreadable.
+    const R2_ENV = [
+      "R2_PUBLIC_URL",
+      "NEXT_PUBLIC_R2_PUBLIC_URL",
+      "R2_PUBLIC_BASE_URL",
+      "NEXT_PUBLIC_R2_PUBLIC_BASE_URL",
+      "R2_ACCESS_KEY_ID",
+      "R2_SECRET_ACCESS_KEY",
+      "R2_ACCOUNT_ID",
+    ] as const;
+    const B2_ENV = ["B2_ACCESS_KEY_ID", "B2_SECRET_ACCESS_KEY", "B2_BUCKET", "B2_BUCKET_NAME"] as const;
+
+    let saved: Record<string, string | undefined> = {};
+
+    beforeEach(() => {
+      saved = {};
+      for (const key of [...R2_ENV, ...B2_ENV]) {
+        saved[key] = process.env[key];
+        delete process.env[key];
+      }
+    });
+
+    afterEach(() => {
+      for (const [key, value] of Object.entries(saved)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    });
+
+    it("reports R2 legacy reads as available with no R2 variables set at all", () => {
+      expect(isR2LegacyConfigured()).toBe(true);
+
+      const r2 = getStorageProviderRegistry().find((p) => p.id === "r2");
+      expect(r2).toBeDefined();
+      expect(r2!.configured).toBe(true);
+      expect(r2!.readEnabled).toBe(true);
+      // Read-only by construction: R2Provider.upload() always throws.
+      expect(r2!.writeEnabled).toBe(false);
+      expect(r2!.legacyReadOnly).toBe(true);
+      // The old "is not configured" message was unreachable; nothing replaced it.
+      expect(r2!.lastError).toBeNull();
+    });
+
+    it("keeps R2 in the legacy read chain when no R2 credential exists", () => {
+      // The regression this guards against: getStorageReadProvidersForConfig
+      // filters legacy providers on `configured`, so a credential-gated
+      // predicate would silently remove R2 and orphan anything stored there.
+      const providers = getStorageReadProvidersForConfig({
+        activeWriteProvider: "backblaze",
+        activeProvider: "backblaze",
+        mediaDeliveryMode: "proxy",
+        legacyReadEnabled: true,
+      });
+
+      expect(providers.map((p) => p.id)).toContain("r2");
+      expect(providers[0].id).toBe("backblaze");
+    });
+
+    it("still honours the storage policy switch for legacy reads", () => {
+      // Turning legacy reads off is the admin flag's job, not an env var's.
+      const providers = getStorageReadProvidersForConfig({
+        activeWriteProvider: "backblaze",
+        activeProvider: "backblaze",
+        mediaDeliveryMode: "proxy",
+        legacyReadEnabled: false,
+      });
+
+      expect(providers.map((p) => p.id)).toEqual(["backblaze"]);
+    });
+
+    it("leaves Backblaze detection independent of the R2 fix", () => {
+      expect(isBackblazeConfigured()).toBe(false);
+      expect(validateActiveWriteProvider("backblaze").ok).toBe(false);
+
+      process.env.B2_ACCESS_KEY_ID = "test-key-id";
+      process.env.B2_SECRET_ACCESS_KEY = "test-secret";
+      process.env.B2_BUCKET = "test-bucket";
+
+      expect(isBackblazeConfigured()).toBe(true);
+      const b2 = getStorageProviderRegistry().find((p) => p.id === "backblaze");
+      expect(b2!.configured).toBe(true);
+      expect(b2!.writeEnabled).toBe(true);
+      expect(b2!.legacyReadOnly).toBe(false);
+      expect(b2!.lastError).toBeNull();
+      expect(validateActiveWriteProvider("backblaze").ok).toBe(true);
+    });
+
+    it("refuses R2 as a write target even though it reports configured", () => {
+      // configured === true must not be mistaken for writable anywhere.
+      const r2 = getStorageProviderRegistry().find((p) => p.id === "r2");
+      expect(r2!.configured).toBe(true);
+
+      const result = validateActiveWriteProvider("r2");
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toMatch(/write-enabled|read-only/i);
+    });
+
+    it("falls back to Backblaze for an unknown stored provider id", () => {
+      const sanitized = sanitizeStorageRuntimeConfig({ activeWriteProvider: "does-not-exist" });
+      expect(sanitized.activeWriteProvider).toBe("backblaze");
+      expect(sanitized.activeProvider).toBe("backblaze");
+    });
   });
 
   it("does not convert external provider URLs into /api/media", () => {

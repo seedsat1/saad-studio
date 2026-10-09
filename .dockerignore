@@ -1,7 +1,83 @@
+# Keeps the build context small and, more importantly, keeps secrets out of the
+# image: the builder stage does `COPY . .`, so anything not listed here is baked
+# into a layer. Mirrors .vercelignore, minus public/ which the runtime serves.
+
+# Secrets — never copy these into an image layer.
+.env
+.env.*
+!.env.example
+
+# VCS, caches and build output
 .git
+.gitignore
 .next
+out
+build
+dist
 node_modules
-.terrain
-.litho
-.repository-intelligence
-tools/repository-intelligence
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs
+*.log
+*.err.log
+*.out.log
+
+# Agent / local tooling
+.agents/
+.claude/
+.terrain/
+.litho/
+.repository-intelligence/
+tools/repository-intelligence/
+
+# Heavy source trees that are not part of the web app
+adobe/
+CINEMA STUDIO VS.O/
+HOLLYWOOD-STUDIO/
+stude/
+saad/
+saad-agent/
+scratch/
+tmp/
+apps/
+test/
+seedance-assets/
+seedsat1/
+chrome-devtools-plugin/
+firebase/
+google-antigravity-sdk/
+modern-web-guidance-plugin/
+science/
+
+# Docs, templates and deployment notes
+docs/
+*.md
+!README.md
+LICENSE
+
+# Root-level mockups, scratch scripts and archives. These patterns match at the
+# context root only, so app/ and components/ are untouched.
+*.html
+*.bat
+*.bak*
+scratchpad/
+strix-main/
+strix-main.zip
+scratch-*.js
+test-*.js
+test-*.ts
+test-*.html
+check-db-all.js
+chat-orchestrator.js
+get-fail-error.js
+get-gen-details.js
+query-july7.js
+tmp-*.js
+tmp-*.html
+tmp_*.html
+
+# Deployment configuration is mounted, not built in
+deploy/
+docker-compose.yml
+Dockerfile

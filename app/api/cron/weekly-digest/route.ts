@@ -5,16 +5,11 @@ import {
   getUserIdsWithPreferenceEnabled,
   sendDedupedNotification,
 } from "@/lib/notifications";
+import { authorizeCronRequest, cronAuthFailureResponse } from "@/lib/server/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-
-function isAuthorized(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  const provided = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  return Boolean(secret && provided === secret);
-}
 
 function startOfUtcWeek(date: Date): Date {
   const result = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -24,8 +19,9 @@ function startOfUtcWeek(date: Date): Date {
 }
 
 export async function GET(req: Request) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  const auth = authorizeCronRequest(req);
+  if (!auth.ok) {
+    return cronAuthFailureResponse(auth);
   }
 
   const now = new Date();

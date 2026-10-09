@@ -7,6 +7,7 @@ import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { defaultProvider, normalizeMediaUrl } from "@/lib/storage";
 import { videoPosterStoragePath } from "@/lib/video-posters";
+import { getFfmpegPath } from "@/lib/server/ffmpeg-path";
 
 export const dynamic = "force-dynamic";
 
@@ -42,21 +43,8 @@ function absoluteUrl(url: string, baseUrl: string): string {
   return `${baseUrl.replace(/\/+$/, "")}${url}`;
 }
 
-function getFfmpegPath(): string | null {
-  try {
-    const staticPath = require("ffmpeg-static");
-    if (typeof staticPath === "string" && staticPath.trim()) return staticPath;
-  } catch {}
-  try {
-    const installer = require("@ffmpeg-installer/ffmpeg");
-    if (typeof installer?.path === "string" && installer.path.trim()) return installer.path;
-  } catch {}
-  return null;
-}
-
 async function runFfmpeg(args: string[], timeoutMs = 60_000): Promise<void> {
-  const ffmpegPath = getFfmpegPath();
-  if (!ffmpegPath) throw new Error("FFmpeg binary is not available.");
+  const ffmpegPath = await getFfmpegPath();
 
   await new Promise<void>((resolve, reject) => {
     const child = spawn(ffmpegPath, args, { windowsHide: true });
