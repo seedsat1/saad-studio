@@ -21,7 +21,10 @@ import {
   computeTokenFingerprint,
 } from "@/lib/panel-auth";
 
-const root = path.resolve(__dirname, "..");
+// Anchored to the repository root rather than counted in ".." from this file,
+// so moving the test between test/ and test/integration/ cannot silently point
+// these lookups at a directory that does not exist.
+const root = process.cwd();
 
 describe("Adobe Plugin Admin Control Plane — Operational, Runtime & Security Suite", () => {
   const originalEnv = { ...process.env };

@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { getGenerationCost } from "@/lib/pricing";
 import {
   DUBBING_SOURCE_LANGUAGES,
   DUBBING_TARGET_LANGUAGES,
@@ -13,11 +12,10 @@ import {
  * bills $0.01 per second of source media, capped at 15 minutes. The route used
  * to forward language *names* and the constitution row billed a flat 12 credits
  * for any length, so a 15-minute job earned $0.35 against $9.00 of cost.
+ *
+ * The billing half of this contract needs a PricingConstitution row, so it
+ * lives in test/integration/dubbing-pricing.test.ts.
  */
-const USD_PER_SECOND = 0.01;
-const MAX_BILLED = 900;
-const CHEAPEST_CREDIT = 99 / 2700; // Max plan
-
 describe("dubbing language codes", () => {
   it("turns a language name into the code the provider expects", () => {
     expect(toDubbingTargetCode("Arabic")).toBe("ar");
@@ -60,25 +58,5 @@ describe("dubbing language codes", () => {
     expect(clampDubbingSpeakers(-4)).toBe(0);
     expect(clampDubbingSpeakers(3)).toBe(3);
     expect(clampDubbingSpeakers(999)).toBe(32);
-  });
-});
-
-describe("dubbing is billed by duration", () => {
-  it.each([30, 60, 300, 900])("clears provider cost at %i seconds on every plan", async (seconds) => {
-    const credits = await getGenerationCost("elevenlabs/dubbing", seconds, 1);
-    const providerCost = seconds * USD_PER_SECOND;
-    expect(credits * CHEAPEST_CREDIT).toBeGreaterThan(providerCost);
-  });
-
-  it("scales with duration instead of charging a flat fee", async () => {
-    const short = await getGenerationCost("elevenlabs/dubbing", 30, 1);
-    const long = await getGenerationCost("elevenlabs/dubbing", 900, 1);
-    expect(long).toBeGreaterThan(short * 20);
-  });
-
-  it("stops charging past the 15 minutes the provider bills", async () => {
-    const atCap = await getGenerationCost("elevenlabs/dubbing", MAX_BILLED, 1);
-    const beyond = await getGenerationCost("elevenlabs/dubbing", MAX_BILLED * 3, 1);
-    expect(beyond).toBe(atCap);
   });
 });

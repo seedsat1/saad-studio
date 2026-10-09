@@ -1,58 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import {
-  runCreditReconciliation,
   resolveCanonicalEffectiveBalance,
   calculateNextAnnualAnchorDate,
   evaluateUserReconciliation,
 } from "@/lib/credit-reconciler";
 
 describe("Credit Reconciler & Effective Balance Engine", () => {
-  it("executes a live READ-ONLY dry-run asserting invariants without brittle snapshots", async () => {
-    const result = await runCreditReconciliation({ dryRun: true });
-
-    // Invariant 1: Accounts scanned matches total actions returned
-    expect(result.scannedCount).toBeGreaterThan(0);
-    expect(result.actions.length).toBe(result.scannedCount);
-
-    // Invariant 2: Counts sum matches total scanned
-    const totalCounts =
-      result.noActionCount +
-      result.monthlyExpiredCount +
-      result.annualRefreshCount +
-      result.annualExpiredCount;
-    expect(totalCounts).toBe(result.scannedCount);
-
-    // Invariant 3: All branches are strictly valid enum members
-    const VALID_BRANCHES = new Set([
-      "MONTHLY_ACTIVE",
-      "MONTHLY_EXPIRED",
-      "ANNUAL_ACTIVE_CURRENT",
-      "ANNUAL_ACTIVE_DUE",
-      "ANNUAL_EXPIRED",
-      "NO_ACTION",
-    ]);
-
-    for (const act of result.actions) {
-      expect(VALID_BRANCHES.has(act.branch)).toBe(true);
-
-      // Invariant 4: No active annual subscription is categorized as ANNUAL_EXPIRED
-      if (act.billingInterval === "annual" && act.branch === "ANNUAL_EXPIRED") {
-        expect(act.actionRequired).toBe(true);
-      }
-    }
-
-    // Invariant 5: Omar invariant check (if in database)
-    const omarAction = result.actions.find((a) => a.email === "omarworkimn@gmail.com");
-    if (omarAction) {
-      expect(omarAction.branch).toBe("ANNUAL_ACTIVE_CURRENT");
-      expect(omarAction.actionRequired).toBe(false);
-      expect(omarAction.balanceBefore).toBe(12);
-      expect(omarAction.balanceAfter).toBe(12);
-      expect(omarAction.debtBefore).toBe(2700);
-      expect(omarAction.debtAfter).toBe(2700);
-      expect(omarAction.anchorDay).toBe(26);
-    }
-  });
+  // The end-to-end sweep over a populated database lives in
+  // test/integration/credit-reconciler.test.ts: it needs real rows to scan,
+  // and it used to read production to find them. What follows is the branch
+  // arithmetic, which is pure and needs no database.
 
   it("calculates next anchor date correctly without date drift", () => {
     const annualStart = new Date("2026-05-26T17:23:51.849Z");

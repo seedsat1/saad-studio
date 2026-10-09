@@ -131,12 +131,20 @@ function push() {
   console.log(`    target: ${TEST_DATABASE_URL}`);
   // The URLs are passed explicitly rather than inherited, so whatever is in
   // .env or exported in the shell cannot influence where this writes.
+  //
+  // shell: true on Windows because npx is a .cmd shim there, which
+  // CreateProcess cannot execute directly — without it spawnSync fails with no
+  // output at all, which looks like prisma failing when it never ran.
+  //
+  // Prisma also loads .env by itself, but dotenv does not overwrite a variable
+  // that is already set, so the two URLs below win.
   const r = spawnSync(
-    process.platform === "win32" ? "npx.cmd" : "npx",
+    "npx",
     ["prisma", "db", "push", "--skip-generate", "--accept-data-loss"],
     {
       stdio: "inherit",
       cwd: ROOT,
+      shell: process.platform === "win32",
       env: {
         ...process.env,
         DATABASE_URL: TEST_DATABASE_URL,
