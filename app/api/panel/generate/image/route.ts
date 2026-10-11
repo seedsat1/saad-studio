@@ -18,6 +18,7 @@ import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "
 import { isDirectProviderModel } from "@/lib/provider-router";
 import { dispatchDirectImage } from "@/lib/providers/dispatch";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
+import { resolveAndVerifyProviderMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 import { buildWaveSpeedImageInput, resolveWaveSpeedImageModelRoute } from "@/lib/wavespeed-image-routing";
 import {
   DEFAULT_GOOGLE_IMAGE_MODEL_ID,
@@ -174,7 +175,7 @@ export async function POST(req: NextRequest) {
       referenceImageUrls,
       useAnnualUnlimited = true,
     } = body;
-    const refUrls = uniqueStrings([
+    let refUrls = uniqueStrings([
       imageUrl,
       ...(Array.isArray(bodyImageUrls) ? bodyImageUrls : []),
       ...(Array.isArray(referenceImageUrls) ? referenceImageUrls : []),
@@ -182,6 +183,15 @@ export async function POST(req: NextRequest) {
 
     if (!prompt?.trim()) {
       return NextResponse.json({ error: "Please enter a prompt." }, { status: 400 });
+    }
+
+    try {
+      refUrls = await Promise.all(refUrls.map((url, index) => resolveAndVerifyProviderMediaUrl(url, { userId, assetType: "image", label: "referenceImageUrls[" + index + "]" })));
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return NextResponse.json({ error: err.message, code: "reference_media_unreachable" }, { status: 400 });
+      }
+      throw err;
     }
 
     const waveSpeedImageRoute = resolveWaveSpeedImageModelRoute(modelId, refUrls.length > 0, Number(numImages) || 1);

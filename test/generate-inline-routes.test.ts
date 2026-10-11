@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(async () => ({ userId: "user_route" })),
@@ -35,8 +36,8 @@ import { getGenerationCost } from "@/lib/pricing";
 const runInlineGenerationMock = vi.mocked(runInlineGeneration);
 const getGenerationCostMock = vi.mocked(getGenerationCost);
 
-function jsonRequest(body: unknown): Request {
-  return new Request("https://saadstudio.test/api", {
+function jsonRequest(body: unknown): NextRequest {
+  return new NextRequest("https://saadstudio.test/api", {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -49,6 +50,15 @@ function jsonRequest(body: unknown): Request {
 describe("Pattern A inline generation routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "HEAD") {
+        return new Response(null, { status: 200, headers: { "content-type": "image/png" } });
+      }
+      return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), {
+        status: 206,
+        headers: { "content-type": "image/png" },
+      });
+    }));
     getGenerationCostMock.mockResolvedValue(7);
     runInlineGenerationMock.mockResolvedValue({
       generationId: "gen_route",

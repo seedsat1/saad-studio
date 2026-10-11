@@ -15,6 +15,7 @@ import { dispatchDirectVideo } from "@/lib/providers/dispatch";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
 import { isGoogleVideoRoute, normalizeGoogleVideoOptions } from "@/lib/video-model-registry";
 import { assertVideoRouteAllowed, BlockedVideoRouteError } from "@/lib/generation/video-route-policy";
+import { resolveAndVerifyProviderMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -247,7 +248,7 @@ export async function POST(req: NextRequest) {
       enableAudio?: boolean;
     };
 
-    const {
+    let {
       prompt,
       modelId = "kling-3.0/video",
       duration = 5,
@@ -283,29 +284,29 @@ export async function POST(req: NextRequest) {
     if (imageUrl && !isSafePublicHttpUrl(imageUrl)) {
       return NextResponse.json({ error: "Invalid imageUrl provided." }, { status: 400 });
     }
-    const safeImageUrls = Array.isArray(imageUrls)
+    let safeImageUrls = Array.isArray(imageUrls)
       ? sanitizePublicUrlList(imageUrls)
       : [];
     if (Array.isArray(imageUrls) && safeImageUrls.length !== imageUrls.length) {
       return NextResponse.json({ error: "One or more imageUrls are invalid." }, { status: 400 });
     }
-    const safeVideoUrls = sanitizePublicUrlList(videoUrls);
+    let safeVideoUrls = sanitizePublicUrlList(videoUrls);
     if (Array.isArray(videoUrls) && safeVideoUrls.length !== videoUrls.length) {
       return NextResponse.json({ error: "One or more videoUrls are invalid." }, { status: 400 });
     }
-    const safeAudioUrls = sanitizePublicUrlList(audioUrls);
+    let safeAudioUrls = sanitizePublicUrlList(audioUrls);
     if (Array.isArray(audioUrls) && safeAudioUrls.length !== audioUrls.length) {
       return NextResponse.json({ error: "One or more audioUrls are invalid." }, { status: 400 });
     }
-    const safeReferenceImageUrls = sanitizePublicUrlList(referenceImageUrls);
+    let safeReferenceImageUrls = sanitizePublicUrlList(referenceImageUrls);
     if (Array.isArray(referenceImageUrls) && safeReferenceImageUrls.length !== referenceImageUrls.length) {
       return NextResponse.json({ error: "One or more referenceImageUrls are invalid." }, { status: 400 });
     }
-    const safeReferenceVideoUrls = sanitizePublicUrlList(referenceVideoUrls);
+    let safeReferenceVideoUrls = sanitizePublicUrlList(referenceVideoUrls);
     if (Array.isArray(referenceVideoUrls) && safeReferenceVideoUrls.length !== referenceVideoUrls.length) {
       return NextResponse.json({ error: "One or more referenceVideoUrls are invalid." }, { status: 400 });
     }
-    const safeReferenceAudioUrls = sanitizePublicUrlList(referenceAudioUrls);
+    let safeReferenceAudioUrls = sanitizePublicUrlList(referenceAudioUrls);
     if (Array.isArray(referenceAudioUrls) && safeReferenceAudioUrls.length !== referenceAudioUrls.length) {
       return NextResponse.json({ error: "One or more referenceAudioUrls are invalid." }, { status: 400 });
     }
@@ -319,6 +320,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid lastFrameUrl provided." }, { status: 400 });
     }
 
+    try {
+      if (imageUrl) imageUrl = await resolveAndVerifyProviderMediaUrl(imageUrl, { userId, assetType: "image", label: "imageUrl" });
+      if (videoUrl) videoUrl = await resolveAndVerifyProviderMediaUrl(videoUrl, { userId, assetType: "video", label: "videoUrl" });
+      if (firstFrameUrl) firstFrameUrl = await resolveAndVerifyProviderMediaUrl(firstFrameUrl, { userId, assetType: "image", label: "firstFrameUrl" });
+      if (lastFrameUrl) lastFrameUrl = await resolveAndVerifyProviderMediaUrl(lastFrameUrl, { userId, assetType: "image", label: "lastFrameUrl" });
+      safeImageUrls = await Promise.all(safeImageUrls.map((url, index) => resolveAndVerifyProviderMediaUrl(url, { userId, assetType: "image", label: "imageUrls[" + index + "]" })));
+      safeVideoUrls = await Promise.all(safeVideoUrls.map((url, index) => resolveAndVerifyProviderMediaUrl(url, { userId, assetType: "video", label: "videoUrls[" + index + "]" })));
+      safeAudioUrls = await Promise.all(safeAudioUrls.map((url, index) => resolveAndVerifyProviderMediaUrl(url, { userId, assetType: "audio", label: "audioUrls[" + index + "]" })));
+      safeReferenceImageUrls = await Promise.all(safeReferenceImageUrls.map((url, index) => resolveAndVerifyProviderMediaUrl(url, { userId, assetType: "image", label: "referenceImageUrls[" + index + "]" })));
+      safeReferenceVideoUrls = await Promise.all(safeReferenceVideoUrls.map((url, index) => resolveAndVerifyProviderMediaUrl(url, { userId, assetType: "video", label: "referenceVideoUrls[" + index + "]" })));
+      safeReferenceAudioUrls = await Promise.all(safeReferenceAudioUrls.map((url, index) => resolveAndVerifyProviderMediaUrl(url, { userId, assetType: "audio", label: "referenceAudioUrls[" + index + "]" })));
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return NextResponse.json({ error: err.message, code: "reference_media_unreachable" }, { status: 400 });
+      }
+      throw err;
+    }
+
     // ── Early dispatch: Google Veo direct (Vertex/Gemini) and BytePlus
     //    Seedance v2 direct. OpenAI Sora has no public direct API yet so
     //    it falls through to the kie.ai path below.
@@ -326,8 +345,8 @@ export async function POST(req: NextRequest) {
       firstFrameUrl ||
       lastFrameUrl ||
       imageUrl ||
-      (Array.isArray(imageUrls) && imageUrls.length > 0) ||
-      (Array.isArray(referenceImageUrls) && referenceImageUrls.length > 0)
+      safeImageUrls.length > 0 ||
+      safeReferenceImageUrls.length > 0
     );
     const provider = getProviderFor(modelId);
     const shouldGoDirect = isDirectProviderModel(modelId)

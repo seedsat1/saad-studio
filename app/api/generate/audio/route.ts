@@ -1052,22 +1052,22 @@ export async function POST(req: NextRequest) {
     // Centralized resolver and accessibility validation for all audio/video/image inputs before billing
     if (typeof body.audioUrl === "string" && body.audioUrl.trim()) {
       const resolved = await resolveProviderMediaUrl(body.audioUrl, { userId, assetType: "audio" });
-      await verifyPublicMediaUrl(resolved, "audioUrl");
+      await verifyPublicMediaUrl(resolved, "audioUrl", { expectedMediaKind: "audio" });
       body.audioUrl = resolved;
     }
     if (typeof body.videoUrl === "string" && body.videoUrl.trim()) {
       const resolved = await resolveProviderMediaUrl(body.videoUrl, { userId, assetType: "video" });
-      await verifyPublicMediaUrl(resolved, "videoUrl");
+      await verifyPublicMediaUrl(resolved, "videoUrl", { expectedMediaKind: "video" });
       body.videoUrl = resolved;
     }
     if (typeof body.imageUrl === "string" && body.imageUrl.trim()) {
       const resolved = await resolveProviderMediaUrl(body.imageUrl, { userId, assetType: "image" });
-      await verifyPublicMediaUrl(resolved, "imageUrl");
+      await verifyPublicMediaUrl(resolved, "imageUrl", { expectedMediaKind: "image" });
       body.imageUrl = resolved;
     }
     if (typeof body.image === "string" && body.image.trim()) {
       const resolved = await resolveProviderMediaUrl(body.image, { userId, assetType: "image" });
-      await verifyPublicMediaUrl(resolved, "image");
+      await verifyPublicMediaUrl(resolved, "image", { expectedMediaKind: "image" });
       body.image = resolved;
     }
     if (Array.isArray(body.sampleAudioUrls)) {
@@ -1075,7 +1075,7 @@ export async function POST(req: NextRequest) {
         body.sampleAudioUrls.map(async (url) => {
           if (typeof url === "string" && url.trim()) {
             const resolved = await resolveProviderMediaUrl(url, { userId, assetType: "audio" });
-            await verifyPublicMediaUrl(resolved, "sampleAudioUrl");
+            await verifyPublicMediaUrl(resolved, "sampleAudioUrl", { expectedMediaKind: "audio" });
             return resolved;
           }
           return url;

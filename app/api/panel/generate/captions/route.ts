@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const resolved = await resolveProviderMediaUrl(audioUrl, { userId, assetType: "audio" });
-    await verifyPublicMediaUrl(resolved, "audioUrl");
+    await verifyPublicMediaUrl(resolved, "audioUrl", { expectedMediaKind: "audio" });
     audioUrl = resolved;
   } catch (err) {
     if (err instanceof ValidationError) {

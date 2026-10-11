@@ -2,15 +2,21 @@ import { beforeEach, describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { GET as assetsHandler } from "../app/api/assets/route";
 import prismadb from "../lib/prismadb";
+import { reconcilePendingBytePlusGenerations } from "../lib/providers/byteplus-reconcile";
+import { reconcileUserInFlightGenerations } from "../lib/generation/task-reconciler";
 
 // Mock Clerk auth
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(() => Promise.resolve({ userId: "mock-user-id" })),
 }));
 
-// Mock BytePlus reconcile
+// Mock provider reconciliation
 vi.mock("../lib/providers/byteplus-reconcile", () => ({
   reconcilePendingBytePlusGenerations: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock("../lib/generation/task-reconciler", () => ({
+  reconcileUserInFlightGenerations: vi.fn(() => Promise.resolve([])),
 }));
 
 // Mock prismadb
@@ -30,6 +36,9 @@ vi.mock("../lib/prismadb", () => ({
 describe("Assets API Endpoint", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.ASSETS_RECONCILE_TIMEOUT_MS;
+    vi.mocked(reconcilePendingBytePlusGenerations).mockResolvedValue({ checked: 0, completed: 0, failed: 0, processing: 0, errors: 0 } as any);
+    vi.mocked(reconcileUserInFlightGenerations).mockResolvedValue([] as any);
   });
 
   it("returns assets and counts successfully", async () => {
@@ -164,6 +173,49 @@ describe("Assets API Endpoint", () => {
     const imageData = await imageResponse.json();
     expect(imageData.assets).toHaveLength(1);
     expect(imageData.assets[0]).toMatchObject({ id: "gen-image-url", type: "image" });
+  });
+
+  it("returns stored assets even when opportunistic provider reconciliation stalls", async () => {
+    process.env.ASSETS_RECONCILE_TIMEOUT_MS = "250";
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.mocked(reconcilePendingBytePlusGenerations).mockImplementationOnce(() => new Promise(() => {}) as any);
+    vi.mocked(reconcileUserInFlightGenerations).mockImplementationOnce(() => new Promise(() => {}) as any);
+
+    vi.mocked(prismadb.generation.findMany).mockResolvedValue([
+      {
+        id: "gen-safe-image",
+        type: "image",
+        mediaUrl: "https://media.saadstudio.app/images/safe.webp",
+        outputUrl: null,
+        status: "completed",
+        prompt: "Safe image",
+        modelUsed: "nano-banana",
+        assetType: "image",
+        cost: 2,
+        isFavorite: false,
+        providerRequestId: null,
+        resolution: null,
+        aspectRatio: "1:1",
+        duration: null,
+        generationRequestSnapshot: null,
+        posterUrl: null,
+        posterStatus: null,
+        posterGeneratedAt: null,
+        posterError: null,
+        createdAt: new Date("2026-06-25T01:00:00Z"),
+      },
+    ] as any);
+    vi.mocked(prismadb.generation.count).mockResolvedValue(1 as any);
+
+    const started = Date.now();
+    const response = await assetsHandler(new NextRequest("http://localhost/api/assets?type=image"));
+    const elapsed = Date.now() - started;
+
+    expect(response.status).toBe(200);
+    expect(elapsed).toBeLessThan(1500);
+    const data = await response.json();
+    expect(data.assets).toHaveLength(1);
+    expect(data.assets[0].id).toBe("gen-safe-image");
   });
 
   it("returns unauthorized when userId is missing", async () => {

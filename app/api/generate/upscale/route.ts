@@ -6,6 +6,7 @@ import { runInlineGeneration } from "@/lib/generation/inline-orchestrator";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl } from "@/lib/security";
+import { resolveAndVerifyProviderMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const WAVESPEED_IMAGE_UPSCALER_MODEL = "wavespeed-ai/image-upscaler";
@@ -154,7 +155,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as Record<string, unknown>;
     const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl : "";
     const videoUrl = typeof body.videoUrl === "string" ? body.videoUrl : "";
-    const mediaUrl = imageUrl || videoUrl;
+    let mediaUrl = imageUrl || videoUrl;
 
     if (!mediaUrl) {
       return NextResponse.json({ error: "imageUrl or videoUrl is required." }, { status: 400 });
@@ -168,6 +169,14 @@ export async function POST(req: NextRequest) {
       mediaUrl.startsWith("data:video/") ||
       mediaUrl.match(/\.(mp4|webm|mov|mkv|3gp|avi|ogg)(?:[?#].*)?$/i),
     );
+    try {
+      mediaUrl = await resolveAndVerifyProviderMediaUrl(mediaUrl, { userId, assetType: isVideo ? "video" : "image", label: isVideo ? "videoUrl" : "imageUrl" });
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return NextResponse.json({ error: err.message, code: "reference_media_unreachable" }, { status: 400 });
+      }
+      throw err;
+    }
     const resolution = String(body.resolution || (isVideo ? "720" : "720"));
     const scaleFactor = readScale(body, resolution);
     const targetResolution = resolveTargetResolution({ isVideo, resolution, scaleFactor });
@@ -198,9 +207,7 @@ export async function POST(req: NextRequest) {
       logPrefix: "upscale",
       execute: async () => {
         const waveKey = getWaveSpeedKey();
-        const normalizedMediaUrl = mediaUrl.startsWith("data:")
-          ? await uploadDataUrlToWaveSpeed(mediaUrl, waveKey)
-          : mediaUrl;
+        const normalizedMediaUrl = mediaUrl;
 
         const submitBody = isVideo
           ? {

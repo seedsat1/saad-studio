@@ -19,9 +19,13 @@ const lineOf = (needle: string) => {
 };
 
 describe("unreachable reference images fail loudly", () => {
-  it("refuses the request when every attached reference fails to resolve", () => {
-    expect(SRC).toContain("refUrls.length > 0 && resolvedRefs.length === 0");
+  it("refuses the request when any attached reference fails to resolve", () => {
+    expect(SRC).toContain("Reference image failed verification/resolution before dispatch");
     expect(SRC).toContain("references_unreachable");
+  });
+
+  it("verifies reference inputs are real decodable images before charging", () => {
+    expect(SRC).toContain('verifyPublicMediaUrl(resolved, "reference_image", { expectedMediaKind: "image" })');
   });
 
   it("refuses before any credit is spent", () => {
@@ -32,9 +36,8 @@ describe("unreachable reference images fail loudly", () => {
     expect(guard).toBeLessThan(free);
   });
 
-  it("still tolerates a partial failure, so one bad reference cannot block the rest", () => {
-    // the guard fires only when NOTHING resolved
-    expect(SRC).not.toContain("unreachableRefs.length > 0 &&\n      resolvedRefs.length");
-    expect(SRC).toContain("resolvedRefs.length === 0");
+  it("fails closed on partial reference failure instead of silently dropping bad media", () => {
+    expect(SRC).not.toContain("skipping unreachable reference");
+    expect(SRC).not.toContain("None of the");
   });
 });
