@@ -139,21 +139,8 @@ function isAnnualUnlimitedImageModel(modelId: string) {
   return ANNUAL_UNLIMITED_IMAGE_MODEL_IDS.has(modelId);
 }
 
-function sortReferenceFilesByNaturalName(files: File[]): File[] {
-  return files
-    .map((file, index) => ({ file, index }))
-    .sort((a, b) => {
-      const byName = a.file.name.localeCompare(b.file.name, undefined, {
-        numeric: true,
-        sensitivity: "base",
-      });
-      return byName || a.index - b.index;
-    })
-    .map(({ file }) => file);
-}
-
 function appendReferenceFiles(prev: File[], next: File[]): File[] {
-  return sortReferenceFilesByNaturalName([...prev, ...next]);
+  return [...prev, ...next];
 }
 
 // Shared with /gallery so albums sync across pages
@@ -697,7 +684,7 @@ function UploadBox({ label, file, onFile, required = false, accept = "image/*" }
           file?.type.startsWith("video/") ? (
             <video src={preview} className="h-full w-full object-cover pointer-events-none" muted playsInline />
           ) : (
-            <img src={preview} alt="upload" className="h-full w-full object-cover pointer-events-none" />
+            <img src={preview} alt="upload" draggable={false} className="h-full w-full object-cover pointer-events-none" />
           )
         ) : (
           <div className="flex flex-col items-center gap-1 text-zinc-400 pointer-events-none">
@@ -2585,7 +2572,7 @@ export default function ImageWorkspacePage() {
                     file ? "border-pink-400/50 bg-pink-500/5" : "border-dashed border-white/15 bg-white/3 text-zinc-600 hover:border-white/30",
                   )}>
                     {preview ? (
-                      <img src={preview} alt="" className="h-full w-full rounded-xl object-cover" />
+                      <img src={preview} alt="" draggable={false} className="h-full w-full rounded-xl object-cover" />
                     ) : (
                       <><UploadCloud className="mb-1 h-5 w-5" /><span>{i === 0 ? t("Required") : t("Optional")}</span></>
                     )}
@@ -2657,22 +2644,28 @@ export default function ImageWorkspacePage() {
 
   const [composerDragActive, setComposerDragActive] = useState(false);
 
-  const handleComposerDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const isFileDragEvent = (event: React.DragEvent<HTMLElement>) => Array.from(event.dataTransfer.types ?? []).includes("Files");
+
+  const handleComposerDragOver = (e: React.DragEvent<HTMLElement>) => {
+    if (!isFileDragEvent(e)) return;
     e.preventDefault();
     e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
     setComposerDragActive(true);
   };
 
-  const handleComposerDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleComposerDragLeave = (e: React.DragEvent<HTMLElement>) => {
+    if (!isFileDragEvent(e)) return;
     e.preventDefault();
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
     setComposerDragActive(false);
   };
 
-  const handleComposerDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleComposerDrop = (e: React.DragEvent<HTMLElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setComposerDragActive(false);
-    const dropped = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+    const dropped = Array.from(e.dataTransfer.files ?? []).filter((f) => f.type.startsWith("image/"));
     const maxRef = selectedModel.maxRefImages;
     if (dropped.length && maxRef > 0) {
       setReferenceFiles((prev) => appendReferenceFiles(prev, dropped).slice(0, maxRef));
@@ -2936,7 +2929,7 @@ export default function ImageWorkspacePage() {
                             key={`${item.file.name}_${idx}`}
                             className="group relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-xl overflow-hidden ring-1 ring-white/15 bg-black/40 shadow-sm"
                           >
-                            <img src={item.url} alt={item.tag} className="h-full w-full object-cover" />
+                            <img src={item.url} alt={item.tag} draggable={false} className="h-full w-full object-cover" />
                             <button
                               type="button"
                               onClick={() => setReferenceFiles((prev) => prev.filter((_, i) => i !== idx))}
@@ -3033,6 +3026,7 @@ export default function ImageWorkspacePage() {
                                 src={item.url}
                                 alt={item.tag}
                                 className="h-7 w-7 rounded-md object-cover ring-1 ring-white/20 shrink-0"
+                                draggable={false}
                               />
                               <span className="truncate">{item.tag}</span>
                             </button>
@@ -3049,6 +3043,10 @@ export default function ImageWorkspacePage() {
                     value={prompt}
                     onChange={handlePromptChange}
                     onKeyDown={handlePromptKeyDown}
+                    onDragOver={handleComposerDragOver}
+                    onDragEnter={handleComposerDragOver}
+                    onDragLeave={handleComposerDragLeave}
+                    onDrop={handleComposerDrop}
                     onPaste={(e) => {
                       if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
                         const pastedFiles = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
@@ -3100,7 +3098,7 @@ export default function ImageWorkspacePage() {
                           title="Selected character reference"
                         >
                           {selectedCharacter.coverUrl ? (
-                            <img src={selectedCharacter.coverUrl} alt={selectedCharacter.name} className="h-8 w-8 rounded-lg object-cover" />
+                            <img src={selectedCharacter.coverUrl} alt={selectedCharacter.name} draggable={false} className="h-8 w-8 rounded-lg object-cover" />
                           ) : (
                             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-zinc-500">
                               <ScanFace className="h-4 w-4" />
