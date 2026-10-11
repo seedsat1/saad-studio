@@ -82,6 +82,64 @@ type ProviderEntry = {
   provider: StorageProvider;
 };
 
+export class StorageWriteError extends Error {
+  code: "storage_write_denied" | "storage_write_failed";
+  providerId?: StorageProviderId;
+  bucket?: string;
+  path?: string;
+
+  constructor(
+    message: string,
+    options: {
+      code: "storage_write_denied" | "storage_write_failed";
+      providerId?: StorageProviderId;
+      bucket?: string;
+      path?: string;
+      cause?: unknown;
+    },
+  ) {
+    super(message);
+    this.name = "StorageWriteError";
+    this.code = options.code;
+    this.providerId = options.providerId;
+    this.bucket = options.bucket;
+    this.path = options.path;
+    if (options.cause !== undefined) {
+      (this as Error & { cause?: unknown }).cause = options.cause;
+    }
+  }
+}
+
+export function isStorageAccessDeniedError(error: unknown): boolean {
+  const value = error as { name?: unknown; code?: unknown; message?: unknown; $metadata?: { httpStatusCode?: number } } | null | undefined;
+  const text = [value?.name, value?.code, value?.message].filter(Boolean).join(" ").toLowerCase();
+  return (
+    text.includes("accessdenied") ||
+    text.includes("access denied") ||
+    text.includes("not entitled") ||
+    text.includes("forbidden") ||
+    value?.$metadata?.httpStatusCode === 403
+  );
+}
+
+function describeStorageWriteCause(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  return String(error || "Unknown storage write failure");
+}
+
+function toStorageWriteError(
+  error: unknown,
+  context: { providerId?: StorageProviderId; bucket: string; path: string },
+): StorageWriteError {
+  if (error instanceof StorageWriteError) return error;
+  const code = isStorageAccessDeniedError(error) ? "storage_write_denied" : "storage_write_failed";
+  const safeCause = describeStorageWriteCause(error);
+  return new StorageWriteError(
+    `Active storage write failed for ${context.bucket}/${context.path}: ${safeCause}`,
+    { code, providerId: context.providerId, bucket: context.bucket, path: context.path, cause: error },
+  );
+}
+
 export function normalizeObjectPath(path: string): string {
   return String(path || "").replace(/^\/+/, "").replace(/\\/g, "/");
 }
@@ -308,8 +366,12 @@ export async function putObject(params: {
   cacheControl?: string;
 }): Promise<string> {
   const active = await getActiveStorageProvider();
-  await active.provider.upload(params);
-  return objectKeyFor(params.bucket, params.path);
+  try {
+    await active.provider.upload(params);
+    return objectKeyFor(params.bucket, params.path);
+  } catch (error) {
+    throw toStorageWriteError(error, { providerId: active.id, bucket: params.bucket, path: params.path });
+  }
 }
 
 export async function uploadBuffer(params: {
@@ -320,29 +382,17 @@ export async function uploadBuffer(params: {
   generationId: string;
   fileName?: string;
 }): Promise<string | null> {
-  try {
-    const bucket = bucketForAssetType(params.assetType);
-    const ext = params.fileName ? `.${params.fileName.split(".").pop()}` : extensionFromContentType(params.contentType);
-    const path = `${params.userId}/${params.generationId}${ext}`;
-    const body = Buffer.isBuffer(params.buffer) ? params.buffer : Buffer.from(params.buffer);
-    return await putObject({
-      bucket,
-      path,
-      body,
-      contentType: params.contentType,
-      cacheControl: "public, max-age=2592000, immutable",
-    });
-  } catch (error) {
-    console.error("[storage-runtime] uploadBuffer primary provider failed, attempting Supabase fallback:", error);
-    try {
-      const { uploadBufferToSupabaseOnly } = await import("@/lib/supabase-storage");
-      const fallbackResult = await uploadBufferToSupabaseOnly(params);
-      if (fallbackResult) return fallbackResult;
-    } catch (fallbackError) {
-      console.error("[storage-runtime] Supabase fallback error:", fallbackError);
-    }
-    return null;
-  }
+  const bucket = bucketForAssetType(params.assetType);
+  const ext = params.fileName ? `.${params.fileName.split(".").pop()}` : extensionFromContentType(params.contentType);
+  const path = `${params.userId}/${params.generationId}${ext}`;
+  const body = Buffer.isBuffer(params.buffer) ? params.buffer : Buffer.from(params.buffer);
+  return await putObject({
+    bucket,
+    path,
+    body,
+    contentType: params.contentType,
+    cacheControl: "public, max-age=2592000, immutable",
+  });
 }
 
 export async function uploadFromUrl(params: {
@@ -353,25 +403,27 @@ export async function uploadFromUrl(params: {
 }): Promise<string | null> {
   const { remoteUrl, userId, assetType, generationId } = params;
   if (!remoteUrl.startsWith("http://") && !remoteUrl.startsWith("https://")) return null;
+  let response: Response;
   try {
-    const response = await fetch(remoteUrl, { signal: AbortSignal.timeout(120_000) });
-    if (!response.ok) return null;
-    const contentType = response.headers.get("content-type") || "application/octet-stream";
-    const buffer = Buffer.from(await response.arrayBuffer());
-    const bucket = bucketForAssetType(assetType);
-    const ext = extensionFromContentType(contentType);
-    const path = `${userId}/${generationId}${ext}`;
-    return await putObject({
-      bucket,
-      path,
-      body: buffer,
-      contentType,
-      cacheControl: "public, max-age=2592000, immutable",
-    });
+    response = await fetch(remoteUrl, { signal: AbortSignal.timeout(120_000) });
   } catch (error) {
-    console.error("[storage-runtime] uploadFromUrl failed:", error);
+    console.error("[storage-runtime] uploadFromUrl source fetch failed:", error);
     return null;
   }
+  if (!response.ok) return null;
+
+  const contentType = response.headers.get("content-type") || "application/octet-stream";
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const bucket = bucketForAssetType(assetType);
+  const ext = extensionFromContentType(contentType);
+  const path = `${userId}/${generationId}${ext}`;
+  return await putObject({
+    bucket,
+    path,
+    body: buffer,
+    contentType,
+    cacheControl: "public, max-age=2592000, immutable",
+  });
 }
 
 export async function createSignedUploadUrl(params: {
@@ -557,8 +609,13 @@ export function createStorageRuntimeForTests(input: {
   };
   return {
     async putObject(params: Parameters<StorageProvider["upload"]>[0]) {
-      await active().provider.upload(params);
-      return objectKeyFor(params.bucket, params.path);
+      const current = active();
+      try {
+        await current.provider.upload(params);
+        return objectKeyFor(params.bucket, params.path);
+      } catch (error) {
+        throw toStorageWriteError(error, { providerId: current.id, bucket: params.bucket, path: params.path });
+      }
     },
     async uploadBuffer(params: {
       buffer: Buffer | ArrayBuffer;
@@ -571,14 +628,19 @@ export function createStorageRuntimeForTests(input: {
       const bucket = bucketForAssetType(params.assetType);
       const ext = params.fileName ? `.${params.fileName.split(".").pop()}` : extensionFromContentType(params.contentType);
       const path = `${params.userId}/${params.generationId}${ext}`;
-      await active().provider.upload({
-        bucket,
-        path,
-        body: Buffer.isBuffer(params.buffer) ? params.buffer : Buffer.from(params.buffer),
-        contentType: params.contentType,
-        cacheControl: "public, max-age=2592000, immutable",
-      });
-      return objectKeyFor(bucket, path);
+      const current = active();
+      try {
+        await current.provider.upload({
+          bucket,
+          path,
+          body: Buffer.isBuffer(params.buffer) ? params.buffer : Buffer.from(params.buffer),
+          contentType: params.contentType,
+          cacheControl: "public, max-age=2592000, immutable",
+        });
+        return objectKeyFor(bucket, path);
+      } catch (error) {
+        throw toStorageWriteError(error, { providerId: current.id, bucket, path });
+      }
     },
     async readObject(params: { objectKey: string }) {
       for (const entry of readers()) {

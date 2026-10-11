@@ -12,6 +12,7 @@ vi.mock("@/lib/supabase-storage", () => ({
 }));
 
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { headObject, putObject, resolveProviderPublicUrl } from "@/lib/storage";
 import { ValidationError, resolveProviderMediaUrl, verifyPublicMediaUrl } from "@/lib/media/public-url-resolver";
 
 function response(body: BodyInit | null, init: ResponseInit) {
@@ -38,6 +39,55 @@ describe("reference media upload and validation", () => {
       contentType: "image/png",
     }));
     expect(resolved).toBe("https://cdn.example/images/user-1/input-123/input.png");
+  });
+
+  it("fails closed when a browser data URL cannot be persisted to active storage", async () => {
+    vi.mocked(uploadBufferToStorage).mockResolvedValueOnce(null as any);
+
+    await expect(
+      resolveProviderMediaUrl("data:image/png;base64,iVBORw0KGgo=", {
+        userId: "user-1",
+        assetType: "image",
+      }),
+    ).rejects.toThrow(/Failed to upload image buffer to storage/);
+  });
+
+  it("does not return a provider URL for a missing active-storage object", async () => {
+    vi.mocked(headObject).mockResolvedValueOnce([{ providerId: "backblaze" as any, found: false }]);
+    const fetchMock = vi.fn(async () => response(null, { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      resolveProviderMediaUrl("images/user-1/missing.png", {
+        userId: "user-1",
+        assetType: "image",
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(resolveProviderPublicUrl).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when legacy media exists but migration back to active B2 is denied", async () => {
+    vi.mocked(headObject).mockResolvedValueOnce([
+      { providerId: "backblaze" as any, found: false },
+      { providerId: "r2" as any, found: true },
+    ]);
+    vi.mocked(putObject).mockRejectedValueOnce(Object.assign(new Error("AccessDenied: not entitled"), { name: "AccessDenied" }));
+    const pngHeader = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const fetchMock = vi.fn(async () => response(pngHeader, { status: 200, headers: { "content-type": "image/png" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      resolveProviderMediaUrl("images/user-1/legacy.png", {
+        userId: "user-1",
+        assetType: "image",
+      }),
+    ).rejects.toThrow(/could not be migrated/);
+    expect(putObject).toHaveBeenCalledWith(expect.objectContaining({
+      bucket: "images",
+      path: "user-1/legacy.png",
+      contentType: "image/png",
+    }));
+    expect(resolveProviderPublicUrl).not.toHaveBeenCalled();
   });
 
   it("rejects reachable non-image responses before provider dispatch", async () => {

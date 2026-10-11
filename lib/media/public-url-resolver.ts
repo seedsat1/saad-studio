@@ -33,7 +33,7 @@ export async function uploadDataUrlToStorage(
   const buffer = Buffer.from(fileData, "base64");
   const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   
-  let uploaded = await uploadBufferToStorage({
+  const uploaded = await uploadBufferToStorage({
     buffer,
     contentType: mime,
     userId,
@@ -41,22 +41,6 @@ export async function uploadDataUrlToStorage(
     generationId: `input-${uniqueId}`,
     fileName: `input.${ext}`,
   });
-
-  if (!uploaded) {
-    try {
-      const { uploadBufferToSupabaseOnly } = await import("@/lib/supabase-storage");
-      uploaded = await uploadBufferToSupabaseOnly({
-        buffer,
-        contentType: mime,
-        userId,
-        assetType,
-        generationId: `input-${uniqueId}`,
-        fileName: `input.${ext}`,
-      });
-    } catch (err) {
-      console.error("[public-url-resolver] uploadDataUrlToStorage fallback failed:", err);
-    }
-  }
 
   if (!uploaded) {
     throw new Error(`Failed to upload ${assetType} buffer to storage`);
@@ -131,14 +115,49 @@ export async function resolveProviderMediaUrl(
 
 async function ensureMigratedToB2(bucket: string, path: string): Promise<string> {
   const objectKey = `${bucket}/${path}`;
+  let activeStorageMiss = false;
   try {
     const attempts = await headObject({ objectKey });
     if (attempts[0]?.found) {
       return resolveProviderPublicUrl(bucket, path);
     }
-  } catch {}
+    activeStorageMiss = true;
+  } catch (error) {
+    console.warn(`[resolveProviderMediaUrl] Active storage head failed for ${objectKey}:`, error);
+  }
 
-  console.log(`[resolveProviderMediaUrl] Key ${objectKey} not found on B2. Attempting auto-migration...`);
+  console.log(`[resolveProviderMediaUrl] Key ${objectKey} not found on active B2 storage. Attempting auto-migration...`);
+
+  const migrationErrors: string[] = [];
+  const migrateFrom = async (sourceLabel: string, sourceUrl: string): Promise<string | null> => {
+    let res: Response;
+    try {
+      res = await fetch(sourceUrl, { signal: AbortSignal.timeout(8000) });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error || "unknown error");
+      migrationErrors.push(`${sourceLabel}: fetch failed (${message})`);
+      return null;
+    }
+    if (!res.ok) return null;
+
+    try {
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const contentType = res.headers.get("content-type") || "application/octet-stream";
+      await putObject({
+        bucket,
+        path,
+        body: buffer,
+        contentType,
+        cacheControl: "public, max-age=2592000, immutable",
+      });
+      console.log(`[resolveProviderMediaUrl] Successfully migrated ${sourceLabel} key ${objectKey} to B2.`);
+      return resolveProviderPublicUrl(bucket, path);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error || "unknown error");
+      migrationErrors.push(`${sourceLabel}: ${message}`);
+      throw new ValidationError(`Stored media ${objectKey} exists outside active B2 storage but could not be migrated: ${message}`);
+    }
+  };
 
   // 1. Try migrating from Supabase Storage
   const supabaseBase = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
@@ -149,46 +168,20 @@ async function ensureMigratedToB2(bucket: string, path: string): Promise<string>
       `${supabaseBase}/storage/v1/object/public/${cleanPath}`,
     ];
     for (const sbUrl of supabaseUrls) {
-      try {
-        const res = await fetch(sbUrl, { signal: AbortSignal.timeout(8000) });
-        if (res.ok) {
-          const buffer = Buffer.from(await res.arrayBuffer());
-          const contentType = res.headers.get("content-type") || "image/png";
-          await putObject({
-            bucket,
-            path,
-            body: buffer,
-            contentType,
-            cacheControl: "public, max-age=2592000, immutable",
-          });
-          console.log(`[resolveProviderMediaUrl] Successfully migrated Supabase key ${objectKey} to B2.`);
-          return resolveProviderPublicUrl(bucket, path);
-        }
-      } catch {}
+      const migrated = await migrateFrom("Supabase", sbUrl);
+      if (migrated) return migrated;
     }
   }
 
   // 2. Try migrating from legacy Cloudflare R2
   const r2Url = `https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev/${bucket}/${path}`;
-  try {
-    const res = await fetch(r2Url, { signal: AbortSignal.timeout(8000) });
-    if (res.ok) {
-      const buffer = Buffer.from(await res.arrayBuffer());
-      const contentType = res.headers.get("content-type") || "image/png";
-      await putObject({
-        bucket,
-        path,
-        body: buffer,
-        contentType,
-        cacheControl: "public, max-age=2592000, immutable",
-      });
-      console.log(`[resolveProviderMediaUrl] Successfully migrated R2 key ${objectKey} to B2.`);
-      return resolveProviderPublicUrl(bucket, path);
-    }
-  } catch {}
+  const migrated = await migrateFrom("R2", r2Url);
+  if (migrated) return migrated;
 
-  // Fallback: return provider public URL
-  return resolveProviderPublicUrl(bucket, path);
+  const suffix = migrationErrors.length ? ` Migration errors: ${migrationErrors.join(" | ")}` : "";
+  throw new ValidationError(
+    `Stored media object ${objectKey} is not available from active B2 storage${activeStorageMiss ? " or any configured legacy source" : ""}.${suffix}`
+  );
 }
 
 async function uploadDataUrlToKieOrB2(

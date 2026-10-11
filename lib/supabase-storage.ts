@@ -211,10 +211,7 @@ export async function uploadBufferToStorage(params: {
   fileName?:    string;
 }): Promise<string | null> {
   if (isR2FullyConfigured()) {
-    const r2Result = await r2.uploadBufferToStorage(params);
-    if (r2Result) return r2Result;
-    console.warn("[storage] Primary R2/B2 upload returned null, falling back to Supabase...");
-    return uploadBufferToSupabaseOnly(params);
+    return r2.uploadBufferToStorage(params);
   }
 
   return uploadBufferToSupabaseOnly(params);
