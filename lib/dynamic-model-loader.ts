@@ -172,6 +172,7 @@ const BLOCKED_DYNAMIC_VIDEO_IDS = new Set([
   "minimax-hailuo-02",
   "minimax-hailuo-2.3",
   "kwaivgi/kling-v3.0-pro/text-to-video",
+  "bytedance-seedance-v25-i2v-turbo",
   "bytedance-seedance-v25-i2v-spicy",
   "bytedance-seedance-v2-mini-spicy",
 ]);

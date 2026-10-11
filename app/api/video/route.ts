@@ -130,7 +130,6 @@ function payloadHasImageInput(payload: Record<string, unknown>): boolean {
 
 function resolveSeedance25Route(baseRoute: string, payload: Record<string, unknown>): string {
   if (!baseRoute.startsWith("bytedance/seedance-2.5")) return baseRoute;
-  if (baseRoute !== "bytedance/seedance-2.5/text-to-video-turbo") return baseRoute;
 
   const hasExplicitStartImage =
     hasNonEmptyString(payload.first_frame_url) ||
@@ -144,10 +143,10 @@ function resolveSeedance25Route(baseRoute: string, payload: Record<string, unkno
 
   if (!hasExplicitStartImage) return baseRoute;
 
-  const requestedResolution = String(payload.resolution ?? payload.quality ?? payload.mode ?? "").trim().toLowerCase();
-  if (requestedResolution === "480p" || requestedResolution === "4k") {
+  if (baseRoute === "bytedance/seedance-2.5/text-to-video") {
     return "bytedance/seedance-2.5/image-to-video";
   }
+  if (baseRoute !== "bytedance/seedance-2.5/text-to-video-turbo") return baseRoute;
 
   return "bytedance/seedance-2.5/image-to-video-turbo";
 }
@@ -639,6 +638,8 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
     }
   }
 
+  const isSeedance25TextRoute = route === "bytedance/seedance-2.5/text-to-video";
+  const isSeedance25ImageRoute = route === "bytedance/seedance-2.5/image-to-video";
   const isSeedance25TextTurboRoute = route === "bytedance/seedance-2.5/text-to-video-turbo";
   const isSeedance25TurboImageRoute = route === "bytedance/seedance-2.5/image-to-video-turbo";
   const isSeedance25SpicyImageRoute = route === "bytedance/seedance-2.5/image-to-video-spicy";
@@ -662,7 +663,7 @@ export function mapToWavespeedInput(payload: Record<string, unknown>, route?: st
     route === "kwaivgi/kling-v3-turbo-pro/image-to-video";
   const isKlingO3Route = typeof route === "string" && route.startsWith("kwaivgi/kling-video-o3-");
   const isKling26Route = typeof route === "string" && route.startsWith("kwaivgi/kling-v2.6-");
-  const hasAudio = isSeedance25TextTurboRoute || isSeedance25TurboImageRoute || isSeedance25SpicyImageRoute || isSeedanceBaseImageRoute || route?.includes("seedance-2.0-mini") || isSeedanceTurboImageRoute || isWan30TextRoute || isWan30ImageRoute || isWan30ReferenceRoute || isFlux3Route
+  const hasAudio = isSeedance25TextRoute || isSeedance25ImageRoute || isSeedance25TextTurboRoute || isSeedance25TurboImageRoute || isSeedance25SpicyImageRoute || isSeedanceBaseImageRoute || route?.includes("seedance-2.0-mini") || isSeedanceTurboImageRoute || isWan30TextRoute || isWan30ImageRoute || isWan30ReferenceRoute || isFlux3Route
     ? payload.generate_audio !== false
     : payload.sound === true || payload.generate_audio === true;
   out.generate_audio = hasAudio;

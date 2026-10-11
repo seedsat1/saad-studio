@@ -978,10 +978,39 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
   // ║   resolution 480p|720p|1080p|4k, duration 4..30, generate_audio.
   // ╚══════════════════════════════════════════════════════════════════════════
   {
-    id: "bytedance-seedance-v25-t2v-turbo",
+    id: "bytedance-seedance-v25-t2v",
     name: "Seedance 2.5",
     family: "seedance", family_label: "Seedance", family_color: "#10b981",
     badge: "NEW",
+    description: "Bytedance Seedance 2.5 - 480p/720p/1080p/4k, 4-30s, up to 30 images + 10 videos + 10 audios on text/reference generation.",
+    api_route: "bytedance/seedance-2.5/text-to-video",
+    text_api_route: "bytedance/seedance-2.5/text-to-video",
+    image_api_route: "bytedance/seedance-2.5/image-to-video",
+    reference_api_route: "bytedance/seedance-2.5/text-to-video",
+    video_api_route: "bytedance/seedance-2.5/video-extend",
+    start_end_api_route: "bytedance/seedance-2.5/image-to-video",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      optional_video: true,
+      has_end_frame: true,
+      aspect_ratios: ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"],
+      durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+      resolutions: ["480p", "720p", "1080p", "4k"],
+      max_reference_images: 30,
+      max_reference_videos: 10,
+      max_reference_video_total_seconds: 30,
+      max_reference_audios: 10,
+      max_reference_audio_total_seconds: 30,
+      has_sound: true,
+      sound_param: "generate_audio",
+    }),
+  },
+  {
+    id: "bytedance-seedance-v25-t2v-turbo",
+    name: "Seedance 2.5 Turbo",
+    family: "seedance", family_label: "Seedance", family_color: "#10b981",
+    badge: "TURBO",
     description: "Bytedance Seedance 2.5 Turbo - 720p/1080p, 4-30s, up to 30 images + 10 videos + 10 audios on text/reference generation.",
     api_route: "bytedance/seedance-2.5/text-to-video-turbo",
     text_api_route: "bytedance/seedance-2.5/text-to-video-turbo",
@@ -1263,11 +1292,12 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
 export function getVideoModelDisplayPriority(model: Pick<WaveSpeedVideoModel, "id" | "api_route" | "family">): number {
   const id = model.id.toLowerCase();
   const route = model.api_route.toLowerCase();
-  if (id === "bytedance-seedance-v25-t2v-turbo" || route === "bytedance/seedance-2.5/text-to-video-turbo") return 0;
-  if (id === "bytedance-seedance-v25-i2v-turbo" || route === "bytedance/seedance-2.5/image-to-video-turbo") return 1;
-  if (id === "bytedance-seedance-v25-i2v-spicy" || route === "bytedance/seedance-2.5/image-to-video-spicy") return 2;
-  if (id === "alibaba-wan-3.0-video" || route.startsWith("alibaba/wan-3.0")) return 3;
-  if (id === "black-forest-labs-flux-3-video" || route.startsWith("black-forest-labs/flux-3")) return 4;
+  if (id === "bytedance-seedance-v25-t2v" || route === "bytedance/seedance-2.5/text-to-video") return 0;
+  if (id === "bytedance-seedance-v25-t2v-turbo" || route === "bytedance/seedance-2.5/text-to-video-turbo") return 1;
+  if (id === "bytedance-seedance-v25-i2v-turbo" || route === "bytedance/seedance-2.5/image-to-video-turbo") return 2;
+  if (id === "bytedance-seedance-v25-i2v-spicy" || route === "bytedance/seedance-2.5/image-to-video-spicy") return 3;
+  if (id === "alibaba-wan-3.0-video" || route.startsWith("alibaba/wan-3.0")) return 4;
+  if (id === "black-forest-labs-flux-3-video" || route.startsWith("black-forest-labs/flux-3")) return 5;
   return 100;
 }
 
@@ -1326,6 +1356,7 @@ export function getModelGroups(): ModelGroup[] {
   const seenModelIds = new Set<string>();
 
   for (const m of orderVideoModelsForDisplay(VIDEO_MODEL_REGISTRY)) {
+    if (m.id === "bytedance-seedance-v25-i2v-turbo" || m.id === "bytedance-seedance-v25-i2v-spicy") continue;
     if (seenModelIds.has(m.id)) continue;
     seenModelIds.add(m.id);
 

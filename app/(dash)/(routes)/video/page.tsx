@@ -740,6 +740,24 @@ function usesMinimaxH3PromptReferenceTags(model: WaveSpeedVideoModel): boolean {
   return model.api_route.startsWith("minimax/h3") || model.api_route.startsWith("wavespeed-ai/minimax-h3");
 }
 
+function usesSeedancePromptReferenceTags(model: WaveSpeedVideoModel): boolean {
+  return model.api_route.startsWith("bytedance/seedance-");
+}
+
+function getDefaultDurationForModel(model: WaveSpeedVideoModel): number | null {
+  if (model.api_route.startsWith("bytedance/seedance-2.5") && model.capabilities.durations.includes(5)) return 5;
+  return model.capabilities.durations[0] ?? null;
+}
+
+function getDefaultAspectRatioForModel(model: WaveSpeedVideoModel): string | null {
+  if (model.api_route.startsWith("bytedance/seedance-2.5") && model.capabilities.aspect_ratios.includes("16:9")) return "16:9";
+  return model.capabilities.aspect_ratios?.[0] ?? null;
+}
+
+function getDefaultResolutionForModel(model: WaveSpeedVideoModel): string | null {
+  if (model.api_route.startsWith("bytedance/seedance-2.5") && model.capabilities.resolutions.includes("720p")) return "720p";
+  return model.capabilities.resolutions[0] ?? null;
+}
 function getReferenceFileLimits(model: WaveSpeedVideoModel) {
   const isKling30 = isKling30Route(model.api_route);
   const isWan30 = model.id === "alibaba-wan-3.0-video" || model.api_route.startsWith("alibaba/wan-3.0");
@@ -831,11 +849,14 @@ function getPromptReferenceTagHint(model: WaveSpeedVideoModel): string {
     const joined = parts.length > 0 ? parts.join(", ") : "<Picture 1>";
     return `Minimax H3 references use ${joined}. Assign each reference in the prompt with these exact angle-bracket tags.`;
   }
-  if (limits.images > 0) parts.push(`@Image1..@Image${limits.images}`);
-  if (limits.videos > 0) parts.push(`@Video1..@Video${limits.videos}`);
-  if (limits.audios > 0) parts.push(`@Audio1..@Audio${limits.audios}`);
-  const joined = parts.length > 0 ? parts.join(", ") : "@Image1";
-  return `Reference media supports ${joined}. Audio requires at least one image or video reference.`;
+  const seedanceTags = usesSeedancePromptReferenceTags(model);
+  if (limits.images > 0) parts.push(seedanceTags ? `@image1..@image${limits.images}` : `@Image1..@Image${limits.images}`);
+  if (limits.videos > 0) parts.push(seedanceTags ? `@video1..@video${limits.videos}` : `@Video1..@Video${limits.videos}`);
+  if (limits.audios > 0) parts.push(seedanceTags ? `@audio1..@audio${limits.audios}` : `@Audio1..@Audio${limits.audios}`);
+  const joined = parts.length > 0 ? parts.join(", ") : seedanceTags ? "@image1" : "@Image1";
+  return seedanceTags
+    ? `Reference media supports ${joined}. Keep references in upload order.`
+    : `Reference media supports ${joined}. Audio requires at least one image or video reference.`;
 }
 
 function getPromptReferenceDescriptors(files: File[], promptTagsEnabled: boolean, model?: WaveSpeedVideoModel) {
@@ -843,20 +864,21 @@ function getPromptReferenceDescriptors(files: File[], promptTagsEnabled: boolean
   let videoCount = 0;
   let audioCount = 0;
   const h3Tags = model ? usesMinimaxH3PromptReferenceTags(model) : false;
+  const seedanceTags = model ? usesSeedancePromptReferenceTags(model) : false;
 
   return files.map((file, originalIndex) => {
     if (file.type.startsWith("video/")) {
       videoCount++;
-      const tag = h3Tags ? `<Video ${videoCount}>` : `@Video${videoCount}`;
+      const tag = h3Tags ? `<Video ${videoCount}>` : seedanceTags ? `@video${videoCount}` : `@Video${videoCount}`;
       return { file, originalIndex, kind: "video" as const, tag, label: promptTagsEnabled ? tag : `Video ${videoCount}` };
     }
     if (file.type.startsWith("audio/")) {
       audioCount++;
-      const tag = h3Tags ? `<Audio ${audioCount}>` : `@Audio${audioCount}`;
+      const tag = h3Tags ? `<Audio ${audioCount}>` : seedanceTags ? `@audio${audioCount}` : `@Audio${audioCount}`;
       return { file, originalIndex, kind: "audio" as const, tag, label: promptTagsEnabled ? tag : `Audio ${audioCount}` };
     }
     imageCount++;
-    const tag = h3Tags ? `<Picture ${imageCount}>` : `@Image${imageCount}`;
+    const tag = h3Tags ? `<Picture ${imageCount}>` : seedanceTags ? `@image${imageCount}` : `@Image${imageCount}`;
     return { file, originalIndex, kind: "image" as const, tag, label: promptTagsEnabled ? tag : `Image ${imageCount}` };
   });
 }
@@ -1065,8 +1087,12 @@ const HIDDEN_VIDEO_PAGE_MODEL_IDS = new Set([
 
 function resolveSeedance25Route(baseRoute: string, hasImageInput: boolean, selectedResolution?: string | null): string {
   if (!baseRoute.startsWith("bytedance/seedance-2.5")) return baseRoute;
-  if (baseRoute !== "bytedance/seedance-2.5/text-to-video-turbo") return baseRoute;
   if (!hasImageInput) return baseRoute;
+
+  if (baseRoute === "bytedance/seedance-2.5/text-to-video") {
+    return "bytedance/seedance-2.5/image-to-video";
+  }
+  if (baseRoute !== "bytedance/seedance-2.5/text-to-video-turbo") return baseRoute;
 
   const normalizedResolution = String(selectedResolution || "").trim().toLowerCase();
   if (normalizedResolution === "480p" || normalizedResolution === "4k") {
@@ -1384,10 +1410,10 @@ function VideoPageInner() {
       if (matched) {
         setSelectedModel(matched);
         const c = matched.capabilities;
-        setDuration(c.durations[0] ?? null);
-        setAspectRatio(c.aspect_ratios && c.aspect_ratios.length > 0 ? c.aspect_ratios[0] : null);
+        setDuration(getDefaultDurationForModel(matched));
+        setAspectRatio(getDefaultAspectRatioForModel(matched));
         setSize(c.sizes[0] ?? null);
-        setResolution(c.resolutions[0] ?? null);
+        setResolution(getDefaultResolutionForModel(matched));
       }
     }
 
@@ -1495,7 +1521,34 @@ function VideoPageInner() {
   const [motionVideoDuration, setMotionVideoDuration] = useState<number | null>(null);
   // Detected aspect ratio of the uploaded start frame (Kling 3.0 i2v auto-adapts to this)
   const [startFrameRatio, setStartFrameRatio] = useState<string | null>(null);
-  const [referencePreviews, setReferencePreviews] = useState<string[]>([]);
+  const referencePreviewUrlMapRef = useRef<Map<File, string>>(new Map());
+  const referencePreviews = useMemo(() => {
+    const map = referencePreviewUrlMapRef.current;
+    const active = new Set(referenceImages);
+
+    for (const [file, url] of Array.from(map.entries())) {
+      if (!active.has(file)) {
+        URL.revokeObjectURL(url);
+        map.delete(file);
+      }
+    }
+
+    return referenceImages.map((file) => {
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) return "";
+      const existing = map.get(file);
+      if (existing) return existing;
+      const url = URL.createObjectURL(file);
+      map.set(file, url);
+      return url;
+    });
+  }, [referenceImages]);
+
+  useEffect(() => {
+    return () => {
+      for (const url of Array.from(referencePreviewUrlMapRef.current.values())) URL.revokeObjectURL(url);
+      referencePreviewUrlMapRef.current.clear();
+    };
+  }, []);
   const startFrameRef  = useRef<HTMLInputElement>(null);
   const endFrameRef    = useRef<HTMLInputElement>(null);
   const motionVideoRef = useRef<HTMLInputElement>(null);
@@ -1821,18 +1874,6 @@ function VideoPageInner() {
     setMotionVideoPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [motionVideo]);
-
-  useEffect(() => {
-    if (!referenceImages.length) {
-      setReferencePreviews([]);
-      return;
-    }
-    const urls = referenceImages.map((f) => f.type.startsWith("image/") || f.type.startsWith("video/") ? URL.createObjectURL(f) : "");
-    setReferencePreviews(urls);
-    return () => urls.forEach((u) => {
-      if (u) URL.revokeObjectURL(u);
-    });
-  }, [referenceImages]);
 
   const [referenceVideoDurations, setReferenceVideoDurations] = useState<number[]>([]);
   useEffect(() => {
@@ -2280,7 +2321,7 @@ function VideoPageInner() {
     if (isVeo31FixedEightSecond && duration !== 8) {
       setDuration(8);
     } else if (durationChoices.length > 0 && (duration == null || !durationChoices.includes(duration))) {
-      setDuration(durationChoices.includes(8) ? 8 : durationChoices[0]);
+      setDuration(selectedModel.api_route.startsWith("bytedance/seedance-2.5") && durationChoices.includes(5) ? 5 : durationChoices.includes(8) ? 8 : durationChoices[0]);
     }
 
     if (sound) setSound(false);
@@ -2305,15 +2346,10 @@ function VideoPageInner() {
     setSelectedModel(m);
     setModelOpen(false);
     const c = m.capabilities;
-    setDuration(c.durations[0] ?? null);
-    setAspectRatio(c.aspect_ratios && c.aspect_ratios.length > 0 ? c.aspect_ratios[0] : null);
+    setDuration(getDefaultDurationForModel(m));
+    setAspectRatio(getDefaultAspectRatioForModel(m));
     setSize(c.sizes[0] ?? null);
-    setResolution(c.resolutions[0] ?? null);
-    setStartFrame(null);
-    setLinkedStartFrameUrl(null);
-    setEndFrame(null);
-    setMotionVideo(null);
-    setReferenceImages([]);
+    setResolution(getDefaultResolutionForModel(m));
     setShotType("intelligent");
     setMultiPrompts([""]);
     setElementList([""]);
@@ -7528,7 +7564,7 @@ function VideoPageInner() {
                           <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black/40">
                             {f.type.startsWith("image/") ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={URL.createObjectURL(f)} alt="Ref preview" className="w-full h-full object-cover" />
+                              <img src={referencePreviews[idx] || ""} alt="Ref preview" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-white/70">
                                 {f.type.startsWith("video/") ? "VID" : "AUD"}
