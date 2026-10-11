@@ -555,7 +555,7 @@ const SEEDANCE_25_USD_PER_SECOND = {
   "480p": 0.162,
   "720p": 0.180,
   "1080p": 0.240,
-  "4k": 0.360,
+  "4k": 1.620,
 } as const;
 const MINIMAX_H3_CREDITS_PER_USD = 40;
 const MINIMAX_H3_MARGIN_MULTIPLIER = 1.4;
@@ -837,7 +837,7 @@ const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "bytedance/seedance-2.0/image-to-video-turbo": { "720p": 1.0, "1080p": 0.115 / 0.095 },
   "bytedance/seedance-2.5/text-to-video-turbo": { "480p": 0.162 / 0.180, "720p": 1.0, "1080p": 0.240 / 0.180 },
   "bytedance/seedance-2.5/image-to-video-turbo": { "480p": 0.162 / 0.180, "720p": 1.0, "1080p": 0.240 / 0.180 },
-  "bytedance/seedance-2.5/image-to-video-spicy": { "480p": 0.162 / 0.180, "720p": 1.0, "1080p": 0.240 / 0.180, "4k": 0.360 / 0.180 },
+  "bytedance/seedance-2.5/image-to-video-spicy": { "480p": 0.162 / 0.180, "720p": 1.0, "1080p": 0.240 / 0.180, "4k": 1.620 / 0.180 },
   "bytedance/seedance-2-mini":                  { "480p": 0.5, "720p": 1.0, "1080p": 151.2 / 64, "4k": 300 / 64 },
   "bytedance/seedance-2.0-mini/text-to-video":  { "480p": 0.5, "720p": 1.0, "1080p": 151.2 / 64, "4k": 300 / 64 },
   "bytedance/seedance-2.0-mini/image-to-video": { "480p": 0.5, "720p": 1.0, "1080p": 151.2 / 64, "4k": 300 / 64 },
