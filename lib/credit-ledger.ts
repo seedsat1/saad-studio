@@ -1017,8 +1017,11 @@ export async function setGenerationMediaUrl(generationId: string, mediaUrl: stri
       userId: gen.userId,
       assetType: gen.assetType,
       generationId: gen.id,
-    }).catch(() => null);
-    if (persisted) finalUrl = persisted;
+    });
+    if (!persisted) {
+      throw new Error(`Failed to persist generated ${gen.assetType} media to active storage before completing generation ${generationId}`);
+    }
+    finalUrl = persisted;
   }
 
   await prismadb.generation.updateMany({
@@ -1071,8 +1074,11 @@ export async function saveAdditionalGenerationUrls(
           userId,
           assetType,
           generationId: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${idx}`,
-        }).catch(() => null);
-        if (persisted) finalUrl = persisted;
+        });
+        if (!persisted) {
+          throw new Error(`Failed to persist additional generated ${assetType} media to active storage`);
+        }
+        finalUrl = persisted;
       }
       return {
         userId,

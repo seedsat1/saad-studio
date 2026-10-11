@@ -69,6 +69,8 @@ export {
   resolvePublicUrl,
   sanitizeStorageRuntimeConfig,
   splitObjectKey,
+  isStorageAccessDeniedError,
+  StorageWriteError,
   uploadBuffer,
   uploadFromUrl,
   writeStorageRuntimeConfig,

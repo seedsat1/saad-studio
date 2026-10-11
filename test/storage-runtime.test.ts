@@ -7,6 +7,7 @@ import {
   resolveMediaObject,
   resolvePublicUrl,
   sanitizeStorageRuntimeConfig,
+  StorageWriteError,
 } from "@/lib/storage/runtime";
 import {
   getStorageProviderRegistry,
@@ -61,6 +62,20 @@ function mockProvider(name: string, existing = new Set<string>()) {
   return { provider, calls };
 }
 
+function mockFailingUploadProvider(name: string, error: Error, existing = new Set<string>()) {
+  const base = mockProvider(name, existing);
+  return {
+    ...base,
+    provider: {
+      ...base.provider,
+      async upload(params: Parameters<StorageProvider["upload"]>[0]) {
+        base.calls.push(`${name}:upload:${params.bucket}/${params.path}`);
+        throw error;
+      },
+    } satisfies StorageProvider,
+  };
+}
+
 describe("central storage runtime", () => {
   it("writes to the configured active provider", async () => {
     const a = mockProvider("active-a");
@@ -74,6 +89,29 @@ describe("central storage runtime", () => {
 
     expect(a.calls).toContain("active-a:upload:images/u/one.png");
     expect(b.calls.some((call) => call.includes(":upload:"))).toBe(false);
+  });
+
+  it("fails closed when the active writer is denied and does not write to legacy storage", async () => {
+    const denied = Object.assign(new Error("AccessDenied: not entitled"), {
+      name: "AccessDenied",
+      code: "AccessDenied",
+      $metadata: { httpStatusCode: 403 },
+    });
+    const active = mockFailingUploadProvider("active", denied);
+    const legacy = mockProvider("legacy");
+    const runtime = createStorageRuntimeForTests({
+      config: { activeWriteProvider: "backblaze", activeProvider: "backblaze", mediaDeliveryMode: "proxy", legacyReadEnabled: true },
+      providers: { backblaze: active.provider, r2: legacy.provider },
+    });
+
+    await expect(
+      runtime.uploadBuffer({ buffer: Buffer.from("x"), contentType: "image/png", userId: "u", assetType: "image", generationId: "denied" }),
+    ).rejects.toMatchObject({ name: "StorageWriteError", code: "storage_write_denied" });
+    await expect(
+      runtime.uploadBuffer({ buffer: Buffer.from("x"), contentType: "image/png", userId: "u", assetType: "image", generationId: "denied" }),
+    ).rejects.toBeInstanceOf(StorageWriteError);
+    expect(active.calls).toContain("active:upload:images/u/denied.png");
+    expect(legacy.calls.some((call) => call.includes(":upload:"))).toBe(false);
   });
 
   it("can switch future uploads by storage policy without changing the consumer call", async () => {
@@ -220,6 +258,23 @@ describe("central storage runtime", () => {
       expect(b2!.legacyReadOnly).toBe(false);
       expect(b2!.lastError).toBeNull();
       expect(validateActiveWriteProvider("backblaze").ok).toBe(true);
+    });
+
+    it("derives the default Backblaze public base from the configured bucket", async () => {
+      process.env.B2_ACCESS_KEY_ID = "test-key-id";
+      process.env.B2_SECRET_ACCESS_KEY = "test-secret";
+      process.env.B2_BUCKET = "custom-saad-bucket";
+      delete process.env.B2_PUBLIC_URL;
+      delete process.env.B2_PUBLIC_BASE_URL;
+      delete process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL;
+      delete process.env.NEXT_PUBLIC_B2_PUBLIC_URL;
+
+      const { BackblazeProvider } = await import("@/lib/storage/backblaze");
+      const provider = new BackblazeProvider();
+
+      expect(provider.getPublicUrl("images", "user/file.png")).toBe(
+        "https://custom-saad-bucket.s3.eu-central-003.backblazeb2.com/images/user/file.png",
+      );
     });
 
     it("refuses R2 as a write target even though it reports configured", () => {
@@ -376,6 +431,8 @@ describe("central storage runtime", () => {
     const routePath = path.join(process.cwd(), "app", "api", "media", "[...path]", "route.ts");
     const source = fs.readFileSync(routePath, "utf8");
     expect(source).toContain("readObject");
+    expect(source).toContain("resolveProviderPublicUrl");
+    expect(source).not.toContain("saadstudio-storage.s3.eu-central-003");
     expect(source).not.toContain("defaultProvider");
     expect(source).not.toContain("legacyProvider");
   });

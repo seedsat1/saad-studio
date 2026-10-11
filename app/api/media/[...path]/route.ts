@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headObject, readObject } from "@/lib/storage";
+import { headObject, readObject, resolveProviderPublicUrl, splitObjectKey } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -142,8 +142,9 @@ export async function GET(
       });
     }
 
-    // Fallback 1: If not found in storage providers, attempt direct fetch from Backblaze B2
-    const b2FallbackUrl = `https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/${decodedKey}`;
+    // Fallback 1: If not found in storage providers, attempt direct fetch from the active Backblaze B2 public URL.
+    const parsedObject = splitObjectKey(decodedKey);
+    const b2FallbackUrl = await resolveProviderPublicUrl(parsedObject.bucket, parsedObject.path);
     try {
       const b2Res = await fetch(b2FallbackUrl, { signal: AbortSignal.timeout(6000) });
       if (b2Res.ok) {

@@ -23,7 +23,8 @@ export class BackblazeProvider implements StorageProvider {
                      "";
 
     if (!publicUrl || publicUrl.includes(".r2.dev") || publicUrl.includes("media.saadstudio.app")) {
-      publicUrl = "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com";
+      const region = process.env.B2_REGION || "eu-central-003";
+      publicUrl = `https://${this.bucketName}.s3.${region}.backblazeb2.com`;
     }
 
     this.publicBaseUrl = publicUrl.replace(/\/+$/, "");
