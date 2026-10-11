@@ -12,6 +12,7 @@ import { assembleHiddenPrompt, calcTransitionCredits, calcTransitionCreditsForMo
 import { isSafePublicHttpUrl } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
+import { resolveAndVerifyProviderMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
@@ -221,8 +222,8 @@ export async function POST(req: NextRequest) {
     };
 
     const presetId = body.presetId?.trim() ?? "";
-    const inputAUrl = body.inputAUrl?.trim() ?? "";
-    const inputBUrl = body.inputBUrl?.trim() ?? "";
+    let inputAUrl = body.inputAUrl?.trim() ?? "";
+    let inputBUrl = body.inputBUrl?.trim() ?? "";
     const aspectRatio = body.aspectRatio?.trim() ?? "16:9";
     const duration = typeof body.duration === "number" ? Math.max(3, Math.min(15, Math.floor(body.duration))) : 5;
     const resolution = body.resolution?.trim() ?? "1080p";
@@ -233,6 +234,15 @@ export async function POST(req: NextRequest) {
     }
     if (!isSafePublicHttpUrl(inputAUrl) || !isSafePublicHttpUrl(inputBUrl)) {
       return NextResponse.json({ error: "Both transition inputs must be public URLs." }, { status: 400 });
+    }
+    try {
+      inputAUrl = await resolveAndVerifyProviderMediaUrl(inputAUrl, { userId, assetType: "image", label: "inputAUrl" });
+      inputBUrl = await resolveAndVerifyProviderMediaUrl(inputBUrl, { userId, assetType: "image", label: "inputBUrl" });
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return NextResponse.json({ error: err.message, code: "reference_media_unreachable" }, { status: 400 });
+      }
+      throw err;
     }
 
     const preset = getPresetById(presetId);

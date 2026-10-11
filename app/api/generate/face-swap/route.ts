@@ -7,6 +7,7 @@ import { runInlineGeneration } from "@/lib/generation/inline-orchestrator";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl } from "@/lib/security";
+import { resolveAndVerifyProviderMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const WAVESPEED_FACE_SWAP_MODEL = "wavespeed-ai/image-face-swap-pro";
@@ -134,8 +135,8 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const sourceImageUrl = body?.sourceImageUrl as string | undefined;
-    const targetImageUrl = body?.targetImageUrl as string | undefined;
+    let sourceImageUrl = body?.sourceImageUrl as string | undefined;
+    let targetImageUrl = body?.targetImageUrl as string | undefined;
 
     if (!sourceImageUrl || !targetImageUrl) {
       return NextResponse.json({ error: "sourceImageUrl and targetImageUrl are required." }, { status: 400 });
@@ -147,17 +148,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid source or target image URL." }, { status: 400 });
     }
 
+    try {
+      sourceImageUrl = await resolveAndVerifyProviderMediaUrl(sourceImageUrl, { userId, assetType: "image", label: "sourceImageUrl" });
+      targetImageUrl = await resolveAndVerifyProviderMediaUrl(targetImageUrl, { userId, assetType: "image", label: "targetImageUrl" });
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return NextResponse.json({ error: err.message, code: "reference_media_unreachable" }, { status: 400 });
+      }
+      throw err;
+    }
+
     const creditsToCharge = await getGenerationCost("tool:face-swap");
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: "No credit configuration for face-swap tool." }, { status: 400 });
     }
     const waveKey = getWaveSpeedKey();
-    const source = sourceImageUrl.startsWith("data:")
-      ? await uploadDataUrlToWaveSpeed(sourceImageUrl, waveKey)
-      : sourceImageUrl;
-    const target = targetImageUrl.startsWith("data:")
-      ? await uploadDataUrlToWaveSpeed(targetImageUrl, waveKey)
-      : targetImageUrl;
+    const source = sourceImageUrl;
+    const target = targetImageUrl;
 
     const profileIdFromHeader = req.headers.get("x-profile-id") || req.cookies.get("saad_active_profile_id")?.value;
     const profileId = typeof body?.profileId === "string" ? body.profileId : profileIdFromHeader || undefined;

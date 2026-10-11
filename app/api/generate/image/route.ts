@@ -768,33 +768,25 @@ export async function POST(req: NextRequest) {
     }
 
     const resolvedRefs: string[] = [];
-    const unreachableRefs: string[] = [];
     for (const ref of refUrls) {
       try {
         await checkStoryboardReferenceImageSafety(ref);
         const resolved = await resolveProviderMediaUrl(ref, { userId, assetType: "image" });
-        await verifyPublicMediaUrl(resolved, "reference_image");
+        await verifyPublicMediaUrl(resolved, "reference_image", { expectedMediaKind: "image" });
         resolvedRefs.push(resolved);
       } catch (err) {
-        unreachableRefs.push(ref);
-        console.warn(`[image generation] Reference image failed verification/resolution, skipping unreachable reference: ${ref}`, err);
+        console.warn("[image generation] Reference image failed verification/resolution before dispatch:", err);
+        return NextResponse.json(
+          {
+            error: "One of the attached reference images could not be loaded from storage.",
+            publicError:
+              "تعذّر تحميل إحدى الصور المرجعية المرفقة — أعد رفع الصورة ثم حاول مرة أخرى.",
+            code: "references_unreachable",
+            unreachableCount: 1,
+          },
+          { status: 400 },
+        );
       }
-    }
-
-    // Every reference the caller attached failed to load. Silently generating
-    // anyway spends the credits and hands back a stranger's face — which is
-    // exactly what a character whose stored file has gone missing looks like.
-    if (refUrls.length > 0 && resolvedRefs.length === 0) {
-      return NextResponse.json(
-        {
-          error: `None of the ${refUrls.length} attached reference image${refUrls.length === 1 ? "" : "s"} could be loaded from storage.`,
-          publicError:
-            "تعذّر تحميل الصور المرجعية المرفقة — قد تكون صور الشخصية محذوفة من التخزين. أعد رفع الشخصية ثم حاول مرة أخرى.",
-          code: "references_unreachable",
-          unreachableCount: unreachableRefs.length,
-        },
-        { status: 400 },
-      );
     }
 
     if (waveSpeedImageRoute?.requiresReference && resolvedRefs.length === 0) {

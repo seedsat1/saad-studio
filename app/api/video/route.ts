@@ -1214,7 +1214,7 @@ async function resolveMediaInInput(input: Record<string, unknown>, userId: strin
     if (typeof value === "string" && ["image", "image_url", "first_frame_url", "last_frame_url", "last_image", "end_image", "video"].includes(key)) {
       if (value.trim()) {
         const resolvedUrl = await resolveProviderMediaUrl(value, { userId, assetType: getAssetTypeFromKey(key) });
-        await verifyPublicMediaUrl(resolvedUrl, key);
+        await verifyPublicMediaUrl(resolvedUrl, key, { expectedMediaKind: getAssetTypeFromKey(key) });
         resolved[key] = resolvedUrl;
       } else {
         resolved[key] = value;
@@ -1228,7 +1228,7 @@ async function resolveMediaInInput(input: Record<string, unknown>, userId: strin
         value.map(async (item) => {
           if (typeof item === "string" && item.trim()) {
             const resolvedUrl = await resolveProviderMediaUrl(item, { userId, assetType });
-            await verifyPublicMediaUrl(resolvedUrl, key);
+            await verifyPublicMediaUrl(resolvedUrl, key, { expectedMediaKind: getAssetTypeFromKey(key) });
             return resolvedUrl;
           }
           return item;
@@ -1264,7 +1264,7 @@ async function resolveMediaInInput(input: Record<string, unknown>, userId: strin
             (next.element_input_urls as unknown[]).map(async (v) => {
               if (typeof v === "string" && v.trim()) {
                 const resolvedUrl = await resolveProviderMediaUrl(v, { userId, assetType: "image" });
-                await verifyPublicMediaUrl(resolvedUrl, "kling_element");
+                await verifyPublicMediaUrl(resolvedUrl, "kling_element", { expectedMediaKind: "image" });
                 return resolvedUrl;
               }
               return v;
@@ -1518,36 +1518,32 @@ async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<
     (refImagesRaw.length > 1 ? await resolveOfficialSeedanceUrl(refImagesRaw[1], userId, "image") : null);
 
   if (firstFrame) {
-    await verifyPublicMediaUrl(firstFrame, "first_frame_url", verifyOptions);
+    await verifyPublicMediaUrl(firstFrame, "first_frame_url", { ...verifyOptions, expectedMediaKind: "image" });
     content.push({ type: "image_url", image_url: { url: firstFrame }, role: "first_frame" });
   }
   if (lastFrame) {
-    await verifyPublicMediaUrl(lastFrame, "last_frame_url", verifyOptions);
+    await verifyPublicMediaUrl(lastFrame, "last_frame_url", { ...verifyOptions, expectedMediaKind: "image" });
     content.push({ type: "image_url", image_url: { url: lastFrame }, role: "last_frame" });
   }
 
   const maxReferenceImages = Math.max(0, 9 - (firstFrame ? 1 : 0) - (lastFrame ? 1 : 0));
   const referenceImages = await resolveOfficialSeedanceUrlList(payload.reference_image_urls, userId, "image", maxReferenceImages);
   for (const url of referenceImages) {
-    try {
-      await verifyPublicMediaUrl(url, "reference_image", verifyOptions);
-      content.push({ type: "image_url", image_url: { url }, role: "reference_image" });
-    } catch (err) {
-      console.warn(`[Seedance video] Skipping unreachable reference image: ${url}`, err);
-    }
+    await verifyPublicMediaUrl(url, "reference_image", { ...verifyOptions, expectedMediaKind: "image" });
+    content.push({ type: "image_url", image_url: { url }, role: "reference_image" });
   }
 
   const referenceVideos = await resolveOfficialSeedanceUrlList(payload.reference_video_urls, userId, "video", 3);
   const singleVideo = await resolveOfficialSeedanceUrl(payload.video, userId, "video");
   const finalVideos = [...referenceVideos, ...(singleVideo ? [singleVideo] : [])].slice(0, 3);
   for (const url of finalVideos) {
-    await verifyPublicMediaUrl(url, "reference_video", verifyOptions);
+    await verifyPublicMediaUrl(url, "reference_video", { ...verifyOptions, expectedMediaKind: "video" });
     content.push({ type: "video_url", video_url: { url }, role: "reference_video" });
   }
 
   const referenceAudios = await resolveOfficialSeedanceUrlList(payload.reference_audio_urls, userId, "audio", 3);
   for (const url of referenceAudios) {
-    await verifyPublicMediaUrl(url, "reference_audio", verifyOptions);
+    await verifyPublicMediaUrl(url, "reference_audio", { ...verifyOptions, expectedMediaKind: "audio" });
     content.push({ type: "audio_url", audio_url: { url }, role: "reference_audio" });
   }
 
@@ -3224,27 +3220,19 @@ export async function POST(req: NextRequest) {
       }
 
       if (resolvedStartImage) {
-        await verifyPublicMediaUrl(resolvedStartImage, "google_start_image");
+        await verifyPublicMediaUrl(resolvedStartImage, "google_start_image", { expectedMediaKind: "image" });
       }
       if (resolvedEndImage) {
-        await verifyPublicMediaUrl(resolvedEndImage, "google_end_image");
+        await verifyPublicMediaUrl(resolvedEndImage, "google_end_image", { expectedMediaKind: "image" });
       }
       if (resolvedStartVideo) {
-        await verifyPublicMediaUrl(resolvedStartVideo, "google_start_video");
+        await verifyPublicMediaUrl(resolvedStartVideo, "google_start_video", { expectedMediaKind: "video" });
       }
       for (const url of resolvedReferenceSources) {
-        try {
-          await verifyPublicMediaUrl(url, "google_reference_image");
-        } catch (err) {
-          console.warn(`[Google Veo] Skipping unreachable reference image: ${url}`, err);
-        }
+        await verifyPublicMediaUrl(url, "google_reference_image", { expectedMediaKind: "image" });
       }
       for (const url of resolvedReferenceVideoSources) {
-        try {
-          await verifyPublicMediaUrl(url, "google_reference_video");
-        } catch (err) {
-          console.warn(`[Google Veo] Skipping unreachable reference video: ${url}`, err);
-        }
+        await verifyPublicMediaUrl(url, "google_reference_video", { expectedMediaKind: "video" });
       }
 
       const isGoogleVeo31ExtensionRoute =
@@ -3516,7 +3504,7 @@ export async function POST(req: NextRequest) {
         if (typeof mediaValue === "string" && mediaValue.trim()) {
           const assetType = getAssetTypeFromKey(key);
           const resolvedUrl = await resolveProviderMediaUrl(mediaValue, { userId, assetType });
-          await verifyPublicMediaUrl(resolvedUrl, `wavespeed_${key}`, assetType === "image" ? { expectedMediaKind: "image" } : {});
+          await verifyPublicMediaUrl(resolvedUrl, `wavespeed_${key}`, { expectedMediaKind: assetType });
           wsInput[key] = resolvedUrl;
         }
       }
@@ -3527,20 +3515,11 @@ export async function POST(req: NextRequest) {
         const value = wsInput[key];
         if (!Array.isArray(value)) return;
         const validItems: string[] = [];
-        let firstFailure: unknown = null;
         for (const u of value) {
           if (typeof u !== "string" || !u.trim()) continue;
-          try {
-            const resolved = await resolveProviderMediaUrl(u, { userId, assetType });
-            await verifyPublicMediaUrl(resolved, verifyLabel, assetType === "image" ? { expectedMediaKind: "image" } : {});
-            validItems.push(resolved);
-          } catch (err) {
-            firstFailure ??= err;
-            console.warn(`[WaveSpeed] Skipping unreachable reference media (${key}): ${u}`, err);
-          }
-        }
-        if (value.length > 0 && validItems.length === 0 && firstFailure) {
-          throw firstFailure;
+          const resolved = await resolveProviderMediaUrl(u, { userId, assetType });
+          await verifyPublicMediaUrl(resolved, verifyLabel, { expectedMediaKind: assetType });
+          validItems.push(resolved);
         }
         wsInput[key] = validItems;
       };

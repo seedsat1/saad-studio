@@ -13,6 +13,7 @@ import { getLegacyAudioAvatarUserCharge } from "@/lib/pricing";
 import { isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
+import { resolveAndVerifyProviderMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
@@ -191,8 +192,8 @@ export async function POST(req: NextRequest) {
       modelId?: string;
     };
 
-    const imageUrl = body.imageUrl?.trim() ?? "";
-    const audioUrl = body.audioUrl?.trim() ?? "";
+    let imageUrl = body.imageUrl?.trim() ?? "";
+    let audioUrl = body.audioUrl?.trim() ?? "";
     const modelId = normalizeAvatarModel(body.modelId);
     const promptText = typeof body.prompt === "string" ? sanitizePrompt(body.prompt, 5000) : "";
     const effectivePrompt = promptText || DEFAULT_AVATAR_PROMPT;
@@ -202,6 +203,15 @@ export async function POST(req: NextRequest) {
     }
     if (!isSafePublicHttpUrl(audioUrl)) {
       return NextResponse.json({ error: "Please upload a valid public audio URL." }, { status: 400 });
+    }
+    try {
+      imageUrl = await resolveAndVerifyProviderMediaUrl(imageUrl, { userId, assetType: "image", label: "imageUrl" });
+      audioUrl = await resolveAndVerifyProviderMediaUrl(audioUrl, { userId, assetType: "audio", label: "audioUrl" });
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return NextResponse.json({ error: err.message, code: "reference_media_unreachable" }, { status: 400 });
+      }
+      throw err;
     }
 
     const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;

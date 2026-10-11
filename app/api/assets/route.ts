@@ -270,6 +270,42 @@ function normalizeProviderTaskId(raw: string): string {
     : raw;
 }
 
+function assetsReconcileTimeoutMs(): number {
+  const raw = Number(process.env.ASSETS_RECONCILE_TIMEOUT_MS ?? "1500");
+  if (!Number.isFinite(raw)) return 1500;
+  return Math.max(250, Math.min(5000, Math.floor(raw)));
+}
+
+async function runWithSoftTimeout<T>(label: string, run: () => Promise<T>, timeoutMs: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const work = Promise.resolve()
+    .then(run)
+    .catch((error) => {
+      console.error("[api/assets] " + label + " reconciliation failed", error);
+      return null;
+    });
+
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn("[api/assets] " + label + " reconciliation skipped after " + timeoutMs + "ms");
+      resolve(null);
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([work, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function reconcileAssetsOpportunistically(userId: string): Promise<void> {
+  const timeoutMs = assetsReconcileTimeoutMs();
+  await Promise.allSettled([
+    runWithSoftTimeout("byteplus", () => reconcilePendingBytePlusGenerations(5, userId), timeoutMs),
+    runWithSoftTimeout("in-flight", () => reconcileUserInFlightGenerations(userId, 5), timeoutMs),
+  ]);
+}
 function collectStringArray(payload: any, keys: string[], max = 3): string[] {
   const out: string[] = [];
   for (const key of keys) {
@@ -450,15 +486,10 @@ export async function GET(req: NextRequest) {
           ],
         };
 
-    // Resolve this user's pending jobs across all providers (Google, WaveSpeed, KIE, BytePlus)
-    // before loading the gallery. This works even when the original browser session was closed.
-    await Promise.allSettled([
-      reconcilePendingBytePlusGenerations(5, userId),
-      reconcileUserInFlightGenerations(userId, 5),
-    ]).catch((error) => {
-      console.error("[api/assets] in-flight reconciliation error", error);
-    });
-
+    // Resolve this user's pending jobs opportunistically before loading the gallery.
+    // Provider status APIs can stall behind Docker/Caddy or unavailable upstreams; the
+    // gallery must still return the stored assets instead of turning /api/assets into a 502.
+    await reconcileAssetsOpportunistically(userId);
     const [totalForFilter, allCount, imageCount, videoCount, audioCount, threeDCount, textCount, rows] = await Promise.all([
       prismadb.generation.count({ where: { AND: [baseWhere, typeWhere, profileWhere] } as any }),
       prismadb.generation.count({ where: { AND: [baseWhere, profileWhere] } as any }),

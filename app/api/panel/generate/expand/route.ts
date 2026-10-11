@@ -10,6 +10,7 @@ import {
 import { isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
+import { resolveAndVerifyProviderMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
@@ -183,7 +184,7 @@ export async function POST(req: NextRequest) {
       modelId?: string;
     };
 
-    const inputUrl = normalizeInputUrl(req, body.inputUrl ?? "");
+    let inputUrl = normalizeInputUrl(req, body.inputUrl ?? "");
     const inputKind = body.inputKind === "video" ? "video" : "image";
     const aspectRatio = body.aspectRatio?.trim() || (inputKind === "video" ? "auto" : "16:9");
     const prompt = typeof body.prompt === "string" ? sanitizePrompt(body.prompt, 2000) : "";
@@ -198,6 +199,14 @@ export async function POST(req: NextRequest) {
 
     if (!isSafePublicHttpUrl(inputUrl)) {
       return NextResponse.json({ error: "Please provide a valid public media URL." }, { status: 400 });
+    }
+    try {
+      inputUrl = await resolveAndVerifyProviderMediaUrl(inputUrl, { userId, assetType: inputKind === "video" ? "video" : "image", label: "inputUrl" });
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return NextResponse.json({ error: err.message, code: "reference_media_unreachable" }, { status: 400 });
+      }
+      throw err;
     }
 
     if (inputKind !== "video") {
