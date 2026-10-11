@@ -76,6 +76,11 @@ describe("Provider Cost Pricing & Recency Audit Suite", () => {
     const s25_720 = estimateProviderCostSync("bytedance/seedance-2.5/image-to-video", 5, "720p");
     expect(s25_720.source).toBe("estimated");
     expect(s25_720.usd).toBe(0.90);
+
+    // 4K: WaveSpeed shows $9.00 sticker, 10% off -> $8.10 for 5s = $1.62/s
+    const s25_4k = estimateProviderCostSync("bytedance/seedance-2.5/image-to-video", 5, "4k");
+    expect(s25_4k.source).toBe("estimated");
+    expect(s25_4k.usd).toBe(8.10);
   });
 
   it("4.1. verifies WaveSpeed Alibaba Wan 3.0 source pricing tariff", () => {

@@ -20,7 +20,7 @@ const SEEDANCE_25_USD_PER_SECOND = {
   "480p": 0.162,
   "720p": 0.180,
   "1080p": 0.240,
-  "4k": 0.360,
+  "4k": 1.620,
 } as const;
 const MINIMAX_H3_CREDITS_PER_USD = 40;
 const MINIMAX_H3_MARGIN_MULTIPLIER = 1.4;
@@ -417,7 +417,7 @@ function hasNonEmptyArray(payload: VideoPayload | undefined, keys: string[]): bo
 function getSeedance25TurboCredits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
-  const q: keyof typeof SEEDANCE_25_USD_PER_SECOND = quality.includes("1080") ? "1080p" : quality.includes("480") ? "480p" : "720p";
+  const q: keyof typeof SEEDANCE_25_USD_PER_SECOND = quality.includes("4k") ? "4k" : quality.includes("1080") ? "1080p" : quality.includes("480") ? "480p" : "720p";
   const usdPerSecond = SEEDANCE_25_USD_PER_SECOND[q] ?? SEEDANCE_25_USD_PER_SECOND["720p"];
   return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_MARGIN_MULTIPLIER * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
 }

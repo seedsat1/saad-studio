@@ -245,6 +245,7 @@ describe("pricing core user charge parity", () => {
     await expect(getVideoCreditsByRouteAsync("bytedance/seedance-2.5/text-to-video-turbo", routePayload)).resolves.toBe(
       getVideoCreditsByRoute("bytedance/seedance-2.5/text-to-video-turbo", routePayload),
     );
+    expect(getVideoCreditsByRoute("bytedance/seedance-2.5/text-to-video", { duration: 5, resolution: "4k" })).toBe(453.6);
     await expect(getMusicCreditsAsync("elevenlabs/music", 60)).resolves.toBe(getMusicCredits("elevenlabs/music", 60));
   });
 
