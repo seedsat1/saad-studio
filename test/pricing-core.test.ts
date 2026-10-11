@@ -326,3 +326,76 @@ describe("pricing core user charge parity", () => {
     ).resolves.toBe(legacyCredits);
   });
 });
+
+describe("Seedance 2.5 display/server pricing parity matrix", () => {
+  const rates: Record<string, number> = {
+    "480p": 0.162,
+    "720p": 0.180,
+    "1080p": 0.240,
+    "4k": 1.620,
+  };
+  const margin = 1.4;
+  const creditsPerUsd = 40;
+  const durations = [4, 5, 10, 15, 20, 30];
+  const routeQualities: Array<{ route: string; qualities: string[]; referenceVideos: boolean }> = [
+    { route: "bytedance/seedance-2.5/text-to-video", qualities: ["480p", "720p", "1080p", "4k"], referenceVideos: true },
+    { route: "bytedance/seedance-2.5/image-to-video", qualities: ["480p", "720p", "1080p", "4k"], referenceVideos: false },
+    { route: "bytedance/seedance-2.5/text-to-video-turbo", qualities: ["720p", "1080p"], referenceVideos: true },
+    { route: "bytedance/seedance-2.5/image-to-video-turbo", qualities: ["720p", "1080p"], referenceVideos: false },
+  ];
+
+  function expectedCredits(quality: string, billableDuration: number) {
+    return parseFloat((rates[quality] * billableDuration * margin * creditsPerUsd).toFixed(2));
+  }
+
+  it("uses one customer-credit formula for every supported route, quality, and boundary duration", () => {
+    for (const { route, qualities } of routeQualities) {
+      for (const quality of qualities) {
+        for (const duration of durations) {
+          const payload = { duration, resolution: quality };
+          const displayedCredits = getVideoCreditsByRoute(route, payload);
+          const serverCredits = getVideoCreditsByRoute(route, payload);
+          expect(displayedCredits, `${route} ${quality} ${duration}s display`).toBe(expectedCredits(quality, duration));
+          expect(serverCredits, `${route} ${quality} ${duration}s server`).toBe(displayedCredits);
+        }
+      }
+    }
+  });
+
+  it("adds reference video duration only on Seedance 2.5 text/reference routes", () => {
+    const referencePayload = {
+      duration: 5,
+      resolution: "720p",
+      reference_video_urls: ["https://cdn.example/ref-a.mp4", "https://cdn.example/ref-b.mp4"],
+      reference_video_durations: [4, 6],
+    };
+
+    expect(getVideoCreditsByRoute("bytedance/seedance-2.5/text-to-video", referencePayload)).toBe(expectedCredits("720p", 15));
+    expect(getVideoCreditsByRoute("bytedance/seedance-2.5/text-to-video-turbo", referencePayload)).toBe(expectedCredits("720p", 15));
+    expect(getVideoCreditsByRoute("bytedance/seedance-2.5/image-to-video", referencePayload)).toBe(expectedCredits("720p", 5));
+    expect(getVideoCreditsByRoute("bytedance/seedance-2.5/image-to-video-turbo", referencePayload)).toBe(expectedCredits("720p", 5));
+  });
+
+  it("keeps provider discounted cost in parity with customer credits before margin", () => {
+    const estimate = estimateProviderCostSync({
+      modelRef: "bytedance/seedance-2.5/text-to-video",
+      providerName: "BytePlus",
+      providerRoute: "bytedance/seedance-2.5/text-to-video",
+      durationSec: 5,
+      resolution: "720p",
+      referenceVideoDurationSec: 10,
+    });
+    expect(estimate.usd).toBe(2.7);
+    expect(getVideoCreditsByRoute("bytedance/seedance-2.5/text-to-video", {
+      duration: 5,
+      resolution: "720p",
+      reference_video_urls: ["https://cdn.example/ref.mp4"],
+      reference_video_durations: [10],
+    })).toBe(parseFloat((2.7 * margin * creditsPerUsd).toFixed(2)));
+  });
+
+  it("rejects unsupported Turbo resolutions instead of showing a non-dispatchable price", () => {
+    expect(() => getVideoCreditsByRoute("bytedance/seedance-2.5/text-to-video-turbo", { duration: 5, resolution: "4k" })).toThrow(/Turbo only supports 720p or 1080p/);
+    expect(() => getVideoCreditsByRoute("bytedance/seedance-2.5/image-to-video-turbo", { duration: 5, resolution: "480p" })).toThrow(/Turbo only supports 720p or 1080p/);
+  });
+});

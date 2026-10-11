@@ -140,6 +140,7 @@ export const SEEDANCE_INITIAL_PRICING: Record<string, DynamicVideoModelPricingCo
 };
 
 export interface DynamicVideoModel extends WaveSpeedVideoModel {
+  provider?: "wavespeed" | "kie" | "google" | "byteplus" | string;
   isActive?: boolean;
   creditCost?: number;
   isCustom?: boolean;

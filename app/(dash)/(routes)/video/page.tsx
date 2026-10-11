@@ -2790,6 +2790,18 @@ function VideoPageInner() {
     const pricingDuration = isMotionControl
       ? (motionVideoDuration ? Math.round(motionVideoDuration) : 5)
       : (isVeo31FixedEightSecond ? 8 : (duration ?? (selectedModel.api_route === "google/gemini-omni-flash" ? 5 : isGoogleVeoModel ? 8 : 5)));
+    if (selectedModel.api_route.startsWith("bytedance/seedance-2.5")) {
+      const seedance25HasImage = Boolean(startFrame || linkedStartFrameUrl);
+      const seedance25Route = resolveSeedance25Route(selectedModel.api_route, seedance25HasImage, resolution);
+      return getVideoCreditsByRoute(seedance25Route, {
+        duration: pricingDuration,
+        resolution: resolution ?? "720p",
+        generate_audio: sound,
+        reference_video_urls: referenceImages.filter((file) => file.type.startsWith("video/")).map((_, index) => `video-${index}`),
+        reference_video_durations: referenceVideoDurations,
+      });
+    }
+
     if ((selectedModel as any).pricingConfig) {
       try {
         const res = (resolution as any) || "720p";
@@ -2803,16 +2815,6 @@ function VideoPageInner() {
       } catch {}
     }
 
-    if (selectedModel.api_route.startsWith("bytedance/seedance-2.5")) {
-      const seedance25HasImage = Boolean(startFrame || linkedStartFrameUrl);
-      const seedance25Route = resolveSeedance25Route(selectedModel.api_route, seedance25HasImage, resolution);
-      return getVideoCreditsByRoute(seedance25Route, {
-        duration: pricingDuration,
-        resolution: resolution ?? "720p",
-        generate_audio: sound,
-        reference_video_urls: referenceImages.filter((file) => file.type.startsWith("video/")).map((_, index) => `video-${index}`),
-      });
-    }
     const hasMinimaxH3EstimateImage =
       Boolean(startFrame || linkedStartFrameUrl || endFrame || linkedEndFrameUrl || selectedCharacter?.referenceUrls?.[0]);
     const hasMinimaxH3EstimateReference =
@@ -2877,20 +2879,33 @@ function VideoPageInner() {
       selectedModel.api_route.startsWith("minimax/h3") ||
       selectedModel.api_route.startsWith("wavespeed-ai/minimax-h3") ||
       selectedModel.api_route === "minimax-h3";
-    if (isMinimaxH3Submit && refVids.length > 0 && submitReferenceVideoDurations.length !== refVids.length) {
+    const isSeedance25Submit = selectedModel.api_route.startsWith("bytedance/seedance-2.5");
+    if ((isMinimaxH3Submit || isSeedance25Submit) && refVids.length > 0 && submitReferenceVideoDurations.length !== refVids.length) {
       submitReferenceVideoDurations = (await Promise.all(refVids.map(readVideoDurationSeconds)))
         .filter((duration): duration is number => typeof duration === "number" && Number.isFinite(duration) && duration > 0);
     }
+    const submitPricingDuration = isVeo31FixedEightSecond ? 8 : (duration ?? (selectedModel.api_route === "google/gemini-omni-flash" ? 5 : isGoogleVeoModel ? 8 : 5));
     const requiredCredits = isMinimaxH3Submit
       ? getVideoCreditsByRoute(
           resolveMinimaxH3Route(selectedModel.api_route, Boolean(startFrame || linkedStartFrameUrl || endFrame || linkedEndFrameUrl || selectedCharacter?.referenceUrls?.[0]), referenceImages.length > 0 || (selectedCharacter?.referenceUrls?.length ?? 0) > 0),
           {
-            duration: isVeo31FixedEightSecond ? 8 : (duration ?? (selectedModel.api_route === "google/gemini-omni-flash" ? 5 : isGoogleVeoModel ? 8 : 5)),
+            duration: submitPricingDuration,
             resolution: resolution ?? undefined,
             reference_video_durations: submitReferenceVideoDurations,
           },
         )
-      : estimatedCredits;
+      : isSeedance25Submit
+        ? getVideoCreditsByRoute(
+            resolveSeedance25Route(selectedModel.api_route, Boolean(startFrame || linkedStartFrameUrl), resolution),
+            {
+              duration: submitPricingDuration,
+              resolution: resolution ?? "720p",
+              generate_audio: sound,
+              reference_video_urls: refVids.map((_, index) => `video-${index}`),
+              reference_video_durations: submitReferenceVideoDurations,
+            },
+          )
+        : estimatedCredits;
 
     const gate = await guardGeneration({ requiredCredits, action: `video:${selectedModel.api_route}` });
     if (!gate.ok) {
@@ -3259,7 +3274,7 @@ function VideoPageInner() {
         payload.reference_video_urls = await Promise.all(
           refVids.slice(0, maxVids).map((f) => uploadVideoRequestFile(f, fetchWithAuth))
         );
-        if (isMinimaxH3Submit && submitReferenceVideoDurations.length > 0) {
+        if ((isMinimaxH3Submit || selectedModel.api_route.startsWith("bytedance/seedance-2.5")) && submitReferenceVideoDurations.length > 0) {
           payload.reference_video_durations = submitReferenceVideoDurations.slice(0, maxVids);
         }
       }

@@ -191,6 +191,8 @@ function resolveBytePlusTariff(input: ProviderCostEstimateInput): ProviderCostEs
   const modelLower = (input.providerModel || input.providerRoute || input.modelRef || "").toLowerCase();
   const q = String(input.resolution || input.quality || "720p").toLowerCase();
   const duration = Math.max(1, Number.isFinite(input.durationSec) ? Number(input.durationSec) : 5);
+  const rawReferenceVideoDuration = Math.max(0, Number.isFinite(input.referenceVideoDurationSec) ? Number(input.referenceVideoDurationSec) : 0);
+  const referenceVideoDuration = rawReferenceVideoDuration > 0 ? Math.min(30, Math.ceil(rawReferenceVideoDuration)) : 0;
   const units = Math.max(1, Math.floor(Number.isFinite(input.numUnits) ? Number(input.numUnits) : 1));
 
   // Seedance 2.5
@@ -200,7 +202,9 @@ function resolveBytePlusTariff(input: ProviderCostEstimateInput): ProviderCostEs
     const is4k = q.includes("4k");
     const rateUsd = is4k ? 1.620 : is1080 ? 0.240 : is480 ? 0.162 : 0.180;
     const resKey = is4k ? "4k" : is1080 ? "1080p" : is480 ? "480p" : "720p";
-    const totalUsd = parseFloat((rateUsd * duration * units).toFixed(4));
+    const isReferenceTextRoute = modelLower.includes("text-to-video") && !modelLower.includes("image-to-video");
+    const billableDuration = duration + (isReferenceTextRoute ? referenceVideoDuration : 0);
+    const totalUsd = parseFloat((rateUsd * billableDuration * units).toFixed(4));
     const tariffKey = `byteplus:seedance-2.5:${resKey}`;
     return {
       usd: totalUsd,

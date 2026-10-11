@@ -414,20 +414,52 @@ function hasNonEmptyArray(payload: VideoPayload | undefined, keys: string[]): bo
   });
 }
 
-function getSeedance25TurboCredits(payload?: VideoPayload): number {
-  const duration = readDuration(payload, 5);
+function getSeedance25BillableDuration(modelRoute: string, payload?: VideoPayload): number {
+  const outputDuration = readDuration(payload, 5);
+  const isTextReferenceRoute =
+    modelRoute === "bytedance/seedance-2.5/text-to-video" ||
+    modelRoute === "bytedance/seedance-2.5/text-to-video-turbo";
+  if (!isTextReferenceRoute) return outputDuration;
+
+  const referenceVideos = hasNonEmptyArray(payload, [
+    "reference_video_urls",
+    "referenceVideoUrls",
+    "reference_videos",
+    "referenceVideos",
+  ]);
+  if (!referenceVideos) return outputDuration;
+
+  const referenceVideoDuration = Math.min(30, readReferenceVideoDurationSeconds(payload, 0));
+  return outputDuration + referenceVideoDuration;
+}
+
+function getSeedance25Credits(modelRoute: string, payload?: VideoPayload): number {
   const quality = readQuality(payload);
-  const q: keyof typeof SEEDANCE_25_USD_PER_SECOND = quality.includes("4k") ? "4k" : quality.includes("1080") ? "1080p" : quality.includes("480") ? "480p" : "720p";
+  const isTurboRoute =
+    modelRoute === "bytedance/seedance-2.5/text-to-video-turbo" ||
+    modelRoute === "bytedance/seedance-2.5/image-to-video-turbo";
+  if (isTurboRoute && (quality.includes("480") || quality.includes("4k"))) {
+    throw new Error("Seedance 2.5 Turbo only supports 720p or 1080p resolution.");
+  }
+
+  const q: keyof typeof SEEDANCE_25_USD_PER_SECOND = quality.includes("4k")
+    ? "4k"
+    : quality.includes("1080")
+    ? "1080p"
+    : quality.includes("480")
+    ? "480p"
+    : "720p";
   const usdPerSecond = SEEDANCE_25_USD_PER_SECOND[q] ?? SEEDANCE_25_USD_PER_SECOND["720p"];
-  return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_MARGIN_MULTIPLIER * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
+  const billableDuration = getSeedance25BillableDuration(modelRoute, payload);
+  return parseFloat(Math.max(1, usdPerSecond * billableDuration * SEEDANCE_25_MARGIN_MULTIPLIER * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
+}
+
+function getSeedance25TurboCredits(payload?: VideoPayload): number {
+  return getSeedance25Credits("bytedance/seedance-2.5/text-to-video-turbo", payload);
 }
 
 function getSeedance25SpicyCredits(payload?: VideoPayload): number {
-  const duration = readDuration(payload, 5);
-  const quality = readQuality(payload);
-  const q: keyof typeof SEEDANCE_25_USD_PER_SECOND = quality.includes("4k") ? "4k" : quality.includes("1080") ? "1080p" : quality.includes("480") ? "480p" : "720p";
-  const usdPerSecond = SEEDANCE_25_USD_PER_SECOND[q] ?? SEEDANCE_25_USD_PER_SECOND["720p"];
-  return parseFloat(Math.max(1, usdPerSecond * duration * SEEDANCE_25_MARGIN_MULTIPLIER * SEEDANCE_25_CREDITS_PER_USD).toFixed(2));
+  return getSeedance25Credits("bytedance/seedance-2.5/image-to-video-spicy", payload);
 }
 
 function getSeedance20MiniCredits(modelRoute: string, payload?: VideoPayload): number {
@@ -699,6 +731,11 @@ function getSeedanceV15ProCredits(modelRoute: string, payload?: VideoPayload): n
 }
 
 export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayload): number {
+  if (modelRoute.startsWith("bytedance/seedance-2.5")) {
+    if (modelRoute.includes("spicy")) return getSeedance25SpicyCredits(payload);
+    return getSeedance25Credits(modelRoute, payload);
+  }
+
   const seedanceReferenceCredits = getSeedance20ReferenceVideoCredits(modelRoute, payload);
   if (seedanceReferenceCredits !== null) return seedanceReferenceCredits;
   const seedanceV15Credits = getSeedanceV15ProCredits(modelRoute, payload);
@@ -719,6 +756,11 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
 }
 
 export async function getVideoCreditsByRouteAsync(modelRoute: string, payload?: VideoPayload): Promise<number> {
+  if (modelRoute.startsWith("bytedance/seedance-2.5")) {
+    if (modelRoute.includes("spicy")) return getSeedance25SpicyCredits(payload);
+    return getSeedance25Credits(modelRoute, payload);
+  }
+
   if (modelRoute.startsWith("minimax/h3") || modelRoute.startsWith("wavespeed-ai/minimax-h3") || modelRoute === "minimax-h3") {
     return getMinimaxH3Credits(payload, undefined, modelRoute);
   }
