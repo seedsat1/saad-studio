@@ -51,6 +51,41 @@ describe("Seedance reference video routing", () => {
     }
   });
 
+
+  it("repairs stale dynamic Seedance 2.5 Turbo labels so the standard model keeps all four qualities", () => {
+    const normalized = normalizeDynamicVideoModels([
+      {
+        id: "bytedance-seedance-v25-t2v-turbo",
+        name: "Seedance 2.5",
+        api_route: "bytedance/seedance-2.5/text-to-video-turbo",
+        family: "seedance",
+        family_label: "Bytedance",
+        family_color: "#10b981",
+        capabilities: {
+          aspect_ratios: ["16:9", "9:16"],
+          sizes: [],
+          durations: [5, 10],
+          resolutions: ["720p", "1080p"],
+          quality_param: "resolution",
+          max_reference_images: 30,
+          max_reference_videos: 10,
+          max_reference_video_total_seconds: 30,
+          max_reference_audios: 10,
+          max_reference_audio_total_seconds: 30,
+          has_sound: true,
+          has_seed: false,
+        },
+      } as any,
+    ]);
+
+    const standard = normalized.find((model) => model.id === "bytedance-seedance-v25-t2v");
+    const turbo = normalized.find((model) => model.id === "bytedance-seedance-v25-t2v-turbo");
+
+    expect(standard?.name).toBe("Seedance 2.5");
+    expect(standard?.capabilities.resolutions).toEqual(["480p", "720p", "1080p", "4k"]);
+    expect(turbo?.name).toBe("Seedance 2.5 Turbo");
+    expect(turbo?.capabilities.resolutions).toEqual(["720p", "1080p"]);
+  });
   it("keeps Seedance 2.5 reference media on the text/reference route", () => {
     const seedance25 = VIDEO_MODEL_REGISTRY.find((model) => model.id === "bytedance-seedance-v25-t2v-turbo");
     expect(seedance25).toBeDefined();

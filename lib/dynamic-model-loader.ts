@@ -245,11 +245,17 @@ function mergeWan30AdminCapabilities(
   };
 }
 
+function isSeedance25CanonicalCard(id: string): boolean {
+  return id === "bytedance-seedance-v25-t2v" || id === "bytedance-seedance-v25-t2v-turbo";
+}
+
 function mergeCuratedVideoModel(curated: WaveSpeedVideoModel, existing?: DynamicVideoModel): DynamicVideoModel {
   const group = existing?.group ?? (curated as any).group ?? curated.family_label ?? curated.family ?? "Video Models";
   const familyColor = existing?.family_color ?? existing?.color ?? curated.family_color ?? "#8b5cf6";
   const familySlug = group.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  const name = existing?.name ?? (existing as any)?.label ?? curated.name;
+  const name = isSeedance25CanonicalCard(curated.id)
+    ? curated.name
+    : existing?.name ?? (existing as any)?.label ?? curated.name;
   const capabilities = curated.id === "alibaba-wan-3.0-video"
     ? mergeWan30AdminCapabilities(curated.capabilities, existing?.capabilities)
     : curated.capabilities;
@@ -965,3 +971,4 @@ export function resolveDynamicVideoSubRoute(
 
   return model.api_route?.trim() || model.text_api_route?.trim() || model.image_api_route?.trim() || model.reference_api_route?.trim() || model.video_api_route?.trim() || "";
 }
+
