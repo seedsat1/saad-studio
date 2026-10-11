@@ -1522,7 +1522,9 @@ function VideoPageInner() {
   // Detected aspect ratio of the uploaded start frame (Kling 3.0 i2v auto-adapts to this)
   const [startFrameRatio, setStartFrameRatio] = useState<string | null>(null);
   const referencePreviewUrlMapRef = useRef<Map<File, string>>(new Map());
-  const referencePreviews = useMemo(() => {
+  const [referencePreviews, setReferencePreviews] = useState<string[]>([]);
+
+  useEffect(() => {
     const map = referencePreviewUrlMapRef.current;
     const active = new Set(referenceImages);
 
@@ -1533,14 +1535,16 @@ function VideoPageInner() {
       }
     }
 
-    return referenceImages.map((file) => {
-      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) return "";
-      const existing = map.get(file);
-      if (existing) return existing;
-      const url = URL.createObjectURL(file);
-      map.set(file, url);
-      return url;
-    });
+    setReferencePreviews(
+      referenceImages.map((file) => {
+        if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) return "";
+        const existing = map.get(file);
+        if (existing) return existing;
+        const url = URL.createObjectURL(file);
+        map.set(file, url);
+        return url;
+      })
+    );
   }, [referenceImages]);
 
   useEffect(() => {
@@ -4156,6 +4160,7 @@ function VideoPageInner() {
                           src={previewSrc}
                           alt={ref.tag}
                           className="w-5 h-5 rounded object-cover border border-cyan-500/30"
+                          onError={(event) => { event.currentTarget.style.display = "none"; }}
                         />
                       ) : isVideo && previewSrc ? (
                         <video
@@ -4166,7 +4171,7 @@ function VideoPageInner() {
                         />
                       ) : (
                         <span className="flex w-5 h-5 items-center justify-center rounded border border-cyan-500/30 bg-cyan-500/10">
-                          {isVideo ? <Film size={12} /> : <Music2 size={12} />}
+                          {isVideo ? <Film size={12} /> : isImage ? <ImageIcon size={12} /> : <Music2 size={12} />}
                         </span>
                       )}
                       <span className="font-mono text-[10px]">{ref.label}</span>
@@ -4724,7 +4729,7 @@ function VideoPageInner() {
                     return (
                       <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-white/5 bg-black/40 group">
                         {isImage && src && (
-                          <img src={src} alt={file.name} className="w-full h-full object-cover" />
+                          <img src={src} alt={file.name} className="w-full h-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
                         )}
                         {isVideo && src && (
                           <video src={src} className="w-full h-full object-cover" muted playsInline />
@@ -7579,7 +7584,7 @@ function VideoPageInner() {
                           <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black/40">
                             {f.type.startsWith("image/") ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={referencePreviews[idx] || ""} alt="Ref preview" className="w-full h-full object-cover" />
+                              <img src={referencePreviews[idx] || ""} alt="Ref preview" className="w-full h-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-white/70">
                                 {f.type.startsWith("video/") ? "VID" : "AUD"}

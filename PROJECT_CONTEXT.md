@@ -16427,3 +16427,8 @@
 - Preserved: no pricing, credits, spendCredits, ledger, auth, provider key, or model route changes. No paid provider generation was executed.
 - Verification: targeted Vitest passed 24/24 across `test/hailuo-contract.test.ts`, `test/minimax-h3-pricing-crash.test.ts`, and `test/model-capability-badges.test.ts`. `npm run build` passed with the existing Next dynamic-server and Browserslist/Tailwind warnings.
 - Remaining: commit/push only if explicitly requested.
+
+## 2026-10-12 — إصلاح معاينات صور الريفرنس في صفحة الفيديو
+- صفحة `/video` لم تعد تنشئ أو تلغي روابط `blob:` لمعاينات صور/فيديو الريفرنس أثناء render. إدارة روابط المعاينة انتقلت إلى effect مرتبط بقائمة الملفات، وتُلغى الروابط فقط عند حذف الملف أو إغلاق الصفحة.
+- هذا يمنع أخطاء `blob:... ERR_FILE_NOT_FOUND` وأيقونات الصور المكسورة في شبكة المراجع وشرائح إدراج الوسوم مثل `@Image1`.
+- لا تغيّر في رفع الملفات أو التخزين أو التسعير أو الكريديت أو provider payload.
