@@ -48,6 +48,9 @@ const isPublicRoute = createRouteMatcher([
   '/api/maintenance(.*)',
   '/api/layouts(.*)',
   '/api/content(.*)',
+  // Voice samples are generated/cached as public catalogue previews and do
+  // not belong to the authenticated, credit-charged generation flow.
+  '/api/voice-sample(.*)',
   '/api/generate(.*)',
   '/api/cinema(.*)',
   '/api/editor/credits(.*)',
@@ -262,6 +265,7 @@ export default clerkMiddleware(async (auth, req) => {
     const shotsUrl = new URL("/shots", req.url);
     return applySecurityHeaders(NextResponse.redirect(shotsUrl, 301), req);
   }
+
 
   const slug = getCmsSlugFromPath(pathname);
   const isLocalDev = isLocalDevRequest(req);
