@@ -50,7 +50,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/content(.*)',
   // Voice samples are generated/cached as public catalogue previews and do
   // not belong to the authenticated, credit-charged generation flow.
-  '/api/voice-sample(.*)',
+  '/api/voice-sample',
+  '/api/voice-sample/(.*)',
   '/api/generate(.*)',
   '/api/cinema(.*)',
   '/api/editor/credits(.*)',
