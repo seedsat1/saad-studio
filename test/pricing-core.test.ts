@@ -258,6 +258,14 @@ describe("pricing core user charge parity", () => {
     expect(getVideoCreditsByRoute("alibaba/wan-3.0/reference-to-video", { duration: 2, resolution: "1080p" })).toBe(31.36);
   });
 
+  it("keeps Hyper3D Rodin 2 3D routes billable through the legacy API resolver", async () => {
+    invalidatePricingCache();
+
+    await expect(getGenerationCost("hyper3d-rodin-2.image", 5, 1)).resolves.toBe(40);
+    await expect(getGenerationCost("hyper3d-rodin-2.text", 5, 1)).resolves.toBe(40);
+    expect(getGenerationCostSync("hyper3d-rodin-2.image", 5, 1)).toBe(40);
+  });
+
   it("keeps direct provider video dispatch pricing in parity with the previous sync helper when DB is unavailable", async () => {
     invalidatePricingCache();
 

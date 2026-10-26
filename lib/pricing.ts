@@ -264,6 +264,8 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "hunyuan3d-3.sketch":       "hunya3",
   "meshy-6.text":             "meshy6",
   "meshy-6.image":            "meshy6",
+  "hyper3d-rodin-2.text":     "hyper3d_rodin_2",
+  "hyper3d-rodin-2.image":    "hyper3d_rodin_2",
 
   // â”€â”€ Music â€” app/api/music â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   "wavespeed-ai/ace-step-1.5":              "music_gen",
@@ -903,6 +905,13 @@ function resolveSpecialUserCharge(
   numUnits: number,
   quality?: string | null,
 ): number | null {
+  // Hyper3D Rodin 2 is a flat-billed 3D route. Keep it in the same
+  // resolver used by /api/3d so a missing legacy DB row cannot turn a
+  // configured UI price into a zero-credit rejection.
+  if (modelRef === "hyper3d-rodin-2.text" || modelRef === "hyper3d-rodin-2.image") {
+    return 40 * Math.max(1, numUnits);
+  }
+
   const googleVideoCredits = getGoogleVideoCredits(modelRef, durationSec, numUnits, quality);
   if (googleVideoCredits !== null) return googleVideoCredits;
 
